@@ -1,0 +1,268 @@
+{
+  "projectName": "permission-aware-rag",
+  "environment": "production",
+  "region": "us-east-1",
+  "computeType": "all",
+  "description": "Nova Multimodal Embeddings統合設定例（全コンピュートタイプ対応）",
+  
+  "novaMultimodalEmbeddings": {
+    "enabled": true,
+    "modelId": "amazon.nova-embed-multimodal-v1",
+    "region": "us-east-1",
+    "defaultDimensions": 1024,
+    "supportedDimensions": [256, 384, 1024, 3072],
+    "features": {
+      "textEmbedding": true,
+      "imageEmbedding": true,
+      "videoEmbedding": true,
+      "audioEmbedding": true,
+      "documentEmbedding": true,
+      "segmentation": true,
+      "crossModalRetrieval": true
+    },
+    "limits": {
+      "maxContextLength": 8192,
+      "maxVideoSegmentSeconds": 30,
+      "maxFileSize": "25MB",
+      "maxS3FileSize": "2GB",
+      "maxFilesPerBatch": 1000
+    },
+    "supportedFormats": {
+      "images": ["png", "jpg", "jpeg", "gif", "webp"],
+      "videos": ["mp4", "mov", "mkv", "webm", "flv", "mpeg", "mpg", "wmv", "3gp"],
+      "audio": ["mp3", "wav", "flac", "aac", "m4a"],
+      "documents": ["pdf", "docx", "txt", "md", "csv", "xlsx", "html"]
+    }
+  },
+
+  "bedrock": {
+    "region": "us-east-1",
+    "models": {
+      "embedding": {
+        "primary": "amazon.nova-embed-multimodal-v1",
+        "fallback": "amazon.titan-embed-text-v1"
+      },
+      "textGeneration": {
+        "primary": "amazon.nova-pro-v1:0",
+        "fallback": "amazon.titan-text-express-v1"
+      }
+    },
+    "timeout": {
+      "embedding": 300,
+      "textGeneration": 180
+    },
+    "retryPolicy": {
+      "maxRetries": 3,
+      "backoffMultiplier": 2
+    }
+  },
+
+  "vectorDatabases": {
+    "opensearchServerless": {
+      "enabled": true,
+      "mode": "create",
+      "create": {
+        "collectionName": "nova-multimodal-embeddings",
+        "indexName": "multimodal-index",
+        "vectorDimensions": 1024,
+        "vectorField": "embedding_vector",
+        "textField": "text_content",
+        "metadataField": "metadata",
+        "encryptionPolicy": {
+          "enabled": true,
+          "kmsKeyId": "alias/aws/aoss"
+        },
+        "networkPolicy": {
+          "type": "Public",
+          "allowedCIDRs": ["0.0.0.0/0"]
+        },
+        "dataAccessPolicy": {
+          "rules": [
+            {
+              "resource": "collection/nova-multimodal-embeddings",
+              "permission": ["aoss:CreateIndex", "aoss:DescribeIndex", "aoss:ReadDocument", "aoss:WriteDocument", "aoss:UpdateDocument", "aoss:DeleteDocument"]
+            }
+          ]
+        }
+      }
+    }
+  },
+
+  "storage": {
+    "s3": {
+      "buckets": {
+        "documents": {
+          "name": "nova-multimodal-documents",
+          "versioning": true,
+          "encryption": {
+            "type": "SSE-S3"
+          }
+        },
+        "embeddings": {
+          "name": "nova-multimodal-embeddings",
+          "versioning": true,
+          "encryption": {
+            "type": "SSE-S3"
+          }
+        },
+        "media": {
+          "name": "nova-multimodal-media",
+          "versioning": true,
+          "encryption": {
+            "type": "SSE-S3"
+          }
+        }
+      },
+      "lifecycleRules": {
+        "transitionToIA": 30,
+        "transitionToGlacier": 90,
+        "deleteAfter": 2555
+      }
+    }
+  },
+
+  "compute": {
+    "batch": {
+      "enabled": true,
+      "jobQueue": {
+        "name": "nova-multimodal-processing-queue",
+        "priority": 100,
+        "state": "ENABLED"
+      },
+      "jobDefinitions": {
+        "multimodalEmbedding": {
+          "name": "nova-multimodal-embedding-job",
+          "type": "container",
+          "timeout": 3600,
+          "retryAttempts": 3,
+          "containerProperties": {
+            "image": "nova-multimodal-processor:latest",
+            "vcpus": 2,
+            "memory": 4096,
+            "environment": [
+              {
+                "name": "NOVA_MULTIMODAL_REGION",
+                "value": "us-east-1"
+              },
+              {
+                "name": "NOVA_MULTIMODAL_MODEL_ID",
+                "value": "amazon.nova-embed-multimodal-v1"
+              },
+              {
+                "name": "DEFAULT_DIMENSIONS",
+                "value": "1024"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "spotFleet": {
+      "enabled": true,
+      "targetCapacity": 3,
+      "maxCapacity": 20,
+      "instanceTypes": ["c5.xlarge", "c5.2xlarge", "m5.xlarge", "m5.2xlarge"],
+      "allocationStrategy": "diversified",
+      "spotPrice": "0.10"
+    },
+    "ecs": {
+      "enabled": true,
+      "clusterName": "nova-multimodal-cluster",
+      "serviceName": "nova-multimodal-service",
+      "desiredCount": 3,
+      "maxCapacity": 20,
+      "minCapacity": 2,
+      "cpu": 4096,
+      "memoryMiB": 8192,
+      "enableSpotInstances": false,
+      "enableAutoScaling": true
+    }
+  },
+
+  "monitoring": {
+    "cloudWatch": {
+      "logGroups": {
+        "novaMultimodal": "/aws/lambda/nova-multimodal-embeddings",
+        "batchJobs": "/aws/batch/nova-multimodal-jobs"
+      },
+      "metrics": {
+        "namespace": "NovaMultimodal/Embeddings",
+        "dimensions": ["ContentType", "Dimensions", "Region"]
+      },
+      "alarms": {
+        "embeddingErrors": {
+          "threshold": 10,
+          "period": 300,
+          "evaluationPeriods": 2
+        },
+        "processingLatency": {
+          "threshold": 30000,
+          "period": 300,
+          "evaluationPeriods": 3
+        }
+      }
+    }
+  },
+
+  "security": {
+    "iam": {
+      "roles": {
+        "novaMultimodalExecution": {
+          "policies": [
+            "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            "arn:aws:iam::aws:policy/AmazonBedrockFullAccess"
+          ],
+          "customPolicies": [
+            {
+              "name": "NovaMultimodalS3Access",
+              "statements": [
+                {
+                  "effect": "Allow",
+                  "actions": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject"
+                  ],
+                  "resources": [
+                    "arn:aws:s3:::nova-multimodal-*/*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "kms": {
+      "keys": {
+        "novaMultimodal": {
+          "description": "Nova Multimodal Embeddings encryption key",
+          "keyUsage": "ENCRYPT_DECRYPT",
+          "keySpec": "SYMMETRIC_DEFAULT"
+        }
+      }
+    }
+  },
+
+  "costOptimization": {
+    "autoScaling": {
+      "enabled": true,
+      "minCapacity": 1,
+      "maxCapacity": 100,
+      "targetUtilization": 70
+    },
+    "scheduling": {
+      "batchProcessing": {
+        "enabled": true,
+        "schedule": "cron(0 2 * * ? *)",
+        "timezone": "UTC"
+      }
+    },
+    "resourceTagging": {
+      "Project": "NovaMultimodalRAG",
+      "Environment": "Production",
+      "CostCenter": "AI-ML",
+      "Owner": "DataScience"
+    }
+  }
+}

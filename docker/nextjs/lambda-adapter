@@ -1,0 +1,11 @@
+#!/bin/bash
+# AWS Lambda Web Adapter
+# This script starts the Next.js server and forwards requests
+
+export PORT=${PORT:-3000}
+export AWS_LWA_PORT=${AWS_LWA_PORT:-3000}
+export AWS_LWA_READINESS_CHECK_PATH=${AWS_LWA_READINESS_CHECK_PATH:-/api/health}
+
+# Start Next.js server
+cd /var/task
+exec node server.js

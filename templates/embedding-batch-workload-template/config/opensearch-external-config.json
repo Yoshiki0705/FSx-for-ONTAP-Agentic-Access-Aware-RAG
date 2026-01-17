@@ -1,0 +1,178 @@
+{
+  "projectName": "embedding-opensearch-test",
+  "environment": "dev",
+  "region": "ap-northeast-1",
+  "version": "1.0.0",
+  "aws": {
+    "account": "178625946981",
+    "profile": "default"
+  },
+  "stackNaming": {
+    "useAgentSteeringRules": true,
+    "regionPrefix": "TokyoRegion",
+    "stackPrefix": "embedding-opensearch"
+  },
+  "bedrock": {
+    "embeddingModel": {
+      "modelId": "amazon.titan-embed-text-v1",
+      "dimensions": 1536,
+      "maxTokens": 8192
+    },
+    "textModel": {
+      "modelId": "amazon.nova-pro-v1:0",
+      "maxTokens": 4096,
+      "temperature": 0.1
+    },
+    "region": "us-east-1"
+  },
+  "vpc": {
+    "mode": "existing",
+    "existing": {
+      "vpcId": "vpc-placeholder",
+      "privateSubnetIds": ["subnet-placeholder"]
+    }
+  },
+  "fsx": {
+    "mode": "existing",
+    "existing": {
+      "fileSystemId": "fs-0efd9429aa9ba839a",
+      "volumePath": "/rag-data",
+      "mountPoint": "/mnt/fsx-rag-data"
+    }
+  },
+  "batch": {
+    "computeEnvironment": {
+      "maxvCpus": 100,
+      "minvCpus": 0,
+      "desiredvCpus": 5,
+      "instanceTypes": ["m5.large"],
+      "useSpotInstances": true,
+      "spotBidPercentage": 50
+    },
+    "jobQueue": {
+      "priority": 100
+    },
+    "jobDefinitions": {
+      "documentProcessing": {
+        "vcpus": 2,
+        "memoryMiB": 4096,
+        "timeoutSeconds": 3600,
+        "retryAttempts": 2
+      },
+      "embeddingGeneration": {
+        "vcpus": 4,
+        "memoryMiB": 8192,
+        "timeoutSeconds": 7200,
+        "retryAttempts": 3
+      },
+      "ragQueryProcessing": {
+        "vcpus": 4,
+        "memoryMiB": 8192,
+        "timeoutSeconds": 3600,
+        "retryAttempts": 2
+      }
+    }
+  },
+  "storage": {
+    "s3": {
+      "enableVersioning": true,
+      "enableEncryption": true
+    },
+    "dynamodb": {
+      "billingMode": "PAY_PER_REQUEST",
+      "enablePointInTimeRecovery": true,
+      "enableEncryption": true
+    }
+  },
+  "vectorDatabases": {
+    "opensearch": {
+      "enabled": true,
+      "mode": "external",
+      "external": {
+        "domainEndpoint": "https://None",
+        "domainName": "embedding-vector-search",
+        "indexName": "embeddings",
+        "authentication": {
+          "type": "basic",
+          "username": "embedding_admin",
+          "passwordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:178625946981:secret:opensearch-master-password"
+        }
+      }
+    }
+  },
+  "monitoring": {
+    "cloudWatch": {
+      "enableDetailedMonitoring": true,
+      "createDashboard": false,
+      "logRetentionDays": 30,
+      "enableInsights": false
+    },
+    "alerting": {
+      "enableAlerts": false,
+      "emailEndpoints": []
+    },
+    "xray": {
+      "enableTracing": false,
+      "samplingRate": 0.1
+    }
+  },
+  "security": {
+    "iam": {
+      "enableMFA": false
+    },
+    "network": {
+      "enableWAF": false,
+      "allowedCIDRs": ["10.0.0.0/8"],
+      "enableVPCFlowLogs": false
+    },
+    "encryption": {
+      "enableKMSEncryption": true,
+      "enableS3Encryption": true,
+      "enableDynamoDBEncryption": true
+    },
+    "compliance": {
+      "enableGuardDuty": false,
+      "enableSecurityHub": false,
+      "enableConfig": false,
+      "enableCloudTrail": false
+    }
+  },
+  "costOptimization": {
+    "autoScaling": {
+      "enableAutoScaling": false
+    },
+    "resourceTagging": {
+      "costCenter": "ai-research",
+      "project": "embedding-opensearch-test",
+      "owner": "data-engineering-team",
+      "environment": "dev"
+    },
+    "budgets": {
+      "enableBudgetAlerts": false
+    }
+  },
+  "development": {
+    "debugging": {
+      "enableDebugLogs": true,
+      "enableVerboseOutput": true,
+      "enablePerformanceMetrics": true
+    },
+    "testing": {
+      "enableTestMode": true,
+      "mockExternalServices": false
+    },
+    "deployment": {
+      "enableHotswap": false,
+      "enableRollback": true,
+      "deploymentTimeout": 45
+    }
+  },
+  "features": {
+    "enableDocumentProcessing": true,
+    "enableEmbeddingGeneration": true,
+    "enableRagQueryProcessing": true,
+    "enablePermissionFiltering": true,
+    "enableMultiLanguageSupport": false,
+    "enableAdvancedAnalytics": false
+  }
+}

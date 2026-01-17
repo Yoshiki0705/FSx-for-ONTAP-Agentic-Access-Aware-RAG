@@ -1,0 +1,50 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "embedding-workload"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "PrivateSubnetIds",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "FsxFileSystemId",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "BedrockRegion",
+    "ParameterValue": "us-east-1"
+  },
+  {
+    "ParameterKey": "BedrockModelId",
+    "ParameterValue": "amazon.titan-embed-text-v1"
+  },
+  {
+    "ParameterKey": "EnableAutoRemediation",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableEscalation",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "AlertContactEmail",
+    "ParameterValue": "ops@company.com"
+  },
+  {
+    "ParameterKey": "SlackWebhookUrl",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "PagerDutyIntegrationKey",
+    "ParameterValue": ""
+  }
+]

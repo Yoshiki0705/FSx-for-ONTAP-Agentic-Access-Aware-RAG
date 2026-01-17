@@ -1,0 +1,33 @@
+{
+  "testing": {
+    "defaultRegion": "us-east-1",
+    "defaultDimensions": 1024,
+    "logLevel": "INFO",
+    "timeout": {
+      "lambdaInvoke": 30,
+      "healthCheck": 10
+    },
+    "retry": {
+      "maxAttempts": 3,
+      "backoffMultiplier": 2
+    },
+    "supportedDimensions": [256, 384, 1024, 3072],
+    "supportedTestTypes": ["text", "image", "video", "audio", "document", "all"],
+    "supportedRegions": [
+      "us-east-1",
+      "us-west-2",
+      "eu-west-1",
+      "ap-northeast-1"
+    ]
+  },
+  "novaMultimodal": {
+    "modelId": "amazon.nova-embed-multimodal-v1",
+    "maxContextLength": 8192,
+    "supportedFormats": {
+      "image": ["png", "jpg", "jpeg", "gif", "webp"],
+      "video": ["mp4", "mov", "mkv", "webm"],
+      "audio": ["mp3", "wav", "flac", "aac"],
+      "document": ["pdf", "docx", "txt", "md"]
+    }
+  }
+}

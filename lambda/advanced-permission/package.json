@@ -1,0 +1,9 @@
+{
+  "name": "advanced-permission-lambda",
+  "version": "1.0.0",
+  "description": "高度権限制御Lambda関数",
+  "main": "permission-filter.js",
+  "dependencies": {
+    "aws-sdk": "^2.1000.0"
+  }
+}

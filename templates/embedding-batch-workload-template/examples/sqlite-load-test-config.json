@@ -1,0 +1,15 @@
+{
+  "projectName": "sqlite-embedding-batch",
+  "environment": "dev",
+  "region": "ap-northeast-1",
+  "vpc": {
+    "create": false,
+    "vpcId": "vpc-09aa251d6db52b1fc",
+    "privateSubnetIds": ["subnet-0a84a16a1641e970f", "subnet-0c4599b4863ff4d33"],
+    "publicSubnetIds": ["subnet-06a00a8866d09b912", "subnet-0d7c7e43c1325cd3b"]
+  },
+  "fsx": {
+    "create": false,
+    "fileSystemId": "fs-0efd9429aa9ba839a",
+    "svmId": "svm-01b48eb910be1c588",
+    "volumeId

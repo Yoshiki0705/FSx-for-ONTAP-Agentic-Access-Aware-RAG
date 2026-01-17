@@ -1,0 +1,570 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudWatch Monitoring Dashboard for Embedding Batch Workload'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Name of the project
+    Default: embedding-batch-workload
+  
+  Environment:
+    Type: String
+    Description: Environment name
+    Default: production
+    AllowedValues: [development, staging, production]
+  
+  JobQueueName:
+    Type: String
+    Description: Name of the Batch job queue
+  
+  ComputeEnvironmentName:
+    Type: String
+    Description: Name of the Batch compute environment
+  
+  FsxFileSystemId:
+    Type: String
+    Description: FSx file system ID
+  
+  S3BucketName:
+    Type: String
+    Description: S3 bucket name for data storage
+  
+  DynamoDbTableName:
+    Type: String
+    Description: DynamoDB table name for metadata
+  
+  AlertEmail:
+    Type: String
+    Description: Email address for alerts
+    Default: ""
+  
+  AlertSms:
+    Type: String
+    Description: SMS number for critical alerts
+    Default: ""
+  
+  EnableCostMonitoring:
+    Type: String
+    Description: Enable cost monitoring widgets
+    Default: "true"
+    AllowedValues: ["true", "false"]
+  
+  EnableSecurityMonitoring:
+    Type: String
+    Description: Enable security monitoring widgets
+    Default: "true"
+    AllowedValues: ["true", "false"]
+
+Conditions:
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
+  HasAlertSms: !Not [!Equals [!Ref AlertSms, ""]]
+  EnableCostWidgets: !Equals [!Ref EnableCostMonitoring, "true"]
+  EnableSecurityWidgets: !Equals [!Ref EnableSecurityMonitoring, "true"]
+
+Resources:
+  # SNS Topics for Alerts
+  CriticalAlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${ProjectName}-${Environment}-critical-alarms"
+      DisplayName: "Critical Alarms"
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  WarningAlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${ProjectName}-${Environment}-warning-alarms"
+      DisplayName: "Warning Alarms"
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Email Subscriptions
+  CriticalEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail
+    Properties:
+      Protocol: email
+      TopicArn: !Ref CriticalAlarmTopic
+      Endpoint: !Ref AlertEmail
+
+  WarningEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail
+    Properties:
+      Protocol: email
+      TopicArn: !Ref WarningAlarmTopic
+      Endpoint: !Ref AlertEmail
+
+  # SMS Subscription for Critical Alerts
+  CriticalSmsSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertSms
+    Properties:
+      Protocol: sms
+      TopicArn: !Ref CriticalAlarmTopic
+      Endpoint: !Ref AlertSms
+
+  # CloudWatch Alarms
+  JobFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-job-failure-rate"
+      AlarmDescription: "High job failure rate detected"
+      MetricName: FailedJobs
+      Namespace: AWS/Batch
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: JobQueue
+          Value: !Ref JobQueueName
+      AlarmActions:
+        - !Ref CriticalAlarmTopic
+      TreatMissingData: notBreaching
+
+  FsxAvailabilityAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-fsx-unavailable"
+      AlarmDescription: "FSx file system is unavailable"
+      MetricName: ClientConnections
+      Namespace: AWS/FSx
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: FileSystemId
+          Value: !Ref FsxFileSystemId
+      AlarmActions:
+        - !Ref CriticalAlarmTopic
+      TreatMissingData: breaching
+
+  HighCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-high-cpu"
+      AlarmDescription: "High CPU utilization in compute environment"
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Sub "${ComputeEnvironmentName}-asg"
+      AlarmActions:
+        - !Ref WarningAlarmTopic
+
+  JobBacklogAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-job-backlog"
+      AlarmDescription: "Jobs are backing up in the queue"
+      MetricName: RunnableJobs
+      Namespace: AWS/Batch
+      Statistic: Average
+      Period: 600
+      EvaluationPeriods: 2
+      Threshold: 50
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: JobQueue
+          Value: !Ref JobQueueName
+      AlarmActions:
+        - !Ref WarningAlarmTopic
+
+  # Main Monitoring Dashboard
+  MonitoringDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${ProjectName}-${Environment}-monitoring"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 2,
+              "properties": {
+                "markdown": "# 📊 ${ProjectName} Monitoring Dashboard\n\n**Environment:** ${Environment}  \n**Last Updated:** ${AWS::StackName} - ${AWS::Region}"
+              }
+            },
+            {
+              "type": "text",
+              "x": 0,
+              "y": 2,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "## 🎯 Key Performance Indicators"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 3,
+              "width": 6,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Batch", "RunningJobs", "JobQueue", "${JobQueueName}" ]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "Running Jobs",
+                "view": "singleValue"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 6,
+              "y": 3,
+              "width": 6,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ { "expression": "(m1 / (m1 + m2)) * 100", "label": "Success Rate", "id": "e1" } ],
+                  [ "AWS/Batch", "CompletedJobs", "JobQueue", "${JobQueueName}", { "id": "m1", "visible": false } ],
+                  [ ".", "FailedJobs", ".", ".", { "id": "m2", "visible": false } ]
+                ],
+                "period": 3600,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Job Success Rate (%)",
+                "view": "singleValue"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 3,
+              "width": 6,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ { "expression": "m1 / 60", "label": "Avg Duration", "id": "e1" } ],
+                  [ "AWS/Batch", "JobDuration", "JobQueue", "${JobQueueName}", { "id": "m1", "visible": false } ]
+                ],
+                "period": 3600,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "Average Job Duration (min)",
+                "view": "singleValue"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 18,
+              "y": 3,
+              "width": 6,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Batch", "RunningCapacity", "ComputeEnvironment", "${ComputeEnvironmentName}" ]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "Active Compute Capacity",
+                "view": "singleValue"
+              }
+            },
+            {
+              "type": "text",
+              "x": 0,
+              "y": 9,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "## 🔄 Batch Job Monitoring"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 10,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Batch", "SubmittedJobs", "JobQueue", "${JobQueueName}" ],
+                  [ ".", "RunnableJobs", ".", "." ],
+                  [ ".", "RunningJobs", ".", "." ],
+                  [ ".", "CompletedJobs", ".", "." ],
+                  [ ".", "FailedJobs", ".", "." ]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Job Status Trends"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 10,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Batch", "RunnableJobs", "JobQueue", "${JobQueueName}" ]
+                ],
+                "period": 300,
+                "stat": "Maximum",
+                "region": "${AWS::Region}",
+                "title": "Job Queue Depth"
+              }
+            },
+            {
+              "type": "text",
+              "x": 0,
+              "y": 16,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "## 🏗️ Infrastructure Monitoring"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 17,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/FSx", "DataReadBytes", "FileSystemId", "${FsxFileSystemId}" ],
+                  [ ".", "DataWriteBytes", ".", "." ],
+                  [ ".", "TotalIOTime", ".", ".", { "yAxis": "right" } ]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "FSx Performance"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 17,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/S3", "NumberOfObjects", "BucketName", "${S3BucketName}", "StorageType", "AllStorageTypes" ],
+                  [ ".", "BucketSizeBytes", ".", ".", ".", "StandardStorage", { "yAxis": "right" } ]
+                ],
+                "period": 3600,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "S3 Operations"
+              }
+            },
+            {
+              "type": "text",
+              "x": 0,
+              "y": 23,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "## ⚡ Performance & Resource Utilization"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 24,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "${ComputeEnvironmentName}-asg" ],
+                  [ ".", "NetworkIn", ".", ".", { "yAxis": "right" } ],
+                  [ ".", "NetworkOut", ".", ".", { "yAxis": "right" } ]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "EC2 Resource Utilization"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 24,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "${DynamoDbTableName}" ],
+                  [ ".", "ConsumedWriteCapacityUnits", ".", "." ],
+                  [ ".", "SuccessfulRequestLatency", ".", ".", "Operation", "Query", { "yAxis": "right" } ]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "DynamoDB Performance"
+              }
+            }
+          ]
+        }
+
+  # Cost Monitoring Dashboard (Conditional)
+  CostMonitoringDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Condition: EnableCostWidgets
+    Properties:
+      DashboardName: !Sub "${ProjectName}-${Environment}-cost-monitoring"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 2,
+              "properties": {
+                "markdown": "# 💰 Cost Monitoring Dashboard\n\n**Project:** ${ProjectName}  \n**Environment:** ${Environment}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 2,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Billing", "EstimatedCharges", "Currency", "USD" ]
+                ],
+                "period": 21600,
+                "stat": "Maximum",
+                "region": "us-east-1",
+                "title": "Daily Estimated Charges"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 2,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/Billing", "EstimatedCharges", "Currency", "USD", "ServiceName", "AmazonEC2" ],
+                  [ "...", "AmazonS3" ],
+                  [ "...", "AmazonDynamoDB" ],
+                  [ "...", "AmazonFSx" ]
+                ],
+                "period": 21600,
+                "stat": "Maximum",
+                "region": "us-east-1",
+                "title": "Service Cost Breakdown"
+              }
+            }
+          ]
+        }
+
+  # Security Monitoring Dashboard (Conditional)
+  SecurityMonitoringDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Condition: EnableSecurityWidgets
+    Properties:
+      DashboardName: !Sub "${ProjectName}-${Environment}-security-monitoring"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 2,
+              "properties": {
+                "markdown": "# 🔒 Security Monitoring Dashboard\n\n**Project:** ${ProjectName}  \n**Environment:** ${Environment}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 2,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/CloudTrail", "ErrorCount" ]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "API Call Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 2,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/VPC", "PacketsDropped" ]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "VPC Flow Logs - Dropped Packets"
+              }
+            }
+          ]
+        }
+
+Outputs:
+  DashboardUrl:
+    Description: URL to the main monitoring dashboard
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${ProjectName}-${Environment}-monitoring"
+    Export:
+      Name: !Sub "${AWS::StackName}-DashboardUrl"
+
+  CostDashboardUrl:
+    Condition: EnableCostWidgets
+    Description: URL to the cost monitoring dashboard
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${ProjectName}-${Environment}-cost-monitoring"
+    Export:
+      Name: !Sub "${AWS::StackName}-CostDashboardUrl"
+
+  SecurityDashboardUrl:
+    Condition: EnableSecurityWidgets
+    Description: URL to the security monitoring dashboard
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${ProjectName}-${Environment}-security-monitoring"
+    Export:
+      Name: !Sub "${AWS::StackName}-SecurityDashboardUrl"
+
+  CriticalAlarmTopicArn:
+    Description: ARN of the critical alarm SNS topic
+    Value: !Ref CriticalAlarmTopic
+    Export:
+      Name: !Sub "${AWS::StackName}-CriticalAlarmTopic"
+
+  WarningAlarmTopicArn:
+    Description: ARN of the warning alarm SNS topic
+    Value: !Ref WarningAlarmTopic
+    Export:
+      Name: !Sub "${AWS::StackName}-WarningAlarmTopic"

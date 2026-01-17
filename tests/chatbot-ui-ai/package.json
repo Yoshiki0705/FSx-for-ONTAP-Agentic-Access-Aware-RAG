@@ -1,0 +1,78 @@
+{
+  "name": "chatbot-ui-ai-integration-tests",
+  "version": "1.0.0",
+  "description": "NetApp Japan Chatbot UI AI統合テストスイート",
+  "main": "cli.ts",
+  "scripts": {
+    "build": "tsc",
+    "test:all": "ts-node cli.ts all",
+    "test:ui": "ts-node cli.ts ui",
+    "test:ai": "ts-node cli.ts ai",
+    "test:rag": "ts-node cli.ts rag",
+    "test:security": "ts-node cli.ts security",
+    "test:nova": "ts-node cli.ts nova",
+    "test:multiregion": "ts-node cli.ts multiregion",
+    "test:dev": "npm run test:all -- --environment dev",
+    "test:staging": "npm run test:all -- --environment staging",
+    "test:prod": "npm run test:all -- --environment prod",
+    "test:verbose": "npm run test:all -- --verbose",
+    "test:quiet": "npm run test:all -- --quiet",
+    "test:report": "npm run test:all -- --output ./results/test-results.json --html ./results/test-report.html",
+    "test:tokyo": "npm run test:all -- --region ap-northeast-1",
+    "test:osaka": "npm run test:all -- --region ap-northeast-3",
+    "test:virginia": "npm run test:all -- --region us-east-1",
+    "test:ireland": "npm run test:all -- --region eu-west-1",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "clean": "rm -rf dist results coverage",
+    "setup": "npm install && mkdir -p results logs temp"
+  },
+  "keywords": [
+    "chatbot",
+    "ai",
+    "integration-test",
+    "netapp",
+    "bedrock",
+    "nova",
+    "rag",
+    "security",
+    "typescript"
+  ],
+  "author": "NetApp Japan Technology Team",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.450.0",
+    "@aws-sdk/client-dynamodb": "^3.450.0",
+    "@aws-sdk/client-opensearch-serverless": "^3.450.0",
+    "@aws-sdk/client-s3": "^3.450.0",
+    "@aws-sdk/credential-providers": "^3.450.0",
+    "jsonwebtoken": "^9.0.2",
+    "puppeteer": "^21.5.0",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/puppeteer": "^7.0.4",
+    "@types/ws": "^8.5.8",
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "@typescript-eslint/parser": "^6.9.0",
+    "eslint": "^8.52.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NetAppJpTechTeam/Permission-aware-RAG-FSxN-CDK"
+  },
+  "bugs": {
+    "url": "https://github.com/NetAppJpTechTeam/Permission-aware-RAG-FSxN-CDK/issues"
+  },
+  "homepage": "https://github.com/NetAppJpTechTeam/Permission-aware-RAG-FSxN-CDK#readme"
+}

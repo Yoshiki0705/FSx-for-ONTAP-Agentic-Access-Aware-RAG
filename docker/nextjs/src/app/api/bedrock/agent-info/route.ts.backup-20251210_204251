@@ -1,0 +1,201 @@
+/**
+ * Agent Info API
+ * 
+ * GET /api/bedrock/agent-info
+ * 
+ * Bedrock Agentの情報を取得します。
+ * Agent ID、Alias、バージョン、ステータス、Foundation Modelなどの情報を返します。
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { 
+  BedrockAgentClient, 
+  GetAgentCommand,
+  ListAgentAliasesCommand,
+  GetAgentAliasCommand
+} from '@aws-sdk/client-bedrock-agent';
+import { BedrockErrorHandler, ErrorCode, logError } from '@/lib/bedrock/error-handler';
+import { logAgentInfoAccess } from '@/lib/bedrock/audit-logger';
+
+/**
+ * リージョンコードのバリデーション
+ */
+function isValidRegion(region: string): boolean {
+  const validRegions = [
+    'us-east-1',
+    'us-west-2',
+    'ap-northeast-1',
+    'ap-southeast-1',
+    'ap-southeast-2',
+    'eu-west-1',
+    'eu-central-1',
+    'eu-west-3',
+  ];
+  
+  return validRegions.includes(region);
+}
+
+/**
+ * GET /api/bedrock/agent-info
+ * 
+ * クエリパラメータ:
+ * - region: AWSリージョン（オプション、デフォルト: ap-northeast-1）
+ * - agentId: Agent ID（オプション、環境変数から取得）
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // クエリパラメータの取得
+    const searchParams = request.nextUrl.searchParams;
+    const region = searchParams.get('region') || process.env.AWS_REGION || 'ap-northeast-1';
+    const agentId = searchParams.get('agentId') || process.env.BEDROCK_AGENT_ID;
+    
+    // Agent IDの確認
+    if (!agentId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Agent IDが指定されていません',
+        errorCode: ErrorCode.MISSING_PARAMETER,
+        retryable: false,
+        details: {
+          hint: '環境変数BEDROCK_AGENT_IDを設定するか、クエリパラメータでagentIdを指定してください',
+          requiredParams: ['agentId'],
+          providedParams: { region }
+        }
+      }, { status: 400 });
+    }
+    
+    // リージョンのバリデーション（警告のみ、処理は続行）
+    if (!isValidRegion(region)) {
+      console.warn(`⚠️ [Agent Info API] 非標準リージョン: ${region}`);
+      // エラーを返さず、処理を続行
+      // Bedrockが対応していない場合は、後続のAPI呼び出しでエラーになる
+    }
+    
+    // Bedrock Agentクライアントの作成
+    const bedrockAgentClient = new BedrockAgentClient({ region });
+    
+    // Agent情報の取得
+    const getAgentCommand = new GetAgentCommand({ agentId });
+    const agentResponse = await bedrockAgentClient.send(getAgentCommand);
+    
+    if (!agentResponse.agent) {
+      return BedrockErrorHandler.notFoundError('Agent', agentId);
+    }
+    
+    // Agent Alias一覧の取得
+    const listAliasesCommand = new ListAgentAliasesCommand({ agentId });
+    const aliasesResponse = await bedrockAgentClient.send(listAliasesCommand);
+    
+    // 最初のAliasの詳細情報を取得（通常はdev-alias）
+    let aliasInfo = null;
+    if (aliasesResponse.agentAliasSummaries && aliasesResponse.agentAliasSummaries.length > 0) {
+      const firstAlias = aliasesResponse.agentAliasSummaries[0];
+      
+      if (firstAlias.agentAliasId) {
+        const getAliasCommand = new GetAgentAliasCommand({
+          agentId,
+          agentAliasId: firstAlias.agentAliasId,
+        });
+        
+        const aliasResponse = await bedrockAgentClient.send(getAliasCommand);
+        
+        if (aliasResponse.agentAlias) {
+          aliasInfo = {
+            aliasId: aliasResponse.agentAlias.agentAliasId,
+            aliasName: aliasResponse.agentAlias.agentAliasName,
+            description: aliasResponse.agentAlias.description,
+            routingConfiguration: aliasResponse.agentAlias.routingConfiguration,
+            createdAt: aliasResponse.agentAlias.createdAt,
+            updatedAt: aliasResponse.agentAlias.updatedAt,
+          };
+        }
+      }
+    }
+    
+    // レスポンスの構築
+    const agentInfo = {
+      agentId: agentResponse.agent.agentId,
+      agentName: agentResponse.agent.agentName,
+      aliasId: aliasInfo?.aliasId || null,
+      aliasName: aliasInfo?.aliasName || null,
+      version: aliasInfo?.routingConfiguration?.[0]?.agentVersion || 'DRAFT',
+      status: agentResponse.agent.agentStatus,
+      foundationModel: agentResponse.agent.foundationModel,
+      region,
+      lastUpdated: agentResponse.agent.updatedAt,
+      createdAt: agentResponse.agent.createdAt,
+      preparedAt: agentResponse.agent.preparedAt,
+    };
+    
+    console.log(`✅ Agent Info API: Agent情報を取得 (Agent ID: ${agentId}, リージョン: ${region})`);
+    
+    // 監査ログの記録
+    await logAgentInfoAccess(
+      agentId,
+      region,
+      'system', // TODO: 実際のユーザーIDを取得
+      {
+        foundationModel: agentResponse.agent.foundationModel,
+        status: agentResponse.agent.agentStatus,
+      }
+    );
+    
+    return NextResponse.json({
+      success: true,
+      data: agentInfo,
+    });
+    
+  } catch (error) {
+    logError('Agent Info API', error, { agentId, region });
+    
+    // 権限エラーの特別処理
+    if (error instanceof Error && error.name === 'AccessDeniedException') {
+      return NextResponse.json({
+        success: false,
+        error: 'Agent情報の取得に必要な権限がありません',
+        errorCode: 'ACCESS_DENIED',
+        retryable: false,
+        details: {
+          hint: 'IAMロールに以下の権限を追加してください',
+          requiredPermissions: [
+            'bedrock:GetAgent',
+            'bedrock:ListAgentAliases',
+            'bedrock:GetAgentAlias'
+          ],
+          agentId,
+          region
+        }
+      }, { status: 403 });
+    }
+    
+    // Not Foundエラーの特別処理
+    if (error instanceof Error && error.name === 'ResourceNotFoundException') {
+      return NextResponse.json({
+        success: false,
+        error: `Agent ID "${agentId}" が見つかりません`,
+        errorCode: 'AGENT_NOT_FOUND',
+        retryable: false,
+        details: {
+          hint: 'Agent IDが正しいか確認してください',
+          agentId,
+          region
+        }
+      }, { status: 404 });
+    }
+    
+    // その他のエラー
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({
+      success: false,
+      error: `Agent情報の取得に失敗しました: ${errorMessage}`,
+      errorCode: 'INTERNAL_ERROR',
+      retryable: true,
+      details: {
+        hint: 'しばらく待ってから再試行してください',
+        originalError: error instanceof Error ? error.toString() : String(error),
+        agentId,
+        region
+      }
+    }, { status: 500 });
+  }
+}

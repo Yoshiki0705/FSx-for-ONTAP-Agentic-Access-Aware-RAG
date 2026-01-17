@@ -1,0 +1,180 @@
+{
+  "enabled": true,
+  "contacts": [
+    {
+      "name": "Development Team",
+      "email": "dev-team@company.com",
+      "severity": ["CRITICAL", "HIGH"],
+      "role": "ENGINEER",
+      "department": "Engineering"
+    },
+    {
+      "name": "DevOps Engineer",
+      "email": "devops@company.com",
+      "severity": ["CRITICAL", "HIGH", "MEDIUM"],
+      "role": "OPERATIONS",
+      "department": "Engineering"
+    }
+  ],
+  "thresholds": {
+    "critical": {
+      "systemDownMinutes": 10,
+      "jobFailureRatePercent": 90,
+      "fsxUnavailableMinutes": 5,
+      "dataLossRisk": true
+    },
+    "high": {
+      "cpuUtilizationPercent": 90,
+      "memoryUtilizationPercent": 85,
+      "jobBacklogCount": 200,
+      "dynamoThrottleCount": 20,
+      "responseTimeSeconds": 60
+    },
+    "medium": {
+      "longRunningJobMinutes": 120,
+      "diskUtilizationPercent": 80,
+      "networkLatencyMs": 2000,
+      "errorRatePercent": 10
+    },
+    "low": {
+      "lowThroughputJobsPerHour": 5,
+      "unusedResourcesPercent": 30,
+      "costVariancePercent": 25
+    }
+  },
+  "integrations": {
+    "slack": {
+      "enabled": true,
+      "webhookUrl": "https://hooks.slack.com/services/YOUR/DEV/WEBHOOK",
+      "channels": [
+        {
+          "name": "#dev-alerts",
+          "severity": ["CRITICAL", "HIGH", "MEDIUM"],
+          "webhookUrl": "https://hooks.slack.com/services/YOUR/DEV/WEBHOOK"
+        }
+      ],
+      "mentionUsers": ["@dev-team"],
+      "threadReplies": false
+    },
+    "email": {
+      "enabled": true,
+      "sesConfig": {
+        "region": "us-east-1",
+        "fromAddress": "dev-alerts@company.com"
+      },
+      "templates": {
+        "critical": {
+          "subject": "[DEV] 🚨 CRITICAL Alert: {{alarmName}}",
+          "htmlBody": "<h1>Development Environment - Critical Alert</h1><p>{{alarmDescription}}</p><p><em>This is a development environment alert.</em></p>",
+          "textBody": "[DEV] Critical Alert: {{alarmName}} - {{alarmDescription}}"
+        },
+        "high": {
+          "subject": "[DEV] ⚠️ HIGH Alert: {{alarmName}}",
+          "htmlBody": "<h1>Development Environment - High Priority Alert</h1><p>{{alarmDescription}}</p>",
+          "textBody": "[DEV] High Alert: {{alarmName}} - {{alarmDescription}}"
+        },
+        "medium": {
+          "subject": "[DEV] 📊 MEDIUM Alert: {{alarmName}}",
+          "htmlBody": "<h1>Development Environment - Medium Priority Alert</h1><p>{{alarmDescription}}</p>",
+          "textBody": "[DEV] Medium Alert: {{alarmName}} - {{alarmDescription}}"
+        },
+        "low": {
+          "subject": "[DEV] 📝 LOW Alert: {{alarmName}}",
+          "htmlBody": "<h1>Development Environment - Low Priority Alert</h1><p>{{alarmDescription}}</p>",
+          "textBody": "[DEV] Low Alert: {{alarmName}} - {{alarmDescription}}"
+        }
+      }
+    },
+    "sms": {
+      "enabled": false,
+      "provider": "sns",
+      "config": {
+        "region": "us-east-1"
+      }
+    }
+  },
+  "escalation": {
+    "enabled": false,
+    "rules": [],
+    "maxEscalationLevel": 1,
+    "cooldownMinutes": 60
+  },
+  "autoRemediation": {
+    "enabled": true,
+    "rules": [
+      {
+        "alarmPattern": "system-down",
+        "actions": [
+          {
+            "type": "restart",
+            "service": "batch",
+            "parameters": {
+              "computeEnvironment": "{{computeEnvironmentName}}"
+            }
+          }
+        ],
+        "conditions": [
+          {
+            "type": "failure_count",
+            "value": 5,
+            "operator": "less_than"
+          }
+        ],
+        "maxRetries": 2
+      }
+    ],
+    "safetyChecks": [
+      {
+        "name": "cost_limit_check",
+        "type": "cost_limit",
+        "parameters": {
+          "maxHourlyCost": 50
+        },
+        "failureAction": "abort"
+      }
+    ],
+    "maxActions": 5,
+    "cooldownMinutes": 30
+  },
+  "notifications": {
+    "channels": [
+      {
+        "name": "email-dev",
+        "type": "email",
+        "config": {},
+        "severity": ["CRITICAL", "HIGH"],
+        "enabled": true
+      },
+      {
+        "name": "slack-dev",
+        "type": "slack",
+        "config": {},
+        "severity": ["CRITICAL", "HIGH", "MEDIUM"],
+        "enabled": true
+      }
+    ],
+    "formatting": {
+      "includeMetrics": false,
+      "includeGraphs": false,
+      "includeRunbooks": false,
+      "customFields": [
+        {
+          "name": "environment",
+          "value": "development"
+        }
+      ]
+    },
+    "filtering": {
+      "duplicateSuppressionMinutes": 30,
+      "keywordFilters": [],
+      "severityFilters": ["LOW"],
+      "timeFilters": []
+    },
+    "batching": {
+      "enabled": true,
+      "windowMinutes": 10,
+      "maxBatchSize": 20,
+      "severityGrouping": false
+    }
+  }
+}

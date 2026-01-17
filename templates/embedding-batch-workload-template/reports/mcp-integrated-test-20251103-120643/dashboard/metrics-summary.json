@@ -1,0 +1,12 @@
+{
+  "realtime_cost": {},
+  "metadata": {
+    "generated_at": "2025-11-03T03:06:50Z",
+    "dashboard_name": "EmbeddingBatchLoadTest",
+    "region": "us-east-1",
+    "mcp_integration": true,
+    "cost_monitoring": true,
+    "dashboard_url": "https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:name=EmbeddingBatchLoadTest",
+    "generation_method": "automated_mcp_integration"
+  }
+}

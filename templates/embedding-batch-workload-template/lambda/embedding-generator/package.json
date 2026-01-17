@@ -1,0 +1,39 @@
+{
+  "name": "embedding-generator-lambda",
+  "version": "1.0.0",
+  "description": "Embedding Generator Lambda Function with Vector Database Integration",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"No build step required for ES modules\"",
+    "deploy": "zip -r function.zip index.js package.json node_modules/"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "embedding",
+    "vector-database",
+    "rag",
+    "bedrock",
+    "opensearch",
+    "aurora"
+  ],
+  "author": "RAG System Team",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.450.0",
+    "@aws-sdk/client-s3": "^3.450.0",
+    "@aws-sdk/client-dynamodb": "^3.450.0",
+    "@aws-sdk/lib-dynamodb": "^3.450.0",
+    "@aws-sdk/client-batch": "^3.450.0",
+    "@aws-sdk/client-opensearch": "^3.450.0",
+    "@aws-sdk/client-rds": "^3.450.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

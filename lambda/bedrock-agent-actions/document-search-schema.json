@@ -1,0 +1,144 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Permission-aware RAG Document Search API",
+    "version": "1.0.0",
+    "description": "権限認識型RAGシステムの文書検索API。ユーザーの権限に基づいて文書を検索します。"
+  },
+  "paths": {
+    "/search": {
+      "post": {
+        "summary": "文書検索",
+        "description": "ユーザーの質問に関連する文書を検索します。検索結果には、ユーザーがアクセス権限を持つ文書のみが含まれます。",
+        "operationId": "searchDocuments",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "検索クエリ（ユーザーの質問から抽出したキーワード）",
+                    "example": "プロジェクト管理のベストプラクティス"
+                  },
+                  "maxResults": {
+                    "type": "integer",
+                    "description": "取得する文書の最大数",
+                    "default": 5,
+                    "minimum": 1,
+                    "maximum": 20,
+                    "example": 5
+                  }
+                },
+                "required": ["query"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "検索成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "description": "検索結果の文書リスト",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "documentId": {
+                            "type": "string",
+                            "description": "文書ID"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "文書タイトル"
+                          },
+                          "content": {
+                            "type": "string",
+                            "description": "文書内容（抜粋またはハイライト）"
+                          },
+                          "score": {
+                            "type": "number",
+                            "description": "検索スコア（関連度）"
+                          },
+                          "lastModified": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "最終更新日時"
+                          },
+                          "permissions": {
+                            "type": "array",
+                            "description": "文書のアクセス権限リスト",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["documentId", "title", "content", "score"]
+                      }
+                    },
+                    "count": {
+                      "type": "integer",
+                      "description": "検索結果の件数"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "検索結果のメッセージ"
+                    }
+                  },
+                  "required": ["results", "count", "message"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "リクエストエラー",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "エラーメッセージ"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "ユーザー向けメッセージ"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "サーバーエラー",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "エラーメッセージ"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "ユーザー向けメッセージ"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

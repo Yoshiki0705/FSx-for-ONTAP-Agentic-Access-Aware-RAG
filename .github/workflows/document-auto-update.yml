@@ -1,0 +1,177 @@
+name: Document Auto Update
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'lib/**/*.ts'
+      - 'lambda/**/*.ts'
+      - 'lambda/**/*.py'
+      - 'bin/**/*.ts'
+      - 'docker/**/*'
+      - 'scripts/**/*.sh'
+      - 'development/scripts/**/*.sh'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'lib/**/*.ts'
+      - 'lambda/**/*.ts'
+      - 'lambda/**/*.py'
+      - 'bin/**/*.ts'
+      - 'docker/**/*'
+      - 'scripts/**/*.sh'
+      - 'development/scripts/**/*.sh'
+
+jobs:
+  document-update:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Setup documentation system
+      run: |
+        chmod +x development/scripts/documentation/doc-auto-updater.sh
+        chmod +x development/scripts/documentation/doc-quality-check.sh
+        mkdir -p development/logs/documentation
+        mkdir -p development/docs/reports/local
+    
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v40
+      with:
+        files: |
+          lib/**/*.ts
+          lambda/**/*.ts
+          lambda/**/*.py
+          bin/**/*.ts
+          docker/**/*
+          scripts/**/*.sh
+          development/scripts/**/*.sh
+    
+    - name: Run document auto-update
+      if: steps.changed-files.outputs.any_changed == 'true'
+      run: |
+        echo "Changed files: ${{ steps.changed-files.outputs.all_changed_files }}"
+        ./development/scripts/documentation/doc-auto-updater.sh ${{ steps.changed-files.outputs.all_changed_files }}
+    
+    - name: Run document quality check
+      run: |
+        ./development/scripts/documentation/doc-quality-check.sh
+    
+    - name: Check for documentation changes
+      id: doc-changes
+      run: |
+        if git diff --quiet HEAD -- README.md docs/; then
+          echo "changes=false" >> $GITHUB_OUTPUT
+        else
+          echo "changes=true" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Commit documentation updates
+      if: steps.doc-changes.outputs.changes == 'true' && github.event_name == 'push'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md docs/ development/docs/reports/local/
+        git commit -m "docs: 自動ドキュメント更新 [skip ci]
+        
+        - ソースファイル変更に基づく自動更新
+        - 品質チェック実行済み
+        - 変更ファイル: ${{ steps.changed-files.outputs.all_changed_files }}"
+        git push
+    
+    - name: Upload quality reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: document-quality-reports
+        path: development/docs/reports/local/doc_*
+        retention-days: 30
+    
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // 最新の品質レポートを読み込み
+          const reportsDir = 'development/docs/reports/local';
+          const files = fs.readdirSync(reportsDir);
+          const qualityReports = files.filter(f => f.startsWith('doc_quality_summary_'));
+          
+          if (qualityReports.length > 0) {
+            const latestReport = qualityReports.sort().pop();
+            const reportPath = path.join(reportsDir, latestReport);
+            const reportContent = fs.readFileSync(reportPath, 'utf8');
+            
+            const comment = `## 📚 ドキュメント自動更新結果
+            
+            ドキュメント自動更新システムが実行されました。
+            
+            ### 📊 品質チェック結果
+            
+            \`\`\`
+            ${reportContent}
+            \`\`\`
+            
+            ### 🔗 関連ファイル
+            - [品質レポート](${reportPath})
+            
+            ---
+            *このコメントは自動生成されました*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }
+
+  document-quality-gate:
+    runs-on: ubuntu-latest
+    needs: document-update
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup documentation system
+      run: |
+        chmod +x development/scripts/documentation/doc-quality-check.sh
+        mkdir -p development/logs/documentation
+    
+    - name: Run quality gate check
+      run: |
+        ./development/scripts/documentation/doc-quality-check.sh
+        
+        # 品質スコアの確認
+        if grep -q "平均スコア: [0-9][0-9]/100" development/docs/reports/local/doc_quality_summary_*.md; then
+          score=$(grep "平均スコア:" development/docs/reports/local/doc_quality_summary_*.md | tail -1 | sed 's/.*平均スコア: \([0-9]*\).*/\1/')
+          echo "Quality Score: $score"
+          
+          if [ "$score" -lt 80 ]; then
+            echo "❌ 品質ゲート失敗: スコア $score < 80"
+            exit 1
+          else
+            echo "✅ 品質ゲート成功: スコア $score >= 80"
+          fi
+        else
+          echo "⚠️ 品質スコアを取得できませんでした"
+        fi

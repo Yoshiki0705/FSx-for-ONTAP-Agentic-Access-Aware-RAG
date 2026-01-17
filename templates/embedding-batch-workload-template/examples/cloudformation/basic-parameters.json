@@ -1,0 +1,98 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "embedding-basic"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-12345678"
+  },
+  {
+    "ParameterKey": "SubnetIds",
+    "ParameterValue": "subnet-12345678,subnet-87654321"
+  },
+  {
+    "ParameterKey": "FsxFileSystemId",
+    "ParameterValue": "fs-12345678"
+  },
+  {
+    "ParameterKey": "FsxSvmId",
+    "ParameterValue": "svm-12345678"
+  },
+  {
+    "ParameterKey": "FsxMountPath",
+    "ParameterValue": "/mnt/fsx"
+  },
+  {
+    "ParameterKey": "MaxvCpus",
+    "ParameterValue": "50"
+  },
+  {
+    "ParameterKey": "DesiredvCpus",
+    "ParameterValue": "0"
+  },
+  {
+    "ParameterKey": "MinvCpus",
+    "ParameterValue": "0"
+  },
+  {
+    "ParameterKey": "InstanceTypes",
+    "ParameterValue": "m5.large,m5.xlarge"
+  },
+  {
+    "ParameterKey": "EnableSpotInstances",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "BidPercentage",
+    "ParameterValue": "60"
+  },
+  {
+    "ParameterKey": "BedrockRegion",
+    "ParameterValue": "us-east-1"
+  },
+  {
+    "ParameterKey": "BedrockModelId",
+    "ParameterValue": "amazon.titan-embed-text-v1"
+  },
+  {
+    "ParameterKey": "S3BucketName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "EnableS3Versioning",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "DynamoDBTableName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "DynamoDBBillingMode",
+    "ParameterValue": "PAY_PER_REQUEST"
+  },
+  {
+    "ParameterKey": "EnableDetailedMonitoring",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "LogRetentionDays",
+    "ParameterValue": "7"
+  },
+  {
+    "ParameterKey": "EnableEncryption",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "KmsKeyId",
+    "ParameterValue": "alias/aws/s3"
+  },
+  {
+    "ParameterKey": "AlertEmail",
+    "ParameterValue": ""
+  }
+]

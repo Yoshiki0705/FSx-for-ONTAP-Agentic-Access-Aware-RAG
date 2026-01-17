@@ -1,0 +1,203 @@
+{
+  "enabled": true,
+  "contacts": [
+    {
+      "name": "Primary Operations Team",
+      "email": "ops-primary@company.com",
+      "sms": "+1234567890",
+      "severity": ["CRITICAL", "HIGH"],
+      "role": "PRIMARY_ONCALL",
+      "department": "Operations"
+    },
+    {
+      "name": "Secondary Operations Team", 
+      "email": "ops-secondary@company.com",
+      "severity": ["CRITICAL", "HIGH", "MEDIUM"],
+      "role": "SECONDARY_ONCALL",
+      "department": "Operations"
+    },
+    {
+      "name": "Engineering Manager",
+      "email": "eng-manager@company.com",
+      "severity": ["CRITICAL"],
+      "role": "MANAGER",
+      "department": "Engineering"
+    }
+  ],
+  "thresholds": {
+    "critical": {
+      "systemDownMinutes": 3,
+      "jobFailureRatePercent": 75,
+      "fsxUnavailableMinutes": 2,
+      "dataLossRisk": true
+    },
+    "high": {
+      "cpuUtilizationPercent": 85,
+      "memoryUtilizationPercent": 80,
+      "jobBacklogCount": 50,
+      "dynamoThrottleCount": 5,
+      "responseTimeSeconds": 10
+    },
+    "medium": {
+      "longRunningJobMinutes": 30,
+      "diskUtilizationPercent": 75,
+      "networkLatencyMs": 500,
+      "errorRatePercent": 3
+    },
+    "low": {
+      "lowThroughputJobsPerHour": 20,
+      "unusedResourcesPercent": 15,
+      "costVariancePercent": 10
+    }
+  },
+  "integrations": {
+    "slack": {
+      "enabled": true,
+      "webhookUrl": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+      "channels": [
+        {
+          "name": "#alerts-critical",
+          "severity": ["CRITICAL"],
+          "webhookUrl": "https://hooks.slack.com/services/YOUR/CRITICAL/WEBHOOK"
+        }
+      ],
+      "mentionUsers": ["@oncall", "@ops-team"],
+      "threadReplies": true
+    },
+    "email": {
+      "enabled": true,
+      "sesConfig": {
+        "region": "us-east-1",
+        "fromAddress": "alerts@company.com"
+      },
+      "templates": {
+        "critical": {
+          "subject": "🚨 CRITICAL Alert: {{alarmName}}",
+          "htmlBody": "<h1>Critical Alert</h1><p>{{alarmDescription}}</p>",
+          "textBody": "Critical Alert: {{alarmName}} - {{alarmDescription}}"
+        },
+        "high": {
+          "subject": "⚠️ HIGH Alert: {{alarmName}}",
+          "htmlBody": "<h1>High Priority Alert</h1><p>{{alarmDescription}}</p>",
+          "textBody": "High Alert: {{alarmName}} - {{alarmDescription}}"
+        },
+        "medium": {
+          "subject": "📊 MEDIUM Alert: {{alarmName}}",
+          "htmlBody": "<h1>Medium Priority Alert</h1><p>{{alarmDescription}}</p>",
+          "textBody": "Medium Alert: {{alarmName}} - {{alarmDescription}}"
+        },
+        "low": {
+          "subject": "📝 LOW Alert: {{alarmName}}",
+          "htmlBody": "<h1>Low Priority Alert</h1><p>{{alarmDescription}}</p>",
+          "textBody": "Low Alert: {{alarmName}} - {{alarmDescription}}"
+        }
+      }
+    },
+    "sms": {
+      "enabled": true,
+      "provider": "sns",
+      "config": {
+        "region": "us-east-1"
+      }
+    }
+  },
+  "escalation": {
+    "enabled": true,
+    "rules": [
+      {
+        "level": 1,
+        "triggerAfterMinutes": 15,
+        "conditions": [
+          {
+            "type": "unacknowledged",
+            "value": "true",
+            "operator": "equals"
+          }
+        ],
+        "actions": [
+          {
+            "type": "notify",
+            "target": "manager",
+            "parameters": {}
+          }
+        ]
+      }
+    ],
+    "maxEscalationLevel": 3,
+    "cooldownMinutes": 120
+  },
+  "autoRemediation": {
+    "enabled": true,
+    "rules": [
+      {
+        "alarmPattern": "system-down",
+        "actions": [
+          {
+            "type": "scale_up",
+            "service": "batch",
+            "parameters": {
+              "computeEnvironment": "{{computeEnvironmentName}}",
+              "desiredCapacity": 10
+            }
+          }
+        ],
+        "conditions": [
+          {
+            "type": "failure_count",
+            "value": 3,
+            "operator": "less_than"
+          }
+        ],
+        "maxRetries": 3
+      }
+    ],
+    "safetyChecks": [
+      {
+        "name": "cost_limit_check",
+        "type": "cost_limit",
+        "parameters": {
+          "maxHourlyCost": 200
+        },
+        "failureAction": "abort"
+      }
+    ],
+    "maxActions": 10,
+    "cooldownMinutes": 15
+  },
+  "notifications": {
+    "channels": [
+      {
+        "name": "email-critical",
+        "type": "email",
+        "config": {},
+        "severity": ["CRITICAL"],
+        "enabled": true
+      },
+      {
+        "name": "slack-all",
+        "type": "slack",
+        "config": {},
+        "severity": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+        "enabled": true
+      }
+    ],
+    "formatting": {
+      "includeMetrics": true,
+      "includeGraphs": false,
+      "includeRunbooks": true,
+      "customFields": []
+    },
+    "filtering": {
+      "duplicateSuppressionMinutes": 10,
+      "keywordFilters": [],
+      "severityFilters": [],
+      "timeFilters": []
+    },
+    "batching": {
+      "enabled": true,
+      "windowMinutes": 3,
+      "maxBatchSize": 5,
+      "severityGrouping": true
+    }
+  }
+}

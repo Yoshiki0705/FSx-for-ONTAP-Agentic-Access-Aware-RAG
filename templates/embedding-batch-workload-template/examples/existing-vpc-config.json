@@ -1,0 +1,49 @@
+{
+  "projectName": "existing-vpc-embedding",
+  "environment": "prod",
+  "region": "ap-northeast-1",
+  
+  "vpc": {
+    "vpcId": "vpc-12345678",
+    "createNew": false,
+    "privateSubnetIds": ["subnet-12345678", "subnet-87654321"]
+  },
+  
+  "fsx": {
+    "fileSystemId": "fs-0abcdef123456789",
+    "svmId": "svm-0123456789abcdef",
+    "createNew": false,
+    "volumePath": "/rag-data"
+  },
+  
+  "batch": {
+    "maxvCpus": 2000,
+    "instanceTypes": ["m5.large", "m5.xlarge", "m5.2xlarge"],
+    "useSpotInstances": true,
+    "spotBidPercentage": 60
+  },
+  
+  "bedrock": {
+    "region": "us-east-1",
+    "modelId": "amazon.titan-embed-text-v1",
+    "textModelId": "amazon.nova-pro-v1:0"
+  },
+  
+  "storage": {
+    "enableVersioning": true,
+    "enableEncryption": true
+  },
+  
+  "monitoring": {
+    "enableDetailedMonitoring": true,
+    "createDashboard": true,
+    "alertEmail": "admin@company.com",
+    "retentionDays": 90
+  },
+  
+  "security": {
+    "enableWAF": true,
+    "allowedCIDRs": ["10.0.0.0/8", "172.16.0.0/12"],
+    "enableGuardDuty": true
+  }
+}

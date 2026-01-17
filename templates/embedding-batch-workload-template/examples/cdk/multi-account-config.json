@@ -1,0 +1,295 @@
+{
+  "projectName": "embedding-workload",
+  "environment": "prod",
+  "region": "us-east-1",
+  "multiAccount": {
+    "enabled": true,
+    "accounts": {
+      "shared": "123456789012",
+      "prod": "210987654321",
+      "dev": "345678901234"
+    },
+    "crossAccountRoles": {
+      "deploymentRole": "arn:aws:iam::210987654321:role/CrossAccountDeploymentRole",
+      "executionRole": "arn:aws:iam::210987654321:role/CrossAccountExecutionRole"
+    }
+  },
+  "vpc": {
+    "create": false,
+    "vpcId": "vpc-0123456789abcdef0",
+    "privateSubnetIds": ["subnet-0123456789abcdef0", "subnet-0fedcba9876543210"],
+    "transitGateway": {
+      "enabled": true,
+      "transitGatewayId": "tgw-0123456789abcdef0",
+      "routeTableId": "tgw-rtb-0123456789abcdef0"
+    }
+  },
+  "fsx": {
+    "create": true,
+    "storageCapacity": 10240,
+    "throughputCapacity": 2048,
+    "deploymentType": "MULTI_AZ_1",
+    "automaticBackupRetentionDays": 30,
+    "dailyAutomaticBackupStartTime": "03:00",
+    "weeklyMaintenanceStartTime": "7:03:00"
+  },
+  "batch": {
+    "computeEnvironment": {
+      "instanceTypes": ["m5.2xlarge", "m5.4xlarge", "m5.8xlarge", "c5.2xlarge", "c5.4xlarge"],
+      "minvCpus": 0,
+      "maxvCpus": 1000,
+      "desiredvCpus": 50,
+      "spotFleetRequestRole": "arn:aws:iam::210987654321:role/aws-ec2-spot-fleet-tagging-role",
+      "bidPercentage": 70,
+      "allocationStrategy": "DIVERSIFIED",
+      "ec2Configuration": {
+        "imageType": "ECS_AL2",
+        "imageIdOverride": "ami-0123456789abcdef0"
+      },
+      "placementGroup": "embedding-workload-placement-group"
+    },
+    "jobQueue": {
+      "priority": 1000,
+      "schedulingPolicyArn": "arn:aws:batch:us-east-1:210987654321:scheduling-policy/FairShare"
+    }
+  },
+  "bedrock": {
+    "region": "us-east-1",
+    "embeddingModel": {
+      "modelId": "amazon.titan-embed-text-v2",
+      "dimensions": 1024
+    },
+    "textModel": {
+      "modelId": "amazon.nova-pro-v1:0"
+    },
+    "crossRegionInference": {
+      "enabled": true,
+      "fallbackRegions": ["us-west-2", "eu-west-1", "ap-southeast-1"]
+    },
+    "modelCustomization": {
+      "enabled": true,
+      "customModelArn": "arn:aws:bedrock:us-east-1:210987654321:custom-model/embedding-custom-model"
+    }
+  },
+  "storage": {
+    "s3": {
+      "versioning": true,
+      "encryption": "aws:kms",
+      "kmsKeyId": "arn:aws:kms:us-east-1:210987654321:key/12345678-1234-1234-1234-123456789012",
+      "crossRegionReplication": {
+        "enabled": true,
+        "destinationBucket": "embedding-workload-prod-backup-us-west-2",
+        "destinationRegion": "us-west-2"
+      },
+      "lifecycleRules": [
+        {
+          "id": "EmbeddingsLifecycle",
+          "status": "Enabled",
+          "transitions": [
+            {
+              "days": 30,
+              "storageClass": "STANDARD_IA"
+            },
+            {
+              "days": 90,
+              "storageClass": "GLACIER"
+            },
+            {
+              "days": 365,
+              "storageClass": "DEEP_ARCHIVE"
+            }
+          ],
+          "expiration": {
+            "days": 2555
+          }
+        }
+      ],
+      "intelligentTiering": {
+        "enabled": true,
+        "optionalFields": ["BucketKeyEnabled"]
+      }
+    },
+    "dynamodb": {
+      "billingMode": "ON_DEMAND",
+      "pointInTimeRecovery": true,
+      "encryption": {
+        "sseSpecification": {
+          "enabled": true,
+          "kmsMasterKeyId": "arn:aws:kms:us-east-1:210987654321:key/12345678-1234-1234-1234-123456789012"
+        }
+      },
+      "globalTables": {
+        "enabled": true,
+        "regions": ["us-east-1", "us-west-2", "eu-west-1"]
+      },
+      "globalSecondaryIndexes": [
+        {
+          "indexName": "UserIdIndex",
+          "keys": {
+            "partitionKey": "user_id",
+            "sortKey": "created_at"
+          },
+          "projection": {
+            "projectionType": "ALL"
+          }
+        },
+        {
+          "indexName": "DocumentTypeIndex",
+          "keys": {
+            "partitionKey": "document_type",
+            "sortKey": "updated_at"
+          },
+          "projection": {
+            "projectionType": "INCLUDE",
+            "nonKeyAttributes": ["title", "summary"]
+          }
+        }
+      ]
+    }
+  },
+  "monitoring": {
+    "enableDashboard": true,
+    "enableAlerts": true,
+    "enableAutoRemediation": true,
+    "enableEscalation": true,
+    "logRetentionDays": 90,
+    "alerting": {
+      "contacts": [
+        {
+          "name": "Primary Operations Team",
+          "email": "ops-primary@company.com",
+          "sms": "+1234567890",
+          "severity": ["CRITICAL", "HIGH"],
+          "schedule": {
+            "timezone": "America/New_York",
+            "businessHours": {
+              "start": "09:00",
+              "end": "17:00",
+              "days": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]
+            }
+          }
+        },
+        {
+          "name": "Secondary Operations Team",
+          "email": "ops-secondary@company.com",
+          "sms": "+1234567891",
+          "severity": ["CRITICAL", "HIGH", "MEDIUM"],
+          "schedule": {
+            "timezone": "America/New_York",
+            "onCallHours": {
+              "start": "17:00",
+              "end": "09:00",
+              "days": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+            }
+          }
+        },
+        {
+          "name": "Engineering Manager",
+          "email": "eng-manager@company.com",
+          "severity": ["CRITICAL"]
+        },
+        {
+          "name": "Security Team",
+          "email": "security@company.com",
+          "severity": ["CRITICAL", "HIGH"]
+        }
+      ],
+      "integrations": {
+        "slack": {
+          "enabled": true,
+          "webhookUrl": "${SLACK_WEBHOOK_URL}",
+          "channels": [
+            {
+              "name": "#alerts-critical",
+              "severity": ["CRITICAL"],
+              "webhookUrl": "${SLACK_CRITICAL_WEBHOOK_URL}"
+            },
+            {
+              "name": "#alerts-general",
+              "severity": ["HIGH", "MEDIUM"],
+              "webhookUrl": "${SLACK_GENERAL_WEBHOOK_URL}"
+            }
+          ]
+        },
+        "pagerDuty": {
+          "enabled": true,
+          "integrationKey": "${PAGERDUTY_INTEGRATION_KEY}",
+          "escalationPolicy": "P5DTL0K"
+        },
+        "teams": {
+          "enabled": true,
+          "webhookUrl": "${TEAMS_WEBHOOK_URL}"
+        }
+      }
+    },
+    "customMetrics": {
+      "enabled": true,
+      "namespace": "EmbeddingWorkload/Production",
+      "metrics": [
+        {
+          "name": "ProcessingLatency",
+          "unit": "Milliseconds",
+          "dimensions": ["JobType", "Region"]
+        },
+        {
+          "name": "EmbeddingAccuracy",
+          "unit": "Percent",
+          "dimensions": ["ModelVersion", "DocumentType"]
+        }
+      ]
+    }
+  },
+  "security": {
+    "enableVpcEndpoints": true,
+    "enableCloudTrail": true,
+    "enableGuardDuty": true,
+    "enableSecurityHub": true,
+    "enableConfig": true,
+    "enableInspector": true,
+    "iamRoles": {
+      "crossAccountAccess": {
+        "enabled": true,
+        "trustedAccounts": ["123456789012", "345678901234"]
+      },
+      "federatedAccess": {
+        "enabled": true,
+        "identityProvider": "arn:aws:iam::210987654321:saml-provider/CompanySSO"
+      }
+    },
+    "waf": {
+      "enabled": true,
+      "webAclArn": "arn:aws:wafv2:us-east-1:210987654321:global/webacl/EmbeddingWorkloadWAF/12345678-1234-1234-1234-123456789012"
+    }
+  },
+  "backup": {
+    "enabled": true,
+    "retentionDays": 90,
+    "backupVault": "arn:aws:backup:us-east-1:210987654321:backup-vault:production-vault",
+    "crossRegionBackup": {
+      "enabled": true,
+      "destinationRegion": "us-west-2",
+      "retentionDays": 365
+    }
+  },
+  "compliance": {
+    "enableSOC2": true,
+    "enableHIPAA": false,
+    "enablePCI": false,
+    "dataResidency": {
+      "allowedRegions": ["us-east-1", "us-west-2"],
+      "restrictCrossRegion": true
+    }
+  },
+  "tags": {
+    "Project": "EmbeddingWorkload",
+    "Environment": "Production",
+    "Owner": "DataTeam",
+    "CostCenter": "DataScience",
+    "Compliance": "SOC2",
+    "BackupRequired": "true",
+    "DataClassification": "Confidential",
+    "BusinessUnit": "AI/ML",
+    "Application": "RAG-System",
+    "Version": "2.0"
+  }
+}

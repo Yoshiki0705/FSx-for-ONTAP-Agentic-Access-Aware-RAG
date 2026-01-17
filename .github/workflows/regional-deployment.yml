@@ -1,0 +1,337 @@
+name: Regional Deployment Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target_regions:
+        description: 'Target regions for deployment (comma-separated)'
+        required: false
+        default: 'ap-northeast-1'
+      deployment_strategy:
+        description: 'Deployment strategy'
+        required: false
+        default: 'CANARY'
+        type: choice
+        options:
+          - BLUE_GREEN
+          - CANARY
+          - ROLLING
+
+env:
+  NODE_VERSION: '20'
+  AWS_REGION: ap-northeast-1
+  PROJECT_NAME: permission-aware-rag
+
+jobs:
+  # 品質チェックジョブ
+  quality-checks:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    outputs:
+      security-passed: ${{ steps.security.outputs.passed }}
+      compliance-passed: ${{ steps.compliance.outputs.passed }}
+      performance-passed: ${{ steps.performance.outputs.passed }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Security scan
+        id: security
+        run: |
+          echo "🔍 セキュリティスキャン実行中..."
+          npm run security:scan
+          echo "passed=true" >> $GITHUB_OUTPUT
+
+      - name: Compliance check
+        id: compliance
+        run: |
+          echo "📋 コンプライアンスチェック実行中..."
+          npm run compliance:check
+          echo "passed=true" >> $GITHUB_OUTPUT
+
+      - name: Performance test
+        id: performance
+        run: |
+          echo "⚡ パフォーマンステスト実行中..."
+          npm run performance:test
+          echo "passed=true" >> $GITHUB_OUTPUT
+
+      - name: Build CDK
+        run: |
+          npm run cdk:synth
+          
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdk-artifacts
+          path: |
+            cdk.out/
+            dist/
+            package.json
+            package-lock.json
+
+  # 地域別デプロイメントジョブ
+  deploy-regions:
+    name: Deploy to Regions
+    needs: quality-checks
+    if: needs.quality-checks.outputs.security-passed == 'true' && 
+        needs.quality-checks.outputs.compliance-passed == 'true' && 
+        needs.quality-checks.outputs.performance-passed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        region: 
+          - ap-northeast-1  # 東京
+          - ap-northeast-3  # 大阪
+          - ap-southeast-1  # シンガポール
+          - eu-central-1    # フランクフルト
+          - us-east-1       # バージニア
+      fail-fast: false
+      max-parallel: 2
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: cdk-artifacts
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ matrix.region }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to region
+        run: |
+          echo "🚀 地域別デプロイメント開始: ${{ matrix.region }}"
+          
+          # 地域別設定の適用
+          export AWS_REGION=${{ matrix.region }}
+          export DEPLOYMENT_REGION=${{ matrix.region }}
+          
+          # CDK Bootstrap（初回のみ）
+          npx cdk bootstrap --region ${{ matrix.region }}
+          
+          # デプロイメント実行
+          npx cdk deploy --all \
+            --region ${{ matrix.region }} \
+            --require-approval never \
+            --context region=${{ matrix.region }} \
+            --context environment=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+
+      - name: Post-deployment verification
+        run: |
+          echo "✅ デプロイメント後検証: ${{ matrix.region }}"
+          
+          # ヘルスチェック実行
+          npm run health-check -- --region ${{ matrix.region }}
+          
+          # 地域別コンプライアンス確認
+          npm run compliance:verify -- --region ${{ matrix.region }}
+
+      - name: Notify deployment result
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ デプロイメント成功: ${{ matrix.region }}"
+          else
+            echo "❌ デプロイメント失敗: ${{ matrix.region }}"
+          fi
+
+  # 統合テストジョブ
+  integration-tests:
+    name: Integration Tests
+    needs: deploy-regions
+    if: always() && needs.deploy-regions.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run integration tests
+        run: |
+          echo "🧪 統合テスト実行中..."
+          
+          # 地域間連携テスト
+          npm run test:integration:cross-region
+          
+          # データレプリケーションテスト
+          npm run test:integration:replication
+          
+          # 災害復旧テスト
+          npm run test:integration:disaster-recovery
+
+      - name: Generate test report
+        if: always()
+        run: |
+          echo "📊 テストレポート生成中..."
+          npm run test:report
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            test-results/
+            coverage/
+
+  # 本番環境デプロイメント（mainブランチのみ）
+  deploy-production:
+    name: Deploy to Production
+    needs: [quality-checks, deploy-regions, integration-tests]
+    if: github.ref == 'refs/heads/main' && 
+        needs.quality-checks.result == 'success' && 
+        needs.deploy-regions.result == 'success' && 
+        needs.integration-tests.result == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to production
+        run: |
+          echo "🚀 本番環境デプロイメント開始"
+          
+          # 本番環境設定
+          export NODE_ENV=production
+          export ENVIRONMENT=prod
+          
+          # 段階的本番デプロイメント
+          # Phase 1: 基盤地域
+          npx cdk deploy --all \
+            --context environment=prod \
+            --context regions=ap-northeast-1,us-east-1 \
+            --require-approval never
+          
+          # Phase 2: 主要地域（30分後）
+          sleep 1800
+          npx cdk deploy --all \
+            --context environment=prod \
+            --context regions=ap-northeast-3,eu-central-1,us-west-2 \
+            --require-approval never
+          
+          # Phase 3: 全地域展開
+          sleep 1800
+          npx cdk deploy --all \
+            --context environment=prod \
+            --context regions=all \
+            --require-approval never
+
+      - name: Production verification
+        run: |
+          echo "✅ 本番環境検証実行中..."
+          
+          # 本番環境ヘルスチェック
+          npm run health-check:production
+          
+          # 本番環境パフォーマンステスト
+          npm run performance:test:production
+          
+          # 本番環境セキュリティ検証
+          npm run security:verify:production
+
+      - name: Notify production deployment
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "🎉 本番環境デプロイメント成功"
+          else
+            echo "🚨 本番環境デプロイメント失敗"
+          fi
+
+  # 通知ジョブ
+  notify:
+    name: Notify Results
+    needs: [quality-checks, deploy-regions, integration-tests, deploy-production]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine overall status
+        id: status
+        run: |
+          if [ "${{ needs.quality-checks.result }}" == "success" ] && 
+             [ "${{ needs.deploy-regions.result }}" == "success" ] && 
+             [ "${{ needs.integration-tests.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=🎉 地域別デプロイメントパイプライン成功" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=❌ 地域別デプロイメントパイプライン失敗" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send notification
+        run: |
+          echo "${{ steps.status.outputs.message }}"
+          echo "詳細: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"

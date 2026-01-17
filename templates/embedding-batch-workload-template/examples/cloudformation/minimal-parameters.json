@@ -1,0 +1,42 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "embedding-workload"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "PrivateSubnetIds",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "FsxFileSystemId",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "BedrockRegion",
+    "ParameterValue": "us-east-1"
+  },
+  {
+    "ParameterKey": "BedrockModelId",
+    "ParameterValue": "amazon.titan-embed-text-v1"
+  },
+  {
+    "ParameterKey": "EnableAutoRemediation",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "EnableEscalation",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "AlertContactEmail",
+    "ParameterValue": "dev-team@company.com"
+  }
+]

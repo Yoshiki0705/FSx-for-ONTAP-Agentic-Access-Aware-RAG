@@ -1,0 +1,50 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "embedding-workload"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-0123456789abcdef0"
+  },
+  {
+    "ParameterKey": "PrivateSubnetIds",
+    "ParameterValue": "subnet-0123456789abcdef0,subnet-0fedcba9876543210"
+  },
+  {
+    "ParameterKey": "FsxFileSystemId",
+    "ParameterValue": "fs-0123456789abcdef0"
+  },
+  {
+    "ParameterKey": "BedrockRegion",
+    "ParameterValue": "us-east-1"
+  },
+  {
+    "ParameterKey": "BedrockModelId",
+    "ParameterValue": "amazon.titan-embed-text-v2"
+  },
+  {
+    "ParameterKey": "EnableAutoRemediation",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableEscalation",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "AlertContactEmail",
+    "ParameterValue": "ops@company.com"
+  },
+  {
+    "ParameterKey": "SlackWebhookUrl",
+    "ParameterValue": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  },
+  {
+    "ParameterKey": "PagerDutyIntegrationKey",
+    "ParameterValue": "your-pagerduty-integration-key"
+  }
+]

@@ -1,0 +1,218 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "embedding-global"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "PrimaryRegion",
+    "ParameterValue": "ap-northeast-1"
+  },
+  {
+    "ParameterKey": "SecondaryRegion",
+    "ParameterValue": "ap-northeast-3"
+  },
+  {
+    "ParameterKey": "BedrockRegion",
+    "ParameterValue": "us-east-1"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-global123456"
+  },
+  {
+    "ParameterKey": "SubnetIds",
+    "ParameterValue": "subnet-global111,subnet-global222,subnet-global333"
+  },
+  {
+    "ParameterKey": "FsxFileSystemId",
+    "ParameterValue": "fs-global123456"
+  },
+  {
+    "ParameterKey": "FsxSvmId",
+    "ParameterValue": "svm-global123456"
+  },
+  {
+    "ParameterKey": "FsxMountPath",
+    "ParameterValue": "/mnt/fsx"
+  },
+  {
+    "ParameterKey": "MaxvCpus",
+    "ParameterValue": "2000"
+  },
+  {
+    "ParameterKey": "DesiredvCpus",
+    "ParameterValue": "0"
+  },
+  {
+    "ParameterKey": "MinvCpus",
+    "ParameterValue": "0"
+  },
+  {
+    "ParameterKey": "InstanceTypes",
+    "ParameterValue": "m5.xlarge,m5.2xlarge,m5.4xlarge,c5.xlarge,c5.2xlarge,c5.4xlarge"
+  },
+  {
+    "ParameterKey": "EnableSpotInstances",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "BidPercentage",
+    "ParameterValue": "75"
+  },
+  {
+    "ParameterKey": "AllocationStrategy",
+    "ParameterValue": "SPOT_CAPACITY_OPTIMIZED"
+  },
+  {
+    "ParameterKey": "BedrockModelId",
+    "ParameterValue": "amazon.titan-embed-text-v1"
+  },
+  {
+    "ParameterKey": "S3BucketName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "EnableS3Versioning",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableS3CrossRegionReplication",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "S3ReplicationDestinationRegion",
+    "ParameterValue": "ap-northeast-3"
+  },
+  {
+    "ParameterKey": "EnableS3IntelligentTiering",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "DynamoDBTableName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "DynamoDBBillingMode",
+    "ParameterValue": "PAY_PER_REQUEST"
+  },
+  {
+    "ParameterKey": "EnableDynamoDBGlobalTables",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "DynamoDBGlobalTableRegions",
+    "ParameterValue": "ap-northeast-1,ap-northeast-3,us-east-1"
+  },
+  {
+    "ParameterKey": "EnableDynamoDBPointInTimeRecovery",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableDetailedMonitoring",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "CreateDashboard",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "LogRetentionDays",
+    "ParameterValue": "90"
+  },
+  {
+    "ParameterKey": "EnableXRayTracing",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableMultiRegionMonitoring",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableEncryption",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "KmsKeyId",
+    "ParameterValue": "arn:aws:kms:ap-northeast-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+  },
+  {
+    "ParameterKey": "EnableVpcFlowLogs",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableGuardDuty",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableSecurityHub",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableCloudTrail",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableMultiRegionCloudTrail",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "AlertEmail",
+    "ParameterValue": "global-ops-team@company.com"
+  },
+  {
+    "ParameterKey": "EnableSlackAlerts",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "SlackWebhook",
+    "ParameterValue": "https://hooks.slack.com/services/YOUR/GLOBAL/WEBHOOK"
+  },
+  {
+    "ParameterKey": "DataResidency",
+    "ParameterValue": "multi-region"
+  },
+  {
+    "ParameterKey": "ComplianceFrameworks",
+    "ParameterValue": "GDPR,PDPA,SOC2"
+  },
+  {
+    "ParameterKey": "EnableDisasterRecovery",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "DisasterRecoveryRegion",
+    "ParameterValue": "ap-northeast-3"
+  },
+  {
+    "ParameterKey": "RPOMinutes",
+    "ParameterValue": "60"
+  },
+  {
+    "ParameterKey": "RTOMinutes",
+    "ParameterValue": "240"
+  },
+  {
+    "ParameterKey": "EnableAutomatedFailover",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "BackupRetentionDays",
+    "ParameterValue": "90"
+  },
+  {
+    "ParameterKey": "EnableCrossRegionBackup",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "MonthlyBudget",
+    "ParameterValue": "10000"
+  },
+  {
+    "ParameterKey": "BudgetAlertThresholds",
+    "ParameterValue": "50,75,90,100"
+  }
+]

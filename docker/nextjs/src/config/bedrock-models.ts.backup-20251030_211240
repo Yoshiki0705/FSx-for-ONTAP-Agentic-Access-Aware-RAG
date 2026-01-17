@@ -1,0 +1,48 @@
+// 利用可能なBedrock inference profilesの設定（全モデル対応版）
+
+export interface BedrockModel {
+  id: string;
+  name: string;
+  description: string;
+  provider: 'anthropic' | 'amazon' | 'meta' | 'mistral';
+  category: 'chat' | 'embedding';
+  maxTokens: number;
+  temperature: number;
+  topP: number;
+}
+
+/**
+ * 利用可能なBedrockモデル一覧（全17種類）
+ */
+export const AVAILABLE_MODELS: BedrockModel[] = [
+  // Amazon Nova シリーズ（優先表示）
+  {
+    id: 'apac.amazon.nova-pro-v1:0',
+    name: 'Amazon Nova Pro',
+    description: 'Amazon Nova Pro - Amazon最新・推奨モデル',
+    provider: 'amazon',
+    category: 'chat',
+    maxTokens: 4000,
+    temperature: 0.7,
+    topP: 0.9
+  },
+  {
+    id: 'apac.amazon.nova-lite-v1:0',
+    name: 'Amazon Nova Lite',
+    description: 'Amazon Nova Lite - 軽量・高速版',
+    provider: 'amazon',
+    category: 'chat',
+    maxTokens: 2000,
+    temperature: 0.7,
+    topP: 0.9
+  },
+  {
+    id: 'apac.amazon.nova-micro-v1:0',
+    name: 'Amazon Nova Micro',
+    description: 'Amazon Nova Micro - 超軽量・コスト効率版',
+    provider: 'amazon',
+    category: 'chat',
+    maxTokens: 1000,
+    temperature: 0.7,
+    topP: 0.9
+  },

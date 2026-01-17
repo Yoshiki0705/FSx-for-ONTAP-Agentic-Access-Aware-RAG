@@ -1,0 +1,163 @@
+{
+  "projectName": "permission-aware-rag",
+  "environment": "development",
+  "region": "ap-northeast-1",
+  "accountId": "REPLACE_WITH_YOUR_ACCOUNT_ID",
+  "tags": {
+    "Environment": "development",
+    "Project": "permission-aware-rag",
+    "Owner": "development-team",
+    "CostCenter": "engineering"
+  },
+  "fsx": {
+    "enabled": true,
+    "fileSystems": [
+      {
+        "enabled": true,
+        "name": "dev-ontap-fs",
+        "storageCapacity": 1024,
+        "throughputCapacity": 128,
+        "deploymentType": "SINGLE_AZ_1",
+        "storageEfficiency": true,
+        "backup": {
+          "enabled": true,
+          "retentionDays": 7,
+          "dailyAutomaticBackupStartTime": "03:00"
+        },
+        "encryption": {
+          "enabled": true,
+          "kmsKeyId": ""
+        },
+        "network": {
+          "subnetIds": ["REPLACE_WITH_SUBNET_ID"],
+          "securityGroupIds": ["REPLACE_WITH_SECURITY_GROUP_ID"],
+          "routeTableIds": ["REPLACE_WITH_ROUTE_TABLE_ID"]
+        }
+      }
+    ],
+    "storageVirtualMachines": [
+      {
+        "enabled": true,
+        "name": "dev-svm",
+        "rootVolumeSecurityStyle": "UNIX",
+        "activeDirectoryConfiguration": {
+          "enabled": false
+        }
+      }
+    ],
+    "volumes": [
+      {
+        "enabled": true,
+        "name": "dev-volume",
+        "sizeInMegabytes": 10240,
+        "securityStyle": "UNIX",
+        "ontapVolumeType": "RW",
+        "junctionPath": "/dev-data"
+      }
+    ]
+  },
+  "serverless": {
+    "enabled": true,
+    "stepFunctions": {
+      "enabled": true,
+      "workflows": [
+        {
+          "enabled": true,
+          "name": "dev-data-processing",
+          "purpose": "Process development data",
+          "role": {
+            "permissions": [
+              "lambda:InvokeFunction",
+              "fsx:DescribeFileSystems",
+              "s3:GetObject",
+              "s3:PutObject"
+            ]
+          }
+        }
+      ],
+      "execution": {
+        "timeout": 900,
+        "retryAttempts": 3
+      }
+    },
+    "eventBridge": {
+      "enabled": true,
+      "rules": [
+        {
+          "enabled": true,
+          "name": "dev-file-change",
+          "eventPattern": {
+            "source": ["fsx.filesystem"],
+            "detail-type": ["File System State Change"]
+          },
+          "schedule": null
+        }
+      ]
+    },
+    "sqs": {
+      "enabled": true,
+      "queues": [
+        {
+          "enabled": true,
+          "name": "dev-processing-queue",
+          "configuration": {
+            "visibilityTimeoutSeconds": 300,
+            "messageRetentionPeriod": 1209600,
+            "maxReceiveCount": 3
+          }
+        }
+      ]
+    },
+    "sns": {
+      "enabled": true,
+      "topics": [
+        {
+          "enabled": true,
+          "name": "dev-notifications",
+          "subscriptions": [
+            {
+              "enabled": true,
+              "protocol": "email",
+              "endpoint": "dev-team@example.com"
+            }
+          ]
+        }
+      ]
+    },
+    "lambda": {
+      "functions": [
+        {
+          "enabled": true,
+          "name": "dev-data-processor",
+          "runtime": "python3.9",
+          "timeout": 300,
+          "memorySize": 512,
+          "vpc": {
+            "enabled": true
+          },
+          "fileSystem": {
+            "enabled": true
+          },
+          "role": {
+            "permissions": [
+              "fsx:DescribeFileSystems",
+              "dynamodb:GetItem",
+              "dynamodb:PutItem",
+              "s3:GetObject",
+              "s3:PutObject"
+            ]
+          }
+        }
+      ]
+    },
+    "monitoring": {
+      "cloudWatch": {
+        "enabled": true,
+        "logRetentionDays": 7
+      },
+      "xray": {
+        "enabled": true
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+# AWS Batch 負荷試験設定ファイル
+# このファイルをコピーして batch-load-test.conf として使用してください
+
+# 基本設定
+FILE_COUNT=1000                    # 処理するファイル数
+BATCH_SIZE=50                      # バッチサイズ
+CONCURRENT_JOBS=10                 # 同時実行ジョブ数
+TEST_DURATION=3600                 # テスト実行時間（秒）
+
+# FSx for ONTAP設定
+FSX_MOUNT_PATH="/mnt/fsx"          # FSxマウントパス
+FSX_FILESYSTEM_ID=""               # FSx for ONTAPファイルシステムID（空の場合は自動検出）
+FSX_VOLUME_NAME=""                 # FSx for ONTAPボリューム名（空の場合は自動検出）
+FSX_SVM_NAME=""                    # FSx for ONTAP SVM名（空の場合は自動検出）
+
+# AWS設定
+AWS_REGION="ap-northeast-1"        # AWSリージョン（FSxリソースがあるリージョン）
+BATCH_JOB_QUEUE=""                 # AWS Batchジョブキュー（空の場合は自動検出）
+BATCH_JOB_DEFINITION=""            # AWS Batchジョブ定義（空の場合は自動検出）
+S3_BUCKET=""                       # S3バケット（空の場合は自動検出）
+
+# 実行オプション
+VERBOSE=false                      # 詳細ログ
+DRY_RUN=false                      # ドライラン（実際のジョブを投入しない）
+
+# FSx for ONTAP固有設定
+NFS_VERSION="3"                    # NFSバージョン（3または4）
+NFS_OPTIONS="rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2"  # NFSマウントオプション
+
+# パフォーマンステスト設定
+PERF_TEST_FILE_SIZE="1G"           # パフォーマンステスト用ファイルサイズ
+PERF_TEST_THREAD_COUNT=4           # パフォーマンステスト用スレッド数
+
+# セキュリティ設定
+ENABLE_ENCRYPTION=true             # 転送時暗号化を有効化
+ENABLE_ACCESS_LOGGING=true         # アクセスログを有効化
+
+# 監視設定
+ENABLE_CLOUDWATCH_METRICS=true     # CloudWatchメトリクスを有効化
+METRICS_NAMESPACE="EmbeddingBatch/LoadTest"  # CloudWatchメトリクス名前空間
+
+# 例: 特定のFSx for ONTAPリソースを指定する場合
+# FSX_FILESYSTEM_ID="fs-0123456789abcdef0"
+# FSX_VOLUME_NAME="vol1"
+# FSX_SVM_NAME="svm01"
+
+# 例: 高性能設定
+# FILE_COUNT=5000
+# BATCH_SIZE=100
+# CONCURRENT_JOBS=20
+# PERF_TEST_FILE_SIZE="10G"
+# PERF_TEST_THREAD_COUNT=8
+
+# 例: 軽量テスト設定
+# FILE_COUNT=100
+# BATCH_SIZE=10
+# CONCURRENT_JOBS=2
+# TEST_DURATION=300
+# PERF_TEST_FILE_SIZE="100M"

@@ -1,0 +1,40 @@
+{
+  "queries": [
+    {
+      "id": "q1",
+      "text": "What is machine learning?",
+      "expected_topics": ["machine learning", "artificial intelligence", "algorithms"],
+      "category": "basic_concepts"
+    },
+    {
+      "id": "q2", 
+      "text": "Explain neural networks and deep learning",
+      "expected_topics": ["neural networks", "deep learning", "layers", "neurons"],
+      "category": "deep_learning"
+    },
+    {
+      "id": "q3",
+      "text": "What are transformer architectures?",
+      "expected_topics": ["transformer", "attention", "BERT", "GPT"],
+      "category": "advanced_topics"
+    },
+    {
+      "id": "q4",
+      "text": "Compare supervised and unsupervised learning",
+      "expected_topics": ["supervised learning", "unsupervised learning", "classification", "clustering"],
+      "category": "learning_types"
+    },
+    {
+      "id": "q5",
+      "text": "System architecture for ML platforms",
+      "expected_topics": ["architecture", "scalability", "inference", "monitoring"],
+      "category": "system_design"
+    },
+    {
+      "id": "q6",
+      "text": "Performance requirements for real-time systems",
+      "expected_topics": ["latency", "throughput", "performance", "real-time"],
+      "category": "performance"
+    }
+  ]
+}

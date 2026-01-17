@@ -1,0 +1,282 @@
+{
+  "//": "Enterprise Configuration Template for FSx for NetApp ONTAP Embedding Batch Workload",
+  "//": "This template provides production-ready configuration with enhanced security and monitoring",
+  "//": "",
+  "//": "Required Parameters:",
+  "//": "  - projectName: Your project identifier",
+  "//": "  - aws.account: AWS account ID (12 digits)",
+  "//": "  - vpc.existing.vpcId: Your existing VPC ID",
+  "//": "  - vpc.existing.privateSubnetIds: Array of private subnet IDs (minimum 2 for HA)",
+  "//": "  - fsx.existing.fileSystemId: Your FSx for NetApp ONTAP file system ID",
+  "//": "  - monitoring.alerting.emailEndpoints: Email addresses for production alerts",
+  "//": "  - costOptimization.resourceTagging.costCenter: Cost center for billing",
+  "//": "  - costOptimization.resourceTagging.owner: Team or individual responsible",
+  "//": "",
+  "//": "Optional Parameters:",
+  "//": "  - security.encryption.kmsKeyId: Custom KMS key for encryption",
+  "//": "  - costOptimization.budgets.monthlyBudgetUSD: Monthly budget limit",
+
+  "projectName": "enterprise-embedding-workload",
+  "environment": "prod",
+  "region": "ap-northeast-1",
+  "version": "1.0.0",
+
+  "aws": {
+    "account": "123456789012",
+    "profile": "production"
+  },
+
+  "stackNaming": {
+    "useAgentSteeringRules": true,
+    "regionPrefix": "TokyoRegion",
+    "stackPrefix": "permission-aware-rag"
+  },
+
+  "bedrock": {
+    "embeddingModel": {
+      "modelId": "amazon.titan-embed-text-v1",
+      "dimensions": 1536,
+      "maxTokens": 8192
+    },
+    "textModel": {
+      "modelId": "amazon.nova-pro-v1:0",
+      "maxTokens": 4096,
+      "temperature": 0.1
+    },
+    "region": "us-east-1"
+  },
+
+  "vpc": {
+    "mode": "existing",
+    "existing": {
+      "vpcId": "vpc-xxxxxxxxx",
+      "privateSubnetIds": [
+        "subnet-xxxxxxxxx",
+        "subnet-yyyyyyyyy",
+        "subnet-zzzzzzzzz"
+      ],
+      "publicSubnetIds": [
+        "subnet-aaaaaaaaa",
+        "subnet-bbbbbbbbb"
+      ],
+      "securityGroupIds": [
+        "sg-xxxxxxxxx"
+      ]
+    }
+  },
+
+  "fsx": {
+    "mode": "existing",
+    "existing": {
+      "fileSystemId": "fs-xxxxxxxxx",
+      "svmId": "svm-xxxxxxxxx",
+      "volumePath": "/rag-data",
+      "mountPoint": "/mnt/fsx-rag-data"
+    }
+  },
+
+  "batch": {
+    "computeEnvironment": {
+      "maxvCpus": 1000,
+      "minvCpus": 10,
+      "desiredvCpus": 50,
+      "instanceTypes": ["m5.xlarge", "m5.2xlarge", "c5.xlarge"],
+      "useSpotInstances": false,
+      "ec2KeyPair": "production-keypair"
+    },
+    "jobQueue": {
+      "priority": 100
+    },
+    "jobDefinitions": {
+      "documentProcessing": {
+        "vcpus": 4,
+        "memoryMiB": 8192,
+        "timeoutSeconds": 7200,
+        "retryAttempts": 3
+      },
+      "embeddingGeneration": {
+        "vcpus": 4,
+        "memoryMiB": 8192,
+        "timeoutSeconds": 14400,
+        "retryAttempts": 3
+      },
+      "ragQueryProcessing": {
+        "vcpus": 8,
+        "memoryMiB": 16384,
+        "timeoutSeconds": 7200,
+        "retryAttempts": 3
+      }
+    }
+  },
+
+  "storage": {
+    "s3": {
+      "enableVersioning": true,
+      "enableEncryption": true,
+      "lifecycleRules": {
+        "transitionToIA": 30,
+        "transitionToGlacier": 90,
+        "expiration": 2555
+      }
+    },
+    "dynamodb": {
+      "billingMode": "PAY_PER_REQUEST",
+      "enablePointInTimeRecovery": true,
+      "enableEncryption": true
+    }
+  },
+
+  "monitoring": {
+    "cloudWatch": {
+      "enableDetailedMonitoring": true,
+      "createDashboard": true,
+      "logRetentionDays": 365,
+      "enableInsights": true
+    },
+    "alerting": {
+      "enableAlerts": true,
+      "emailEndpoints": [
+        "prod-alerts@company.com",
+        "ops-team@company.com"
+      ],
+      "slackWebhookUrl": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+    },
+    "xray": {
+      "enableTracing": true,
+      "samplingRate": 0.1
+    }
+  },
+
+  "security": {
+    "iam": {
+      "enableMFA": true,
+      "passwordPolicy": {
+        "minLength": 12,
+        "requireUppercase": true,
+        "requireLowercase": true,
+        "requireNumbers": true,
+        "requireSymbols": true
+      }
+    },
+    "network": {
+      "enableWAF": true,
+      "allowedCIDRs": ["10.0.0.0/8"],
+      "enableVPCFlowLogs": true
+    },
+    "encryption": {
+      "enableKMSEncryption": true,
+      "kmsKeyId": "arn:aws:kms:ap-northeast-1:123456789012:key/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "enableS3Encryption": true,
+      "enableDynamoDBEncryption": true
+    },
+    "compliance": {
+      "enableGuardDuty": true,
+      "enableSecurityHub": true,
+      "enableConfig": true,
+      "enableCloudTrail": true
+    }
+  },
+
+  "costOptimization": {
+    "autoScaling": {
+      "enableAutoScaling": true,
+      "scaleDownDelay": 15,
+      "scaleUpThreshold": 80,
+      "scaleDownThreshold": 40
+    },
+    "resourceTagging": {
+      "costCenter": "production-ai",
+      "project": "embedding-workload",
+      "owner": "ai-ops-team",
+      "environment": "prod",
+      "customTags": {
+        "backup-required": "true",
+        "compliance-level": "high",
+        "data-classification": "confidential",
+        "business-unit": "artificial-intelligence"
+      }
+    },
+    "budgets": {
+      "enableBudgetAlerts": true,
+      "monthlyBudgetUSD": 5000,
+      "alertThresholds": [50, 75, 90, 100]
+    }
+  },
+
+  "development": {
+    "debugging": {
+      "enableDebugLogs": false,
+      "enableVerboseOutput": false,
+      "enablePerformanceMetrics": true
+    },
+    "testing": {
+      "enableTestMode": false,
+      "mockExternalServices": false
+    },
+    "deployment": {
+      "enableHotswap": false,
+      "enableRollback": true,
+      "deploymentTimeout": 60
+    }
+  },
+
+  "vectorDatabases": {
+    "opensearchServerless": {
+      "enabled": false,
+      "mode": "external",
+      "external": {
+        "collectionEndpoint": "https://xxxxx.ap-northeast-1.aoss.amazonaws.com",
+        "collectionId": "collection-id",
+        "indexName": "embeddings",
+        "authentication": {
+          "type": "iam"
+        }
+      }
+    },
+    "opensearch": {
+      "enabled": false,
+      "mode": "external",
+      "external": {
+        "domainEndpoint": "https://search-domain.ap-northeast-1.es.amazonaws.com",
+        "domainName": "embedding-search",
+        "indexName": "embeddings",
+        "authentication": {
+          "type": "iam"
+        }
+      }
+    },
+    "aurora": {
+      "enabled": false,
+      "mode": "external",
+      "external": {
+        "clusterEndpoint": "cluster-name.cluster-xxxxx.ap-northeast-1.rds.amazonaws.com",
+        "readerEndpoint": "cluster-name.cluster-ro-xxxxx.ap-northeast-1.rds.amazonaws.com",
+        "clusterIdentifier": "embedding-cluster",
+        "port": 5432,
+        "databaseName": "embeddings",
+        "authentication": {
+          "type": "iam",
+          "username": "embedding_user"
+        }
+      },
+      "vectorExtension": {
+        "enabled": true,
+        "extension": "pgvector",
+        "dimensions": 1536,
+        "tableName": "embeddings",
+        "vectorColumn": "embedding_vector",
+        "textColumn": "text_content",
+        "metadataColumn": "metadata"
+      }
+    }
+  },
+
+  "features": {
+    "enableDocumentProcessing": true,
+    "enableEmbeddingGeneration": true,
+    "enableRagQueryProcessing": true,
+    "enablePermissionFiltering": true,
+    "enableMultiLanguageSupport": true,
+    "enableAdvancedAnalytics": true
+  }
+}"

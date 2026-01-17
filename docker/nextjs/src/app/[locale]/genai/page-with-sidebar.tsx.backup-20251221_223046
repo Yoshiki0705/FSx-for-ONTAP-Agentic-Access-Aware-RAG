@@ -1,0 +1,21 @@
+'use client';
+
+import { useSearchParams } from 'next/navigation';
+import ChatbotClientWithSidebar from './ChatbotClientWithSidebar';
+
+interface ChatbotPageProps {
+  params: {
+    locale: string;
+  };
+}
+
+export default function ChatbotPageWithSidebar({ params }: ChatbotPageProps) {
+  const searchParams = useSearchParams();
+  const mode = (searchParams.get('mode') as 'kb' | 'agent') || 'kb';
+
+  return (
+    <div className="h-screen">
+      <ChatbotClientWithSidebar mode={mode} locale={params.locale} />
+    </div>
+  );
+}

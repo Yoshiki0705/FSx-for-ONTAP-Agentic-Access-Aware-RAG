@@ -1,0 +1,11 @@
+Algorithm,Type,Complexity,Accuracy,Interpretability,Use_Case
+Linear Regression,Supervised,Low,Medium,High,Regression
+Logistic Regression,Supervised,Low,Medium,High,Classification
+Decision Tree,Supervised,Medium,Medium,High,Classification/Regression
+Random Forest,Supervised,Medium,High,Medium,Classification/Regression
+SVM,Supervised,High,High,Low,Classification/Regression
+Neural Network,Supervised,High,High,Low,Complex Patterns
+K-Means,Unsupervised,Medium,N/A,Medium,Clustering
+DBSCAN,Unsupervised,Medium,N/A,Medium,Clustering
+PCA,Unsupervised,Low,N/A,Medium,Dimensionality Reduction
+Q-Learning,Reinforcement,High,Variable,Low,Sequential Decision Making

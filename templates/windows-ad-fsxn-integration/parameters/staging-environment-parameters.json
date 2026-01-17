@@ -1,0 +1,134 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "windows-ad-fsxn"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "staging"
+  },
+  {
+    "ParameterKey": "DeploymentRegion",
+    "ParameterValue": "ap-northeast-1"
+  },
+  {
+    "ParameterKey": "DomainName",
+    "ParameterValue": "staging.corp.local"
+  },
+  {
+    "ParameterKey": "NetBiosName",
+    "ParameterValue": "STAGECORP"
+  },
+  {
+    "ParameterKey": "AdminPassword",
+    "ParameterValue": "CHANGE_ME_SECURE_PASSWORD_123!"
+  },
+  {
+    "ParameterKey": "SafeModePassword",
+    "ParameterValue": "CHANGE_ME_SAFE_MODE_PASSWORD_123!"
+  },
+  {
+    "ParameterKey": "FSxFileSystemId",
+    "ParameterValue": "fs-CHANGE_ME_FILESYSTEM_ID"
+  },
+  {
+    "ParameterKey": "FSxSVMName",
+    "ParameterValue": "svm01"
+  },
+  {
+    "ParameterKey": "OrganizationalUnit",
+    "ParameterValue": "OU=Computers,DC=staging,DC=corp,DC=local"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "10.2.0.0/16"
+  },
+  {
+    "ParameterKey": "PrivateSubnetCidr",
+    "ParameterValue": "10.2.1.0/24"
+  },
+  {
+    "ParameterKey": "PublicSubnetCidr",
+    "ParameterValue": "10.2.2.0/24"
+  },
+  {
+    "ParameterKey": "AvailabilityZone",
+    "ParameterValue": "ap-northeast-1a"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t3.large"
+  },
+  {
+    "ParameterKey": "KeyPairName",
+    "ParameterValue": "CHANGE_ME_KEY_PAIR_NAME"
+  },
+  {
+    "ParameterKey": "EBSVolumeSize",
+    "ParameterValue": "150"
+  },
+  {
+    "ParameterKey": "AllowedCidrForRDP",
+    "ParameterValue": "10.2.0.0/16"
+  },
+  {
+    "ParameterKey": "EnableCloudTrail",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableGuardDuty",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableCloudWatch",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableSystemsManager",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "NotificationEmail",
+    "ParameterValue": "staging-admin@corp.local"
+  },
+  {
+    "ParameterKey": "EnableRollback",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "TimeoutInMinutes",
+    "ParameterValue": "75"
+  },
+  {
+    "ParameterKey": "UseSecretsManager",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "AdminPasswordSecretName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "SafeModePasswordSecretName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "ConfigurationSource",
+    "ParameterValue": "parameters"
+  },
+  {
+    "ParameterKey": "ConfigurationPrefix",
+    "ParameterValue": "/windows-ad-fsxn/staging"
+  },
+  {
+    "ParameterKey": "AdditionalTags",
+    "ParameterValue": "CostCenter=IT,Owner=InfraTeam,Purpose=Staging"
+  },
+  {
+    "ParameterKey": "CustomDomainSuffix",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "BackupRetentionDays",
+    "ParameterValue": "14"
+  }
+]

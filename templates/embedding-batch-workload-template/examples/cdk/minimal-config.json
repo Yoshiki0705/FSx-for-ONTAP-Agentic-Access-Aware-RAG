@@ -1,0 +1,56 @@
+{
+  "projectName": "embedding-workload",
+  "environment": "dev",
+  "region": "us-east-1",
+  "vpc": {
+    "create": true,
+    "cidr": "10.0.0.0/16"
+  },
+  "fsx": {
+    "create": true,
+    "storageCapacity": 1024,
+    "throughputCapacity": 128
+  },
+  "batch": {
+    "computeEnvironment": {
+      "instanceTypes": ["m5.large"],
+      "minvCpus": 0,
+      "maxvCpus": 10,
+      "desiredvCpus": 2
+    },
+    "jobQueue": {
+      "priority": 1
+    }
+  },
+  "bedrock": {
+    "region": "us-east-1",
+    "embeddingModel": {
+      "modelId": "amazon.titan-embed-text-v1",
+      "dimensions": 1536
+    },
+    "textModel": {
+      "modelId": "amazon.nova-lite-v1:0"
+    }
+  },
+  "storage": {
+    "s3": {
+      "versioning": true,
+      "encryption": "AES256"
+    },
+    "dynamodb": {
+      "billingMode": "PAY_PER_REQUEST",
+      "pointInTimeRecovery": true
+    }
+  },
+  "monitoring": {
+    "enableDashboard": true,
+    "enableAlerts": false,
+    "logRetentionDays": 7
+  },
+  "tags": {
+    "Project": "EmbeddingWorkload",
+    "Environment": "Development",
+    "Owner": "DevTeam",
+    "CostCenter": "Engineering"
+  }
+}

@@ -1,0 +1,210 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "embedding-enterprise"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-prod123456"
+  },
+  {
+    "ParameterKey": "SubnetIds",
+    "ParameterValue": "subnet-prod111,subnet-prod222,subnet-prod333"
+  },
+  {
+    "ParameterKey": "FsxFileSystemId",
+    "ParameterValue": "fs-prod123456"
+  },
+  {
+    "ParameterKey": "FsxSvmId",
+    "ParameterValue": "svm-prod123456"
+  },
+  {
+    "ParameterKey": "FsxMountPath",
+    "ParameterValue": "/mnt/fsx"
+  },
+  {
+    "ParameterKey": "MaxvCpus",
+    "ParameterValue": "1000"
+  },
+  {
+    "ParameterKey": "DesiredvCpus",
+    "ParameterValue": "0"
+  },
+  {
+    "ParameterKey": "MinvCpus",
+    "ParameterValue": "0"
+  },
+  {
+    "ParameterKey": "InstanceTypes",
+    "ParameterValue": "m5.xlarge,m5.2xlarge,m5.4xlarge,c5.xlarge,c5.2xlarge"
+  },
+  {
+    "ParameterKey": "EnableSpotInstances",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "BidPercentage",
+    "ParameterValue": "80"
+  },
+  {
+    "ParameterKey": "AllocationStrategy",
+    "ParameterValue": "SPOT_CAPACITY_OPTIMIZED"
+  },
+  {
+    "ParameterKey": "BedrockRegion",
+    "ParameterValue": "us-east-1"
+  },
+  {
+    "ParameterKey": "BedrockModelId",
+    "ParameterValue": "amazon.titan-embed-text-v1"
+  },
+  {
+    "ParameterKey": "S3BucketName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "EnableS3Versioning",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableS3MfaDelete",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "S3LifecyclePolicy",
+    "ParameterValue": "comprehensive"
+  },
+  {
+    "ParameterKey": "EnableS3IntelligentTiering",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "DynamoDBTableName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "DynamoDBBillingMode",
+    "ParameterValue": "PROVISIONED"
+  },
+  {
+    "ParameterKey": "DynamoDBReadCapacity",
+    "ParameterValue": "100"
+  },
+  {
+    "ParameterKey": "DynamoDBWriteCapacity",
+    "ParameterValue": "100"
+  },
+  {
+    "ParameterKey": "EnableDynamoDBAutoScaling",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableDynamoDBPointInTimeRecovery",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableDetailedMonitoring",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "CreateDashboard",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "LogRetentionDays",
+    "ParameterValue": "90"
+  },
+  {
+    "ParameterKey": "EnableXRayTracing",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableContainerInsights",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableEncryption",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "KmsKeyId",
+    "ParameterValue": "arn:aws:kms:ap-northeast-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+  },
+  {
+    "ParameterKey": "EnableVpcFlowLogs",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableGuardDuty",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableSecurityHub",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableCloudTrail",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableWaf",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableConfig",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "AlertEmail",
+    "ParameterValue": "ops-team@company.com"
+  },
+  {
+    "ParameterKey": "EnableSlackAlerts",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "SlackWebhook",
+    "ParameterValue": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  },
+  {
+    "ParameterKey": "EnablePagerDuty",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "PagerDutyIntegrationKey",
+    "ParameterValue": "YOUR_PAGERDUTY_INTEGRATION_KEY"
+  },
+  {
+    "ParameterKey": "MonthlyBudget",
+    "ParameterValue": "5000"
+  },
+  {
+    "ParameterKey": "BudgetAlertThresholds",
+    "ParameterValue": "50,80,100"
+  },
+  {
+    "ParameterKey": "ComplianceFrameworks",
+    "ParameterValue": "SOC2,ISO27001,GDPR"
+  },
+  {
+    "ParameterKey": "DataResidency",
+    "ParameterValue": "japan"
+  },
+  {
+    "ParameterKey": "BackupRetentionDays",
+    "ParameterValue": "30"
+  },
+  {
+    "ParameterKey": "EnableCrossRegionBackup",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "BackupRegion",
+    "ParameterValue": "ap-northeast-3"
+  }
+]

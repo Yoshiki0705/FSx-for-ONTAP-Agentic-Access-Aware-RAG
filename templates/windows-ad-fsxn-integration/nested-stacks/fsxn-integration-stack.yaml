@@ -1,0 +1,905 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Windows AD FSxN統合環境 - FSx for NetApp ONTAP統合スタック'
+
+# パラメータ定義
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "プロジェクト識別子"
+    AllowedPattern: "^[a-z0-9-]{3,20}$"
+
+  Environment:
+    Type: String
+    Description: "環境名"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+
+  FSxFileSystemId:
+    Type: String
+    Description: "既存のFSx for ONTAPファイルシステムID"
+    AllowedPattern: "^fs-[0-9a-f]{17}$"
+
+  FSxSVMName:
+    Type: String
+    Description: "FSx ONTAP SVM名"
+    Default: "svm01"
+    AllowedPattern: "^[a-zA-Z0-9_-]{1,47}$"
+
+  DomainName:
+    Type: String
+    Description: "Active Directoryドメイン名（FQDN形式）"
+    AllowedPattern: "^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+
+  NetBiosName:
+    Type: String
+    Description: "NetBIOS名（15文字以内の大文字）"
+    AllowedPattern: "^[A-Z0-9]{1,15}$"
+
+  OrganizationalUnit:
+    Type: String
+    Description: "Active Directory組織単位（OU）"
+    Default: "OU=Computers"
+    AllowedPattern: "^OU=[^,]+.*$"
+
+  AdminPassword:
+    Type: String
+    NoEcho: true
+    Description: "Active Directory管理者パスワード"
+    MinLength: 8
+    MaxLength: 64
+
+  DomainControllerIP:
+    Type: String
+    Description: "ドメインコントローラーのIPアドレス"
+    AllowedPattern: "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
+
+  DomainControllerDNS:
+    Type: String
+    Description: "ドメインコントローラーのDNS IPアドレス"
+    AllowedPattern: "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
+
+# 条件定義
+Conditions:
+  IsProductionEnvironment: !Equals [!Ref Environment, "prod"]
+
+# リソース定義
+Resources:
+  # Secrets Manager - FSx管理用認証情報
+  FSxAdminCredentialsSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${ProjectName}/${Environment}/fsxn-admin-credentials"
+      Description: "FSx for NetApp ONTAP Administrator Credentials"
+      SecretString: !Sub |
+        {
+          "username": "fsxadmin",
+          "password": "${AdminPassword}",
+          "domain": "${DomainName}",
+          "netbios": "${NetBiosName}",
+          "domain_controller_ip": "${DomainControllerIP}",
+          "organizational_unit": "${OrganizationalUnit}"
+        }
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-fsxn-admin-secret"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch Log Group - FSx統合ログ
+  FSxIntegrationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-${Environment}/fsxn-integration"
+      RetentionInDays: !If [IsProductionEnvironment, 90, 30]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-fsxn-integration-logs"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Lambda関数 - FSxドメイン参加カスタムリソース
+  FSxDomainJoinFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-fsxn-domain-join"
+      Runtime: python3.11
+      Handler: index.lambda_handler
+      Role: !Sub "${ProjectName}-${Environment}-lambda-execution-role"
+      Timeout: 900  # 15分
+      MemorySize: 256
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          FSX_FILESYSTEM_ID: !Ref FSxFileSystemId
+          DOMAIN_NAME: !Ref DomainName
+          NETBIOS_NAME: !Ref NetBiosName
+          ORGANIZATIONAL_UNIT: !Ref OrganizationalUnit
+          DOMAIN_CONTROLLER_IP: !Ref DomainControllerIP
+          SECRETS_ARN: !Ref FSxAdminCredentialsSecret
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import logging
+          import os
+          import time
+          import random
+          from botocore.exceptions import ClientError, BotoCoreError
+          import urllib3
+          from typing import Dict, Any, Optional, List
+
+          # ログ設定
+          logger = logging.getLogger()
+          logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
+
+          # AWSクライアント初期化（リトライ設定付き）
+          from botocore.config import Config
+          
+          retry_config = Config(
+              retries={
+                  'max_attempts': 10,
+                  'mode': 'adaptive'
+              }
+          )
+          
+          fsx_client = boto3.client('fsx', config=retry_config)
+          secrets_client = boto3.client('secretsmanager', config=retry_config)
+          cloudwatch_client = boto3.client('cloudwatch', config=retry_config)
+
+          # 定数定義
+          MAX_RETRIES = 3
+          RETRY_DELAY_BASE = 30  # 秒
+          DOMAIN_JOIN_TIMEOUT = 1800  # 30分
+          SVM_OPERATION_TIMEOUT = 900  # 15分
+
+          def lambda_handler(event, context):
+              """
+              FSx for NetApp ONTAPのActive Directoryドメイン参加を管理するLambda関数
+              """
+              logger.info(f"イベント受信: {json.dumps(event, default=str)}")
+              
+              # 実行開始時刻記録
+              start_time = time.time()
+              
+              try:
+                  # 入力検証
+                  validate_event(event)
+                  
+                  request_type = event['RequestType']
+                  resource_properties = event['ResourceProperties']
+                  
+                  # CloudWatchメトリクス送信
+                  send_custom_metric('FSxDomainJoinAttempts', 1, request_type)
+                  
+                  # リトライ機構付きで処理実行
+                  response = execute_with_retry(request_type, resource_properties, event)
+                  
+                  # 成功メトリクス送信
+                  execution_time = time.time() - start_time
+                  send_custom_metric('FSxDomainJoinSuccess', 1, request_type)
+                  send_custom_metric('FSxDomainJoinDuration', execution_time, request_type)
+                  
+                  logger.info(f"処理完了: {request_type} ({execution_time:.2f}秒)")
+                  send_response(event, context, 'SUCCESS', response)
+                  
+              except Exception as e:
+                  # エラーメトリクス送信
+                  execution_time = time.time() - start_time
+                  send_custom_metric('FSxDomainJoinFailures', 1, event.get('RequestType', 'Unknown'))
+                  send_custom_metric('FSxDomainJoinDuration', execution_time, event.get('RequestType', 'Unknown'))
+                  
+                  # 詳細エラー情報収集
+                  error_details = collect_error_details(e, event, context)
+                  logger.error(f"エラー発生: {error_details}", exc_info=True)
+                  
+                  send_response(event, context, 'FAILED', {'Error': str(e), 'Details': error_details})
+
+          def validate_event(event: Dict[str, Any]) -> None:
+              """イベント入力検証"""
+              required_fields = ['RequestType', 'ResourceProperties', 'ResponseURL', 'StackId', 'RequestId', 'LogicalResourceId']
+              
+              for field in required_fields:
+                  if field not in event:
+                      raise ValueError(f"必須フィールドが不足: {field}")
+              
+              resource_props = event['ResourceProperties']
+              required_props = ['FileSystemId', 'DomainName', 'DomainControllerDNS']
+              
+              for prop in required_props:
+                  if prop not in resource_props:
+                      raise ValueError(f"必須プロパティが不足: {prop}")
+
+          def execute_with_retry(request_type: str, properties: Dict[str, Any], event: Dict[str, Any]) -> Dict[str, Any]:
+              """リトライ機構付き処理実行"""
+              last_exception = None
+              
+              for attempt in range(MAX_RETRIES):
+                  try:
+                      logger.info(f"処理実行試行 {attempt + 1}/{MAX_RETRIES}: {request_type}")
+                      
+                      if request_type == 'Create':
+                          return handle_create(properties)
+                      elif request_type == 'Update':
+                          return handle_update(properties, event.get('OldResourceProperties', {}))
+                      elif request_type == 'Delete':
+                          return handle_delete(properties)
+                      else:
+                          raise ValueError(f"未対応のRequestType: {request_type}")
+                  
+                  except Exception as e:
+                      last_exception = e
+                      logger.warning(f"試行 {attempt + 1} 失敗: {str(e)}")
+                      
+                      # 最後の試行でない場合はリトライ
+                      if attempt < MAX_RETRIES - 1:
+                          # 指数バックオフ + ジッター
+                          delay = RETRY_DELAY_BASE * (2 ** attempt) + random.uniform(0, 10)
+                          logger.info(f"{delay:.1f}秒後にリトライします...")
+                          time.sleep(delay)
+                      else:
+                          logger.error(f"全ての試行が失敗しました")
+                          raise last_exception
+
+          def collect_error_details(exception: Exception, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+              """詳細エラー情報収集"""
+              try:
+                  error_details = {
+                      'exception_type': type(exception).__name__,
+                      'exception_message': str(exception),
+                      'request_type': event.get('RequestType'),
+                      'function_name': context.function_name,
+                      'function_version': context.function_version,
+                      'log_group_name': context.log_group_name,
+                      'log_stream_name': context.log_stream_name,
+                      'remaining_time_ms': context.get_remaining_time_in_millis(),
+                      'memory_limit_mb': context.memory_limit_in_mb,
+                      'aws_request_id': context.aws_request_id
+                  }
+                  
+                  # FSx固有のエラー情報
+                  if isinstance(exception, ClientError):
+                      error_code = exception.response.get('Error', {}).get('Code')
+                      error_message = exception.response.get('Error', {}).get('Message')
+                      error_details.update({
+                          'aws_error_code': error_code,
+                          'aws_error_message': error_message,
+                          'http_status_code': exception.response.get('ResponseMetadata', {}).get('HTTPStatusCode')
+                      })
+                  
+                  # リソースプロパティ情報（機密情報除外）
+                  safe_properties = {k: v for k, v in event.get('ResourceProperties', {}).items() 
+                                   if k not in ['AdminPassword', 'Password']}
+                  error_details['resource_properties'] = safe_properties
+                  
+                  return error_details
+                  
+              except Exception as e:
+                  logger.error(f"エラー詳細収集失敗: {e}")
+                  return {'error': 'Failed to collect error details'}
+
+          def send_custom_metric(metric_name: str, value: float, dimension_value: str) -> None:
+              """CloudWatchカスタムメトリクス送信"""
+              try:
+                  cloudwatch_client.put_metric_data(
+                      Namespace='FSxN/DomainJoin',
+                      MetricData=[
+                          {
+                              'MetricName': metric_name,
+                              'Value': value,
+                              'Unit': 'Count' if 'Duration' not in metric_name else 'Seconds',
+                              'Dimensions': [
+                                  {
+                                      'Name': 'RequestType',
+                                      'Value': dimension_value
+                                  },
+                                  {
+                                      'Name': 'Environment',
+                                      'Value': os.environ.get('ENVIRONMENT', 'unknown')
+                                  }
+                              ]
+                          }
+                      ]
+                  )
+              except Exception as e:
+                  logger.warning(f"メトリクス送信失敗: {e}")
+
+          def handle_create(properties):
+              """FSxドメイン参加の作成処理"""
+              logger.info("FSxドメイン参加作成開始")
+              
+              filesystem_id = properties['FileSystemId']
+              svm_name = properties.get('SVMName', 'svm01')
+              
+              # 既存のファイルシステム情報取得
+              filesystem_info = get_filesystem_info(filesystem_id)
+              logger.info(f"ファイルシステム情報: {filesystem_info['FileSystemType']}")
+              
+              # SVM作成またはドメイン参加
+              svm_info = create_or_update_svm(filesystem_id, svm_name, properties)
+              
+              # ドメイン参加状況確認
+              domain_join_status = wait_for_domain_join(filesystem_id, svm_name)
+              
+              return {
+                  'FileSystemId': filesystem_id,
+                  'SVMName': svm_name,
+                  'DomainJoinStatus': domain_join_status,
+                  'SVMId': svm_info.get('StorageVirtualMachineId'),
+                  'Message': 'FSx ONTAP SVM successfully joined to Active Directory domain'
+              }
+
+          def handle_update(properties, old_properties):
+              """FSxドメイン参加の更新処理"""
+              logger.info("FSxドメイン参加更新開始")
+              
+              filesystem_id = properties['FileSystemId']
+              svm_name = properties.get('SVMName', 'svm01')
+              
+              # 設定変更の確認
+              changes = detect_changes(properties, old_properties)
+              if not changes:
+                  logger.info("設定変更なし")
+                  return {'Message': 'No changes detected'}
+              
+              logger.info(f"検出された変更: {changes}")
+              
+              # SVM設定更新
+              svm_info = create_or_update_svm(filesystem_id, svm_name, properties, update=True)
+              
+              # ドメイン参加状況確認
+              domain_join_status = wait_for_domain_join(filesystem_id, svm_name)
+              
+              return {
+                  'FileSystemId': filesystem_id,
+                  'SVMName': svm_name,
+                  'DomainJoinStatus': domain_join_status,
+                  'Changes': changes,
+                  'Message': 'FSx ONTAP SVM configuration updated successfully'
+              }
+
+          def handle_delete(properties):
+              """FSxドメイン参加の削除処理"""
+              logger.info("FSxドメイン参加削除開始")
+              
+              filesystem_id = properties['FileSystemId']
+              svm_name = properties.get('SVMName', 'svm01')
+              
+              try:
+                  # SVM情報取得
+                  svms = fsx_client.describe_storage_virtual_machines(
+                      Filters=[
+                          {'Name': 'file-system-id', 'Values': [filesystem_id]},
+                          {'Name': 'storage-virtual-machine-name', 'Values': [svm_name]}
+                      ]
+                  )
+                  
+                  if svms['StorageVirtualMachines']:
+                      svm = svms['StorageVirtualMachines'][0]
+                      svm_id = svm['StorageVirtualMachineId']
+                      
+                      # Active Directory設定の削除（ドメインから離脱）
+                      if svm.get('ActiveDirectoryConfiguration'):
+                          logger.info(f"SVM {svm_name} をActive Directoryドメインから離脱中...")
+                          
+                          fsx_client.update_storage_virtual_machine(
+                              StorageVirtualMachineId=svm_id,
+                              ActiveDirectoryConfiguration={
+                                  'SelfManagedActiveDirectoryConfiguration': {
+                                      'DomainName': '',  # 空文字でドメインから離脱
+                                  }
+                              }
+                          )
+                          
+                          # 離脱完了待機
+                          wait_for_svm_update(svm_id)
+                      
+                      logger.info(f"SVM {svm_name} のドメイン離脱完了")
+                  
+              except ClientError as e:
+                  if e.response['Error']['Code'] == 'StorageVirtualMachineNotFound':
+                      logger.info("SVM が見つかりません（既に削除済み）")
+                  else:
+                      raise
+              
+              return {
+                  'FileSystemId': filesystem_id,
+                  'SVMName': svm_name,
+                  'Message': 'FSx ONTAP SVM successfully removed from Active Directory domain'
+              }
+
+          def get_filesystem_info(filesystem_id):
+              """ファイルシステム情報取得"""
+              try:
+                  response = fsx_client.describe_file_systems(FileSystemIds=[filesystem_id])
+                  if not response['FileSystems']:
+                      raise ValueError(f"ファイルシステムが見つかりません: {filesystem_id}")
+                  
+                  return response['FileSystems'][0]
+              except ClientError as e:
+                  logger.error(f"ファイルシステム情報取得エラー: {e}")
+                  raise
+
+          def get_admin_credentials():
+              """管理者認証情報取得"""
+              try:
+                  secrets_arn = os.environ['SECRETS_ARN']
+                  response = secrets_client.get_secret_value(SecretId=secrets_arn)
+                  return json.loads(response['SecretString'])
+              except Exception as e:
+                  logger.error(f"認証情報取得エラー: {e}")
+                  raise
+
+          def create_or_update_svm(filesystem_id, svm_name, properties, update=False):
+              """SVM作成または更新"""
+              try:
+                  # 既存SVM確認
+                  svms = fsx_client.describe_storage_virtual_machines(
+                      Filters=[
+                          {'Name': 'file-system-id', 'Values': [filesystem_id]},
+                          {'Name': 'storage-virtual-machine-name', 'Values': [svm_name]}
+                      ]
+                  )
+                  
+                  credentials = get_admin_credentials()
+                  
+                  # Active Directory設定
+                  ad_config = {
+                      'DomainName': properties['DomainName'],
+                      'OrganizationalUnitDistinguishedName': properties['OrganizationalUnit'],
+                      'UserName': credentials['username'],
+                      'Password': credentials['password'],
+                      'DnsIps': [properties['DomainControllerDNS']]
+                  }
+                  
+                  if svms['StorageVirtualMachines'] and update:
+                      # 既存SVM更新
+                      svm = svms['StorageVirtualMachines'][0]
+                      svm_id = svm['StorageVirtualMachineId']
+                      
+                      logger.info(f"SVM {svm_name} を更新中...")
+                      
+                      response = fsx_client.update_storage_virtual_machine(
+                          StorageVirtualMachineId=svm_id,
+                          ActiveDirectoryConfiguration={
+                              'SelfManagedActiveDirectoryConfiguration': ad_config
+                          }
+                      )
+                      
+                      wait_for_svm_update(svm_id)
+                      return response['StorageVirtualMachine']
+                      
+                  elif not svms['StorageVirtualMachines']:
+                      # 新規SVM作成
+                      logger.info(f"SVM {svm_name} を作成中...")
+                      
+                      response = fsx_client.create_storage_virtual_machine(
+                          FileSystemId=filesystem_id,
+                          Name=svm_name,
+                          ActiveDirectoryConfiguration={
+                              'SelfManagedActiveDirectoryConfiguration': ad_config
+                          },
+                          RootVolumeSecurityStyle='NTFS',
+                          Tags=[
+                              {'Key': 'Name', 'Value': f"{os.environ.get('PROJECT_NAME', 'fsxn')}-{svm_name}"},
+                              {'Key': 'Environment', 'Value': os.environ.get('ENVIRONMENT', 'dev')},
+                              {'Key': 'ManagedBy', 'Value': 'CloudFormation'}
+                          ]
+                      )
+                      
+                      svm_id = response['StorageVirtualMachine']['StorageVirtualMachineId']
+                      wait_for_svm_creation(svm_id)
+                      return response['StorageVirtualMachine']
+                  
+                  else:
+                      # 既存SVM（更新不要）
+                      return svms['StorageVirtualMachines'][0]
+                      
+              except ClientError as e:
+                  logger.error(f"SVM操作エラー: {e}")
+                  raise
+
+          def wait_for_svm_creation(svm_id, max_wait_time=600):
+              """SVM作成完了待機"""
+              logger.info(f"SVM作成完了待機中: {svm_id}")
+              
+              start_time = time.time()
+              while time.time() - start_time < max_wait_time:
+                  try:
+                      response = fsx_client.describe_storage_virtual_machines(
+                          StorageVirtualMachineIds=[svm_id]
+                      )
+                      
+                      if response['StorageVirtualMachines']:
+                          svm = response['StorageVirtualMachines'][0]
+                          lifecycle = svm['Lifecycle']
+                          
+                          logger.info(f"SVM状態: {lifecycle}")
+                          
+                          if lifecycle == 'CREATED':
+                              logger.info("SVM作成完了")
+                              return True
+                          elif lifecycle in ['FAILED', 'DELETING', 'DELETED']:
+                              raise Exception(f"SVM作成失敗: {lifecycle}")
+                      
+                      time.sleep(30)
+                      
+                  except ClientError as e:
+                      logger.error(f"SVM状態確認エラー: {e}")
+                      time.sleep(30)
+              
+              raise Exception(f"SVM作成タイムアウト: {max_wait_time}秒")
+
+          def wait_for_svm_update(svm_id, max_wait_time=600):
+              """SVM更新完了待機"""
+              logger.info(f"SVM更新完了待機中: {svm_id}")
+              
+              start_time = time.time()
+              while time.time() - start_time < max_wait_time:
+                  try:
+                      response = fsx_client.describe_storage_virtual_machines(
+                          StorageVirtualMachineIds=[svm_id]
+                      )
+                      
+                      if response['StorageVirtualMachines']:
+                          svm = response['StorageVirtualMachines'][0]
+                          lifecycle = svm['Lifecycle']
+                          
+                          logger.info(f"SVM状態: {lifecycle}")
+                          
+                          if lifecycle == 'CREATED':
+                              logger.info("SVM更新完了")
+                              return True
+                          elif lifecycle in ['FAILED']:
+                              raise Exception(f"SVM更新失敗: {lifecycle}")
+                      
+                      time.sleep(30)
+                      
+                  except ClientError as e:
+                      logger.error(f"SVM状態確認エラー: {e}")
+                      time.sleep(30)
+              
+              raise Exception(f"SVM更新タイムアウト: {max_wait_time}秒")
+
+          def wait_for_domain_join(filesystem_id: str, svm_name: str, max_wait_time: int = DOMAIN_JOIN_TIMEOUT) -> str:
+              """ドメイン参加完了待機（詳細監視付き）"""
+              logger.info(f"ドメイン参加完了待機中: {svm_name} (最大{max_wait_time}秒)")
+              
+              start_time = time.time()
+              check_interval = 60  # 初期チェック間隔
+              last_status = None
+              status_change_count = 0
+              
+              while time.time() - start_time < max_wait_time:
+                  try:
+                      elapsed_time = time.time() - start_time
+                      logger.info(f"ドメイン参加確認中... ({elapsed_time:.0f}秒経過)")
+                      
+                      # SVM情報取得
+                      svms = fsx_client.describe_storage_virtual_machines(
+                          Filters=[
+                              {'Name': 'file-system-id', 'Values': [filesystem_id]},
+                              {'Name': 'storage-virtual-machine-name', 'Values': [svm_name]}
+                          ]
+                      )
+                      
+                      if not svms['StorageVirtualMachines']:
+                          logger.error(f"SVM {svm_name} が見つかりません")
+                          return 'SVM_NOT_FOUND'
+                      
+                      svm = svms['StorageVirtualMachines'][0]
+                      svm_lifecycle = svm.get('Lifecycle', 'UNKNOWN')
+                      
+                      # SVM状態確認
+                      if svm_lifecycle != 'CREATED':
+                          logger.info(f"SVM状態: {svm_lifecycle} (ドメイン参加待機中)")
+                          time.sleep(check_interval)
+                          continue
+                      
+                      # Active Directory設定確認
+                      ad_config = svm.get('ActiveDirectoryConfiguration')
+                      if not ad_config:
+                          logger.info("Active Directory設定が見つかりません")
+                          time.sleep(check_interval)
+                          continue
+                      
+                      # 自己管理AD設定確認
+                      self_managed_config = ad_config.get('SelfManagedActiveDirectoryConfiguration', {})
+                      domain_name = self_managed_config.get('DomainName')
+                      dns_ips = self_managed_config.get('DnsIps', [])
+                      ou_dn = self_managed_config.get('OrganizationalUnitDistinguishedName')
+                      
+                      # ドメイン参加状況の詳細確認
+                      domain_join_info = {
+                          'domain_name': domain_name,
+                          'dns_ips': dns_ips,
+                          'organizational_unit': ou_dn,
+                          'svm_lifecycle': svm_lifecycle
+                      }
+                      
+                      current_status = f"Domain: {domain_name}, DNS: {len(dns_ips)} servers, OU: {ou_dn}"
+                      
+                      # 状態変化の監視
+                      if current_status != last_status:
+                          logger.info(f"ドメイン参加状態変化: {current_status}")
+                          last_status = current_status
+                          status_change_count += 1
+                          
+                          # CloudWatchメトリクス送信
+                          send_custom_metric('DomainJoinStatusChanges', status_change_count, 'StatusChange')
+                      
+                      # ドメイン参加完了判定
+                      if domain_name and dns_ips:
+                          # 追加検証: DNS接続確認
+                          dns_validation = validate_dns_connectivity(dns_ips)
+                          
+                          if dns_validation['success']:
+                              logger.info(f"ドメイン参加完了確認: {domain_name}")
+                              logger.info(f"DNS検証成功: {dns_validation['details']}")
+                              
+                              # 最終検証メトリクス
+                              send_custom_metric('DomainJoinValidationSuccess', 1, 'Validation')
+                              
+                              return 'JOINED'
+                          else:
+                              logger.warning(f"DNS検証失敗: {dns_validation['error']}")
+                              send_custom_metric('DomainJoinValidationFailure', 1, 'Validation')
+                      
+                      # 進行状況に応じてチェック間隔調整
+                      if elapsed_time > 600:  # 10分経過後は間隔を長くする
+                          check_interval = 120
+                      elif elapsed_time > 300:  # 5分経過後は少し長くする
+                          check_interval = 90
+                      
+                      time.sleep(check_interval)
+                      
+                  except ClientError as e:
+                      error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+                      logger.error(f"ドメイン参加状態確認エラー ({error_code}): {e}")
+                      
+                      # 一時的なエラーの場合はリトライ
+                      if error_code in ['Throttling', 'RequestLimitExceeded', 'ServiceUnavailable']:
+                          time.sleep(min(check_interval * 2, 300))  # 最大5分待機
+                      else:
+                          time.sleep(check_interval)
+                  
+                  except Exception as e:
+                      logger.error(f"予期しないエラー: {e}")
+                      time.sleep(check_interval)
+              
+              # タイムアウト処理
+              elapsed_time = time.time() - start_time
+              logger.error(f"ドメイン参加確認タイムアウト: {elapsed_time:.0f}秒経過")
+              
+              # タイムアウト時の詳細情報収集
+              try:
+                  final_svm_info = get_svm_detailed_info(filesystem_id, svm_name)
+                  logger.error(f"タイムアウト時のSVM情報: {json.dumps(final_svm_info, default=str, indent=2)}")
+              except Exception as e:
+                  logger.error(f"最終SVM情報取得失敗: {e}")
+              
+              return 'TIMEOUT'
+
+          def validate_dns_connectivity(dns_ips: List[str]) -> Dict[str, Any]:
+              """DNS接続検証"""
+              try:
+                  if not dns_ips:
+                      return {'success': False, 'error': 'DNS IPアドレスが設定されていません'}
+                  
+                  # 基本的な検証（IPアドレス形式確認）
+                  import ipaddress
+                  valid_ips = []
+                  
+                  for ip in dns_ips:
+                      try:
+                          ipaddress.ip_address(ip)
+                          valid_ips.append(ip)
+                      except ValueError:
+                          logger.warning(f"無効なIPアドレス: {ip}")
+                  
+                  if not valid_ips:
+                      return {'success': False, 'error': '有効なDNS IPアドレスがありません'}
+                  
+                  return {
+                      'success': True,
+                      'details': f'{len(valid_ips)}個の有効なDNS IPアドレス: {", ".join(valid_ips)}'
+                  }
+                  
+              except Exception as e:
+                  return {'success': False, 'error': f'DNS検証エラー: {str(e)}'}
+
+          def get_svm_detailed_info(filesystem_id: str, svm_name: str) -> Dict[str, Any]:
+              """SVM詳細情報取得"""
+              try:
+                  svms = fsx_client.describe_storage_virtual_machines(
+                      Filters=[
+                          {'Name': 'file-system-id', 'Values': [filesystem_id]},
+                          {'Name': 'storage-virtual-machine-name', 'Values': [svm_name]}
+                      ]
+                  )
+                  
+                  if svms['StorageVirtualMachines']:
+                      svm = svms['StorageVirtualMachines'][0]
+                      
+                      # 機密情報を除外した詳細情報
+                      detailed_info = {
+                          'svm_id': svm.get('StorageVirtualMachineId'),
+                          'name': svm.get('Name'),
+                          'lifecycle': svm.get('Lifecycle'),
+                          'creation_time': svm.get('CreationTime'),
+                          'file_system_id': svm.get('FileSystemId'),
+                          'subtype': svm.get('Subtype'),
+                          'root_volume_security_style': svm.get('RootVolumeSecurityStyle')
+                      }
+                      
+                      # Active Directory設定情報（パスワード除外）
+                      ad_config = svm.get('ActiveDirectoryConfiguration')
+                      if ad_config:
+                          self_managed = ad_config.get('SelfManagedActiveDirectoryConfiguration', {})
+                          detailed_info['active_directory'] = {
+                              'domain_name': self_managed.get('DomainName'),
+                              'organizational_unit': self_managed.get('OrganizationalUnitDistinguishedName'),
+                              'dns_ips': self_managed.get('DnsIps', []),
+                              'username': self_managed.get('UserName')
+                          }
+                      
+                      return detailed_info
+                  
+                  return {'error': 'SVM not found'}
+                  
+              except Exception as e:
+                  return {'error': f'Failed to get SVM info: {str(e)}'}
+
+          def detect_changes(new_props, old_props):
+              """設定変更検出"""
+              changes = []
+              
+              check_fields = ['DomainName', 'OrganizationalUnit', 'DomainControllerDNS']
+              
+              for field in check_fields:
+                  if new_props.get(field) != old_props.get(field):
+                      changes.append({
+                          'Field': field,
+                          'OldValue': old_props.get(field),
+                          'NewValue': new_props.get(field)
+                      })
+              
+              return changes
+
+          def send_response(event, context, status, response_data):
+              """CloudFormationレスポンス送信"""
+              response_url = event['ResponseURL']
+              
+              response_body = {
+                  'Status': status,
+                  'Reason': f'See CloudWatch Log Stream: {context.log_stream_name}',
+                  'PhysicalResourceId': f"{event['ResourceProperties']['FileSystemId']}-{event['ResourceProperties'].get('SVMName', 'svm01')}",
+                  'StackId': event['StackId'],
+                  'RequestId': event['RequestId'],
+                  'LogicalResourceId': event['LogicalResourceId'],
+                  'Data': response_data
+              }
+              
+              json_response_body = json.dumps(response_body)
+              
+              headers = {
+                  'content-type': '',
+                  'content-length': str(len(json_response_body))
+              }
+              
+              try:
+                  http = urllib3.PoolManager()
+                  response = http.request('PUT', response_url, body=json_response_body, headers=headers)
+                  logger.info(f"CloudFormationレスポンス送信完了: {response.status}")
+              except Exception as e:
+                  logger.error(f"CloudFormationレスポンス送信エラー: {e}")
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-fsxn-domain-join"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # カスタムリソース - FSxドメイン参加実行
+  FSxDomainJoinResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt FSxDomainJoinFunction.Arn
+      FileSystemId: !Ref FSxFileSystemId
+      SVMName: !Ref FSxSVMName
+      DomainName: !Ref DomainName
+      NetBiosName: !Ref NetBiosName
+      OrganizationalUnit: !Ref OrganizationalUnit
+      DomainControllerDNS: !Ref DomainControllerDNS
+      # パスワードは直接渡さず、Lambda内でSecrets Managerから取得
+
+  # CloudWatch アラーム - FSx統合監視
+  FSxDomainJoinFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-fsxn-domain-join-failure"
+      AlarmDescription: "FSx ONTAP domain join operation failure"
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref FSxDomainJoinFunction
+      TreatMissingData: notBreaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-fsxn-domain-join-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# 出力値定義
+Outputs:
+  FSxFileSystemId:
+    Description: "FSx for ONTAP ファイルシステム ID"
+    Value: !Ref FSxFileSystemId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-filesystem-id"
+
+  FSxSVMName:
+    Description: "FSx ONTAP SVM名"
+    Value: !Ref FSxSVMName
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-svm-name"
+
+  DomainJoinStatus:
+    Description: "FSx ONTAP ドメイン参加ステータス"
+    Value: !GetAtt FSxDomainJoinResource.DomainJoinStatus
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-domain-join-status"
+
+  FSxSVMId:
+    Description: "FSx ONTAP SVM ID"
+    Value: !GetAtt FSxDomainJoinResource.SVMId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-svm-id"
+
+  FSxAdminCredentialsSecretArn:
+    Description: "FSx管理者認証情報 Secrets Manager ARN"
+    Value: !Ref FSxAdminCredentialsSecret
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-admin-secret-arn"
+
+  FSxIntegrationLogGroupName:
+    Description: "FSx統合 CloudWatch Log Group名"
+    Value: !Ref FSxIntegrationLogGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-integration-log-group"
+
+  FSxDomainJoinFunctionArn:
+    Description: "FSxドメイン参加Lambda関数 ARN"
+    Value: !GetAtt FSxDomainJoinFunction.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-domain-join-function-arn"
+
+  FSxIntegrationSummary:
+    Description: "FSx ONTAP統合構成サマリー"
+    Value: !Sub |
+      FileSystem ID: ${FSxFileSystemId}
+      SVM Name: ${FSxSVMName}
+      Domain: ${DomainName}
+      NetBIOS: ${NetBiosName}
+      Organizational Unit: ${OrganizationalUnit}
+      Domain Join Status: ${FSxDomainJoinResource.DomainJoinStatus}
+      
+      Management:
+      - SVM ID: ${FSxDomainJoinResource.SVMId}
+      - Admin Credentials: ${FSxAdminCredentialsSecret}
+      - Integration Logs: ${FSxIntegrationLogGroup}

@@ -1,0 +1,109 @@
+{
+  "projectName": "permission-aware-rag",
+  "environment": "dev",
+  "region": "ap-northeast-1",
+  "vpc": {
+    "create": false,
+    "vpcId": "vpc-09aa251d6db52b1fc",
+    "privateSubnetIds": ["subnet-0a84a16a1641e970f", "subnet-0c4599b4863ff4d33"],
+    "publicSubnetIds": ["subnet-06a00a8866d09b912", "subnet-0d7c7e43c1325cd3b"]
+  },
+  "fsx": {
+    "create": false,
+    "fileSystemId": "fs-0efd9429aa9ba839a",
+    "svmId": "svm-01b48eb910be1c588",
+    "volumeId": "fsvol-0413e32de284cd0e4",
+    "mountPath": "/sqlite-load-test",
+    "dnsName": "svm-01b48eb910be1c588.fs-0efd9429aa9ba839a.fsx.ap-northeast-1.amazonaws.com",
+    "nfsEndpoint": "svm-01b48eb910be1c588.fs-0efd9429aa9ba839a.fsx.ap-northeast-1.amazonaws.com",
+    "cifsEndpoint": "10.21.3.131",
+    "cifsShareName": "sqlite-load-test"
+  },
+  "bedrock": {
+    "region": "ap-northeast-1",
+    "embeddingModel": "amazon.titan-embed-text-v1",
+    "textModel": "amazon.nova-pro-v1:0"
+  },
+  "batch": {
+    "embeddingEnvironment": {
+      "type": "MANAGED",
+      "state": "ENABLED",
+      "serviceRole": "arn:aws:iam::178625946981:role/AWSBatchServiceRole",
+      "instanceTypes": ["m5.large", "m5.xlarge"],
+      "minvCpus": 0,
+      "maxvCpus": 20,
+      "desiredvCpus": 0,
+      "enableSpotInstances": true
+    },
+    "jobQueue": {
+      "state": "ENABLED",
+      "priority": 1
+    },
+    "jobDefinition": {
+      "type": "container",
+      "platformCapabilities": ["EC2"],
+      "jobRoleArn": "arn:aws:iam::178625946981:role/BatchJobExecutionRole",
+      "executionRoleArn": "arn:aws:iam::178625946981:role/BatchTaskExecutionRole",
+      "containerProperties": {
+        "image": "public.ecr.aws/amazonlinux/amazonlinux:2023",
+        "vcpus": 2,
+        "memory": 4096,
+        "jobRoleArn": "arn:aws:iam::178625946981:role/BatchJobExecutionRole"
+      },
+      "retryStrategy": {
+        "attempts": 3
+      },
+      "timeout": {
+        "attemptDurationSeconds": 3600
+      }
+    }
+  },
+  "s3": {
+    "create": true,
+    "bucketName": "sqlite-embedding-batch-bucket",
+    "enableVersioning": true,
+    "enableEncryption": true
+  },
+  "dynamodb": {
+    "create": true,
+    "tableName": "sqlite-embedding-metadata",
+    "partitionKey": "documentId",
+    "sortKey": "chunkId",
+    "billingMode": "PAY_PER_REQUEST"
+  },
+  "windowsLoadTest": {
+    "enabled": true,
+    "instanceType": "t3.medium",
+    "keyPairName": "fujiwara-2025",
+    "enableDetailedMonitoring": false,
+    "enableBastion": true
+  },
+  "scheduledExecution": {
+    "enabled": true,
+    "scheduleExpression": "cron(0 2 * * ? *)",
+    "timezone": "Asia/Tokyo",
+    "description": "SQLite負荷試験用のEmbedding処理を毎日実行"
+  },
+  "monitoring": {
+    "enableCloudWatch": true,
+    "logRetentionDays": 30,
+    "enableXRay": false,
+    "alerting": {
+      "enableAlerts": true,
+      "emailEndpoints": ["ops@example.com"],
+      "slackWebhookUrl": ""
+    }
+  },
+  "security": {
+    "enableEncryption": true,
+    "kmsKeyId": "",
+    "enableVpcEndpoints": false
+  },
+  "tags": {
+    "Project": "permission-aware-rag",
+    "Environment": "dev",
+    "Purpose": "SQLite-Embedding-LoadTest",
+    "Owner": "development-team",
+    "Component": "Embedding"
+  }
+}

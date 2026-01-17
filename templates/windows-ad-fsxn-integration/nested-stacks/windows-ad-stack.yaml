@@ -1,0 +1,873 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Windows AD FSxN統合環境 - Windows Server 2022 + Active Directoryスタック'
+
+# パラメータ定義
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "プロジェクト識別子"
+    AllowedPattern: "^[a-z0-9-]{3,20}$"
+
+  Environment:
+    Type: String
+    Description: "環境名"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "VPC ID"
+
+  PrivateSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: "プライベートサブネット ID"
+
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: "Windows AD用セキュリティグループ ID"
+
+  IAMRoleArn:
+    Type: String
+    Description: "Windows EC2インスタンス用IAMロール ARN"
+
+  InstanceType:
+    Type: String
+    Default: "t3.medium"
+    AllowedValues:
+      - "t3.medium"
+      - "t3.large"
+      - "m5.large"
+      - "m5.xlarge"
+      - "m5.2xlarge"
+    Description: "Windows Server EC2インスタンスタイプ"
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "EC2インスタンス用のキーペア名"
+
+  EBSVolumeSize:
+    Type: Number
+    Default: 100
+    MinValue: 50
+    MaxValue: 1000
+    Description: "EBSルートボリュームサイズ（GB）"
+
+  DomainName:
+    Type: String
+    Description: "Active Directoryドメイン名（FQDN形式）"
+    AllowedPattern: "^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+
+  NetBiosName:
+    Type: String
+    Description: "NetBIOS名（15文字以内の大文字）"
+    AllowedPattern: "^[A-Z0-9]{1,15}$"
+
+  AdminPassword:
+    Type: String
+    NoEcho: true
+    Description: "Active Directory管理者パスワード"
+    MinLength: 8
+    MaxLength: 64
+
+  SafeModePassword:
+    Type: String
+    NoEcho: true
+    Description: "Active Directoryセーフモードパスワード"
+    MinLength: 8
+    MaxLength: 64
+
+  WindowsAMI:
+    Type: AWS::EC2::Image::Id
+    Description: "Windows Server 2022 AMI ID"
+
+# マッピング定義
+Mappings:
+  # リージョン別Windows Server 2022 AMI（最新版）
+  RegionMap:
+    ap-northeast-1:  # 東京
+      WindowsServer2022: "ami-0c2f3b0e2b9b0a123"  # 実際のAMI IDに置き換え
+    ap-northeast-3:  # 大阪
+      WindowsServer2022: "ami-0c2f3b0e2b9b0a456"  # 実際のAMI IDに置き換え
+    us-east-1:       # バージニア
+      WindowsServer2022: "ami-0c2f3b0e2b9b0a789"  # 実際のAMI IDに置き換え
+    us-west-2:       # オレゴン
+      WindowsServer2022: "ami-0c2f3b0e2b9b0aabc"  # 実際のAMI IDに置き換え
+    eu-west-1:       # アイルランド
+      WindowsServer2022: "ami-0c2f3b0e2b9b0adef"  # 実際のAMI IDに置き換え
+
+# 条件定義
+Conditions:
+  IsProductionEnvironment: !Equals [!Ref Environment, "prod"]
+  UseCustomAMI: !Not [!Equals [!Ref WindowsAMI, ""]]
+
+# リソース定義
+Resources:
+  # Secrets Manager - Active Directory管理者パスワード
+  ADAdminPasswordSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${ProjectName}/${Environment}/ad-admin-password"
+      Description: "Active Directory Administrator Password"
+      SecretString: !Sub |
+        {
+          "username": "Administrator",
+          "password": "${AdminPassword}",
+          "domain": "${DomainName}",
+          "netbios": "${NetBiosName}"
+        }
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-ad-admin-secret"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Secrets Manager - セーフモードパスワード
+  ADSafeModePasswordSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${ProjectName}/${Environment}/ad-safemode-password"
+      Description: "Active Directory Safe Mode Password"
+      SecretString: !Sub |
+        {
+          "password": "${SafeModePassword}"
+        }
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-ad-safemode-secret"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch Log Group - Windows イベントログ
+  WindowsEventLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/ec2/windows/${ProjectName}-${Environment}/event-logs"
+      RetentionInDays: !If [IsProductionEnvironment, 90, 30]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-event-logs"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch Log Group - Active Directory ログ
+  ADLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/ec2/windows/${ProjectName}-${Environment}/ad-logs"
+      RetentionInDays: !If [IsProductionEnvironment, 90, 30]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-ad-logs"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch Log Group - PowerShell スクリプトログ
+  PowerShellLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/ec2/windows/${ProjectName}-${Environment}/powershell-logs"
+      RetentionInDays: !If [IsProductionEnvironment, 90, 30]
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-powershell-logs"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Windows Server 2022 EC2インスタンス
+  WindowsADInstance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT30M  # 30分のタイムアウト
+    Properties:
+      ImageId: !If 
+        - UseCustomAMI
+        - !Ref WindowsAMI
+        - !FindInMap [RegionMap, !Ref "AWS::Region", WindowsServer2022]
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      SubnetId: !Ref PrivateSubnetId
+      SecurityGroupIds:
+        - !Ref SecurityGroupId
+      IamInstanceProfile: !Sub "${ProjectName}-${Environment}-windows-ec2-profile"
+      
+      # プライベートIPアドレスの固定設定
+      PrivateIpAddress: !Sub 
+        - "${BaseIP}.10"
+        - BaseIP: !Select [0, !Split [".", !Select [0, !Split ["/", !Ref PrivateSubnetId]]]]
+      
+      # EBSボリューム設定
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp3
+            VolumeSize: !Ref EBSVolumeSize
+            Encrypted: true
+            DeleteOnTermination: true
+            Iops: 3000
+            Throughput: 125
+
+      # UserData - Active Directory自動セットアップスクリプト
+      UserData:
+        Fn::Base64: !Sub |
+          <powershell>
+          # ログ設定
+          $LogFile = "C:\Windows\Temp\AD-Setup.log"
+          $ErrorActionPreference = "Continue"
+          
+          # ログ関数
+          function Write-Log {
+              param([string]$Message)
+              $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+              $LogMessage = "[$Timestamp] $Message"
+              Write-Output $LogMessage
+              Add-Content -Path $LogFile -Value $LogMessage
+          }
+          
+          try {
+              Write-Log "=== Active Directory セットアップ開始 ==="
+              
+              # CloudWatch Agent設定
+              Write-Log "CloudWatch Agent設定中..."
+              $CloudWatchConfig = @{
+                  "agent" = @{
+                      "metrics_collection_interval" = 60
+                      "run_as_user" = "cwagent"
+                  }
+                  "logs" = @{
+                      "logs_collected" = @{
+                          "windows_events" = @{
+                              "collect_list" = @(
+                                  @{
+                                      "event_name" = "System"
+                                      "event_levels" = @("ERROR", "WARNING", "INFORMATION")
+                                      "log_group_name" = "/aws/ec2/windows/${ProjectName}-${Environment}/event-logs"
+                                      "log_stream_name" = "{instance_id}/System"
+                                  },
+                                  @{
+                                      "event_name" = "Application"
+                                      "event_levels" = @("ERROR", "WARNING", "INFORMATION")
+                                      "log_group_name" = "/aws/ec2/windows/${ProjectName}-${Environment}/event-logs"
+                                      "log_stream_name" = "{instance_id}/Application"
+                                  },
+                                  @{
+                                      "event_name" = "Directory Service"
+                                      "event_levels" = @("ERROR", "WARNING", "INFORMATION")
+                                      "log_group_name" = "/aws/ec2/windows/${ProjectName}-${Environment}/ad-logs"
+                                      "log_stream_name" = "{instance_id}/DirectoryService"
+                                  }
+                              )
+                          }
+                          "files" = @{
+                              "collect_list" = @(
+                                  @{
+                                      "file_path" = "C:\Windows\Temp\AD-Setup.log"
+                                      "log_group_name" = "/aws/ec2/windows/${ProjectName}-${Environment}/powershell-logs"
+                                      "log_stream_name" = "{instance_id}/AD-Setup"
+                                  }
+                              )
+                          }
+                      }
+                  }
+                  "metrics" = @{
+                      "namespace" = "CWAgent"
+                      "metrics_collected" = @{
+                          "cpu" = @{
+                              "measurement" = @("cpu_usage_idle", "cpu_usage_iowait", "cpu_usage_user", "cpu_usage_system")
+                              "metrics_collection_interval" = 60
+                          }
+                          "disk" = @{
+                              "measurement" = @("used_percent")
+                              "metrics_collection_interval" = 60
+                              "resources" = @("*")
+                          }
+                          "diskio" = @{
+                              "measurement" = @("io_time")
+                              "metrics_collection_interval" = 60
+                              "resources" = @("*")
+                          }
+                          "mem" = @{
+                              "measurement" = @("mem_used_percent")
+                              "metrics_collection_interval" = 60
+                          }
+                      }
+                  }
+              }
+              
+              $CloudWatchConfigJson = $CloudWatchConfig | ConvertTo-Json -Depth 10
+              $CloudWatchConfigJson | Out-File -FilePath "C:\ProgramData\Amazon\AmazonCloudWatchAgent\amazon-cloudwatch-agent.json" -Encoding UTF8
+              
+              # CloudWatch Agent開始
+              & "C:\Program Files\Amazon\AmazonCloudWatchAgent\amazon-cloudwatch-agent-ctl.ps1" -a fetch-config -m ec2 -s -c file:"C:\ProgramData\Amazon\AmazonCloudWatchAgent\amazon-cloudwatch-agent.json"
+              
+              # Windows機能の有効化
+              Write-Log "Windows機能の有効化中..."
+              Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole -All -NoRestart
+              Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServer -All -NoRestart
+              Enable-WindowsOptionalFeature -Online -FeatureName IIS-CommonHttpFeatures -All -NoRestart
+              Enable-WindowsOptionalFeature -Online -FeatureName IIS-HttpErrors -All -NoRestart
+              Enable-WindowsOptionalFeature -Online -FeatureName IIS-HttpLogging -All -NoRestart
+              Enable-WindowsOptionalFeature -Online -FeatureName IIS-RequestMonitor -All -NoRestart
+              
+              # PowerShell実行ポリシー設定
+              Write-Log "PowerShell実行ポリシー設定中..."
+              Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force
+              
+              # タイムゾーン設定
+              Write-Log "タイムゾーン設定中..."
+              Set-TimeZone -Id "Tokyo Standard Time"
+              
+              # Windows Update設定
+              Write-Log "Windows Update設定中..."
+              Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "NoAutoUpdate" -Value 0 -Force
+              Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "AUOptions" -Value 4 -Force
+              Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "ScheduledInstallDay" -Value 0 -Force
+              Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "ScheduledInstallTime" -Value 3 -Force
+              
+              # ファイアウォール設定
+              Write-Log "Windows Firewall設定中..."
+              # Active Directory関連ポートの許可
+              New-NetFirewallRule -DisplayName "Active Directory - LDAP" -Direction Inbound -Protocol TCP -LocalPort 389 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - LDAPS" -Direction Inbound -Protocol TCP -LocalPort 636 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - Global Catalog" -Direction Inbound -Protocol TCP -LocalPort 3268 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - Global Catalog SSL" -Direction Inbound -Protocol TCP -LocalPort 3269 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - Kerberos" -Direction Inbound -Protocol TCP -LocalPort 88 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - Kerberos UDP" -Direction Inbound -Protocol UDP -LocalPort 88 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - DNS" -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - DNS UDP" -Direction Inbound -Protocol UDP -LocalPort 53 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - RPC Endpoint Mapper" -Direction Inbound -Protocol TCP -LocalPort 135 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - SMB" -Direction Inbound -Protocol TCP -LocalPort 445 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - NetBIOS Name Service" -Direction Inbound -Protocol UDP -LocalPort 137 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - NetBIOS Datagram Service" -Direction Inbound -Protocol UDP -LocalPort 138 -Action Allow
+              New-NetFirewallRule -DisplayName "Active Directory - NetBIOS Session Service" -Direction Inbound -Protocol TCP -LocalPort 139 -Action Allow
+              
+              # WinRM有効化
+              Write-Log "WinRM設定中..."
+              Enable-PSRemoting -Force
+              Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*" -Force
+              
+              Write-Log "=== 基本設定完了 - 再起動後にActive Directory設定を継続 ==="
+              
+              # 再起動後のスクリプト設定
+              $PostRebootScript = @"
+          # ログ設定
+          `$LogFile = "C:\Windows\Temp\AD-Setup-PostReboot.log"
+          `$ErrorActionPreference = "Continue"
+          
+          function Write-Log {
+              param([string]`$Message)
+              `$Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+              `$LogMessage = "[`$Timestamp] `$Message"
+              Write-Output `$LogMessage
+              Add-Content -Path `$LogFile -Value `$LogMessage
+          }
+          
+          try {
+              Write-Log "=== 再起動後のActive Directory設定開始 ==="
+              
+              # Active Directory Domain Services機能のインストール
+              Write-Log "AD-Domain-Services機能インストール中..."
+              Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+              
+              # DNS機能のインストール
+              Write-Log "DNS機能インストール中..."
+              Install-WindowsFeature -Name DNS -IncludeManagementTools
+              
+              # Active Directoryフォレストの作成
+              Write-Log "Active Directoryフォレスト作成中..."
+              `$SecurePassword = ConvertTo-SecureString "${SafeModePassword}" -AsPlainText -Force
+              
+              Install-ADDSForest ``
+                  -DomainName "${DomainName}" ``
+                  -DomainNetbiosName "${NetBiosName}" ``
+                  -SafeModeAdministratorPassword `$SecurePassword ``
+                  -InstallDns ``
+                  -CreateDnsDelegation:`$false ``
+                  -DatabasePath "C:\Windows\NTDS" ``
+                  -LogPath "C:\Windows\NTDS" ``
+                  -SysvolPath "C:\Windows\SYSVOL" ``
+                  -Force
+              
+              Write-Log "Active Directoryフォレスト作成完了"
+              
+              # 再起動待機（ADフォレスト作成後）
+              Start-Sleep -Seconds 60
+              
+              # Active Directory設定の詳細化
+              Write-Log "Active Directory詳細設定開始..."
+              
+              # DNS設定
+              Write-Log "DNS設定中..."
+              # DNS転送設定（AWSのDNSサーバーへ）
+              Add-DnsServerForwarder -IPAddress 169.254.169.253 -PassThru
+              
+              # Active Directory サイトとサービス設定
+              Write-Log "Active Directoryサイト設定中..."
+              Import-Module ActiveDirectory
+              
+              # デフォルトサイト名の変更
+              Get-ADReplicationSite -Identity "Default-First-Site-Name" | Rename-ADObject -NewName "${AWS::Region}-Site"
+              
+              # サブネット設定
+              New-ADReplicationSubnet -Name "${PrivateSubnetId}" -Site "${AWS::Region}-Site"
+              
+              # 組織単位（OU）の作成
+              Write-Log "組織単位（OU）作成中..."
+              `$DomainDN = (Get-ADDomain).DistinguishedName
+              
+              # FSx用OU作成
+              New-ADOrganizationalUnit -Name "FSx" -Path `$DomainDN -Description "FSx for NetApp ONTAP Computer Accounts"
+              New-ADOrganizationalUnit -Name "Computers" -Path "OU=FSx,`$DomainDN" -Description "FSx Computer Accounts"
+              New-ADOrganizationalUnit -Name "ServiceAccounts" -Path "OU=FSx,`$DomainDN" -Description "FSx Service Accounts"
+              
+              # ユーザー用OU作成
+              New-ADOrganizationalUnit -Name "Users" -Path `$DomainDN -Description "Domain Users"
+              New-ADOrganizationalUnit -Name "Groups" -Path `$DomainDN -Description "Domain Groups"
+              New-ADOrganizationalUnit -Name "Servers" -Path `$DomainDN -Description "Server Computer Accounts"
+              
+              # セキュリティグループの作成
+              Write-Log "セキュリティグループ作成中..."
+              
+              # FSx管理者グループ
+              New-ADGroup -Name "FSx Administrators" -GroupScope Global -GroupCategory Security -Path "OU=Groups,`$DomainDN" -Description "FSx for NetApp ONTAP Administrators"
+              
+              # FSxユーザーグループ
+              New-ADGroup -Name "FSx Users" -GroupScope Global -GroupCategory Security -Path "OU=Groups,`$DomainDN" -Description "FSx for NetApp ONTAP Users"
+              
+              # FSx読み取り専用グループ
+              New-ADGroup -Name "FSx ReadOnly" -GroupScope Global -GroupCategory Security -Path "OU=Groups,`$DomainDN" -Description "FSx for NetApp ONTAP Read-Only Users"
+              
+              # サンプルユーザーの作成（開発環境のみ）
+              if ("${Environment}" -eq "dev") {
+                  Write-Log "サンプルユーザー作成中（開発環境）..."
+                  
+                  `$TestUserPassword = ConvertTo-SecureString "TempPassword123!" -AsPlainText -Force
+                  
+                  # テストユーザー1
+                  New-ADUser -Name "TestUser1" -GivenName "Test" -Surname "User1" -SamAccountName "testuser1" -UserPrincipalName "testuser1@${DomainName}" -Path "OU=Users,`$DomainDN" -AccountPassword `$TestUserPassword -Enabled `$true -Description "Test User for FSx Integration"
+                  
+                  # テストユーザー2
+                  New-ADUser -Name "TestUser2" -GivenName "Test" -Surname "User2" -SamAccountName "testuser2" -UserPrincipalName "testuser2@${DomainName}" -Path "OU=Users,`$DomainDN" -AccountPassword `$TestUserPassword -Enabled `$true -Description "Test User for FSx Integration"
+                  
+                  # FSx管理者ユーザー
+                  New-ADUser -Name "FSxAdmin" -GivenName "FSx" -Surname "Administrator" -SamAccountName "fsxadmin" -UserPrincipalName "fsxadmin@${DomainName}" -Path "OU=Users,`$DomainDN" -AccountPassword `$TestUserPassword -Enabled `$true -Description "FSx Administrator Account"
+                  
+                  # グループメンバーシップ設定
+                  Add-ADGroupMember -Identity "FSx Administrators" -Members "fsxadmin"
+                  Add-ADGroupMember -Identity "FSx Users" -Members "testuser1", "testuser2"
+                  Add-ADGroupMember -Identity "Domain Admins" -Members "fsxadmin"
+              }
+              
+              # グループポリシー設定
+              Write-Log "グループポリシー設定中..."
+              
+              # パスワードポリシー設定
+              Set-ADDefaultDomainPasswordPolicy -Identity `$DomainDN -MinPasswordLength 8 -MaxPasswordAge "90.00:00:00" -MinPasswordAge "1.00:00:00" -PasswordHistoryCount 12 -ComplexityEnabled `$true
+              
+              # アカウントロックアウトポリシー設定
+              Set-ADDefaultDomainPasswordPolicy -Identity `$DomainDN -LockoutDuration "00:30:00" -LockoutObservationWindow "00:30:00" -LockoutThreshold 5
+              
+              # DNS レコード設定
+              Write-Log "DNS レコード設定中..."
+              
+              # SRVレコードの確認・設定
+              `$SRVRecords = @(
+                  @{Name="_ldap._tcp"; Target="${DomainName}"; Port=389; Priority=0; Weight=100},
+                  @{Name="_kerberos._tcp"; Target="${DomainName}"; Port=88; Priority=0; Weight=100},
+                  @{Name="_kerberos._udp"; Target="${DomainName}"; Port=88; Priority=0; Weight=100},
+                  @{Name="_kpasswd._tcp"; Target="${DomainName}"; Port=464; Priority=0; Weight=100},
+                  @{Name="_kpasswd._udp"; Target="${DomainName}"; Port=464; Priority=0; Weight=100}
+              )
+              
+              foreach (`$Record in `$SRVRecords) {
+                  try {
+                      Add-DnsServerResourceRecord -ZoneName "${DomainName}" -Name `$Record.Name -SRV -DomainName `$Record.Target -Port `$Record.Port -Priority `$Record.Priority -Weight `$Record.Weight
+                      Write-Log "SRVレコード追加: `$(`$Record.Name)"
+                  } catch {
+                      Write-Log "SRVレコード追加スキップ（既存）: `$(`$Record.Name)"
+                  }
+              }
+              
+              # Active Directory統合DNS設定
+              Write-Log "Active Directory統合DNS設定中..."
+              
+              # DNS動的更新設定
+              Set-DnsServerPrimaryZone -Name "${DomainName}" -DynamicUpdate Secure
+              
+              # DNS スカベンジング設定
+              Set-DnsServerScavenging -ScavengingState `$true -ScavengingInterval "7.00:00:00"
+              Set-DnsServerZoneAging -Name "${DomainName}" -Aging `$true -RefreshInterval "7.00:00:00" -NoRefreshInterval "7.00:00:00"
+              
+              # ログ設定
+              Write-Log "Active Directoryログ設定中..."
+              
+              # Active Directoryイベントログ設定
+              wevtutil sl "Directory Service" /ms:67108864
+              wevtutil sl "DNS Server" /ms:67108864
+              
+              # 監査ポリシー設定（本番環境のみ）
+              if ("${Environment}" -eq "prod") {
+                  Write-Log "監査ポリシー設定中（本番環境）..."
+                  auditpol /set /category:"Account Logon" /success:enable /failure:enable
+                  auditpol /set /category:"Account Management" /success:enable /failure:enable
+                  auditpol /set /category:"Directory Service Access" /success:enable /failure:enable
+                  auditpol /set /category:"Logon/Logoff" /success:enable /failure:enable
+                  auditpol /set /category:"Policy Change" /success:enable /failure:enable
+                  auditpol /set /category:"Privilege Use" /success:enable /failure:enable
+                  auditpol /set /category:"System" /success:enable /failure:enable
+              }
+              
+              # 最終設定確認
+              Write-Log "Active Directory設定確認中..."
+              
+              # ドメイン情報確認
+              `$Domain = Get-ADDomain
+              Write-Log "ドメイン名: `$(`$Domain.DNSRoot)"
+              Write-Log "NetBIOS名: `$(`$Domain.NetBIOSName)"
+              Write-Log "ドメイン機能レベル: `$(`$Domain.DomainMode)"
+              Write-Log "フォレスト機能レベル: `$((Get-ADForest).ForestMode)"
+              
+              # DNS設定確認
+              `$DNSSettings = Get-DnsServerSetting
+              Write-Log "DNS転送設定: `$(`$DNSSettings.Forwarders -join ', ')"
+              
+              # サービス状態確認
+              `$Services = @("ADWS", "DNS", "KDC", "Netlogon", "NTDS")
+              foreach (`$Service in `$Services) {
+                  `$ServiceStatus = Get-Service -Name `$Service -ErrorAction SilentlyContinue
+                  if (`$ServiceStatus) {
+                      Write-Log "サービス `$Service : `$(`$ServiceStatus.Status)"
+                  }
+              }
+              
+              Write-Log "=== Active Directory設定完了 ==="
+              
+              # CloudFormationに成功シグナル送信
+              cfn-signal.exe -e 0 --stack ${AWS::StackName} --resource WindowsADInstance --region ${AWS::Region}
+              
+              # スケジュールタスク削除（一回限りの実行）
+              Unregister-ScheduledTask -TaskName "AD-Setup-PostReboot" -Confirm:`$false
+              
+          } catch {
+              `$ErrorMessage = `$_.Exception.Message
+              `$ErrorLine = `$_.InvocationInfo.ScriptLineNumber
+              `$ErrorCommand = `$_.InvocationInfo.Line.Trim()
+              
+              Write-Log "=== エラー発生 ==="
+              Write-Log "エラーメッセージ: `$ErrorMessage"
+              Write-Log "エラー行番号: `$ErrorLine"
+              Write-Log "エラーコマンド: `$ErrorCommand"
+              Write-Log "スタックトレース: `$(`$_.ScriptStackTrace)"
+              
+              # Windows イベントログにエラー記録
+              try {
+                  Write-EventLog -LogName Application -Source "AD-Setup" -EventId 1001 -EntryType Error -Message "Active Directory setup failed: `$ErrorMessage at line `$ErrorLine"
+              } catch {
+                  Write-Log "イベントログ書き込み失敗: `$(`$_.Exception.Message)"
+              }
+              
+              # 詳細なシステム情報収集
+              Write-Log "=== システム情報収集 ==="
+              try {
+                  Write-Log "OS情報: `$((Get-WmiObject Win32_OperatingSystem).Caption)"
+                  Write-Log "メモリ情報: `$([math]::Round((Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory/1GB, 2)) GB"
+                  Write-Log "ディスク情報: `$((Get-WmiObject Win32_LogicalDisk | Where-Object {`$_.DriveType -eq 3} | ForEach-Object {"`$(`$_.DeviceID) `$([math]::Round(`$_.Size/1GB, 2)) GB"}) -join ', ')"
+                  Write-Log "ネットワーク情報: `$((Get-NetIPAddress -AddressFamily IPv4 | Where-Object {`$_.IPAddress -ne '127.0.0.1'} | ForEach-Object {"`$(`$_.IPAddress)/`$(`$_.PrefixLength)"}) -join ', ')"
+                  
+                  # DNS設定確認
+                  `$DNSServers = (Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object {`$_.ServerAddresses}).ServerAddresses
+                  Write-Log "DNS設定: `$(`$DNSServers -join ', ')"
+                  
+                  # Windows機能状態確認
+                  `$Features = Get-WindowsFeature | Where-Object {`$_.InstallState -eq 'Installed' -and `$_.Name -match 'AD|DNS'}
+                  Write-Log "インストール済み機能: `$(`$Features.Name -join ', ')"
+                  
+                  # サービス状態確認
+                  `$Services = Get-Service | Where-Object {`$_.Name -match 'AD|DNS|KDC|Netlogon|NTDS'}
+                  foreach (`$Service in `$Services) {
+                      Write-Log "サービス `$(`$Service.Name): `$(`$Service.Status)"
+                  }
+                  
+              } catch {
+                  Write-Log "システム情報収集エラー: `$(`$_.Exception.Message)"
+              }
+              
+              # 復旧試行（可能な場合）
+              Write-Log "=== 復旧試行 ==="
+              try {
+                  # Windows機能の状態確認と再インストール試行
+                  `$ADFeature = Get-WindowsFeature -Name AD-Domain-Services
+                  if (`$ADFeature.InstallState -ne 'Installed') {
+                      Write-Log "AD-Domain-Services機能の再インストール試行..."
+                      Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools -Restart:`$false
+                  }
+                  
+                  `$DNSFeature = Get-WindowsFeature -Name DNS
+                  if (`$DNSFeature.InstallState -ne 'Installed') {
+                      Write-Log "DNS機能の再インストール試行..."
+                      Install-WindowsFeature -Name DNS -IncludeManagementTools -Restart:`$false
+                  }
+                  
+                  # DNS設定の確認・修正
+                  `$CurrentDNS = (Get-DnsClientServerAddress -InterfaceAlias "Ethernet*" -AddressFamily IPv4).ServerAddresses
+                  if (-not `$CurrentDNS -or `$CurrentDNS -notcontains "127.0.0.1") {
+                      Write-Log "DNS設定の修正試行..."
+                      Set-DnsClientServerAddress -InterfaceAlias "Ethernet*" -ServerAddresses "127.0.0.1", "169.254.169.253"
+                  }
+                  
+              } catch {
+                  Write-Log "復旧試行エラー: `$(`$_.Exception.Message)"
+              }
+              
+              # 最終エラー処理
+              Write-Log "=== 最終エラー処理 ==="
+              
+              # エラー情報をSecrets Managerに保存（デバッグ用）
+              try {
+                  `$ErrorInfo = @{
+                      "timestamp" = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+                      "error_message" = `$ErrorMessage
+                      "error_line" = `$ErrorLine
+                      "error_command" = `$ErrorCommand
+                      "stack_trace" = `$_.ScriptStackTrace
+                      "system_info" = @{
+                          "os" = (Get-WmiObject Win32_OperatingSystem).Caption
+                          "memory_gb" = [math]::Round((Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory/1GB, 2)
+                          "instance_id" = (Invoke-RestMethod -Uri "http://169.254.169.254/latest/meta-data/instance-id" -TimeoutSec 5)
+                      }
+                  }
+                  
+                  `$ErrorJson = `$ErrorInfo | ConvertTo-Json -Depth 5
+                  
+                  # AWS CLIでSecrets Managerに保存
+                  `$SecretName = "${ProjectName}/${Environment}/ad-setup-error"
+                  aws secretsmanager create-secret --name `$SecretName --description "AD Setup Error Information" --secret-string `$ErrorJson --region ${AWS::Region} 2>`$null
+                  if (`$LASTEXITCODE -ne 0) {
+                      aws secretsmanager update-secret --secret-id `$SecretName --secret-string `$ErrorJson --region ${AWS::Region} 2>`$null
+                  }
+                  
+                  Write-Log "エラー情報をSecrets Managerに保存: `$SecretName"
+                  
+              } catch {
+                  Write-Log "エラー情報保存失敗: `$(`$_.Exception.Message)"
+              }
+              
+              # CloudFormationにエラーシグナル送信（詳細な理由付き）
+              `$SignalReason = "AD setup failed: `$ErrorMessage (Line: `$ErrorLine)"
+              if (`$SignalReason.Length -gt 256) {
+                  `$SignalReason = `$SignalReason.Substring(0, 253) + "..."
+              }
+              
+              Write-Log "CloudFormationエラーシグナル送信: `$SignalReason"
+              cfn-signal.exe -e 1 --stack ${AWS::StackName} --resource WindowsADInstance --region ${AWS::Region} --reason "`$SignalReason"
+              
+              # スケジュールタスク削除
+              try {
+                  Unregister-ScheduledTask -TaskName "AD-Setup-PostReboot" -Confirm:`$false -ErrorAction SilentlyContinue
+              } catch {
+                  Write-Log "スケジュールタスク削除エラー: `$(`$_.Exception.Message)"
+              }
+              
+              Write-Log "=== エラー処理完了 - 手動確認が必要です ==="
+              exit 1
+          }
+          "@
+              
+              # 再起動後スクリプトをファイルに保存
+              $PostRebootScript | Out-File -FilePath "C:\Windows\Temp\AD-Setup-PostReboot.ps1" -Encoding UTF8
+              
+              # 再起動後の自動実行設定
+              $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-ExecutionPolicy Bypass -File C:\Windows\Temp\AD-Setup-PostReboot.ps1"
+              $Trigger = New-ScheduledTaskTrigger -AtStartup
+              $Principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+              Register-ScheduledTask -TaskName "AD-Setup-PostReboot" -Action $Action -Trigger $Trigger -Principal $Principal
+              
+              Write-Log "再起動中..."
+              Restart-Computer -Force
+              
+          } catch {
+              $ErrorMessage = $_.Exception.Message
+              $ErrorLine = $_.InvocationInfo.ScriptLineNumber
+              
+              Write-Log "=== 初期設定エラー ==="
+              Write-Log "エラーメッセージ: $ErrorMessage"
+              Write-Log "エラー行番号: $ErrorLine"
+              
+              # 基本的なシステム情報収集
+              try {
+                  Write-Log "システム情報:"
+                  Write-Log "  OS: $((Get-WmiObject Win32_OperatingSystem).Caption)"
+                  Write-Log "  インスタンスID: $(Invoke-RestMethod -Uri 'http://169.254.169.254/latest/meta-data/instance-id' -TimeoutSec 5)"
+                  Write-Log "  プライベートIP: $(Invoke-RestMethod -Uri 'http://169.254.169.254/latest/meta-data/local-ipv4' -TimeoutSec 5)"
+                  
+                  # ネットワーク接続確認
+                  $TestConnections = @(
+                      @{Target="169.254.169.253"; Port=53; Description="AWS DNS"},
+                      @{Target="amazonaws.com"; Port=443; Description="AWS API"},
+                      @{Target="169.254.169.254"; Port=80; Description="Instance Metadata"}
+                  )
+                  
+                  foreach ($Test in $TestConnections) {
+                      try {
+                          $Result = Test-NetConnection -ComputerName $Test.Target -Port $Test.Port -InformationLevel Quiet -WarningAction SilentlyContinue
+                          Write-Log "  接続テスト $($Test.Description): $(if($Result){'成功'}else{'失敗'})"
+                      } catch {
+                          Write-Log "  接続テスト $($Test.Description): エラー"
+                      }
+                  }
+                  
+              } catch {
+                  Write-Log "システム情報収集エラー: $($_.Exception.Message)"
+              }
+              
+              # Windows イベントログにエラー記録
+              try {
+                  # カスタムイベントソース作成
+                  if (-not [System.Diagnostics.EventLog]::SourceExists("AD-Setup")) {
+                      New-EventLog -LogName Application -Source "AD-Setup"
+                  }
+                  Write-EventLog -LogName Application -Source "AD-Setup" -EventId 1000 -EntryType Error -Message "Initial AD setup failed: $ErrorMessage at line $ErrorLine"
+              } catch {
+                  Write-Log "イベントログ書き込み失敗: $($_.Exception.Message)"
+              }
+              
+              # CloudFormationにエラーシグナル送信
+              $SignalReason = "Initial setup failed: $ErrorMessage"
+              if ($SignalReason.Length -gt 256) {
+                  $SignalReason = $SignalReason.Substring(0, 253) + "..."
+              }
+              
+              Write-Log "CloudFormationエラーシグナル送信中..."
+              cfn-signal.exe -e 1 --stack ${AWS::StackName} --resource WindowsADInstance --region ${AWS::Region} --reason "$SignalReason"
+              
+              Write-Log "=== 初期設定エラー処理完了 ==="
+              exit 1
+          }
+          </powershell>
+          <persist>true</persist>
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-ad"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Role
+          Value: "Domain Controller"
+        - Key: OS
+          Value: "Windows Server 2022"
+
+  # Elastic IP（オプション - 管理用）
+  WindowsADElasticIP:
+    Type: AWS::EC2::EIP
+    Condition: IsProductionEnvironment
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref WindowsADInstance
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-ad-eip"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# 出力値定義
+Outputs:
+  WindowsADInstanceId:
+    Description: "Windows Active Directory EC2インスタンス ID"
+    Value: !Ref WindowsADInstance
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-instance-id"
+
+  WindowsADPrivateIP:
+    Description: "Windows Active Directory プライベート IP アドレス"
+    Value: !GetAtt WindowsADInstance.PrivateIp
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-private-ip"
+
+  WindowsADPublicIP:
+    Description: "Windows Active Directory パブリック IP アドレス（本番環境のみ）"
+    Value: !If [IsProductionEnvironment, !Ref WindowsADElasticIP, "N/A"]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-public-ip"
+
+  WindowsADInstanceType:
+    Description: "Windows Active Directory インスタンスタイプ"
+    Value: !Ref InstanceType
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-instance-type"
+
+  DomainName:
+    Description: "Active Directory ドメイン名"
+    Value: !Ref DomainName
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-domain-name"
+
+  NetBiosName:
+    Description: "Active Directory NetBIOS名"
+    Value: !Ref NetBiosName
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-netbios-name"
+
+  ADAdminPasswordSecretArn:
+    Description: "Active Directory管理者パスワード Secrets Manager ARN"
+    Value: !Ref ADAdminPasswordSecret
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-ad-admin-secret-arn"
+
+  ADSafeModePasswordSecretArn:
+    Description: "Active Directoryセーフモードパスワード Secrets Manager ARN"
+    Value: !Ref ADSafeModePasswordSecret
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-ad-safemode-secret-arn"
+
+  WindowsEventLogGroupName:
+    Description: "Windows イベントログ CloudWatch Log Group名"
+    Value: !Ref WindowsEventLogGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-event-log-group"
+
+  ADLogGroupName:
+    Description: "Active Directory CloudWatch Log Group名"
+    Value: !Ref ADLogGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-ad-log-group"
+
+  PowerShellLogGroupName:
+    Description: "PowerShell スクリプトログ CloudWatch Log Group名"
+    Value: !Ref PowerShellLogGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-powershell-log-group"
+
+  WindowsADSummary:
+    Description: "Windows Active Directory構成サマリー"
+    Value: !Sub |
+      Instance ID: ${WindowsADInstance}
+      Instance Type: ${InstanceType}
+      Private IP: ${WindowsADInstance.PrivateIp}
+      Domain Name: ${DomainName}
+      NetBIOS Name: ${NetBiosName}
+      
+      Management:
+      - RDP: ${WindowsADInstance.PrivateIp}:3389
+      - PowerShell: Enter-PSSession -ComputerName ${WindowsADInstance.PrivateIp}
+      
+      Logs:
+      - Windows Events: ${WindowsEventLogGroup}
+      - AD Logs: ${ADLogGroup}
+      - PowerShell Logs: ${PowerShellLogGroup}

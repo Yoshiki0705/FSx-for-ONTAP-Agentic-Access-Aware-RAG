@@ -1,0 +1,34 @@
+{
+  "defaults": {
+    "skipTests": false,
+    "skipValidation": false,
+    "includeGeneratedTemplates": false
+  },
+  "requirements": {
+    "nodeVersion": "18.0.0",
+    "requiredTools": ["node", "npm", "git", "jq", "tar", "zip"]
+  },
+  "security": {
+    "maxVersionLength": 20,
+    "allowedVersionPattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9]+(\\.[a-zA-Z0-9]+)*)?$",
+    "excludePatterns": [
+      "*.key",
+      "*.pem",
+      "*.p12",
+      "*.pfx",
+      ".env*",
+      "secrets/*",
+      "*.secret"
+    ]
+  },
+  "performance": {
+    "enableParallelProcessing": true,
+    "maxConcurrentJobs": 3,
+    "compressionLevel": 6
+  },
+  "validation": {
+    "enableShellCheck": true,
+    "enableJsonValidation": true,
+    "enableTypeScriptCheck": true
+  }
+}

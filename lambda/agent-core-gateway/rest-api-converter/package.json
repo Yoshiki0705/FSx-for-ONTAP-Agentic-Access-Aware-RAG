@@ -1,0 +1,32 @@
+{
+  "name": "bedrock-agent-core-rest-api-converter",
+  "version": "1.0.0",
+  "description": "REST API Converter Lambda Function for Bedrock AgentCore Gateway",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "bedrock",
+    "agent",
+    "openapi",
+    "rest-api"
+  ],
+  "author": "Kiro AI",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.490.0",
+    "@aws-sdk/client-bedrock-agent": "^3.490.0",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.131",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}

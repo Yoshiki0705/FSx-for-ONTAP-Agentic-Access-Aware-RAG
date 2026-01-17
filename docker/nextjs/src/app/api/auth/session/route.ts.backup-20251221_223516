@@ -1,0 +1,343 @@
+/**
+ * セッション管理API - 機能復旧用
+ * 
+ * 機能:
+ * - セッション作成・取得・更新・削除
+ * - JWT認証との統合
+ * - DynamoDB永続化
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+
+// DynamoDBクライアント初期化
+const dynamoClient = new DynamoDBClient({
+  region: process.env.AWS_REGION || 'ap-northeast-1',
+});
+const docClient = DynamoDBDocumentClient.from(dynamoClient);
+
+const SESSION_TABLE_NAME = process.env.SESSION_TABLE_NAME || 'permission-aware-rag-sessions';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production-2024';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+
+interface SessionData {
+  sessionId: string;
+  userId: string;
+  username: string;
+  email?: string;
+  createdAt: string;
+  lastAccessedAt: string;
+  expiresAt: number;
+  metadata?: {
+    userAgent?: string;
+    ipAddress?: string;
+    loginMethod?: string;
+  };
+}
+
+/**
+ * セッション作成 (POST)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { userId, username, email, metadata } = body;
+
+    if (!userId || !username) {
+      return NextResponse.json(
+        { error: 'userId and username are required' },
+        { status: 400 }
+      );
+    }
+
+    // セッションID生成
+    const sessionId = uuidv4();
+    const now = new Date();
+    const expiresAt = Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60); // 7日後
+
+    // セッションデータ作成
+    const sessionData: SessionData = {
+      sessionId,
+      userId,
+      username,
+      email,
+      createdAt: now.toISOString(),
+      lastAccessedAt: now.toISOString(),
+      expiresAt,
+      metadata: {
+        userAgent: request.headers.get('user-agent') || undefined,
+        ipAddress: request.headers.get('x-forwarded-for') || 
+                  request.headers.get('x-real-ip') || 
+                  'unknown',
+        loginMethod: metadata?.loginMethod || 'password',
+        ...metadata
+      }
+    };
+
+    // DynamoDBに保存
+    await docClient.send(new PutCommand({
+      TableName: SESSION_TABLE_NAME,
+      Item: sessionData
+    }));
+
+    // JWTトークン生成
+    const token = jwt.sign(
+      { 
+        sessionId, 
+        userId, 
+        username,
+        email 
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    console.log(`✅ セッション作成成功: ${sessionId} (ユーザー: ${username})`);
+
+    return NextResponse.json({
+      success: true,
+      sessionId,
+      token,
+      user: {
+        userId,
+        username,
+        email
+      },
+      expiresAt: new Date(expiresAt * 1000).toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ セッション作成エラー:', error);
+    return NextResponse.json(
+      { error: 'Failed to create session' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * セッション取得 (GET)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const sessionId = request.nextUrl.searchParams.get('sessionId');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+
+    if (!sessionId && !token) {
+      return NextResponse.json(
+        { error: 'sessionId or authorization token required' },
+        { status: 400 }
+      );
+    }
+
+    let targetSessionId = sessionId;
+
+    // トークンからセッションIDを取得
+    if (token && !sessionId) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        targetSessionId = decoded.sessionId;
+      } catch (jwtError) {
+        return NextResponse.json(
+          { error: 'Invalid token' },
+          { status: 401 }
+        );
+      }
+    }
+
+    if (!targetSessionId) {
+      return NextResponse.json(
+        { error: 'Unable to determine session' },
+        { status: 400 }
+      );
+    }
+
+    // DynamoDBからセッション取得
+    const result = await docClient.send(new GetCommand({
+      TableName: SESSION_TABLE_NAME,
+      Key: { sessionId: targetSessionId }
+    }));
+
+    if (!result.Item) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      );
+    }
+
+    const session = result.Item as SessionData;
+
+    // セッション有効期限チェック
+    if (session.expiresAt < Math.floor(Date.now() / 1000)) {
+      // 期限切れセッションを削除
+      await docClient.send(new DeleteCommand({
+        TableName: SESSION_TABLE_NAME,
+        Key: { sessionId: targetSessionId }
+      }));
+
+      return NextResponse.json(
+        { error: 'Session expired' },
+        { status: 401 }
+      );
+    }
+
+    // 最終アクセス時刻を更新
+    await docClient.send(new UpdateCommand({
+      TableName: SESSION_TABLE_NAME,
+      Key: { sessionId: targetSessionId },
+      UpdateExpression: 'SET lastAccessedAt = :now',
+      ExpressionAttributeValues: {
+        ':now': new Date().toISOString()
+      }
+    }));
+
+    console.log(`✅ セッション取得成功: ${targetSessionId}`);
+
+    return NextResponse.json({
+      success: true,
+      session: {
+        sessionId: session.sessionId,
+        userId: session.userId,
+        username: session.username,
+        email: session.email,
+        createdAt: session.createdAt,
+        lastAccessedAt: session.lastAccessedAt,
+        expiresAt: new Date(session.expiresAt * 1000).toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ セッション取得エラー:', error);
+    return NextResponse.json(
+      { error: 'Failed to get session' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * セッション更新 (PUT)
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { sessionId, metadata } = body;
+
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'sessionId is required' },
+        { status: 400 }
+      );
+    }
+
+    // セッション存在確認
+    const result = await docClient.send(new GetCommand({
+      TableName: SESSION_TABLE_NAME,
+      Key: { sessionId }
+    }));
+
+    if (!result.Item) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      );
+    }
+
+    // セッション更新
+    let updateExpression = 'SET lastAccessedAt = :now';
+    const expressionAttributeValues: any = {
+      ':now': new Date().toISOString()
+    };
+
+    if (metadata) {
+      updateExpression += ', metadata = :metadata';
+      expressionAttributeValues[':metadata'] = {
+        ...result.Item.metadata,
+        ...metadata
+      };
+    }
+
+    await docClient.send(new UpdateCommand({
+      TableName: SESSION_TABLE_NAME,
+      Key: { sessionId },
+      UpdateExpression: updateExpression,
+      ExpressionAttributeValues: expressionAttributeValues
+    }));
+
+    console.log(`✅ セッション更新成功: ${sessionId}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Session updated successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ セッション更新エラー:', error);
+    return NextResponse.json(
+      { error: 'Failed to update session' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * セッション削除 (DELETE)
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const sessionId = request.nextUrl.searchParams.get('sessionId');
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+
+    if (!sessionId && !token) {
+      return NextResponse.json(
+        { error: 'sessionId or authorization token required' },
+        { status: 400 }
+      );
+    }
+
+    let targetSessionId = sessionId;
+
+    // トークンからセッションIDを取得
+    if (token && !sessionId) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        targetSessionId = decoded.sessionId;
+      } catch (jwtError) {
+        return NextResponse.json(
+          { error: 'Invalid token' },
+          { status: 401 }
+        );
+      }
+    }
+
+    if (!targetSessionId) {
+      return NextResponse.json(
+        { error: 'Unable to determine session' },
+        { status: 400 }
+      );
+    }
+
+    // DynamoDBからセッション削除
+    await docClient.send(new DeleteCommand({
+      TableName: SESSION_TABLE_NAME,
+      Key: { sessionId: targetSessionId }
+    }));
+
+    console.log(`✅ セッション削除成功: ${targetSessionId}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Session deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ セッション削除エラー:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete session' },
+      { status: 500 }
+    );
+  }
+}

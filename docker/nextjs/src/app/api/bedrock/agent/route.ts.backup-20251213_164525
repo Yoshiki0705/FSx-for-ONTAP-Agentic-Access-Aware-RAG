@@ -1,0 +1,486 @@
+/**
+ * Amazon Bedrock Agent API エンドポイント
+ * Bedrock Agentを使用した文書検索と質問応答
+ * リージョン制限対応版 + us-east-1エラーメッセージ改善版
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  BedrockAgentRuntimeClient,
+  InvokeAgentCommand,
+} from '@aws-sdk/client-bedrock-agent-runtime';
+
+// 型定義の追加
+interface BedrockAgentRequest {
+  message: string;
+  userId?: string;
+  sessionId?: string;
+  region?: string;
+  locale?: string;
+  sessionAttributes?: Record<string, string>;
+  promptSessionAttributes?: Record<string, string>;
+  enableTrace?: boolean;
+}
+
+interface BedrockAgentError {
+  code: string;
+  message: string;
+  details?: string;
+  userFriendlyMessage?: string;
+  technicalMessage?: string;
+  timestamp: Date;
+  context: {
+    userId: string;
+    requestedRegion: string;
+    availableRegions?: string[];
+    apiUrl: string;
+    agentIdStatus?: string;
+  };
+  suggestions: string[] | Array<{
+    action: string;
+    title: string;
+    description: string;
+  }>;
+  retryable: boolean;
+  availableRegions?: string[];
+  availableRegionsDisplay?: Array<{
+    code: string;
+    name: string;
+    flag: string;
+  }>;
+  actionRequired?: string;
+}
+
+/**
+ * Bedrock Agent InvokeAgent利用可能リージョン（2025年12月時点）
+ * 実際の利用可能性は変更される可能性があります
+ */
+const BEDROCK_AGENT_INVOKE_REGIONS = [
+  'us-east-1',
+  'us-west-2', 
+  'eu-west-1',
+  'eu-central-1',
+];
+
+/**
+ * リージョンコードを環境変数キーに変換
+ * 例: ap-northeast-1 → AP_NORTHEAST_1
+ */
+function regionToEnvKey(region: string): string {
+  return region.toUpperCase().replace(/-/g, '_');
+}
+
+/**
+ * 指定されたリージョンのAgent IDを取得
+ */
+function getAgentIdForRegion(region: string): string | undefined {
+  const envKey = regionToEnvKey(region);
+  return process.env[`BEDROCK_AGENT_ID_${envKey}`] || process.env.BEDROCK_AGENT_ID;
+}
+
+/**
+ * 指定されたリージョンのAgent Alias IDを取得
+ */
+function getAgentAliasIdForRegion(region: string): string {
+  const envKey = regionToEnvKey(region);
+  return process.env[`BEDROCK_AGENT_ALIAS_ID_${envKey}`] || process.env.BEDROCK_AGENT_ALIAS_ID || 'TSTALIASID';
+}
+
+/**
+ * リージョンでBedrock Agent InvokeAgentが利用可能かチェック
+ */
+function isInvokeAgentAvailableInRegion(region: string): boolean {
+  return BEDROCK_AGENT_INVOKE_REGIONS.includes(region);
+}
+
+/**
+ * ロケールに基づいてメッセージを生成
+ */
+function getLocalizedMessage(key: string, locale: string = 'ja', params: Record<string, any> = {}): string {
+  const messages: Record<string, Record<string, string>> = {
+    ja: {
+      'agent.region.not_supported': `🌍 Agent機能は現在 ${params.region} リージョンでは利用できません`,
+      'agent.not_configured': `🤖 Agent機能は ${params.region} リージョンで準備中です`,
+      'agent.action_required': '通常モードをご利用いただくか、別のリージョンをお試しください',
+      'agent.available_regions': '利用可能なリージョン',
+      'agent.suggestions.change_region': 'リージョンを変更する',
+      'agent.suggestions.use_kb_mode': 'Knowledge Baseモードを使用する',
+      'agent.suggestions.contact_admin': '管理者に問い合わせる',
+      'agent.error.generic': 'Agent機能でエラーが発生しました',
+      'agent.error.timeout': 'Agent処理がタイムアウトしました',
+      'agent.error.access_denied': 'Agent機能へのアクセスが拒否されました'
+    },
+    en: {
+      'agent.region.not_supported': `🌍 Agent functionality is not available in ${params.region} region`,
+      'agent.not_configured': `🤖 Agent functionality is being prepared in ${params.region} region`,
+      'agent.action_required': 'Please use Knowledge Base mode or try a different region',
+      'agent.available_regions': 'Available regions',
+      'agent.suggestions.change_region': 'Change region',
+      'agent.suggestions.use_kb_mode': 'Use Knowledge Base mode',
+      'agent.suggestions.contact_admin': 'Contact administrator',
+      'agent.error.generic': 'An error occurred in Agent functionality',
+      'agent.error.timeout': 'Agent processing timed out',
+      'agent.error.access_denied': 'Access to Agent functionality was denied'
+    }
+  };
+
+  const localeMessages = messages[locale] || messages['ja'];
+  return localeMessages[key] || key;
+}
+
+/**
+ * エラーレスポンスを生成するヘルパー関数
+ */
+function createErrorResponse(error: BedrockAgentError, statusCode: number = 500) {
+  return NextResponse.json({
+    success: false,
+    error,
+  }, { status: statusCode });
+}
+
+/**
+ * リージョン利用不可エラーを生成
+ */
+function createRegionNotSupportedError(requestedRegion: string, userId?: string, locale: string = 'ja'): BedrockAgentError {
+  return {
+    code: 'REGION_NOT_SUPPORTED',
+    userFriendlyMessage: getLocalizedMessage('agent.region.not_supported', locale, { region: requestedRegion }),
+    technicalMessage: `リージョン ${requestedRegion} ではBedrock Agent機能は利用できません。利用可能なリージョン: ${BEDROCK_AGENT_INVOKE_REGIONS.join(', ')}`,
+    message: getLocalizedMessage('agent.region.not_supported', locale, { region: requestedRegion }),
+    availableRegions: BEDROCK_AGENT_INVOKE_REGIONS,
+    availableRegionsDisplay: [
+      { code: 'us-east-1', name: 'バージニア北部 (us-east-1)', flag: '🇺🇸' },
+      { code: 'us-west-2', name: 'オレゴン (us-west-2)', flag: '🇺🇸' },
+      { code: 'eu-west-1', name: 'アイルランド (eu-west-1)', flag: '🇮🇪' },
+      { code: 'eu-central-1', name: 'フランクフルト (eu-central-1)', flag: '🇩🇪' }
+    ],
+    actionRequired: 'リージョンを変更するか、通常モードをご利用ください',
+    timestamp: new Date(),
+    context: {
+      userId: userId || 'unknown',
+      requestedRegion,
+      availableRegions: BEDROCK_AGENT_INVOKE_REGIONS,
+      apiUrl: '/api/bedrock/agent'
+    },
+    suggestions: [
+      {
+        action: 'change_region',
+        title: 'リージョンを変更する',
+        description: '左サイドバーの「変更」ボタンから利用可能なリージョンを選択してください'
+      },
+      {
+        action: 'switch_mode',
+        title: '通常モード（Knowledge Base）を使用する',
+        description: 'ヘッダーの「KB モード」ボタンをクリックして通常モードに切り替えてください'
+      },
+      {
+        action: 'contact_admin',
+        title: 'システム管理者に相談する',
+        description: 'Agent機能の利用について管理者にお問い合わせください'
+      }
+    ],
+    retryable: false
+  };
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body: BedrockAgentRequest = await request.json();
+    const { message, userId, sessionId, region, locale = 'ja', sessionAttributes, promptSessionAttributes, enableTrace = true } = body;
+
+    if (!message) {
+      return NextResponse.json(
+        { success: false, error: 'メッセージが必要です' },
+        { status: 400 }
+      );
+    }
+
+    // リージョンパラメータを使用（デフォルトは環境変数またはap-northeast-1）
+    const requestedRegion = region || process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
+    
+    // リージョンの利用可能性をチェック
+    if (!isInvokeAgentAvailableInRegion(requestedRegion)) {
+      console.warn(`[Bedrock Agent] リージョン ${requestedRegion} ではInvokeAgent機能は利用できません`);
+      return createErrorResponse(createRegionNotSupportedError(requestedRegion, userId, locale), 503);
+    }
+
+    // リージョンごとのAgent ID/Alias IDを取得
+    const AGENT_ID = getAgentIdForRegion(requestedRegion);
+    const AGENT_ALIAS_ID = getAgentAliasIdForRegion(requestedRegion);
+
+    // Agent IDが設定されていない場合は早期リターン
+    if (!AGENT_ID || AGENT_ID === 'PLACEHOLDER_AGENT_ID' || AGENT_ID === 'TEST_AGENT_NOT_CONFIGURED') {
+      console.error(`[Bedrock Agent] リージョン ${requestedRegion} のBedrock Agent IDが設定されていません`);
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'AGENT_NOT_CONFIGURED',
+          userFriendlyMessage: getLocalizedMessage('agent.not_configured', locale, { region: requestedRegion }),
+          technicalMessage: `リージョン ${requestedRegion} でBedrock Agentが設定されていません`,
+          actionRequired: getLocalizedMessage('agent.action_required', locale),
+          availableRegions: BEDROCK_AGENT_INVOKE_REGIONS,
+          availableRegionsDisplay: [
+            { code: 'us-east-1', name: 'バージニア北部 (us-east-1)', flag: '🇺🇸' },
+            { code: 'us-west-2', name: 'オレゴン (us-west-2)', flag: '🇺🇸' },
+            { code: 'eu-west-1', name: 'アイルランド (eu-west-1)', flag: '🇮🇪' },
+            { code: 'eu-central-1', name: 'フランクフルト (eu-central-1)', flag: '🇩🇪' }
+          ],
+          timestamp: new Date(),
+          context: {
+            userId,
+            requestedRegion,
+            availableRegions: BEDROCK_AGENT_INVOKE_REGIONS,
+            apiUrl: '/api/bedrock/agent',
+            agentIdStatus: AGENT_ID || 'not_set'
+          },
+          suggestions: [
+            {
+              action: 'switch_mode',
+              title: '通常モード（Knowledge Base）を使用する',
+              description: 'ヘッダーの「KB モード」ボタンをクリックして通常モードに切り替えてください'
+            },
+            {
+              action: 'change_region',
+              title: '別のリージョンを試す',
+              description: '左サイドバーの「変更」ボタンから他のリージョンを選択してください'
+            },
+            {
+              action: 'contact_admin',
+              title: 'システム管理者に相談する',
+              description: 'Agent機能の設定について管理者にお問い合わせください'
+            }
+          ],
+          retryable: false
+        },
+      }, { status: 503 });
+    }
+
+    console.log('[Bedrock Agent] Request:', {
+      userId,
+      sessionId,
+      messageLength: message.length,
+      agentId: AGENT_ID,
+      agentAliasId: AGENT_ALIAS_ID,
+      region: requestedRegion,
+      enableTrace,
+      hasSessionAttributes: !!sessionAttributes,
+      hasPromptSessionAttributes: !!promptSessionAttributes,
+    });
+
+    // Bedrock Agent Runtimeクライアントを作成
+    const agentClient = new BedrockAgentRuntimeClient({
+      region: requestedRegion,
+    });
+
+    // セッション状態の構築
+    const sessionState: any = {};
+    
+    if (sessionAttributes && Object.keys(sessionAttributes).length > 0) {
+      sessionState.sessionAttributes = sessionAttributes;
+    }
+    
+    if (promptSessionAttributes && Object.keys(promptSessionAttributes).length > 0) {
+      sessionState.promptSessionAttributes = promptSessionAttributes;
+    }
+
+    // Bedrock Agent呼び出し
+    const command = new InvokeAgentCommand({
+      agentId: AGENT_ID,
+      agentAliasId: AGENT_ALIAS_ID,
+      sessionId: sessionId || `session-${userId}-${Date.now()}`,
+      inputText: message,
+      enableTrace: enableTrace,
+      ...(Object.keys(sessionState).length > 0 && { sessionState }),
+    });
+
+    const response = await agentClient.send(command);
+
+    // ストリーミングレスポンスの処理
+    let fullResponse = '';
+    let citations: any[] = [];
+    let trace: any[] = [];
+    let returnedSessionAttributes: Record<string, string> = {};
+    let files: any[] = [];
+
+    if (response.completion) {
+      for await (const event of response.completion) {
+        // チャンクデータの処理
+        if (event.chunk) {
+          const chunk = event.chunk;
+          if (chunk.bytes) {
+            const text = new TextDecoder().decode(chunk.bytes);
+            fullResponse += text;
+          }
+          
+          // 引用情報の抽出
+          if (chunk.attribution) {
+            citations.push(chunk.attribution);
+          }
+        }
+        
+        // トレース情報の処理
+        if (event.trace && enableTrace) {
+          trace.push(event.trace);
+        }
+        
+        // セッション属性の取得
+        if (event.returnControl) {
+          const returnControl = event.returnControl;
+          if (returnControl.invocationInputs) {
+            console.log('[Bedrock Agent] Return control invocation inputs:', returnControl.invocationInputs);
+          }
+        }
+        
+        // ファイル情報の取得
+        if (event.files && Array.isArray(event.files)) {
+          files.push(...event.files);
+        } else if (event.files) {
+          files.push(event.files);
+        }
+      }
+    }
+    
+    // セッションIDの取得
+    const finalSessionId = response.sessionId || sessionId || `session-${userId}-${Date.now()}`;
+
+    console.log('[Bedrock Agent] Response received:', {
+      responseLength: fullResponse.length,
+      citationsCount: citations.length,
+      traceCount: trace.length,
+      filesCount: files.length,
+      sessionId: finalSessionId,
+    });
+
+    return NextResponse.json({
+      success: true,
+      answer: fullResponse || 'Agent処理が完了しましたが、レスポンスが空です。',
+      sessionId: finalSessionId,
+      sessionAttributes: returnedSessionAttributes,
+      agentTrace: trace.length > 0 ? trace : undefined,
+      citations: citations.length > 0 ? citations : undefined,
+      files: files.length > 0 ? files : undefined,
+      metadata: {
+        agentMode: true,
+        agentId: AGENT_ID,
+        agentAliasId: AGENT_ALIAS_ID,
+        regionUsed: requestedRegion,
+      },
+    });
+
+  } catch (error) {
+    console.error('[Bedrock Agent] Error:', error);
+    
+    // リクエストボディから変数を再取得（エラーハンドリング用）
+    let userId: string | undefined;
+    let requestedRegion: string;
+    let locale: string = 'ja';
+    
+    try {
+      const body: BedrockAgentRequest = await request.json();
+      userId = body.userId;
+      requestedRegion = body.region || process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
+      locale = body.locale || 'ja';
+    } catch {
+      // JSONパースエラーの場合はデフォルト値を使用
+      userId = 'unknown';
+      requestedRegion = 'ap-northeast-1';
+      locale = 'ja';
+    }
+    
+    // エラーの詳細をログ出力
+    if (error instanceof Error) {
+      console.error('[Bedrock Agent] Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+      });
+    }
+
+    // リージョン関連エラーの特別処理
+    if (error && typeof error === 'object') {
+      const err = error as any;
+      
+      // リージョン利用不可エラーの検出
+      if (err.message && (
+        err.message.includes('not available in region') ||
+        err.message.includes('region is not supported') ||
+        err.message.includes('service is not available') ||
+        err.message.includes('not supported in this region')
+      )) {
+        return createErrorResponse(createRegionNotSupportedError(requestedRegion, userId, locale), 503);
+      }
+    }
+    
+    // その他のエラーの構造化
+    let awsErrorCode = 'AGENT_ERROR';
+    let awsErrorMessage = error instanceof Error ? error.message : 'Unknown error';
+    let suggestions: string[] = [];
+    let retryable = false;
+    
+    if (error && typeof error === 'object') {
+      const err = error as any;
+      
+      switch (err.name) {
+        case 'AccessDeniedException':
+          awsErrorCode = 'AGENT_ACCESS_DENIED';
+          suggestions = [
+            'Bedrock Agentへのアクセス権限を確認してください',
+            'IAMロールの設定を確認してください',
+            'システム管理者にお問い合わせください'
+          ];
+          break;
+          
+        case 'ResourceNotFoundException':
+          awsErrorCode = 'AGENT_NOT_FOUND';
+          suggestions = [
+            'Agent IDが正しいか確認してください',
+            'Agentが正しくデプロイされているか確認してください',
+            'システム管理者にお問い合わせください'
+          ];
+          break;
+          
+        case 'ThrottlingException':
+          awsErrorCode = 'AGENT_RATE_LIMIT';
+          retryable = true;
+          suggestions = [
+            'しばらく時間をおいてから再試行してください',
+            'リクエストの頻度を下げてください'
+          ];
+          break;
+          
+        case 'ValidationException':
+          awsErrorCode = 'AGENT_VALIDATION_ERROR';
+          suggestions = [
+            'リクエストパラメータを確認してください',
+            'メッセージの形式を確認してください'
+          ];
+          break;
+          
+        default:
+          retryable = true;
+          suggestions = [
+            'しばらく時間をおいてから再試行してください',
+            '通常モード（Knowledge Base）に切り替えてみてください',
+            'システム管理者にお問い合わせください'
+          ];
+      }
+    }
+    
+    const errorDetails: BedrockAgentError = {
+      code: awsErrorCode,
+      message: awsErrorMessage,
+      details: `Bedrock Agent でエラーが発生しました (${awsErrorCode})`,
+      timestamp: new Date(),
+      context: {
+        userId: userId || 'unknown',
+        apiUrl: '/api/bedrock/agent',
+        agentIdStatus: process.env.BEDROCK_AGENT_ID,
+        requestedRegion: requestedRegion
+      },
+      suggestions,
+      retryable
+    };
+    
+    return createErrorResponse(errorDetails, 500);
+  }
+}

@@ -1,0 +1,1163 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Windows Server 2022 + Active Directory + FSx for NetApp ONTAP統合環境 - メインテンプレート'
+
+# メタデータセクション - CloudFormationコンソールでのパラメータグループ化
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "プロジェクト設定"
+        Parameters:
+          - ProjectName
+          - Environment
+          - DeploymentRegion
+      - Label:
+          default: "Active Directory設定"
+        Parameters:
+          - DomainName
+          - NetBiosName
+          - AdminPassword
+          - SafeModePassword
+      - Label:
+          default: "FSx ONTAP統合設定"
+        Parameters:
+          - FSxFileSystemId
+          - FSxSVMName
+          - OrganizationalUnit
+      - Label:
+          default: "ネットワーク設定"
+        Parameters:
+          - VpcCidr
+          - PrivateSubnetCidr
+          - PublicSubnetCidr
+          - AvailabilityZone
+      - Label:
+          default: "EC2インスタンス設定"
+        Parameters:
+          - InstanceType
+          - KeyPairName
+          - EBSVolumeSize
+      - Label:
+          default: "セキュリティ設定"
+        Parameters:
+          - AllowedCidrForRDP
+          - EnableCloudTrail
+          - EnableGuardDuty
+      - Label:
+          default: "監視・運用設定"
+        Parameters:
+          - EnableCloudWatch
+          - EnableSystemsManager
+          - NotificationEmail
+      - Label:
+          default: "エラーハンドリング設定"
+        Parameters:
+          - EnableRollback
+          - TimeoutInMinutes
+      - Label:
+          default: "外部設定統合"
+        Parameters:
+          - UseSecretsManager
+          - AdminPasswordSecretName
+          - SafeModePasswordSecretName
+          - ConfigurationSource
+          - ConfigurationPrefix
+      - Label:
+          default: "高度な設定"
+        Parameters:
+          - AdditionalTags
+          - CustomDomainSuffix
+          - BackupRetentionDays
+    ParameterLabels:
+      ProjectName:
+        default: "プロジェクト名"
+      Environment:
+        default: "環境名"
+      DomainName:
+        default: "Active Directoryドメイン名"
+      NetBiosName:
+        default: "NetBIOS名"
+      AdminPassword:
+        default: "管理者パスワード"
+      FSxFileSystemId:
+        default: "FSx for ONTAPファイルシステムID"
+      InstanceType:
+        default: "EC2インスタンスタイプ"
+      KeyPairName:
+        default: "EC2キーペア名"
+      AllowedCidrForRDP:
+        default: "RDP接続許可CIDR"
+      EnableCloudWatch:
+        default: "CloudWatch監視を有効化"
+      UseSecretsManager:
+        default: "Secrets Manager使用"
+      AdminPasswordSecretName:
+        default: "管理者パスワードシークレット名"
+      SafeModePasswordSecretName:
+        default: "セーフモードパスワードシークレット名"
+      ConfigurationSource:
+        default: "設定値取得元"
+      ConfigurationPrefix:
+        default: "設定プレフィックス"
+      AdditionalTags:
+        default: "追加タグ"
+      CustomDomainSuffix:
+        default: "カスタムドメインサフィックス"
+      BackupRetentionDays:
+        default: "バックアップ保持日数"
+
+# パラメータ定義
+Parameters:
+  # プロジェクト設定
+  ProjectName:
+    Type: String
+    Default: "windows-ad-fsxn"
+    Description: "プロジェクト識別子（リソース名のプレフィックスとして使用）"
+    AllowedPattern: "^[a-z0-9-]{3,20}$"
+    ConstraintDescription: "3-20文字の小文字、数字、ハイフンのみ使用可能"
+
+  Environment:
+    Type: String
+    Default: "dev"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+    Description: "デプロイメント環境"
+
+  DeploymentRegion:
+    Type: String
+    Default: "ap-northeast-1"
+    AllowedValues:
+      - "ap-northeast-1"  # 東京
+      - "ap-northeast-3"  # 大阪
+      - "us-east-1"       # バージニア
+      - "us-west-2"       # オレゴン
+      - "eu-west-1"       # アイルランド
+    Description: "デプロイメント対象リージョン"
+
+  # Active Directory設定
+  DomainName:
+    Type: String
+    Default: "corp.local"
+    Description: "Active Directoryドメイン名（FQDN形式）"
+    AllowedPattern: "^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    ConstraintDescription: "有効なドメイン名を入力してください（例: corp.local）"
+
+  NetBiosName:
+    Type: String
+    Default: "CORP"
+    Description: "NetBIOS名（15文字以内の大文字）"
+    AllowedPattern: "^[A-Z0-9]{1,15}$"
+    ConstraintDescription: "1-15文字の大文字と数字のみ使用可能"
+
+  AdminPassword:
+    Type: String
+    NoEcho: true
+    Description: "Active Directory管理者パスワード（8文字以上、大文字・小文字・数字・記号を含む）"
+    MinLength: 8
+    MaxLength: 64
+    AllowedPattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
+    ConstraintDescription: "8文字以上で大文字・小文字・数字・記号をそれぞれ1文字以上含む必要があります"
+
+  SafeModePassword:
+    Type: String
+    NoEcho: true
+    Description: "Active Directoryセーフモードパスワード"
+    MinLength: 8
+    MaxLength: 64
+    AllowedPattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
+    ConstraintDescription: "8文字以上で大文字・小文字・数字・記号をそれぞれ1文字以上含む必要があります"
+
+  # Secrets Manager統合設定
+  UseSecretsManager:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Secrets Managerからパスワードを取得するかどうか"
+
+  AdminPasswordSecretName:
+    Type: String
+    Default: ""
+    Description: "管理者パスワードのSecrets Manager名（UseSecretsManagerがtrueの場合に使用）"
+
+  SafeModePasswordSecretName:
+    Type: String
+    Default: ""
+    Description: "セーフモードパスワードのSecrets Manager名（UseSecretsManagerがtrueの場合に使用）"
+
+  # FSx ONTAP統合設定
+  FSxFileSystemId:
+    Type: String
+    Description: "既存のFSx for ONTAPファイルシステムID（例: fs-0123456789abcdef0）"
+    AllowedPattern: "^fs-[0-9a-f]{17}$"
+    ConstraintDescription: "有効なFSxファイルシステムIDを入力してください"
+
+  FSxSVMName:
+    Type: String
+    Default: "svm01"
+    Description: "FSx ONTAP SVM名"
+    AllowedPattern: "^[a-zA-Z0-9_-]{1,47}$"
+    ConstraintDescription: "1-47文字の英数字、アンダースコア、ハイフンのみ使用可能"
+
+  OrganizationalUnit:
+    Type: String
+    Default: "OU=Computers"
+    Description: "Active Directory組織単位（OU）"
+    AllowedPattern: "^OU=[^,]+.*$"
+    ConstraintDescription: "有効なOU形式で入力してください（例: OU=Computers,DC=corp,DC=local）"
+
+  # ネットワーク設定
+  VpcCidr:
+    Type: String
+    Default: "10.0.0.0/16"
+    Description: "VPC CIDR ブロック"
+    AllowedPattern: "^(10\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: "有効なプライベートIPアドレス範囲を入力してください"
+
+  PrivateSubnetCidr:
+    Type: String
+    Default: "10.0.1.0/24"
+    Description: "プライベートサブネット CIDR ブロック"
+    AllowedPattern: "^(10\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: "VPC CIDR内の有効なサブネット範囲を入力してください"
+
+  PublicSubnetCidr:
+    Type: String
+    Default: "10.0.2.0/24"
+    Description: "パブリックサブネット CIDR ブロック"
+    AllowedPattern: "^(10\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: "VPC CIDR内の有効なサブネット範囲を入力してください"
+
+  AvailabilityZone:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: "デプロイメント対象のアベイラビリティゾーン"
+
+  # EC2インスタンス設定
+  InstanceType:
+    Type: String
+    Default: "t3.medium"
+    AllowedValues:
+      - "t3.medium"
+      - "t3.large"
+      - "m5.large"
+      - "m5.xlarge"
+      - "m5.2xlarge"
+    Description: "Windows Server EC2インスタンスタイプ"
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "EC2インスタンス用のキーペア名"
+
+  EBSVolumeSize:
+    Type: Number
+    Default: 100
+    MinValue: 50
+    MaxValue: 1000
+    Description: "EBSルートボリュームサイズ（GB）"
+
+  # セキュリティ設定
+  AllowedCidrForRDP:
+    Type: String
+    Default: "10.0.0.0/16"
+    Description: "RDP接続を許可するCIDR範囲"
+    AllowedPattern: "^(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/(\\d|[1-2]\\d|3[0-2]))$"
+    ConstraintDescription: "有効なCIDR形式で入力してください"
+
+  EnableCloudTrail:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "CloudTrail監査ログを有効化"
+
+  EnableGuardDuty:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "GuardDuty脅威検出を有効化"
+
+  # 監視・運用設定
+  EnableCloudWatch:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "CloudWatch監視を有効化"
+
+  EnableSystemsManager:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Systems Managerリモート管理を有効化"
+
+  NotificationEmail:
+    Type: String
+    Default: ""
+    Description: "アラート通知用メールアドレス（オプション）"
+    AllowedPattern: "^$|^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    ConstraintDescription: "有効なメールアドレスを入力してください"
+
+  # エラーハンドリング設定
+  EnableRollback:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "デプロイ失敗時の自動ロールバックを有効化"
+
+  TimeoutInMinutes:
+    Type: Number
+    Default: 60
+    MinValue: 30
+    MaxValue: 180
+    Description: "スタック作成タイムアウト時間（分）"
+
+  # 外部設定統合
+  ConfigurationSource:
+    Type: String
+    Default: "parameters"
+    AllowedValues:
+      - "parameters"
+      - "ssm"
+      - "secrets-manager"
+    Description: "設定値の取得元（parameters: パラメータファイル、ssm: Systems Manager Parameter Store、secrets-manager: Secrets Manager）"
+
+  ConfigurationPrefix:
+    Type: String
+    Default: ""
+    Description: "外部設定のプレフィックス（例: /windows-ad-fsxn/dev/）"
+
+  # タグ設定
+  AdditionalTags:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: "追加のタグ（Key=Value形式、カンマ区切り）"
+
+  # 高度な設定
+  CustomDomainSuffix:
+    Type: String
+    Default: ""
+    Description: "カスタムドメインサフィックス（デフォルトドメイン名に追加）"
+
+  BackupRetentionDays:
+    Type: Number
+    Default: 30
+    MinValue: 1
+    MaxValue: 365
+    Description: "バックアップ保持日数"
+
+# 条件定義
+Conditions:
+  # 監視機能の有効化条件
+  CreateCloudWatchResources: !Equals [!Ref EnableCloudWatch, "true"]
+  CreateSystemsManagerResources: !Equals [!Ref EnableSystemsManager, "true"]
+  CreateCloudTrailResources: !Equals [!Ref EnableCloudTrail, "true"]
+  CreateGuardDutyResources: !Equals [!Ref EnableGuardDuty, "true"]
+  
+  # 通知設定の条件
+  HasNotificationEmail: !Not [!Equals [!Ref NotificationEmail, ""]]
+  
+  # 本番環境の条件
+  IsProductionEnvironment: !Equals [!Ref Environment, "prod"]
+  IsStagingEnvironment: !Equals [!Ref Environment, "staging"]
+  IsDevelopmentEnvironment: !Equals [!Ref Environment, "dev"]
+  
+  # リージョン別条件
+  IsTokyoRegion: !Equals [!Ref "AWS::Region", "ap-northeast-1"]
+  IsOsakaRegion: !Equals [!Ref "AWS::Region", "ap-northeast-3"]
+  IsUSRegion: !Or [!Equals [!Ref "AWS::Region", "us-east-1"], !Equals [!Ref "AWS::Region", "us-west-2"]]
+  IsEURegion: !Equals [!Ref "AWS::Region", "eu-west-1"]
+  
+  # 外部設定統合の条件
+  UseSecretsManagerForPasswords: !Equals [!Ref UseSecretsManager, "true"]
+  UseSSMParameterStore: !Equals [!Ref ConfigurationSource, "ssm"]
+  UseSecretsManagerConfig: !Equals [!Ref ConfigurationSource, "secrets-manager"]
+  HasConfigurationPrefix: !Not [!Equals [!Ref ConfigurationPrefix, ""]]
+  HasCustomDomainSuffix: !Not [!Equals [!Ref CustomDomainSuffix, ""]]
+  HasAdditionalTags: !Not [!Equals [!Select [0, !Ref AdditionalTags], ""]]
+
+# マッピング定義
+Mappings:
+  # リージョン別設定
+  RegionConfig:
+    ap-northeast-1:  # 東京
+      RegionName: "Tokyo"
+      TimeZone: "Asia/Tokyo"
+      WindowsAMI: "ami-0c2f3b0e2b9b0a123"  # Windows Server 2022 Base
+    ap-northeast-3:  # 大阪
+      RegionName: "Osaka"
+      TimeZone: "Asia/Tokyo"
+      WindowsAMI: "ami-0c2f3b0e2b9b0a456"  # Windows Server 2022 Base
+    us-east-1:       # バージニア
+      RegionName: "Virginia"
+      TimeZone: "America/New_York"
+      WindowsAMI: "ami-0c2f3b0e2b9b0a789"  # Windows Server 2022 Base
+    us-west-2:       # オレゴン
+      RegionName: "Oregon"
+      TimeZone: "America/Los_Angeles"
+      WindowsAMI: "ami-0c2f3b0e2b9b0aabc"  # Windows Server 2022 Base
+    eu-west-1:       # アイルランド
+      RegionName: "Ireland"
+      TimeZone: "Europe/Dublin"
+      WindowsAMI: "ami-0c2f3b0e2b9b0adef"  # Windows Server 2022 Base
+
+  # インスタンスタイプ別設定
+  InstanceConfig:
+    t3.medium:
+      Memory: "4GB"
+      vCPU: "2"
+      Recommended: "開発・テスト環境"
+    t3.large:
+      Memory: "8GB"
+      vCPU: "2"
+      Recommended: "小規模本番環境"
+    m5.large:
+      Memory: "8GB"
+      vCPU: "2"
+      Recommended: "本番環境"
+    m5.xlarge:
+      Memory: "16GB"
+      vCPU: "4"
+      Recommended: "大規模本番環境"
+    m5.2xlarge:
+      Memory: "32GB"
+      vCPU: "8"
+      Recommended: "エンタープライズ環境"
+
+# リソース定義（ネストされたスタック構造）
+Resources:
+  # 環境設定管理用SSM Parameter Store
+  EnvironmentConfigParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub 
+        - "${Prefix}/environment-config"
+        - Prefix: !If [HasConfigurationPrefix, !Ref ConfigurationPrefix, !Sub "/${ProjectName}/${Environment}"]
+      Type: String
+      Value: !Sub |
+        {
+          "projectName": "${ProjectName}",
+          "environment": "${Environment}",
+          "deploymentRegion": "${DeploymentRegion}",
+          "domainName": "${DomainName}",
+          "netbiosName": "${NetBiosName}",
+          "vpcCidr": "${VpcCidr}",
+          "privateSubnetCidr": "${PrivateSubnetCidr}",
+          "publicSubnetCidr": "${PublicSubnetCidr}",
+          "availabilityZone": "${AvailabilityZone}",
+          "instanceType": "${InstanceType}",
+          "ebsVolumeSize": "${EBSVolumeSize}",
+          "fsxFilesystemId": "${FSxFileSystemId}",
+          "fsxSvmName": "${FSxSVMName}",
+          "organizationalUnit": "${OrganizationalUnit}",
+          "backupRetentionDays": "${BackupRetentionDays}",
+          "customDomainSuffix": "${CustomDomainSuffix}",
+          "createdAt": "${AWS::StackName}",
+          "region": "${AWS::Region}",
+          "accountId": "${AWS::AccountId}"
+        }
+      Description: !Sub "Environment configuration for ${ProjectName} ${Environment}"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-config"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: ConfigurationType
+          Value: "EnvironmentSettings"
+
+  # セキュリティ設定用SSM Parameter Store（暗号化）
+  SecurityConfigParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub 
+        - "${Prefix}/security-config"
+        - Prefix: !If [HasConfigurationPrefix, !Ref ConfigurationPrefix, !Sub "/${ProjectName}/${Environment}"]
+      Type: SecureString
+      Value: !Sub |
+        {
+          "allowedCidrForRdp": "${AllowedCidrForRDP}",
+          "enableCloudtrail": "${EnableCloudTrail}",
+          "enableGuardduty": "${EnableGuardDuty}",
+          "enableCloudwatch": "${EnableCloudWatch}",
+          "enableSystemsManager": "${EnableSystemsManager}",
+          "notificationEmail": "${NotificationEmail}",
+          "useSecretsManager": "${UseSecretsManager}",
+          "adminPasswordSecretName": "${AdminPasswordSecretName}",
+          "safemodePasswordSecretName": "${SafeModePasswordSecretName}",
+          "timeoutInMinutes": "${TimeoutInMinutes}",
+          "enableRollback": "${EnableRollback}"
+        }
+      Description: !Sub "Security configuration for ${ProjectName} ${Environment}"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-security-config"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: ConfigurationType
+          Value: "SecuritySettings"
+
+  # 運用設定用SSM Parameter Store
+  OperationalConfigParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub 
+        - "${Prefix}/operational-config"
+        - Prefix: !If [HasConfigurationPrefix, !Ref ConfigurationPrefix, !Sub "/${ProjectName}/${Environment}"]
+      Type: String
+      Value: !Sub |
+        {
+          "configurationSource": "${ConfigurationSource}",
+          "configurationPrefix": "${ConfigurationPrefix}",
+          "backupRetentionDays": "${BackupRetentionDays}",
+          "deploymentTimestamp": "${AWS::StackName}",
+          "stackId": "${AWS::StackId}",
+          "templateVersion": "1.0.0",
+          "maintenanceWindow": {
+            "production": "cron(0 2 ? * SUN *)",
+            "staging": "cron(0 3 ? * SAT *)",
+            "development": "cron(0 4 ? * SAT *)"
+          },
+          "monitoringThresholds": {
+            "cpuThreshold": "80",
+            "memoryThreshold": "85",
+            "diskThreshold": "20",
+            "storageThreshold": "80"
+          }
+        }
+      Description: !Sub "Operational configuration for ${ProjectName} ${Environment}"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-operational-config"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: ConfigurationType
+          Value: "OperationalSettings"
+  # ネットワークスタック
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 
+        - "https://${S3Bucket}.s3.${AWS::Region}.amazonaws.com/nested-stacks/network-stack.yaml"
+        - S3Bucket: !Sub "${ProjectName}-${Environment}-cfn-templates"
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcCidr: !Ref VpcCidr
+        PrivateSubnetCidr: !Ref PrivateSubnetCidr
+        PublicSubnetCidr: !Ref PublicSubnetCidr
+        AvailabilityZone: !Ref AvailabilityZone
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${Environment}-network"
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Project"
+          Value: !Ref ProjectName
+
+  # セキュリティスタック
+  SecurityStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NetworkStack
+    Properties:
+      TemplateURL: !Sub 
+        - "https://${S3Bucket}.s3.${AWS::Region}.amazonaws.com/nested-stacks/security-stack.yaml"
+        - S3Bucket: !Sub "${ProjectName}-${Environment}-cfn-templates"
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        VpcCidr: !Ref VpcCidr
+        AllowedCidrForRDP: !Ref AllowedCidrForRDP
+        EnableCloudTrail: !Ref EnableCloudTrail
+        EnableGuardDuty: !Ref EnableGuardDuty
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${Environment}-security"
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Project"
+          Value: !Ref ProjectName
+
+  # Windows Active Directoryスタック
+  WindowsADStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: 
+      - NetworkStack
+      - SecurityStack
+    Properties:
+      TemplateURL: !Sub 
+        - "https://${S3Bucket}.s3.${AWS::Region}.amazonaws.com/nested-stacks/windows-ad-stack.yaml"
+        - S3Bucket: !Sub "${ProjectName}-${Environment}-cfn-templates"
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        PrivateSubnetId: !GetAtt NetworkStack.Outputs.PrivateSubnetId
+        SecurityGroupId: !GetAtt SecurityStack.Outputs.WindowsADSecurityGroupId
+        IAMRoleArn: !GetAtt SecurityStack.Outputs.WindowsEC2RoleArn
+        InstanceType: !Ref InstanceType
+        KeyPairName: !Ref KeyPairName
+        EBSVolumeSize: !Ref EBSVolumeSize
+        DomainName: !Ref DomainName
+        NetBiosName: !Ref NetBiosName
+        AdminPassword: !Ref AdminPassword
+        SafeModePassword: !Ref SafeModePassword
+        WindowsAMI: !FindInMap [RegionConfig, !Ref "AWS::Region", WindowsAMI]
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${Environment}-windows-ad"
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Project"
+          Value: !Ref ProjectName
+
+  # FSx ONTAP統合スタック
+  FSxIntegrationStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: WindowsADStack
+    Properties:
+      TemplateURL: !Sub 
+        - "https://${S3Bucket}.s3.${AWS::Region}.amazonaws.com/nested-stacks/fsxn-integration-stack.yaml"
+        - S3Bucket: !Sub "${ProjectName}-${Environment}-cfn-templates"
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        FSxFileSystemId: !Ref FSxFileSystemId
+        FSxSVMName: !Ref FSxSVMName
+        DomainName: !Ref DomainName
+        NetBiosName: !Ref NetBiosName
+        OrganizationalUnit: !Ref OrganizationalUnit
+        AdminPassword: !Ref AdminPassword
+        DomainControllerIP: !GetAtt WindowsADStack.Outputs.WindowsADPrivateIP
+        DomainControllerDNS: !GetAtt WindowsADStack.Outputs.WindowsADPrivateIP
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${Environment}-fsxn-integration"
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Project"
+          Value: !Ref ProjectName
+
+  # 監視スタック（条件付き）
+  MonitoringStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: CreateCloudWatchResources
+    DependsOn: 
+      - WindowsADStack
+      - FSxIntegrationStack
+    Properties:
+      TemplateURL: !Sub 
+        - "https://${S3Bucket}.s3.${AWS::Region}.amazonaws.com/nested-stacks/monitoring-stack.yaml"
+        - S3Bucket: !Sub "${ProjectName}-${Environment}-cfn-templates"
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        WindowsInstanceId: !GetAtt WindowsADStack.Outputs.WindowsADInstanceId
+        FSxFileSystemId: !Ref FSxFileSystemId
+        NotificationEmail: !Ref NotificationEmail
+        EnableSystemsManager: !Ref EnableSystemsManager
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${Environment}-monitoring"
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Project"
+          Value: !Ref ProjectName
+
+  # Systems Managerスタック（条件付き）
+  SystemsManagerStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: CreateSystemsManagerResources
+    DependsOn: WindowsADStack
+    Properties:
+      TemplateURL: !Sub 
+        - "https://${S3Bucket}.s3.${AWS::Region}.amazonaws.com/nested-stacks/systems-manager-stack.yaml"
+        - S3Bucket: !Sub "${ProjectName}-${Environment}-cfn-templates"
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        WindowsInstanceId: !GetAtt WindowsADStack.Outputs.WindowsADInstanceId
+        FSxFileSystemId: !Ref FSxFileSystemId
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${Environment}-systems-manager"
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Project"
+          Value: !Ref ProjectName
+
+  # セキュリティ強化スタック（条件付き）
+  SecurityEnhancementStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: CreateCloudTrailResources
+    DependsOn: SecurityStack
+    Properties:
+      TemplateURL: !Sub 
+        - "https://${S3Bucket}.s3.${AWS::Region}.amazonaws.com/nested-stacks/security-enhancement-stack.yaml"
+        - S3Bucket: !Sub "${ProjectName}-${Environment}-cfn-templates"
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcId: !GetAtt NetworkStack.Outputs.VpcId
+        EnableCloudTrail: !Ref EnableCloudTrail
+        EnableGuardDuty: !Ref EnableGuardDuty
+        EncryptionKeyArn: !GetAtt SecurityStack.Outputs.EncryptionKeyArn
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${Environment}-security-enhancement"
+        - Key: "Environment"
+          Value: !Ref Environment
+        - Key: "Project"
+          Value: !Ref ProjectName
+
+# 出力値定義
+Outputs:
+  # 環境情報
+  StackName:
+    Description: "CloudFormationスタック名"
+    Value: !Ref "AWS::StackName"
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-stack-name"
+
+  Region:
+    Description: "デプロイメントリージョン"
+    Value: !Ref "AWS::Region"
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-region"
+
+  # ネットワーク情報
+  VpcId:
+    Description: "VPC ID"
+    Value: !GetAtt NetworkStack.Outputs.VpcId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-vpc-id"
+
+  PrivateSubnetId:
+    Description: "プライベートサブネット ID"
+    Value: !GetAtt NetworkStack.Outputs.PrivateSubnetId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-private-subnet-id"
+
+  PublicSubnetId:
+    Description: "パブリックサブネット ID"
+    Value: !GetAtt NetworkStack.Outputs.PublicSubnetId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-public-subnet-id"
+
+  # Active Directory情報
+  WindowsADInstanceId:
+    Description: "Windows Active Directory EC2インスタンス ID"
+    Value: !GetAtt WindowsADStack.Outputs.WindowsADInstanceId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-instance-id"
+
+  WindowsADPrivateIP:
+    Description: "Windows Active Directory プライベート IP アドレス"
+    Value: !GetAtt WindowsADStack.Outputs.WindowsADPrivateIP
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-private-ip"
+
+  DomainName:
+    Description: "Active Directory ドメイン名"
+    Value: !Ref DomainName
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-domain-name"
+
+  NetBiosName:
+    Description: "Active Directory NetBIOS名"
+    Value: !Ref NetBiosName
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-netbios-name"
+
+  # FSx ONTAP統合情報
+  FSxFileSystemId:
+    Description: "FSx for ONTAP ファイルシステム ID"
+    Value: !Ref FSxFileSystemId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-filesystem-id"
+
+  FSxSVMName:
+    Description: "FSx ONTAP SVM名"
+    Value: !Ref FSxSVMName
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-svm-name"
+
+  FSxDomainJoinStatus:
+    Description: "FSx ONTAP ドメイン参加ステータス"
+    Value: !GetAtt FSxIntegrationStack.Outputs.DomainJoinStatus
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-domain-join-status"
+
+  # セキュリティ情報
+  WindowsADSecurityGroupId:
+    Description: "Windows AD セキュリティグループ ID"
+    Value: !GetAtt SecurityStack.Outputs.WindowsADSecurityGroupId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-sg-id"
+
+  # 接続情報
+  RDPConnectionCommand:
+    Description: "RDP接続コマンド（Windows）"
+    Value: !Sub "mstsc /v:${WindowsADStack.Outputs.WindowsADPrivateIP}"
+
+  PowerShellConnectionCommand:
+    Description: "PowerShell リモート接続コマンド"
+    Value: !Sub "Enter-PSSession -ComputerName ${WindowsADStack.Outputs.WindowsADPrivateIP} -Credential ${DomainName}\\Administrator"
+
+  # 監視・運用情報
+  MonitoringDashboardURL:
+    Description: "CloudWatch監視ダッシュボード URL"
+    Value: !If 
+      - CreateCloudWatchResources
+      - !GetAtt MonitoringStack.Outputs.MonitoringDashboardURL
+      - "N/A"
+
+  AlertNotificationTopicArn:
+    Description: "アラート通知SNSトピック ARN"
+    Value: !If 
+      - CreateCloudWatchResources
+      - !GetAtt MonitoringStack.Outputs.AlertNotificationTopicArn
+      - "N/A"
+
+  # Systems Manager情報
+  MaintenanceWindowId:
+    Description: "メンテナンスウィンドウ ID"
+    Value: !If 
+      - CreateSystemsManagerResources
+      - !GetAtt SystemsManagerStack.Outputs.MaintenanceWindowId
+      - "N/A"
+
+  CustomOperationDocumentName:
+    Description: "カスタム運用ドキュメント名"
+    Value: !If 
+      - CreateSystemsManagerResources
+      - !GetAtt SystemsManagerStack.Outputs.CustomOperationDocumentName
+      - "N/A"
+
+  # セキュリティ強化情報
+  CloudTrailArn:
+    Description: "CloudTrail ARN"
+    Value: !If 
+      - CreateCloudTrailResources
+      - !GetAtt SecurityEnhancementStack.Outputs.CloudTrailArn
+      - "N/A"
+
+  GuardDutyDetectorId:
+    Description: "GuardDuty検出器 ID"
+    Value: !If 
+      - CreateGuardDutyResources
+      - !GetAtt SecurityEnhancementStack.Outputs.GuardDutyDetectorId
+      - "N/A"
+
+  # 暗号化情報
+  EncryptionKeyId:
+    Description: "KMS暗号化キー ID"
+    Value: !GetAtt SecurityStack.Outputs.EncryptionKeyId
+
+  EncryptionKeyArn:
+    Description: "KMS暗号化キー ARN"
+    Value: !GetAtt SecurityStack.Outputs.EncryptionKeyArn
+
+  # 管理情報
+  DeploymentTimestamp:
+    Description: "デプロイメント実行時刻"
+    Value: !Sub "${AWS::StackName} deployed at ${AWS::Region} on ${AWS::AccountId}"
+
+  DeploymentSummary:
+    Description: "デプロイメント構成サマリー"
+    Value: !Sub |
+      === Windows AD FSxN統合環境 ===
+      プロジェクト: ${ProjectName}
+      環境: ${Environment}
+      リージョン: ${AWS::Region}
+      
+      === ネットワーク構成 ===
+      VPC: ${NetworkStack.Outputs.VpcId} (${VpcCidr})
+      プライベートサブネット: ${NetworkStack.Outputs.PrivateSubnetId}
+      パブリックサブネット: ${NetworkStack.Outputs.PublicSubnetId}
+      
+      === Active Directory ===
+      ドメイン名: ${DomainName}
+      NetBIOS名: ${NetBiosName}
+      Windows AD IP: ${WindowsADStack.Outputs.WindowsADPrivateIP}
+      インスタンスID: ${WindowsADStack.Outputs.WindowsADInstanceId}
+      
+      === FSx ONTAP統合 ===
+      ファイルシステムID: ${FSxFileSystemId}
+      SVM名: ${FSxSVMName}
+      ドメイン参加状況: ${FSxIntegrationStack.Outputs.DomainJoinStatus}
+      
+      === セキュリティ ===
+      暗号化キー: ${SecurityStack.Outputs.EncryptionKeyAlias}
+      CloudTrail: ${SecurityEnhancementStack.Outputs.CloudTrailArn}
+      GuardDuty: ${SecurityEnhancementStack.Outputs.GuardDutyDetectorId}
+      
+      === 監視・運用 ===
+      ダッシュボード: ${MonitoringStack.Outputs.MonitoringDashboardURL}
+      メンテナンスウィンドウ: ${SystemsManagerStack.Outputs.MaintenanceWindowId}
+      運用ドキュメント: ${SystemsManagerStack.Outputs.CustomOperationDocumentName}
+
+  DocumentationURL:
+    Description: "デプロイメントガイドURL"
+    Value: "https://github.com/your-org/windows-ad-fsxn-integration/blob/main/docs/deployment-guide.md"
+
+  TroubleshootingURL:
+    Description: "トラブルシューティングガイドURL"
+    Value: "https://github.com/your-org/windows-ad-fsxn-integration/blob/main/docs/troubleshooting-guide.md"
+
+  # 外部設定統合情報
+  ConfigurationSource:
+    Description: "使用中の設定値取得元"
+    Value: !Ref ConfigurationSource
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-config-source"
+
+  ConfigurationPrefix:
+    Description: "設定プレフィックス"
+    Value: !If [HasConfigurationPrefix, !Ref ConfigurationPrefix, !Sub "/${ProjectName}/${Environment}"]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-config-prefix"
+
+  EnvironmentConfigParameterName:
+    Description: "環境設定SSMパラメータ名"
+    Value: !Ref EnvironmentConfigParameter
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-env-config-param"
+
+  SecurityConfigParameterName:
+    Description: "セキュリティ設定SSMパラメータ名"
+    Value: !Ref SecurityConfigParameter
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-security-config-param"
+
+  OperationalConfigParameterName:
+    Description: "運用設定SSMパラメータ名"
+    Value: !Ref OperationalConfigParameter
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-operational-config-param"
+
+  BackupRetentionDays:
+    Description: "バックアップ保持日数"
+    Value: !Ref BackupRetentionDays
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-backup-retention-days"
+
+  ConfigurationSummary:
+    Description: "設定管理サマリー"
+    Value: !Sub |
+      === 設定管理情報 ===
+      設定ソース: ${ConfigurationSource}
+      設定プレフィックス: ${ConfigurationPrefix}
+      Secrets Manager使用: ${UseSecretsManager}
+      バックアップ保持: ${BackupRetentionDays}日
+      
+      === SSMパラメータ ===
+      環境設定: ${EnvironmentConfigParameter}
+      セキュリティ設定: ${SecurityConfigParameter}
+      運用設定: ${OperationalConfigParameter}
+      
+      === 外部統合 ===
+      管理者パスワード: ${AdminPasswordSecretName}
+      セーフモードパスワード: ${SafeModePasswordSecretName}
+      
+      === 設定取得コマンド例 ===
+      環境設定: aws ssm get-parameter --name "${EnvironmentConfigParameter}" --region ${AWS::Region}
+      セキュリティ設定: aws ssm get-parameter --name "${SecurityConfigParameter}" --with-decryption --region ${AWS::Region}
+      運用設定: aws ssm get-parameter --name "${OperationalConfigParameter}" --region ${AWS::Region}
+
+  # DNS・ネットワーク詳細情報
+  DNSServerIP:
+    Description: "Windows AD DNS サーバー IP アドレス"
+    Value: !GetAtt WindowsADStack.Outputs.WindowsADPrivateIP
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-dns-server-ip"
+
+  ResolverInboundEndpointIP:
+    Description: "Route 53 Resolver インバウンドエンドポイント IP"
+    Value: !GetAtt NetworkStack.Outputs.ResolverInboundIP
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-resolver-inbound-ip"
+
+  PrivateHostedZoneId:
+    Description: "プライベートホストゾーン ID"
+    Value: !GetAtt NetworkStack.Outputs.PrivateHostedZoneId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-private-hosted-zone-id"
+
+  PrivateHostedZoneName:
+    Description: "プライベートホストゾーン名"
+    Value: !GetAtt NetworkStack.Outputs.PrivateHostedZoneName
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-private-hosted-zone-name"
+
+  # リソース識別子
+  AllResourceIds:
+    Description: "全リソース ID 一覧"
+    Value: !Sub |
+      === ネットワークリソース ===
+      VPC ID: ${NetworkStack.Outputs.VpcId}
+      プライベートサブネット ID: ${NetworkStack.Outputs.PrivateSubnetId}
+      パブリックサブネット ID: ${NetworkStack.Outputs.PublicSubnetId}
+      インターネットゲートウェイ ID: ${NetworkStack.Outputs.InternetGatewayId}
+      NAT ゲートウェイ ID: ${NetworkStack.Outputs.NatGatewayId}
+      
+      === セキュリティリソース ===
+      Windows AD セキュリティグループ ID: ${SecurityStack.Outputs.WindowsADSecurityGroupId}
+      FSx ONTAP セキュリティグループ ID: ${SecurityStack.Outputs.FSxONTAPSecurityGroupId}
+      暗号化キー ID: ${SecurityStack.Outputs.EncryptionKeyId}
+      
+      === コンピュートリソース ===
+      Windows AD インスタンス ID: ${WindowsADStack.Outputs.WindowsADInstanceId}
+      Windows AD プライベート IP: ${WindowsADStack.Outputs.WindowsADPrivateIP}
+      
+      === ストレージリソース ===
+      FSx ファイルシステム ID: ${FSxFileSystemId}
+      FSx SVM ID: ${FSxIntegrationStack.Outputs.FSxSVMId}
+
+  # 接続・アクセス情報
+  ConnectionInformation:
+    Description: "接続・アクセス情報"
+    Value: !Sub |
+      === RDP接続 ===
+      Windows コマンド: mstsc /v:${WindowsADStack.Outputs.WindowsADPrivateIP}
+      macOS コマンド: open rdp://${WindowsADStack.Outputs.WindowsADPrivateIP}
+      Linux コマンド: rdesktop ${WindowsADStack.Outputs.WindowsADPrivateIP}
+      
+      === PowerShell リモート接続 ===
+      Enter-PSSession -ComputerName ${WindowsADStack.Outputs.WindowsADPrivateIP} -Credential ${DomainName}\\Administrator
+      
+      === Active Directory 管理 ===
+      ドメイン名: ${DomainName}
+      NetBIOS名: ${NetBiosName}
+      管理者アカウント: ${DomainName}\\Administrator
+      
+      === DNS設定 ===
+      プライマリ DNS: ${WindowsADStack.Outputs.WindowsADPrivateIP}
+      セカンダリ DNS: ${NetworkStack.Outputs.ResolverInboundIP}
+      プライベートゾーン: ${NetworkStack.Outputs.PrivateHostedZoneName}
+      
+      === FSx ONTAP アクセス ===
+      ファイルシステム ID: ${FSxFileSystemId}
+      SVM名: ${FSxSVMName}
+      ドメイン参加状況: ${FSxIntegrationStack.Outputs.DomainJoinStatus}
+      
+      === 管理コンソール ===
+      CloudWatch ダッシュボード: ${MonitoringStack.Outputs.MonitoringDashboardURL}
+      Systems Manager: https://${AWS::Region}.console.aws.amazon.com/systems-manager/managed-instances
+      Secrets Manager: https://${AWS::Region}.console.aws.amazon.com/secretsmanager/home
+
+  # セキュリティ・コンプライアンス情報
+  SecurityComplianceInfo:
+    Description: "セキュリティ・コンプライアンス情報"
+    Value: !Sub |
+      === 暗号化設定 ===
+      KMS キー ID: ${SecurityStack.Outputs.EncryptionKeyId}
+      KMS キー ARN: ${SecurityStack.Outputs.EncryptionKeyArn}
+      KMS キーエイリアス: ${SecurityStack.Outputs.EncryptionKeyAlias}
+      
+      === 監査・ログ ===
+      CloudTrail ARN: ${SecurityEnhancementStack.Outputs.CloudTrailArn}
+      CloudTrail バケット: ${SecurityEnhancementStack.Outputs.CloudTrailBucketName}
+      GuardDuty 検出器 ID: ${SecurityEnhancementStack.Outputs.GuardDutyDetectorId}
+      VPC Flow Logs ID: ${SecurityEnhancementStack.Outputs.VPCFlowLogsId}
+      
+      === ログ収集 ===
+      Windows イベントログ: ${WindowsADStack.Outputs.WindowsEventLogGroupName}
+      Active Directory ログ: ${WindowsADStack.Outputs.ADLogGroupName}
+      PowerShell ログ: ${WindowsADStack.Outputs.PowerShellLogGroupName}
+      FSx 統合ログ: ${FSxIntegrationStack.Outputs.FSxIntegrationLogGroupName}
+      
+      === アラート・通知 ===
+      SNS トピック ARN: ${MonitoringStack.Outputs.AlertNotificationTopicArn}
+      通知メール: ${NotificationEmail}
+
+  # 運用・メンテナンス情報
+  OperationsMaintenanceInfo:
+    Description: "運用・メンテナンス情報"
+    Value: !Sub |
+      === Systems Manager ===
+      パッチベースライン ID: ${SystemsManagerStack.Outputs.WindowsPatchBaselineId}
+      メンテナンスウィンドウ ID: ${SystemsManagerStack.Outputs.MaintenanceWindowId}
+      運用ドキュメント名: ${SystemsManagerStack.Outputs.CustomOperationDocumentName}
+      
+      === バックアップ設定 ===
+      保持期間: ${BackupRetentionDays}日
+      
+      === 監視設定 ===
+      ダッシュボード URL: ${MonitoringStack.Outputs.MonitoringDashboardURL}
+      ヘルスチェック関数: ${MonitoringStack.Outputs.HealthCheckFunctionArn}
+      
+      === よく使用するコマンド ===
+      ヘルスチェック実行:
+      aws ssm send-command --document-name "${SystemsManagerStack.Outputs.CustomOperationDocumentName}" --parameters "operation=health-check" --targets "Key=InstanceIds,Values=${WindowsADStack.Outputs.WindowsADInstanceId}"
+      
+      サービス再起動:
+      aws ssm send-command --document-name "${SystemsManagerStack.Outputs.CustomOperationDocumentName}" --parameters "operation=restart-services" --targets "Key=InstanceIds,Values=${WindowsADStack.Outputs.WindowsADInstanceId}"
+      
+      ログ確認:
+      aws logs filter-log-events --log-group-name "${WindowsADStack.Outputs.WindowsEventLogGroupName}" --start-time $(date -d '1 hour ago' +%s)000
+
+  # 環境固有の設定値
+  EnvironmentSpecificValues:
+    Description: "環境固有の設定値"
+    Value: !Sub |
+      === 環境情報 ===
+      環境名: ${Environment}
+      プロジェクト名: ${ProjectName}
+      デプロイメントリージョン: ${AWS::Region}
+      アカウント ID: ${AWS::AccountId}
+      
+      === ネットワーク設定 ===
+      VPC CIDR: ${VpcCidr}
+      プライベートサブネット CIDR: ${PrivateSubnetCidr}
+      パブリックサブネット CIDR: ${PublicSubnetCidr}
+      アベイラビリティゾーン: ${AvailabilityZone}
+      
+      === インスタンス設定 ===
+      インスタンスタイプ: ${InstanceType}
+      EBS ボリュームサイズ: ${EBSVolumeSize}GB
+      キーペア名: ${KeyPairName}
+      
+      === セキュリティ設定 ===
+      RDP 許可 CIDR: ${AllowedCidrForRDP}
+      CloudTrail 有効: ${EnableCloudTrail}
+      GuardDuty 有効: ${EnableGuardDuty}
+      CloudWatch 有効: ${EnableCloudWatch}
+      Systems Manager 有効: ${EnableSystemsManager}
+
+  # クイックアクセス URL
+  QuickAccessURLs:
+    Description: "クイックアクセス URL 集"
+    Value: !Sub |
+      === AWS コンソール ===
+      EC2 インスタンス: https://${AWS::Region}.console.aws.amazon.com/ec2/home?region=${AWS::Region}#Instances:search=${WindowsADStack.Outputs.WindowsADInstanceId}
+      VPC: https://${AWS::Region}.console.aws.amazon.com/vpc/home?region=${AWS::Region}#VpcDetails:VpcId=${NetworkStack.Outputs.VpcId}
+      CloudWatch ダッシュボード: ${MonitoringStack.Outputs.MonitoringDashboardURL}
+      Systems Manager: https://${AWS::Region}.console.aws.amazon.com/systems-manager/managed-instances?region=${AWS::Region}
+      FSx コンソール: https://${AWS::Region}.console.aws.amazon.com/fsx/home?region=${AWS::Region}#file-systems/${FSxFileSystemId}
+      
+      === ログ・監視 ===
+      CloudWatch Logs: https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#logsV2:log-groups
+      CloudTrail: https://${AWS::Region}.console.aws.amazon.com/cloudtrail/home?region=${AWS::Region}#/events
+      GuardDuty: https://${AWS::Region}.console.aws.amazon.com/guardduty/home?region=${AWS::Region}#/findings
+      
+      === セキュリティ ===
+      Secrets Manager: https://${AWS::Region}.console.aws.amazon.com/secretsmanager/home?region=${AWS::Region}
+      KMS: https://${AWS::Region}.console.aws.amazon.com/kms/home?region=${AWS::Region}#/kms/keys/${SecurityStack.Outputs.EncryptionKeyId}
+      IAM: https://console.aws.amazon.com/iam/home#/roles

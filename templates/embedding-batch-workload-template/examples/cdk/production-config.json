@@ -1,0 +1,157 @@
+{
+  "projectName": "embedding-workload",
+  "environment": "prod",
+  "region": "us-east-1",
+  "vpc": {
+    "create": false,
+    "vpcId": "vpc-0123456789abcdef0",
+    "privateSubnetIds": ["subnet-0123456789abcdef0", "subnet-0fedcba9876543210"],
+    "securityGroupIds": ["sg-0123456789abcdef0"]
+  },
+  "fsx": {
+    "create": false,
+    "fileSystemId": "fs-0123456789abcdef0",
+    "mountPath": "/mnt/fsx",
+    "dnsName": "fs-0123456789abcdef0.fsx.us-east-1.amazonaws.com"
+  },
+  "batch": {
+    "computeEnvironment": {
+      "instanceTypes": ["m5.xlarge", "m5.2xlarge", "m5.4xlarge"],
+      "minvCpus": 0,
+      "maxvCpus": 500,
+      "desiredvCpus": 10,
+      "spotFleetRequestRole": "arn:aws:iam::123456789012:role/aws-ec2-spot-fleet-tagging-role",
+      "bidPercentage": 80,
+      "ec2Configuration": {
+        "imageType": "ECS_AL2"
+      }
+    },
+    "jobQueue": {
+      "priority": 100
+    }
+  },
+  "bedrock": {
+    "region": "us-east-1",
+    "embeddingModel": {
+      "modelId": "amazon.titan-embed-text-v2",
+      "dimensions": 1024
+    },
+    "textModel": {
+      "modelId": "amazon.nova-pro-v1:0"
+    },
+    "crossRegionInference": {
+      "enabled": true,
+      "fallbackRegions": ["us-west-2", "eu-west-1"]
+    }
+  },
+  "storage": {
+    "s3": {
+      "versioning": true,
+      "encryption": "aws:kms",
+      "kmsKeyId": "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012",
+      "lifecycleRules": [
+        {
+          "id": "EmbeddingsLifecycle",
+          "status": "Enabled",
+          "transitions": [
+            {
+              "days": 30,
+              "storageClass": "STANDARD_IA"
+            },
+            {
+              "days": 90,
+              "storageClass": "GLACIER"
+            },
+            {
+              "days": 365,
+              "storageClass": "DEEP_ARCHIVE"
+            }
+          ]
+        }
+      ]
+    },
+    "dynamodb": {
+      "billingMode": "PROVISIONED",
+      "readCapacity": 100,
+      "writeCapacity": 100,
+      "pointInTimeRecovery": true,
+      "encryption": {
+        "sseSpecification": {
+          "enabled": true,
+          "kmsMasterKeyId": "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+        }
+      },
+      "globalSecondaryIndexes": [
+        {
+          "indexName": "UserIdIndex",
+          "keys": {
+            "partitionKey": "user_id",
+            "sortKey": "created_at"
+          },
+          "projection": {
+            "projectionType": "ALL"
+          },
+          "readCapacity": 50,
+          "writeCapacity": 50
+        }
+      ]
+    }
+  },
+  "monitoring": {
+    "enableDashboard": true,
+    "enableAlerts": true,
+    "enableAutoRemediation": true,
+    "logRetentionDays": 30,
+    "alerting": {
+      "contacts": [
+        {
+          "name": "Operations Team",
+          "email": "ops@company.com",
+          "sms": "+1234567890",
+          "severity": ["CRITICAL", "HIGH"]
+        },
+        {
+          "name": "Engineering Manager",
+          "email": "eng-manager@company.com",
+          "severity": ["CRITICAL"]
+        }
+      ],
+      "integrations": {
+        "slack": {
+          "enabled": true,
+          "webhookUrl": "${SLACK_WEBHOOK_URL}"
+        },
+        "pagerDuty": {
+          "enabled": true,
+          "integrationKey": "${PAGERDUTY_INTEGRATION_KEY}"
+        }
+      }
+    }
+  },
+  "security": {
+    "enableVpcEndpoints": true,
+    "enableCloudTrail": true,
+    "enableGuardDuty": true,
+    "enableSecurityHub": true,
+    "iamRoles": {
+      "crossAccountAccess": {
+        "enabled": true,
+        "trustedAccounts": ["123456789012", "210987654321"]
+      }
+    }
+  },
+  "backup": {
+    "enabled": true,
+    "retentionDays": 30,
+    "backupVault": "arn:aws:backup:us-east-1:123456789012:backup-vault:default"
+  },
+  "tags": {
+    "Project": "EmbeddingWorkload",
+    "Environment": "Production",
+    "Owner": "DataTeam",
+    "CostCenter": "DataScience",
+    "Compliance": "SOC2",
+    "BackupRequired": "true",
+    "DataClassification": "Internal"
+  }
+}

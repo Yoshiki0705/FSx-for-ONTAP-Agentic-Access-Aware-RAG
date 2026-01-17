@@ -1,0 +1,690 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Windows AD FSxN統合環境 - 監視・運用スタック'
+
+# パラメータ定義
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "プロジェクト識別子"
+    AllowedPattern: "^[a-z0-9-]{3,20}$"
+
+  Environment:
+    Type: String
+    Description: "環境名"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+
+  WindowsInstanceId:
+    Type: String
+    Description: "Windows ADサーバーのインスタンスID"
+
+  FSxFileSystemId:
+    Type: String
+    Description: "FSx for ONTAPファイルシステムID"
+    AllowedPattern: "^fs-[0-9a-f]{17}$"
+
+  NotificationEmail:
+    Type: String
+    Description: "アラート通知用メールアドレス（オプション）"
+    Default: ""
+    AllowedPattern: "^$|^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+
+  EnableSystemsManager:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "Systems Managerリモート管理を有効化"
+
+# 条件定義
+Conditions:
+  HasNotificationEmail: !Not [!Equals [!Ref NotificationEmail, ""]]
+  EnableSystemsManagerResources: !Equals [!Ref EnableSystemsManager, "true"]
+  IsProductionEnvironment: !Equals [!Ref Environment, "prod"]
+
+# リソース定義
+Resources:  # S
+NS トピック - アラート通知用
+  AlertNotificationTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasNotificationEmail
+    Properties:
+      TopicName: !Sub "${ProjectName}-${Environment}-alerts"
+      DisplayName: !Sub "${ProjectName} ${Environment} Alerts"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-alert-topic"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # SNS サブスクリプション - メール通知
+  EmailNotificationSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasNotificationEmail
+    Properties:
+      TopicArn: !Ref AlertNotificationTopic
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+
+  # CloudWatch ダッシュボード
+  MonitoringDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${ProjectName}-${Environment}-monitoring"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/EC2", "CPUUtilization", "InstanceId", "${WindowsInstanceId}" ],
+                  [ ".", "NetworkIn", ".", "." ],
+                  [ ".", "NetworkOut", ".", "." ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "Windows AD Server - System Metrics",
+                "period": 300
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  [ "AWS/FSx", "StorageUtilization", "FileSystemId", "${FSxFileSystemId}" ],
+                  [ ".", "TotalStorageCapacity", ".", "." ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "title": "FSx ONTAP - Storage Metrics",
+                "period": 300
+              }
+            },
+            {
+              "type": "log",
+              "x": 0,
+              "y": 6,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "query": "SOURCE '/aws/ec2/windows/${ProjectName}-${Environment}/event-logs'\n| fields @timestamp, @message\n| filter @message like /ERROR/\n| sort @timestamp desc\n| limit 20",
+                "region": "${AWS::Region}",
+                "title": "Recent Windows Errors",
+                "view": "table"
+              }
+            }
+          ]
+        }
+
+  # CloudWatch アラーム - Windows AD サーバー CPU使用率
+  WindowsADHighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-windows-ad-high-cpu"
+      AlarmDescription: "Windows AD Server high CPU utilization"
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: !If [IsProductionEnvironment, 80, 90]
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref WindowsInstanceId
+      AlarmActions: !If 
+        - HasNotificationEmail
+        - [!Ref AlertNotificationTopic]
+        - []
+      TreatMissingData: notBreaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-ad-cpu-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch アラーム - Windows AD サーバー メモリ使用率
+  WindowsADHighMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-windows-ad-high-memory"
+      AlarmDescription: "Windows AD Server high memory utilization"
+      MetricName: "Memory % Committed Bytes In Use"
+      Namespace: CWAgent
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: !If [IsProductionEnvironment, 85, 95]
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref WindowsInstanceId
+      AlarmActions: !If 
+        - HasNotificationEmail
+        - [!Ref AlertNotificationTopic]
+        - []
+      TreatMissingData: notBreaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-ad-memory-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName  # Clou
+dWatch アラーム - Windows AD サーバー ディスク使用率
+  WindowsADHighDiskAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-windows-ad-high-disk"
+      AlarmDescription: "Windows AD Server high disk utilization"
+      MetricName: "LogicalDisk % Free Space"
+      Namespace: CWAgent
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 20
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref WindowsInstanceId
+        - Name: instance
+          Value: "C:"
+      AlarmActions: !If 
+        - HasNotificationEmail
+        - [!Ref AlertNotificationTopic]
+        - []
+      TreatMissingData: notBreaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-ad-disk-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch アラーム - FSx ストレージ使用率
+  FSxHighStorageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-fsxn-high-storage"
+      AlarmDescription: "FSx ONTAP high storage utilization"
+      MetricName: StorageUtilization
+      Namespace: AWS/FSx
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: !If [IsProductionEnvironment, 80, 90]
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FileSystemId
+          Value: !Ref FSxFileSystemId
+      AlarmActions: !If 
+        - HasNotificationEmail
+        - [!Ref AlertNotificationTopic]
+        - []
+      TreatMissingData: notBreaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-fsxn-storage-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch アラーム - FSx IOPS使用率
+  FSxHighIOPSAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-fsxn-high-iops"
+      AlarmDescription: "FSx ONTAP high IOPS utilization"
+      MetricName: TotalIOPS
+      Namespace: AWS/FSx
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 10000
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FileSystemId
+          Value: !Ref FSxFileSystemId
+      AlarmActions: !If 
+        - HasNotificationEmail
+        - [!Ref AlertNotificationTopic]
+        - []
+      TreatMissingData: notBreaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-fsxn-iops-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch アラーム - Active Directory サービス監視
+  ADServiceStatusAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-ad-service-status"
+      AlarmDescription: "Active Directory service status monitoring"
+      MetricName: "Service Status"
+      Namespace: CWAgent
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref WindowsInstanceId
+        - Name: ServiceName
+          Value: "NTDS"
+      AlarmActions: !If 
+        - HasNotificationEmail
+        - [!Ref AlertNotificationTopic]
+        - []
+      TreatMissingData: breaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-ad-service-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch アラーム - DNS サービス監視
+  DNSServiceStatusAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-dns-service-status"
+      AlarmDescription: "DNS service status monitoring"
+      MetricName: "Service Status"
+      Namespace: CWAgent
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref WindowsInstanceId
+        - Name: ServiceName
+          Value: "DNS"
+      AlarmActions: !If 
+        - HasNotificationEmail
+        - [!Ref AlertNotificationTopic]
+        - []
+      TreatMissingData: breaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-dns-service-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName  # Cl
+oudWatch Logs メトリクスフィルター - Windows エラーイベント
+  WindowsErrorMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Sub "/aws/ec2/windows/${ProjectName}-${Environment}/event-logs"
+      FilterPattern: "[timestamp, request_id=\"ERROR\", ...]"
+      MetricTransformations:
+        - MetricNamespace: !Sub "${ProjectName}/${Environment}/Windows"
+          MetricName: ErrorEvents
+          MetricValue: "1"
+          DefaultValue: 0
+
+  # CloudWatch アラーム - Windows エラーイベント
+  WindowsErrorEventsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-windows-error-events"
+      AlarmDescription: "High number of Windows error events"
+      MetricName: ErrorEvents
+      Namespace: !Sub "${ProjectName}/${Environment}/Windows"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions: !If 
+        - HasNotificationEmail
+        - [!Ref AlertNotificationTopic]
+        - []
+      TreatMissingData: notBreaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-error-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch Logs メトリクスフィルター - Active Directory エラー
+  ADErrorMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Sub "/aws/ec2/windows/${ProjectName}-${Environment}/ad-logs"
+      FilterPattern: "[timestamp, request_id=\"ERROR\", ...]"
+      MetricTransformations:
+        - MetricNamespace: !Sub "${ProjectName}/${Environment}/ActiveDirectory"
+          MetricName: ADErrors
+          MetricValue: "1"
+          DefaultValue: 0
+
+  # CloudWatch アラーム - Active Directory エラー
+  ADErrorEventsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${Environment}-ad-error-events"
+      AlarmDescription: "Active Directory error events detected"
+      MetricName: ADErrors
+      Namespace: !Sub "${ProjectName}/${Environment}/ActiveDirectory"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 3
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions: !If 
+        - HasNotificationEmail
+        - [!Ref AlertNotificationTopic]
+        - []
+      TreatMissingData: notBreaching
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-ad-error-alarm"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudWatch Logs インサイト - 保存されたクエリ
+  WindowsErrorInsightQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-windows-errors"
+      LogGroupNames:
+        - !Sub "/aws/ec2/windows/${ProjectName}-${Environment}/event-logs"
+      QueryString: |
+        fields @timestamp, @message
+        | filter @message like /ERROR/
+        | stats count() by bin(5m)
+        | sort @timestamp desc
+
+  ADReplicationInsightQuery:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-ad-replication"
+      LogGroupNames:
+        - !Sub "/aws/ec2/windows/${ProjectName}-${Environment}/ad-logs"
+      QueryString: |
+        fields @timestamp, @message
+        | filter @message like /replication/
+        | sort @timestamp desc
+        | limit 100
+
+  # EventBridge ルール - 定期ヘルスチェック（本番環境のみ）
+  HealthCheckRule:
+    Type: AWS::Events::Rule
+    Condition: IsProductionEnvironment
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-health-check"
+      Description: "Periodic health check for Windows AD and FSx ONTAP"
+      ScheduleExpression: "rate(15 minutes)"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt HealthCheckFunction.Arn
+          Id: "HealthCheckTarget"
+
+  # Lambda関数 - ヘルスチェック（本番環境のみ）
+  HealthCheckFunction:
+    Type: AWS::Lambda::Function
+    Condition: IsProductionEnvironment
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Environment}-health-check"
+      Runtime: python3.11
+      Handler: index.lambda_handler
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-${Environment}-lambda-execution-role"
+      Timeout: 300
+      Environment:
+        Variables:
+          WINDOWS_INSTANCE_ID: !Ref WindowsInstanceId
+          FSX_FILESYSTEM_ID: !Ref FSxFileSystemId
+          SNS_TOPIC_ARN: !If [HasNotificationEmail, !Ref AlertNotificationTopic, ""]
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import logging
+          import os
+          from datetime import datetime, timedelta
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          ec2_client = boto3.client('ec2')
+          fsx_client = boto3.client('fsx')
+          cloudwatch_client = boto3.client('cloudwatch')
+          sns_client = boto3.client('sns')
+
+          def lambda_handler(event, context):
+              """定期ヘルスチェック実行"""
+              try:
+                  logger.info("ヘルスチェック開始")
+                  
+                  results = {
+                      'timestamp': datetime.utcnow().isoformat(),
+                      'windows_ad': check_windows_ad_health(),
+                      'fsx_ontap': check_fsx_health(),
+                      'overall_status': 'HEALTHY'
+                  }
+                  
+                  # 全体ステータス判定
+                  if not results['windows_ad']['healthy'] or not results['fsx_ontap']['healthy']:
+                      results['overall_status'] = 'UNHEALTHY'
+                      send_alert(results)
+                  
+                  # CloudWatchメトリクス送信
+                  send_health_metrics(results)
+                  
+                  logger.info(f"ヘルスチェック完了: {results['overall_status']}")
+                  return results
+                  
+              except Exception as e:
+                  logger.error(f"ヘルスチェックエラー: {e}")
+                  return {'error': str(e)}
+
+          def check_windows_ad_health():
+              """Windows ADサーバーヘルスチェック"""
+              try:
+                  instance_id = os.environ['WINDOWS_INSTANCE_ID']
+                  
+                  # インスタンス状態確認
+                  response = ec2_client.describe_instances(InstanceIds=[instance_id])
+                  instance = response['Reservations'][0]['Instances'][0]
+                  
+                  instance_state = instance['State']['Name']
+                  
+                  return {
+                      'healthy': instance_state == 'running',
+                      'instance_state': instance_state,
+                      'instance_id': instance_id
+                  }
+                  
+              except Exception as e:
+                  logger.error(f"Windows ADヘルスチェックエラー: {e}")
+                  return {'healthy': False, 'error': str(e)}
+
+          def check_fsx_health():
+              """FSx ONTAPヘルスチェック"""
+              try:
+                  filesystem_id = os.environ['FSX_FILESYSTEM_ID']
+                  
+                  # ファイルシステム状態確認
+                  response = fsx_client.describe_file_systems(FileSystemIds=[filesystem_id])
+                  filesystem = response['FileSystems'][0]
+                  
+                  lifecycle = filesystem['Lifecycle']
+                  
+                  return {
+                      'healthy': lifecycle == 'AVAILABLE',
+                      'lifecycle': lifecycle,
+                      'filesystem_id': filesystem_id
+                  }
+                  
+              except Exception as e:
+                  logger.error(f"FSx ONTAPヘルスチェックエラー: {e}")
+                  return {'healthy': False, 'error': str(e)}
+
+          def send_health_metrics(results):
+              """ヘルスメトリクス送信"""
+              try:
+                  metrics = []
+                  
+                  # Windows ADメトリクス
+                  metrics.append({
+                      'MetricName': 'WindowsADHealth',
+                      'Value': 1 if results['windows_ad']['healthy'] else 0,
+                      'Unit': 'Count'
+                  })
+                  
+                  # FSx ONTAPメトリクス
+                  metrics.append({
+                      'MetricName': 'FSxONTAPHealth',
+                      'Value': 1 if results['fsx_ontap']['healthy'] else 0,
+                      'Unit': 'Count'
+                  })
+                  
+                  # 全体ヘルスメトリクス
+                  metrics.append({
+                      'MetricName': 'OverallHealth',
+                      'Value': 1 if results['overall_status'] == 'HEALTHY' else 0,
+                      'Unit': 'Count'
+                  })
+                  
+                  cloudwatch_client.put_metric_data(
+                      Namespace='WindowsAD-FSxN/HealthCheck',
+                      MetricData=metrics
+                  )
+                  
+              except Exception as e:
+                  logger.error(f"メトリクス送信エラー: {e}")
+
+          def send_alert(results):
+              """アラート送信"""
+              try:
+                  sns_topic_arn = os.environ.get('SNS_TOPIC_ARN')
+                  if not sns_topic_arn:
+                      return
+                  
+                  message = f"""
+                  Windows AD FSxN統合環境ヘルスチェック異常検出
+                  
+                  時刻: {results['timestamp']}
+                  全体ステータス: {results['overall_status']}
+                  
+                  Windows AD: {'正常' if results['windows_ad']['healthy'] else '異常'}
+                  FSx ONTAP: {'正常' if results['fsx_ontap']['healthy'] else '異常'}
+                  
+                  詳細情報:
+                  {json.dumps(results, indent=2, ensure_ascii=False)}
+                  """
+                  
+                  sns_client.publish(
+                      TopicArn=sns_topic_arn,
+                      Subject='Windows AD FSxN統合環境 ヘルスチェック異常',
+                      Message=message
+                  )
+                  
+              except Exception as e:
+                  logger.error(f"アラート送信エラー: {e}")
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-health-check"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName  # 
+Lambda権限 - EventBridge実行許可
+  HealthCheckFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsProductionEnvironment
+    Properties:
+      FunctionName: !Ref HealthCheckFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt HealthCheckRule.Arn
+
+# 出力値定義
+Outputs:
+  AlertNotificationTopicArn:
+    Description: "アラート通知SNSトピック ARN"
+    Value: !If [HasNotificationEmail, !Ref AlertNotificationTopic, "N/A"]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-alert-topic-arn"
+
+  MonitoringDashboardURL:
+    Description: "CloudWatch監視ダッシュボード URL"
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${ProjectName}-${Environment}-monitoring"
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-dashboard-url"
+
+  HealthCheckFunctionArn:
+    Description: "ヘルスチェックLambda関数 ARN（本番環境のみ）"
+    Value: !If [IsProductionEnvironment, !GetAtt HealthCheckFunction.Arn, "N/A"]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-health-check-function-arn"
+
+  WindowsErrorInsightQueryArn:
+    Description: "Windows エラーログ インサイトクエリ ARN"
+    Value: !GetAtt WindowsErrorInsightQuery.QueryId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-error-query-id"
+
+  ADReplicationInsightQueryArn:
+    Description: "AD レプリケーションログ インサイトクエリ ARN"
+    Value: !GetAtt ADReplicationInsightQuery.QueryId
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-ad-replication-query-id"
+
+  MonitoringSummary:
+    Description: "監視構成サマリー"
+    Value: !Sub |
+      Dashboard: ${ProjectName}-${Environment}-monitoring
+      Alert Topic: ${AlertNotificationTopic}
+      Email Notifications: ${NotificationEmail}
+      
+      Alarms:
+      - Windows AD CPU: ${WindowsADHighCPUAlarm}
+      - Windows AD Memory: ${WindowsADHighMemoryAlarm}
+      - Windows AD Disk: ${WindowsADHighDiskAlarm}
+      - FSx Storage: ${FSxHighStorageAlarm}
+      - FSx IOPS: ${FSxHighIOPSAlarm}
+      - AD Service: ${ADServiceStatusAlarm}
+      - DNS Service: ${DNSServiceStatusAlarm}
+      - Windows Errors: ${WindowsErrorEventsAlarm}
+      - AD Errors: ${ADErrorEventsAlarm}
+      
+      Health Check: ${HealthCheckFunction}
+      
+      Log Insights:
+      - Windows Errors: ${WindowsErrorInsightQuery}
+      - AD Replication: ${ADReplicationInsightQuery}

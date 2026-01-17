@@ -1,0 +1,291 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Windows AD FSxN統合環境 - Systems Manager統合スタック'
+
+# パラメータ定義
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "プロジェクト識別子"
+    AllowedPattern: "^[a-z0-9-]{3,20}$"
+
+  Environment:
+    Type: String
+    Description: "環境名"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+
+  WindowsInstanceId:
+    Type: String
+    Description: "Windows ADサーバーのインスタンスID"
+
+  FSxFileSystemId:
+    Type: String
+    Description: "FSx for ONTAPファイルシステムID"
+    AllowedPattern: "^fs-[0-9a-f]{17}$"
+
+# 条件定義
+Conditions:
+  IsProductionEnvironment: !Equals [!Ref Environment, "prod"]
+
+# リソース定義
+Resources:
+  # Systems Manager パッチベースライン（Windows用）
+  WindowsPatchBaseline:
+    Type: AWS::SSM::PatchBaseline
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-windows-patch-baseline"
+      Description: "Patch baseline for Windows AD servers"
+      OperatingSystem: WINDOWS
+      PatchGroups:
+        - !Sub "${ProjectName}-${Environment}-windows-servers"
+      ApprovalRules:
+        PatchRules:
+          - PatchFilterGroup:
+              PatchFilters:
+                - Key: PRODUCT
+                  Values:
+                    - "Windows Server 2022"
+                - Key: CLASSIFICATION
+                  Values:
+                    - "CriticalUpdates"
+                    - "SecurityUpdates"
+                    - "UpdateRollups"
+                - Key: MSRC_SEVERITY
+                  Values:
+                    - "Critical"
+                    - "Important"
+            ApproveAfterDays: !If [IsProductionEnvironment, 7, 0]
+            ComplianceLevel: CRITICAL
+            EnableNonSecurity: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-patch-baseline"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Systems Manager パッチグループ登録
+  WindowsPatchGroup:
+    Type: AWS::SSM::PatchGroup
+    Properties:
+      BaselineId: !Ref WindowsPatchBaseline
+      PatchGroup: !Sub "${ProjectName}-${Environment}-windows-servers"
+
+  # Systems Manager メンテナンスウィンドウ
+  MaintenanceWindow:
+    Type: AWS::SSM::MaintenanceWindow
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-maintenance-window"
+      Description: "Maintenance window for Windows AD servers"
+      Schedule: !If 
+        - IsProductionEnvironment
+        - "cron(0 2 ? * SUN *)"  # 本番環境: 毎週日曜日 2:00 AM
+        - "cron(0 3 ? * SAT *)"  # 開発環境: 毎週土曜日 3:00 AM
+      Duration: 4
+      Cutoff: 1
+      AllowUnassociatedTargets: false
+      ScheduleTimezone: "Asia/Tokyo"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-maintenance-window"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName  # Syst
+ems Manager メンテナンスウィンドウターゲット
+  MaintenanceWindowTarget:
+    Type: AWS::SSM::MaintenanceWindowTarget
+    Properties:
+      WindowId: !Ref MaintenanceWindow
+      ResourceType: INSTANCE
+      Targets:
+        - Key: InstanceIds
+          Values:
+            - !Ref WindowsInstanceId
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-target"
+      Description: "Windows AD server maintenance target"
+
+  # Systems Manager メンテナンスウィンドウタスク - パッチ適用
+  PatchMaintenanceTask:
+    Type: AWS::SSM::MaintenanceWindowTask
+    Properties:
+      WindowId: !Ref MaintenanceWindow
+      Targets:
+        - Key: WindowTargetIds
+          Values:
+            - !Ref MaintenanceWindowTarget
+      TaskType: RUN_COMMAND
+      TaskArn: AWS-RunPatchBaseline
+      Priority: 1
+      ServiceRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ssm.amazonaws.com/AWSServiceRoleForAmazonSSM"
+      TaskParameters:
+        Operation:
+          - Install
+        RebootOption:
+          - RebootIfNeeded
+      MaxConcurrency: "1"
+      MaxErrors: "0"
+      Name: !Sub "${ProjectName}-${Environment}-patch-task"
+      Description: "Patch installation task for Windows AD servers"
+
+  # Systems Manager パラメータ - 設定値保存
+  DomainConfigParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ProjectName}/${Environment}/domain-config"
+      Type: String
+      Value: !Sub |
+        {
+          "domain_name": "${ProjectName}.${Environment}.local",
+          "windows_instance_id": "${WindowsInstanceId}",
+          "fsx_filesystem_id": "${FSxFileSystemId}",
+          "maintenance_window": "${MaintenanceWindow}",
+          "patch_baseline": "${WindowsPatchBaseline}"
+        }
+      Description: "Domain configuration parameters"
+      Tags:
+        Name: !Sub "${ProjectName}-${Environment}-domain-config"
+        Environment: !Ref Environment
+        Project: !Ref ProjectName
+
+  # Systems Manager ドキュメント - カスタム運用手順
+  CustomOperationDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Command
+      DocumentFormat: YAML
+      Name: !Sub "${ProjectName}-${Environment}-AD-Operations"
+      Content:
+        schemaVersion: "2.2"
+        description: "Custom operations for Windows AD and FSx ONTAP integration"
+        parameters:
+          operation:
+            type: String
+            description: "Operation to perform"
+            allowedValues:
+              - "health-check"
+              - "restart-services"
+              - "backup-ad"
+              - "check-replication"
+            default: "health-check"
+        mainSteps:
+          - action: "aws:runPowerShellScript"
+            name: "ExecuteOperation"
+            inputs:
+              runCommand:
+                - |
+                  param($operation = "{{ operation }}")
+                  
+                  Write-Output "=== Windows AD FSxN Operations ==="
+                  Write-Output "Operation: $operation"
+                  Write-Output "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+                  
+                  switch ($operation) {
+                      "health-check" {
+                          Write-Output "=== Health Check ==="
+                          
+                          # サービス状態確認
+                          $Services = @("NTDS", "DNS", "KDC", "Netlogon", "ADWS")
+                          foreach ($Service in $Services) {
+                              $Status = (Get-Service -Name $Service -ErrorAction SilentlyContinue).Status
+                              Write-Output "Service $Service : $Status"
+                          }
+                          
+                          # ディスク使用量確認
+                          Get-WmiObject -Class Win32_LogicalDisk | Where-Object {$_.DriveType -eq 3} | ForEach-Object {
+                              $FreePercent = [math]::Round(($_.FreeSpace / $_.Size) * 100, 2)
+                              Write-Output "Disk $($_.DeviceID) Free: $FreePercent%"
+                          }
+                          
+                          # メモリ使用量確認
+                          $Memory = Get-WmiObject -Class Win32_OperatingSystem
+                          $MemoryUsed = [math]::Round((($Memory.TotalVisibleMemorySize - $Memory.FreePhysicalMemory) / $Memory.TotalVisibleMemorySize) * 100, 2)
+                          Write-Output "Memory Usage: $MemoryUsed%"
+                      }
+                      
+                      "restart-services" {
+                          Write-Output "=== Restarting AD Services ==="
+                          $Services = @("DNS", "KDC", "Netlogon", "ADWS", "NTDS")
+                          foreach ($Service in $Services) {
+                              try {
+                                  Restart-Service -Name $Service -Force
+                                  Write-Output "Restarted: $Service"
+                              } catch {
+                                  Write-Output "Failed to restart: $Service - $($_.Exception.Message)"
+                              }
+                          }
+                      }
+                      
+                      "backup-ad" {
+                          Write-Output "=== AD Backup Status ==="
+                          try {
+                              $BackupInfo = wbadmin get versions -backupTarget:C: -quiet
+                              Write-Output $BackupInfo
+                          } catch {
+                              Write-Output "Backup information not available: $($_.Exception.Message)"
+                          }
+                      }
+                      
+                      "check-replication" {
+                          Write-Output "=== AD Replication Check ==="
+                          try {
+                              $ReplStatus = repadmin /showrepl
+                              Write-Output $ReplStatus
+                          } catch {
+                              Write-Output "Replication check failed: $($_.Exception.Message)"
+                          }
+                      }
+                  }
+                  
+                  Write-Output "=== Operation Completed ==="
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-ad-operations"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# 出力値定義
+Outputs:
+  WindowsPatchBaselineId:
+    Description: "Windows パッチベースライン ID"
+    Value: !Ref WindowsPatchBaseline
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-patch-baseline-id"
+
+  MaintenanceWindowId:
+    Description: "メンテナンスウィンドウ ID"
+    Value: !Ref MaintenanceWindow
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-maintenance-window-id"
+
+  DomainConfigParameterName:
+    Description: "ドメイン設定パラメータ名"
+    Value: !Ref DomainConfigParameter
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-domain-config-parameter"
+
+  CustomOperationDocumentName:
+    Description: "カスタム運用ドキュメント名"
+    Value: !Ref CustomOperationDocument
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-custom-operations-document"
+
+  SystemsManagerSummary:
+    Description: "Systems Manager構成サマリー"
+    Value: !Sub |
+      Patch Baseline: ${WindowsPatchBaseline}
+      Maintenance Window: ${MaintenanceWindow}
+      Schedule: ${MaintenanceWindow.Schedule}
+      
+      Configuration:
+      - Domain Config: ${DomainConfigParameter}
+      - Operations Document: ${CustomOperationDocument}
+      
+      Management Commands:
+      - Health Check: aws ssm send-command --document-name "${CustomOperationDocument}" --parameters "operation=health-check" --targets "Key=InstanceIds,Values=${WindowsInstanceId}"
+      - Restart Services: aws ssm send-command --document-name "${CustomOperationDocument}" --parameters "operation=restart-services" --targets "Key=InstanceIds,Values=${WindowsInstanceId}"

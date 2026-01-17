@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# MCP統合負荷試験設定ファイル
+# このファイルをコピーして mcp-load-test.conf として使用してください
+
+# === セキュリティ設定 ===
+# セキュリティレベル: strict（厳密）, relaxed（緩和）
+# 本番環境では必ず strict を使用してください
+SECURITY_LEVEL="strict"
+
+# === AWS設定 ===
+# AWSリージョン（デフォルト: us-east-1）
+REGION="us-east-1"
+
+# === MCP統合設定 ===
+# MCP統合の有効化（true/false）
+MCP_ENABLED="true"
+
+# コストダッシュボードの有効化（true/false）
+COST_DASHBOARD_ENABLED="true"
+
+# === コスト制御設定 ===
+# 最大総コスト制限（USD）
+MAX_TOTAL_COST="100.00"
+
+# コスト内訳設定（合計1.0になるように調整）
+COST_BREAKDOWN_BATCH="0.65"      # Batchコンピュート（65%）
+COST_BREAKDOWN_S3="0.15"         # S3ストレージ（15%）
+COST_BREAKDOWN_CLOUDWATCH="0.10" # CloudWatch（10%）
+COST_BREAKDOWN_TRANSFER="0.10"   # データ転送（10%）
+
+# === 出力設定 ===
+# ダッシュボード生成の有効化（true/false）
+GENERATE_DASHBOARD="true"
+
+# テスト後のクリーンアップ（true/false）
+CLEANUP_AFTER_TEST="true"
+
+# === 高度な設定 ===
+# S3バケット名（空の場合は自動検出）
+S3_BUCKET=""
+
+# コストキャッシュTTL（秒）
+COST_CACHE_TTL="300"
+
+# === 開発環境専用設定 ===
+# 開発環境でのみ使用してください
+# 本番環境では以下の設定を変更しないでください
+
+# デバッグモード（true/false）
+DEBUG_MODE="false"
+
+# 詳細ログ出力（true/false）
+VERBOSE_LOGGING="false"
+
+# === 使用例 ===
+# 1. 本番環境での実行:
+#    SECURITY_LEVEL=strict ./run-mcp-integrated-load-test.sh
+#
+# 2. 開発環境での実行:
+#    SECURITY_LEVEL=relaxed DEBUG_MODE=true ./run-mcp-integrated-load-test.sh
+#
+# 3. コスト制限付き実行:
+#    MAX_TOTAL_COST=50.00 ./run-mcp-integrated-load-test.sh

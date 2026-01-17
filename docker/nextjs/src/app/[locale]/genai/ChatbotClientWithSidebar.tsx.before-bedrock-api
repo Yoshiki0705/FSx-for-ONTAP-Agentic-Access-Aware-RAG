@@ -1,0 +1,208 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { type Locale } from '@/i18n/config';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Button } from '@/components/ui/Button';
+import { MessageInput } from '@/components/chat/MessageInput';
+
+interface ChatbotClientWithSidebarProps {
+  mode: 'kb' | 'agent';
+  locale: Locale;
+}
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+// Phase 1: 基本的なチャット機能の復元
+function ClientOnlyContent({ mode, locale }: ChatbotClientWithSidebarProps) {
+  console.log('[ChatbotClient] Component render started');
+  
+  const router = useRouter();
+  const { isAuthenticated, checkSession } = useAuthStore();
+  const [hasMounted, setHasMounted] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    console.log('[ChatbotClient] Mount useEffect');
+    setHasMounted(true);
+    
+    if (!checkSession()) {
+      console.log('[ChatbotClient] Redirecting to signin');
+      router.push(`/${locale}/signin`);
+    }
+  }, [checkSession, locale, router]);
+
+  // メッセージリストの自動スクロール
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    const content = inputValue.trim();
+    if (!content || isLoading) return;
+
+    // 入力をクリア
+    setInputValue('');
+
+    // ユーザーメッセージを追加
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      // TODO: 実際のAPI呼び出しを実装
+      // 現在は仮のレスポンスを返す
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const assistantMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: `[${mode}モード] メッセージを受信しました: "${content}"`,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('[ChatbotClient] Error sending message:', error);
+      // エラーメッセージを表示
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: 'エラーが発生しました。もう一度お試しください。',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClearHistory = () => {
+    if (window.confirm('履歴を削除してもよろしいですか？')) {
+      setMessages([]);
+    }
+  };
+
+  if (!hasMounted) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* ヘッダー */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {mode === 'kb' ? 'ナレッジベースモード' : 'エージェントモード'}
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              AIアシスタントとチャットできます
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleClearHistory}
+              variant="outline"
+              disabled={messages.length === 0}
+            >
+              履歴削除
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* メッセージリスト */}
+      <div className="flex-1 overflow-y-auto px-6 py-4">
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-gray-500">
+              <p className="text-lg mb-2">チャットを開始しましょう</p>
+              <p className="text-sm">メッセージを入力して送信してください</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border border-gray-200 text-gray-900'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                  <p
+                    className={`text-xs mt-2 ${
+                      message.role === 'user' ? 'text-blue-100' : 'text-gray-400'
+                    }`}
+                  >
+                    {message.timestamp.toLocaleTimeString(locale)}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-gray-600">考え中...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      {/* メッセージ入力 */}
+      <div className="bg-white border-t border-gray-200 px-6 py-4">
+        <div className="max-w-4xl mx-auto">
+          <MessageInput
+            value={inputValue}
+            onChange={setInputValue}
+            onSubmit={handleSendMessage}
+            disabled={isLoading}
+            placeholder="メッセージを入力..."
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ChatbotClientWithSidebar(props: ChatbotClientWithSidebarProps) {
+  return <ClientOnlyContent {...props} />;
+}

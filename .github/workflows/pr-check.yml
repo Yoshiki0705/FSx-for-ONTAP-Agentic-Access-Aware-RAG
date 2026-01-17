@@ -1,0 +1,346 @@
+name: Pull Request Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
+env:
+  AWS_REGION: us-east-1
+  NODE_VERSION: '20'
+
+jobs:
+  # PR情報の取得と分析
+  pr-analysis:
+    runs-on: ubuntu-latest
+    outputs:
+      files-changed: ${{ steps.changed-files.outputs.files-changed }}
+      has-code-changes: ${{ steps.analyze-changes.outputs.has-code-changes }}
+      has-test-changes: ${{ steps.analyze-changes.outputs.has-test-changes }}
+      has-config-changes: ${{ steps.analyze-changes.outputs.has-config-changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # 変更されたファイルの一覧を取得
+          git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} > changed_files.txt
+          files_changed=$(cat changed_files.txt | wc -l)
+          echo "files-changed=$files_changed" >> $GITHUB_OUTPUT
+          
+          echo "📝 変更されたファイル数: $files_changed"
+          echo "変更されたファイル:"
+          cat changed_files.txt
+
+      - name: Analyze change types
+        id: analyze-changes
+        run: |
+          # 変更の種類を分析
+          has_code_changes=false
+          has_test_changes=false
+          has_config_changes=false
+          
+          while IFS= read -r file; do
+            case "$file" in
+              *.ts|*.js|*.tsx|*.jsx|*.py)
+                if [[ "$file" == *test* || "$file" == *spec* ]]; then
+                  has_test_changes=true
+                else
+                  has_code_changes=true
+                fi
+                ;;
+              *.json|*.yml|*.yaml|*.toml|*.ini)
+                has_config_changes=true
+                ;;
+              development/scripts/*)
+                has_code_changes=true
+                ;;
+            esac
+          done < changed_files.txt
+          
+          echo "has-code-changes=$has_code_changes" >> $GITHUB_OUTPUT
+          echo "has-test-changes=$has_test_changes" >> $GITHUB_OUTPUT
+          echo "has-config-changes=$has_config_changes" >> $GITHUB_OUTPUT
+          
+          echo "📊 変更分析結果:"
+          echo "  - コード変更: $has_code_changes"
+          echo "  - テスト変更: $has_test_changes"
+          echo "  - 設定変更: $has_config_changes"
+
+  # 軽量なPRチェック
+  pr-quick-check:
+    runs-on: ubuntu-latest
+    needs: pr-analysis
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint check
+        if: needs.pr-analysis.outputs.has-code-changes == 'true'
+        run: |
+          echo "🔍 Lintチェック実行中..."
+          npm run lint || echo "Lint warnings found"
+
+      - name: TypeScript type check
+        if: needs.pr-analysis.outputs.has-code-changes == 'true'
+        run: |
+          echo "🔧 TypeScript型チェック実行中..."
+          npx tsc --noEmit
+
+      - name: Quick build test
+        if: needs.pr-analysis.outputs.has-code-changes == 'true'
+        run: |
+          echo "🏗️ クイックビルドテスト実行中..."
+          npm run build
+
+      - name: CDK diff check
+        if: needs.pr-analysis.outputs.has-code-changes == 'true'
+        run: |
+          echo "📋 CDK差分チェック実行中..."
+          npx cdk diff --quiet || echo "CDK changes detected"
+
+  # PRサイズチェック
+  pr-size-check:
+    runs-on: ubuntu-latest
+    needs: pr-analysis
+    steps:
+      - name: Check PR size
+        run: |
+          files_changed=${{ needs.pr-analysis.outputs.files-changed }}
+          
+          echo "📏 PRサイズチェック"
+          echo "変更ファイル数: $files_changed"
+          
+          if [[ $files_changed -gt 50 ]]; then
+            echo "⚠️ 大きなPRです ($files_changed ファイル)"
+            echo "レビューを容易にするため、PRを分割することを検討してください。"
+            # 警告のみで失敗させない
+          elif [[ $files_changed -gt 20 ]]; then
+            echo "📋 中規模のPRです ($files_changed ファイル)"
+            echo "レビュー時間を十分に確保してください。"
+          else
+            echo "✅ 適切なサイズのPRです ($files_changed ファイル)"
+          fi
+
+  # セキュリティチェック
+  security-check:
+    runs-on: ubuntu-latest
+    needs: pr-analysis
+    if: needs.pr-analysis.outputs.has-code-changes == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: |
+          echo "🔒 セキュリティ監査実行中..."
+          npm audit --audit-level=moderate || echo "Security vulnerabilities found"
+
+      - name: Check for secrets
+        run: |
+          echo "🔍 機密情報チェック実行中..."
+          
+          # 基本的な機密情報パターンをチェック
+          secret_patterns=(
+            "password.*=.*['\"][^'\"]*['\"]"
+            "api[_-]?key.*=.*['\"][^'\"]*['\"]"
+            "secret.*=.*['\"][^'\"]*['\"]"
+            "token.*=.*['\"][^'\"]*['\"]"
+            "AKIA[0-9A-Z]{16}"
+            "-----BEGIN.*PRIVATE KEY-----"
+          )
+          
+          found_secrets=false
+          for pattern in "${secret_patterns[@]}"; do
+            if git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -iE "$pattern"; then
+              echo "⚠️ 機密情報の可能性があるパターンが検出されました: $pattern"
+              found_secrets=true
+            fi
+          done
+          
+          if [[ "$found_secrets" == "true" ]]; then
+            echo "❌ 機密情報が含まれている可能性があります。確認してください。"
+            exit 1
+          else
+            echo "✅ 機密情報チェック完了"
+          fi
+
+  # テスト実行（コード変更がある場合のみ）
+  pr-tests:
+    runs-on: ubuntu-latest
+    needs: [pr-analysis, pr-quick-check]
+    if: needs.pr-analysis.outputs.has-code-changes == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup test environment
+        run: |
+          chmod +x development/scripts/testing/quick_integration_test.sh
+          mkdir -p development/logs/testing
+
+      - name: Run integration tests
+        id: pr-tests
+        run: |
+          echo "🧪 PR統合テスト実行中..."
+          ./development/scripts/testing/quick_integration_test.sh --mode quick --verbose > pr_test_output.log 2>&1
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Parse test results
+        id: parse-results
+        run: |
+          if [[ -f "pr_test_output.log" ]]; then
+            total_tests=$(grep -o "総テスト数: [0-9]*" pr_test_output.log | grep -o "[0-9]*" || echo "0")
+            passed_tests=$(grep -o "成功: [0-9]*" pr_test_output.log | grep -o "[0-9]*" || echo "0")
+            failed_tests=$(grep -o "失敗: [0-9]*" pr_test_output.log | grep -o "[0-9]*" || echo "0")
+            execution_time=$(grep -o "総実行時間: [0-9]*ms" pr_test_output.log | grep -o "[0-9]*" || echo "0")
+            
+            echo "total-tests=$total_tests" >> $GITHUB_OUTPUT
+            echo "passed-tests=$passed_tests" >> $GITHUB_OUTPUT
+            echo "failed-tests=$failed_tests" >> $GITHUB_OUTPUT
+            echo "execution-time=$execution_time" >> $GITHUB_OUTPUT
+            
+            if [[ $total_tests -gt 0 ]]; then
+              success_rate=$(echo "scale=2; $passed_tests * 100 / $total_tests" | bc -l)
+              echo "success-rate=$success_rate" >> $GITHUB_OUTPUT
+            else
+              echo "success-rate=0" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Upload PR test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: pr-test-results
+          path: |
+            pr_test_output.log
+            development/logs/testing/
+          retention-days: 14
+
+      - name: Fail if tests failed
+        if: steps.pr-tests.outputs.exit_code != '0'
+        run: |
+          echo "❌ PRテストが失敗しました"
+          exit 1
+
+  # PR結果サマリー
+  pr-summary:
+    runs-on: ubuntu-latest
+    needs: [pr-analysis, pr-quick-check, security-check, pr-tests]
+    if: always()
+    steps:
+      - name: Create PR summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prAnalysis = ${{ toJson(needs.pr-analysis) }};
+            const quickCheck = ${{ toJson(needs.pr-quick-check) }};
+            const securityCheck = ${{ toJson(needs.security-check) }};
+            const prTests = ${{ toJson(needs.pr-tests) }};
+            
+            // 全体的なステータス判定
+            const allSuccess = [quickCheck, securityCheck, prTests]
+              .filter(job => job.result !== 'skipped')
+              .every(job => job.result === 'success');
+            
+            const statusEmoji = allSuccess ? '✅' : '❌';
+            const statusText = allSuccess ? '合格' : '要修正';
+            
+            // テスト結果の取得
+            const testResults = prTests.outputs || {};
+            
+            const summary = `## 🔍 PR チェック結果: ${statusEmoji} ${statusText}
+            
+            ### 📊 変更サマリー
+            - **変更ファイル数**: ${prAnalysis.outputs['files-changed'] || '0'}
+            - **コード変更**: ${prAnalysis.outputs['has-code-changes'] === 'true' ? '✅' : '❌'}
+            - **テスト変更**: ${prAnalysis.outputs['has-test-changes'] === 'true' ? '✅' : '❌'}
+            - **設定変更**: ${prAnalysis.outputs['has-config-changes'] === 'true' ? '✅' : '❌'}
+            
+            ### 🧪 チェック結果
+            | チェック項目 | ステータス | 詳細 |
+            |-------------|-----------|------|
+            | コード品質チェック | ${quickCheck.result === 'success' ? '✅ 合格' : quickCheck.result === 'skipped' ? '⏭️ スキップ' : '❌ 失敗'} | Lint, TypeScript, Build |
+            | セキュリティチェック | ${securityCheck.result === 'success' ? '✅ 合格' : securityCheck.result === 'skipped' ? '⏭️ スキップ' : '❌ 失敗'} | 脆弱性, 機密情報 |
+            | 統合テスト | ${prTests.result === 'success' ? '✅ 合格' : prTests.result === 'skipped' ? '⏭️ スキップ' : '❌ 失敗'} | ${testResults['total-tests'] || '0'}個のテスト |
+            
+            ${testResults['total-tests'] ? `
+            ### 📈 テスト詳細
+            - **総テスト数**: ${testResults['total-tests']}
+            - **成功**: ${testResults['passed-tests']}
+            - **失敗**: ${testResults['failed-tests']}
+            - **成功率**: ${testResults['success-rate']}%
+            - **実行時間**: ${testResults['execution-time']}ms
+            ` : ''}
+            
+            ### 🎯 次のステップ
+            ${allSuccess ? 
+              '🎉 全てのチェックが完了しました。レビューの準備ができています！' : 
+              '⚠️ 修正が必要な項目があります。詳細はチェック結果を確認してください。'
+            }
+            
+            ---
+            *このコメントは自動生成されました*`;
+            
+            // 既存のコメントを検索
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('PR チェック結果')
+            );
+            
+            if (botComment) {
+              // 既存のコメントを更新
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: summary
+              });
+            } else {
+              // 新しいコメントを作成
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summary
+              });
+            }

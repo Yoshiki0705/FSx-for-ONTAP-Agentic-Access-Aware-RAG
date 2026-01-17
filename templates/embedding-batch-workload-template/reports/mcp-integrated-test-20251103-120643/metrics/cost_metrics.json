@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-11-03T03:06:46Z",
+  "current_daily_cost": "10.80",
+  "region": "us-east-1",
+  "cost_breakdown": {
+    "batch_compute": "6.48",
+    "s3_storage": "2.16",
+    "cloudwatch_logs": "1.08",
+    "data_transfer": "1.08"
+  },
+  "optimization_recommendations": [
+    "Spot インスタンスの使用を検討（最大70%のコスト削減）",
+    "アイドル時間を最小化するためのオートスケーリング設定",
+    "小規模ワークロード用の小さなインスタンスタイプの使用",
+    "予測可能なワークロード用のリザーブドインスタンスの検討"
+  ]
+}

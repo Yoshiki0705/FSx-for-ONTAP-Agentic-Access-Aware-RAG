@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AWS Batch コスト最適化レポート</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #f0f8ff; padding: 20px; border-radius: 5px; }
+        .cost-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .recommendation { background-color: #f9f9f9; padding: 10px; margin: 10px 0; border-left: 4px solid #4CAF50; }
+        .cost-high { border-left-color: #f44336; }
+        .cost-medium { border-left-color: #ff9800; }
+        .cost-low { border-left-color: #4CAF50; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AWS Batch コスト最適化レポート</h1>
+        <p><strong>生成日時:</strong> Mon Nov  3 12:06:46 JST 2025</p>
+        <p><strong>現在のコスト:</strong> $2.85</p>
+        <p><strong>リージョン:</strong> us-east-1</p>
+    </div>
+    
+    <div class="cost-section">
+        <h2>コスト内訳</h2>
+        <table>
+            <tr><th>サービス</th><th>コスト</th><th>割合</th></tr>
+            <tr><td>Batch コンピュート</td><td>$1.71</td><td>60%</td></tr>
+            <tr><td>S3 ストレージ</td><td>$.57</td><td>20%</td></tr>
+            <tr><td>CloudWatch ログ</td><td>$.28</td><td>10%</td></tr>
+            <tr><td>データ転送</td><td>$.28</td><td>10%</td></tr>
+        </table>
+    </div>
+    
+    <div class="cost-section">
+        <h2>最適化推奨事項</h2>
+        <div class="recommendation cost-high">
+            <h3>高優先度: Spot インスタンスの活用</h3>
+            <p>最大70%のコスト削減が可能です。バッチワークロードは中断に対する耐性があるため、Spot インスタンスが最適です。</p>
+        </div>
+        <div class="recommendation cost-medium">
+            <h3>中優先度: オートスケーリングの最適化</h3>
+            <p>アイドル時間を最小化し、需要に応じてリソースを動的に調整します。</p>
+        </div>
+        <div class="recommendation cost-low">
+            <h3>低優先度: インスタンスタイプの最適化</h3>
+            <p>ワークロードの特性に応じて、より効率的なインスタンスタイプを選択します。</p>
+        </div>
+    </div>
+    
+    <div class="cost-section">
+        <h2>MCP統合による継続的最適化</h2>
+        <p>このレポートはMCP（Model Context Protocol）統合により、リアルタイムでコスト監視と最適化推奨事項を提供します。</p>
+        <ul>
+            <li>リアルタイムコスト監視</li>
+            <li>自動アラート機能</li>
+            <li>予測的コスト分析</li>
+            <li>最適化推奨事項の自動更新</li>
+        </ul>
+    </div>
+</body>
+</html>

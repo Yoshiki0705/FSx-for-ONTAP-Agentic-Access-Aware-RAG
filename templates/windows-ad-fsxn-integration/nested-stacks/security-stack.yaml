@@ -1,0 +1,960 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Windows AD FSxN統合環境 - セキュリティ設定スタック'
+
+# パラメータ定義
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "プロジェクト識別子"
+    AllowedPattern: "^[a-z0-9-]{3,20}$"
+
+  Environment:
+    Type: String
+    Description: "環境名"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "VPC ID"
+
+  VpcCidr:
+    Type: String
+    Description: "VPC CIDR ブロック"
+    Default: "10.0.0.0/16"
+
+  AllowedCidrForRDP:
+    Type: String
+    Description: "RDP接続を許可するCIDR範囲"
+    Default: "10.0.0.0/16"
+    AllowedPattern: "^(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/(\\d|[1-2]\\d|3[0-2]))$"
+
+  EnableCloudTrail:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "CloudTrail監査ログを有効化"
+
+  EnableGuardDuty:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "GuardDuty脅威検出を有効化"
+
+# 条件定義
+Conditions:
+  CreateCloudTrailResources: !Equals [!Ref EnableCloudTrail, "true"]
+  CreateGuardDutyResources: !Equals [!Ref EnableGuardDuty, "true"]
+  IsProductionEnvironment: !Equals [!Ref Environment, "prod"]
+
+# リソース定義
+Resources:
+  # Windows Active Directory サーバー用セキュリティグループ
+  WindowsADSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectName}-${Environment}-windows-ad-sg"
+      GroupDescription: "Security group for Windows Active Directory server"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # RDP接続（管理用）
+        - IpProtocol: tcp
+          FromPort: 3389
+          ToPort: 3389
+          CidrIp: !Ref AllowedCidrForRDP
+          Description: "RDP access for administration"
+        
+        # DNS（TCP/UDP）
+        - IpProtocol: tcp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: !Ref VpcCidr
+          Description: "DNS TCP queries"
+        - IpProtocol: udp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: !Ref VpcCidr
+          Description: "DNS UDP queries"
+        
+        # LDAP（非暗号化）
+        - IpProtocol: tcp
+          FromPort: 389
+          ToPort: 389
+          CidrIp: !Ref VpcCidr
+          Description: "LDAP queries"
+        
+        # LDAPS（SSL暗号化）
+        - IpProtocol: tcp
+          FromPort: 636
+          ToPort: 636
+          CidrIp: !Ref VpcCidr
+          Description: "LDAPS secure queries"
+        
+        # Global Catalog LDAP
+        - IpProtocol: tcp
+          FromPort: 3268
+          ToPort: 3268
+          CidrIp: !Ref VpcCidr
+          Description: "Global Catalog LDAP"
+        
+        # Global Catalog LDAPS
+        - IpProtocol: tcp
+          FromPort: 3269
+          ToPort: 3269
+          CidrIp: !Ref VpcCidr
+          Description: "Global Catalog LDAPS"
+        
+        # Kerberos認証
+        - IpProtocol: tcp
+          FromPort: 88
+          ToPort: 88
+          CidrIp: !Ref VpcCidr
+          Description: "Kerberos authentication TCP"
+        - IpProtocol: udp
+          FromPort: 88
+          ToPort: 88
+          CidrIp: !Ref VpcCidr
+          Description: "Kerberos authentication UDP"
+        
+        # Kerberos パスワード変更
+        - IpProtocol: tcp
+          FromPort: 464
+          ToPort: 464
+          CidrIp: !Ref VpcCidr
+          Description: "Kerberos password change"
+        - IpProtocol: udp
+          FromPort: 464
+          ToPort: 464
+          CidrIp: !Ref VpcCidr
+          Description: "Kerberos password change UDP"
+        
+        # SMB/CIFS ファイル共有
+        - IpProtocol: tcp
+          FromPort: 445
+          ToPort: 445
+          CidrIp: !Ref VpcCidr
+          Description: "SMB/CIFS file sharing"
+        
+        # NetBIOS Name Service
+        - IpProtocol: udp
+          FromPort: 137
+          ToPort: 137
+          CidrIp: !Ref VpcCidr
+          Description: "NetBIOS Name Service"
+        
+        # NetBIOS Datagram Service
+        - IpProtocol: udp
+          FromPort: 138
+          ToPort: 138
+          CidrIp: !Ref VpcCidr
+          Description: "NetBIOS Datagram Service"
+        
+        # NetBIOS Session Service
+        - IpProtocol: tcp
+          FromPort: 139
+          ToPort: 139
+          CidrIp: !Ref VpcCidr
+          Description: "NetBIOS Session Service"
+        
+        # RPC Endpoint Mapper
+        - IpProtocol: tcp
+          FromPort: 135
+          ToPort: 135
+          CidrIp: !Ref VpcCidr
+          Description: "RPC Endpoint Mapper"
+        
+        # Dynamic RPC範囲（Windows Server 2008以降）
+        - IpProtocol: tcp
+          FromPort: 49152
+          ToPort: 65535
+          CidrIp: !Ref VpcCidr
+          Description: "Dynamic RPC range for AD replication"
+        
+        # NTP（時刻同期）
+        - IpProtocol: udp
+          FromPort: 123
+          ToPort: 123
+          CidrIp: !Ref VpcCidr
+          Description: "NTP time synchronization"
+        
+        # WinRM（PowerShell リモート管理）
+        - IpProtocol: tcp
+          FromPort: 5985
+          ToPort: 5985
+          CidrIp: !Ref AllowedCidrForRDP
+          Description: "WinRM HTTP for PowerShell remoting"
+        - IpProtocol: tcp
+          FromPort: 5986
+          ToPort: 5986
+          CidrIp: !Ref AllowedCidrForRDP
+          Description: "WinRM HTTPS for PowerShell remoting"
+
+      SecurityGroupEgress:
+        # 全アウトバウンド許可（必要に応じて制限可能）
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: "All outbound traffic"
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-ad-sg"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Purpose
+          Value: "Windows Active Directory Server"
+
+  # FSx for NetApp ONTAP用セキュリティグループ
+  FSxONTAPSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectName}-${Environment}-fsxn-sg"
+      GroupDescription: "Security group for FSx for NetApp ONTAP"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # NFS（Network File System）
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: !Ref VpcCidr
+          Description: "NFS file access"
+        - IpProtocol: udp
+          FromPort: 2049
+          ToPort: 2049
+          CidrIp: !Ref VpcCidr
+          Description: "NFS file access UDP"
+        
+        # SMB/CIFS（Windows ファイル共有）
+        - IpProtocol: tcp
+          FromPort: 445
+          ToPort: 445
+          CidrIp: !Ref VpcCidr
+          Description: "SMB/CIFS file sharing"
+        
+        # NetBIOS（Windows ネットワーク）
+        - IpProtocol: udp
+          FromPort: 137
+          ToPort: 137
+          CidrIp: !Ref VpcCidr
+          Description: "NetBIOS Name Service"
+        - IpProtocol: udp
+          FromPort: 138
+          ToPort: 138
+          CidrIp: !Ref VpcCidr
+          Description: "NetBIOS Datagram Service"
+        - IpProtocol: tcp
+          FromPort: 139
+          ToPort: 139
+          CidrIp: !Ref VpcCidr
+          Description: "NetBIOS Session Service"
+        
+        # ONTAP管理インターフェース
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref VpcCidr
+          Description: "ONTAP System Manager HTTPS"
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref VpcCidr
+          Description: "ONTAP System Manager HTTP"
+        
+        # SSH（管理用）
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedCidrForRDP
+          Description: "SSH for ONTAP CLI access"
+        
+        # SNMP（監視用）
+        - IpProtocol: udp
+          FromPort: 161
+          ToPort: 161
+          CidrIp: !Ref VpcCidr
+          Description: "SNMP monitoring"
+        
+        # iSCSI（ブロックストレージ）
+        - IpProtocol: tcp
+          FromPort: 3260
+          ToPort: 3260
+          CidrIp: !Ref VpcCidr
+          Description: "iSCSI block storage"
+        
+        # NFS関連サービス
+        - IpProtocol: tcp
+          FromPort: 111
+          ToPort: 111
+          CidrIp: !Ref VpcCidr
+          Description: "RPC Port Mapper for NFS"
+        - IpProtocol: udp
+          FromPort: 111
+          ToPort: 111
+          CidrIp: !Ref VpcCidr
+          Description: "RPC Port Mapper for NFS UDP"
+        
+        # NFS Lock Manager
+        - IpProtocol: tcp
+          FromPort: 4045
+          ToPort: 4045
+          CidrIp: !Ref VpcCidr
+          Description: "NFS Lock Manager"
+        - IpProtocol: udp
+          FromPort: 4045
+          ToPort: 4045
+          CidrIp: !Ref VpcCidr
+          Description: "NFS Lock Manager UDP"
+        
+        # NFS Mount Protocol
+        - IpProtocol: tcp
+          FromPort: 4046
+          ToPort: 4046
+          CidrIp: !Ref VpcCidr
+          Description: "NFS Mount Protocol"
+        - IpProtocol: udp
+          FromPort: 4046
+          ToPort: 4046
+          CidrIp: !Ref VpcCidr
+          Description: "NFS Mount Protocol UDP"
+
+      SecurityGroupEgress:
+        # Active Directory認証用アウトバウンド
+        - IpProtocol: tcp
+          FromPort: 389
+          ToPort: 389
+          SourceSecurityGroupId: !Ref WindowsADSecurityGroup
+          Description: "LDAP to Active Directory"
+        - IpProtocol: tcp
+          FromPort: 636
+          ToPort: 636
+          SourceSecurityGroupId: !Ref WindowsADSecurityGroup
+          Description: "LDAPS to Active Directory"
+        - IpProtocol: tcp
+          FromPort: 88
+          ToPort: 88
+          SourceSecurityGroupId: !Ref WindowsADSecurityGroup
+          Description: "Kerberos to Active Directory"
+        - IpProtocol: udp
+          FromPort: 88
+          ToPort: 88
+          SourceSecurityGroupId: !Ref WindowsADSecurityGroup
+          Description: "Kerberos UDP to Active Directory"
+        - IpProtocol: tcp
+          FromPort: 53
+          ToPort: 53
+          SourceSecurityGroupId: !Ref WindowsADSecurityGroup
+          Description: "DNS to Active Directory"
+        - IpProtocol: udp
+          FromPort: 53
+          ToPort: 53
+          SourceSecurityGroupId: !Ref WindowsADSecurityGroup
+          Description: "DNS UDP to Active Directory"
+        
+        # インターネットアクセス（アップデート・ライセンス用）
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: "HTTPS for updates and licensing"
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: "HTTP for updates"
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-fsxn-sg"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Purpose
+          Value: "FSx for NetApp ONTAP"
+
+  # 管理用セキュリティグループ（Systems Manager、CloudWatch等）
+  ManagementSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectName}-${Environment}-mgmt-sg"
+      GroupDescription: "Security group for management services (SSM, CloudWatch)"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # Systems Manager Session Manager（エージェント通信）
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref VpcCidr
+          Description: "HTTPS for Systems Manager"
+        
+        # CloudWatch Agent
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref VpcCidr
+          Description: "HTTPS for CloudWatch Agent"
+
+      SecurityGroupEgress:
+        # AWS API エンドポイントへのアクセス
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: "HTTPS to AWS APIs"
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-mgmt-sg"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Purpose
+          Value: "Management Services"
+
+  # Lambda関数用セキュリティグループ（カスタムリソース用）
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectName}-${Environment}-lambda-sg"
+      GroupDescription: "Security group for Lambda functions (custom resources)"
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        # AWS API アクセス
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: "HTTPS to AWS APIs"
+        
+        # FSx API アクセス
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref FSxONTAPSecurityGroup
+          Description: "HTTPS to FSx ONTAP management"
+        
+        # Active Directory 通信
+        - IpProtocol: tcp
+          FromPort: 389
+          ToPort: 389
+          SourceSecurityGroupId: !Ref WindowsADSecurityGroup
+          Description: "LDAP to Active Directory"
+        - IpProtocol: tcp
+          FromPort: 88
+          ToPort: 88
+          SourceSecurityGroupId: !Ref WindowsADSecurityGroup
+          Description: "Kerberos to Active Directory"
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-lambda-sg"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Purpose
+          Value: "Lambda Custom Resources"
+
+  # IAMロール - Windows EC2インスタンス用
+  WindowsEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-windows-ec2-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: WindowsADManagementPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # FSx管理権限
+              - Effect: Allow
+                Action:
+                  - fsx:DescribeFileSystems
+                  - fsx:DescribeStorageVirtualMachines
+                  - fsx:DescribeVolumes
+                  - fsx:CreateStorageVirtualMachine
+                  - fsx:UpdateStorageVirtualMachine
+                  - fsx:CreateVolume
+                  - fsx:UpdateVolume
+                  - fsx:TagResource
+                  - fsx:UntagResource
+                  - fsx:ListTagsForResource
+                Resource: '*'
+              
+              # Secrets Manager（パスワード管理用）
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${Environment}/*"
+              
+              # CloudFormation シグナル送信
+              - Effect: Allow
+                Action:
+                  - cloudformation:SignalResource
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${ProjectName}-${Environment}*/*"
+              
+              # Route 53 DNS管理
+              - Effect: Allow
+                Action:
+                  - route53:ChangeResourceRecordSets
+                  - route53:GetHostedZone
+                  - route53:ListResourceRecordSets
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'route53:HostedZoneID': !Sub "${ProjectName}-${Environment}-*"
+              
+              # EC2インスタンス情報取得
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeInstanceAttribute
+                  - ec2:DescribeNetworkInterfaces
+                Resource: '*'
+              
+              # CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/ec2/windows/${ProjectName}-${Environment}*"
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-windows-ec2-role"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # IAMインスタンスプロファイル - Windows EC2用
+  WindowsEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub "${ProjectName}-${Environment}-windows-ec2-profile"
+      Roles:
+        - !Ref WindowsEC2Role
+
+  # IAMロール - Lambda関数用（カスタムリソース）
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-lambda-execution-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: FSxDomainJoinPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # FSx管理権限
+              - Effect: Allow
+                Action:
+                  - fsx:*
+                Resource: '*'
+              
+              # Directory Service（AWS Managed Microsoft AD用）
+              - Effect: Allow
+                Action:
+                  - ds:DescribeDirectories
+                  - ds:CreateMicrosoftAD
+                  - ds:DeleteDirectory
+                  - ds:ResetUserPassword
+                  - ds:DescribeTrusts
+                Resource: '*'
+              
+              # Secrets Manager
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:UpdateSecret
+                  - secretsmanager:DeleteSecret
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${Environment}/*"
+              
+              # CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-${Environment}*"
+              
+              # EC2（ネットワーク情報取得用）
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AttachNetworkInterface
+                  - ec2:DetachNetworkInterface
+                Resource: '*'
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-lambda-execution-role"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # IAMロール - CloudTrail用（条件付き）
+  CloudTrailRole:
+    Type: AWS::IAM::Role
+    Condition: CreateCloudTrailResources
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-cloudtrail-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CloudTrailLogsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/cloudtrail/${ProjectName}-${Environment}*"
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-cloudtrail-role"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # IAMポリシー - FSx管理者用（人間のユーザー向け）
+  FSxAdministratorPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${ProjectName}-${Environment}-fsxn-admin-policy"
+      Description: "Policy for FSx ONTAP administrators"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # FSx完全管理権限
+          - Effect: Allow
+            Action:
+              - fsx:*
+            Resource: '*'
+          
+          # 関連するEC2権限
+          - Effect: Allow
+            Action:
+              - ec2:DescribeInstances
+              - ec2:DescribeInstanceTypes
+              - ec2:DescribeInstanceAttribute
+              - ec2:DescribeVolumes
+              - ec2:DescribeSnapshots
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DescribeSubnets
+              - ec2:DescribeVpcs
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeAvailabilityZones
+            Resource: '*'
+          
+          # CloudWatch監視
+          - Effect: Allow
+            Action:
+              - cloudwatch:GetMetricStatistics
+              - cloudwatch:ListMetrics
+              - cloudwatch:GetMetricData
+            Resource: '*'
+          
+          # CloudWatch Logs
+          - Effect: Allow
+            Action:
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
+              - logs:GetLogEvents
+              - logs:FilterLogEvents
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/fsx/*"
+
+  # IAMポリシー - 読み取り専用ユーザー用
+  FSxReadOnlyPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${ProjectName}-${Environment}-fsxn-readonly-policy"
+      Description: "Read-only policy for FSx ONTAP monitoring"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # FSx読み取り権限
+          - Effect: Allow
+            Action:
+              - fsx:Describe*
+              - fsx:List*
+            Resource: '*'
+          
+          # EC2読み取り権限
+          - Effect: Allow
+            Action:
+              - ec2:Describe*
+            Resource: '*'
+          
+          # CloudWatch読み取り権限
+          - Effect: Allow
+            Action:
+              - cloudwatch:Get*
+              - cloudwatch:List*
+              - cloudwatch:Describe*
+            Resource: '*'
+          
+          # CloudWatch Logs読み取り権限
+          - Effect: Allow
+            Action:
+              - logs:Describe*
+              - logs:Get*
+              - logs:Filter*
+            Resource: '*'
+
+  # KMS キー（暗号化用）
+  EncryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub "Encryption key for ${ProjectName} ${Environment} environment"
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          # ルートアカウント権限
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: 'kms:*'
+            Resource: '*'
+          
+          # Windows EC2インスタンス権限
+          - Sid: Allow use of the key for EC2
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt WindowsEC2Role.Arn
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: '*'
+          
+          # Lambda関数権限
+          - Sid: Allow use of the key for Lambda
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt LambdaExecutionRole.Arn
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: '*'
+          
+          # FSxサービス権限
+          - Sid: Allow FSx service to use the key
+            Effect: Allow
+            Principal:
+              Service: fsx.amazonaws.com
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub "fsx.${AWS::Region}.amazonaws.com"
+
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-encryption-key"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # KMS キーエイリアス
+  EncryptionKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${ProjectName}-${Environment}-encryption"
+      TargetKeyId: !Ref EncryptionKey
+
+  # セキュリティグループ間の相互参照ルール
+  # Windows AD → FSx ONTAP 通信許可
+  WindowsADToFSxRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref FSxONTAPSecurityGroup
+      IpProtocol: tcp
+      FromPort: 445
+      ToPort: 445
+      SourceSecurityGroupId: !Ref WindowsADSecurityGroup
+      Description: "SMB access from Windows AD to FSx ONTAP"
+
+  # FSx ONTAP → Windows AD 認証許可
+  FSxToWindowsADLDAPRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref WindowsADSecurityGroup
+      IpProtocol: tcp
+      FromPort: 389
+      ToPort: 389
+      SourceSecurityGroupId: !Ref FSxONTAPSecurityGroup
+      Description: "LDAP from FSx ONTAP to Windows AD"
+
+  FSxToWindowsADKerberosRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref WindowsADSecurityGroup
+      IpProtocol: tcp
+      FromPort: 88
+      ToPort: 88
+      SourceSecurityGroupId: !Ref FSxONTAPSecurityGroup
+      Description: "Kerberos from FSx ONTAP to Windows AD"
+
+  FSxToWindowsADDNSRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref WindowsADSecurityGroup
+      IpProtocol: tcp
+      FromPort: 53
+      ToPort: 53
+      SourceSecurityGroupId: !Ref FSxONTAPSecurityGroup
+      Description: "DNS from FSx ONTAP to Windows AD"
+
+# 出力値定義
+Outputs:
+  WindowsADSecurityGroupId:
+    Description: "Windows Active Directory セキュリティグループ ID"
+    Value: !Ref WindowsADSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-sg-id"
+
+  FSxONTAPSecurityGroupId:
+    Description: "FSx for NetApp ONTAP セキュリティグループ ID"
+    Value: !Ref FSxONTAPSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-sg-id"
+
+  ManagementSecurityGroupId:
+    Description: "管理用セキュリティグループ ID"
+    Value: !Ref ManagementSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-mgmt-sg-id"
+
+  LambdaSecurityGroupId:
+    Description: "Lambda関数用セキュリティグループ ID"
+    Value: !Ref LambdaSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-lambda-sg-id"
+
+  # IAM関連出力
+  WindowsEC2RoleArn:
+    Description: "Windows EC2インスタンス用IAMロール ARN"
+    Value: !GetAtt WindowsEC2Role.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ec2-role-arn"
+
+  WindowsEC2InstanceProfileArn:
+    Description: "Windows EC2インスタンスプロファイル ARN"
+    Value: !GetAtt WindowsEC2InstanceProfile.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ec2-profile-arn"
+
+  LambdaExecutionRoleArn:
+    Description: "Lambda実行ロール ARN"
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-lambda-execution-role-arn"
+
+  FSxAdministratorPolicyArn:
+    Description: "FSx管理者ポリシー ARN"
+    Value: !Ref FSxAdministratorPolicy
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-admin-policy-arn"
+
+  FSxReadOnlyPolicyArn:
+    Description: "FSx読み取り専用ポリシー ARN"
+    Value: !Ref FSxReadOnlyPolicy
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsxn-readonly-policy-arn"
+
+  # 暗号化関連出力
+  EncryptionKeyId:
+    Description: "KMS暗号化キー ID"
+    Value: !Ref EncryptionKey
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-encryption-key-id"
+
+  EncryptionKeyArn:
+    Description: "KMS暗号化キー ARN"
+    Value: !GetAtt EncryptionKey.Arn
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-encryption-key-arn"
+
+  EncryptionKeyAlias:
+    Description: "KMS暗号化キーエイリアス"
+    Value: !Ref EncryptionKeyAlias
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-encryption-key-alias"
+
+  SecurityGroupsSummary:
+    Description: "セキュリティグループ構成サマリー"
+    Value: !Sub |
+      Windows AD SG: ${WindowsADSecurityGroup}
+      FSx ONTAP SG: ${FSxONTAPSecurityGroup}
+      Management SG: ${ManagementSecurityGroup}
+      Lambda SG: ${LambdaSecurityGroup}
+      
+      Key Ports:
+      - RDP: 3389 (Windows AD)
+      - LDAP: 389/636 (Windows AD)
+      - Kerberos: 88 (Windows AD)
+      - SMB: 445 (Windows AD, FSx ONTAP)
+      - NFS: 2049 (FSx ONTAP)
+      - HTTPS: 443 (Management, FSx ONTAP)
+
+  IAMRolesSummary:
+    Description: "IAMロール構成サマリー"
+    Value: !Sub |
+      Windows EC2 Role: ${WindowsEC2Role}
+      Lambda Execution Role: ${LambdaExecutionRole}
+      FSx Admin Policy: ${FSxAdministratorPolicy}
+      FSx ReadOnly Policy: ${FSxReadOnlyPolicy}
+      Encryption Key: ${EncryptionKey} (${EncryptionKeyAlias})

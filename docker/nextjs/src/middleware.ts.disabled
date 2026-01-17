@@ -1,0 +1,36 @@
+/**
+ * Next.js ミドルウェア
+ * 国際化（i18n）ルーティングの設定
+ */
+
+import createMiddleware from 'next-intl/middleware';
+import { locales, defaultLocale } from './i18n/config';
+
+export default createMiddleware({
+  // サポートするロケールのリスト
+  locales,
+
+  // デフォルトロケール
+  defaultLocale,
+
+  // ロケール検出を有効化（ブラウザ言語設定から自動検出）
+  localeDetection: true,
+
+  // ロケールプレフィックスの設定
+  // 'always': 常にロケールプレフィックスを表示 (/ja/chatbot, /en/chatbot)
+  // 'as-needed': デフォルトロケールの場合はプレフィックスなし (/chatbot, /en/chatbot)
+  localePrefix: 'as-needed',
+});
+
+export const config = {
+  // ミドルウェアを適用するパスのマッチャー
+  // API、静的ファイル、画像を除外
+  matcher: [
+    // すべてのパスにマッチ
+    '/((?!api|_next|_vercel|.*\\..*).*)',
+    // ルートパス
+    '/',
+    // ロケールプレフィックス付きパス
+    '/(ja|en)/:path*',
+  ],
+};

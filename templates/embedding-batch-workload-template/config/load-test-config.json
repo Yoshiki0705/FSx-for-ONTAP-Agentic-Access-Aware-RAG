@@ -1,0 +1,44 @@
+{
+  "workload_sizes": {
+    "small": {
+      "files": 100,
+      "duration": 600,
+      "budget": 15,
+      "description": "小規模テスト - 開発・検証用"
+    },
+    "medium": {
+      "files": 500,
+      "duration": 1800,
+      "budget": 50,
+      "description": "中規模テスト - ステージング用"
+    },
+    "large": {
+      "files": 1000,
+      "duration": 3600,
+      "budget": 100,
+      "description": "大規模テスト - 本番想定"
+    }
+  },
+  "pricing": {
+    "ec2": {
+      "t3_medium": {
+        "hourly_rate": 0.0416,
+        "files_per_instance": 50
+      }
+    },
+    "fargate": {
+      "cpu_rate": 0.04656,
+      "memory_rate": 0.00511,
+      "files_per_task": 20
+    },
+    "spot": {
+      "discount_rate": 0.70,
+      "files_per_instance": 80
+    }
+  },
+  "limits": {
+    "max_parallel_tests": 2,
+    "cache_duration": 3600,
+    "timeout_seconds": 7200
+  }
+}

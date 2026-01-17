@@ -1,0 +1,13 @@
+{
+  "projectName": "permission-aware-rag",
+  "environment": "dev",
+  "agentCore": {
+    "enabled": true,
+    "runtime": {
+      "enabled": true
+    },
+    "memory": {
+      "enabled": true
+    }
+  }
+}

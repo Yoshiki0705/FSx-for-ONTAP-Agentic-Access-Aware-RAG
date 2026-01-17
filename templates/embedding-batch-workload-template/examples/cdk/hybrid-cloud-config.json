@@ -1,0 +1,153 @@
+{
+  "projectName": "embedding-hybrid",
+  "environment": "hybrid",
+  "region": "us-west-2",
+  "description": "Hybrid cloud configuration with on-premises integration",
+  
+  "vpc": {
+    "createNew": true,
+    "cidrBlock": "10.100.0.0/16",
+    "enableDnsHostnames": true,
+    "enableDnsSupport": true,
+    "availabilityZones": ["us-west-2a", "us-west-2b", "us-west-2c"],
+    "natGateways": 2,
+    "enableVpcFlowLogs": true
+  },
+  
+  "onPremisesIntegration": {
+    "enableVpnConnection": true,
+    "vpnGateway": {
+      "type": "ipsec.1",
+      "customerGatewayIp": "203.0.113.12",
+      "bgpAsn": 65000
+    },
+    "enableDirectConnect": true,
+    "directConnect": {
+      "connectionId": "dxcon-xxxxxxxxx",
+      "vlan": 100,
+      "bgpAsn": 65000
+    },
+    "onPremisesCidr": ["192.168.0.0/16", "172.16.0.0/12"]
+  },
+  
+  "fsx": {
+    "createNew": true,
+    "storageCapacity": 1024,
+    "throughputCapacity": 256,
+    "deploymentType": "SINGLE_AZ_1",
+    "automaticBackupRetentionDays": 14,
+    "enableDataDeduplication": true,
+    "enableDataCompression": true
+  },
+  
+  "batch": {
+    "maxvCpus": 500,
+    "desiredvCpus": 0,
+    "minvCpus": 0,
+    "instanceTypes": ["m5.large", "m5.xlarge", "c5.large", "c5.xlarge"],
+    "enableSpotInstances": true,
+    "bidPercentage": 70,
+    "allocationStrategy": "DIVERSIFIED",
+    "enableMixedInstancesPolicy": true,
+    "onDemandPercentage": 30
+  },
+  
+  "bedrock": {
+    "region": "us-west-2",
+    "modelId": "amazon.titan-embed-text-v1",
+    "enableModelInvocationLogging": true,
+    "enablePrivateEndpoint": true
+  },
+  
+  "storage": {
+    "s3": {
+      "createBucket": true,
+      "bucketName": "",
+      "enableVersioning": true,
+      "lifecyclePolicy": "hybrid",
+      "intelligentTiering": true,
+      "enableTransferAcceleration": true
+    },
+    "dynamodb": {
+      "createTable": true,
+      "tableName": "",
+      "billingMode": "PAY_PER_REQUEST",
+      "pointInTimeRecovery": true,
+      "enableStreams": true,
+      "streamViewType": "NEW_AND_OLD_IMAGES"
+    },
+    "efs": {
+      "createFileSystem": true,
+      "performanceMode": "generalPurpose",
+      "throughputMode": "provisioned",
+      "provisionedThroughputInMibps": 100,
+      "enableBackup": true
+    }
+  },
+  
+  "monitoring": {
+    "enableDetailedMonitoring": true,
+    "createDashboard": true,
+    "logRetentionDays": 30,
+    "enableXRayTracing": true,
+    "enableHybridMonitoring": true,
+    "onPremisesMonitoring": {
+      "enableCloudWatchAgent": true,
+      "enableSystemsManager": true,
+      "enableCustomMetrics": true
+    }
+  },
+  
+  "security": {
+    "enableEncryption": true,
+    "kmsKeyId": "",
+    "createKmsKey": true,
+    "enableVpcFlowLogs": true,
+    "enableGuardDuty": true,
+    "enableCloudTrail": true,
+    "restrictedCidrBlocks": ["10.100.0.0/16", "192.168.0.0/16", "172.16.0.0/12"],
+    "enablePrivateEndpoints": true,
+    "hybridSecurity": {
+      "enableIdentityFederation": true,
+      "enableSso": true,
+      "enableCertificateManager": true
+    }
+  },
+  
+  "networking": {
+    "enablePrivateEndpoints": true,
+    "vpcEndpoints": ["s3", "dynamodb", "bedrock", "batch", "logs", "ssm"],
+    "enableTransitGateway": true,
+    "transitGateway": {
+      "enableMulticast": false,
+      "enableDnsSupport": true,
+      "defaultRouteTableAssociation": "enable",
+      "defaultRouteTablePropagation": "enable"
+    }
+  },
+  
+  "dataSync": {
+    "enableDataSync": true,
+    "syncSchedule": "cron(0 2 * * ? *)",
+    "syncDirection": "bidirectional",
+    "enableBandwidthThrottling": true,
+    "bandwidthLimit": "100 MB/s"
+  },
+  
+  "disaster_recovery": {
+    "enableCrossRegionBackup": true,
+    "backupRegion": "us-east-1",
+    "rpoMinutes": 60,
+    "rtoMinutes": 240,
+    "enableAutomatedFailover": false
+  },
+  
+  "tags": {
+    "Environment": "hybrid",
+    "Project": "embedding-hybrid",
+    "CostCenter": "hybrid-infrastructure",
+    "Owner": "hybrid-team",
+    "Architecture": "hybrid-cloud",
+    "Integration": "on-premises"
+  }
+}

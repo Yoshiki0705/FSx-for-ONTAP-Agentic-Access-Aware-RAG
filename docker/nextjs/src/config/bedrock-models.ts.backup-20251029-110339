@@ -1,0 +1,563 @@
+// 利用可能なBedrock inference profilesの設定
+
+export interface BedrockModel {
+  id: string;
+  name: string;
+  description: string;
+  provider: 'anthropic' | 'amazon';
+  category: 'chat' | 'embedding';
+  maxTokens: number;
+  temperature: number;
+  topP: number;
+}
+
+/**
+ * モデル性能レベル
+ */
+export enum ModelPerformanceLevel {
+  ULTRA = 'ultra',      // 最高性能
+  HIGH = 'high',        // 高性能
+  BALANCED = 'balanced', // バランス型
+  FAST = 'fast',        // 高速
+  MICRO = 'micro'       // 超軽量
+}
+
+/**
+ * モデル地域最適化
+ */
+export enum ModelRegion {
+  JAPAN = 'jp',
+  GLOBAL = 'global',
+  APAC = 'apac'
+}
+
+/**
+ * BedrockModelのビルダークラス
+ */
+class BedrockModelBuilder {
+  private model: Partial<BedrockModel> = {};
+
+  constructor(id: string) {
+    this.model.id = id;
+  }
+
+  name(name: string): BedrockModelBuilder {
+    this.model.name = name;
+    return this;
+  }
+
+  description(description: string): BedrockModelBuilder {
+    this.model.description = description;
+    return this;
+  }
+
+  provider(provider: 'anthropic' | 'amazon'): BedrockModelBuilder {
+    this.model.provider = provider;
+    return this;
+  }
+
+  category(category: 'chat' | 'embedding'): BedrockModelBuilder {
+    this.model.category = category;
+    return this;
+  }
+
+  maxTokens(maxTokens: number): BedrockModelBuilder {
+    this.model.maxTokens = maxTokens;
+    return this;
+  }
+
+  temperature(temperature: number): BedrockModelBuilder {
+    this.model.temperature = temperature;
+    return this;
+  }
+
+  topP(topP: number): BedrockModelBuilder {
+    this.model.topP = topP;
+    return this;
+  }
+
+  build(): BedrockModel {
+    if (!this.model.id || !this.model.name || !this.model.provider || !this.model.category) {
+      throw new Error('必須フィールドが不足しています');
+    }
+    return this.model as BedrockModel;
+  }
+}
+
+/**
+ * モデルファクトリークラス
+ */
+class BedrockModelFactory {
+  /**
+   * Claude 4.5 Sonnetモデルを作成
+   */
+  static createClaude45Sonnet(region: ModelRegion, version: string): BedrockModel {
+    const regionPrefix = region === ModelRegion.JAPAN ? 'jp' : 
+                        region === ModelRegion.GLOBAL ? 'global' : 'apac';
+    const regionName = region === ModelRegion.JAPAN ? ' (JP)' : 
+                      region === ModelRegion.GLOBAL ? ' (Global)' : '';
+    const optimization = region === ModelRegion.JAPAN ? ' - 日本語最適化版' : 
+                        region === ModelRegion.GLOBAL ? ' - グローバル版' : '';
+
+    return new BedrockModelBuilder(`${regionPrefix}.anthropic.claude-sonnet-4-5-${version}`)
+      .name(`Claude 4.5 Sonnet${regionName}`)
+      .description(`最新のClaude 4.5 Sonnet${optimization}`)
+      .provider('anthropic')
+      .category('chat')
+      .maxTokens(4000)
+      .temperature(0.7)
+      .topP(0.9)
+      .build();
+  }
+
+  /**
+   * Claude 4 Sonnetモデルを作成
+   */
+  static createClaude4Sonnet(region: ModelRegion, version: string): BedrockModel {
+    const regionPrefix = region === ModelRegion.JAPAN ? 'jp' : 
+                        region === ModelRegion.GLOBAL ? 'global' : 'apac';
+    const regionName = region === ModelRegion.JAPAN ? ' (JP)' : 
+                      region === ModelRegion.GLOBAL ? ' (Global)' : '';
+    const optimization = region === ModelRegion.JAPAN ? ' - 日本語最適化版' : 
+                        region === ModelRegion.GLOBAL ? ' - グローバル版' : '';
+
+    return new BedrockModelBuilder(`${regionPrefix}.anthropic.claude-sonnet-4-${version}`)
+      .name(`Claude 4 Sonnet${regionName}`)
+      .description(`Claude 4 Sonnet${optimization}`)
+      .provider('anthropic')
+      .category('chat')
+      .maxTokens(4000)
+      .temperature(0.7)
+      .topP(0.9)
+      .build();
+  }
+
+  /**
+   * Claude 3.5 Sonnetモデルを作成
+   */
+  static createClaude35Sonnet(version: string, description: string): BedrockModel {
+    return new BedrockModelBuilder(`apac.anthropic.claude-3-5-sonnet-${version}`)
+      .name(`Claude 3.5 Sonnet ${version.includes('v2') ? 'v2' : 'v1'}`)
+      .description(description)
+      .provider('anthropic')
+      .category('chat')
+      .maxTokens(4000)
+      .temperature(0.7)
+      .topP(0.9)
+      .build();
+  }
+
+  /**
+   * Claude Haikuモデルを作成
+   */
+  static createClaudeHaiku(region: ModelRegion, version: string, modelVersion: string): BedrockModel {
+    const regionPrefix = region === ModelRegion.JAPAN ? 'jp' : 
+                        region === ModelRegion.GLOBAL ? 'global' : 'apac';
+    const regionName = region === ModelRegion.JAPAN ? ' (JP)' : 
+                      region === ModelRegion.GLOBAL ? ' (Global)' : '';
+    const optimization = region === ModelRegion.JAPAN ? '（日本語最適化）' : 
+                        region === ModelRegion.GLOBAL ? '（グローバル）' : '';
+
+    return new BedrockModelBuilder(`${regionPrefix}.anthropic.claude-haiku-${version}`)
+      .name(`Claude ${modelVersion} Haiku${regionName}`)
+      .description(`Claude ${modelVersion} Haiku - 高速・軽量版${optimization}`)
+      .provider('anthropic')
+      .category('chat')
+      .maxTokens(2000)
+      .temperature(0.7)
+      .topP(0.9)
+      .build();
+  }
+
+  /**
+   * Amazon Novaモデルを作成
+   */
+  static createAmazonNova(level: ModelPerformanceLevel): BedrockModel {
+    const levelConfig = {
+      [ModelPerformanceLevel.ULTRA]: { name: 'Pro', desc: '最新のAmazonモデル', tokens: 4000 },
+      [ModelPerformanceLevel.FAST]: { name: 'Lite', desc: '軽量・高速版', tokens: 2000 },
+      [ModelPerformanceLevel.MICRO]: { name: 'Micro', desc: '超軽量・超高速版', tokens: 1000 }
+    };
+
+    const config = levelConfig[level];
+    if (!config) {
+      throw new Error(`サポートされていないパフォーマンスレベル: ${level}`);
+    }
+
+    return new BedrockModelBuilder(`apac.amazon.nova-${level}-v1:0`)
+      .name(`Amazon Nova ${config.name}`)
+      .description(`Amazon Nova ${config.name} - ${config.desc}`)
+      .provider('amazon')
+      .category('chat')
+      .maxTokens(config.tokens)
+      .temperature(0.7)
+      .topP(0.9)
+      .build();
+  }
+}
+
+/**
+ * 利用可能なBedrockモデル一覧を生成
+ * ファクトリーパターンを使用してモデルを動的に生成
+ * 遅延初期化でメモリ効率を向上
+ */
+let _availableModels: BedrockModel[] | null = null;
+
+export const AVAILABLE_MODELS: BedrockModel[] = (() => {
+  if (_availableModels === null) {
+    _availableModels = [
+  // Claude 4.5 Sonnet (最新・最高性能)
+  BedrockModelFactory.createClaude45Sonnet(ModelRegion.JAPAN, '20250929-v1:0'),
+  BedrockModelFactory.createClaude45Sonnet(ModelRegion.GLOBAL, '20250929-v1:0'),
+
+  // Claude 4 Sonnet
+  BedrockModelFactory.createClaude4Sonnet(ModelRegion.JAPAN, '20250514-v1:0'),
+  BedrockModelFactory.createClaude4Sonnet(ModelRegion.GLOBAL, '20250514-v1:0'),
+
+  // Claude 3.7 Sonnet
+  new BedrockModelBuilder('apac.anthropic.claude-3-7-sonnet-20250219-v1:0')
+    .name('Claude 3.7 Sonnet')
+    .description('Claude 3.7 Sonnet - 高性能バランス型')
+    .provider('anthropic')
+    .category('chat')
+    .maxTokens(4000)
+    .temperature(0.7)
+    .topP(0.9)
+    .build(),
+
+  // Claude 3.5 Sonnet
+  BedrockModelFactory.createClaude35Sonnet('20241022-v2:0', 'Claude 3.5 Sonnet 最新版 - 推奨'),
+  BedrockModelFactory.createClaude35Sonnet('20240620-v1:0', 'Claude 3.5 Sonnet 初期版'),
+
+  // Claude 3 Sonnet
+  new BedrockModelBuilder('apac.anthropic.claude-3-sonnet-20240229-v1:0')
+    .name('Claude 3 Sonnet')
+    .description('Claude 3 Sonnet - 安定版')
+    .provider('anthropic')
+    .category('chat')
+    .maxTokens(4000)
+    .temperature(0.7)
+    .topP(0.9)
+    .build(),
+
+  // Claude 4.5 Haiku (高速・軽量)
+  BedrockModelFactory.createClaudeHaiku(ModelRegion.JAPAN, '4-5-20251001-v1:0', '4.5'),
+  BedrockModelFactory.createClaudeHaiku(ModelRegion.GLOBAL, '4-5-20251001-v1:0', '4.5'),
+
+  // Claude 3 Haiku
+  BedrockModelFactory.createClaudeHaiku(ModelRegion.APAC, '3-haiku-20240307-v1:0', '3'),
+
+  // Amazon Nova シリーズ
+  BedrockModelFactory.createAmazonNova(ModelPerformanceLevel.ULTRA),
+  BedrockModelFactory.createAmazonNova(ModelPerformanceLevel.FAST),
+  BedrockModelFactory.createAmazonNova(ModelPerformanceLevel.MICRO)
+    ];
+  }
+  return _availableModels;
+})();
+
+/**
+ * モデル検索結果の型定義
+ */
+export interface ModelSearchResult {
+  model: BedrockModel;
+  score: number; // 検索スコア（0-1）
+}
+
+/**
+ * モデル管理クラス - Singletonパターン
+ */
+export class BedrockModelManager {
+  private static instance: BedrockModelManager;
+  private models: Map<string, BedrockModel> = new Map();
+  private providerIndex: Map<string, BedrockModel[]> = new Map();
+  private categoryIndex: Map<string, BedrockModel[]> = new Map();
+
+  private constructor() {
+    this.initializeModels();
+    this.buildIndexes();
+  }
+
+  static getInstance(): BedrockModelManager {
+    if (!BedrockModelManager.instance) {
+      BedrockModelManager.instance = new BedrockModelManager();
+    }
+    return BedrockModelManager.instance;
+  }
+
+  private initializeModels(): void {
+    AVAILABLE_MODELS.forEach(model => {
+      this.models.set(model.id, model);
+    });
+  }
+
+  private buildIndexes(): void {
+    // プロバイダー別インデックス構築
+    this.providerIndex.set('anthropic', []);
+    this.providerIndex.set('amazon', []);
+
+    // カテゴリ別インデックス構築
+    this.categoryIndex.set('chat', []);
+    this.categoryIndex.set('embedding', []);
+
+    AVAILABLE_MODELS.forEach(model => {
+      this.providerIndex.get(model.provider)?.push(model);
+      this.categoryIndex.get(model.category)?.push(model);
+    });
+  }
+
+  /**
+   * モデルIDからモデル情報を取得（型安全）
+   */
+  getModelById(modelId: string): BedrockModel | null {
+    const model = this.models.get(modelId);
+    if (!model) {
+      console.warn(`モデルが見つかりません: ${modelId}`);
+      return null;
+    }
+    return model;
+  }
+
+  /**
+   * プロバイダー別にモデルを取得（パフォーマンス最適化）
+   */
+  getModelsByProvider(provider: 'anthropic' | 'amazon'): BedrockModel[] {
+    return this.providerIndex.get(provider) || [];
+  }
+
+  /**
+   * カテゴリ別にモデルを取得
+   */
+  getModelsByCategory(category: 'chat' | 'embedding'): BedrockModel[] {
+    return this.categoryIndex.get(category) || [];
+  }
+
+  /**
+   * パフォーマンスレベル別にモデルを検索
+   */
+  getModelsByPerformance(maxTokens: number): BedrockModel[] {
+    return Array.from(this.models.values()).filter(model => model.maxTokens >= maxTokens);
+  }
+
+  /**
+   * 地域最適化モデルを検索
+   */
+  getRegionOptimizedModels(region: ModelRegion): BedrockModel[] {
+    const regionPrefix = region === ModelRegion.JAPAN ? 'jp.' : 
+                        region === ModelRegion.GLOBAL ? 'global.' : 'apac.';
+    
+    return Array.from(this.models.values()).filter(model => 
+      model.id.startsWith(regionPrefix)
+    );
+  }
+
+  /**
+   * 推奨モデルを取得（動的生成）
+   */
+  getRecommendedModels(): BedrockModel[] {
+    const recommendedIds = [
+      'jp.anthropic.claude-sonnet-4-5-20250929-v1:0', // Claude 4.5 Sonnet (JP) - 最新
+      'apac.anthropic.claude-3-5-sonnet-20241022-v2:0', // Claude 3.5 Sonnet v2 - 安定
+      'apac.amazon.nova-ultra-v1:0', // Amazon Nova Pro - Amazon最新
+      'jp.anthropic.claude-haiku-4-5-20251001-v1:0', // Claude 4.5 Haiku (JP) - 高速
+    ];
+
+    return recommendedIds
+      .map(id => this.getModelById(id))
+      .filter((model): model is BedrockModel => model !== null);
+  }
+
+  /**
+   * 全モデル一覧を取得
+   */
+  getAllModels(): BedrockModel[] {
+    return Array.from(this.models.values());
+  }
+
+  /**
+   * モデル検索（あいまい検索対応）
+   */
+  searchModels(query: string): ModelSearchResult[] {
+    const results: ModelSearchResult[] = [];
+    const queryLower = query.toLowerCase();
+
+    Array.from(this.models.values()).forEach(model => {
+      let score = 0;
+
+      // 名前での完全一致
+      if (model.name.toLowerCase() === queryLower) {
+        score = 1.0;
+      }
+      // 名前での部分一致
+      else if (model.name.toLowerCase().includes(queryLower)) {
+        score = 0.8;
+      }
+      // 説明での部分一致
+      else if (model.description.toLowerCase().includes(queryLower)) {
+        score = 0.6;
+      }
+      // プロバイダーでの一致
+      else if (model.provider.toLowerCase().includes(queryLower)) {
+        score = 0.4;
+      }
+
+      if (score > 0) {
+        results.push({ model, score });
+      }
+    });
+
+    return results.sort((a, b) => b.score - a.score);
+  }
+}
+
+// デフォルトモデル（型安全な取得）
+export const DEFAULT_MODEL_ID = 'apac.anthropic.claude-3-5-sonnet-20241022-v2:0';
+
+/**
+ * 便利関数（後方互換性のため）
+ */
+export function getModelById(modelId: string): BedrockModel | undefined {
+  const manager = BedrockModelManager.getInstance();
+  return manager.getModelById(modelId) || undefined;
+}
+
+export function getModelsByProvider(provider: 'anthropic' | 'amazon'): BedrockModel[] {
+  const manager = BedrockModelManager.getInstance();
+  return manager.getModelsByProvider(provider);
+}
+
+/**
+ * モデル設定のバリデーション
+ */
+export class ModelConfigValidator {
+  /**
+   * モデル設定の妥当性を検証
+   */
+  static validateModel(model: BedrockModel): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // 必須フィールドの検証
+    if (!model.id || model.id.trim() === '') {
+      errors.push('モデルIDは必須です');
+    }
+
+    if (!model.name || model.name.trim() === '') {
+      errors.push('モデル名は必須です');
+    }
+
+    // 数値範囲の検証
+    if (model.maxTokens <= 0 || model.maxTokens > 100000) {
+      errors.push('maxTokensは1-100000の範囲で設定してください');
+    }
+
+    if (model.temperature < 0 || model.temperature > 2) {
+      errors.push('temperatureは0-2の範囲で設定してください');
+    }
+
+    if (model.topP < 0 || model.topP > 1) {
+      errors.push('topPは0-1の範囲で設定してください');
+    }
+
+    // プロバイダーの検証
+    if (!['anthropic', 'amazon'].includes(model.provider)) {
+      errors.push('プロバイダーはanthropic または amazon である必要があります');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * 全モデルの設定を検証
+   */
+  static validateAllModels(): { isValid: boolean; modelErrors: Map<string, string[]> } {
+    const modelErrors = new Map<string, string[]>();
+    let isValid = true;
+
+    AVAILABLE_MODELS.forEach(model => {
+      const validation = this.validateModel(model);
+      if (!validation.isValid) {
+        modelErrors.set(model.id, validation.errors);
+        isValid = false;
+      }
+    });
+
+    return { isValid, modelErrors };
+  }
+}
+
+/**
+ * 設定の外部化対応
+ */
+export interface ModelConfigOptions {
+  enableRegionOptimization?: boolean;
+  defaultTemperature?: number;
+  defaultTopP?: number;
+  enablePerformanceLogging?: boolean;
+}
+
+export class ModelConfigManager {
+  private static options: ModelConfigOptions = {
+    enableRegionOptimization: true,
+    defaultTemperature: 0.7,
+    defaultTopP: 0.9,
+    enablePerformanceLogging: false
+  };
+
+  static setOptions(options: Partial<ModelConfigOptions>): void {
+    this.options = { ...this.options, ...options };
+  }
+
+  static getOptions(): ModelConfigOptions {
+    return { ...this.options };
+  }
+
+  /**
+   * 環境変数からの設定読み込み
+   */
+  static loadFromEnvironment(): void {
+    if (typeof process !== 'undefined' && process.env) {
+      const envOptions: Partial<ModelConfigOptions> = {};
+
+      if (process.env.BEDROCK_ENABLE_REGION_OPTIMIZATION) {
+        envOptions.enableRegionOptimization = process.env.BEDROCK_ENABLE_REGION_OPTIMIZATION === 'true';
+      }
+
+      if (process.env.BEDROCK_DEFAULT_TEMPERATURE) {
+        const temp = parseFloat(process.env.BEDROCK_DEFAULT_TEMPERATURE);
+        if (!isNaN(temp)) {
+          envOptions.defaultTemperature = temp;
+        }
+      }
+
+      if (process.env.BEDROCK_DEFAULT_TOP_P) {
+        const topP = parseFloat(process.env.BEDROCK_DEFAULT_TOP_P);
+        if (!isNaN(topP)) {
+          envOptions.defaultTopP = topP;
+        }
+      }
+
+      if (process.env.BEDROCK_ENABLE_PERFORMANCE_LOGGING) {
+        envOptions.enablePerformanceLogging = process.env.BEDROCK_ENABLE_PERFORMANCE_LOGGING === 'true';
+      }
+
+      this.setOptions(envOptions);
+    }
+  }
+}
+
+// 初期化時に環境変数から設定を読み込み
+ModelConfigManager.loadFromEnvironment();
+
+// 推奨モデル（動的生成）
+export const RECOMMENDED_MODELS = BedrockModelManager.getInstance().getRecommendedModels().map(model => model.id);
+
+// 設定検証の実行（開発時のみ）
+if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+  const validation = ModelConfigValidator.validateAllModels();
+  if (!validation.isValid) {
+    console.warn('⚠️ モデル設定に問題があります:', validation.modelErrors);
+  }
+}

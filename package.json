@@ -1,0 +1,72 @@
+{
+  "name": "permission-aware-rag-fsxn-cdk",
+  "version": "1.0.0",
+  "description": "Permission-aware RAG System with FSx for NetApp ONTAP - Modular Architecture with Multi-Region Support",
+  "bin": {
+    "permission-aware-rag-fsxn-cdk": "bin/modular-integrated-app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "test:integration": "jest tests/integration --verbose --detectOpenHandles --forceExit",
+    "test:integration:full-stack": "jest tests/integration/full-stack-integration.test.ts --verbose --detectOpenHandles --forceExit",
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "deploy": "cdk deploy",
+    "deploy:all": "cdk deploy --all",
+    "destroy": "cdk destroy",
+    "diff": "cdk diff",
+    "bootstrap": "cdk bootstrap"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-bedrock": "^3.940.0",
+    "@aws-sdk/client-bedrock-agent": "^3.940.0",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.9",
+    "aws-cdk": "2.1033.0",
+    "aws-sdk-client-mock": "^4.1.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.5",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.5.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.700.0",
+    "@aws-sdk/client-cloudwatch": "^3.700.0",
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/client-ec2": "^3.700.0",
+    "@aws-sdk/client-fsx": "^3.700.0",
+    "@aws-sdk/client-iam": "^3.700.0",
+    "@aws-sdk/client-kms": "^3.700.0",
+    "@aws-sdk/client-lambda": "^3.700.0",
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/client-secrets-manager": "^3.700.0",
+    "@aws-sdk/client-sns": "^3.700.0",
+    "@aws-sdk/client-ssm": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "aws-cdk-lib": "2.228.0",
+    "cdk-docker-image-deployment": "^0.0.932",
+    "cdk-nag": "^2.37.55",
+    "constructs": "^10.3.0",
+    "source-map-support": "^0.5.21"
+  },
+  "keywords": [
+    "aws",
+    "cdk",
+    "rag",
+    "fsx",
+    "netapp",
+    "ontap",
+    "bedrock",
+    "opensearch",
+    "lambda",
+    "permission-aware"
+  ],
+  "author": "NetApp Japan Tech Team",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NetAppJpTechTeam/Permission-aware-RAG-FSxN-CDK.git"
+  }
+}

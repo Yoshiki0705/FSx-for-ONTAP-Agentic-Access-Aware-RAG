@@ -1,0 +1,414 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import { type Locale } from '@/i18n/config';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useSidebarStore } from '@/store/useSidebarStore';
+import { useChatHistory } from '@/hooks/useChatHistory';
+import { Button } from '@/components/ui/Button';
+import { MessageInput } from '@/components/chat/MessageInput';
+import { type Message } from '@/types/chat';
+
+// v9: Dynamic import ModeSwitchableSidebar to prevent SSR
+// This ensures useSidebarStore is only initialized on client-side
+const ModeSwitchableSidebar = dynamic(
+  () => import('@/components/sidebar/ModeSwitchableSidebar').then(mod => ({ default: mod.ModeSwitchableSidebar })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-80 bg-white border-r border-gray-200 flex items-center justify-center">
+        <div className="text-gray-400 text-sm">Loading sidebar...</div>
+      </div>
+    )
+  }
+);
+
+interface ChatbotClientWithSidebarProps {
+  mode: 'kb' | 'agent';
+  locale: Locale;
+}
+
+interface BedrockAPIResponse {
+  success: boolean;
+  answer?: string;
+  sessionId?: string;
+  region?: string;
+  model?: string;
+  error?: string;
+}
+
+// Phase 2: サイドバー統合 + チャット履歴管理
+function ClientOnlyContent({ mode, locale }: ChatbotClientWithSidebarProps) {
+  console.log('[ChatbotClientWithSidebar] Component render started');
+  
+  const router = useRouter();
+  const { isAuthenticated, checkSession, session } = useAuthStore();
+  const user = session?.user;
+  
+  const [hasMounted, setHasMounted] = useState(false);
+  const [isOpen, setIsOpen] = useState(true); // ローカル状態で管理
+  
+  const {
+    sessions,
+    currentSessionId,
+    isLoaded: historyLoaded,
+    createSession,
+    addMessage,
+    deleteSession,
+    getSession,
+    switchSession
+  } = useChatHistory();
+  
+  // サイドバー状態のデバッグログ
+  useEffect(() => {
+    console.log('[ChatbotClientWithSidebar] Sidebar state:', { isOpen, sessionsCount: sessions.length });
+  }, [isOpen, sessions.length]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [sessionId, setSessionId] = useState<string>('');
+  const [selectedRegion] = useState<string>('ap-northeast-1');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    console.log('[ChatbotClientWithSidebar] Mount useEffect');
+    setHasMounted(true);
+    
+    // v11: async/awaitを使用してcheckSession()の結果を正しく待つ
+    const initAuth = async () => {
+      const isValid = await checkSession();
+      
+      if (!isValid) {
+        console.log('[ChatbotClientWithSidebar] Not authenticated, redirecting to signin');
+        router.push(`/${locale}/signin`);
+        return;
+      }
+      
+      console.log('[ChatbotClientWithSidebar] Authenticated, initializing session');
+      
+      // セッションIDの初期化
+      try {
+        const response = await fetch('/api/auth/session');
+        const data = await response.json();
+        
+        if (data.success && data.session) {
+          setSessionId(data.session.userId);
+          console.log('[ChatbotClientWithSidebar] Session initialized:', data.session.userId);
+        }
+      } catch (error) {
+        console.error('[ChatbotClientWithSidebar] Session init error:', error);
+      }
+    };
+    
+    initAuth();
+  }, [checkSession, locale, router]);
+
+  // Zustand storeとの同期（クライアントサイドのみ）
+  useEffect(() => {
+    if (hasMounted) {
+      const sidebarStore = useSidebarStore.getState();
+      setIsOpen(sidebarStore.isOpen);
+      
+      // ストアの変更を監視
+      const unsubscribe = useSidebarStore.subscribe((state) => {
+        setIsOpen(state.isOpen);
+      });
+      
+      return () => unsubscribe();
+    }
+  }, [hasMounted]);
+
+  // 履歴が読み込まれたら、最初のセッションを作成または復元
+  useEffect(() => {
+    if (historyLoaded && !currentSessionId) {
+      if (sessions.length > 0) {
+        // 最新のセッションを復元
+        const latestSession = sessions[0];
+        switchSession(latestSession.id);
+        setMessages(latestSession.messages);
+        console.log('[ChatbotClientWithSidebar] Restored latest session:', latestSession.id);
+      } else {
+        // 新しいセッションを作成
+        const newSessionId = createSession(mode);
+        console.log('[ChatbotClientWithSidebar] Created initial session:', newSessionId);
+      }
+    }
+  }, [historyLoaded, currentSessionId, sessions, mode, createSession, switchSession]);
+
+  // セッション切り替え時にメッセージを復元
+  useEffect(() => {
+    if (currentSessionId) {
+      const session = getSession(currentSessionId);
+      if (session) {
+        setMessages(session.messages);
+        console.log('[ChatbotClientWithSidebar] Loaded messages for session:', currentSessionId, session.messages.length);
+      }
+    }
+  }, [currentSessionId, getSession]);
+
+  // メッセージリストの自動スクロール
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    const content = inputValue.trim();
+    if (!content || isLoading) return;
+
+    // 入力をクリア
+    setInputValue('');
+
+    // ユーザーメッセージを作成
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content,
+      timestamp: Date.now()
+    };
+    
+    // UIに即座に表示
+    setMessages(prev => [...prev, userMessage]);
+    
+    // 履歴に保存
+    if (currentSessionId) {
+      addMessage(currentSessionId, userMessage);
+    }
+    
+    setIsLoading(true);
+
+    try {
+      console.log('[ChatbotClientWithSidebar] Calling Bedrock API:', { mode, sessionId, region: selectedRegion });
+      
+      // Bedrock API呼び出し
+      const response = await fetch('/api/bedrock/agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: content,
+          sessionId: sessionId || `session-${Date.now()}`,
+          region: selectedRegion,
+          mode: mode,
+          settings: {
+            temperature: 0.7,
+            maxTokens: 2000,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const result: BedrockAPIResponse = await response.json();
+      console.log('[ChatbotClientWithSidebar] Bedrock API response:', result);
+      
+      if (result.success && result.answer) {
+        const assistantMessage: Message = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: result.answer,
+          timestamp: Date.now()
+        };
+        
+        // UIに表示
+        setMessages(prev => [...prev, assistantMessage]);
+        
+        // 履歴に保存
+        if (currentSessionId) {
+          addMessage(currentSessionId, assistantMessage);
+        }
+        
+        // セッションIDを更新
+        if (result.sessionId) {
+          setSessionId(result.sessionId);
+        }
+      } else {
+        throw new Error(result.error || 'Unknown error from Bedrock API');
+      }
+    } catch (error) {
+      console.error('[ChatbotClientWithSidebar] Error sending message:', error);
+      
+      // エラーメッセージを表示
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: `エラーが発生しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNewChat = () => {
+    const newSessionId = createSession(mode);
+    setMessages([]);
+    setInputValue('');
+    console.log('[ChatbotClientWithSidebar] New chat created:', newSessionId);
+  };
+
+  const handleSessionSwitch = (sessionId: string) => {
+    console.log('[ChatbotClientWithSidebar] Switching to session:', sessionId);
+    switchSession(sessionId);
+    const session = getSession(sessionId);
+    if (session) {
+      setMessages(session.messages);
+      console.log('[ChatbotClientWithSidebar] Loaded messages for session:', sessionId, session.messages.length);
+    }
+  };
+
+  const handleSessionDelete = async (sessionId: string) => {
+    if (window.confirm('このチャットを削除してもよろしいですか？')) {
+      console.log('[ChatbotClientWithSidebar] Deleting session:', sessionId);
+      await deleteSession(sessionId);
+      if (sessionId === currentSessionId) {
+        handleNewChat();
+      }
+    }
+  };
+
+  const handleClearHistory = () => {
+    if (window.confirm('現在のチャット履歴を削除してもよろしいですか？')) {
+      setMessages([]);
+      handleNewChat();
+    }
+  };
+
+  // v12: マウント前またはリダイレクト中は共通のローディング画面を表示
+  // isAuthenticatedの状態に関わらず、initAuth()内でリダイレクトが実行される
+  if (!hasMounted || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">
+            {!hasMounted ? '読み込み中...' : 'サインインページにリダイレクト中...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // サイドバーのトグル関数
+  const handleToggleSidebar = () => {
+    if (hasMounted) {
+      const sidebarStore = useSidebarStore.getState();
+      sidebarStore.toggle();
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      {/* サイドバー */}
+      <ModeSwitchableSidebar
+        agentMode={mode === 'agent'}
+        currentSessionId={currentSessionId}
+        sessions={sessions}
+        onNewChat={handleNewChat}
+        onSessionSwitch={handleSessionSwitch}
+        onSessionDelete={handleSessionDelete}
+        userName={user?.username || 'ユーザー'}
+        userEmail={undefined}
+        isOpen={isOpen}
+        onToggle={handleToggleSidebar}
+      />
+      
+      {/* メインコンテンツ */}
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${isOpen ? 'ml-80' : 'ml-0'}`}>
+        {/* ヘッダー */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
+                {mode === 'kb' ? 'ナレッジベースモード' : 'エージェントモード'}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                AIアシスタントとチャットできます
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleClearHistory}
+                variant="outline"
+                disabled={messages.length === 0}
+              >
+                履歴削除
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* メッセージリスト */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center text-gray-500">
+                <p className="text-lg mb-2">チャットを開始しましょう</p>
+                <p className="text-sm">メッセージを入力して送信してください</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 max-w-4xl mx-auto">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                      message.role === 'user'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white border border-gray-200 text-gray-900'
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    <p
+                      className={`text-xs mt-2 ${
+                        message.role === 'user' ? 'text-blue-100' : 'text-gray-400'
+                      }`}
+                    >
+                      {message.timestamp ? new Date(message.timestamp).toLocaleTimeString(locale) : ''}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span className="text-gray-600">考え中...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+
+        {/* メッセージ入力 */}
+        <div className="bg-white border-t border-gray-200 px-6 py-4">
+          <div className="max-w-4xl mx-auto">
+            <MessageInput
+              value={inputValue}
+              onChange={setInputValue}
+              onSubmit={handleSendMessage}
+              disabled={isLoading}
+              placeholder="メッセージを入力..."
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ChatbotClientWithSidebar(props: ChatbotClientWithSidebarProps) {
+  return <ClientOnlyContent {...props} />;
+}

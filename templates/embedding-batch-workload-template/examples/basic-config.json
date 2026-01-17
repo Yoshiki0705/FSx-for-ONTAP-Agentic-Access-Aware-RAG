@@ -1,0 +1,230 @@
+{
+  "//": "Basic Configuration Template for FSx for NetApp ONTAP Embedding Batch Workload",
+  "//": "This template provides minimal configuration for development environments",
+  "//": "",
+  "//": "Required Parameters:",
+  "//": "  - projectName: Your project identifier (lowercase, hyphens allowed)",
+  "//": "  - vpc.existing.vpcId: Your existing VPC ID",
+  "//": "  - vpc.existing.privateSubnetIds: Array of private subnet IDs",
+  "//": "  - fsx.existing.fileSystemId: Your FSx for NetApp ONTAP file system ID",
+  "//": "",
+  "//": "Optional Parameters:",
+  "//": "  - aws.profile: AWS CLI profile name",
+  "//": "  - bedrock.region: Bedrock service region",
+  "//": "  - monitoring.alerting.emailEndpoints: Email addresses for alerts",
+
+  "projectName": "my-embedding-workload",
+  "environment": "dev",
+  "region": "ap-northeast-1",
+  "version": "1.0.0",
+
+  "aws": {
+    "profile": "default"
+  },
+
+  "stackNaming": {
+    "useAgentSteeringRules": true,
+    "regionPrefix": "TokyoRegion",
+    "stackPrefix": "permission-aware-rag"
+  },
+
+  "bedrock": {
+    "embeddingModel": {
+      "modelId": "amazon.titan-embed-text-v2",
+      "dimensions": 1536,
+      "maxTokens": 8192
+    },
+    "textModel": {
+      "modelId": "amazon.nova-micro-v1:0",
+      "maxTokens": 4096,
+      "temperature": 0.1
+    },
+    "region": "ap-northeast-1"
+  },
+
+  "vpc": {
+    "mode": "existing",
+    "existing": {
+      "vpcId": "vpc-xxxxxxxxx",
+      "privateSubnetIds": [
+        "subnet-xxxxxxxxx",
+        "subnet-yyyyyyyyy"
+      ],
+      "publicSubnetIds": [
+        "subnet-zzzzzzzzz"
+      ]
+    }
+  },
+
+  "fsx": {
+    "mode": "existing",
+    "existing": {
+      "fileSystemId": "fs-xxxxxxxxx",
+      "volumePath": "/rag-data",
+      "mountPoint": "/mnt/fsx-rag-data",
+      "deploymentType": "SINGLE_AZ_1",
+      "storageCapacity": 1024,
+      "throughputCapacity": 128
+    }
+  },
+
+  "batch": {
+    "computeEnvironment": {
+      "maxvCpus": 100,
+      "minvCpus": 0,
+      "desiredvCpus": 0,
+      "instanceTypes": ["m5.large"],
+      "useSpotInstances": true,
+      "spotBidPercentage": 50
+    },
+    "jobQueue": {
+      "priority": 1
+    },
+    "jobDefinitions": {
+      "documentProcessing": {
+        "vcpus": 1,
+        "memoryMiB": 2048,
+        "timeoutSeconds": 3600,
+        "retryAttempts": 2
+      },
+      "embeddingGeneration": {
+        "vcpus": 2,
+        "memoryMiB": 4096,
+        "timeoutSeconds": 7200,
+        "retryAttempts": 2
+      },
+      "ragQueryProcessing": {
+        "vcpus": 2,
+        "memoryMiB": 4096,
+        "timeoutSeconds": 1800,
+        "retryAttempts": 2
+      }
+    }
+  },
+
+  "storage": {
+    "s3": {
+      "enableVersioning": true,
+      "enableEncryption": true,
+      "lifecycleRules": {
+        "transitionToIA": 30,
+        "transitionToGlacier": 90,
+        "expiration": 365
+      }
+    },
+    "dynamodb": {
+      "billingMode": "PAY_PER_REQUEST",
+      "enablePointInTimeRecovery": false,
+      "enableEncryption": true
+    },
+    "opensearch": {
+      "create": true,
+      "collectionName": "embedding-vectors",
+      "indexName": "documents",
+      "vectorDimensions": 1536,
+      "engineType": "vectorsearch",
+      "standbyReplicas": "DISABLED",
+      "encryptionPolicy": {
+        "type": "encryption-at-rest",
+        "kmsKeyId": "auto"
+      },
+      "networkPolicy": {
+        "type": "vpc",
+        "vpcEndpoints": true
+      }
+    }
+  },
+
+  "monitoring": {
+    "cloudWatch": {
+      "enableDetailedMonitoring": false,
+      "createDashboard": false,
+      "logRetentionDays": 30,
+      "enableInsights": false
+    },
+    "alerting": {
+      "enableAlerts": false,
+      "emailEndpoints": []
+    },
+    "xray": {
+      "enableTracing": false,
+      "samplingRate": 0.1
+    }
+  },
+
+  "security": {
+    "iam": {
+      "enableMFA": false,
+      "passwordPolicy": {
+        "minLength": 8,
+        "requireUppercase": true,
+        "requireLowercase": true,
+        "requireNumbers": true,
+        "requireSymbols": false
+      }
+    },
+    "network": {
+      "enableWAF": false,
+      "allowedCIDRs": ["0.0.0.0/0"],
+      "enableVPCFlowLogs": false
+    },
+    "encryption": {
+      "enableKMSEncryption": false,
+      "enableS3Encryption": true,
+      "enableDynamoDBEncryption": true
+    },
+    "compliance": {
+      "enableGuardDuty": false,
+      "enableSecurityHub": false,
+      "enableConfig": false,
+      "enableCloudTrail": false
+    }
+  },
+
+  "costOptimization": {
+    "autoScaling": {
+      "enableAutoScaling": true,
+      "scaleDownDelay": 10,
+      "scaleUpThreshold": 70,
+      "scaleDownThreshold": 30
+    },
+    "resourceTagging": {
+      "costCenter": "engineering",
+      "project": "embedding-workload",
+      "owner": "team",
+      "environment": "dev",
+      "customTags": {}
+    },
+    "budgets": {
+      "enableBudgetAlerts": true,
+      "monthlyBudgetUSD": 200,
+      "alertThresholds": [50, 80, 100]
+    }
+  },
+
+  "development": {
+    "debugging": {
+      "enableDebugLogs": true,
+      "enableVerboseOutput": true,
+      "enablePerformanceMetrics": true
+    },
+    "testing": {
+      "enableTestMode": true,
+      "mockExternalServices": false
+    },
+    "deployment": {
+      "enableHotswap": true,
+      "enableRollback": true,
+      "deploymentTimeout": 20
+    }
+  },
+
+  "features": {
+    "enableDocumentProcessing": true,
+    "enableEmbeddingGeneration": true,
+    "enableRagQueryProcessing": true,
+    "enablePermissionFiltering": true,
+    "enableMultiLanguageSupport": false,
+    "enableAdvancedAnalytics": false
+  }
+}"

@@ -1,0 +1,268 @@
+{
+  "projectName": "permission-aware-rag",
+  "environment": "production",
+  "region": "ap-northeast-1",
+  "accountId": "REPLACE_WITH_YOUR_ACCOUNT_ID",
+  "tags": {
+    "Environment": "production",
+    "Project": "permission-aware-rag",
+    "Owner": "platform-team",
+    "CostCenter": "production",
+    "Backup": "required",
+    "Compliance": "required"
+  },
+  "fsx": {
+    "enabled": true,
+    "fileSystems": [
+      {
+        "enabled": true,
+        "name": "prod-ontap-fs",
+        "storageCapacity": 4096,
+        "throughputCapacity": 1024,
+        "deploymentType": "MULTI_AZ_1",
+        "storageEfficiency": true,
+        "backup": {
+          "enabled": true,
+          "retentionDays": 30,
+          "dailyAutomaticBackupStartTime": "02:00"
+        },
+        "encryption": {
+          "enabled": true,
+          "kmsKeyId": "REPLACE_WITH_KMS_KEY_ID"
+        },
+        "network": {
+          "subnetIds": [
+            "REPLACE_WITH_SUBNET_ID_1",
+            "REPLACE_WITH_SUBNET_ID_2"
+          ],
+          "securityGroupIds": ["REPLACE_WITH_SECURITY_GROUP_ID"],
+          "routeTableIds": [
+            "REPLACE_WITH_ROUTE_TABLE_ID_1",
+            "REPLACE_WITH_ROUTE_TABLE_ID_2"
+          ]
+        }
+      }
+    ],
+    "storageVirtualMachines": [
+      {
+        "enabled": true,
+        "name": "prod-svm",
+        "rootVolumeSecurityStyle": "UNIX",
+        "activeDirectoryConfiguration": {
+          "enabled": false
+        }
+      }
+    ],
+    "volumes": [
+      {
+        "enabled": true,
+        "name": "prod-hot-volume",
+        "sizeInMegabytes": 51200,
+        "securityStyle": "UNIX",
+        "ontapVolumeType": "RW",
+        "junctionPath": "/prod-hot-data"
+      },
+      {
+        "enabled": true,
+        "name": "prod-warm-volume",
+        "sizeInMegabytes": 102400,
+        "securityStyle": "UNIX",
+        "ontapVolumeType": "RW",
+        "junctionPath": "/prod-warm-data"
+      }
+    ]
+  },
+  "serverless": {
+    "enabled": true,
+    "stepFunctions": {
+      "enabled": true,
+      "workflows": [
+        {
+          "enabled": true,
+          "name": "prod-data-processing",
+          "purpose": "Process production data with high availability",
+          "role": {
+            "permissions": [
+              "lambda:InvokeFunction",
+              "fsx:DescribeFileSystems",
+              "fsx:DescribeBackups",
+              "fsx:CreateBackup",
+              "s3:GetObject",
+              "s3:PutObject",
+              "s3:DeleteObject",
+              "dynamodb:GetItem",
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem",
+              "dynamodb:DeleteItem",
+              "sns:Publish",
+              "cloudwatch:PutMetricData"
+            ]
+          }
+        },
+        {
+          "enabled": true,
+          "name": "prod-backup-workflow",
+          "purpose": "Automated backup and archival",
+          "role": {
+            "permissions": [
+              "fsx:CreateBackup",
+              "fsx:DescribeBackups",
+              "fsx:DeleteBackup",
+              "s3:PutObject",
+              "s3:GetObject",
+              "sns:Publish"
+            ]
+          }
+        }
+      ],
+      "execution": {
+        "timeout": 3600,
+        "retryAttempts": 5
+      }
+    },
+    "eventBridge": {
+      "enabled": true,
+      "rules": [
+        {
+          "enabled": true,
+          "name": "prod-file-change",
+          "eventPattern": {
+            "source": ["fsx.filesystem"],
+            "detail-type": ["File System State Change"]
+          },
+          "schedule": null
+        },
+        {
+          "enabled": true,
+          "name": "prod-backup-schedule",
+          "eventPattern": null,
+          "schedule": {
+            "expression": "cron(0 2 * * ? *)"
+          }
+        }
+      ]
+    },
+    "sqs": {
+      "enabled": true,
+      "queues": [
+        {
+          "enabled": true,
+          "name": "prod-processing-queue",
+          "configuration": {
+            "visibilityTimeoutSeconds": 900,
+            "messageRetentionPeriod": 1209600,
+            "maxReceiveCount": 5
+          }
+        },
+        {
+          "enabled": true,
+          "name": "prod-dlq",
+          "configuration": {
+            "visibilityTimeoutSeconds": 300,
+            "messageRetentionPeriod": 1209600,
+            "maxReceiveCount": 1
+          }
+        }
+      ]
+    },
+    "sns": {
+      "enabled": true,
+      "topics": [
+        {
+          "enabled": true,
+          "name": "prod-alerts",
+          "subscriptions": [
+            {
+              "enabled": true,
+              "protocol": "email",
+              "endpoint": "alerts@example.com"
+            },
+            {
+              "enabled": true,
+              "protocol": "sms",
+              "endpoint": "+1234567890"
+            }
+          ]
+        },
+        {
+          "enabled": true,
+          "name": "prod-notifications",
+          "subscriptions": [
+            {
+              "enabled": true,
+              "protocol": "email",
+              "endpoint": "ops-team@example.com"
+            }
+          ]
+        }
+      ]
+    },
+    "lambda": {
+      "functions": [
+        {
+          "enabled": true,
+          "name": "prod-data-processor",
+          "runtime": "python3.9",
+          "timeout": 900,
+          "memorySize": 2048,
+          "vpc": {
+            "enabled": true
+          },
+          "fileSystem": {
+            "enabled": true
+          },
+          "role": {
+            "permissions": [
+              "fsx:DescribeFileSystems",
+              "fsx:DescribeVolumes",
+              "dynamodb:GetItem",
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem",
+              "dynamodb:Query",
+              "s3:GetObject",
+              "s3:PutObject",
+              "s3:DeleteObject",
+              "cloudwatch:PutMetricData",
+              "xray:PutTraceSegments",
+              "xray:PutTelemetryRecords"
+            ]
+          }
+        },
+        {
+          "enabled": true,
+          "name": "prod-backup-manager",
+          "runtime": "python3.9",
+          "timeout": 600,
+          "memorySize": 1024,
+          "vpc": {
+            "enabled": false
+          },
+          "fileSystem": {
+            "enabled": false
+          },
+          "role": {
+            "permissions": [
+              "fsx:CreateBackup",
+              "fsx:DescribeBackups",
+              "fsx:DeleteBackup",
+              "fsx:DescribeFileSystems",
+              "s3:PutObject",
+              "s3:GetObject",
+              "sns:Publish",
+              "cloudwatch:PutMetricData"
+            ]
+          }
+        }
+      ]
+    },
+    "monitoring": {
+      "cloudWatch": {
+        "enabled": true,
+        "logRetentionDays": 30
+      },
+      "xray": {
+        "enabled": true
+      }
+    }
+  }
+}

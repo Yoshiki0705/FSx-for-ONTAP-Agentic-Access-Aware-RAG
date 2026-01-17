@@ -1,0 +1,21 @@
+{
+  "name": "agent-core-observability",
+  "version": "1.0.0",
+  "description": "Bedrock AgentCore Observability Lambda Function",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.700.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.700.0",
+    "@aws-sdk/client-xray": "^3.700.0",
+    "aws-xray-sdk-core": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

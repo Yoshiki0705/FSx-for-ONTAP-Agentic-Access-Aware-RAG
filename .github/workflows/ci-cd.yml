@@ -1,0 +1,497 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Test mode (quick/full)'
+        required: false
+        default: 'quick'
+        type: choice
+        options:
+          - quick
+          - full
+
+env:
+  AWS_REGION: us-east-1
+  NODE_VERSION: '20'
+
+jobs:
+  # 環境セットアップと事前チェック
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      test-mode: ${{ steps.determine-mode.outputs.test-mode }}
+      should-deploy: ${{ steps.determine-mode.outputs.should-deploy }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine test mode and deployment
+        id: determine-mode
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "test-mode=${{ github.event.inputs.test_mode }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "test-mode=full" >> $GITHUB_OUTPUT
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "test-mode=full" >> $GITHUB_OUTPUT
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+          else
+            echo "test-mode=quick" >> $GITHUB_OUTPUT
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+  # クイックテスト（全ブランチで実行）
+  quick-tests:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup test environment
+        run: |
+          chmod +x development/scripts/testing/quick_integration_test.sh
+          mkdir -p development/logs/testing
+
+      - name: Run quick integration tests
+        id: quick-tests
+        run: |
+          echo "🚀 クイックテスト実行開始"
+          ./development/scripts/testing/quick_integration_test.sh --mode quick --verbose > test_output.log 2>&1
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Parse test results
+        id: parse-results
+        run: |
+          if [[ -f "test_output.log" ]]; then
+            # テスト結果の解析
+            total_tests=$(grep -o "総テスト数: [0-9]*" test_output.log | grep -o "[0-9]*" || echo "0")
+            passed_tests=$(grep -o "成功: [0-9]*" test_output.log | grep -o "[0-9]*" || echo "0")
+            failed_tests=$(grep -o "失敗: [0-9]*" test_output.log | grep -o "[0-9]*" || echo "0")
+            execution_time=$(grep -o "総実行時間: [0-9]*ms" test_output.log | grep -o "[0-9]*" || echo "0")
+            
+            echo "total-tests=$total_tests" >> $GITHUB_OUTPUT
+            echo "passed-tests=$passed_tests" >> $GITHUB_OUTPUT
+            echo "failed-tests=$failed_tests" >> $GITHUB_OUTPUT
+            echo "execution-time=$execution_time" >> $GITHUB_OUTPUT
+            
+            # 成功率計算
+            if [[ $total_tests -gt 0 ]]; then
+              success_rate=$(echo "scale=2; $passed_tests * 100 / $total_tests" | bc -l)
+              echo "success-rate=$success_rate" >> $GITHUB_OUTPUT
+            else
+              echo "success-rate=0" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "total-tests=0" >> $GITHUB_OUTPUT
+            echo "passed-tests=0" >> $GITHUB_OUTPUT
+            echo "failed-tests=0" >> $GITHUB_OUTPUT
+            echo "execution-time=0" >> $GITHUB_OUTPUT
+            echo "success-rate=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: quick-test-results
+          path: |
+            test_output.log
+            development/logs/testing/
+          retention-days: 30
+
+      - name: Comment PR with quick test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const testResults = {
+              total: '${{ steps.parse-results.outputs.total-tests }}',
+              passed: '${{ steps.parse-results.outputs.passed-tests }}',
+              failed: '${{ steps.parse-results.outputs.failed-tests }}',
+              successRate: '${{ steps.parse-results.outputs.success-rate }}',
+              executionTime: '${{ steps.parse-results.outputs.execution-time }}'
+            };
+            
+            const status = testResults.failed === '0' ? '✅ 成功' : '❌ 失敗';
+            const comment = `## 🚀 クイックテスト結果
+            
+            **ステータス**: ${status}
+            **総テスト数**: ${testResults.total}
+            **成功**: ${testResults.passed}
+            **失敗**: ${testResults.failed}
+            **成功率**: ${testResults.successRate}%
+            **実行時間**: ${testResults.executionTime}ms
+            
+            ${testResults.failed === '0' ? 
+              '🎉 全てのクイックテストが成功しました！' : 
+              '⚠️ テストに失敗があります。詳細はArtifactsを確認してください。'
+            }`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail job if tests failed
+        if: steps.quick-tests.outputs.exit_code != '0'
+        run: |
+          echo "❌ クイックテストが失敗しました"
+          exit 1
+
+  # フルテスト（mainとdevelopブランチのみ）
+  full-tests:
+    runs-on: ubuntu-latest
+    needs: [setup, quick-tests]
+    if: needs.setup.outputs.test-mode == 'full'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup test environment
+        run: |
+          chmod +x development/scripts/testing/quick_integration_test.sh
+          mkdir -p development/logs/testing
+
+      - name: Run full integration tests
+        id: full-tests
+        run: |
+          echo "🚀 フルテスト実行開始"
+          ./development/scripts/testing/quick_integration_test.sh --mode full --verbose > full_test_output.log 2>&1
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Parse full test results
+        id: parse-full-results
+        run: |
+          if [[ -f "full_test_output.log" ]]; then
+            # フルテスト結果の解析
+            total_tests=$(grep -o "総テスト数: [0-9]*" full_test_output.log | grep -o "[0-9]*" || echo "0")
+            passed_tests=$(grep -o "成功: [0-9]*" full_test_output.log | grep -o "[0-9]*" || echo "0")
+            failed_tests=$(grep -o "失敗: [0-9]*" full_test_output.log | grep -o "[0-9]*" || echo "0")
+            execution_time=$(grep -o "総実行時間: [0-9]*ms" full_test_output.log | grep -o "[0-9]*" || echo "0")
+            
+            echo "total-tests=$total_tests" >> $GITHUB_OUTPUT
+            echo "passed-tests=$passed_tests" >> $GITHUB_OUTPUT
+            echo "failed-tests=$failed_tests" >> $GITHUB_OUTPUT
+            echo "execution-time=$execution_time" >> $GITHUB_OUTPUT
+            
+            # 成功率計算
+            if [[ $total_tests -gt 0 ]]; then
+              success_rate=$(echo "scale=2; $passed_tests * 100 / $total_tests" | bc -l)
+              echo "success-rate=$success_rate" >> $GITHUB_OUTPUT
+            else
+              echo "success-rate=0" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "total-tests=0" >> $GITHUB_OUTPUT
+            echo "passed-tests=0" >> $GITHUB_OUTPUT
+            echo "failed-tests=0" >> $GITHUB_OUTPUT
+            echo "execution-time=0" >> $GITHUB_OUTPUT
+            echo "success-rate=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload full test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: full-test-results
+          path: |
+            full_test_output.log
+            development/logs/testing/
+          retention-days: 30
+
+      - name: Fail job if full tests failed
+        if: steps.full-tests.outputs.exit_code != '0'
+        run: |
+          echo "❌ フルテストが失敗しました"
+          exit 1
+
+  # TypeScript/CDKビルドテスト
+  build-test:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript compilation test
+        run: |
+          echo "🔧 TypeScriptコンパイルテスト実行中..."
+          npm run build
+
+      - name: CDK synthesis test
+        run: |
+          echo "🏗️ CDK synthesis テスト実行中..."
+          npx cdk synth --quiet
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            cdk.out/
+            dist/
+          retention-days: 7
+
+  # 基本的な品質ゲート
+  quality-gate:
+    runs-on: ubuntu-latest
+    needs: [quick-tests, full-tests, build-test]
+    if: always()
+    outputs:
+      gate-status: ${{ steps.evaluate-quality.outputs.gate-status }}
+      gate-score: ${{ steps.evaluate-quality.outputs.gate-score }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download test results
+        uses: actions/download-artifact@v3
+        with:
+          name: quick-test-results
+          path: ./test-results/quick/
+        continue-on-error: true
+
+      - name: Download full test results
+        uses: actions/download-artifact@v3
+        with:
+          name: full-test-results
+          path: ./test-results/full/
+        continue-on-error: true
+
+      - name: Evaluate quality metrics
+        id: evaluate-quality
+        run: |
+          echo "📊 品質メトリクス評価中..."
+          
+          # 基本的な品質基準
+          MIN_SUCCESS_RATE=95
+          MAX_EXECUTION_TIME=30000  # 30秒
+          
+          # クイックテスト結果の取得
+          quick_success_rate="${{ needs.quick-tests.outputs.success-rate || '0' }}"
+          quick_execution_time="${{ needs.quick-tests.outputs.execution-time || '0' }}"
+          
+          # フルテスト結果の取得（実行された場合）
+          if [[ "${{ needs.setup.outputs.test-mode }}" == "full" ]]; then
+            full_success_rate="${{ needs.full-tests.outputs.success-rate || '0' }}"
+            full_execution_time="${{ needs.full-tests.outputs.execution-time || '0' }}"
+          else
+            full_success_rate="100"
+            full_execution_time="0"
+          fi
+          
+          # ビルドテスト結果
+          build_status="${{ needs.build-test.result }}"
+          
+          # 品質スコア計算
+          quality_score=0
+          
+          # テスト成功率評価（40%）
+          if (( $(echo "$quick_success_rate >= $MIN_SUCCESS_RATE" | bc -l) )); then
+            quality_score=$((quality_score + 40))
+          fi
+          
+          # フルテスト成功率評価（30%）
+          if (( $(echo "$full_success_rate >= $MIN_SUCCESS_RATE" | bc -l) )); then
+            quality_score=$((quality_score + 30))
+          fi
+          
+          # ビルド成功評価（20%）
+          if [[ "$build_status" == "success" ]]; then
+            quality_score=$((quality_score + 20))
+          fi
+          
+          # 実行時間評価（10%）
+          if [[ $quick_execution_time -lt $MAX_EXECUTION_TIME ]]; then
+            quality_score=$((quality_score + 10))
+          fi
+          
+          # 品質ゲート判定
+          if [[ $quality_score -ge 80 ]]; then
+            gate_status="PASS"
+          else
+            gate_status="FAIL"
+          fi
+          
+          echo "gate-status=$gate_status" >> $GITHUB_OUTPUT
+          echo "gate-score=$quality_score" >> $GITHUB_OUTPUT
+          
+          echo "📊 品質評価結果:"
+          echo "  - クイックテスト成功率: $quick_success_rate%"
+          echo "  - フルテスト成功率: $full_success_rate%"
+          echo "  - ビルドステータス: $build_status"
+          echo "  - 品質スコア: $quality_score/100"
+          echo "  - 品質ゲート: $gate_status"
+
+      - name: Create quality report
+        run: |
+          cat > quality-report.md << EOF
+          # 品質レポート
+          
+          ## 📊 品質メトリクス
+          
+          | 項目 | 値 | 基準 | 状態 |
+          |------|----|----|------|
+          | クイックテスト成功率 | ${{ needs.quick-tests.outputs.success-rate || '0' }}% | ≥95% | ${{ (needs.quick-tests.outputs.success-rate >= '95') && '✅' || '❌' }} |
+          | フルテスト成功率 | ${{ needs.full-tests.outputs.success-rate || 'N/A' }}% | ≥95% | ${{ (needs.full-tests.outputs.success-rate >= '95') && '✅' || '❌' }} |
+          | ビルドステータス | ${{ needs.build-test.result }} | success | ${{ (needs.build-test.result == 'success') && '✅' || '❌' }} |
+          | 品質スコア | ${{ steps.evaluate-quality.outputs.gate-score }}/100 | ≥80 | ${{ (steps.evaluate-quality.outputs.gate-score >= '80') && '✅' || '❌' }} |
+          
+          ## 🎯 品質ゲート結果
+          
+          **ステータス**: ${{ steps.evaluate-quality.outputs.gate-status == 'PASS' && '✅ 合格' || '❌ 不合格' }}
+          
+          ${{ steps.evaluate-quality.outputs.gate-status == 'PASS' && '🎉 品質基準を満たしています。デプロイメントを継続できます。' || '⚠️ 品質基準を満たしていません。問題を修正してください。' }}
+          EOF
+
+      - name: Upload quality report
+        uses: actions/upload-artifact@v3
+        with:
+          name: quality-report
+          path: quality-report.md
+          retention-days: 30
+
+      - name: Fail if quality gate failed
+        if: steps.evaluate-quality.outputs.gate-status == 'FAIL'
+        run: |
+          echo "❌ 品質ゲートが失敗しました"
+          echo "品質スコア: ${{ steps.evaluate-quality.outputs.gate-score }}/100"
+          exit 1
+
+  # 通知ジョブ
+  notify:
+    runs-on: ubuntu-latest
+    needs: [setup, quick-tests, full-tests, build-test, quality-gate]
+    if: always()
+    steps:
+      - name: Determine overall status
+        id: overall-status
+        run: |
+          # 全体的なステータスを判定
+          quick_status="${{ needs.quick-tests.result }}"
+          full_status="${{ needs.full-tests.result }}"
+          build_status="${{ needs.build-test.result }}"
+          quality_status="${{ needs.quality-gate.result }}"
+          
+          if [[ "$quick_status" == "success" && "$build_status" == "success" && "$quality_status" == "success" ]]; then
+            if [[ "${{ needs.setup.outputs.test-mode }}" == "full" ]]; then
+              if [[ "$full_status" == "success" ]]; then
+                overall_status="success"
+              else
+                overall_status="failure"
+              fi
+            else
+              overall_status="success"
+            fi
+          else
+            overall_status="failure"
+          fi
+          
+          echo "overall-status=$overall_status" >> $GITHUB_OUTPUT
+
+      - name: Create notification message
+        id: create-message
+        run: |
+          # 通知メッセージの作成
+          if [[ "${{ steps.overall-status.outputs.overall-status }}" == "success" ]]; then
+            status_emoji="✅"
+            status_text="成功"
+            color="good"
+          else
+            status_emoji="❌"
+            status_text="失敗"
+            color="danger"
+          fi
+          
+          message="$status_emoji CI/CDパイプライン $status_text
+          
+          **ブランチ**: ${{ github.ref_name }}
+          **コミット**: ${{ github.sha }}
+          **実行者**: ${{ github.actor }}
+          **テストモード**: ${{ needs.setup.outputs.test-mode }}
+          
+          **結果サマリー**:
+          - クイックテスト: ${{ needs.quick-tests.result }}
+          - フルテスト: ${{ needs.full-tests.result || 'スキップ' }}
+          - ビルドテスト: ${{ needs.build-test.result }}
+          - 品質ゲート: ${{ needs.quality-gate.result }}
+          
+          **品質スコア**: ${{ needs.quality-gate.outputs.gate-score || '0' }}/100"
+          
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo "$message" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "color=$color" >> $GITHUB_OUTPUT
+
+      - name: Notify to console
+        run: |
+          echo "📢 CI/CD パイプライン通知"
+          echo "${{ steps.create-message.outputs.message }}"
+
+      # 将来的にSlack通知を追加予定
+      # - name: Notify Slack
+      #   if: env.SLACK_WEBHOOK_URL != ''
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ steps.overall-status.outputs.overall-status }}
+      #     text: ${{ steps.create-message.outputs.message }}
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

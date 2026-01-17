@@ -1,0 +1,17 @@
+{
+  "name": "permission-filter",
+  "version": "1.0.0",
+  "description": "権限フィルタリング Lambda 関数",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "permission",
+    "security"
+  ],
+  "author": "Permission-aware RAG System",
+  "license": "MIT"
+}

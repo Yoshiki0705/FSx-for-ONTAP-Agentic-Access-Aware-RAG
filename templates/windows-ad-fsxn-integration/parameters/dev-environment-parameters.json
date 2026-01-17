@@ -1,0 +1,134 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "windows-ad-fsxn"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "DeploymentRegion",
+    "ParameterValue": "ap-northeast-1"
+  },
+  {
+    "ParameterKey": "DomainName",
+    "ParameterValue": "dev.corp.local"
+  },
+  {
+    "ParameterKey": "NetBiosName",
+    "ParameterValue": "DEVCORP"
+  },
+  {
+    "ParameterKey": "AdminPassword",
+    "ParameterValue": "CHANGE_ME_SECURE_PASSWORD_123!"
+  },
+  {
+    "ParameterKey": "SafeModePassword",
+    "ParameterValue": "CHANGE_ME_SAFE_MODE_PASSWORD_123!"
+  },
+  {
+    "ParameterKey": "FSxFileSystemId",
+    "ParameterValue": "fs-CHANGE_ME_FILESYSTEM_ID"
+  },
+  {
+    "ParameterKey": "FSxSVMName",
+    "ParameterValue": "svm01"
+  },
+  {
+    "ParameterKey": "OrganizationalUnit",
+    "ParameterValue": "OU=Computers,DC=dev,DC=corp,DC=local"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "10.0.0.0/16"
+  },
+  {
+    "ParameterKey": "PrivateSubnetCidr",
+    "ParameterValue": "10.0.1.0/24"
+  },
+  {
+    "ParameterKey": "PublicSubnetCidr",
+    "ParameterValue": "10.0.2.0/24"
+  },
+  {
+    "ParameterKey": "AvailabilityZone",
+    "ParameterValue": "ap-northeast-1a"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t3.medium"
+  },
+  {
+    "ParameterKey": "KeyPairName",
+    "ParameterValue": "CHANGE_ME_KEY_PAIR_NAME"
+  },
+  {
+    "ParameterKey": "EBSVolumeSize",
+    "ParameterValue": "100"
+  },
+  {
+    "ParameterKey": "AllowedCidrForRDP",
+    "ParameterValue": "10.0.0.0/16"
+  },
+  {
+    "ParameterKey": "EnableCloudTrail",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableGuardDuty",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "EnableCloudWatch",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableSystemsManager",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "NotificationEmail",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "EnableRollback",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "TimeoutInMinutes",
+    "ParameterValue": "60"
+  },
+  {
+    "ParameterKey": "UseSecretsManager",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "AdminPasswordSecretName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "SafeModePasswordSecretName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "ConfigurationSource",
+    "ParameterValue": "parameters"
+  },
+  {
+    "ParameterKey": "ConfigurationPrefix",
+    "ParameterValue": "/windows-ad-fsxn/dev"
+  },
+  {
+    "ParameterKey": "AdditionalTags",
+    "ParameterValue": "CostCenter=Development,Owner=DevTeam,Purpose=Development"
+  },
+  {
+    "ParameterKey": "CustomDomainSuffix",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "BackupRetentionDays",
+    "ParameterValue": "7"
+  }
+]

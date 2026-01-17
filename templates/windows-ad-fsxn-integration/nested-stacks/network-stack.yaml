@@ -1,0 +1,963 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Windows AD FSxN統合環境 - ネットワークインフラストラクチャスタック'
+
+# パラメータ定義
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "プロジェクト識別子"
+    AllowedPattern: "^[a-z0-9-]{3,20}$"
+
+  Environment:
+    Type: String
+    Description: "環境名"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+
+  VpcCidr:
+    Type: String
+    Description: "VPC CIDR ブロック"
+    Default: "10.0.0.0/16"
+    AllowedPattern: "^(10\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])/(1[6-9]|2[0-8]))$"
+
+  PrivateSubnetCidr:
+    Type: String
+    Description: "プライベートサブネット CIDR ブロック"
+    Default: "10.0.1.0/24"
+    AllowedPattern: "^(10\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])/(1[6-9]|2[0-8]))$"
+
+  PublicSubnetCidr:
+    Type: String
+    Description: "パブリックサブネット CIDR ブロック"
+    Default: "10.0.2.0/24"
+    AllowedPattern: "^(10\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])\\.(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])/(1[6-9]|2[0-8]))$"
+
+  AvailabilityZone:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: "デプロイメント対象のアベイラビリティゾーン"
+
+# 条件定義
+Conditions:
+  IsProductionEnvironment: !Equals [!Ref Environment, "prod"]
+
+# リソース定義
+Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-vpc"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Purpose
+          Value: "Windows AD FSxN Integration"
+
+  # インターネットゲートウェイ
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-igw"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # インターネットゲートウェイのアタッチ
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  # パブリックサブネット
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref AvailabilityZone
+      CidrBlock: !Ref PublicSubnetCidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-public-subnet"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Type
+          Value: "Public"
+
+  # プライベートサブネット
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref AvailabilityZone
+      CidrBlock: !Ref PrivateSubnetCidr
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-private-subnet"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Type
+          Value: "Private"
+
+  # Elastic IP for NAT Gateway
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-nat-eip"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # NAT Gateway
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-nat-gateway"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # パブリックルートテーブル
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-public-rt"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Type
+          Value: "Public"
+
+  # パブリックルート（インターネットゲートウェイ経由）
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # パブリックサブネットルートテーブル関連付け
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  # プライベートルートテーブル
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-private-rt"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Type
+          Value: "Private"
+
+  # プライベートルート（NAT Gateway経由）
+  DefaultPrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  # プライベートサブネットルートテーブル関連付け
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+
+  # VPCエンドポイント用のルートテーブル（FSx用）
+  VPCEndpointRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-vpce-rt"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Type
+          Value: "VPCEndpoint"
+
+  # S3 VPCエンドポイント（FSx for ONTAPのバックアップ用）
+  S3VPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+        - !Ref VPCEndpointRouteTable
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+            Resource:
+              - !Sub "arn:aws:s3:::${ProjectName}-${Environment}-*"
+              - !Sub "arn:aws:s3:::${ProjectName}-${Environment}-*/*"
+              - "arn:aws:s3:::aws-fsx-*"
+              - "arn:aws:s3:::aws-fsx-*/*"
+
+  # EC2 VPCエンドポイント（Systems Manager用）
+  EC2VPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ec2"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      PrivateDnsEnabled: true
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - 'ec2:DescribeInstances'
+              - 'ec2:DescribeImages'
+              - 'ec2:DescribeSnapshots'
+              - 'ec2:DescribeVolumes'
+            Resource: '*'
+
+  # Systems Manager VPCエンドポイント
+  SSMVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ssm"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      PrivateDnsEnabled: true
+
+  # Systems Manager Messages VPCエンドポイント
+  SSMMessagesVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ssmmessages"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      PrivateDnsEnabled: true
+
+  # EC2 Messages VPCエンドポイント
+  EC2MessagesVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ec2messages"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      PrivateDnsEnabled: true
+
+  # CloudWatch Logs VPCエンドポイント
+  CloudWatchLogsVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.logs"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      PrivateDnsEnabled: true
+
+  # CloudWatch Monitoring VPCエンドポイント
+  CloudWatchMonitoringVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.monitoring"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      PrivateDnsEnabled: true
+
+  # FSx VPCエンドポイント
+  FSxVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.fsx"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      PrivateDnsEnabled: true
+
+  # VPCエンドポイント用セキュリティグループ
+  VPCEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectName}-${Environment}-vpce-sg"
+      GroupDescription: "Security group for VPC Endpoints"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref VpcCidr
+          Description: "HTTPS traffic from VPC"
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref VpcCidr
+          Description: "HTTP traffic from VPC"
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: "All outbound traffic"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-vpce-sg"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Purpose
+          Value: "VPC Endpoints"
+
+  # ネットワークACL（追加セキュリティ層）
+  PrivateNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-private-nacl"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Type
+          Value: "Private"
+
+  # プライベートサブネット用NACL関連付け
+  PrivateSubnetNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      NetworkAclId: !Ref PrivateNetworkAcl
+
+  # NACL インバウンドルール（HTTP/HTTPS）
+  PrivateNetworkAclEntryInboundHTTP:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 100
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange:
+        From: 80
+        To: 80
+
+  PrivateNetworkAclEntryInboundHTTPS:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 110
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange:
+        From: 443
+        To: 443
+
+  # NACL インバウンドルール（RDP）
+  PrivateNetworkAclEntryInboundRDP:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 120
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange:
+        From: 3389
+        To: 3389
+
+  # NACL インバウンドルール（DNS）
+  PrivateNetworkAclEntryInboundDNSTCP:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 130
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange:
+        From: 53
+        To: 53
+
+  PrivateNetworkAclEntryInboundDNSUDP:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 140
+      Protocol: 17
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange:
+        From: 53
+        To: 53
+
+  # NACL インバウンドルール（LDAP）
+  PrivateNetworkAclEntryInboundLDAP:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 150
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange:
+        From: 389
+        To: 389
+
+  PrivateNetworkAclEntryInboundLDAPS:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 160
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange:
+        From: 636
+        To: 636
+
+  # NACL インバウンドルール（SMB）
+  PrivateNetworkAclEntryInboundSMB:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 170
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange:
+        From: 445
+        To: 445
+
+  # NACL インバウンドルール（Kerberos）
+  PrivateNetworkAclEntryInboundKerberos:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 180
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: !Ref VpcCidr
+      PortRange:
+        From: 88
+        To: 88
+
+  # NACL インバウンドルール（エフェメラルポート）
+  PrivateNetworkAclEntryInboundEphemeral:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 200
+      Protocol: 6
+      RuleAction: allow
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: 1024
+        To: 65535
+
+  # NACL アウトバウンドルール（全許可）
+  PrivateNetworkAclEntryOutboundAll:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref PrivateNetworkAcl
+      RuleNumber: 100
+      Protocol: -1
+      Egress: true
+      RuleAction: allow
+      CidrBlock: 0.0.0.0/0
+
+  # Route 53 プライベートホストゾーン
+  PrivateHostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Sub "${ProjectName}.${Environment}.local"
+      VPCs:
+        - VPCId: !Ref VPC
+          VPCRegion: !Ref "AWS::Region"
+      HostedZoneConfig:
+        Comment: !Sub "Private hosted zone for ${ProjectName} ${Environment} environment"
+      HostedZoneTags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-private-zone"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Purpose
+          Value: "Windows AD DNS Integration"
+
+  # Route 53 Resolver ルール（DNS転送用）
+  ResolverRule:
+    Type: AWS::Route53Resolver::ResolverRule
+    Properties:
+      DomainName: !Sub "${ProjectName}.${Environment}.local"
+      Name: !Sub "${ProjectName}-${Environment}-resolver-rule"
+      RuleType: FORWARD
+      ResolverEndpointId: !Ref ResolverOutboundEndpoint
+      TargetIps:
+        - Ip: !Sub 
+          - "${BaseIP}.10"  # Windows ADサーバーの予定IP
+          - BaseIP: !Select [0, !Split [".", !Select [0, !Split ["/", !Ref PrivateSubnetCidr]]]]
+          Port: 53
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-resolver-rule"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Route 53 Resolver アウトバウンドエンドポイント
+  ResolverOutboundEndpoint:
+    Type: AWS::Route53Resolver::ResolverEndpoint
+    Properties:
+      Direction: OUTBOUND
+      Name: !Sub "${ProjectName}-${Environment}-resolver-outbound"
+      IpAddresses:
+        - SubnetId: !Ref PrivateSubnet
+          Ip: !Sub 
+            - "${BaseIP}.20"
+            - BaseIP: !Select [0, !Split [".", !Select [0, !Split ["/", !Ref PrivateSubnetCidr]]]]
+      SecurityGroupIds:
+        - !Ref ResolverSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-resolver-outbound"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Route 53 Resolver インバウンドエンドポイント
+  ResolverInboundEndpoint:
+    Type: AWS::Route53Resolver::ResolverEndpoint
+    Properties:
+      Direction: INBOUND
+      Name: !Sub "${ProjectName}-${Environment}-resolver-inbound"
+      IpAddresses:
+        - SubnetId: !Ref PrivateSubnet
+          Ip: !Sub 
+            - "${BaseIP}.21"
+            - BaseIP: !Select [0, !Split [".", !Select [0, !Split ["/", !Ref PrivateSubnetCidr]]]]
+      SecurityGroupIds:
+        - !Ref ResolverSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-resolver-inbound"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Route 53 Resolver セキュリティグループ
+  ResolverSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectName}-${Environment}-resolver-sg"
+      GroupDescription: "Security group for Route 53 Resolver endpoints"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: !Ref VpcCidr
+          Description: "DNS TCP from VPC"
+        - IpProtocol: udp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: !Ref VpcCidr
+          Description: "DNS UDP from VPC"
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
+          Description: "DNS TCP to external"
+        - IpProtocol: udp
+          FromPort: 53
+          ToPort: 53
+          CidrIp: 0.0.0.0/0
+          Description: "DNS UDP to external"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-resolver-sg"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Purpose
+          Value: "Route 53 Resolver"
+
+  # Route 53 Resolver ルール関連付け
+  ResolverRuleAssociation:
+    Type: AWS::Route53Resolver::ResolverRuleAssociation
+    Properties:
+      ResolverRuleId: !Ref ResolverRule
+      VPCId: !Ref VPC
+      Name: !Sub "${ProjectName}-${Environment}-resolver-rule-association"
+
+  # DHCP オプションセット（カスタムDNS設定用）
+  DHCPOptions:
+    Type: AWS::EC2::DHCPOptions
+    Properties:
+      DomainName: !Sub "${ProjectName}.${Environment}.local"
+      DomainNameServers:
+        - !Sub 
+          - "${BaseIP}.10"  # Windows ADサーバーのDNS
+          - BaseIP: !Select [0, !Split [".", !Select [0, !Split ["/", !Ref PrivateSubnetCidr]]]]
+        - AmazonProvidedDNS
+      NtpServers:
+        - 169.254.169.123  # Amazon Time Sync Service
+      NetbiosNameServers:
+        - !Sub 
+          - "${BaseIP}.10"  # Windows ADサーバーのNetBIOS
+          - BaseIP: !Select [0, !Split [".", !Select [0, !Split ["/", !Ref PrivateSubnetCidr]]]]
+      NetbiosNodeType: 2
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-dhcp-options"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # DHCP オプションセットの関連付け
+  VPCDHCPOptionsAssociation:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation
+    Properties:
+      VpcId: !Ref VPC
+      DhcpOptionsId: !Ref DHCPOptions
+
+  # DNS レコード（Windows ADサーバー用）
+  WindowsADDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PrivateHostedZone
+      Name: !Sub "dc01.${ProjectName}.${Environment}.local"
+      Type: A
+      TTL: 300
+      ResourceRecords:
+        - !Sub 
+          - "${BaseIP}.10"
+          - BaseIP: !Select [0, !Split [".", !Select [0, !Split ["/", !Ref PrivateSubnetCidr]]]]
+      Comment: "Windows Active Directory Domain Controller"
+
+  # DNS レコード（ドメインコントローラーのSRVレコード）
+  ADServiceRecordLDAP:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PrivateHostedZone
+      Name: !Sub "_ldap._tcp.${ProjectName}.${Environment}.local"
+      Type: SRV
+      TTL: 300
+      ResourceRecords:
+        - !Sub "0 100 389 dc01.${ProjectName}.${Environment}.local"
+      Comment: "LDAP Service Record for Active Directory"
+
+  ADServiceRecordKerberos:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PrivateHostedZone
+      Name: !Sub "_kerberos._tcp.${ProjectName}.${Environment}.local"
+      Type: SRV
+      TTL: 300
+      ResourceRecords:
+        - !Sub "0 100 88 dc01.${ProjectName}.${Environment}.local"
+      Comment: "Kerberos Service Record for Active Directory"
+
+  ADServiceRecordKerberosUDP:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PrivateHostedZone
+      Name: !Sub "_kerberos._udp.${ProjectName}.${Environment}.local"
+      Type: SRV
+      TTL: 300
+      ResourceRecords:
+        - !Sub "0 100 88 dc01.${ProjectName}.${Environment}.local"
+      Comment: "Kerberos UDP Service Record for Active Directory"
+
+  # VPCフローログ（本番環境のみ）
+  VPCFlowLogRole:
+    Type: AWS::IAM::Role
+    Condition: IsProductionEnvironment
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-vpc-flow-log-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: vpc-flow-logs.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FlowLogDeliveryRolePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                Resource: '*'
+
+  VPCFlowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsProductionEnvironment
+    Properties:
+      LogGroupName: !Sub "/aws/vpc/flowlogs/${ProjectName}-${Environment}"
+      RetentionInDays: 30
+
+  VPCFlowLog:
+    Type: AWS::EC2::FlowLog
+    Condition: IsProductionEnvironment
+    Properties:
+      ResourceType: VPC
+      ResourceId: !Ref VPC
+      TrafficType: ALL
+      LogDestinationType: cloud-watch-logs
+      LogGroupName: !Ref VPCFlowLogGroup
+      DeliverLogsPermissionArn: !GetAtt VPCFlowLogRole.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-vpc-flow-log"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# 出力値定義
+Outputs:
+  VpcId:
+    Description: "VPC ID"
+    Value: !Ref VPC
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-vpc-id"
+
+  VpcCidr:
+    Description: "VPC CIDR Block"
+    Value: !Ref VpcCidr
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-vpc-cidr"
+
+  PublicSubnetId:
+    Description: "パブリックサブネット ID"
+    Value: !Ref PublicSubnet
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-public-subnet-id"
+
+  PrivateSubnetId:
+    Description: "プライベートサブネット ID"
+    Value: !Ref PrivateSubnet
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-private-subnet-id"
+
+  InternetGatewayId:
+    Description: "インターネットゲートウェイ ID"
+    Value: !Ref InternetGateway
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-igw-id"
+
+  NatGatewayId:
+    Description: "NAT ゲートウェイ ID"
+    Value: !Ref NatGateway
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-nat-gateway-id"
+
+  NatGatewayEIP:
+    Description: "NAT ゲートウェイ Elastic IP"
+    Value: !Ref NatGatewayEIP
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-nat-eip"
+
+  PublicRouteTableId:
+    Description: "パブリックルートテーブル ID"
+    Value: !Ref PublicRouteTable
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-public-rt-id"
+
+  PrivateRouteTableId:
+    Description: "プライベートルートテーブル ID"
+    Value: !Ref PrivateRouteTable
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-private-rt-id"
+
+  VPCEndpointSecurityGroupId:
+    Description: "VPCエンドポイント用セキュリティグループ ID"
+    Value: !Ref VPCEndpointSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-vpce-sg-id"
+
+  AvailabilityZone:
+    Description: "使用中のアベイラビリティゾーン"
+    Value: !Ref AvailabilityZone
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-az"
+
+  # VPCエンドポイント情報
+  S3VPCEndpointId:
+    Description: "S3 VPCエンドポイント ID"
+    Value: !Ref S3VPCEndpoint
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-s3-vpce-id"
+
+  SSMVPCEndpointId:
+    Description: "Systems Manager VPCエンドポイント ID"
+    Value: !Ref SSMVPCEndpoint
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-ssm-vpce-id"
+
+  FSxVPCEndpointId:
+    Description: "FSx VPCエンドポイント ID"
+    Value: !Ref FSxVPCEndpoint
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-fsx-vpce-id"
+
+  # ネットワーク設定情報
+  DNSServers:
+    Description: "VPC DNS サーバー（AmazonProvidedDNS）"
+    Value: !Sub "${VpcCidr}"
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-dns-servers"
+
+  # DNS関連出力
+  PrivateHostedZoneId:
+    Description: "プライベートホストゾーン ID"
+    Value: !Ref PrivateHostedZone
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-private-zone-id"
+
+  PrivateHostedZoneName:
+    Description: "プライベートホストゾーン名"
+    Value: !Sub "${ProjectName}.${Environment}.local"
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-private-zone-name"
+
+  ResolverOutboundEndpointId:
+    Description: "Route 53 Resolver アウトバウンドエンドポイント ID"
+    Value: !Ref ResolverOutboundEndpoint
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-resolver-outbound-id"
+
+  ResolverInboundEndpointId:
+    Description: "Route 53 Resolver インバウンドエンドポイント ID"
+    Value: !Ref ResolverInboundEndpoint
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-resolver-inbound-id"
+
+  ResolverRuleId:
+    Description: "Route 53 Resolver ルール ID"
+    Value: !Ref ResolverRule
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-resolver-rule-id"
+
+  DHCPOptionsId:
+    Description: "DHCP オプションセット ID"
+    Value: !Ref DHCPOptions
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-dhcp-options-id"
+
+  WindowsADDNSIP:
+    Description: "Windows AD DNS サーバー IP アドレス"
+    Value: !Sub 
+      - "${BaseIP}.10"
+      - BaseIP: !Select [0, !Split [".", !Select [0, !Split ["/", !Ref PrivateSubnetCidr]]]]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-windows-ad-dns-ip"
+
+  ResolverInboundIP:
+    Description: "Route 53 Resolver インバウンドエンドポイント IP"
+    Value: !Sub 
+      - "${BaseIP}.21"
+      - BaseIP: !Select [0, !Split [".", !Select [0, !Split ["/", !Ref PrivateSubnetCidr]]]]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-resolver-inbound-ip"
+
+  NetworkSummary:
+    Description: "ネットワーク構成サマリー"
+    Value: !Sub |
+      VPC: ${VPC} (${VpcCidr})
+      Public Subnet: ${PublicSubnet} (${PublicSubnetCidr})
+      Private Subnet: ${PrivateSubnet} (${PrivateSubnetCidr})
+      NAT Gateway: ${NatGateway} (${NatGatewayEIP})
+      Availability Zone: ${AvailabilityZone}
+      Private DNS Zone: ${ProjectName}.${Environment}.local
+      Windows AD DNS: ${WindowsADDNSIP}
+      Resolver Inbound: ${ResolverInboundIP}

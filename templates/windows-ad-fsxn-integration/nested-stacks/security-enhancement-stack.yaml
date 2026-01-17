@@ -1,0 +1,497 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Windows AD FSxN統合環境 - セキュリティ強化スタック'
+
+# パラメータ定義
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "プロジェクト識別子"
+    AllowedPattern: "^[a-z0-9-]{3,20}$"
+
+  Environment:
+    Type: String
+    Description: "環境名"
+    AllowedValues:
+      - "dev"
+      - "staging"
+      - "prod"
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "VPC ID"
+
+  EnableCloudTrail:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "CloudTrail監査ログを有効化"
+
+  EnableGuardDuty:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: "GuardDuty脅威検出を有効化"
+
+  EncryptionKeyArn:
+    Type: String
+    Description: "暗号化用KMSキー ARN"
+
+# 条件定義
+Conditions:
+  CreateCloudTrailResources: !Equals [!Ref EnableCloudTrail, "true"]
+  CreateGuardDutyResources: !Equals [!Ref EnableGuardDuty, "true"]
+  IsProductionEnvironment: !Equals [!Ref Environment, "prod"]
+
+# リソース定義
+Resources:
+  # CloudTrail S3バケット
+  CloudTrailBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateCloudTrailResources
+    Properties:
+      BucketName: !Sub "${ProjectName}-${Environment}-cloudtrail-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref EncryptionKeyArn
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: CloudTrailLogRetention
+            Status: Enabled
+            ExpirationInDays: !If [IsProductionEnvironment, 2555, 365]  # 7年 or 1年
+            NoncurrentVersionExpirationInDays: 30
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      NotificationConfiguration:
+        CloudWatchConfigurations:
+          - Event: s3:ObjectCreated:*
+            CloudWatchConfiguration:
+              LogGroupName: !Ref CloudTrailLogGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-cloudtrail-bucket"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudTrail S3バケットポリシー
+  CloudTrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateCloudTrailResources
+    Properties:
+      Bucket: !Ref CloudTrailBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AWSCloudTrailAclCheck
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt CloudTrailBucket.Arn
+          - Sid: AWSCloudTrailWrite
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub "${CloudTrailBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                's3:x-amz-acl': bucket-owner-full-control
+          - Sid: DenyInsecureConnections
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt CloudTrailBucket.Arn
+              - !Sub "${CloudTrailBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
+
+  # CloudTrail ログ用CloudWatch Log Group
+  CloudTrailLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: CreateCloudTrailResources
+    Properties:
+      LogGroupName: !Sub "/aws/cloudtrail/${ProjectName}-${Environment}"
+      RetentionInDays: !If [IsProductionEnvironment, 365, 90]
+      KmsKeyId: !Ref EncryptionKeyArn
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-cloudtrail-logs"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName 
+ # CloudTrail IAMロール
+  CloudTrailRole:
+    Type: AWS::IAM::Role
+    Condition: CreateCloudTrailResources
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-cloudtrail-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CloudTrailLogsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "${CloudTrailLogGroup.Arn}:*"
+              - Effect: Allow
+                Action:
+                  - kms:Encrypt
+                  - kms:Decrypt
+                  - kms:ReEncrypt*
+                  - kms:GenerateDataKey*
+                  - kms:DescribeKey
+                Resource: !Ref EncryptionKeyArn
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-cloudtrail-role"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # CloudTrail
+  CloudTrail:
+    Type: AWS::CloudTrail::Trail
+    Condition: CreateCloudTrailResources
+    DependsOn: CloudTrailBucketPolicy
+    Properties:
+      TrailName: !Sub "${ProjectName}-${Environment}-cloudtrail"
+      S3BucketName: !Ref CloudTrailBucket
+      S3KeyPrefix: !Sub "${ProjectName}/${Environment}/"
+      IncludeGlobalServiceEvents: true
+      IsMultiRegionTrail: true
+      EnableLogFileValidation: true
+      CloudWatchLogsLogGroupArn: !Sub "${CloudTrailLogGroup.Arn}:*"
+      CloudWatchLogsRoleArn: !GetAtt CloudTrailRole.Arn
+      KMSKeyId: !Ref EncryptionKeyArn
+      EventSelectors:
+        - ReadWriteType: All
+          IncludeManagementEvents: true
+          DataResources:
+            - Type: "AWS::S3::Object"
+              Values:
+                - "arn:aws:s3:::*/*"
+            - Type: "AWS::S3::Bucket"
+              Values:
+                - "arn:aws:s3:::*"
+      InsightSelectors:
+        - InsightType: ApiCallRateInsight
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-cloudtrail"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # GuardDuty検出器
+  GuardDutyDetector:
+    Type: AWS::GuardDuty::Detector
+    Condition: CreateGuardDutyResources
+    Properties:
+      Enable: true
+      FindingPublishingFrequency: FIFTEEN_MINUTES
+      DataSources:
+        S3Logs:
+          Enable: true
+        KubernetesConfiguration:
+          AuditLogs:
+            Enable: false
+        MalwareProtection:
+          ScanEc2InstanceWithFindings:
+            EbsVolumes: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-guardduty"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Config設定レコーダー（本番環境のみ）
+  ConfigConfigurationRecorder:
+    Type: AWS::Config::ConfigurationRecorder
+    Condition: IsProductionEnvironment
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-config-recorder"
+      RoleARN: !GetAtt ConfigRole.Arn
+      RecordingGroup:
+        AllSupported: true
+        IncludeGlobalResourceTypes: true
+        ResourceTypes: []
+
+  # Config配信チャネル（本番環境のみ）
+  ConfigDeliveryChannel:
+    Type: AWS::Config::DeliveryChannel
+    Condition: IsProductionEnvironment
+    Properties:
+      Name: !Sub "${ProjectName}-${Environment}-config-delivery"
+      S3BucketName: !Ref ConfigBucket
+      S3KeyPrefix: !Sub "${ProjectName}/${Environment}/"
+      ConfigSnapshotDeliveryProperties:
+        DeliveryFrequency: Daily
+
+  # Config S3バケット（本番環境のみ）
+  ConfigBucket:
+    Type: AWS::S3::Bucket
+    Condition: IsProductionEnvironment
+    Properties:
+      BucketName: !Sub "${ProjectName}-${Environment}-config-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref EncryptionKeyArn
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: ConfigLogRetention
+            Status: Enabled
+            ExpirationInDays: 2555  # 7年
+            NoncurrentVersionExpirationInDays: 30
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-config-bucket"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Config IAMロール（本番環境のみ）
+  ConfigRole:
+    Type: AWS::IAM::Role
+    Condition: IsProductionEnvironment
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-config-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: config.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWS_ConfigRole
+      Policies:
+        - PolicyName: ConfigBucketPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketAcl
+                  - s3:ListBucket
+                Resource: !GetAtt ConfigBucket.Arn
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub "${ConfigBucket.Arn}/*"
+              - Effect: Allow
+                Action:
+                  - kms:Encrypt
+                  - kms:Decrypt
+                  - kms:ReEncrypt*
+                  - kms:GenerateDataKey*
+                  - kms:DescribeKey
+                Resource: !Ref EncryptionKeyArn
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-config-role"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Config ルール - 暗号化チェック
+  ConfigRuleEBSEncryption:
+    Type: AWS::Config::ConfigRule
+    Condition: IsProductionEnvironment
+    DependsOn: ConfigConfigurationRecorder
+    Properties:
+      ConfigRuleName: !Sub "${ProjectName}-${Environment}-ebs-encryption-enabled"
+      Description: "Checks whether Amazon EBS volumes are encrypted"
+      Source:
+        Owner: AWS
+        SourceIdentifier: ENCRYPTED_VOLUMES
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-ebs-encryption-rule"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # Config ルール - セキュリティグループチェック
+  ConfigRuleSecurityGroup:
+    Type: AWS::Config::ConfigRule
+    Condition: IsProductionEnvironment
+    DependsOn: ConfigConfigurationRecorder
+    Properties:
+      ConfigRuleName: !Sub "${ProjectName}-${Environment}-security-group-ssh-check"
+      Description: "Checks whether security groups allow unrestricted incoming SSH traffic"
+      Source:
+        Owner: AWS
+        SourceIdentifier: INCOMING_SSH_DISABLED
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-sg-ssh-rule"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # VPC Flow Logs（本番環境のみ）
+  VPCFlowLogsRole:
+    Type: AWS::IAM::Role
+    Condition: IsProductionEnvironment
+    Properties:
+      RoleName: !Sub "${ProjectName}-${Environment}-vpc-flow-logs-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: vpc-flow-logs.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FlowLogDeliveryRolePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - kms:Encrypt
+                  - kms:Decrypt
+                  - kms:ReEncrypt*
+                  - kms:GenerateDataKey*
+                  - kms:DescribeKey
+                Resource: !Ref EncryptionKeyArn
+
+  VPCFlowLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: IsProductionEnvironment
+    Properties:
+      LogGroupName: !Sub "/aws/vpc/flowlogs/${ProjectName}-${Environment}"
+      RetentionInDays: 90
+      KmsKeyId: !Ref EncryptionKeyArn
+
+  VPCFlowLogs:
+    Type: AWS::EC2::FlowLog
+    Condition: IsProductionEnvironment
+    Properties:
+      ResourceType: VPC
+      ResourceId: !Ref VpcId
+      TrafficType: ALL
+      LogDestinationType: cloud-watch-logs
+      LogGroupName: !Ref VPCFlowLogsGroup
+      DeliverLogsPermissionArn: !GetAtt VPCFlowLogsRole.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-${Environment}-vpc-flow-logs"
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# 出力値定義
+Outputs:
+  CloudTrailArn:
+    Description: "CloudTrail ARN"
+    Value: !If [CreateCloudTrailResources, !GetAtt CloudTrail.Arn, "N/A"]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-cloudtrail-arn"
+
+  CloudTrailBucketName:
+    Description: "CloudTrail S3バケット名"
+    Value: !If [CreateCloudTrailResources, !Ref CloudTrailBucket, "N/A"]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-cloudtrail-bucket"
+
+  GuardDutyDetectorId:
+    Description: "GuardDuty検出器 ID"
+    Value: !If [CreateGuardDutyResources, !Ref GuardDutyDetector, "N/A"]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-guardduty-detector-id"
+
+  ConfigRecorderName:
+    Description: "Config設定レコーダー名（本番環境のみ）"
+    Value: !If [IsProductionEnvironment, !Ref ConfigConfigurationRecorder, "N/A"]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-config-recorder"
+
+  VPCFlowLogsId:
+    Description: "VPC Flow Logs ID（本番環境のみ）"
+    Value: !If [IsProductionEnvironment, !Ref VPCFlowLogs, "N/A"]
+    Export:
+      Name: !Sub "${ProjectName}-${Environment}-vpc-flow-logs-id"
+
+  SecurityEnhancementSummary:
+    Description: "セキュリティ強化構成サマリー"
+    Value: !Sub |
+      CloudTrail: ${CloudTrail}
+      CloudTrail Bucket: ${CloudTrailBucket}
+      GuardDuty Detector: ${GuardDutyDetector}
+      
+      Compliance (Production Only):
+      - Config Recorder: ${ConfigConfigurationRecorder}
+      - Config Delivery: ${ConfigDeliveryChannel}
+      - Config Bucket: ${ConfigBucket}
+      - VPC Flow Logs: ${VPCFlowLogs}
+      
+      Security Rules:
+      - EBS Encryption: ${ConfigRuleEBSEncryption}
+      - Security Group SSH: ${ConfigRuleSecurityGroup}
+      
+      Encryption:
+      - All data encrypted with KMS: ${EncryptionKeyArn}
+      - S3 buckets encrypted at rest
+      - CloudWatch Logs encrypted
+      - EBS volumes encrypted
+      
+      Monitoring:
+      - CloudTrail API logging
+      - GuardDuty threat detection
+      - VPC Flow Logs network monitoring
+      - Config compliance monitoring

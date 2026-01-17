@@ -1,0 +1,213 @@
+name: 'Run Integration Tests'
+description: 'Permission-aware RAG System統合テストの実行'
+author: 'NetApp Japan Technology Team'
+
+inputs:
+  test-mode:
+    description: 'テストモード (quick/full)'
+    required: false
+    default: 'quick'
+  
+  environment:
+    description: '実行環境 (demo/local/ec2/staging)'
+    required: false
+    default: 'demo'
+  
+  aws-profile:
+    description: 'AWSプロファイル'
+    required: false
+    default: 'user01'
+  
+  aws-region:
+    description: 'AWSリージョン'
+    required: false
+    default: 'us-east-1'
+  
+  output-format:
+    description: '出力形式 (junit/json/both/console)'
+    required: false
+    default: 'junit'
+  
+  verbose:
+    description: '詳細ログ出力'
+    required: false
+    default: 'false'
+  
+  parallel:
+    description: '並列実行'
+    required: false
+    default: 'false'
+
+outputs:
+  total-tests:
+    description: '総テスト数'
+    value: ${{ steps.run-tests.outputs.total-tests }}
+  
+  passed-tests:
+    description: '成功テスト数'
+    value: ${{ steps.run-tests.outputs.passed-tests }}
+  
+  failed-tests:
+    description: '失敗テスト数'
+    value: ${{ steps.run-tests.outputs.failed-tests }}
+  
+  success-rate:
+    description: 'テスト成功率'
+    value: ${{ steps.run-tests.outputs.success-rate }}
+  
+  execution-time:
+    description: '実行時間（ミリ秒）'
+    value: ${{ steps.run-tests.outputs.execution-time }}
+  
+  exit-code:
+    description: '終了コード'
+    value: ${{ steps.run-tests.outputs.exit-code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup test environment
+      shell: bash
+      run: |
+        echo "🚀 統合テスト環境をセットアップ中..."
+        
+        # 必要なディレクトリの作成
+        mkdir -p development/logs/testing
+        mkdir -p test-results
+        
+        # スクリプトに実行権限を付与
+        chmod +x development/scripts/testing/quick_integration_test.sh
+        chmod +x development/scripts/testing/ci-integration.sh
+        
+        # 環境変数の設定
+        echo "CI_MODE=true" >> $GITHUB_ENV
+        echo "ENVIRONMENT=${{ inputs.environment }}" >> $GITHUB_ENV
+        echo "AWS_PROFILE=${{ inputs.aws-profile }}" >> $GITHUB_ENV
+        echo "AWS_REGION=${{ inputs.aws-region }}" >> $GITHUB_ENV
+
+    - name: Run integration tests
+      id: run-tests
+      shell: bash
+      run: |
+        echo "🧪 統合テスト実行開始"
+        echo "  テストモード: ${{ inputs.test-mode }}"
+        echo "  実行環境: ${{ inputs.environment }}"
+        echo "  出力形式: ${{ inputs.output-format }}"
+        
+        # テスト実行オプションの構築
+        test_options="--mode ${{ inputs.test-mode }}"
+        test_options="$test_options --environment ${{ inputs.environment }}"
+        test_options="$test_options --profile ${{ inputs.aws-profile }}"
+        test_options="$test_options --region ${{ inputs.aws-region }}"
+        test_options="$test_options --output-format ${{ inputs.output-format }}"
+        test_options="$test_options --ci-mode"
+        
+        if [[ "${{ inputs.verbose }}" == "true" ]]; then
+          test_options="$test_options --verbose"
+        fi
+        
+        if [[ "${{ inputs.parallel }}" == "true" ]]; then
+          test_options="$test_options --parallel"
+        fi
+        
+        # テスト実行
+        set +e  # エラーでも継続
+        ./development/scripts/testing/quick_integration_test.sh $test_options > test_output.log 2>&1
+        exit_code=$?
+        set -e
+        
+        echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+        
+        # テスト結果の解析
+        if [[ -f "test_output.log" ]]; then
+          # 結果の抽出
+          total_tests=$(grep -o "総テスト数: [0-9]*" test_output.log | grep -o "[0-9]*" | head -1 || echo "0")
+          passed_tests=$(grep -o "成功: [0-9]*" test_output.log | grep -o "[0-9]*" | head -1 || echo "0")
+          failed_tests=$(grep -o "失敗: [0-9]*" test_output.log | grep -o "[0-9]*" | head -1 || echo "0")
+          execution_time=$(grep -o "総実行時間: [0-9]*ms" test_output.log | grep -o "[0-9]*" | head -1 || echo "0")
+          
+          # 成功率計算
+          if [[ $total_tests -gt 0 ]]; then
+            success_rate=$(echo "scale=2; $passed_tests * 100 / $total_tests" | bc -l)
+          else
+            success_rate="0"
+          fi
+          
+          # GitHub Actions出力
+          echo "total-tests=$total_tests" >> $GITHUB_OUTPUT
+          echo "passed-tests=$passed_tests" >> $GITHUB_OUTPUT
+          echo "failed-tests=$failed_tests" >> $GITHUB_OUTPUT
+          echo "success-rate=$success_rate" >> $GITHUB_OUTPUT
+          echo "execution-time=$execution_time" >> $GITHUB_OUTPUT
+          
+          # 結果サマリーの表示
+          echo "📊 テスト結果サマリー:"
+          echo "  総テスト数: $total_tests"
+          echo "  成功: $passed_tests"
+          echo "  失敗: $failed_tests"
+          echo "  成功率: $success_rate%"
+          echo "  実行時間: ${execution_time}ms"
+          echo "  終了コード: $exit_code"
+        else
+          echo "⚠️ テスト出力ファイルが見つかりません"
+          echo "total-tests=0" >> $GITHUB_OUTPUT
+          echo "passed-tests=0" >> $GITHUB_OUTPUT
+          echo "failed-tests=0" >> $GITHUB_OUTPUT
+          echo "success-rate=0" >> $GITHUB_OUTPUT
+          echo "execution-time=0" >> $GITHUB_OUTPUT
+        fi
+        
+        # テスト失敗時の処理
+        if [[ $exit_code -ne 0 ]]; then
+          echo "❌ 統合テストが失敗しました"
+          echo "詳細はtest_output.logを確認してください"
+        else
+          echo "✅ 統合テストが成功しました"
+        fi
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ inputs.test-mode }}-${{ github.run_number }}
+        path: |
+          test_output.log
+          development/logs/testing/
+          test-results/
+        retention-days: 30
+
+    - name: Generate test report
+      if: always()
+      shell: bash
+      run: |
+        echo "📄 テストレポートを生成中..."
+        
+        # GitHub Actions サマリーの生成
+        cat >> $GITHUB_STEP_SUMMARY << EOF
+        ## 🧪 統合テスト結果 (${{ inputs.test-mode }}モード)
+        
+        | 項目 | 値 |
+        |------|-----|
+        | テストモード | ${{ inputs.test-mode }} |
+        | 実行環境 | ${{ inputs.environment }} |
+        | 総テスト数 | ${{ steps.run-tests.outputs.total-tests }} |
+        | 成功 | ${{ steps.run-tests.outputs.passed-tests }} |
+        | 失敗 | ${{ steps.run-tests.outputs.failed-tests }} |
+        | 成功率 | ${{ steps.run-tests.outputs.success-rate }}% |
+        | 実行時間 | ${{ steps.run-tests.outputs.execution-time }}ms |
+        | 終了コード | ${{ steps.run-tests.outputs.exit-code }} |
+        
+        $(if [[ "${{ steps.run-tests.outputs.exit-code }}" == "0" ]]; then echo "✅ **テスト成功**"; else echo "❌ **テスト失敗**"; fi)
+        
+        ### 📁 生成されたアーティファクト
+        - テスト出力ログ: \`test_output.log\`
+        - 詳細ログ: \`development/logs/testing/\`
+        - テスト結果: \`test-results/\`
+        EOF
+
+    - name: Fail if tests failed
+      if: steps.run-tests.outputs.exit-code != '0'
+      shell: bash
+      run: |
+        echo "❌ 統合テストが失敗しました (終了コード: ${{ steps.run-tests.outputs.exit-code }})"
+        exit ${{ steps.run-tests.outputs.exit-code }}

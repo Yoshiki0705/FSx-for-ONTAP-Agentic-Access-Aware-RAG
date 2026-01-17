@@ -1,0 +1,270 @@
+{
+  "//": "External Vector Database Configuration Template",
+  "//": "This template demonstrates how to configure external Vector Databases",
+  "//": "",
+  "//": "Required Parameters for External OpenSearch Serverless:",
+  "//": "  - vectorDatabases.opensearchServerless.external.collectionEndpoint",
+  "//": "  - vectorDatabases.opensearchServerless.external.collectionId",
+  "//": "",
+  "//": "Required Parameters for External OpenSearch:",
+  "//": "  - vectorDatabases.opensearch.external.domainEndpoint",
+  "//": "  - vectorDatabases.opensearch.external.domainName",
+  "//": "",
+  "//": "Required Parameters for External Aurora PostgreSQL:",
+  "//": "  - vectorDatabases.aurora.external.clusterEndpoint",
+  "//": "  - vectorDatabases.aurora.external.clusterIdentifier",
+  "//": "  - vectorDatabases.aurora.external.authentication.username",
+
+  "projectName": "external-vector-db-embedding",
+  "environment": "prod",
+  "region": "ap-northeast-1",
+  "version": "1.0.0",
+
+  "aws": {
+    "account": "123456789012",
+    "profile": "production"
+  },
+
+  "stackNaming": {
+    "useAgentSteeringRules": true,
+    "regionPrefix": "TokyoRegion",
+    "stackPrefix": "permission-aware-rag"
+  },
+
+  "bedrock": {
+    "embeddingModel": {
+      "modelId": "amazon.titan-embed-text-v1",
+      "dimensions": 1536,
+      "maxTokens": 8192
+    },
+    "textModel": {
+      "modelId": "amazon.nova-pro-v1:0",
+      "maxTokens": 4096,
+      "temperature": 0.1
+    },
+    "region": "us-east-1"
+  },
+
+  "vpc": {
+    "mode": "existing",
+    "existing": {
+      "vpcId": "vpc-xxxxxxxxx",
+      "privateSubnetIds": [
+        "subnet-xxxxxxxxx",
+        "subnet-yyyyyyyyy"
+      ]
+    }
+  },
+
+  "fsx": {
+    "mode": "existing",
+    "existing": {
+      "fileSystemId": "fs-xxxxxxxxx",
+      "volumePath": "/rag-data",
+      "mountPoint": "/mnt/fsx-rag-data"
+    }
+  },
+
+  "batch": {
+    "computeEnvironment": {
+      "maxvCpus": 500,
+      "minvCpus": 0,
+      "desiredvCpus": 10,
+      "instanceTypes": ["m5.large", "m5.xlarge"],
+      "useSpotInstances": true,
+      "spotBidPercentage": 50
+    },
+    "jobQueue": {
+      "priority": 100
+    },
+    "jobDefinitions": {
+      "documentProcessing": {
+        "vcpus": 2,
+        "memoryMiB": 4096,
+        "timeoutSeconds": 3600,
+        "retryAttempts": 2
+      },
+      "embeddingGeneration": {
+        "vcpus": 4,
+        "memoryMiB": 8192,
+        "timeoutSeconds": 7200,
+        "retryAttempts": 3
+      },
+      "ragQueryProcessing": {
+        "vcpus": 4,
+        "memoryMiB": 8192,
+        "timeoutSeconds": 3600,
+        "retryAttempts": 2
+      }
+    }
+  },
+
+  "storage": {
+    "s3": {
+      "enableVersioning": true,
+      "enableEncryption": true,
+      "lifecycleRules": {
+        "transitionToIA": 30,
+        "transitionToGlacier": 90,
+        "expiration": 365
+      }
+    },
+    "dynamodb": {
+      "billingMode": "PAY_PER_REQUEST",
+      "enablePointInTimeRecovery": true,
+      "enableEncryption": true
+    }
+  },
+
+  "vectorDatabases": {
+    "opensearchServerless": {
+      "enabled": true,
+      "mode": "external",
+      "external": {
+        "collectionEndpoint": "https://xxxxx.ap-northeast-1.aoss.amazonaws.com",
+        "collectionId": "your-collection-id",
+        "indexName": "embeddings",
+        "authentication": {
+          "type": "iam",
+          "roleArn": "arn:aws:iam::123456789012:role/OpenSearchServerlessAccessRole"
+        }
+      }
+    },
+    "opensearch": {
+      "enabled": false,
+      "mode": "external",
+      "external": {
+        "domainEndpoint": "https://search-your-domain.ap-northeast-1.es.amazonaws.com",
+        "domainName": "your-opensearch-domain",
+        "indexName": "embeddings",
+        "authentication": {
+          "type": "iam",
+          "roleArn": "arn:aws:iam::123456789012:role/OpenSearchAccessRole"
+        }
+      }
+    },
+    "aurora": {
+      "enabled": false,
+      "mode": "external",
+      "external": {
+        "clusterEndpoint": "your-cluster.cluster-xxxxx.ap-northeast-1.rds.amazonaws.com",
+        "readerEndpoint": "your-cluster.cluster-ro-xxxxx.ap-northeast-1.rds.amazonaws.com",
+        "clusterIdentifier": "your-embedding-cluster",
+        "port": 5432,
+        "databaseName": "embeddings",
+        "authentication": {
+          "type": "iam",
+          "username": "embedding_user",
+          "secretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:rds-db-credentials/cluster-xxxxx"
+        }
+      },
+      "vectorExtension": {
+        "enabled": true,
+        "extension": "pgvector",
+        "dimensions": 1536,
+        "tableName": "document_embeddings",
+        "vectorColumn": "embedding_vector",
+        "textColumn": "text_content",
+        "metadataColumn": "metadata_json"
+      }
+    }
+  },
+
+  "monitoring": {
+    "cloudWatch": {
+      "enableDetailedMonitoring": true,
+      "createDashboard": true,
+      "logRetentionDays": 90,
+      "enableInsights": true
+    },
+    "alerting": {
+      "enableAlerts": true,
+      "emailEndpoints": [
+        "ops-team@company.com"
+      ]
+    },
+    "xray": {
+      "enableTracing": true,
+      "samplingRate": 0.1
+    }
+  },
+
+  "security": {
+    "iam": {
+      "enableMFA": true,
+      "passwordPolicy": {
+        "minLength": 12,
+        "requireUppercase": true,
+        "requireLowercase": true,
+        "requireNumbers": true,
+        "requireSymbols": true
+      }
+    },
+    "network": {
+      "enableWAF": true,
+      "allowedCIDRs": ["10.0.0.0/8"],
+      "enableVPCFlowLogs": true
+    },
+    "encryption": {
+      "enableKMSEncryption": true,
+      "enableS3Encryption": true,
+      "enableDynamoDBEncryption": true
+    },
+    "compliance": {
+      "enableGuardDuty": true,
+      "enableSecurityHub": true,
+      "enableConfig": true,
+      "enableCloudTrail": true
+    }
+  },
+
+  "costOptimization": {
+    "autoScaling": {
+      "enableAutoScaling": true,
+      "scaleDownDelay": 10,
+      "scaleUpThreshold": 70,
+      "scaleDownThreshold": 30
+    },
+    "resourceTagging": {
+      "costCenter": "ai-research",
+      "project": "vector-database-integration",
+      "owner": "data-engineering-team",
+      "environment": "prod",
+      "customTags": {
+        "vector-db-type": "external",
+        "data-classification": "internal"
+      }
+    },
+    "budgets": {
+      "enableBudgetAlerts": true,
+      "monthlyBudgetUSD": 2000,
+      "alertThresholds": [50, 75, 90, 100]
+    }
+  },
+
+  "development": {
+    "debugging": {
+      "enableDebugLogs": false,
+      "enableVerboseOutput": false,
+      "enablePerformanceMetrics": true
+    },
+    "testing": {
+      "enableTestMode": false,
+      "mockExternalServices": false
+    },
+    "deployment": {
+      "enableHotswap": false,
+      "enableRollback": true,
+      "deploymentTimeout": 45
+    }
+  },
+
+  "features": {
+    "enableDocumentProcessing": true,
+    "enableEmbeddingGeneration": true,
+    "enableRagQueryProcessing": true,
+    "enablePermissionFiltering": true,
+    "enableMultiLanguageSupport": true,
+    "enableAdvancedAnalytics": true
+  }
+}

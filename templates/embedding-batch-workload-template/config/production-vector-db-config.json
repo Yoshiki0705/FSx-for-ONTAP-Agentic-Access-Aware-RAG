@@ -1,0 +1,217 @@
+{
+  "projectName": "embedding-vector-production",
+  "environment": "prod",
+  "region": "ap-northeast-1",
+  "version": "1.0.0",
+  "aws": {
+    "account": "178625946981",
+    "profile": "user01"
+  },
+  "stackNaming": {
+    "useAgentSteeringRules": true,
+    "regionPrefix": "TokyoRegion",
+    "stackPrefix": "embedding-vector"
+  },
+  "bedrock": {
+    "embeddingModel": {
+      "modelId": "amazon.titan-embed-text-v2",
+      "dimensions": 1536,
+      "maxTokens": 8192
+    },
+    "multimodalEmbeddingModel": {
+      "modelId": "amazon.nova-2-multimodal-embeddings-v1:0",
+      "dimensions": 3072,
+      "maxTokens": 8192,
+      "supportedModalities": ["text", "image", "video", "audio", "document"],
+      "segmentationConfig": {
+        "videoDurationSeconds": 15,
+        "audioDurationSeconds": 15
+      },
+      "embeddingPurposes": {
+        "index": "GENERIC_INDEX",
+        "retrieval": "GENERIC_RETRIEVAL",
+        "documentRetrieval": "DOCUMENT_RETRIEVAL"
+      }
+    },
+    "textModel": {
+      "modelId": "amazon.nova-micro-v1:0",
+      "maxTokens": 4096,
+      "temperature": 0.1
+    },
+    "region": "us-east-1",
+    "multimodalRegion": "us-east-1"
+  },
+  "vpc": {
+    "mode": "existing",
+    "existing": {
+      "vpcId": "vpc-0ae01826f906191af",
+      "privateSubnetIds": [
+        "subnet-0307ebbd55b35c842",
+        "subnet-099c56d71d9f9878b"
+      ],
+      "publicSubnetIds": [
+        "subnet-0e36804c7fbc819a6"
+      ]
+    }
+  },
+  "fsx": {
+    "mode": "existing",
+    "existing": {
+      "fileSystemId": "fs-01bbdf5e15791c3a5",
+      "volumePath": "/rag-data",
+      "mountPoint": "/mnt/fsx-rag-data"
+    }
+  },
+  "vectorDatabases": {
+    "opensearchServerless": {
+      "enabled": true,
+      "mode": "external",
+      "external": {
+        "collectionEndpoint": "https://15akj6p9c471v681yaf1.ap-northeast-1.aoss.amazonaws.com",
+        "collectionId": "15akj6p9c471v681yaf1",
+        "collectionName": "bedrock-knowledge-base-aor22o",
+        "indexName": "embeddings",
+        "authentication": {
+          "type": "iam"
+        },
+        "vectorDimensions": 1536,
+        "engineType": "vectorsearch"
+      },
+      "indexConfiguration": {
+        "vectorField": "embedding_vector",
+        "textField": "text_content",
+        "metadataField": "metadata",
+        "idField": "document_id"
+      }
+    }
+  },
+  "batch": {
+    "computeEnvironment": {
+      "maxvCpus": 50,
+      "minvCpus": 0,
+      "desiredvCpus": 0,
+      "instanceTypes": ["m5.large", "m5.xlarge"],
+      "useSpotInstances": true,
+      "spotBidPercentage": 60
+    },
+    "jobQueue": {
+      "priority": 1
+    },
+    "jobDefinitions": {
+      "documentProcessing": {
+        "vcpus": 2,
+        "memoryMiB": 4096,
+        "timeoutSeconds": 3600,
+        "retryAttempts": 2
+      },
+      "embeddingGeneration": {
+        "vcpus": 4,
+        "memoryMiB": 8192,
+        "timeoutSeconds": 7200,
+        "retryAttempts": 3
+      },
+      "ragQueryProcessing": {
+        "vcpus": 2,
+        "memoryMiB": 4096,
+        "timeoutSeconds": 1800,
+        "retryAttempts": 2
+      }
+    }
+  },
+  "storage": {
+    "s3": {
+      "enableVersioning": true,
+      "enableEncryption": true,
+      "lifecycleRules": {
+        "transitionToIA": 30,
+        "transitionToGlacier": 90,
+        "expiration": 365
+      }
+    },
+    "dynamodb": {
+      "billingMode": "PAY_PER_REQUEST",
+      "enablePointInTimeRecovery": true,
+      "enableEncryption": true
+    }
+  },
+  "monitoring": {
+    "cloudWatch": {
+      "enableDetailedMonitoring": true,
+      "createDashboard": true,
+      "logRetentionDays": 30,
+      "enableInsights": true
+    },
+    "alerting": {
+      "enableAlerts": true,
+      "emailEndpoints": ["admin@example.com"]
+    },
+    "xray": {
+      "enableTracing": true,
+      "samplingRate": 0.1
+    }
+  },
+  "security": {
+    "iam": {
+      "enableMFA": false
+    },
+    "network": {
+      "enableWAF": true,
+      "allowedCIDRs": ["10.0.0.0/8"],
+      "enableVPCFlowLogs": true
+    },
+    "encryption": {
+      "enableKMSEncryption": true,
+      "enableS3Encryption": true,
+      "enableDynamoDBEncryption": true
+    },
+    "compliance": {
+      "enableGuardDuty": true,
+      "enableSecurityHub": false,
+      "enableConfig": false,
+      "enableCloudTrail": true
+    }
+  },
+  "costOptimization": {
+    "autoScaling": {
+      "enableAutoScaling": true,
+      "scaleDownDelay": 10,
+      "scaleUpThreshold": 70,
+      "scaleDownThreshold": 30
+    },
+    "resourceTagging": {
+      "costCenter": "ai-research",
+      "project": "embedding-vector-production",
+      "owner": "data-engineering-team",
+      "environment": "prod"
+    },
+    "budgets": {
+      "enableBudgetAlerts": true,
+      "monthlyBudgetUSD": 500,
+      "alertThresholds": [50, 80, 100]
+    }
+  },
+  "development": {
+    "debugging": {
+      "enableDebugLogs": true,
+      "enableVerboseOutput": true,
+      "enablePerformanceMetrics": true
+    },
+    "testing": {
+      "enableTestMode": false,
+      "mockExternalServices": false
+    },
+    "deployment": {
+      "enableHotswap": false,
+      "enableRollback": true,
+      "deploymentTimeout": 45
+    }
+  },
+  "features": {
+    "enableDocumentProcessing": true,
+    "enableEmbeddingGeneration": true,
+    "enableRagQueryProcessing": true,
+    "enablePermissionFiltering": true,
+    "enableMultiLanguageSupport": false,
+    "enableAdvancedAnalytics": true
+  }
+}

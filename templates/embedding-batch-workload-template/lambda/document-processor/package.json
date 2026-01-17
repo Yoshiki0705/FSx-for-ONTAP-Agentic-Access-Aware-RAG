@@ -1,0 +1,24 @@
+{
+  "name": "document-processor",
+  "version": "1.0.0",
+  "description": "Document processor Lambda function for FSx for NetApp ONTAP embedding workload",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1691.0"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "document-processing",
+    "fsx",
+    "netapp",
+    "ontap",
+    "embedding",
+    "batch"
+  ],
+  "author": "Embedding Batch Workload Template",
+  "license": "MIT"
+}

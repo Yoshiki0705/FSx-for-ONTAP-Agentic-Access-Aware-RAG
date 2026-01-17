@@ -1,0 +1,250 @@
+{
+  "testConfiguration": {
+    "version": "2.0.0",
+    "lastUpdated": "2024-10-13",
+    "description": "Amazon Nova系モデル統合テスト設定",
+    "environment": "development"
+  },
+  "aws": {
+    "defaultRegion": "us-east-1",
+    "profile": "user01",
+    "supportedRegions": [
+      "us-east-1",
+      "us-west-2", 
+      "eu-west-1",
+      "ap-northeast-1"
+    ]
+  },
+  "models": {
+    "priority": {
+      "primary": "amazon.nova-lite-v1:0",
+      "fallback": "amazon.nova-micro-v1:0",
+      "premium": "amazon.nova-pro-v1:0"
+    },
+    "nova": {
+      "micro": {
+        "modelId": "amazon.nova-micro-v1:0",
+        "description": "高速・低コスト推論モデル",
+        "maxTokens": 1000,
+        "temperature": 0.7,
+        "costPerToken": 0.000035,
+        "speedMultiplier": 1.5,
+        "useCases": ["simple-qa", "quick-responses", "batch-processing"]
+      },
+      "lite": {
+        "modelId": "amazon.nova-lite-v1:0", 
+        "description": "バランス型推論モデル",
+        "maxTokens": 1500,
+        "temperature": 0.7,
+        "costPerToken": 0.00006,
+        "speedMultiplier": 1.0,
+        "useCases": ["general-purpose", "technical-analysis", "content-generation"]
+      },
+      "pro": {
+        "modelId": "amazon.nova-pro-v1:0",
+        "description": "高精度推論モデル",
+        "maxTokens": 2000,
+        "temperature": 0.3,
+        "costPerToken": 0.0008,
+        "speedMultiplier": 0.7,
+        "useCases": ["complex-reasoning", "strategic-planning", "detailed-analysis"]
+      }
+    },
+    "embedding": {
+      "titan": {
+        "modelId": "amazon.titan-embed-text-v2:0",
+        "description": "テキスト埋め込みモデル",
+        "dimensions": 1024,
+        "maxInputTokens": 8192
+      }
+    }
+  },
+  "testScenarios": {
+    "basic": {
+      "name": "基本機能テスト",
+      "description": "Nova系モデルの基本的な応答テスト",
+      "prompts": [
+        "Amazon FSx for NetApp ONTAPとは何ですか？",
+        "RAGシステムの基本的な仕組みを教えてください",
+        "AWS Lambdaの主な利点は何ですか？"
+      ],
+      "expectedQuality": 70,
+      "maxLatency": 5000
+    },
+    "technical": {
+      "name": "技術分析テスト", 
+      "description": "技術的な内容の詳細分析テスト",
+      "prompts": [
+        "Amazon FSx for NetApp ONTAPのパフォーマンス最適化手法について詳しく説明してください",
+        "RAGシステムにおけるベクトル検索の精度向上方法を分析してください",
+        "サーバーレスアーキテクチャの設計パターンとベストプラクティスを教えてください"
+      ],
+      "expectedQuality": 85,
+      "maxLatency": 8000
+    },
+    "complex": {
+      "name": "複雑推論テスト",
+      "description": "複雑な推論と意思決定支援テスト", 
+      "prompts": [
+        "エンタープライズ環境でのFSx for NetApp ONTAP導入における、コスト、パフォーマンス、セキュリティの最適なバランスを分析し、具体的な実装戦略を提案してください",
+        "マルチリージョンRAGシステムの設計において、データ一貫性、レイテンシ、コスト効率を同時に最適化する方法を詳細に検討してください"
+      ],
+      "expectedQuality": 95,
+      "maxLatency": 12000
+    }
+  },
+  "ragConfiguration": {
+    "vectorSearch": {
+      "collectionName": "rag-vector-collection",
+      "indexName": "rag-vector-index",
+      "dimensions": 1024,
+      "similarityMetric": "cosine"
+    },
+    "documentProcessing": {
+      "chunkSize": 1000,
+      "chunkOverlap": 200,
+      "maxDocuments": 100
+    },
+    "retrieval": {
+      "topK": 5,
+      "scoreThreshold": 0.7,
+      "maxContextLength": 4000
+    }
+  },
+  "qualityThresholds": {
+    "minimum": 60,
+    "target": 80,
+    "premium": 90,
+    "metrics": {
+      "relevance": 0.8,
+      "accuracy": 0.85,
+      "completeness": 0.75,
+      "coherence": 0.8
+    }
+  },
+  "budgetLimits": {
+    "daily": 10.0,
+    "monthly": 300.0,
+    "perRequest": 0.20,
+    "alertThresholds": {
+      "warning": 0.8,
+      "critical": 0.95
+    }
+  },
+  "performanceTargets": {
+    "latency": {
+      "p50": 2000,
+      "p95": 5000,
+      "p99": 8000
+    },
+    "throughput": {
+      "requestsPerSecond": 10,
+      "concurrentRequests": 20
+    },
+    "availability": {
+      "target": 99.9,
+      "maxDowntime": 43.2
+    }
+  },
+  "testExecution": {
+    "retries": 3,
+    "timeout": 30000,
+    "parallelism": 5,
+    "warmupRequests": 2,
+    "cooldownPeriod": 1000
+  },
+  "monitoring": {
+    "cloudwatch": {
+      "namespace": "NovaRAGSystem",
+      "metrics": [
+        "ResponseTime",
+        "TokenUsage", 
+        "Cost",
+        "QualityScore",
+        "ErrorRate"
+      ]
+    },
+    "logging": {
+      "level": "INFO",
+      "includeRequestDetails": true,
+      "maskSensitiveData": true
+    }
+  },
+  "multiRegion": {
+    "enabled": true,
+    "regions": [
+      {
+        "code": "us-east-1",
+        "name": "US East (N. Virginia)",
+        "priority": 1,
+        "expectedLatency": 100
+      },
+      {
+        "code": "us-west-2", 
+        "name": "US West (Oregon)",
+        "priority": 2,
+        "expectedLatency": 120
+      },
+      {
+        "code": "eu-west-1",
+        "name": "Europe (Ireland)", 
+        "priority": 3,
+        "expectedLatency": 200
+      },
+      {
+        "code": "ap-northeast-1",
+        "name": "Asia Pacific (Tokyo)",
+        "priority": 4,
+        "expectedLatency": 150
+      }
+    ],
+    "failover": {
+      "enabled": true,
+      "maxRetries": 3,
+      "retryDelay": 1000
+    }
+  },
+  "optimization": {
+    "adaptiveModelSelection": {
+      "enabled": true,
+      "rules": [
+        {
+          "condition": "simple-qa",
+          "model": "nova-micro"
+        },
+        {
+          "condition": "technical-analysis", 
+          "model": "nova-lite"
+        },
+        {
+          "condition": "complex-reasoning",
+          "model": "nova-pro"
+        }
+      ]
+    },
+    "caching": {
+      "enabled": true,
+      "ttl": 3600,
+      "maxSize": 1000
+    },
+    "batchProcessing": {
+      "enabled": true,
+      "optimalBatchSize": 10,
+      "maxConcurrency": 20
+    }
+  },
+  "security": {
+    "encryption": {
+      "inTransit": true,
+      "atRest": true
+    },
+    "authentication": {
+      "required": true,
+      "method": "IAM"
+    },
+    "dataPrivacy": {
+      "maskPII": true,
+      "logRetention": 30
+    }
+  }
+}

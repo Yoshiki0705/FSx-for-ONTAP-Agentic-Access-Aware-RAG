@@ -1,0 +1,25 @@
+{
+  "papers": [
+    {
+      "title": "Attention Is All You Need",
+      "authors": ["Vaswani et al."],
+      "year": 2017,
+      "abstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms.",
+      "keywords": ["transformer", "attention", "neural networks", "sequence modeling"]
+    },
+    {
+      "title": "BERT: Pre-training of Deep Bidirectional Transformers",
+      "authors": ["Devlin et al."],
+      "year": 2018,
+      "abstract": "We introduce BERT, which stands for Bidirectional Encoder Representations from Transformers. BERT is designed to pre-train deep bidirectional representations from unlabeled text.",
+      "keywords": ["BERT", "bidirectional", "pre-training", "transformers"]
+    },
+    {
+      "title": "GPT-3: Language Models are Few-Shot Learners",
+      "authors": ["Brown et al."],
+      "year": 2020,
+      "abstract": "We train GPT-3, an autoregressive language model with 175 billion parameters, and test its performance in the few-shot setting.",
+      "keywords": ["GPT-3", "language model", "few-shot learning", "large scale"]
+    }
+  ]
+}
