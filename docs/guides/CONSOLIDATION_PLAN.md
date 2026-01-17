@@ -135,12 +135,12 @@
 3. `debugging-complete-guide.md`作成
 4. 元ファイル削除
 
-### Phase 3: その他の統合（優先度: 中）
-1. `fsx-integration-complete-guide.md`作成
-2. `operations-configuration-guide.md`作成
-3. `i18n-complete-guide.md`作成
-4. `user-preferences-complete-guide.md`作成
-5. 元ファイル削除
+### Phase 3: その他の統合（優先度: 中）✅ 完了
+1. ✅ `fsx-integration-complete-guide.md`作成（完了: 2026-01-18）
+2. ✅ `operations-configuration-guide.md`作成（完了: 2026-01-18）
+3. ✅ `user-preferences-complete-guide.md`作成（完了: 2026-01-18）
+4. ✅ 元ファイル削除（Step 1, 2, 3完了）
+5. ⏳ `i18n-complete-guide.md`作成（保留: 既存i18nガイドの確認が必要）
 
 ### Phase 4: EC2同期とドキュメント更新（優先度: 高）
 1. README.mdのリンク更新

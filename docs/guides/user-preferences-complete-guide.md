@@ -1,33 +1,39 @@
-# ユーザー設定システムガイド
+# ユーザー設定完全ガイド
 
-**最終更新**: 2026年1月7日  
-**対象**: 開発者・システム管理者
-
-## 📋 目次
-
-1. [概要](#概要)
-2. [アーキテクチャ](#アーキテクチャ)
-3. [API仕様](#api仕様)
-4. [フロントエンド実装](#フロントエンド実装)
-5. [データベース設計](#データベース設計)
-6. [セキュリティ](#セキュリティ)
-7. [パフォーマンス](#パフォーマンス)
-8. [トラブルシューティング](#トラブルシューティング)
+**最終更新**: 2026年1月18日  
+**バージョン**: 2.0  
+**対象**: Permission-aware RAG System ユーザー設定システム
 
 ---
 
-## 概要
+## 目次
+
+1. [概要](#1-概要)
+2. [アーキテクチャ](#2-アーキテクチャ)
+3. [API仕様](#3-api仕様)
+4. [フロントエンド実装](#4-フロントエンド実装)
+5. [データベース設計](#5-データベース設計)
+6. [CDK実装](#6-cdk実装)
+7. [デプロイメント](#7-デプロイメント)
+8. [セキュリティ](#8-セキュリティ)
+9. [パフォーマンス](#9-パフォーマンス)
+10. [トラブルシューティング](#10-トラブルシューティング)
+
+---
+
+## 1. 概要
+
+### 1.1 システム概要
 
 ユーザー設定システム（v2.6.0）は、ユーザーの設定情報をDynamoDBに永続化し、クロスデバイス同期を実現するシステムです。
 
-### 主要機能
-
+**主要機能**:
 - **設定永続化**: DynamoDBへの自動保存
 - **クロスデバイス同期**: 複数デバイス間での設定共有
 - **リアルタイム反映**: 設定変更の即座UI反映
 - **フォールバック**: オフライン時のデフォルト設定
 
-### AgentCore Memoryとの違い
+### 1.2 AgentCore Memoryとの違い
 
 | 項目 | User Preferences | AgentCore Memory |
 |------|-----------------|------------------|
@@ -43,9 +49,9 @@
 
 ---
 
-## アーキテクチャ
+## 2. アーキテクチャ
 
-### システム構成
+### 2.1 システム構成
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -77,12 +83,13 @@
 ├─────────────────────────────────────────────────────────────┤
 │ permission-aware-rag-preferences                            │
 │ - Partition Key: userId                                     │
+│ - Sort Key: settingKey                                      │
 │ - 設定データ: JSON形式                                        │
 │ - TTL: なし（永続保存）                                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### データフロー
+### 2.2 データフロー
 
 ```
 1. ユーザーログイン
@@ -107,13 +114,13 @@
 
 ---
 
-## API仕様
+## 3. API仕様
 
-### エンドポイント
+### 3.1 エンドポイント
 
 **Base URL**: `/api/preferences`
 
-### GET /api/preferences
+### 3.2 GET /api/preferences
 
 ユーザーの設定を取得します。
 
@@ -144,7 +151,7 @@ Authorization: Bearer <session-token>
 }
 ```
 
-### PUT /api/preferences
+### 3.3 PUT /api/preferences
 
 ユーザーの設定を作成または完全更新します。
 
@@ -174,7 +181,7 @@ Authorization: Bearer <session-token>
 }
 ```
 
-### PATCH /api/preferences
+### 3.4 PATCH /api/preferences
 
 ユーザーの設定を部分更新します。
 
@@ -198,7 +205,7 @@ Authorization: Bearer <session-token>
 }
 ```
 
-### DELETE /api/preferences
+### 3.5 DELETE /api/preferences
 
 ユーザーの設定を削除します。
 
@@ -216,7 +223,7 @@ Authorization: Bearer <session-token>
 }
 ```
 
-### エラーレスポンス
+### 3.6 エラーレスポンス
 
 ```json
 {
@@ -234,9 +241,9 @@ Authorization: Bearer <session-token>
 
 ---
 
-## フロントエンド実装
+## 4. フロントエンド実装
 
-### usePreferences Hook
+### 4.1 usePreferences Hook
 
 **実装場所**: `docker/nextjs/src/hooks/usePreferences.ts`
 
@@ -278,7 +285,7 @@ function SettingsComponent() {
 }
 ```
 
-### usePreferencesSync Hook
+### 4.2 usePreferencesSync Hook
 
 **実装場所**: `docker/nextjs/src/hooks/usePreferencesSync.ts`
 
@@ -304,7 +311,7 @@ function ThemeToggle() {
 }
 ```
 
-### PreferencesSyncProvider
+### 4.3 PreferencesSyncProvider
 
 **実装場所**: `docker/nextjs/src/components/providers/PreferencesSyncProvider.tsx`
 
@@ -326,7 +333,7 @@ export default function RootLayout({ children }) {
 }
 ```
 
-### Zustand Store統合
+### 4.4 Zustand Store統合
 
 #### useThemeStore
 
@@ -346,11 +353,11 @@ const { selectedRegion, setRegion } = useRegionStore();
 
 ---
 
-## データベース設計
+## 5. データベース設計
 
-### DynamoDBテーブル
+### 5.1 DynamoDBテーブル
 
-**テーブル名**: `permission-aware-rag-preferences`
+**テーブル名**: `permission-aware-rag-preferences` または `{environment}-user-preferences`
 
 #### テーブル構造
 
@@ -361,11 +368,19 @@ const { selectedRegion, setRegion } = useRegionStore();
     {
       "AttributeName": "userId",
       "KeyType": "HASH"
+    },
+    {
+      "AttributeName": "settingKey",
+      "KeyType": "RANGE"
     }
   ],
   "AttributeDefinitions": [
     {
       "AttributeName": "userId",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "settingKey",
       "AttributeType": "S"
     }
   ],
@@ -378,26 +393,38 @@ const { selectedRegion, setRegion } = useRegionStore();
 ```json
 {
   "userId": "user123",
-  "preferences": {
-    "theme": "dark",
-    "defaultRegion": "ap-northeast-1",
-    "language": "ja",
-    "notifications": {
-      "desktop": true,
-      "sound": true,
-      "volume": 0.8
-    },
-    "accessibility": {
-      "reduceMotion": false,
-      "showFocusIndicator": true
-    }
-  },
-  "createdAt": "2026-01-07T10:00:00.000Z",
-  "updatedAt": "2026-01-07T15:30:00.000Z"
+  "settingKey": "theme",
+  "settingValue": "dark",
+  "updatedAt": "2026-01-18T10:00:00.000Z",
+  "createdAt": "2026-01-18T10:00:00.000Z"
 }
 ```
 
-#### インデックス
+**複数設定の例**:
+```json
+[
+  {
+    "userId": "user123",
+    "settingKey": "theme",
+    "settingValue": "dark",
+    "updatedAt": "2026-01-18T10:00:00.000Z"
+  },
+  {
+    "userId": "user123",
+    "settingKey": "defaultRegion",
+    "settingValue": "ap-northeast-1",
+    "updatedAt": "2026-01-18T10:00:00.000Z"
+  },
+  {
+    "userId": "user123",
+    "settingKey": "language",
+    "settingValue": "ja",
+    "updatedAt": "2026-01-18T10:00:00.000Z"
+  }
+]
+```
+
+### 5.2 インデックス
 
 現在、セカンダリインデックスは使用していません。将来的に以下のインデックスを追加する可能性があります：
 
@@ -406,14 +433,227 @@ const { selectedRegion, setRegion } = useRegionStore();
 
 ---
 
-## セキュリティ
+## 6. CDK実装
 
-### 認証・認可
+### 6.1 DynamoDBテーブル定義
+
+**ファイル**: `lib/modules/database/constructs/user-preferences-table-construct.ts`
+
+**テーブル設計**:
+```typescript
+{
+  tableName: `${environment}-user-preferences`,
+  partitionKey: { name: 'userId', type: AttributeType.STRING },
+  sortKey: { name: 'settingKey', type: AttributeType.STRING },
+  billingMode: BillingMode.PAY_PER_REQUEST,
+  encryption: TableEncryption.AWS_MANAGED,
+  pointInTimeRecovery: environment === 'prod',
+  removalPolicy: environment === 'prod' ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY
+}
+```
+
+**特徴**:
+- 複合キー（userId + settingKey）による柔軟な設定管理
+- PAY_PER_REQUEST課金モード（コスト最適化）
+- AWS管理暗号化（セキュリティ）
+- 本番環境でのポイントインタイムリカバリ（データ保護）
+- 環境別削除ポリシー（本番: RETAIN、開発: DESTROY）
+
+### 6.2 DataStack統合
+
+**ファイル**: `lib/stacks/integrated/data-stack.ts`
+
+**実装箇所**:
+
+#### インポート
+```typescript
+import { UserPreferencesTableConstruct } from '../../modules/database/constructs/user-preferences-table-construct';
+```
+
+#### プロパティ定義
+```typescript
+/** ユーザー設定用DynamoDBテーブル */
+public userPreferencesTable?: dynamodb.Table;
+```
+
+#### テーブル作成
+```typescript
+// ユーザー設定テーブル
+const userPreferencesTable = new UserPreferencesTableConstruct(this, 'UserPreferencesTable', {
+  tableName: `${this.environmentName}-user-preferences`,
+  environment: this.environmentName,
+});
+this.dynamoDbTableNames['userPreferences'] = userPreferencesTable.table.tableName;
+this.userPreferencesTable = userPreferencesTable.table;
+```
+
+#### CloudFormation Output
+```typescript
+new cdk.CfnOutput(this, 'UserPreferencesTableName', {
+  value: userPreferencesTable.table.tableName,
+  description: 'User Preferences Table Name',
+  exportName: `${this.stackName}-UserPreferencesTableName`,
+});
+```
+
+### 6.3 WebAppStack統合
+
+**ファイル**: `lib/stacks/integrated/webapp-stack.ts`
+
+**実装箇所**:
+
+#### Lambda環境変数
+```typescript
+environment: {
+  // ...
+  PREFERENCES_TABLE_NAME: props.dataStack?.userPreferencesTable?.tableName || 'permission-aware-rag-preferences',
+  // ...
+}
+```
+
+#### アクセス権限付与
+```typescript
+// UserPreferencesテーブルへのアクセス権限付与
+if (props.dataStack?.userPreferencesTable) {
+  props.dataStack.userPreferencesTable.grantReadWriteData(this.webAppFunction);
+  console.log('✅ UserPreferencesTableへのアクセス権限付与完了');
+}
+```
+
+---
+
+## 7. デプロイメント
+
+### 7.1 CDKデプロイ（推奨）
+
+```bash
+# 1. DataStackをデプロイ（DynamoDBテーブル作成）
+npx cdk deploy DataStack --region ap-northeast-1
+
+# 2. WebAppStackをデプロイ（Lambda環境変数・IAM権限設定）
+npx cdk deploy WebAppStack --region ap-northeast-1
+```
+
+### 7.2 手動デプロイ
+
+#### Step 1: DynamoDBテーブル作成
+
+```bash
+aws dynamodb create-table \
+  --table-name permission-aware-rag-preferences \
+  --attribute-definitions \
+    AttributeName=userId,AttributeType=S \
+    AttributeName=settingKey,AttributeType=S \
+  --key-schema \
+    AttributeName=userId,KeyType=HASH \
+    AttributeName=settingKey,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --region ap-northeast-1
+```
+
+#### Step 2: IAMポリシー更新
+
+```json
+{
+  "Action": [
+    "dynamodb:BatchGetItem",
+    "dynamodb:BatchWriteItem",
+    "dynamodb:DeleteItem",
+    "dynamodb:GetItem",
+    "dynamodb:PutItem",
+    "dynamodb:Query",
+    "dynamodb:Scan",
+    "dynamodb:UpdateItem"
+  ],
+  "Resource": [
+    "arn:aws:dynamodb:ap-northeast-1:YOUR_ACCOUNT_ID:table/permission-aware-rag-preferences",
+    "arn:aws:dynamodb:ap-northeast-1:YOUR_ACCOUNT_ID:table/permission-aware-rag-preferences/index/*"
+  ],
+  "Effect": "Allow"
+}
+```
+
+#### Step 3: Lambda環境変数更新
+
+```bash
+aws lambda update-function-configuration \
+  --function-name TokyoRegion-permission-aware-rag-prod-WebApp-Function \
+  --environment Variables="{
+    PREFERENCES_TABLE_NAME=permission-aware-rag-preferences,
+    ...
+  }" \
+  --region ap-northeast-1
+```
+
+#### Step 4: Lambda関数再起動
+
+```bash
+# Reserved Concurrency方式でコンテナキャッシュクリア
+aws lambda put-function-concurrency \
+  --function-name TokyoRegion-permission-aware-rag-prod-WebApp-Function \
+  --reserved-concurrent-executions 0 \
+  --region ap-northeast-1
+
+sleep 10
+
+aws lambda delete-function-concurrency \
+  --function-name TokyoRegion-permission-aware-rag-prod-WebApp-Function \
+  --region ap-northeast-1
+
+# ウォームアップ
+for i in {1..30}; do
+  aws lambda invoke \
+    --function-name TokyoRegion-permission-aware-rag-prod-WebApp-Function \
+    --payload '{"rawPath": "/health"}' \
+    --region ap-northeast-1 \
+    /tmp/response-${i}.json > /dev/null 2>&1
+  sleep 1
+done
+```
+
+### 7.3 デプロイ検証
+
+#### 1. DynamoDBテーブル確認
+
+```bash
+aws dynamodb describe-table \
+  --table-name permission-aware-rag-preferences \
+  --region ap-northeast-1 \
+  --query 'Table.[TableName,TableStatus]'
+```
+
+#### 2. Lambda環境変数確認
+
+```bash
+aws lambda get-function-configuration \
+  --function-name TokyoRegion-permission-aware-rag-prod-WebApp-Function \
+  --region ap-northeast-1 \
+  --query 'Environment.Variables.PREFERENCES_TABLE_NAME'
+```
+
+#### 3. API動作確認
+
+```bash
+# GET /api/preferences
+curl -X GET https://YOUR_CLOUDFRONT_DOMAIN/api/preferences \
+  -H "Cookie: session-token=YOUR_SESSION_TOKEN"
+
+# PATCH /api/preferences
+curl -X PATCH https://YOUR_CLOUDFRONT_DOMAIN/api/preferences \
+  -H "Content-Type: application/json" \
+  -H "Cookie: session-token=YOUR_SESSION_TOKEN" \
+  -d '{"key": "theme", "value": "dark"}'
+```
+
+---
+
+## 8. セキュリティ
+
+### 8.1 認証・認可
 
 #### セッション認証
 
 ```typescript
-// API Routes内での認証チェック
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -437,12 +677,11 @@ export async function GET(request: Request) {
 - `userId`をPartition Keyとして完全分離
 - 他ユーザーの設定は取得・更新不可
 
-### データ保護
+### 8.2 データ保護
 
 #### 入力検証
 
 ```typescript
-// バリデーションスキーマ
 const preferencesSchema = {
   theme: ['light', 'dark', 'system'],
   defaultRegion: /^[a-z]{2}-[a-z]+-\d+$/,
@@ -458,44 +697,20 @@ const preferencesSchema = {
 #### サニタイゼーション
 
 ```typescript
-// 危険な文字列の除去
 function sanitizePreferences(preferences: any): UserPreferences {
   return {
     theme: sanitizeEnum(preferences.theme, ['light', 'dark', 'system']),
     defaultRegion: sanitizeString(preferences.defaultRegion, /^[a-z0-9-]+$/),
     language: sanitizeEnum(preferences.language, SUPPORTED_LANGUAGES),
-    // ...
   };
-}
-```
-
-### IAMポリシー
-
-Lambda実行ロールに必要な権限：
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem"
-      ],
-      "Resource": "arn:aws:dynamodb:*:*:table/permission-aware-rag-preferences"
-    }
-  ]
 }
 ```
 
 ---
 
-## パフォーマンス
+## 9. パフォーマンス
 
-### 最適化戦略
+### 9.1 最適化戦略
 
 #### 1. ローカル状態の即座更新
 
@@ -542,7 +757,7 @@ const { data: preferences, mutate } = useSWR('/api/preferences', fetcher, {
 });
 ```
 
-### パフォーマンス指標
+### 9.2 パフォーマンス指標
 
 #### 目標値
 
@@ -551,23 +766,13 @@ const { data: preferences, mutate } = useSWR('/api/preferences', fetcher, {
 - **UI反映**: < 50ms
 - **同期遅延**: < 1秒
 
-#### 監視方法
-
-```typescript
-// パフォーマンス測定
-const startTime = performance.now();
-await updatePreference('theme', 'dark');
-const endTime = performance.now();
-console.log(`設定更新時間: ${endTime - startTime}ms`);
-```
-
 ---
 
-## トラブルシューティング
+## 10. トラブルシューティング
 
-### よくある問題
+### 10.1 よくある問題
 
-#### 1. 設定が保存されない
+#### 問題1: 設定が保存されない
 
 **症状**: 設定変更後、ページリロードで元に戻る
 
@@ -588,16 +793,9 @@ try {
   console.error('ネットワークエラー:', error);
   // 解決策: オフライン対応、リトライ機能
 }
-
-// 原因3: バリデーションエラー
-const isValid = validatePreferences(preferences);
-if (!isValid) {
-  console.error('無効な設定値');
-  // 解決策: 入力値の検証
-}
 ```
 
-#### 2. 設定が同期されない
+#### 問題2: 設定が同期されない
 
 **症状**: デバイス間で設定が異なる
 
@@ -614,66 +812,31 @@ console.log('DynamoDB preferences:', data.preferences);
 
 // 3. ローカル状態の確認
 console.log('Local theme store:', useThemeStore.getState());
-console.log('Local region store:', useRegionStore.getState());
 ```
 
-#### 3. パフォーマンス問題
+#### 問題3: AccessDeniedException
 
-**症状**: 設定変更が遅い、UIが固まる
-
-**解決策**:
-
-```typescript
-// 1. 非同期処理の最適化
-const updatePreferenceOptimized = useCallback(async (key, value) => {
-  // ローカル状態を即座に更新
-  setPreferences(prev => ({ ...prev, [key]: value }));
-  
-  // バックグラウンドで保存
-  setTimeout(async () => {
-    try {
-      await fetch('/api/preferences', {
-        method: 'PATCH',
-        body: JSON.stringify({ [key]: value }),
-      });
-    } catch (error) {
-      // エラー処理
-    }
-  }, 0);
-}, []);
-
-// 2. デバウンス処理
-const debouncedUpdate = useDebounce(updatePreferenceOptimized, 300);
+**症状**:
+```
+User is not authorized to perform: dynamodb:Query
 ```
 
-### ログ分析
+**原因**: Lambda実行ロールがPreferencesテーブルへのアクセス権限を持っていない
 
-#### フロントエンドログ
+**解決策**: IAMポリシー更新を実行
 
-```typescript
-// usePreferences.ts
-console.log('🔄 [usePreferences] 設定読み込み開始');
-console.log('✅ [usePreferences] 設定読み込み完了:', preferences);
-console.log('❌ [usePreferences] 設定読み込みエラー:', error);
+#### 問題4: ValidationException
+
+**症状**:
+```
+ValidationException: ExpressionAttributeValues must not be empty
 ```
 
-#### バックエンドログ
+**原因**: DynamoDBテーブルが存在しない、またはテーブル名が間違っている
 
-```typescript
-// /api/preferences/route.ts
-console.log('📥 [API] 設定取得リクエスト:', { userId });
-console.log('📤 [API] 設定取得レスポンス:', { success: true });
-console.log('⚠️ [API] 設定取得エラー:', { error: error.message });
-```
+**解決策**: テーブル名を確認し、必要に応じてテーブルを作成
 
-#### DynamoDBログ
-
-```typescript
-// CloudWatch Logsで確認
-// ログストリーム: /aws/lambda/TokyoRegion-permission-aware-rag-prod-WebApp-Function
-```
-
-### 緊急時対応
+### 10.2 緊急時対応
 
 #### 設定リセット
 
@@ -684,17 +847,12 @@ async function resetUserPreferences(userId: string) {
     method: 'DELETE',
     headers: { 'Authorization': 'Bearer <admin-token>' }
   });
-  
-  if (response.ok) {
-    console.log('設定をリセットしました:', userId);
-  }
 }
 ```
 
 #### デフォルト設定の復元
 
 ```typescript
-// フロントエンド: デフォルト設定に戻す
 const resetToDefaults = async () => {
   const defaultPreferences = {
     theme: 'system',
@@ -713,24 +871,52 @@ const resetToDefaults = async () => {
 
 ---
 
-## 関連ドキュメント
+## 11. ベストプラクティス
 
-### 開発者向け
-- **[フロントエンド開発ガイド](./frontend-development-guide.md)** - フロントエンド実装パターン
-- **[API仕様書](../../docker/nextjs/src/app/api/preferences/route.ts)** - 詳細なAPI実装
-- **[型定義](../../docker/nextjs/src/types/preferences.ts)** - TypeScript型定義
+### 11.1 環境別設定
 
-### ユーザー向け
-- **[UI/UXガイド](./ui-ux-guide.md)** - ユーザーインターフェースの使い方
-- **[FAQ](./faq.md)** - よくある質問と回答
+```typescript
+// 本番環境
+{
+  pointInTimeRecovery: true,
+  removalPolicy: RemovalPolicy.RETAIN,
+  encryption: TableEncryption.CUSTOMER_MANAGED,
+}
 
-### 運用・保守
-- **[デプロイメントガイド](./deployment-guide.md)** - デプロイ手順
-- **[監視・運用ガイド](./operations-maintenance-guide-ja.md)** - 運用管理の詳細
+// 開発環境
+{
+  pointInTimeRecovery: false,
+  removalPolicy: RemovalPolicy.DESTROY,
+  encryption: TableEncryption.AWS_MANAGED,
+}
+```
+
+### 11.2 コスト最適化
+
+```typescript
+// PAY_PER_REQUEST課金モード（推奨）
+billingMode: BillingMode.PAY_PER_REQUEST,
+```
+
+### 11.3 セキュリティ
+
+```typescript
+// KMS暗号化（本番環境推奨）
+encryption: TableEncryption.CUSTOMER_MANAGED,
+encryptionKey: kmsKey,
+```
 
 ---
 
-## 更新履歴
+## 12. 関連ドキュメント
+
+- [フロントエンド完全ガイド](./frontend-complete-guide.md)
+- [デプロイメント完全ガイド](./deployment-complete-guide.md)
+- [運用・設定ガイド](./operations-configuration-guide.md)
+
+---
+
+## 13. 更新履歴
 
 ### v2.6.0 (2026-01-07)
 - 初版リリース
@@ -738,19 +924,14 @@ const resetToDefaults = async () => {
 - クロスデバイス同期機能
 - テーマ・リージョン設定対応
 
-### 今後の予定
-
-#### v2.7.0 (予定)
-- 通知設定の詳細化
-- アクセシビリティ設定の拡張
-- 設定のエクスポート/インポート機能
-
-#### v2.8.0 (予定)
-- 設定の履歴管理
-- 設定の共有機能
-- 管理者向け設定管理UI
+### v2.0 (2026-01-18)
+- ドキュメント統合（3ファイル → 1ファイル）
+- CDK実装セクション追加
+- デプロイメントセクション拡充
+- トラブルシューティング強化
 
 ---
 
-**最終更新**: 2026年1月7日  
-**メンテナンス**: このガイドは新機能追加時に更新してください
+**最終更新**: 2026年1月18日  
+**バージョン**: 2.0  
+**ライセンス**: プロジェクトライセンスに準拠
