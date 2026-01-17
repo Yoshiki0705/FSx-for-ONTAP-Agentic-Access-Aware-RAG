@@ -3,6 +3,7 @@
  */
 import { NamingConfig } from './naming-config';
 export interface EnvironmentConfig {
+    projectName?: string;
     environment: string;
     region: string;
     project: ProjectConfig;
@@ -214,4 +215,47 @@ export interface TagsConfig {
     AvailabilityTarget?: string;
     RPO?: string;
     RTO?: string;
+}
+export interface FsxIntegrationConfig {
+    enabled: boolean;
+    fsxFileSystemId?: string;
+    ontapManagementLif?: string;
+    credentials?: {
+        username: string;
+        password: string;
+    };
+}
+export interface AgentCoreIntegrationConfig {
+    enabled: boolean;
+    agentId?: string;
+    agentAliasId?: string;
+    knowledgeBaseId?: string;
+    region?: string;
+}
+export interface AgentCoreIntegrationConfig {
+    enabled: boolean;
+    agentId?: string;
+    agentAliasId?: string;
+    knowledgeBaseId?: string;
+    region?: string;
+    projectName?: string;
+    environment?: string;
+    agentCore?: {
+        monitoring?: {
+            enabled: boolean;
+        };
+        runtime?: {
+            lambda?: {
+                functionName?: string;
+                timeout?: number;
+                memorySize?: number;
+            };
+        };
+    };
+    userPreferences?: {
+        enabled: boolean;
+    };
+    hybridArchitecture?: {
+        enabled: boolean;
+    };
 }

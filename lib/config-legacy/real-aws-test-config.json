@@ -1,0 +1,150 @@
+{
+  "description": "Permission-aware RAG System 実環境AWSリソーステスト設定",
+  "version": "1.0.0",
+  "environments": {
+    "ec2": {
+      "description": "EC2環境での実環境テスト設定",
+      "aws_profile": "user01",
+      "aws_region": "us-east-1",
+      "timeout_seconds": 60,
+      "retry_count": 3,
+      "test_targets": {
+        "lambda_functions": {
+          "enabled": true,
+          "name_patterns": ["rag-*", "user01-*"],
+          "test_invocation": false,
+          "test_configuration": true
+        },
+        "api_endpoints": {
+          "enabled": true,
+          "cloudformation_stack_patterns": ["rag-*", "user01-*"],
+          "cloudfront_comment_patterns": ["rag-*", "user01-*"],
+          "health_check_paths": ["", "/health", "/api/health", "/status"],
+          "timeout_seconds": 10
+        },
+        "database": {
+          "enabled": true,
+          "dynamodb_table_patterns": ["rag-*", "user01-*"],
+          "test_operations": ["describe", "item_count"],
+          "avoid_scan": true
+        },
+        "storage": {
+          "enabled": true,
+          "s3_bucket_patterns": ["rag-*", "user01-*"],
+          "test_operations": ["list", "object_count"],
+          "max_objects_to_count": 1000
+        },
+        "opensearch": {
+          "enabled": true,
+          "domain_patterns": ["rag-*", "user01-*"],
+          "serverless_collection_patterns": ["rag-*", "user01-*"],
+          "test_operations": ["describe", "status"]
+        }
+      }
+    },
+    "staging": {
+      "description": "ステージング環境での実環境テスト設定",
+      "aws_profile": "staging",
+      "aws_region": "us-east-1",
+      "timeout_seconds": 30,
+      "retry_count": 2,
+      "test_targets": {
+        "lambda_functions": {
+          "enabled": true,
+          "name_patterns": ["rag-staging-*"],
+          "test_invocation": false,
+          "test_configuration": true
+        },
+        "api_endpoints": {
+          "enabled": true,
+          "cloudformation_stack_patterns": ["rag-staging-*"],
+          "cloudfront_comment_patterns": ["rag-staging-*"],
+          "health_check_paths": ["", "/health", "/api/health"],
+          "timeout_seconds": 15
+        },
+        "database": {
+          "enabled": true,
+          "dynamodb_table_patterns": ["rag-staging-*"],
+          "test_operations": ["describe"],
+          "avoid_scan": true
+        },
+        "storage": {
+          "enabled": true,
+          "s3_bucket_patterns": ["rag-staging-*"],
+          "test_operations": ["list"],
+          "max_objects_to_count": 100
+        },
+        "opensearch": {
+          "enabled": true,
+          "domain_patterns": ["rag-staging-*"],
+          "serverless_collection_patterns": ["rag-staging-*"],
+          "test_operations": ["describe"]
+        }
+      }
+    },
+    "local": {
+      "description": "ローカル環境での実環境テスト設定（開発用）",
+      "aws_profile": "default",
+      "aws_region": "us-east-1",
+      "timeout_seconds": 30,
+      "retry_count": 1,
+      "test_targets": {
+        "lambda_functions": {
+          "enabled": true,
+          "name_patterns": ["rag-dev-*", "test-*"],
+          "test_invocation": false,
+          "test_configuration": true
+        },
+        "api_endpoints": {
+          "enabled": false,
+          "cloudformation_stack_patterns": [],
+          "cloudfront_comment_patterns": [],
+          "health_check_paths": [],
+          "timeout_seconds": 5
+        },
+        "database": {
+          "enabled": true,
+          "dynamodb_table_patterns": ["rag-dev-*", "test-*"],
+          "test_operations": ["describe"],
+          "avoid_scan": true
+        },
+        "storage": {
+          "enabled": true,
+          "s3_bucket_patterns": ["rag-dev-*", "test-*"],
+          "test_operations": ["list"],
+          "max_objects_to_count": 10
+        },
+        "opensearch": {
+          "enabled": false,
+          "domain_patterns": [],
+          "serverless_collection_patterns": [],
+          "test_operations": []
+        }
+      }
+    }
+  },
+  "safety_settings": {
+    "description": "本番環境への影響を最小限に抑えるための安全設定",
+    "read_only_operations": true,
+    "avoid_destructive_operations": true,
+    "max_concurrent_requests": 3,
+    "request_interval_ms": 1000,
+    "excluded_patterns": [
+      "*prod*",
+      "*production*",
+      "*live*"
+    ]
+  },
+  "logging": {
+    "level": "INFO",
+    "include_timestamps": true,
+    "include_request_details": false,
+    "mask_sensitive_data": true
+  },
+  "reporting": {
+    "generate_detailed_report": true,
+    "include_performance_metrics": true,
+    "include_resource_inventory": true,
+    "output_formats": ["console", "json"]
+  }
+}

@@ -4,38 +4,21 @@
     "automaticDocumentSearchDesc": "Rechercher et référencer automatiquement les documents associés",
     "contextOptimization": "Optimisation du contexte",
     "contextOptimizationDesc": "Générer des réponses optimales en fonction du contexte",
+    "modeDescription": "Le mode Agent offre des capacités avancées de raisonnement et de recherche de documents.",
     "error": {},
     "features": "Fonctionnalités de l'Agent",
     "information": "Informations sur l'Agent",
     "multiStepReasoning": "Raisonnement multi-étapes",
     "multiStepReasoningDesc": "Résoudre des problèmes complexes étape par étape",
     "wizard": {
-      "actionGroups": "Groupes d'actions",
-      "actionGroupsComingSoon": "Fonctionnalité des groupes d'actions à venir",
-      "actionGroupsDesc": "Configurer les actions que l'agent peut effectuer",
-      "agentName": "Nom de l'agent",
-      "agentNameHint": "Nom pour identifier l'agent",
-      "agentNamePlaceholder": "Entrez le nom de l'agent",
-      "basicFeaturesOnly": "Seules les fonctionnalités de base sont actuellement disponibles",
-      "basicSettings": "Paramètres de base",
-      "basicSettingsDesc": "Configurer les informations de base de l'agent",
-      "createAgent": "Créer un agent",
-      "createError": "Échec de la création de l'agent",
-      "creating": "Création en cours...",
-      "description": "Description",
-      "descriptionHint": "Décrivez l'objectif et les fonctionnalités de l'agent",
-      "descriptionPlaceholder": "Entrez la description de l'agent",
-      "foundationModel": "Modèle de base",
-      "foundationModelDesc": "Sélectionnez le modèle d'IA pour l'agent",
-      "knowledgeBase": "Base de connaissances",
-      "knowledgeBaseDesc": "Sélectionnez les bases de connaissances pour l'agent",
-      "loadingKnowledgeBases": "Chargement des bases de connaissances...",
-      "modelSelected": "Modèle sélectionné",
-      "noKnowledgeBases": "Aucune base de connaissances disponible",
-      "stepProgress": "Étape {current}/{total}",
-      "systemInstructions": "Instructions système",
-      "systemInstructionsPlaceholder": "Instruire le comportement de l'agent",
-      "title": "Assistant de création d'agent"
+      "basicSettings": "Paramètres de Base",
+      "basicSettingsDesc": "Configurer le nom et la description de l'agent",
+      "foundationModel": "Modèle de Base",
+      "foundationModelDesc": "Sélectionner le modèle d'IA à utiliser",
+      "knowledgeBase": "Base de Connaissances",
+      "knowledgeBaseDesc": "Sélectionner les bases de connaissances à connecter",
+      "actionGroups": "Groupes d'Actions",
+      "actionGroupsDesc": "Configurer les actions que l'agent peut effectuer"
     },
     "activeStatus": "Actif",
     "deleteAgent": "Supprimer l'agent",
@@ -49,7 +32,13 @@
     "permissionError": "Erreur de permission : Autorisations requises manquantes pour accéder aux informations de l'agent",
     "selectAgent": "Sélectionner un agent",
     "switchAgent": "Changer d'agent",
-    "switchToKnowledgeBase": "Nous recommandons de passer en mode Base de connaissances"
+    "switchToKnowledgeBase": "Nous recommandons de passer en mode Base de connaissances",
+    "agentId": "ID de l'agent",
+    "agentName": "Nom de l'agent",
+    "status": "Statut",
+    "model": "Modèle",
+    "version": "Version",
+    "createNew": "Créer nouveau"
   },
   "auth": {
     "brandSubtitle": "Infrastructure de données intelligente pour l'IA d'entreprise",
@@ -185,7 +174,9 @@
     "requestAccess": "Demander l'accès",
     "selectModel": "Sélectionner un modèle",
     "selectedModel": "Modèle sélectionné",
-    "selector": "Sélection du modèle IA"
+    "selector": {
+      "title": "Sélection du modèle IA"
+    }
   },
   "modelSelector": {
     "allModels": "Tous les modèles",
@@ -217,7 +208,9 @@
     "recommendedRegion": "Région recommandée",
     "region": "Région",
     "supportedRegions": "Régions prises en charge (Bedrock Agents)",
-    "unsupportedRegions": "Régions non prises en charge (Bedrock Agents)"
+    "unsupportedRegions": "Régions non prises en charge (Bedrock Agents)",
+    "modelCount": "Nombre de modèles",
+    "change": "Changer"
   },
   "regionSelector": {
     "bedrockRegion": "Région Bedrock",
@@ -272,7 +265,8 @@
     "settingsPanel": "Panneau de configuration",
     "systemInfo": "Système",
     "userInfo": "Informations utilisateur",
-    "writePermission": "Écriture"
+    "writePermission": "Écriture",
+    "regionSelection": "Sélection de région"
   },
   "theme": {
     "dark": "Mode sombre",

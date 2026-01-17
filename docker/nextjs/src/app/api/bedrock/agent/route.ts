@@ -202,9 +202,15 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
   try {
     console.log('[Bedrock Agent] Creating agent:', { agentName, foundationModel });
 
-    // Agent Role ARNを環境変数から取得
+    // AWSアカウントIDを動的に取得
+    const { STSClient, GetCallerIdentityCommand } = await import('@aws-sdk/client-sts');
+    const stsClient = new STSClient({ region: process.env.AWS_REGION || 'ap-northeast-1' });
+    const callerIdentity = await stsClient.send(new GetCallerIdentityCommand({}));
+    const accountId = callerIdentity.Account;
+
+    // Agent Role ARNを環境変数から取得、または動的に構築
     const agentRoleArn = process.env.BEDROCK_AGENT_ROLE_ARN || 
-      `arn:aws:iam::178625946981:role/TokyoRegion-permission-aware-rag-prod-bedrock-agent-role`;
+      `arn:aws:iam::${accountId}:role/TokyoRegion-permission-aware-rag-prod-bedrock-agent-role`;
 
     // Agent作成
     const createCommand = new CreateAgentCommand({

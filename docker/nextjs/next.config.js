@@ -7,6 +7,10 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig = {
   output: 'standalone',
   outputFileTracingRoot: __dirname,
+  // i18n設定ファイルをstandaloneビルドに含める
+  outputFileTracingIncludes: {
+    '/': ['./i18n.ts', './src/i18n/**/*', './messages/**/*'],
+  },
   trailingSlash: false,
   skipTrailingSlashRedirect: true,
   eslint: {

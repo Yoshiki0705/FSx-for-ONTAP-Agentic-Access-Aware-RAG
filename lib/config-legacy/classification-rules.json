@@ -1,0 +1,338 @@
+{
+  "version": "1.0.0",
+  "description": "CPOS ファイル分類ルール",
+  "rules": [
+    {
+      "name": "TypeScript Source Files",
+      "pattern": "**/*.ts",
+      "contentPatterns": [
+        "import.*from",
+        "export.*",
+        "interface.*\\{",
+        "class.*\\{",
+        "function.*\\(",
+        "const.*=.*=>",
+        "type.*="
+      ],
+      "targetPath": "lib/",
+      "confidence": 0.9,
+      "rules": [
+        {
+          "contentPattern": "describe\\(|it\\(|test\\(",
+          "targetPath": "tests/"
+        },
+        {
+          "contentPattern": "CDK|Stack|Construct",
+          "targetPath": "lib/stacks/"
+        },
+        {
+          "contentPattern": "interface.*Config|interface.*Options",
+          "targetPath": "lib/interfaces/"
+        }
+      ]
+    },
+    {
+      "name": "JavaScript Files",
+      "pattern": "**/*.js",
+      "contentPatterns": [
+        "require\\(",
+        "module\\.exports",
+        "function.*\\{",
+        "const.*=.*=>",
+        "var.*=",
+        "let.*="
+      ],
+      "targetPath": "src/",
+      "confidence": 0.8,
+      "rules": [
+        {
+          "contentPattern": "describe\\(|it\\(|test\\(",
+          "targetPath": "tests/"
+        },
+        {
+          "contentPattern": "webpack|babel|rollup",
+          "targetPath": "build/"
+        }
+      ]
+    },
+    {
+      "name": "React Components",
+      "pattern": "**/*.{tsx,jsx}",
+      "contentPatterns": [
+        "import.*React",
+        "export.*React",
+        "function.*\\(.*\\).*\\{",
+        "const.*=.*\\(.*\\).*=>",
+        "return.*<",
+        "jsx|tsx"
+      ],
+      "targetPath": "components/",
+      "confidence": 0.9,
+      "rules": [
+        {
+          "contentPattern": "page|Page",
+          "targetPath": "pages/"
+        },
+        {
+          "contentPattern": "layout|Layout",
+          "targetPath": "layouts/"
+        },
+        {
+          "contentPattern": "hook|Hook|use[A-Z]",
+          "targetPath": "hooks/"
+        }
+      ]
+    },
+    {
+      "name": "Documentation Files",
+      "pattern": "**/*.md",
+      "contentPatterns": [
+        "^#.*",
+        "^##.*",
+        "\\[.*\\]\\(.*\\)",
+        "```",
+        "\\*\\*.*\\*\\*",
+        "\\*.*\\*"
+      ],
+      "targetPath": "docs/",
+      "confidence": 0.9,
+      "rules": [
+        {
+          "contentPattern": "README|readme",
+          "targetPath": "./"
+        },
+        {
+          "contentPattern": "API|api",
+          "targetPath": "docs/api/"
+        },
+        {
+          "contentPattern": "guide|Guide|tutorial|Tutorial",
+          "targetPath": "docs/guides/"
+        },
+        {
+          "contentPattern": "changelog|CHANGELOG",
+          "targetPath": "docs/"
+        }
+      ]
+    },
+    {
+      "name": "Configuration Files",
+      "pattern": "**/*.{json,yml,yaml,toml,ini}",
+      "contentPatterns": [
+        "\\{.*\\}",
+        ".*:.*",
+        "\\[.*\\]",
+        "version.*:",
+        "name.*:",
+        "scripts.*:"
+      ],
+      "targetPath": "config/",
+      "confidence": 0.8,
+      "rules": [
+        {
+          "contentPattern": "package\\.json|package-lock\\.json",
+          "targetPath": "./"
+        },
+        {
+          "contentPattern": "tsconfig|jsconfig",
+          "targetPath": "./"
+        },
+        {
+          "contentPattern": "docker|Docker",
+          "targetPath": "docker/"
+        },
+        {
+          "contentPattern": "github|workflows",
+          "targetPath": ".github/"
+        }
+      ]
+    },
+    {
+      "name": "Shell Scripts",
+      "pattern": "**/*.{sh,bash,zsh}",
+      "contentPatterns": [
+        "#!/bin/bash",
+        "#!/bin/sh",
+        "#!/usr/bin/env",
+        "echo.*",
+        "if.*then",
+        "for.*in",
+        "while.*do"
+      ],
+      "targetPath": "scripts/",
+      "confidence": 0.9,
+      "rules": [
+        {
+          "contentPattern": "deploy|deployment",
+          "targetPath": "scripts/deployment/"
+        },
+        {
+          "contentPattern": "test|testing",
+          "targetPath": "scripts/testing/"
+        },
+        {
+          "contentPattern": "build|compile",
+          "targetPath": "scripts/build/"
+        },
+        {
+          "contentPattern": "setup|install",
+          "targetPath": "scripts/setup/"
+        }
+      ]
+    },
+    {
+      "name": "Python Files",
+      "pattern": "**/*.py",
+      "contentPatterns": [
+        "import.*",
+        "from.*import",
+        "def.*\\(",
+        "class.*\\(",
+        "if __name__ == '__main__':",
+        "print\\("
+      ],
+      "targetPath": "python/",
+      "confidence": 0.8,
+      "rules": [
+        {
+          "contentPattern": "test_|_test\\.py|unittest|pytest",
+          "targetPath": "tests/"
+        },
+        {
+          "contentPattern": "setup\\.py|__init__\\.py",
+          "targetPath": "python/"
+        }
+      ]
+    },
+    {
+      "name": "CSS and Style Files",
+      "pattern": "**/*.{css,scss,sass,less,styl}",
+      "contentPatterns": [
+        "\\{.*\\}",
+        "@import",
+        "@media",
+        "\\.[a-zA-Z][a-zA-Z0-9-_]*\\s*\\{",
+        "#[a-zA-Z][a-zA-Z0-9-_]*\\s*\\{",
+        "color\\s*:",
+        "font-.*:"
+      ],
+      "targetPath": "styles/",
+      "confidence": 0.8,
+      "rules": [
+        {
+          "contentPattern": "global|reset|normalize",
+          "targetPath": "styles/global/"
+        },
+        {
+          "contentPattern": "component|Component",
+          "targetPath": "styles/components/"
+        }
+      ]
+    },
+    {
+      "name": "Image Files",
+      "pattern": "**/*.{jpg,jpeg,png,gif,svg,webp,ico}",
+      "contentPatterns": [],
+      "targetPath": "assets/images/",
+      "confidence": 0.7,
+      "rules": [
+        {
+          "contentPattern": "icon|Icon",
+          "targetPath": "assets/icons/"
+        },
+        {
+          "contentPattern": "logo|Logo",
+          "targetPath": "assets/logos/"
+        }
+      ]
+    },
+    {
+      "name": "Font Files",
+      "pattern": "**/*.{ttf,otf,woff,woff2,eot}",
+      "contentPatterns": [],
+      "targetPath": "assets/fonts/",
+      "confidence": 0.9
+    },
+    {
+      "name": "Data Files",
+      "pattern": "**/*.{csv,xml,sql,db,sqlite}",
+      "contentPatterns": [
+        ",.*,",
+        "<.*>",
+        "SELECT.*FROM",
+        "INSERT.*INTO",
+        "CREATE TABLE"
+      ],
+      "targetPath": "data/",
+      "confidence": 0.8,
+      "rules": [
+        {
+          "contentPattern": "test|Test|sample|Sample",
+          "targetPath": "data/test/"
+        },
+        {
+          "contentPattern": "migration|Migration",
+          "targetPath": "data/migrations/"
+        }
+      ]
+    },
+    {
+      "name": "Log Files",
+      "pattern": "**/*.{log,out,err}",
+      "contentPatterns": [
+        "\\d{4}-\\d{2}-\\d{2}",
+        "ERROR|WARN|INFO|DEBUG",
+        "\\[.*\\]",
+        "Exception|Error"
+      ],
+      "targetPath": "logs/",
+      "confidence": 0.9
+    },
+    {
+      "name": "Temporary Files",
+      "pattern": "**/*.{tmp,temp,bak,backup,cache}",
+      "contentPatterns": [],
+      "targetPath": "temp/",
+      "confidence": 0.8
+    },
+    {
+      "name": "CDK Specific Files",
+      "pattern": "**/cdk.{json,out}/**",
+      "contentPatterns": [
+        "CDK",
+        "Stack",
+        "Construct",
+        "aws-cdk"
+      ],
+      "targetPath": "cdk/",
+      "confidence": 0.9
+    },
+    {
+      "name": "Node Modules",
+      "pattern": "**/node_modules/**",
+      "contentPatterns": [],
+      "targetPath": "node_modules/",
+      "confidence": 1.0
+    },
+    {
+      "name": "Git Files",
+      "pattern": "**/.git/**",
+      "contentPatterns": [],
+      "targetPath": ".git/",
+      "confidence": 1.0
+    },
+    {
+      "name": "Environment Files",
+      "pattern": "**/.env*",
+      "contentPatterns": [
+        ".*=.*",
+        "API_KEY",
+        "SECRET",
+        "PASSWORD",
+        "TOKEN"
+      ],
+      "targetPath": "./",
+      "confidence": 0.9
+    }
+  ]
+}

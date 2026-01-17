@@ -165,8 +165,13 @@ export async function POST(request: NextRequest) {
  */
 async function getOrCreateAgentRole(region: string): Promise<string> {
   const { IAMClient, GetRoleCommand, CreateRoleCommand, AttachRolePolicyCommand } = await import('@aws-sdk/client-iam');
+  const { STSClient, GetCallerIdentityCommand } = await import('@aws-sdk/client-sts');
   
-  const accountId = process.env.AWS_ACCOUNT_ID || '178625946981'; // 実際のアカウントID
+  // AWSアカウントIDを動的に取得
+  const stsClient = new STSClient({ region: process.env.AWS_REGION || 'ap-northeast-1' });
+  const callerIdentity = await stsClient.send(new GetCallerIdentityCommand({}));
+  const accountId = callerIdentity.Account;
+  
   const roleName = 'TokyoRegion-permission-aware-rag-prod-Agent-Service-Role';
   const roleArn = `arn:aws:iam::${accountId}:role/${roleName}`;
   

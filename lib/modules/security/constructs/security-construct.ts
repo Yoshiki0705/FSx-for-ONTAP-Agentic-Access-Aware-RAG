@@ -84,12 +84,18 @@ export class SecurityConstruct extends Construct {
     }
     
     // GuardDuty Detector作成（オプション）
+    // 注: GuardDutyは既にアカウントレベルで有効化されているため、
+    // 新しいDetectorを作成せず、既存のDetectorを使用します。
+    // AWSアカウントには1つのGuardDuty Detectorしか存在できません。
+    // 既存Detector ID: febec3337a92143ed91b9956114465c9
+    /*
     if (config.guardDuty.enabled) {
       this.guardDutyDetector = new guardduty.CfnDetector(this, 'GuardDutyDetector', {
         enable: true,
         findingPublishingFrequency: config.guardDuty.findingPublishingFrequency
       });
     }
+    */
     
     console.log('SecurityConstruct initialized (complete)');
   }

@@ -1,0 +1,510 @@
+{
+  "version": "1.0.0",
+  "description": "統合ファイル整理システム - 分類ルール設定",
+  "environments": {
+    "local": {
+      "rootPath": ".",
+      "excludePatterns": [
+        "node_modules/**",
+        ".git/**",
+        "cdk.out/**",
+        "dist/**",
+        "build/**"
+      ]
+    },
+    "ec2": {
+      "rootPath": "/home/ubuntu/rag/Permission-aware-RAG-FSxN-CDK-master",
+      "homeDirectory": "/home/ubuntu",
+      "excludePatterns": [
+        "node_modules/**",
+        ".git/**",
+        "cdk.out/**",
+        "dist/**",
+        "build/**"
+      ]
+    }
+  },
+  "classificationRules": {
+    "scripts": {
+      "deployment": {
+        "description": "デプロイメント関連スクリプト",
+        "patterns": [
+          "*deploy*",
+          "*deployment*",
+          "phase*",
+          "*setup*",
+          "*install*",
+          "*bootstrap*",
+          "deploy-fsx-ontap-integration.sh"
+        ],
+        "targetPath": "development/scripts/deployment/",
+        "permissions": "755",
+        "priority": 10
+      },
+      "analysis": {
+        "description": "分析・確認・テストスクリプト",
+        "patterns": [
+          "*analyze*",
+          "*check*",
+          "*verify*",
+          "*test*",
+          "*validate*",
+          "*diagnose*",
+          "*monitor*",
+          "diagnose-auth-flow-issues.sh",
+          "verify-final-setup.sh"
+        ],
+        "targetPath": "development/scripts/analysis/",
+        "permissions": "755",
+        "priority": 9
+      },
+      "maintenance": {
+        "description": "メンテナンス・修正スクリプト",
+        "patterns": [
+          "*fix*",
+          "*cleanup*",
+          "*maintenance*",
+          "*repair*",
+          "*update*",
+          "*sync*",
+          "*migrate*",
+          "clean-nextjs-cache-final.sh",
+          "fix-*.sh",
+          "restore-*.sh",
+          "final-*.sh"
+        ],
+        "targetPath": "development/scripts/maintenance/",
+        "permissions": "755",
+        "priority": 8
+      },
+      "utilities": {
+        "description": "ユーティリティスクリプト",
+        "patterns": [
+          "*util*",
+          "*helper*",
+          "*tool*",
+          "*script*",
+          "*run*",
+          "*execute*"
+        ],
+        "targetPath": "development/scripts/utilities/",
+        "permissions": "755",
+        "priority": 7
+      },
+      "legacy": {
+        "description": "レガシー・その他スクリプト",
+        "patterns": ["*.sh"],
+        "targetPath": "development/scripts/legacy/",
+        "permissions": "755",
+        "priority": 1
+      }
+    },
+    "documents": {
+      "troubleshooting": {
+        "description": "トラブルシューティング関連ドキュメント",
+        "patterns": [
+          "*TROUBLESHOOTING*",
+          "*FAQ*",
+          "*PROBLEM*",
+          "*ISSUE*",
+          "*ERROR*",
+          "*DEBUG*"
+        ],
+        "targetPath": "docs/troubleshooting/",
+        "permissions": "644",
+        "priority": 10
+      },
+      "deployment": {
+        "description": "デプロイメント関連ドキュメント",
+        "patterns": [
+          "*DEPLOYMENT*",
+          "*OPERATION*",
+          "*MANUAL*",
+          "*SETUP*",
+          "*INSTALL*",
+          "*CONFIG*"
+        ],
+        "targetPath": "docs/deployment/",
+        "permissions": "644",
+        "priority": 9
+      },
+      "guides": {
+        "description": "ガイド・手順書",
+        "patterns": [
+          "*README*",
+          "*GUIDE*",
+          "*TUTORIAL*",
+          "*HOWTO*",
+          "*INSTRUCTION*"
+        ],
+        "targetPath": "docs/guides/",
+        "permissions": "644",
+        "priority": 8
+      },
+      "reports": {
+        "description": "レポート・記録",
+        "patterns": [
+          "*REPORT*",
+          "*SUMMARY*",
+          "*LOG*",
+          "*RECORD*",
+          "*COMPLETION*",
+          "*PHASE*",
+          "*PROJECT*"
+        ],
+        "targetPath": "development/docs/reports/",
+        "permissions": "644",
+        "priority": 7
+      },
+      "versions": {
+        "description": "バージョン管理・更新ドキュメント",
+        "patterns": [
+          "*_1.md",
+          "*_1",
+          "*.updated_*",
+          "README.md.updated_*",
+          "CONTRIBUTING_*.md",
+          "LICENSE_*"
+        ],
+        "targetPath": "development/docs/versions/",
+        "permissions": "644",
+        "priority": 6
+      },
+      "legacy": {
+        "description": "古い・その他ドキュメント",
+        "patterns": ["*.md", "*.txt", "*.doc", "*.docx"],
+        "targetPath": "docs/legacy/",
+        "permissions": "644",
+        "priority": 1
+      }
+    },
+    "configs": {
+      "main": {
+        "description": "メイン設定ファイル",
+        "patterns": [
+          "config.ts",
+          "package.json",
+          "tsconfig.json",
+          "cdk.json",
+          "jest.config.*",
+          "webpack.config.*"
+        ],
+        "targetPath": "config/",
+        "permissions": "644",
+        "priority": 10
+      },
+      "environment": {
+        "description": "環境設定ファイル",
+        "patterns": [
+          ".env*",
+          "*config*.ts",
+          "*config*.js",
+          "*config*.json",
+          "*.config.*"
+        ],
+        "targetPath": "development/configs/",
+        "permissions": "644",
+        "priority": 9
+      },
+      "backups": {
+        "description": "バックアップファイル",
+        "patterns": [
+          "*.backup.*",
+          "package.json.backup.*",
+          "*.ini"
+        ],
+        "targetPath": "development/configs/backups/",
+        "permissions": "644",
+        "priority": 8
+      },
+      "aws_outputs": {
+        "description": "AWS CLI出力・データファイル",
+        "patterns": [
+          "*fsx*",
+          "*amazonaws.com*",
+          "fsx describe-file-systems*",
+          "*DNSName --output text*",
+          "-*.fsx.*"
+        ],
+        "targetPath": "development/temp/aws-outputs/",
+        "permissions": "644",
+        "priority": 7
+      },
+      "samples": {
+        "description": "サンプル・テンプレート設定",
+        "patterns": [
+          "*sample*",
+          "*example*",
+          "*template*",
+          "*demo*"
+        ],
+        "targetPath": "config/samples/",
+        "permissions": "644",
+        "priority": 8
+      },
+      "legacy": {
+        "description": "古い設定ファイル",
+        "patterns": ["*.json", "*.js", "*.ts"],
+        "targetPath": "config/legacy/",
+        "permissions": "644",
+        "priority": 1
+      }
+    },
+    "tests": {
+      "payloads": {
+        "description": "テストペイロード・データ",
+        "patterns": [
+          "*payload*",
+          "test-*.json",
+          "*-test.json",
+          "*test-data*",
+          "*mock*"
+        ],
+        "targetPath": "tests/payloads/",
+        "permissions": "644",
+        "priority": 10
+      },
+      "unit": {
+        "description": "単体テストファイル",
+        "patterns": [
+          "*.test.ts",
+          "*.test.js",
+          "*.spec.ts",
+          "*.spec.js"
+        ],
+        "targetPath": "tests/unit/",
+        "permissions": "644",
+        "priority": 9
+      },
+      "integration": {
+        "description": "統合テストファイル",
+        "patterns": [
+          "*integration*",
+          "*e2e*",
+          "*end-to-end*"
+        ],
+        "targetPath": "tests/integration/",
+        "permissions": "644",
+        "priority": 8
+      },
+      "legacy": {
+        "description": "古いテストファイル",
+        "patterns": ["*test*"],
+        "targetPath": "tests/legacy/",
+        "permissions": "644",
+        "priority": 1
+      }
+    },
+    "temp": {
+      "working": {
+        "description": "作業用一時ファイル",
+        "patterns": [
+          "response.json",
+          "temp_*",
+          "*.tmp",
+          "*.temp",
+          "*-temp.*",
+          "output.*"
+        ],
+        "targetPath": "development/temp/working/",
+        "permissions": "644",
+        "priority": 10
+      },
+      "cache": {
+        "description": "キャッシュファイル",
+        "patterns": [
+          "*.cache",
+          "*cache*"
+        ],
+        "targetPath": "development/temp/cache/",
+        "permissions": "644",
+        "priority": 9
+      }
+    },
+    "logs": {
+      "execution": {
+        "description": "実行ログファイル",
+        "patterns": [
+          "*.log",
+          "*-20*.log",
+          "auth-*.log",
+          "nextjs-*.log",
+          "cloudfront-*.log",
+          "emergency-*.log",
+          "final-*.log",
+          "routing-*.log",
+          "restore-*.log",
+          "clean-*.log"
+        ],
+        "targetPath": "development/logs/execution/",
+        "permissions": "644",
+        "priority": 10
+      }
+    },
+    "archive": {
+      "legacy": {
+        "description": "古いファイル・プロジェクト",
+        "patterns": [
+          "*old*",
+          "*backup*",
+          "*archive*",
+          "*deprecated*"
+        ],
+        "targetPath": "archive/legacy-files/",
+        "permissions": "644",
+        "priority": 10
+      },
+      "projects": {
+        "description": "古いプロジェクトディレクトリ",
+        "patterns": [
+          "*-old",
+          "*-backup",
+          "*-archive"
+        ],
+        "targetPath": "archive/old-projects/",
+        "permissions": "755",
+        "priority": 9
+      }
+    },
+    "security": {
+      "keys": {
+        "description": "秘密鍵・証明書",
+        "patterns": [
+          "*.pem",
+          "*.key",
+          "*.crt",
+          "*.cert",
+          "*.p12",
+          "*.pfx"
+        ],
+        "targetPath": "development/configs/security/",
+        "permissions": "600",
+        "priority": 10
+      },
+      "secrets": {
+        "description": "機密設定ファイル",
+        "patterns": [
+          "*secret*",
+          "*credential*",
+          "*password*",
+          ".env.local",
+          ".env.production"
+        ],
+        "targetPath": "development/configs/secrets/",
+        "permissions": "600",
+        "priority": 9
+      }
+    }
+  },
+  "directoryStructure": {
+    "development": {
+      "description": "開発・運用関連ファイル（非公開）",
+      "scripts": {
+        "deployment": "デプロイメント関連スクリプト",
+        "analysis": "分析・確認スクリプト",
+        "maintenance": "メンテナンススクリプト",
+        "utilities": "ユーティリティスクリプト",
+        "legacy": "レガシースクリプト"
+      },
+      "docs": {
+        "reports": "レポート・記録",
+        "guides": "内部ガイド・手順書",
+        "legacy": "古いドキュメント"
+      },
+      "configs": {
+        "environments": "環境別設定",
+        "security": "セキュリティ関連設定",
+        "secrets": "機密設定",
+        "legacy": "古い設定ファイル",
+        "backups": "バックアップファイル",
+        "aws-outputs": "AWS CLI出力・データファイル"
+      },
+      "docs": {
+        "reports": "レポート・記録",
+        "guides": "内部ガイド・手順書",
+        "legacy": "古いドキュメント",
+        "versions": "バージョン管理・更新ドキュメント"
+      },
+      "logs": {
+        "deployment": "デプロイメントログ",
+        "analysis": "分析ログ",
+        "maintenance": "メンテナンスログ",
+        "organization": "ファイル整理ログ"
+      },
+      "temp": {
+        "working": "作業用一時ファイル",
+        "cache": "キャッシュファイル",
+        "build": "ビルド一時ファイル"
+      }
+    },
+    "docs": {
+      "description": "公開用ドキュメント",
+      "troubleshooting": "トラブルシューティング",
+      "deployment": "デプロイメント関連",
+      "guides": "ガイド・手順書",
+      "legacy": "古いドキュメント"
+    },
+    "config": {
+      "description": "公開用設定ファイル",
+      "samples": "サンプル設定",
+      "legacy": "古い設定ファイル"
+    },
+    "tests": {
+      "description": "テストファイル",
+      "unit": "単体テスト",
+      "integration": "統合テスト",
+      "payloads": "テストペイロード",
+      "legacy": "古いテストファイル"
+    },
+    "archive": {
+      "description": "アーカイブファイル",
+      "legacy-files": "古いファイル",
+      "old-projects": "古いプロジェクト",
+      "backup-files": "バックアップファイル"
+    }
+  },
+  "specialRules": {
+    "ignoreFiles": [
+      ".DS_Store",
+      "Thumbs.db",
+      "*.swp",
+      "*.swo",
+      "*~"
+    ],
+    "preserveFiles": [
+      "README.md",
+      "LICENSE",
+      "CONTRIBUTING.md",
+      ".gitignore",
+      ".gitattributes"
+    ],
+    "requireReview": [
+      "package.json",
+      "tsconfig.json",
+      "cdk.json",
+      "config.ts"
+    ]
+  },
+  "validation": {
+    "maxFileSize": 104857600,
+    "allowedExtensions": [
+      ".ts", ".js", ".json", ".md", ".txt", ".sh", ".yml", ".yaml",
+      ".env", ".pem", ".key", ".crt", ".cert", ".log", ".tmp"
+    ],
+    "requiredDirectories": [
+      "development/scripts",
+      "development/docs",
+      "development/configs",
+      "development/logs",
+      "development/temp",
+      "docs",
+      "config",
+      "tests",
+      "archive",
+      "development/logs/execution",
+      "development/docs/versions",
+      "development/configs/backups",
+      "development/temp/aws-outputs"
+    ]
+  }
+}

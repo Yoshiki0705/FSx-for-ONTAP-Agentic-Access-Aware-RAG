@@ -71,6 +71,12 @@ export class StorageConstruct extends Construct {
     const environment = this.props.environment || 'prod';
     const s3Config = this.props.config.s3;
 
+    // S3が未定義の場合はスキップ（FSx for ONTAPをメインストレージとして使用）
+    if (!s3Config) {
+      console.log('ℹ️ S3設定が未定義のため、S3バケット作成をスキップします（FSx for ONTAPをメインストレージとして使用）');
+      return;
+    }
+
     // S3が明示的に無効化されている場合はスキップ
     if (s3Config?.documents?.enabled === false && 
         s3Config?.backup?.enabled === false && 

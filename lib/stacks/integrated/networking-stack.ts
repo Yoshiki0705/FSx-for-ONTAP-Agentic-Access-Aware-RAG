@@ -9,12 +9,30 @@
  */
 
 import * as cdk from 'aws-cdk-lib';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
 import { NetworkingConstruct } from '../../modules/networking';
 import { NetworkingConfig } from '../../modules/networking';
 
+// Windows AD Construct
+import { WindowsAdConstruct } from '../../modules/security/constructs/windows-ad-construct';
+
 // タグ設定
 import { TaggingStrategy, PermissionAwareRAGTags } from '../../config/tagging-config';
+
+/**
+ * Windows AD設定
+ */
+export interface WindowsAdConfig {
+  /** Windows AD機能を有効化するかどうか */
+  enabled: boolean;
+  /** Active Directory Domain Name */
+  domainName: string;
+  /** AD EC2インスタンスタイプ */
+  instanceType?: ec2.InstanceType;
+  /** AD EC2のSSH Key Name（nullの場合はSSM Session Managerを使用） */
+  keyName?: string | null;
+}
 
 /**
  * NetworkingStack のプロパティ
@@ -26,6 +44,12 @@ export interface NetworkingStackProps extends cdk.StackProps {
   projectName: string;
   /** 環境名（dev/staging/prod/test） */
   environment: 'dev' | 'staging' | 'prod' | 'test';
+  /** Windows AD設定（オプション） */
+  windowsAdConfig?: WindowsAdConfig;
+  /** 既存VPCをインポートする場合のVPC ID（オプション） */
+  existingVpcId?: string;
+  /** 既存VPCをインポートする場合のVPC CIDR（オプション） */
+  existingVpcCidr?: string;
 }
 
 export class NetworkingStack extends cdk.Stack {
@@ -35,6 +59,9 @@ export class NetworkingStack extends cdk.Stack {
   public readonly privateSubnets: cdk.aws_ec2.ISubnet[];
   public readonly isolatedSubnets: cdk.aws_ec2.ISubnet[];
   public readonly securityGroups: { [key: string]: cdk.aws_ec2.SecurityGroup };
+  
+  /** Windows AD EC2（オプション） */
+  public readonly windowsAd?: WindowsAdConstruct;
 
   constructor(scope: Construct, id: string, props: NetworkingStackProps) {
     super(scope, id, props);
@@ -52,19 +79,103 @@ export class NetworkingStack extends cdk.Stack {
 
       const { config, projectName, environment } = props;
 
-      // ネットワーキングコンストラクト作成
-      this.networkingConstruct = new NetworkingConstruct(this, 'NetworkingConstruct', {
-        config,
-        projectName,
-        environment,
-      });
+      // 既存VPCをインポートする場合
+      if (props.existingVpcId) {
+        console.log(`🔄 既存VPCをインポート中: ${props.existingVpcId}`);
+        
+        // VPC情報を取得（cdk.context.jsonから）
+        const vpcInfo = this.node.tryGetContext(`vpc-provider:account=${this.account}:filter.vpc-id=${props.existingVpcId}:region=${this.region}:returnAsymmetricSubnets=true`);
+        
+        if (!vpcInfo) {
+          throw new Error(`VPC情報が見つかりません: ${props.existingVpcId}. cdk.context.jsonを確認してください。`);
+        }
 
-      // 主要リソースの参照を設定
-      this.vpc = this.networkingConstruct.vpc;
-      this.publicSubnets = this.networkingConstruct.publicSubnets;
-      this.privateSubnets = this.networkingConstruct.privateSubnets;
-      this.isolatedSubnets = this.networkingConstruct.isolatedSubnets;
-      this.securityGroups = this.networkingConstruct.securityGroups;
+        // VPCをインポート
+        this.vpc = ec2.Vpc.fromVpcAttributes(this, 'ImportedVpc', {
+          vpcId: props.existingVpcId,
+          availabilityZones: vpcInfo.availabilityZones.length > 0 
+            ? vpcInfo.availabilityZones 
+            : ['ap-northeast-1a', 'ap-northeast-1c', 'ap-northeast-1d'],
+          publicSubnetIds: vpcInfo.subnetGroups.find((g: any) => g.type === 'Public')?.subnets.map((s: any) => s.subnetId) || [],
+          privateSubnetIds: vpcInfo.subnetGroups.find((g: any) => g.type === 'Private')?.subnets.map((s: any) => s.subnetId) || [],
+          isolatedSubnetIds: vpcInfo.subnetGroups.find((g: any) => g.type === 'Isolated')?.subnets.map((s: any) => s.subnetId) || [],
+        });
+
+        // サブネット参照を設定
+        const publicSubnetGroup = vpcInfo.subnetGroups.find((g: any) => g.type === 'Public');
+        const privateSubnetGroup = vpcInfo.subnetGroups.find((g: any) => g.type === 'Private');
+        const isolatedSubnetGroup = vpcInfo.subnetGroups.find((g: any) => g.type === 'Isolated');
+
+        this.publicSubnets = publicSubnetGroup?.subnets.map((s: any) => 
+          ec2.Subnet.fromSubnetAttributes(this, `PublicSubnet-${s.subnetId}`, {
+            subnetId: s.subnetId,
+            availabilityZone: s.availabilityZone,
+            routeTableId: s.routeTableId,
+          })
+        ) || [];
+
+        this.privateSubnets = privateSubnetGroup?.subnets.map((s: any) => 
+          ec2.Subnet.fromSubnetAttributes(this, `PrivateSubnet-${s.subnetId}`, {
+            subnetId: s.subnetId,
+            availabilityZone: s.availabilityZone,
+            routeTableId: s.routeTableId,
+          })
+        ) || [];
+
+        this.isolatedSubnets = isolatedSubnetGroup?.subnets.map((s: any) => 
+          ec2.Subnet.fromSubnetAttributes(this, `IsolatedSubnet-${s.subnetId}`, {
+            subnetId: s.subnetId,
+            availabilityZone: s.availabilityZone,
+            routeTableId: s.routeTableId,
+          })
+        ) || [];
+
+        // Security Groupsを作成（既存VPCに新規作成、名前の重複を動的に回避）
+        this.securityGroups = this.createSecurityGroupsForImportedVpc(config);
+
+        console.log(`✅ 既存VPCインポート完了: ${props.existingVpcId}`);
+        console.log(`   - Public Subnets: ${this.publicSubnets.length}個`);
+        console.log(`   - Private Subnets: ${this.privateSubnets.length}個`);
+        console.log(`   - Isolated Subnets: ${this.isolatedSubnets.length}個`);
+      } else {
+        // 新規VPCを作成する場合（既存の動作）
+        console.log('🆕 新規VPCを作成中...');
+        
+        // ネットワーキングコンストラクト作成
+        this.networkingConstruct = new NetworkingConstruct(this, 'NetworkingConstruct', {
+          config,
+          projectName,
+          environment,
+        });
+
+        // 主要リソースの参照を設定
+        this.vpc = this.networkingConstruct.vpc;
+        this.publicSubnets = this.networkingConstruct.publicSubnets;
+        this.privateSubnets = this.networkingConstruct.privateSubnets;
+        this.isolatedSubnets = this.networkingConstruct.isolatedSubnets;
+        this.securityGroups = this.networkingConstruct.securityGroups;
+        
+        console.log('✅ 新規VPC作成完了');
+      }
+
+      // Windows AD EC2作成（オプション）
+      if (props.windowsAdConfig?.enabled) {
+        console.log('🪟 Windows AD EC2作成中...');
+        
+        this.windowsAd = new WindowsAdConstruct(this, 'WindowsAd', {
+          vpc: this.vpc,
+          privateSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+          projectName: props.projectName,
+          environment: props.environment,
+          domainName: props.windowsAdConfig.domainName,
+          instanceType: props.windowsAdConfig.instanceType,
+          keyName: props.windowsAdConfig.keyName,
+        });
+        
+        console.log('✅ Windows AD EC2作成完了');
+        console.log(`   - Instance ID: ${this.windowsAd.instanceId}`);
+        console.log(`   - Domain Name: ${props.windowsAdConfig.domainName}`);
+      }
 
       // CloudFormation出力
       this.createOutputs();
@@ -164,6 +275,27 @@ export class NetworkingStack extends cdk.Stack {
         exportName: `${this.stackName}-SecurityGroup${name}Id`,
       });
     });
+
+    // Windows AD情報（存在する場合のみ）
+    if (this.windowsAd) {
+      new cdk.CfnOutput(this, 'WindowsAdInstanceId', {
+        value: this.windowsAd.instanceId,
+        description: 'Windows AD EC2 Instance ID',
+        exportName: `${this.stackName}-WindowsAdInstanceId`,
+      });
+
+      new cdk.CfnOutput(this, 'WindowsAdSecurityGroupId', {
+        value: this.windowsAd.securityGroup.securityGroupId,
+        description: 'Windows AD Security Group ID',
+        exportName: `${this.stackName}-WindowsAdSecurityGroupId`,
+      });
+
+      new cdk.CfnOutput(this, 'WindowsAdAdminPasswordSecretArn', {
+        value: this.windowsAd.adminPasswordSecret.secretArn,
+        description: 'Windows AD Admin Password Secret ARN',
+        exportName: `${this.stackName}-WindowsAdAdminPasswordSecretArn`,
+      });
+    }
   }
 
   /**
@@ -181,6 +313,82 @@ export class NetworkingStack extends cdk.Stack {
     cdk.Tags.of(this).add('ManagedBy', 'CDK');
     cdk.Tags.of(this).add('CostCenter', `${sanitizedProjectName}-${sanitizedEnvironment}-networking`);
     cdk.Tags.of(this).add('CreatedAt', new Date().toISOString().split('T')[0]);
+  }
+
+  /**
+   * 既存VPC用のSecurity Groupsを作成（名前の重複を動的に回避）
+   */
+  private createSecurityGroupsForImportedVpc(config: NetworkingConfig): { [key: string]: cdk.aws_ec2.SecurityGroup } {
+    const securityGroups: { [key: string]: cdk.aws_ec2.SecurityGroup } = {};
+    const timestamp = Date.now().toString().slice(-6); // 最後の6桁のタイムスタンプ
+
+    if (config.securityGroups?.web) {
+      securityGroups['web'] = new ec2.SecurityGroup(this, 'WebSecurityGroup', {
+        vpc: this.vpc,
+        securityGroupName: `${this.stackName}-web-sg-${timestamp}`,
+        description: 'Security Group for Web tier (imported VPC)',
+        allowAllOutbound: true,
+      });
+      securityGroups['web'].addIngressRule(
+        ec2.Peer.anyIpv4(),
+        ec2.Port.tcp(443),
+        'Allow HTTPS from anywhere'
+      );
+      securityGroups['web'].addIngressRule(
+        ec2.Peer.anyIpv4(),
+        ec2.Port.tcp(80),
+        'Allow HTTP from anywhere'
+      );
+    }
+
+    if (config.securityGroups?.api) {
+      securityGroups['api'] = new ec2.SecurityGroup(this, 'ApiSecurityGroup', {
+        vpc: this.vpc,
+        securityGroupName: `${this.stackName}-api-sg-${timestamp}`,
+        description: 'Security Group for API tier (imported VPC)',
+        allowAllOutbound: true,
+      });
+      if (securityGroups['web']) {
+        securityGroups['api'].addIngressRule(
+          securityGroups['web'],
+          ec2.Port.tcp(443),
+          'Allow HTTPS from Web tier'
+        );
+      }
+    }
+
+    if (config.securityGroups?.database) {
+      securityGroups['database'] = new ec2.SecurityGroup(this, 'DatabaseSecurityGroup', {
+        vpc: this.vpc,
+        securityGroupName: `${this.stackName}-db-sg-${timestamp}`,
+        description: 'Security Group for Database tier (imported VPC)',
+        allowAllOutbound: false,
+      });
+      if (securityGroups['api']) {
+        securityGroups['database'].addIngressRule(
+          securityGroups['api'],
+          ec2.Port.tcp(3306),
+          'Allow MySQL from API tier'
+        );
+        securityGroups['database'].addIngressRule(
+          securityGroups['api'],
+          ec2.Port.tcp(5432),
+          'Allow PostgreSQL from API tier'
+        );
+      }
+    }
+
+    if (config.securityGroups?.lambda) {
+      securityGroups['lambda'] = new ec2.SecurityGroup(this, 'LambdaSecurityGroup', {
+        vpc: this.vpc,
+        securityGroupName: `${this.stackName}-lambda-sg-${timestamp}`,
+        description: 'Security Group for Lambda functions (imported VPC)',
+        allowAllOutbound: true,
+      });
+    }
+
+    console.log(`✅ Security Groups作成完了（タイムスタンプ: ${timestamp}）`);
+    return securityGroups;
   }
 
   /**

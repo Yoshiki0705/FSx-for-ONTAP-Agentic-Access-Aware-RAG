@@ -107,14 +107,13 @@ export class WindowsAdConstruct extends Construct {
     this.adminPasswordSecret.grantRead(role);
 
     // EC2インスタンス作成
-    this.instance = new ec2.Instance(this, 'Instance', {
+    const instanceProps: any = {
       vpc: props.vpc,
       vpcSubnets: props.privateSubnets || { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       instanceType: props.instanceType || ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MEDIUM),
       machineImage: windowsAmi,
       securityGroup: this.securityGroup,
       role: role,
-      keyName: props.keyName,
       blockDevices: [
         {
           deviceName: '/dev/sda1',
@@ -124,7 +123,14 @@ export class WindowsAdConstruct extends Construct {
           }),
         },
       ],
-    });
+    };
+
+    // KeyNameが指定されている場合のみ追加（nullは許可されない）
+    if (props.keyName) {
+      instanceProps.keyName = props.keyName;
+    }
+
+    this.instance = new ec2.Instance(this, 'Instance', instanceProps);
 
     // インスタンスID取得
     this.instanceId = this.instance.instanceId;

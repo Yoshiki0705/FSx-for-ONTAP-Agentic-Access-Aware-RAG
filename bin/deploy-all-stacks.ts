@@ -36,8 +36,14 @@ if (!validModes.includes(deployMode)) {
   process.exit(1);
 }
 
-// imageTagの取得（CDKコンテキストから）
-const imageTag = app.node.tryGetContext('imageTag');
+// imageTagの取得（優先順位: CDKコンテキスト > 環境変数）
+let imageTag = app.node.tryGetContext('imageTag');
+if (!imageTag) {
+  imageTag = process.env.IMAGE_TAG;
+  if (imageTag) {
+    console.log(`ℹ️ imageTagを環境変数から取得: ${imageTag}`);
+  }
+}
 
 // 環境設定
 const env = {
@@ -193,6 +199,10 @@ if (deployMode === 'full' || deployMode === 'production') {
     securityStack,
     imageTag, // CDKコンテキストから取得したimageTagを渡す
     description: `Permission-aware RAG WebApp Stack (${deployMode})`,
+    // 環境変数設定のみのデプロイのため、設定検証を無効化
+    environmentResourceControl: {
+      validateConfiguration: false,
+    },
     tags: {
       Project: projectName,
       Environment: environment,

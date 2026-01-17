@@ -449,17 +449,22 @@ export interface FsxActiveDirectoryConfig {
 
 /**
  * ストレージ統合設定
+ * 
+ * アーキテクチャ原則:
+ * - FSx for ONTAPを主要ストレージとして使用
+ * - S3 Access Points経由でFSx for ONTAPにアクセス
+ * - S3は最小限の使用（CloudFrontログ、バックアップ等）
+ * - EFSは使用しない（FSx for ONTAPに統合）
  */
 export interface StorageConfig {
-  /** S3設定 */
-  readonly s3: S3Config;
+  /** S3設定（オプション - FSx for ONTAP + S3 Access Pointsを推奨） */
+  readonly s3?: S3Config;
   
   /** FSx設定 */
   readonly fsx: FsxConfig;
   
   /** FSx ONTAP設定（environment-config.ts互換性のため） */
   readonly fsxOntap?: FsxConfig;
-  
   
   /** バックアップ設定 */
   readonly backup?: StorageBackupConfig;

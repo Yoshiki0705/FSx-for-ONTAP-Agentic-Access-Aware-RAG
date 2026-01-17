@@ -12,15 +12,30 @@ const intlMiddleware = createMiddleware({
   localeDetection: false // ユーザー選択を優先するため自動検出を無効化
 });
 
+// 動的にallowedOriginsを構築（環境変数から取得）
+const getAllowedOrigins = (): string[] => {
+  const origins = [
+    'http://localhost:3000',
+    'https://localhost:3000'
+  ];
+
+  // CloudFront URL（環境変数から取得）
+  if (process.env.CLOUDFRONT_URL) {
+    origins.push(process.env.CLOUDFRONT_URL);
+  }
+
+  // Lambda Function URL（環境変数から取得）
+  if (process.env.LAMBDA_FUNCTION_URL) {
+    origins.push(process.env.LAMBDA_FUNCTION_URL);
+  }
+
+  return origins;
+};
+
 // CSRF保護設定
 const csrfMiddleware = new CSRFMiddleware({
   secret: process.env.CSRF_SECRET || 'your-csrf-secret-change-in-production-2024',
-  allowedOrigins: [
-    'https://d3p7l2uoh6npdr.cloudfront.net',
-    'https://vlhac7yhlh624z7xuyb6sb4lxu0tnieh.lambda-url.ap-northeast-1.on.aws',
-    'http://localhost:3000',
-    'https://localhost:3000'
-  ],
+  allowedOrigins: getAllowedOrigins(),
   exemptPaths: [
     '/api/auth/signin',
     '/api/health',

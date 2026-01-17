@@ -17,6 +17,7 @@ interface AgentInfoSectionProps {
 export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
   const t = useTranslations('agent');  // ✅ agentネームスペースを使用
   const tCommon = useTranslations('common');  // ✅ commonネームスペースも追加
+  const tError = useTranslations('error');  // ✅ errorネームスペースを追加
   const { agents, isLoading: isLoadingAgents, error: agentsError } = useAgentsList();
   const { selectedAgentId, setSelectedAgentId } = useAgentStore();
   const { selectedAgentId: chatSelectedAgentId, setSelectedAgentId: setChatSelectedAgentId } = useChatStore();
@@ -55,14 +56,24 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
       const eventDetail = { 
         agentInfo: selectedAgent,
         timestamp: Date.now(),
-        source: 'AgentInfoSection-Init'
+        source: 'AgentInfoSection-Init',
+        // ✅ 追加: 実行内容と進捗報告のプレースホルダー
+        executionStatus: null,
+        progressReport: null
       };
       
       const customEvent = new CustomEvent('agent-selection-changed', {
-        detail: eventDetail
+        detail: eventDetail,
+        bubbles: true,      // ✅ イベントのバブリングを有効化
+        cancelable: true,   // ✅ イベントのキャンセルを許可
+        composed: true      // ✅ Shadow DOMを越えて伝播
       });
       
       window.dispatchEvent(customEvent);
+      console.log('✅ [AgentInfoSection] 初期化時のイベント発火完了:', {
+        agentId: selectedAgent.agentId,
+        timestamp: eventDetail.timestamp
+      });
     }
   }, [selectedAgent, agents.length]);
 
@@ -170,41 +181,79 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
 
   // Agent選択ハンドラー
   const handleAgentChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const newAgentId = event.target.value;
-    console.log('🔄 [AgentInfoSection] Agent選択:', newAgentId);
-    
-    // 選択されたAgentの詳細情報を取得
-    let selectedAgent = null;
-    if (newAgentId && agents && agents.length > 0) {
-      selectedAgent = agents.find(agent => agent.agentId === newAgentId) || null;
-    }
-    
-    // ストアを更新（両方のストアを同期）
-    setSelectedAgentId(newAgentId || null);
-    setChatSelectedAgentId(newAgentId || null); // ✅ Chat storeも更新
-    
-    // グローバルイベントを発火してメインページに通知（即座に実行）
-    const eventDetail = { 
-      agentInfo: selectedAgent,
-      timestamp: Date.now(),
-      source: 'AgentInfoSection'
-    };
-    
-    const customEvent = new CustomEvent('agent-selection-changed', {
-      detail: eventDetail
-    });
-    
-    // 即座にイベントを発火
-    window.dispatchEvent(customEvent);
-    
-    if (selectedAgent) {
-      console.log('✅ [AgentInfoSection] Agent選択変更イベント発火:', {
-        agentId: selectedAgent.agentId,
-        agentName: selectedAgent.agentName,
-        status: selectedAgent.agentStatus
+    try {
+      const newAgentId = event.target.value;
+      console.log('🔄 [AgentInfoSection] Agent選択:', newAgentId);
+      
+      // 選択されたAgentの詳細情報を取得
+      let selectedAgent = null;
+      if (newAgentId && agents && agents.length > 0) {
+        selectedAgent = agents.find(agent => agent.agentId === newAgentId) || null;
+        
+        // ✅ Agent not found validation (警告のみ、エラーはスローしない)
+        if (newAgentId && !selectedAgent) {
+          console.warn(`⚠️ [AgentInfoSection] Agent not found: ${newAgentId}`);
+          // エラーをスローせず、nullのまま続行
+        }
+      }
+      
+      // ストアを更新（両方のストアを同期）
+      setSelectedAgentId(newAgentId || null);
+      setChatSelectedAgentId(newAgentId || null); // ✅ Chat storeも更新
+      
+      // ✅ グローバルイベントを発火してメインページに通知（即座に実行）
+      const eventDetail = { 
+        agentInfo: selectedAgent,
+        timestamp: Date.now(),
+        source: 'AgentInfoSection',
+        // ✅ 追加: 実行内容と進捗報告のプレースホルダー（将来の拡張用）
+        executionStatus: null,
+        progressReport: null
+      };
+      
+      const customEvent = new CustomEvent('agent-selection-changed', {
+        detail: eventDetail,
+        bubbles: true,      // ✅ イベントのバブリングを有効化
+        cancelable: true,   // ✅ イベントのキャンセルを許可
+        composed: true      // ✅ Shadow DOMを越えて伝播
       });
-    } else {
-      console.log('✅ [AgentInfoSection] Agent選択解除イベント発火');
+      
+      // 即座にイベントを発火
+      window.dispatchEvent(customEvent);
+      
+      if (selectedAgent) {
+        console.log('✅ [AgentInfoSection] Agent選択変更イベント発火:', {
+          agentId: selectedAgent.agentId,
+          agentName: selectedAgent.agentName,
+          status: selectedAgent.agentStatus,
+          timestamp: eventDetail.timestamp
+        });
+      } else {
+        console.log('✅ [AgentInfoSection] Agent選択解除イベント発火');
+      }
+    } catch (error) {
+      console.error('❌ [AgentInfoSection] Agent選択エラー:', error);
+      
+      // ユーザーにエラーを通知（シンプルなフォールバックメッセージ）
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // ✅ FIX v2: tError関数を完全に削除（"b is not a function"エラーの原因）
+      // 理由: tError('generic')の呼び出しがminified production buildで"b is not a function"エラーを引き起こす
+      // 解決策: 直接フォールバックメッセージを使用（翻訳は不要）
+      const displayMessage = 'エラーが発生しました'; // 日本語フォールバック（常に使用）
+      
+      alert(`${displayMessage}: ${errorMessage}`);
+      
+      // エラーイベントを発火
+      const errorEvent = new CustomEvent('agent-selection-error', {
+        detail: {
+          error: errorMessage,
+          timestamp: Date.now(),
+          source: 'AgentInfoSection'
+        },
+        bubbles: true
+      });
+      window.dispatchEvent(errorEvent);
     }
   };
 

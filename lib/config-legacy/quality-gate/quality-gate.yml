@@ -1,0 +1,196 @@
+# Permission-aware RAG System 品質ゲート設定
+# 
+# このファイルは、CI/CDパイプラインで使用される品質基準を定義します。
+# 各基準には閾値、重み、ブロッキング設定が含まれます。
+
+version: "1.0"
+name: "RAG System Quality Gate"
+description: "Permission-aware RAG Systemの品質ゲート設定"
+
+# 品質基準の定義
+quality_criteria:
+  
+  # テスト成功率（最重要）
+  test_success_rate:
+    description: "統合テストの成功率"
+    threshold: 95.0  # 95%以上
+    weight: 0.4      # 全体の40%
+    blocking: true   # 基準未達成時はデプロイをブロック
+    unit: "percent"
+    category: "testing"
+  
+  # パフォーマンススコア
+  performance_score:
+    description: "システムパフォーマンススコア"
+    threshold: 80.0  # 80%以上
+    weight: 0.3      # 全体の30%
+    blocking: false  # 警告のみ
+    unit: "percent"
+    category: "performance"
+    details:
+      max_response_time_ms: 2000  # 最大応答時間
+      max_execution_time_ms: 30000  # 最大実行時間
+  
+  # セキュリティスコア（重要）
+  security_score:
+    description: "セキュリティスキャン結果"
+    threshold: 100.0  # 脆弱性0件
+    weight: 0.2       # 全体の20%
+    blocking: true    # セキュリティ問題は必ずブロック
+    unit: "percent"
+    category: "security"
+  
+  # コードカバレッジ
+  coverage_score:
+    description: "テストカバレッジ"
+    threshold: 80.0  # 80%以上
+    weight: 0.1      # 全体の10%
+    blocking: false  # 警告のみ
+    unit: "percent"
+    category: "testing"
+
+# 環境別設定
+environments:
+  
+  # 開発環境（緩い基準）
+  development:
+    test_success_rate:
+      threshold: 90.0
+      blocking: false
+    performance_score:
+      threshold: 70.0
+    security_score:
+      threshold: 95.0
+    coverage_score:
+      threshold: 70.0
+  
+  # ステージング環境（標準基準）
+  staging:
+    test_success_rate:
+      threshold: 95.0
+      blocking: true
+    performance_score:
+      threshold: 80.0
+    security_score:
+      threshold: 100.0
+      blocking: true
+    coverage_score:
+      threshold: 80.0
+  
+  # 本番環境（厳格な基準）
+  production:
+    test_success_rate:
+      threshold: 98.0
+      blocking: true
+    performance_score:
+      threshold: 85.0
+      blocking: true
+    security_score:
+      threshold: 100.0
+      blocking: true
+    coverage_score:
+      threshold: 85.0
+      blocking: true
+
+# アクション設定
+actions:
+  
+  # 品質ゲート合格時
+  on_pass:
+    action: "continue_pipeline"
+    notifications:
+      - type: "slack"
+        message: "✅ 品質ゲート合格: デプロイメントを継続します"
+      - type: "github_status"
+        state: "success"
+        description: "Quality gate passed"
+  
+  # 品質ゲート不合格時
+  on_fail:
+    action: "block_and_notify"
+    notifications:
+      - type: "slack"
+        message: "❌ 品質ゲート不合格: デプロイメントをブロックしました"
+      - type: "github_status"
+        state: "failure"
+        description: "Quality gate failed"
+      - type: "email"
+        recipients: ["dev-team@example.com"]
+  
+  # 警告時
+  on_warning:
+    action: "continue_with_warning"
+    notifications:
+      - type: "slack"
+        message: "⚠️ 品質ゲート警告: 一部基準が未達成ですが継続します"
+      - type: "github_status"
+        state: "success"
+        description: "Quality gate passed with warnings"
+
+# 通知設定
+notifications:
+  
+  slack:
+    enabled: true
+    webhook_url_env: "SLACK_WEBHOOK_URL"
+    channel: "#ci-cd"
+    username: "Quality Gate Bot"
+    icon_emoji: ":robot_face:"
+  
+  email:
+    enabled: false
+    smtp_server: "smtp.example.com"
+    from_address: "noreply@example.com"
+  
+  github:
+    enabled: true
+    context: "quality-gate"
+
+# レポート設定
+reporting:
+  
+  # 品質レポートの生成
+  generate_report: true
+  report_format: ["markdown", "json"]
+  report_path: "quality-reports/"
+  
+  # 履歴の保持
+  keep_history: true
+  history_days: 30
+  
+  # ダッシュボード
+  dashboard:
+    enabled: true
+    url: "https://dashboard.example.com/quality"
+
+# 高度な設定
+advanced:
+  
+  # 品質トレンド分析
+  trend_analysis:
+    enabled: true
+    window_days: 7
+    degradation_threshold: 5.0  # 5%以上の劣化で警告
+  
+  # 自動調整
+  auto_adjustment:
+    enabled: false
+    learning_period_days: 30
+  
+  # カスタムメトリクス
+  custom_metrics:
+    - name: "deployment_frequency"
+      description: "デプロイ頻度"
+      threshold: 1.0
+      unit: "per_day"
+    
+    - name: "mean_time_to_recovery"
+      description: "平均復旧時間"
+      threshold: 60.0
+      unit: "minutes"
+
+# デバッグ設定
+debug:
+  enabled: false
+  log_level: "INFO"
+  detailed_output: false

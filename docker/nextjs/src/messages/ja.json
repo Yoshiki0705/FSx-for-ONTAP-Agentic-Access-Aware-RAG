@@ -54,6 +54,7 @@
     "automaticDocumentSearchDesc": "関連文書を自動的に検索・参照",
     "contextOptimization": "コンテキスト最適化",
     "contextOptimizationDesc": "文脈に応じた最適な回答生成",
+    "modeDescription": "Agentモードでは、より高度な推論と文書検索機能をご利用いただけます。",
     "selectAgent": "Agent選択",
     "permissionError": "権限エラー",
     "switchToKnowledgeBase": "Knowledge Baseモードに切り替えてください",
@@ -69,7 +70,17 @@
     "deleteSuccess": "Agentの削除が完了しました",
     "deleteError": "Agentの削除に失敗しました",
     "deleting": "削除中...",
-    "deleteAgent": "削除"
+    "deleteAgent": "削除",
+    "wizard": {
+      "basicSettings": "基本設定",
+      "basicSettingsDesc": "Agentの名前と説明を設定",
+      "foundationModel": "基盤モデル",
+      "foundationModelDesc": "使用するAIモデルを選択",
+      "knowledgeBase": "ナレッジベース",
+      "knowledgeBaseDesc": "接続するナレッジベースを選択",
+      "actionGroups": "アクショングループ",
+      "actionGroupsDesc": "Agentが実行できるアクションを設定"
+    }
   },
   "chatbot": {
     "sidebarToggleClose": "サイドバーを閉じる",

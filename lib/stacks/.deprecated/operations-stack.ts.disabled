@@ -1,0 +1,33 @@
+import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import { MonitoringConstruct } from '../modules/monitoring/constructs/monitoring-construct';
+import { EnterpriseConstruct } from '../modules/enterprise/constructs/enterprise-construct';
+
+export interface OperationsStackProps extends cdk.StackProps {
+  projectName: string;
+  environment: string;
+}
+
+export class OperationsStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props: OperationsStackProps) {
+    super(scope, id, props);
+
+    // Monitoring Construct
+    const monitoring = new MonitoringConstruct(this, 'Monitoring', {
+      projectName: props.projectName,
+      environment: props.environment,
+    });
+
+    // Enterprise Construct
+    const enterprise = new EnterpriseConstruct(this, 'Enterprise', {
+      projectName: props.projectName,
+      environment: props.environment,
+    });
+
+    // Outputs
+    new cdk.CfnOutput(this, 'OperationsStackDeployed', {
+      value: 'true',
+      description: 'Operations Stack deployment status',
+    });
+  }
+}

@@ -10,6 +10,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useChatStore } from '../../../store';
 import type { Message, ChatSession } from '../../../store';
+import { useAuthStore } from '../../../store/useAuthStore';
 import { useRegionStore } from '../../../store/useRegionStore';
 import { ModelSelector } from '../../../components/bedrock/ModelSelector';
 import { RegionSelector } from '../../../components/bedrock/RegionSelector';
@@ -18,6 +19,7 @@ import { DEFAULT_MODEL_ID, getModelById } from '../../../config/bedrock-models';
 import { ThemeToggle } from '../../../components/ui/ThemeToggle';
 import { AgentTraceDisplay } from '../../../components/chat/AgentTraceDisplay';
 import { SessionAttributesPanel } from '../../../components/chat/SessionAttributesPanel';
+import { MessageContent } from '../../../components/chat/MessageContent';
 import { useAgentMode, useAgentTraces, useSessionAttributes, useAgentUI } from '../../../hooks/useAgentMode';
 import { useAgentInfo } from '../../../hooks/useAgentInfo';
 import { useThemeStore, initializeThemeListener } from '../../../store/useThemeStore';
@@ -180,7 +182,7 @@ const generateAgentModeInitialMessage = (
 • **${tAgent('automaticDocumentSearch')}**: ${tAgent('automaticDocumentSearchDesc')}
 • **${tAgent('contextOptimization')}**: ${tAgent('contextOptimizationDesc')}
 
-Agentモードでは、より高度な推論と文書検索機能をご利用いただけます。`;
+${tAgent('modeDescription')}`;
 
       console.log('✅ [generateAgentModeInitialMessage] Agent section generated, length:', agentSection?.length);
       return baseMessage + agentSection;
@@ -197,12 +199,13 @@ Agentモードでは、より高度な推論と文書検索機能をご利用い
 
     const agentFallbackSection = `
 
-**🤖 Agentモード**
+**🤖 ${tAgent('information')}**
+${tAgent('modeDescription')}
+
+**🧠 ${tAgent('features')}**
 • **${tAgent('multiStepReasoning')}**: ${tAgent('multiStepReasoningDesc')}
 • **${tAgent('automaticDocumentSearch')}**: ${tAgent('automaticDocumentSearchDesc')}
-• **${tAgent('contextOptimization')}**: ${tAgent('contextOptimizationDesc')}
-
-Agent情報を読み込み中です...`;
+• **${tAgent('contextOptimization')}**: ${tAgent('contextOptimizationDesc')}`;
 
     console.log('✅ [generateAgentModeInitialMessage] Fallback section generated');
     return baseMessage + agentFallbackSection;
@@ -473,6 +476,9 @@ function ChatbotPageContent() {
   // Zustandストアを強制的に初期化（Next.js 15のTree Shaking対策）
   const regionStore = useRegionStore();
   
+  // ✅ 2026-01-17: useAuthStoreと同期してuser stateを管理
+  const { session, isAuthenticated } = useAuthStore();
+  
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -604,6 +610,30 @@ function ChatbotPageContent() {
     });
   }, []);
 
+  // ✅ 2026-01-17: useAuthStoreとlocal user stateを同期（race condition対策）
+  useEffect(() => {
+    console.log('🔄 [ChatbotPage] Syncing user state with useAuthStore...', {
+      isAuthenticated,
+      hasSession: !!session,
+      sessionUser: session?.user?.username
+    });
+
+    if (isAuthenticated && session?.user) {
+      // useAuthStoreのsessionからlocal user stateを更新
+      setUser({
+        username: session.user.username,
+        userId: session.user.username,
+        role: session.user.role || 'user',
+        permissions: session.user.permissions || []
+      });
+      console.log('✅ [ChatbotPage] User state synced:', session.user.username);
+    } else if (!isAuthenticated) {
+      // 認証されていない場合はuserをnullに設定
+      setUser(null);
+      console.log('⚠️ [ChatbotPage] User state cleared (not authenticated)');
+    }
+  }, [isAuthenticated, session]);
+
   useEffect(() => {
     // クライアントサイドでのみ実行
     setIsClient(true);
@@ -701,8 +731,8 @@ function ChatbotPageContent() {
             // Agentモード用の初期メッセージ（Agent情報は後で更新）
             try {
               initialMessageText = generateAgentModeInitialMessage(
-                parsedUser.username,
-                parsedUser.role || 'User',
+                parsedUser?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
+                parsedUser?.role || 'User',
                 null, // userDirectoriesは後で更新
                 null, // agentInfoは後で更新
                 t, // Introduction用翻訳フック
@@ -783,22 +813,28 @@ function ChatbotPageContent() {
   // Agent選択変更イベントリスナー（Issue 3対応）
   useEffect(() => {
     const handleAgentSelectionChange = (event: CustomEvent) => {
-      const { agentInfo } = event.detail;
-      console.log('🤖 [ChatbotPage] Agent選択変更イベント受信:', agentInfo);
+      const { agentInfo, executionStatus, progressReport } = event.detail;
+      console.log('🤖 [ChatbotPage] Agent選択変更イベント受信:', {
+        hasAgentInfo: !!agentInfo,
+        agentId: agentInfo?.agentId,
+        hasExecutionStatus: !!executionStatus,
+        hasProgressReport: !!progressReport,
+        timestamp: event.detail.timestamp
+      });
       
-      // Introduction textを即座に更新
+      // Introduction textを即座に更新（agentInfoがnullの場合も含む）
       // ✅ CRITICAL FIX: Check if messages is an array before accessing length
       if (agentMode && currentSession && user && Array.isArray(currentSession.messages) && currentSession.messages.length > 0) {
         const firstMessage = currentSession.messages[0];
         
         if (firstMessage && firstMessage.id === '1' && firstMessage.role === 'assistant') {
-          console.log('🔄 [ChatbotPage] Agent選択変更によるIntroduction文更新:', agentInfo?.agentId);
+          console.log('🔄 [ChatbotPage] Agent選択変更によるIntroduction文更新:', agentInfo?.agentId || 'null (Agent選択)');
           
           const updatedText = generateAgentModeInitialMessage(
-            user.username,
-            user.role || 'User',
+            user?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
+            user?.role || 'User',
             userDirectories,
-            agentInfo, // 選択されたAgent情報を使用
+            agentInfo, // 選択されたAgent情報を使用（nullの場合はフォールバック表示）
             t, // Introduction用翻訳フック
             tAgent // Agent情報用翻訳フック
           );
@@ -811,7 +847,8 @@ function ChatbotPageContent() {
             updatedMessages[0] = { 
               ...firstMessage, 
               content: updatedText,
-              timestamp: Date.now()
+              timestamp: Date.now(),
+              updatedAt: Date.now()  // ✅ 追加: 更新時刻を記録
             };
             
             return { 
@@ -823,6 +860,14 @@ function ChatbotPageContent() {
           
           console.log('✅ [ChatbotPage] Agent選択変更によるIntroduction文更新完了');
         }
+      } else {
+        console.warn('⚠️ [ChatbotPage] Introduction文更新スキップ:', {
+          agentMode,
+          hasCurrentSession: !!currentSession,
+          hasUser: !!user,
+          messagesIsArray: Array.isArray(currentSession?.messages),
+          messagesLength: currentSession?.messages?.length
+        });
       }
     };
 
@@ -830,7 +875,7 @@ function ChatbotPageContent() {
     return () => {
       window.removeEventListener('agent-selection-changed', handleAgentSelectionChange as EventListener);
     };
-  }, [agentMode, currentSession?.id, user?.username, userDirectories, t, tAgent]);  // ✅ tAgentを依存配列に追加
+  }, [agentMode, currentSession?.id, t, tAgent, user, userDirectories]);  // ✅ FIX: 全ての依存関係を追加
 
   // モデル選択時にヘッダー表示を更新するためのuseEffectt
   useEffect(() => {
@@ -899,8 +944,8 @@ function ChatbotPageContent() {
         
         // Agent情報を含む初期メッセージを生成
         const updatedText = generateAgentModeInitialMessage(
-          user.username,
-          user.role || 'User',
+          user?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
+          user?.role || 'User',
           userDirectories,
           agentInfo,
           t, // Introduction用翻訳フック
@@ -966,8 +1011,14 @@ function ChatbotPageContent() {
     // Update the ref to track current mode
     lastAgentModeRef.current = agentMode;
     
+    // ✅ CRITICAL FIX: Early return if user is null to prevent "Cannot read properties of null" error
+    if (!user) {
+      console.log('⚠️ [ChatbotPage] User is null, skipping mode switch initialization');
+      return;
+    }
+    
     // ✅ FIX: セッションが存在しない場合は新しいセッションを作成
-    if (!currentSession || !user) {
+    if (!currentSession) {
       console.log('🆕 [ChatbotPage] モード切り替え時にセッションが存在しないため、新規作成:', { agentMode });
       
       const sessionTitle = memoizedLocale === 'en' 
@@ -979,7 +1030,7 @@ function ChatbotPageContent() {
       if (agentMode) {
         // Agentモード: Agent情報を含む初期メッセージ
         initialMessageText = generateAgentModeInitialMessage(
-          user.username,
+          user.username,  // ✅ Safe: user is not null here
           user.role || 'User',
           userDirectories,
           agentInfo,
@@ -990,14 +1041,14 @@ function ChatbotPageContent() {
         // Knowledge Baseモード: 通常の初期メッセージ
         if (userDirectories) {
           initialMessageText = generateInitialMessageWithDirectories(
-            user.username,
+            user.username,  // ✅ Safe: user is not null here
             user.role || 'User',
             userDirectories,
             t
           );
         } else {
           initialMessageText = generateInitialMessage(
-            user.username,
+            user.username,  // ✅ Safe: user is not null here
             user.role || 'User',
             t
           );
@@ -1032,8 +1083,8 @@ function ChatbotPageContent() {
       
       if (agentMode) {
         initialMessageText = generateAgentModeInitialMessage(
-          user.username,
-          user.role || 'User',
+          user?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
+          user?.role || 'User',
           userDirectories,
           agentInfo,
           t,
@@ -1528,9 +1579,35 @@ function ChatbotPageContent() {
     }
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem('user');
-    router.push('/signin');
+  const handleSignOut = async () => {
+    try {
+      // CSRF tokenを取得
+      const csrfResponse = await fetch('/api/auth/csrf-token');
+      if (!csrfResponse.ok) {
+        throw new Error('Failed to get CSRF token');
+      }
+      const { token: csrfToken } = await csrfResponse.json();
+
+      // サインアウトAPIを呼び出し
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Sign-out failed');
+      }
+    } catch (error) {
+      console.error('Sign-out error:', error);
+    } finally {
+      // ローカルストレージをクリア
+      localStorage.removeItem('user');
+      // サインインページにリダイレクト
+      router.push('/signin');
+    }
   };
 
   if (!isClient || !user) {

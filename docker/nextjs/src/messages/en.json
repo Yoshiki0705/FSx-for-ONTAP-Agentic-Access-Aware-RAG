@@ -54,6 +54,7 @@
     "automaticDocumentSearchDesc": "Automatically search and reference related documents",
     "contextOptimization": "Context Optimization",
     "contextOptimizationDesc": "Generate optimal responses based on context",
+    "modeDescription": "Agent mode provides advanced reasoning and document search capabilities.",
     "selectAgent": "Select Agent",
     "permissionError": "Permission Error",
     "switchToKnowledgeBase": "Please switch to Knowledge Base mode",
@@ -69,7 +70,17 @@
     "deleteSuccess": "Agent deletion completed",
     "deleteError": "Failed to delete agent",
     "deleting": "Deleting...",
-    "deleteAgent": "Delete"
+    "deleteAgent": "Delete",
+    "wizard": {
+      "basicSettings": "Basic Settings",
+      "basicSettingsDesc": "Configure agent name and description",
+      "foundationModel": "Foundation Model",
+      "foundationModelDesc": "Select the AI model to use",
+      "knowledgeBase": "Knowledge Base",
+      "knowledgeBaseDesc": "Select knowledge bases to connect",
+      "actionGroups": "Action Groups",
+      "actionGroupsDesc": "Configure actions the agent can perform"
+    }
   },
   "chatbot": {
     "sidebarToggleClose": "Close sidebar",

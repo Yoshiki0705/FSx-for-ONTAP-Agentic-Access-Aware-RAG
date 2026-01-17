@@ -50,13 +50,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const data = await response.json();
       
+      // ✅ APIレスポンスから正しくセッションを構築
+      const session: Session = {
+        user: {
+          username: data.user.username,
+          role: data.user.role,
+          permissions: [] // デフォルト値（後でAPIから取得可能）
+        },
+        loginTime: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24時間後
+        lastActivity: new Date().toISOString()
+      };
+      
       set({
         isAuthenticated: true,
-        session: data.session,
+        session,
         isLoading: false
       });
 
-      console.log('Sign in successful:', data.session.user.username);
+      console.log('Sign in successful:', data.user.username);
       return true;
 
     } catch (error) {

@@ -4,38 +4,21 @@
     "automaticDocumentSearchDesc": "自動搜索和引用相關文檔",
     "contextOptimization": "情境最佳化",
     "contextOptimizationDesc": "根據上下文生成最佳答案",
+    "modeDescription": "Agent 模式提供進階推理和文件搜尋功能。",
     "error": {},
     "features": "Agent 功能",
     "information": "Agent 資訊",
     "multiStepReasoning": "多步推理",
     "multiStepReasoningDesc": "逐步解決複雜問題",
     "wizard": {
-      "actionGroups": "操作群組",
-      "actionGroupsComingSoon": "操作群組功能即將推出",
-      "actionGroupsDesc": "設定代理可以執行的操作",
-      "agentName": "代理名稱",
-      "agentNameHint": "用於識別代理的名稱",
-      "agentNamePlaceholder": "輸入代理名稱",
-      "basicFeaturesOnly": "目前僅提供基本功能",
       "basicSettings": "基本設定",
-      "basicSettingsDesc": "設定代理的基本資訊",
-      "createAgent": "建立代理",
-      "createError": "建立代理失敗",
-      "creating": "建立中...",
-      "description": "描述",
-      "descriptionHint": "描述代理的目的和功能",
-      "descriptionPlaceholder": "輸入代理描述",
+      "basicSettingsDesc": "配置代理名稱和描述",
       "foundationModel": "基礎模型",
-      "foundationModelDesc": "選擇代理使用的AI模型",
+      "foundationModelDesc": "選擇要使用的AI模型",
       "knowledgeBase": "知識庫",
-      "knowledgeBaseDesc": "選擇代理參考的知識庫",
-      "loadingKnowledgeBases": "正在載入知識庫...",
-      "modelSelected": "已選擇的模型",
-      "noKnowledgeBases": "沒有可用的知識庫",
-      "stepProgress": "步驟 {current}/{total}",
-      "systemInstructions": "系統指令",
-      "systemInstructionsPlaceholder": "指示代理的行為",
-      "title": "代理建立精靈"
+      "knowledgeBaseDesc": "選擇要連接的知識庫",
+      "actionGroups": "操作組",
+      "actionGroupsDesc": "配置代理可以執行的操作"
     },
     "activeStatus": "活躍",
     "deleteAgent": "刪除代理",
@@ -49,7 +32,13 @@
     "permissionError": "權限錯誤：缺少訪問代理信息所需的權限",
     "selectAgent": "選擇代理",
     "switchAgent": "切換代理",
-    "switchToKnowledgeBase": "我們建議切換到知識庫模式"
+    "switchToKnowledgeBase": "我們建議切換到知識庫模式",
+    "agentId": "Agent ID",
+    "agentName": "Agent名稱",
+    "status": "狀態",
+    "model": "模型",
+    "version": "版本",
+    "createNew": "新建"
   },
   "auth": {
     "brandSubtitle": "企業 AI 的智慧資料基礎架構",
@@ -185,7 +174,9 @@
     "requestAccess": "請求存取",
     "selectModel": "選擇模型",
     "selectedModel": "已選擇的模型",
-    "selector": "AI 模型選擇"
+    "selector": {
+      "title": "AI 模型選擇"
+    }
   },
   "modelSelector": {
     "allModels": "所有模型",
@@ -217,7 +208,9 @@
     "recommendedRegion": "推薦區域",
     "region": "區域",
     "supportedRegions": "支援的區域 (Bedrock Agents)",
-    "unsupportedRegions": "不支援的區域 (Bedrock Agents)"
+    "unsupportedRegions": "不支援的區域 (Bedrock Agents)",
+    "modelCount": "模型數量",
+    "change": "更改"
   },
   "regionSelector": {
     "bedrockRegion": "Bedrock 區域",
@@ -272,7 +265,8 @@
     "settingsPanel": "設定面板",
     "systemInfo": "系統",
     "userInfo": "用戶信息",
-    "writePermission": "寫入"
+    "writePermission": "寫入",
+    "regionSelection": "區域選擇"
   },
   "theme": {
     "dark": "深色模式",

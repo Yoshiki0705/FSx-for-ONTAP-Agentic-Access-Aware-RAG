@@ -4,14 +4,31 @@ import { CSRFMiddleware } from '@/lib/security/csrf-protection';
 
 const CSRF_SECRET = process.env.CSRF_SECRET || 'your-csrf-secret-change-in-production-2024';
 
+// 動的にallowedOriginsを構築（環境変数から取得）
+const getAllowedOrigins = (): string[] => {
+  const origins = [
+    process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    'http://localhost:3000',
+    'https://localhost:3000'
+  ];
+
+  // CloudFront URL（環境変数から取得）
+  if (process.env.CLOUDFRONT_URL) {
+    origins.push(process.env.CLOUDFRONT_URL);
+  }
+
+  // Lambda Function URL（環境変数から取得）
+  if (process.env.LAMBDA_FUNCTION_URL) {
+    origins.push(process.env.LAMBDA_FUNCTION_URL);
+  }
+
+  return origins;
+};
+
 // CSRFMiddleware インスタンス
 const csrfMiddleware = new CSRFMiddleware({
   secret: CSRF_SECRET,
-  allowedOrigins: [
-    process.env.NEXTAUTH_URL || 'http://localhost:3000',
-    'https://d2qis0fup16szb.cloudfront.net',
-    'https://c4q5uoglmsqxq7kkxhonq6k22u0cscnl.lambda-url.ap-northeast-1.on.aws'
-  ]
+  allowedOrigins: getAllowedOrigins()
 });
 
 export async function POST(request: NextRequest) {

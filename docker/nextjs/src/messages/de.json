@@ -4,38 +4,21 @@
     "automaticDocumentSearchDesc": "Automatisch verwandte Dokumente suchen und referenzieren",
     "contextOptimization": "Kontextoptimierung",
     "contextOptimizationDesc": "Optimale Antworten basierend auf dem Kontext generieren",
+    "modeDescription": "Der Agent-Modus bietet erweiterte Funktionen für Argumentation und Dokumentensuche.",
     "error": {},
     "features": "Agent-Funktionen",
     "information": "Agent-Informationen",
     "multiStepReasoning": "Mehrstufiges Denken",
     "multiStepReasoningDesc": "Komplexe Probleme Schritt für Schritt lösen",
     "wizard": {
-      "actionGroups": "Aktionsgruppen",
-      "actionGroupsComingSoon": "Aktionsgruppen-Funktion kommt bald",
-      "actionGroupsDesc": "Konfigurieren Sie Aktionen, die der Agent ausführen kann",
-      "agentName": "Agentenname",
-      "agentNameHint": "Name zur Identifizierung des Agenten",
-      "agentNamePlaceholder": "Agentennamen eingeben",
-      "basicFeaturesOnly": "Derzeit sind nur grundlegende Funktionen verfügbar",
       "basicSettings": "Grundeinstellungen",
-      "basicSettingsDesc": "Grundlegende Agenten-Informationen konfigurieren",
-      "createAgent": "Agent erstellen",
-      "createError": "Agent konnte nicht erstellt werden",
-      "creating": "Wird erstellt...",
-      "description": "Beschreibung",
-      "descriptionHint": "Beschreiben Sie den Zweck und die Funktionalität des Agenten",
-      "descriptionPlaceholder": "Agentenbeschreibung eingeben",
+      "basicSettingsDesc": "Agentennamen und -beschreibung konfigurieren",
       "foundationModel": "Grundmodell",
-      "foundationModelDesc": "Wählen Sie das KI-Modell für den Agenten",
+      "foundationModelDesc": "Zu verwendendes KI-Modell auswählen",
       "knowledgeBase": "Wissensdatenbank",
-      "knowledgeBaseDesc": "Wählen Sie Wissensdatenbanken für den Agenten",
-      "loadingKnowledgeBases": "Wissensdatenbanken werden geladen...",
-      "modelSelected": "Ausgewähltes Modell",
-      "noKnowledgeBases": "Keine Wissensdatenbanken verfügbar",
-      "stepProgress": "Schritt {current}/{total}",
-      "systemInstructions": "Systemanweisungen",
-      "systemInstructionsPlaceholder": "Verhalten des Agenten anweisen",
-      "title": "Agenten-Erstellungsassistent"
+      "knowledgeBaseDesc": "Zu verbindende Wissensdatenbanken auswählen",
+      "actionGroups": "Aktionsgruppen",
+      "actionGroupsDesc": "Aktionen konfigurieren, die der Agent ausführen kann"
     },
     "activeStatus": "Aktiv",
     "deleteAgent": "Agent löschen",
@@ -49,7 +32,13 @@
     "permissionError": "Berechtigungsfehler: Fehlende erforderliche Berechtigungen für den Zugriff auf Agent-Informationen",
     "selectAgent": "Agent auswählen",
     "switchAgent": "Agent wechseln",
-    "switchToKnowledgeBase": "Wir empfehlen, in den Wissensdatenbank-Modus zu wechseln"
+    "switchToKnowledgeBase": "Wir empfehlen, in den Wissensdatenbank-Modus zu wechseln",
+    "agentId": "Agent-ID",
+    "agentName": "Agent-Name",
+    "status": "Status",
+    "model": "Modell",
+    "version": "Version",
+    "createNew": "Neu erstellen"
   },
   "auth": {
     "brandSubtitle": "Intelligente Dateninfrastruktur für Unternehmens-KI",
@@ -185,7 +174,9 @@
     "requestAccess": "Zugriff anfordern",
     "selectModel": "Modell auswählen",
     "selectedModel": "Ausgewähltes Modell",
-    "selector": "KI-Modellauswahl"
+    "selector": {
+      "title": "KI-Modellauswahl"
+    }
   },
   "modelSelector": {
     "allModels": "Alle Modelle",
@@ -217,7 +208,9 @@
     "recommendedRegion": "Empfohlene Region",
     "region": "Region",
     "supportedRegions": "Unterstützte Regionen (Bedrock Agents)",
-    "unsupportedRegions": "Nicht unterstützte Regionen (Bedrock Agents)"
+    "unsupportedRegions": "Nicht unterstützte Regionen (Bedrock Agents)",
+    "modelCount": "Anzahl der Modelle",
+    "change": "Ändern"
   },
   "regionSelector": {
     "bedrockRegion": "Bedrock-Region",
@@ -272,7 +265,8 @@
     "settingsPanel": "Einstellungsbereich",
     "systemInfo": "System",
     "userInfo": "Benutzerinformationen",
-    "writePermission": "Schreiben"
+    "writePermission": "Schreiben",
+    "regionSelection": "Regionsauswahl"
   },
   "theme": {
     "dark": "Dunkler Modus",

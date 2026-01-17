@@ -260,15 +260,26 @@ export class WebAppStack extends cdk.Stack {
       this.validateEnvironmentConfiguration(config, props.environment);
     }
     
-    // imageTagの検証（必須パラメータ）
-    if (!imageTag && !skipLambdaCreation) {
-      throw new Error(
-        '❌ imageTag is required! Please provide imageTag via:\n' +
-        '   1. CDK context: npx cdk deploy -c imageTag=YOUR_TAG\n' +
-        '   2. Props: new WebAppStack(scope, id, { imageTag: "YOUR_TAG", ... })\n' +
-        '   3. Environment variable: export IMAGE_TAG=YOUR_TAG'
-      );
+    // imageTagの取得（優先順位: Props > 環境変数 > デフォルト）
+    let finalImageTag = imageTag;
+    if (!finalImageTag && !skipLambdaCreation) {
+      // 環境変数から取得を試みる
+      finalImageTag = process.env.IMAGE_TAG;
+      
+      if (!finalImageTag) {
+        throw new Error(
+          '❌ imageTag is required! Please provide imageTag via:\n' +
+          '   1. CDK context: npx cdk deploy -c imageTag=YOUR_TAG\n' +
+          '   2. Props: new WebAppStack(scope, id, { imageTag: "YOUR_TAG", ... })\n' +
+          '   3. Environment variable: export IMAGE_TAG=YOUR_TAG'
+        );
+      }
+      
+      console.log(`ℹ️ imageTagを環境変数から取得: ${finalImageTag}`);
     }
+    
+    // imageTagを更新
+    imageTag = finalImageTag;
     
     // 設定値の取得（デフォルト値を使用）
     const projectName = config.naming?.projectName || DEFAULT_WEBAPP_CONFIG.projectName;

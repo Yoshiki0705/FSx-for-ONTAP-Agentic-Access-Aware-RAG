@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "environments": {
+    "local": {
+      "basePath": "./",
+      "tempPath": "./temp",
+      "backupPath": "./backups"
+    },
+    "ec2": {
+      "host": "${EC2_HOST}",
+      "user": "${EC2_USER}",
+      "keyPath": "${SSH_KEY_PATH}",
+      "basePath": "/home/ubuntu/project"
+    }
+  },
+  "classification": {
+    "rules": "./config/classification-rules.json",
+    "confidence": 0.8,
+    "autoApply": true
+  },
+  "sync": {
+    "interval": "0 */6 * * *",
+    "conflictResolution": "prompt",
+    "excludePatterns": [
+      "node_modules",
+      "*.log",
+      "cdk.out",
+      ".git",
+      "temp",
+      "backups"
+    ]
+  },
+  "backup": {
+    "schedule": {
+      "incremental": "0 2 * * *",
+      "full": "0 2 * * 0",
+      "archive": "0 2 1 * *"
+    },
+    "retention": {
+      "daily": 30,
+      "weekly": 12,
+      "monthly": 12
+    }
+  }
+}

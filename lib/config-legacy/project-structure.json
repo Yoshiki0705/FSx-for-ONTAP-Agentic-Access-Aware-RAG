@@ -1,0 +1,400 @@
+{
+  "version": "1.0.0",
+  "description": "CPOS プロジェクト構造定義",
+  "directories": [
+    {
+      "path": "lib",
+      "purpose": "TypeScript source code and main implementation",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 500
+    },
+    {
+      "path": "lib/cpos",
+      "purpose": "CPOS core system implementation",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 200
+    },
+    {
+      "path": "lib/cpos/core",
+      "purpose": "Core system components",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 100
+    },
+    {
+      "path": "lib/cpos/interfaces",
+      "purpose": "TypeScript interface definitions",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 10
+    },
+    {
+      "path": "lib/cpos/models",
+      "purpose": "Data models and schemas",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 20
+    },
+    {
+      "path": "lib/cpos/utils",
+      "purpose": "Utility functions and helpers",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 30
+    },
+    {
+      "path": "tests",
+      "purpose": "Test files and test utilities",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 200
+    },
+    {
+      "path": "tests/cpos",
+      "purpose": "CPOS system tests",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 100
+    },
+    {
+      "path": "tests/cpos/integration",
+      "purpose": "Integration tests",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 50
+    },
+    {
+      "path": "config",
+      "purpose": "Configuration files and settings",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 50
+    },
+    {
+      "path": "docs",
+      "purpose": "Documentation and guides",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 100
+    },
+    {
+      "path": "scripts",
+      "purpose": "Build and utility scripts",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 50
+    },
+    {
+      "path": "development",
+      "purpose": "Development tools and environment-specific files",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 200
+    },
+    {
+      "path": "development/scripts",
+      "purpose": "Development and deployment scripts",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 100
+    },
+    {
+      "path": "development/docs",
+      "purpose": "Development documentation and reports",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 100
+    },
+    {
+      "path": "development/logs",
+      "purpose": "Development and operation logs",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 500
+    },
+    {
+      "path": "development/temp",
+      "purpose": "Temporary files and cache",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 1000
+    },
+    {
+      "path": ".kiro",
+      "purpose": "Kiro IDE configuration and specs",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 50
+    },
+    {
+      "path": ".kiro/specs",
+      "purpose": "Feature specifications and requirements",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 30
+    },
+    {
+      "path": "templates",
+      "purpose": "Reusable templates and patterns",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 1000
+    },
+    {
+      "path": "templates/cdk",
+      "purpose": "CDK templates and constructs",
+      "required": false,
+      "permissions": "755",
+      "maxSize": 500
+    },
+    {
+      "path": "monitoring",
+      "purpose": "Integrated continuous monitoring system",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 100,
+      "description": "24/7 monitoring system for file organization and quality assurance"
+    },
+    {
+      "path": "monitoring/scripts",
+      "purpose": "Monitoring scripts for automated file detection and reporting",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 20
+    },
+    {
+      "path": "monitoring/logs",
+      "purpose": "Monitoring logs and daily reports",
+      "required": true,
+      "permissions": "755",
+      "maxSize": 200
+    }
+  ],
+  "fileTypes": [
+    {
+      "extension": ".ts",
+      "category": "typescript",
+      "defaultPath": "lib",
+      "rules": [
+        "TypeScript source files should be in lib/ directory",
+        "Test files should have .test.ts or .spec.ts extension",
+        "Interface files should be in lib/interfaces/ directory"
+      ]
+    },
+    {
+      "extension": ".test.ts",
+      "category": "test",
+      "defaultPath": "tests",
+      "rules": [
+        "Test files must be in tests/ directory",
+        "Test files should follow naming convention: *.test.ts"
+      ]
+    },
+    {
+      "extension": ".spec.ts",
+      "category": "test",
+      "defaultPath": "tests",
+      "rules": [
+        "Spec files must be in tests/ directory",
+        "Spec files should follow naming convention: *.spec.ts"
+      ]
+    },
+    {
+      "extension": ".json",
+      "category": "config",
+      "defaultPath": "config",
+      "rules": [
+        "Configuration JSON files should be in config/ directory",
+        "Package.json should be in project root",
+        "TSConfig files should be in project root or config/"
+      ]
+    },
+    {
+      "extension": ".md",
+      "category": "documentation",
+      "defaultPath": "docs",
+      "rules": [
+        "Documentation files should be in docs/ directory",
+        "README.md should be in project root",
+        "Development docs should be in development/docs/"
+      ]
+    },
+    {
+      "extension": ".sh",
+      "category": "script",
+      "defaultPath": "scripts",
+      "rules": [
+        "Shell scripts should be in scripts/ directory",
+        "Development scripts should be in development/scripts/",
+        "Scripts should have executable permissions"
+      ]
+    },
+    {
+      "extension": ".yml",
+      "category": "config",
+      "defaultPath": "config",
+      "rules": [
+        "YAML configuration files should be in config/ directory",
+        "CI/CD files should be in .github/ or .gitlab-ci/"
+      ]
+    },
+    {
+      "extension": ".yaml",
+      "category": "config",
+      "defaultPath": "config",
+      "rules": [
+        "YAML configuration files should be in config/ directory"
+      ]
+    },
+    {
+      "extension": ".env",
+      "category": "config",
+      "defaultPath": ".",
+      "rules": [
+        "Environment files should be in project root",
+        "Environment files should not be committed to version control"
+      ]
+    },
+    {
+      "extension": ".log",
+      "category": "log",
+      "defaultPath": "development/logs",
+      "rules": [
+        "Log files should be in development/logs/ directory",
+        "Log files should not be committed to version control"
+      ]
+    }
+  ],
+  "exclusions": [
+    "node_modules",
+    ".git",
+    "cdk.out",
+    "dist",
+    "build",
+    "coverage",
+    ".nyc_output",
+    "*.log",
+    ".DS_Store",
+    "Thumbs.db",
+    "*.tmp",
+    "*.temp",
+    ".env.local",
+    ".env.development",
+    ".env.production"
+  ],
+  "monitoringSystem": {
+    "enabled": true,
+    "version": "1.0.0",
+    "completionDate": "2025-10-05T16:14:10Z",
+    "environments": {
+      "local": {
+        "system": "macOS launchd",
+        "status": "active",
+        "services": [
+          "com.project.file-organization.watch",
+          "com.project.file-organization.report"
+        ],
+        "schedule": {
+          "monitoring": "0 * * * *",
+          "reporting": "0 8 * * *"
+        }
+      },
+      "ec2": {
+        "system": "cron",
+        "status": "active",
+        "schedule": {
+          "monitoring": "0 * * * *",
+          "reporting": "0 8 * * *",
+          "weekly_cleanup": "0 2 * * 0"
+        }
+      }
+    },
+    "metrics": {
+      "flatFiles": 0,
+      "agentSteeringCompliance": 100,
+      "automationRate": 100,
+      "monitoringCoverage": 100
+    },
+    "features": [
+      "Automatic flat file detection",
+      "Real-time file classification",
+      "24/7 quality assurance",
+      "Agent Steering compliance monitoring",
+      "Automated daily reporting",
+      "Zero human intervention required"
+    ]
+  },
+  "customRules": [
+    {
+      "name": "Require lib directory",
+      "condition": "directory_exists('.')",
+      "action": "require_directory('lib')",
+      "priority": 1
+    },
+    {
+      "name": "Require tests directory",
+      "condition": "directory_exists('.')",
+      "action": "require_directory('tests')",
+      "priority": 1
+    },
+    {
+      "name": "Require config directory",
+      "condition": "directory_exists('.')",
+      "action": "require_directory('config')",
+      "priority": 1
+    },
+    {
+      "name": "Package.json in root",
+      "condition": "file_exists('package.json')",
+      "action": "validate_file_location('package.json', '.')",
+      "priority": 2
+    },
+    {
+      "name": "TypeScript config in root",
+      "condition": "file_exists('tsconfig.json')",
+      "action": "validate_file_location('tsconfig.json', '.')",
+      "priority": 2
+    },
+    {
+      "name": "README in root",
+      "condition": "file_exists('README.md')",
+      "action": "validate_file_location('README.md', '.')",
+      "priority": 3
+    },
+    {
+      "name": "No TypeScript files in root",
+      "condition": "directory_exists('.')",
+      "action": "validate_no_ts_files_in_root()",
+      "priority": 4
+    },
+    {
+      "name": "Test files naming convention",
+      "condition": "directory_exists('tests')",
+      "action": "validate_test_naming_convention()",
+      "priority": 5
+    },
+    {
+      "name": "No flat files in root",
+      "condition": "directory_exists('.')",
+      "action": "validate_no_flat_files_in_root()",
+      "priority": 1,
+      "description": "Enforced by integrated continuous monitoring system"
+    },
+    {
+      "name": "Agent Steering compliance",
+      "condition": "directory_exists('.')",
+      "action": "validate_agent_steering_compliance()",
+      "priority": 1,
+      "description": "Maintained at 100% by automated monitoring"
+    },
+    {
+      "name": "Monitoring system integrity",
+      "condition": "directory_exists('monitoring')",
+      "action": "validate_monitoring_system_integrity()",
+      "priority": 1,
+      "description": "Ensure monitoring system files are not modified"
+    }
+  ]
+}

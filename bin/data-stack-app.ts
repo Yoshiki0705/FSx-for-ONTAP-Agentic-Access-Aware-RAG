@@ -4,6 +4,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as efs from 'aws-cdk-lib/aws-efs';
 import { DataStack } from '../lib/stacks/integrated/data-stack';
+import { ResourceConflictHandler, ResourceConflictAspect } from '../lib/utils/resource-conflict-handler';
 
 /**
  * DataStack専用CDKアプリケーション
@@ -30,11 +31,11 @@ const regionPrefix = 'TokyoRegion';
 
 // NetworkingStackからのVPC情報（CloudFormation出力値から取得）
 const vpcConfig = {
-  vpcId: 'vpc-09aa251d6db52b1fc',
+  vpcId: 'vpc-05273211525990e49',
   availabilityZones: ['ap-northeast-1a', 'ap-northeast-1c', 'ap-northeast-1d'],
-  publicSubnetIds: ['subnet-06a00a8866d09b912', 'subnet-0d7c7e43c1325cd3b', 'subnet-06df589d2ed2a5fc0'],
-  privateSubnetIds: ['subnet-0a84a16a1641e970f', 'subnet-0c4599b4863ff4d33', 'subnet-0c9ad18a58c06e7c5'],
-  vpcCidrBlock: '10.21.0.0/16',
+  publicSubnetIds: ['subnet-0789b65b5bcb18500', 'subnet-07526121a7c92b606', 'subnet-0fa216f00fc37302d'],
+  privateSubnetIds: ['subnet-0680aed62b70b92e8', 'subnet-0140b35055e9e388b', 'subnet-077ec5d7d1a6ed82f'],
+  vpcCidrBlock: '10.0.0.0/16',
 };
 
 // DataStack完全設定（型定義に完全準拠）
@@ -43,77 +44,27 @@ const dataStackConfig = {
   storage: {
     // タグ設定（StorageConstruct互換性のため）
     tags: {
-      StorageType: 'Hybrid',
-      BackupEnabled: 'true',
+      StorageType: 'FSxONTAP',
+      BackupEnabled: 'false',
       EncryptionEnabled: 'true',
       DataClassification: 'Confidential',
-      RetentionPeriod: '365days',
+      RetentionPeriod: '0days',
     },
-    // S3設定（必須）
-    s3: {
-      encryption: {
-        enabled: true,
-        kmsManaged: true,
-        bucketKeyEnabled: true,
-      },
-      versioning: true,
-      lifecycle: {
-        enabled: true,
-        transitionToIA: 30,
-        transitionToGlacier: 90,
-        deleteAfter: 365,
-        abortIncompleteMultipartUpload: 7,
-      },
-      publicAccess: {
-        blockPublicRead: true,
-        blockPublicWrite: true,
-        blockPublicAcls: true,
-        restrictPublicBuckets: true,
-      },
-      // 個別バケット設定（environment-config.ts互換）
-      documents: {
-        enabled: true,
-        bucketName: `${projectName}-${environment}-documents`,
-        encryption: true,
-        versioning: true,
-      },
-      backup: {
-        enabled: true,
-        bucketName: `${projectName}-${environment}-backup`,
-        encryption: true,
-        versioning: true,
-      },
-      embeddings: {
-        enabled: true,
-        bucketName: `${projectName}-${environment}-embeddings`,
-        encryption: true,
-        versioning: false,
-      },
-    },
-    // FSx設定（一時無効化）
+    // FSx設定（主要ストレージ）- 一時的に無効化してEarly Validation errorの原因を特定
     fsx: {
-      enabled: false,
+      enabled: false, // 一時的に無効化
       fileSystemType: 'ONTAP' as const,
       storageCapacity: 1024,
       throughputCapacity: 128,
+      multiAz: false,
+      deploymentType: 'SINGLE_AZ_1' as const,
       automaticBackupRetentionDays: 0,
       disableBackupConfirmed: true,
-    },
-    // FSx ONTAP設定（environment-config.ts互換性のため）
-    fsxOntap: {
-      enabled: false,
-      fileSystemType: 'ONTAP' as const,
-      storageCapacity: 1024,
-      throughputCapacity: 128,
-      automaticBackupRetentionDays: 0,
-      disableBackupConfirmed: true,
-    },
-    // EFS設定（オプション）
-    efs: {
-      enabled: false,
-      performanceMode: efs.PerformanceMode.GENERAL_PURPOSE,
-      throughputMode: efs.ThroughputMode.BURSTING,
-      encryption: true,
+      backup: {
+        automaticBackup: false,
+        retentionDays: 0,
+        disableBackupConfirmed: true,
+      },
     },
   },
   
@@ -204,17 +155,17 @@ const dataStackConfig = {
   },
 };
 
-// DataStack作成
+// DataStack作成（VPC設定なし - DynamoDBのみデプロイ）
 const dataStack = new DataStack(app, `${regionPrefix}-${projectName}-${environment}-Data`, {
   env,
-  description: 'Data and Storage Stack - S3 and DynamoDB (FSx ONTAP temporarily disabled)',
+  description: 'Data and Storage Stack - DynamoDB only (FSx disabled for testing)',
   
   // 統合設定
   config: dataStackConfig,
   
-  // VPC設定（NetworkingStackから）
-  vpc: vpcConfig,
-  privateSubnetIds: vpcConfig.privateSubnetIds,
+  // VPC設定（NetworkingStackから）- 一時的にコメントアウト
+  // vpc: vpcConfig,
+  // privateSubnetIds: vpcConfig.privateSubnetIds,
   
   // プロジェクト設定
   projectName,
@@ -241,4 +192,38 @@ cdk.Tags.of(app).add('Region', env.region);
 cdk.Tags.of(app).add('CreatedBy', 'DataStackApp');
 cdk.Tags.of(app).add('NamingCompliance', 'AgentSteering');
 
-app.synth();
+// リソース競合チェックAspectの追加（デプロイ前に自動チェック）
+const conflictHandler = new ResourceConflictHandler({
+  region: env.region,
+  accountId: env.account,
+  stackName: `${regionPrefix}-${projectName}-${environment}-Data`,
+  resourcePrefix: `${projectName}-${environment}`,
+});
+
+const conflictAspect = new ResourceConflictAspect(conflictHandler);
+cdk.Aspects.of(dataStack).add(conflictAspect);
+
+// CDK Synth実行
+const assembly = app.synth();
+
+// Synth後に競合チェックを実行（非同期）
+(async () => {
+  try {
+    console.log('\n🔍 リソース競合チェック実行中...');
+    const result = await conflictAspect.checkConflicts();
+    conflictHandler.printConflictReport(result);
+    
+    if (result.hasConflict) {
+      console.log('\n⚠️  競合が検出されました。デプロイ前に解決してください。');
+      console.log('💡 自動修復スクリプトを使用:');
+      console.log(`   npx ts-node development/scripts/deployment/pre-deploy-check.ts --stack-name ${regionPrefix}-${projectName}-${environment}-Data --auto-fix`);
+      console.log('');
+      // 競合があってもSynthは成功させる（デプロイ時にエラーになる）
+    } else {
+      console.log('✅ リソース競合なし - デプロイ可能');
+    }
+  } catch (error: any) {
+    console.warn('⚠️  競合チェック中にエラーが発生しました:', error.message);
+    console.warn('   デプロイは続行されますが、Early Validation errorが発生する可能性があります');
+  }
+})();

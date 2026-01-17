@@ -1,0 +1,153 @@
+{
+  "markitdown": {
+    "enabled": true,
+    "supportedFormats": {
+      "docx": {
+        "enabled": true,
+        "timeout": 30,
+        "description": "Microsoft Word文書",
+        "processingStrategy": "markitdown-first",
+        "useMarkitdown": true,
+        "useLangChain": true,
+        "enableQualityComparison": false
+      },
+      "xlsx": {
+        "enabled": true,
+        "timeout": 45,
+        "description": "Microsoft Excel文書",
+        "processingStrategy": "markitdown-first",
+        "useMarkitdown": true,
+        "useLangChain": true,
+        "enableQualityComparison": false
+      },
+      "pptx": {
+        "enabled": true,
+        "timeout": 60,
+        "description": "Microsoft PowerPoint文書",
+        "processingStrategy": "markitdown-first",
+        "useMarkitdown": true,
+        "useLangChain": true,
+        "enableQualityComparison": false
+      },
+      "pdf": {
+        "enabled": true,
+        "timeout": 120,
+        "ocr": true,
+        "description": "PDF文書（OCR対応）",
+        "processingStrategy": "both-compare",
+        "useMarkitdown": true,
+        "useLangChain": true,
+        "enableQualityComparison": true
+      },
+      "png": {
+        "enabled": true,
+        "timeout": 90,
+        "ocr": true,
+        "description": "PNG画像（OCR対応）",
+        "processingStrategy": "markitdown-only",
+        "useMarkitdown": true,
+        "useLangChain": false,
+        "enableQualityComparison": false
+      },
+      "jpg": {
+        "enabled": true,
+        "timeout": 90,
+        "ocr": true,
+        "description": "JPEG画像（OCR対応）",
+        "processingStrategy": "markitdown-only",
+        "useMarkitdown": true,
+        "useLangChain": false,
+        "enableQualityComparison": false
+      },
+      "jpeg": {
+        "enabled": true,
+        "timeout": 90,
+        "ocr": true,
+        "description": "JPEG画像（OCR対応）",
+        "processingStrategy": "markitdown-only",
+        "useMarkitdown": true,
+        "useLangChain": false,
+        "enableQualityComparison": false
+      },
+      "gif": {
+        "enabled": true,
+        "timeout": 90,
+        "ocr": true,
+        "description": "GIF画像（OCR対応）",
+        "processingStrategy": "markitdown-only",
+        "useMarkitdown": true,
+        "useLangChain": false,
+        "enableQualityComparison": false
+      },
+      "html": {
+        "enabled": true,
+        "timeout": 30,
+        "description": "HTML文書",
+        "processingStrategy": "langchain-first",
+        "useMarkitdown": true,
+        "useLangChain": true,
+        "enableQualityComparison": false
+      },
+      "xml": {
+        "enabled": true,
+        "timeout": 30,
+        "description": "XML文書",
+        "processingStrategy": "langchain-first",
+        "useMarkitdown": true,
+        "useLangChain": true,
+        "enableQualityComparison": false
+      },
+      "csv": {
+        "enabled": true,
+        "timeout": 15,
+        "description": "CSV文書",
+        "processingStrategy": "langchain-only",
+        "useMarkitdown": false,
+        "useLangChain": true,
+        "enableQualityComparison": false
+      },
+      "tsv": {
+        "enabled": true,
+        "timeout": 15,
+        "description": "TSV文書",
+        "processingStrategy": "langchain-only",
+        "useMarkitdown": false,
+        "useLangChain": true,
+        "enableQualityComparison": false
+      }
+    },
+    "performance": {
+      "maxFileSize": "10MB",
+      "maxFileSizeBytes": 10485760,
+      "memoryLimit": "1024MB",
+      "memoryLimitMB": 1024,
+      "parallelProcessing": true,
+      "maxConcurrentProcesses": 3
+    },
+    "fallback": {
+      "enabled": true,
+      "useLangChainOnFailure": true,
+      "retryAttempts": 2,
+      "retryDelayMs": 1000
+    },
+    "security": {
+      "validateFileType": true,
+      "validateFileSize": true,
+      "encryptTempFiles": true,
+      "autoDeleteTempFiles": true,
+      "tempFileRetentionMinutes": 30
+    },
+    "logging": {
+      "level": "info",
+      "enableDetailedLogs": true,
+      "enablePerformanceLogs": true,
+      "enableErrorTracking": true
+    },
+    "quality": {
+      "ocrAccuracy": "high",
+      "textExtractionQuality": "high",
+      "preserveFormatting": true,
+      "preserveImages": false
+    }
+  }
+}

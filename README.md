@@ -2498,6 +2498,89 @@ export EXISTING_SG_ID=sg-12345678
 
 ---
 
+### 7. リソース競合チェック（CDKデプロイ時）
+
+CDKスタックをデプロイする際、既存リソースとの競合を事前に検出・防止するツールを提供しています。
+
+#### 問題の背景
+
+CloudFormationの`AWS::EarlyValidation::ResourceExistenceCheck`フックにより、既存リソースとの競合が検出されるとデプロイが失敗します。
+
+**典型的なエラー**:
+```
+Failed to create ChangeSet: FAILED, The following hook(s)/validation failed: 
+[AWS::EarlyValidation::ResourceExistenceCheck]
+```
+
+**主な原因**:
+- DynamoDBテーブル名の重複
+- CloudFormationスタックの問題のある状態（ROLLBACK_COMPLETE等）
+- 既存リソースとの名前衝突
+
+#### 推奨デプロイフロー
+
+**フロー1: 自動修復デプロイ（推奨）**
+
+```bash
+# 統合スクリプトで自動修復 + デプロイ
+./development/scripts/deployment/deploy-with-conflict-check.sh \
+  TokyoRegion-permission-aware-rag-prod-Data --auto-fix
+
+# 期待される動作:
+# - 競合チェック実行
+# - 競合が検出された場合、ユーザー確認後に自動削除
+# - CDKデプロイ実行
+# - デプロイ後確認
+```
+
+**フロー2: 手動確認デプロイ**
+
+```bash
+# 1. 競合チェックのみ実行
+npx ts-node development/scripts/deployment/pre-deploy-check.ts \
+  --stack-name TokyoRegion-permission-aware-rag-prod-Data
+
+# 2. 競合があれば手動で解決
+aws dynamodb delete-table --table-name prod-permission-cache
+aws dynamodb delete-table --table-name prod-user-access-table
+
+# 3. CDKデプロイ
+npx cdk deploy TokyoRegion-permission-aware-rag-prod-Data \
+  --app 'npx ts-node bin/data-stack-app.ts' \
+  --require-approval never
+```
+
+#### 利用可能なツール
+
+1. **リソース競合ハンドラー**（CDKコード内）
+   - ファイル: `lib/utils/resource-conflict-handler.ts`
+   - CDK Aspectとして`bin/data-stack-app.ts`に統合済み
+
+2. **デプロイ前チェックスクリプト**
+   ```bash
+   # チェックのみ
+   npx ts-node development/scripts/deployment/pre-deploy-check.ts \
+     --stack-name TokyoRegion-permission-aware-rag-prod-Data
+   
+   # 自動修復
+   npx ts-node development/scripts/deployment/pre-deploy-check.ts \
+     --stack-name TokyoRegion-permission-aware-rag-prod-Data \
+     --auto-fix
+   ```
+
+3. **統合デプロイスクリプト**
+   ```bash
+   # 自動修復してデプロイ
+   ./development/scripts/deployment/deploy-with-conflict-check.sh \
+     TokyoRegion-permission-aware-rag-prod-Data --auto-fix
+   
+   # ドライラン
+   ./development/scripts/deployment/deploy-with-conflict-check.sh \
+     TokyoRegion-permission-aware-rag-prod-Data --auto-fix --dry-run
+   ```
+
+---
+
 ## 🤖 Amazon Bedrock AgentCoreデプロイメント
 
 ### AgentCore機能の有効化/無効化
