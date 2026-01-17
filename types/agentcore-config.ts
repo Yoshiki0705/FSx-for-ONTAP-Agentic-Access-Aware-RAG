@@ -420,6 +420,76 @@ export interface AbacConfig {
 }
 
 /**
+ * Windows AD設定
+ */
+export interface WindowsAdConfig {
+  /**
+   * Active Directory Domain Name
+   * @example "permission-aware-rag.local"
+   */
+  readonly domainName?: string;
+
+  /**
+   * AD EC2インスタンスタイプ
+   * @default "t3.medium"
+   */
+  readonly adInstanceType?: string;
+
+  /**
+   * AD EC2のSSH Key Name（nullの場合はSSM Session Managerを使用）
+   * @default null
+   */
+  readonly adKeyName?: string | null;
+
+  /**
+   * VPC設定
+   */
+  readonly vpcConfig?: {
+    /**
+     * VPCを有効化するかどうか
+     * @default true
+     */
+    readonly enabled: boolean;
+  };
+}
+
+/**
+ * AD SID自動取得設定
+ */
+export interface AdSyncConfig {
+  /**
+   * AD SID自動取得機能を有効化するかどうか
+   * @default false
+   */
+  readonly adSyncEnabled?: boolean;
+
+  /**
+   * AD EC2インスタンスID（既存のEC2を使用する場合）
+   */
+  readonly adEc2InstanceId?: string;
+
+  /**
+   * Identity DynamoDBテーブル名
+   */
+  readonly identityTableName?: string;
+
+  /**
+   * SIDキャッシュのTTL（秒）
+   * @default 86400 (24時間)
+   * @min 3600
+   */
+  readonly sidCacheTtl?: number;
+
+  /**
+   * SSM Run Commandのタイムアウト（秒）
+   * @default 60
+   * @min 10
+   * @max 300
+   */
+  readonly ssmTimeout?: number;
+}
+
+/**
  * Identity設定
  */
 export interface IdentityConfig {
@@ -443,6 +513,16 @@ export interface IdentityConfig {
    * ABAC設定
    */
   readonly abacConfig?: AbacConfig;
+
+  /**
+   * Windows AD設定
+   */
+  readonly windowsAdConfig?: WindowsAdConfig;
+
+  /**
+   * AD SID自動取得設定
+   */
+  readonly adSyncConfig?: AdSyncConfig;
 }
 
 /**

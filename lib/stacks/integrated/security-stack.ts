@@ -16,6 +16,7 @@ import { Construct } from 'constructs';
 // 統合セキュリティコンストラクト（モジュラーアーキテクチャ）
 import { SecurityConstruct } from '../../modules/security/constructs/security-construct';
 import { BedrockGuardrailsConstruct } from '../../modules/security/constructs/bedrock-guardrails-construct';
+import { WindowsAdConstruct } from '../../modules/security/constructs/windows-ad-construct';
 
 // インターフェース
 import { SecurityConfig } from '../../modules/security/interfaces/security-config';
@@ -43,6 +44,11 @@ export interface SecurityStackProps extends cdk.StackProps {
   
   // Phase 4: AgentCore設定
   readonly agentCore?: AgentCoreConfig;
+  
+  // Networking設定（Windows AD用）
+  readonly vpc?: cdk.aws_ec2.IVpc;
+  readonly privateSubnets?: cdk.aws_ec2.SubnetSelection;
+  readonly vpcId?: string; // VPC IDを指定してインポート
 }
 
 /**
@@ -69,6 +75,9 @@ export class SecurityStack extends cdk.Stack {
   /** Phase 4: AgentCore Constructs（オプション） */
   public agentCoreIdentity?: BedrockAgentCoreIdentityConstruct;
   public agentCorePolicy?: BedrockAgentCorePolicyConstruct;
+  
+  /** Windows AD EC2（AgentCore Identity用） */
+  public windowsAd?: WindowsAdConstruct;
 
   constructor(scope: Construct, id: string, props: SecurityStackProps) {
     super(scope, id, props);
@@ -76,6 +85,15 @@ export class SecurityStack extends cdk.Stack {
     console.log('🔒 SecurityStack初期化開始...');
     console.log('📝 スタック名:', id);
     console.log('🏷️ Agent Steering準拠:', props.namingGenerator ? 'Yes' : 'No');
+
+    // VPCをインポート（vpcIdが指定されている場合）
+    let vpc: cdk.aws_ec2.IVpc | undefined = props.vpc;
+    if (!vpc && props.config.vpcId) {
+      console.log(`🌐 VPCをインポート: ${props.config.vpcId}`);
+      vpc = cdk.aws_ec2.Vpc.fromLookup(this, 'ImportedVpc', {
+        vpcId: props.config.vpcId
+      });
+    }
 
     // コスト配布タグの適用
     const taggingConfig = PermissionAwareRAGTags.getStandardConfig(
@@ -150,7 +168,7 @@ export class SecurityStack extends cdk.Stack {
       console.log('🚀 AgentCore Constructs統合開始...');
       console.log('========================================');
       
-      this.integrateAgentCoreConstructs(props);
+      this.integrateAgentCoreConstructs(props, vpc);
       
       console.log('✅ AgentCore Constructs統合完了');
     }
@@ -209,6 +227,8 @@ export class SecurityStack extends cdk.Stack {
     }
 
     // GuardDuty出力（存在する場合のみ）
+    // 注: GuardDuty Detectorの作成を無効化したため、出力もコメントアウト
+    /*
     if (this.security.guardDutyDetector) {
       new cdk.CfnOutput(this, 'GuardDutyDetectorId', {
         value: this.security.guardDutyDetector.attrId,
@@ -216,6 +236,7 @@ export class SecurityStack extends cdk.Stack {
         exportName: `${this.stackName}-GuardDutyDetectorId`,
       });
     }
+    */
 
     // CloudTrail出力（存在する場合のみ）
     if (this.security.cloudTrail) {
@@ -267,18 +288,77 @@ export class SecurityStack extends cdk.Stack {
   /**
    * AgentCore Constructs統合（Phase 4）
    */
-  private integrateAgentCoreConstructs(props: SecurityStackProps): void {
+  private integrateAgentCoreConstructs(props: SecurityStackProps, vpc?: cdk.aws_ec2.IVpc): void {
     const agentCoreConfig = props.agentCore || props.config.agentCore;
     if (!agentCoreConfig) {
       return;
     }
 
+    // 0. Windows AD EC2作成（Identity Construct用）
+    if (agentCoreConfig.identity?.enabled && agentCoreConfig.identity?.windowsAdConfig) {
+      console.log('🪟 Windows AD EC2作成中...');
+      
+      // VPCが必要
+      if (!vpc) {
+        console.warn('⚠️ VPCが指定されていないため、Windows AD EC2をスキップします');
+      } else {
+        const windowsAdConfig = agentCoreConfig.identity.windowsAdConfig;
+        const domainName = windowsAdConfig.domainName || 
+          `${props.projectName}.local`;
+        
+        this.windowsAd = new WindowsAdConstruct(this, 'WindowsAd', {
+          vpc: vpc,
+          privateSubnets: props.privateSubnets || { subnetType: cdk.aws_ec2.SubnetType.PRIVATE_WITH_EGRESS },
+          projectName: props.projectName,
+          environment: props.environment,
+          domainName: domainName,
+          instanceType: windowsAdConfig.adInstanceType,
+          keyName: windowsAdConfig.adKeyName,
+        });
+        
+        console.log('✅ Windows AD EC2作成完了');
+        console.log(`   - Instance ID: ${this.windowsAd.instanceId}`);
+        console.log(`   - Domain Name: ${domainName}`);
+      }
+    }
+
     // 1. Identity Construct（認証・認可）
     if (agentCoreConfig.identity?.enabled) {
       console.log('🔐 Identity Construct作成中...');
-        // ✅ Temporarily commented out for deployment
-        console.log("BedrockAgentCoreIdentityConstruct: Temporarily disabled");
+      
+      const adSyncConfig = agentCoreConfig.identity.adSyncConfig;
+      
+      // AD EC2インスタンスIDを取得（Windows ADから、または設定から）
+      const adEc2InstanceId = this.windowsAd?.instanceId || 
+        props.config.adEc2InstanceId || 
+        adSyncConfig?.adEc2InstanceId;
+      
+      if (!adEc2InstanceId && adSyncConfig?.adSyncEnabled) {
+        console.warn('⚠️ AD EC2インスタンスIDが指定されていないため、AD Sync機能は無効化されます');
+      }
+      
+      this.agentCoreIdentity = new BedrockAgentCoreIdentityConstruct(this, 'AgentCoreIdentity', {
+        enabled: true,
+        projectName: props.projectName,
+        environment: props.environment,
+        adSyncEnabled: adSyncConfig?.adSyncEnabled ?? false,
+        adEc2InstanceId: adEc2InstanceId,
+        identityTableName: adSyncConfig?.identityTableName,
+        sidCacheTtl: adSyncConfig?.sidCacheTtl ?? 86400, // 24時間
+        ssmTimeout: adSyncConfig?.ssmTimeout ?? 30,
+        vpcConfig: agentCoreConfig.identity.windowsAdConfig?.vpcConfig
+      });
+      
+      // Windows ADにSSM Run Command権限を付与
+      if (this.windowsAd && this.agentCoreIdentity.adSyncFunction) {
+        this.windowsAd.grantSsmRunCommand(this.agentCoreIdentity.adSyncFunction);
+      }
+      
       console.log('✅ Identity Construct作成完了');
+      console.log(`   - Identity Table: ${this.agentCoreIdentity.identityTable.tableName}`);
+      if (this.agentCoreIdentity.adSyncFunction) {
+        console.log(`   - AD Sync Function: ${this.agentCoreIdentity.adSyncFunction.functionName}`);
+      }
     }
 
     // 2. Policy Construct（ポリシー管理）
@@ -302,6 +382,27 @@ export class SecurityStack extends cdk.Stack {
   private createAgentCoreOutputs(): void {
     console.log('📤 AgentCore Outputs作成中...');
 
+    // Windows AD Outputs
+    if (this.windowsAd) {
+      new cdk.CfnOutput(this, 'WindowsAdInstanceId', {
+        value: this.windowsAd.instanceId,
+        description: 'Windows AD EC2 Instance ID',
+        exportName: `${this.stackName}-WindowsAdInstanceId`,
+      });
+
+      new cdk.CfnOutput(this, 'WindowsAdSecurityGroupId', {
+        value: this.windowsAd.securityGroup.securityGroupId,
+        description: 'Windows AD Security Group ID',
+        exportName: `${this.stackName}-WindowsAdSecurityGroupId`,
+      });
+
+      new cdk.CfnOutput(this, 'WindowsAdAdminPasswordSecretArn', {
+        value: this.windowsAd.adminPasswordSecret.secretArn,
+        description: 'Windows AD Admin Password Secret ARN',
+        exportName: `${this.stackName}-WindowsAdAdminPasswordSecretArn`,
+      });
+    }
+
     // Identity Outputs
     if (this.agentCoreIdentity?.identityTable) {
       new cdk.CfnOutput(this, 'AgentCoreIdentityTableName', {
@@ -314,6 +415,20 @@ export class SecurityStack extends cdk.Stack {
         value: this.agentCoreIdentity.identityTable.tableArn,
         description: 'AgentCore Identity DynamoDB Table ARN',
         exportName: `${this.stackName}-AgentCoreIdentityTableArn`,
+      });
+    }
+
+    if (this.agentCoreIdentity?.adSyncFunction) {
+      new cdk.CfnOutput(this, 'AgentCoreAdSyncFunctionArn', {
+        value: this.agentCoreIdentity.adSyncFunction.functionArn,
+        description: 'AgentCore AD Sync Lambda Function ARN',
+        exportName: `${this.stackName}-AgentCoreAdSyncFunctionArn`,
+      });
+
+      new cdk.CfnOutput(this, 'AgentCoreAdSyncFunctionName', {
+        value: this.agentCoreIdentity.adSyncFunction.functionName,
+        description: 'AgentCore AD Sync Lambda Function Name',
+        exportName: `${this.stackName}-AgentCoreAdSyncFunctionName`,
       });
     }
 
