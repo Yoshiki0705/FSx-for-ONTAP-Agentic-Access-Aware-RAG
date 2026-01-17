@@ -4,3 +4,30 @@
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# Development and testing
+development/
+tests/
+*.test.ts
+*.test.js
+.kiro/
+
+# Security and credentials
+*.pem
+*.key
+.env
+.env.*
+!.env.template
+
+# Documentation (keep only essential)
+docs/guides/
+docs/reports/
+
+# CI/CD
+.github/workflows/
+
+# Logs and temporary files
+*.log
+*.tmp
+logs/
+temp/

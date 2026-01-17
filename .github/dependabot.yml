@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    # Ignore major version updates for stable dependencies
+    ignore:
+      - dependency-name: "aws-cdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "aws-cdk-lib"
+        update-types: ["version-update:semver-major"]
+    # Group updates for AWS SDK packages
+    groups:
+      aws-sdk:
+        patterns:
+          - "@aws-sdk/*"
+      aws-cdk:
+        patterns:
+          - "aws-cdk*"
+          - "constructs"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
