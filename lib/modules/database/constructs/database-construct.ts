@@ -27,9 +27,16 @@ export class DatabaseConstruct extends Construct {
   constructor(scope: Construct, id: string, props: DatabaseConstructProps) {
     super(scope, id);
     
-    console.log('DatabaseConstruct initialized');
-    console.log('OpenSearch config:', JSON.stringify(props.config.openSearch, null, 2));
-    console.log('OpenSearch enabled:', props.config.openSearch?.enabled);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔍 DatabaseConstruct initialized');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📋 Full config:', JSON.stringify(props.config, null, 2));
+    console.log('📋 OpenSearch config:', JSON.stringify(props.config.openSearch, null, 2));
+    console.log('📋 OpenSearch enabled:', props.config.openSearch?.enabled);
+    console.log('📋 Type of enabled:', typeof props.config.openSearch?.enabled);
+    console.log('📋 Strict equality check (=== false):', props.config.openSearch?.enabled === false);
+    console.log('📋 Strict equality check (=== true):', props.config.openSearch?.enabled === true);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     // 出力を初期化
     this.outputs = {
@@ -37,7 +44,8 @@ export class DatabaseConstruct extends Construct {
     };
     
     // OpenSearch Serverless作成（条件付き）
-    if (props.config.openSearch?.enabled) {
+    // 明示的に enabled === true をチェック
+    if (props.config.openSearch?.enabled === true) {
       console.log('Creating OpenSearch Serverless...');
       
       const openSearchConfig: any = {
