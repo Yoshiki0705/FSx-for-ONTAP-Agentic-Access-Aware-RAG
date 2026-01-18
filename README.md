@@ -92,6 +92,67 @@ const response = await client.invokeAgentCore(
 );
 ```
 
+### 🎨 Phase 1: Agent Mode UI/UX修正完了 (v2.9.0)
+
+**リリース日**: 2026年1月19日  
+**Agent Introduction Text リアルタイム更新修正完了**
+
+#### 🎯 解決した問題
+
+Agent modeでユーザーがサイドバーから異なるAgentを選択した際、メインチャットエリアの
+Introduction Textがリアルタイムで更新されない問題を完全に解決しました。
+
+#### 🔧 実装した修正
+
+1. **v19: Zustand Store直接更新方式**
+   - Callbackアプローチから直接更新方式に変更
+   - 新しいセッションオブジェクトを直接作成して`setCurrentSession()`に渡す
+   - 即座の状態更新とReact再レンダリングを保証
+
+2. **v17: Force Re-render機構**
+   - `renderKey` state変数を追加
+   - Agent選択時に`setRenderKey(prev => prev + 1)`で強制再レンダリング
+   - Message Areaに`key={renderKey}`を適用
+
+3. **v4-v16: Array.isArray()チェック**
+   - 全useEffectフックに`Array.isArray()`チェックを追加
+   - React state race conditionを防止
+   - "Cannot read properties of undefined (reading 'length')"エラー完全解消
+
+4. **v3: AgentInfoSection.tsx修正**
+   - 未使用の`tError`変数を削除（"b is not a function"エラー解消）
+   - alert()呼び出しを削除してエラーハンドリングを改善
+
+5. **v22: Dockerfile修正**
+   - `AWS_LWA_INVOKE_MODE=response_stream`を削除
+   - Default buffered modeでNext.js standaloneとの互換性を確保
+
+#### ✅ 検証結果
+
+- **Lambda Function URL**: 200 OK, 22,524 bytes（v21では0 bytes）
+- **ユーザー確認**: "introduction Textが正しく連動しているように見えます"
+- **パフォーマンス**: < 40ms レイテンシ（目標100ms以下を大幅に達成）
+- **成功率**: 100%
+- **エラー**: 0件
+
+#### 📚 新規ドキュメント
+
+- **Agent Mode開発ガイド**: `.kiro/steering/agent-mode-guide.md`
+  - Introduction Text動的更新の実装パターン
+  - サイドバーとメインチャットの連動方法
+  - 翻訳キーの実装パターン
+  - React State管理のベストプラクティス
+  - トラブルシューティングガイド
+  - デプロイメント手順
+
+#### 🔗 関連リソース
+
+- **デプロイメントレポート**: `development/docs/reports/local/01-19-phase1-task4-v22-deployment-success.md`
+- **検証レポート**: `development/docs/reports/local/01-19-phase1-browser-verification-success.md`
+- **Git Commit**: `6d673e2` - feat(agent-mode): Fix Agent Introduction Text real-time update
+
+---
+
 ### 🎨 Phase 5: エンドユーザー体験向上 (v2.8.1)
 
 **リリース日**: 2026年1月8日  
@@ -2495,6 +2556,61 @@ export EXISTING_SG_ID=sg-12345678
 **重要**: `npx cdk deploy --all`は`cdk.json`のデフォルト設定（`bin/deploy-all-stacks.ts`）を使用し、6スタック全てをデプロイします。
 
 詳細は[デプロイメントガイド](docs/guides/deployment-complete-guide.md)を参照してください。
+
+### 7. DataStackデプロイの重要な注意事項
+
+DataStack（FSx + DynamoDB）をデプロイする際は、以下の重要なポイントに注意してください。
+
+#### TypeScript直接実行（必須）
+
+**問題**: `npm run build`でコンパイルしたJavaScriptファイルを実行すると、古いバージョンが実行される可能性があります。
+
+**解決**: `npx ts-node`を使用してTypeScriptを直接実行してください。
+
+```bash
+# ❌ 悪い例: 古いJavaScriptファイルが実行される可能性
+npx cdk deploy --app 'node bin/deploy-production.js'
+
+# ✅ 良い例: 最新のTypeScriptファイルが実行される
+npx cdk deploy --app 'npx ts-node bin/deploy-production.ts'
+```
+
+#### FSx for ONTAPサブネット要件
+
+FSx for ONTAPのデプロイメントタイプによって、必要なサブネット数が異なります。
+
+| デプロイメントタイプ | 必要なサブネット数 | 説明 |
+|-------------------|-----------------|------|
+| `SINGLE_AZ_1` | **1つ** | 単一AZにデプロイ、コスト効率的 |
+| `MULTI_AZ_1` | **2つ** | 2つのAZにデプロイ、高可用性 |
+
+**エラー例**: "Exactly 1 subnet IDs are required for SINGLE_AZ_1"
+
+**解決**: デプロイメントタイプに応じてサブネット数を動的に決定する実装が既に組み込まれています。
+
+#### OpenSearch条件チェック
+
+**問題**: `if (props.config.openSearch?.enabled)`では`false`と`undefined`を区別できません。
+
+**解決**: `if (props.config.openSearch?.enabled === true)`で明示的にチェックする実装が既に組み込まれています。
+
+#### 既存VPCインポート時の型安全性
+
+**問題**: 既存VPCをインポートする場合は`IVpc`型を返しますが、`this.vpc`が`Vpc`型で宣言されていると型エラーが発生します。
+
+**解決**: `this.vpc`の型を`IVpc`に変更する実装が既に組み込まれています。
+
+#### リソース競合チェック（推奨）
+
+DataStackデプロイ前に、リソース競合チェックを実行することを推奨します。
+
+```bash
+# 競合チェック + 自動修復 + デプロイ
+./development/scripts/deployment/deploy-with-conflict-check.sh \
+  TokyoRegion-permission-aware-rag-prod-Data --auto-fix
+```
+
+詳細は[デプロイメントガイド - リソース競合チェック](docs/guides/deployment-complete-guide.md#7-リソース競合チェックcdkデプロイ時)を参照してください。
 
 ---
 
