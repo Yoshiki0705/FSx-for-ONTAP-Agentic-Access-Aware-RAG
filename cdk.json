@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node bin/deploy-all-stacks.ts",
+  "app": "npx ts-node bin/deploy-production.ts",
   "watch": {
     "include": [
       "**"
