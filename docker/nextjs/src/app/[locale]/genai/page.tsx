@@ -842,11 +842,12 @@ function ChatbotPageContent() {
             
             console.log('✅ [ChatbotPage] Introduction文生成完了, length:', updatedText?.length);
             
-            // ✅ FIX v3: Force state update with new object reference
+            // ✅ FIX v4: Remove Session ID check to allow state update
             // メッセージを更新（新しいオブジェクト参照を作成してReactの再レンダリングを確実にトリガー）
             setCurrentSession(prevSession => {
-              if (!prevSession || prevSession.id !== currentSession.id) {
-                console.warn('⚠️ [ChatbotPage] Session mismatch, skipping update');
+              // ✅ Only check if prevSession exists and has valid messages array
+              if (!prevSession || !Array.isArray(prevSession.messages)) {
+                console.warn('⚠️ [ChatbotPage] Invalid session state, skipping update');
                 return prevSession;
               }
               

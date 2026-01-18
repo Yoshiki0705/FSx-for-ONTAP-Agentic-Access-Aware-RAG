@@ -232,9 +232,17 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
         console.log('✅ [AgentInfoSection] Agent選択解除イベント発火');
       }
     } catch (error) {
-      console.error('❌ [AgentInfoSection] Agent選択エラー:', error);
+      console.error('❌ [AgentInfoSection] Agent選択エラー:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorType: error?.constructor?.name,
+        newAgentId,
+        selectedAgent,
+        agentsCount: agents?.length
+      });
       
-      // ✅ FIX v3: alert()を削除（ユーザー体験を損なうため）
+      // ✅ FIX v4: alert()を削除（ユーザー体験を損なうため）
       // エラーはコンソールログのみに記録し、UIは継続動作
       // 理由: Agent選択エラーは致命的ではなく、ユーザーは再試行可能
       
@@ -244,7 +252,9 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
         detail: {
           error: errorMessage,
           timestamp: Date.now(),
-          source: 'AgentInfoSection'
+          source: 'AgentInfoSection',
+          agentId: newAgentId,
+          errorType: error?.constructor?.name
         },
         bubbles: true
       });

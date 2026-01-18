@@ -28,41 +28,53 @@ export class DatabaseConstruct extends Construct {
     super(scope, id);
     
     console.log('DatabaseConstruct initialized');
-    
-    // OpenSearch Serverless作成（修正版）
-    const openSearchConfig: any = {
-      domainName: 'permission-aware-rag-vectors',
-      environment: props.environment || 'prod',
-      collectionConfig: {
-        type: 'VECTORSEARCH',
-        description: 'Vector search collection for RAG embeddings',
-      },
-      networkConfig: {
-        vpcEnabled: false, // パブリックアクセス
-      },
-      securityConfig: {
-        encryptionAtRest: true,
-        nodeToNodeEncryption: true,
-        enforceHttps: true,
-        kmsKey: props.kmsKey,
-        fineGrainedAccessControl: false,
-      },
-      monitoringConfig: {
-        logsEnabled: true,
-        slowLogsEnabled: false,
-        appLogsEnabled: false,
-        indexSlowLogsEnabled: false,
-      },
-    };
-
-    this.openSearchConstruct = new OpenSearchMultimodalConstruct(this, 'OpenSearch', openSearchConfig);
+    console.log('OpenSearch config:', JSON.stringify(props.config.openSearch, null, 2));
+    console.log('OpenSearch enabled:', props.config.openSearch?.enabled);
     
     // 出力を初期化
     this.outputs = {
       dynamoDbTables: {},
-      openSearchEndpoint: this.openSearchConstruct?.outputs.domainEndpoint,
-      openSearchDomainArn: this.openSearchConstruct?.outputs.domainArn,
-      openSearchDomainId: this.openSearchConstruct?.outputs.domainName,
     };
+    
+    // OpenSearch Serverless作成（条件付き）
+    if (props.config.openSearch?.enabled) {
+      console.log('Creating OpenSearch Serverless...');
+      
+      const openSearchConfig: any = {
+        domainName: 'permission-aware-rag-vectors',
+        environment: props.environment || 'prod',
+        collectionConfig: {
+          type: 'VECTORSEARCH',
+          description: 'Vector search collection for RAG embeddings',
+        },
+        networkConfig: {
+          vpcEnabled: false, // パブリックアクセス
+        },
+        securityConfig: {
+          encryptionAtRest: true,
+          nodeToNodeEncryption: true,
+          enforceHttps: true,
+          kmsKey: props.kmsKey,
+          fineGrainedAccessControl: false,
+        },
+        monitoringConfig: {
+          logsEnabled: true,
+          slowLogsEnabled: false,
+          appLogsEnabled: false,
+          indexSlowLogsEnabled: false,
+        },
+      };
+
+      this.openSearchConstruct = new OpenSearchMultimodalConstruct(this, 'OpenSearch', openSearchConfig);
+      
+      // OpenSearch出力を追加
+      this.outputs.openSearchEndpoint = this.openSearchConstruct?.outputs.domainEndpoint;
+      this.outputs.openSearchDomainArn = this.openSearchConstruct?.outputs.domainArn;
+      this.outputs.openSearchDomainId = this.openSearchConstruct?.outputs.domainName;
+      
+      console.log('OpenSearch Serverless created successfully');
+    } else {
+      console.log('OpenSearch Serverless is disabled, skipping creation');
+    }
   }
 }
