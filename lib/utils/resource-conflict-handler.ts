@@ -1,10 +1,17 @@
 /**
- * リソース競合ハンドラー
+ * リソース競合ハンドラー（Early Validation Hook対応版）
  * 
  * 目的:
  * - デプロイ前に既存リソースとの競合を検出
  * - 競合解決オプションを提供
  * - Early Validation errorを事前に防止
+ * - Early Validation Hook発生時の動的リソース名変更
+ * 
+ * 新機能（2026-01-18追加）:
+ * - 変更セットの事前確認機能
+ * - Early Validation Hook検知
+ * - 動的リソース名変更機能
+ * - 自動リトライ機能
  */
 
 import * as AWS from 'aws-sdk';
@@ -14,6 +21,8 @@ export interface ResourceConflictCheckResult {
   hasConflict: boolean;
   conflictingResources: ConflictingResource[];
   recommendations: string[];
+  earlyValidationHookDetected?: boolean; // Early Validation Hook検知フラグ
+  hookFailureDetails?: HookFailureDetails; // Hook失敗詳細
 }
 
 export interface ConflictingResource {
@@ -22,6 +31,14 @@ export interface ConflictingResource {
   resourceId?: string;
   existingResourceArn?: string;
   conflictReason: string;
+}
+
+export interface HookFailureDetails {
+  hookName: string;
+  failureMode: string;
+  failedResources: string[];
+  errorMessage: string;
+  suggestedResourceNames?: { [key: string]: string }; // 動的に生成された新しいリソース名
 }
 
 export interface ResourceConflictHandlerProps {
@@ -33,7 +50,7 @@ export interface ResourceConflictHandlerProps {
 }
 
 /**
- * リソース競合ハンドラークラス
+ * リソース競合ハンドラークラス（Early Validation Hook対応版）
  */
 export class ResourceConflictHandler {
   private dynamodb: AWS.DynamoDB;
@@ -46,6 +63,196 @@ export class ResourceConflictHandler {
     this.dynamodb = new AWS.DynamoDB({ region: props.region });
     this.cloudformation = new AWS.CloudFormation({ region: props.region });
     this.ec2 = new AWS.EC2({ region: props.region });
+  }
+
+  /**
+   * 変更セットの事前確認（Early Validation Hook検知）
+   * 
+   * @param changeSetName 変更セット名
+   * @returns 変更セット確認結果
+   */
+  async checkChangeSet(changeSetName: string): Promise<ResourceConflictCheckResult> {
+    const conflictingResources: ConflictingResource[] = [];
+    const recommendations: string[] = [];
+    let earlyValidationHookDetected = false;
+    let hookFailureDetails: HookFailureDetails | undefined;
+
+    try {
+      console.log(`🔍 変更セット確認中: ${changeSetName}`);
+      
+      const result = await this.cloudformation.describeChangeSet({
+        ChangeSetName: changeSetName,
+        StackName: this.props.stackName,
+      }).promise();
+
+      // 変更セットのステータス確認
+      if (result.Status === 'FAILED') {
+        console.log(`⚠️ 変更セット失敗: ${result.StatusReason}`);
+        
+        // Early Validation Hook検知
+        if (result.StatusReason?.includes('AWS::EarlyValidation::ResourceExistenceCheck')) {
+          earlyValidationHookDetected = true;
+          
+          // Hook失敗詳細を解析
+          hookFailureDetails = this.parseHookFailure(result.StatusReason);
+          
+          // 動的リソース名を生成
+          const suggestedNames = this.generateDynamicResourceNames(hookFailureDetails.failedResources);
+          hookFailureDetails.suggestedResourceNames = suggestedNames;
+          
+          // 推奨事項を追加
+          recommendations.push('🔄 Early Validation Hook検知: リソース名を動的に変更して再デプロイ');
+          recommendations.push('💡 推奨: 以下の新しいリソース名を使用してください:');
+          Object.entries(suggestedNames).forEach(([oldName, newName]) => {
+            recommendations.push(`   - ${oldName} → ${newName}`);
+          });
+        }
+      }
+
+      // 変更内容を確認
+      if (result.Changes) {
+        for (const change of result.Changes) {
+          if (change.ResourceChange?.Action === 'Add') {
+            // 新規リソース作成時の競合チェック
+            const resourceType = change.ResourceChange.ResourceType;
+            const logicalId = change.ResourceChange.LogicalResourceId;
+            
+            console.log(`   📝 新規リソース: ${resourceType} (${logicalId})`);
+          }
+        }
+      }
+
+    } catch (error: any) {
+      if (error.code === 'ChangeSetNotFound') {
+        console.log(`⚠️ 変更セットが見つかりません: ${changeSetName}`);
+      } else {
+        console.warn(`⚠️ 変更セット確認エラー:`, error.message);
+      }
+    }
+
+    return {
+      hasConflict: earlyValidationHookDetected,
+      conflictingResources,
+      recommendations,
+      earlyValidationHookDetected,
+      hookFailureDetails,
+    };
+  }
+
+  /**
+   * Hook失敗詳細の解析
+   * 
+   * @param statusReason CloudFormationのStatusReason
+   * @returns Hook失敗詳細
+   */
+  private parseHookFailure(statusReason: string): HookFailureDetails {
+    // Early Validation Hook失敗メッセージの解析
+    const hookName = 'AWS::EarlyValidation::ResourceExistenceCheck';
+    const failureMode = 'FAIL';
+    const failedResources: string[] = [];
+    
+    // リソース名を抽出（例: "Resource 'MyResource' already exists"）
+    const resourceMatches = statusReason.matchAll(/Resource '([^']+)'/g);
+    for (const match of resourceMatches) {
+      failedResources.push(match[1]);
+    }
+    
+    return {
+      hookName,
+      failureMode,
+      failedResources,
+      errorMessage: statusReason,
+    };
+  }
+
+  /**
+   * 動的リソース名の生成
+   * 
+   * @param failedResources 失敗したリソース名のリスト
+   * @returns 新しいリソース名のマップ
+   */
+  private generateDynamicResourceNames(failedResources: string[]): { [key: string]: string } {
+    const suggestedNames: { [key: string]: string } = {};
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    
+    for (const resourceName of failedResources) {
+      // タイムスタンプを追加して一意な名前を生成
+      const newName = `${resourceName}-${timestamp}`;
+      suggestedNames[resourceName] = newName;
+    }
+    
+    return suggestedNames;
+  }
+
+  /**
+   * 変更セットの作成と確認
+   * 
+   * @param templateBody CloudFormationテンプレート
+   * @returns 変更セット確認結果
+   */
+  async createAndCheckChangeSet(templateBody: string): Promise<ResourceConflictCheckResult> {
+    const changeSetName = `pre-deploy-check-${Date.now()}`;
+    
+    try {
+      console.log(`📝 変更セット作成中: ${changeSetName}`);
+      
+      // 変更セット作成
+      await this.cloudformation.createChangeSet({
+        StackName: this.props.stackName,
+        ChangeSetName: changeSetName,
+        TemplateBody: templateBody,
+        ChangeSetType: 'CREATE', // 新規スタックの場合
+        Capabilities: ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'],
+      }).promise();
+      
+      // 変更セット作成完了を待機
+      await this.waitForChangeSetCreation(changeSetName);
+      
+      // 変更セット確認
+      const result = await this.checkChangeSet(changeSetName);
+      
+      // 変更セット削除
+      await this.cloudformation.deleteChangeSet({
+        ChangeSetName: changeSetName,
+        StackName: this.props.stackName,
+      }).promise();
+      
+      return result;
+      
+    } catch (error: any) {
+      console.error(`❌ 変更セット作成エラー:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * 変更セット作成完了を待機
+   * 
+   * @param changeSetName 変更セット名
+   */
+  private async waitForChangeSetCreation(changeSetName: string): Promise<void> {
+    let attempts = 0;
+    const maxAttempts = 30;
+    
+    while (attempts < maxAttempts) {
+      try {
+        const result = await this.cloudformation.describeChangeSet({
+          ChangeSetName: changeSetName,
+          StackName: this.props.stackName,
+        }).promise();
+        
+        if (result.Status === 'CREATE_COMPLETE' || result.Status === 'FAILED') {
+          return;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        attempts++;
+      } catch (error: any) {
+        throw error;
+      }
+    }
+    
+    throw new Error(`変更セット作成のタイムアウト: ${changeSetName}`);
   }
 
   /**

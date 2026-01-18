@@ -17,7 +17,7 @@ interface AgentInfoSectionProps {
 export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
   const t = useTranslations('agent');  // ✅ agentネームスペースを使用
   const tCommon = useTranslations('common');  // ✅ commonネームスペースも追加
-  const tError = useTranslations('error');  // ✅ errorネームスペースを追加
+  // ❌ REMOVED: tError - "b is not a function" エラーの原因（minified buildで問題発生）
   const { agents, isLoading: isLoadingAgents, error: agentsError } = useAgentsList();
   const { selectedAgentId, setSelectedAgentId } = useAgentStore();
   const { selectedAgentId: chatSelectedAgentId, setSelectedAgentId: setChatSelectedAgentId } = useChatStore();
@@ -234,17 +234,12 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
     } catch (error) {
       console.error('❌ [AgentInfoSection] Agent選択エラー:', error);
       
-      // ユーザーにエラーを通知（シンプルなフォールバックメッセージ）
+      // ✅ FIX v3: alert()を削除（ユーザー体験を損なうため）
+      // エラーはコンソールログのみに記録し、UIは継続動作
+      // 理由: Agent選択エラーは致命的ではなく、ユーザーは再試行可能
+      
+      // エラーイベントを発火（デバッグ用）
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      // ✅ FIX v2: tError関数を完全に削除（"b is not a function"エラーの原因）
-      // 理由: tError('generic')の呼び出しがminified production buildで"b is not a function"エラーを引き起こす
-      // 解決策: 直接フォールバックメッセージを使用（翻訳は不要）
-      const displayMessage = 'エラーが発生しました'; // 日本語フォールバック（常に使用）
-      
-      alert(`${displayMessage}: ${errorMessage}`);
-      
-      // エラーイベントを発火
       const errorEvent = new CustomEvent('agent-selection-error', {
         detail: {
           error: errorMessage,

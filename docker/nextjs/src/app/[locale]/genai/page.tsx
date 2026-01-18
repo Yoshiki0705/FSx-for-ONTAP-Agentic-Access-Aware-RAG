@@ -828,37 +828,55 @@ function ChatbotPageContent() {
         const firstMessage = currentSession.messages[0];
         
         if (firstMessage && firstMessage.id === '1' && firstMessage.role === 'assistant') {
-          console.log('🔄 [ChatbotPage] Agent選択変更によるIntroduction文更新:', agentInfo?.agentId || 'null (Agent選択)');
+          console.log('🔄 [ChatbotPage] Agent選択変更によるIntroduction文更新:', agentInfo?.agentId || 'null (Agent選択解除)');
           
-          const updatedText = generateAgentModeInitialMessage(
-            user?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
-            user?.role || 'User',
-            userDirectories,
-            agentInfo, // 選択されたAgent情報を使用（nullの場合はフォールバック表示）
-            t, // Introduction用翻訳フック
-            tAgent // Agent情報用翻訳フック
-          );
-          
-          // メッセージを更新
-          setCurrentSession(prevSession => {
-            if (!prevSession || prevSession.id !== currentSession.id) return prevSession;
+          try {
+            const updatedText = generateAgentModeInitialMessage(
+              user?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
+              user?.role || 'User',
+              userDirectories,
+              agentInfo, // 選択されたAgent情報を使用（nullの場合はフォールバック表示）
+              t, // Introduction用翻訳フック
+              tAgent // Agent情報用翻訳フック
+            );
             
-            const updatedMessages = [...prevSession.messages];
-            updatedMessages[0] = { 
-              ...firstMessage, 
-              content: updatedText,
-              timestamp: Date.now(),
-              updatedAt: Date.now()  // ✅ 追加: 更新時刻を記録
-            };
+            console.log('✅ [ChatbotPage] Introduction文生成完了, length:', updatedText?.length);
             
-            return { 
-              ...prevSession, 
-              messages: updatedMessages,
-              updatedAt: Date.now()
-            };
-          });
-          
-          console.log('✅ [ChatbotPage] Agent選択変更によるIntroduction文更新完了');
+            // ✅ FIX v3: Force state update with new object reference
+            // メッセージを更新（新しいオブジェクト参照を作成してReactの再レンダリングを確実にトリガー）
+            setCurrentSession(prevSession => {
+              if (!prevSession || prevSession.id !== currentSession.id) {
+                console.warn('⚠️ [ChatbotPage] Session mismatch, skipping update');
+                return prevSession;
+              }
+              
+              const updatedMessages = [...prevSession.messages];
+              updatedMessages[0] = { 
+                ...firstMessage, 
+                content: updatedText,
+                timestamp: Date.now(),
+                updatedAt: Date.now()  // ✅ 追加: 更新時刻を記録
+              };
+              
+              const newSession = { 
+                ...prevSession, 
+                messages: updatedMessages,
+                updatedAt: Date.now()
+              };
+              
+              console.log('✅ [ChatbotPage] Session state updated:', {
+                sessionId: newSession.id,
+                messageCount: newSession.messages.length,
+                firstMessageLength: newSession.messages[0]?.content?.length
+              });
+              
+              return newSession;
+            });
+            
+            console.log('✅ [ChatbotPage] Agent選択変更によるIntroduction文更新完了');
+          } catch (error) {
+            console.error('❌ [ChatbotPage] Introduction文更新エラー:', error);
+          }
         }
       } else {
         console.warn('⚠️ [ChatbotPage] Introduction文更新スキップ:', {
@@ -872,10 +890,13 @@ function ChatbotPageContent() {
     };
 
     window.addEventListener('agent-selection-changed', handleAgentSelectionChange as EventListener);
+    console.log('👂 [ChatbotPage] agent-selection-changedイベントリスナー登録');
+    
     return () => {
       window.removeEventListener('agent-selection-changed', handleAgentSelectionChange as EventListener);
+      console.log('🔇 [ChatbotPage] agent-selection-changedイベントリスナー解除');
     };
-  }, [agentMode, currentSession?.id, t, tAgent, user, userDirectories]);  // ✅ FIX: 全ての依存関係を追加
+  }, [agentMode, currentSession, user, userDirectories, t, tAgent]);  // ✅ FIX v3: currentSession全体を依存配列に追加
 
   // モデル選択時にヘッダー表示を更新するためのuseEffectt
   useEffect(() => {
