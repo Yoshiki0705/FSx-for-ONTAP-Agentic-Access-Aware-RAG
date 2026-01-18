@@ -20,7 +20,7 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
   // ❌ REMOVED: tError - "b is not a function" エラーの原因（minified buildで問題発生）
   const { agents, isLoading: isLoadingAgents, error: agentsError } = useAgentsList();
   const { selectedAgentId, setSelectedAgentId } = useAgentStore();
-  const { selectedAgentId: chatSelectedAgentId, setSelectedAgentId: setChatSelectedAgentId } = useChatStore();
+  // ✅ FIX v8: Removed useChatStore.setSelectedAgentId (dual store update causing "h is not a function" error)
   
   // ✅ useBedrockConfigの安全な呼び出し（try-catch wrapper）
   let bedrockConfig = null;
@@ -181,12 +181,14 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
 
   // Agent選択ハンドラー
   const handleAgentChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    // ✅ FIX v7: Move newAgentId outside try block to fix "newAgentId is not defined" error
+    const newAgentId = event.target.value;
+    let selectedAgent = null;
+    
     try {
-      const newAgentId = event.target.value;
       console.log('🔄 [AgentInfoSection] Agent選択:', newAgentId);
       
       // 選択されたAgentの詳細情報を取得
-      let selectedAgent = null;
       if (newAgentId && agents && agents.length > 0) {
         selectedAgent = agents.find(agent => agent.agentId === newAgentId) || null;
         
@@ -197,9 +199,9 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
         }
       }
       
-      // ストアを更新（両方のストアを同期）
+      // ストアを更新（useAgentStoreのみ使用）
       setSelectedAgentId(newAgentId || null);
-      setChatSelectedAgentId(newAgentId || null); // ✅ Chat storeも更新
+      // ✅ FIX v8: Removed setChatSelectedAgentId (dual store update causing "h is not a function" error)
       
       // ✅ グローバルイベントを発火してメインページに通知（即座に実行）
       const eventDetail = { 
@@ -237,7 +239,7 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
         errorStack: error instanceof Error ? error.stack : undefined,
         errorType: error?.constructor?.name,
-        newAgentId,
+        newAgentId,  // ✅ FIX v7: Now accessible in catch block
         selectedAgent,
         agentsCount: agents?.length
       });
@@ -253,7 +255,7 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
           error: errorMessage,
           timestamp: Date.now(),
           source: 'AgentInfoSection',
-          agentId: newAgentId,
+          agentId: newAgentId,  // ✅ FIX v7: Now accessible in catch block
           errorType: error?.constructor?.name
         },
         bubbles: true

@@ -541,6 +541,7 @@ function ChatbotPageContent() {
   const [selectedModelName, setSelectedModelName] = useState('Amazon Nova Pro');
   const [userDirectories, setUserDirectories] = useState<any>(null);
   const [isLoadingDirectories, setIsLoadingDirectories] = useState(false);
+  const [renderKey, setRenderKey] = useState(0); // ✅ v17: Force re-render mechanism
   
   // エラーアクション関連のstate（将来の拡張用）
   // const [errorActions, setErrorActions] = useState<any[]>([]);
@@ -700,6 +701,18 @@ function ChatbotPageContent() {
           loadChatHistory(parsedUser.username);
         }
 
+        // ✅ FIX v16: Validate currentSession.messages after loading history
+        // If currentSession exists but messages is undefined/invalid (NOT an array), reset it
+        // ⚠️ IMPORTANT: Do NOT check length === 0, as new sessions have empty messages array
+        if (currentSession && !Array.isArray(currentSession.messages)) {
+          console.warn('⚠️ [ChatbotPage] currentSession has invalid messages (not an array), resetting session:', {
+            sessionId: currentSession.id,
+            messagesType: typeof currentSession.messages,
+            messagesIsArray: Array.isArray(currentSession.messages)
+          });
+          setCurrentSession(null); // Reset to trigger new session creation
+        }
+
         // 新しいセッションの作成（既存セッションがない場合）
         if (!currentSession) {
           console.log('🔄 [ChatbotPage] Creating new session...', {
@@ -811,6 +824,7 @@ function ChatbotPageContent() {
   }, []);
 
   // Agent選択変更イベントリスナー（Issue 3対応）
+  // ✅ FIX v14: Check currentSession BEFORE calling setCurrentSession to prevent undefined state
   useEffect(() => {
     const handleAgentSelectionChange = (event: CustomEvent) => {
       const { agentInfo, executionStatus, progressReport } = event.detail;
@@ -822,71 +836,104 @@ function ChatbotPageContent() {
         timestamp: event.detail.timestamp
       });
       
-      // Introduction textを即座に更新（agentInfoがnullの場合も含む）
-      // ✅ CRITICAL FIX: Check if messages is an array before accessing length
-      if (agentMode && currentSession && user && Array.isArray(currentSession.messages) && currentSession.messages.length > 0) {
-        const firstMessage = currentSession.messages[0];
-        
-        if (firstMessage && firstMessage.id === '1' && firstMessage.role === 'assistant') {
-          console.log('🔄 [ChatbotPage] Agent選択変更によるIntroduction文更新:', agentInfo?.agentId || 'null (Agent選択解除)');
-          
-          try {
-            const updatedText = generateAgentModeInitialMessage(
-              user?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
-              user?.role || 'User',
-              userDirectories,
-              agentInfo, // 選択されたAgent情報を使用（nullの場合はフォールバック表示）
-              t, // Introduction用翻訳フック
-              tAgent // Agent情報用翻訳フック
-            );
-            
-            console.log('✅ [ChatbotPage] Introduction文生成完了, length:', updatedText?.length);
-            
-            // ✅ FIX v4: Remove Session ID check to allow state update
-            // メッセージを更新（新しいオブジェクト参照を作成してReactの再レンダリングを確実にトリガー）
-            setCurrentSession(prevSession => {
-              // ✅ Only check if prevSession exists and has valid messages array
-              if (!prevSession || !Array.isArray(prevSession.messages)) {
-                console.warn('⚠️ [ChatbotPage] Invalid session state, skipping update');
-                return prevSession;
-              }
-              
-              const updatedMessages = [...prevSession.messages];
-              updatedMessages[0] = { 
-                ...firstMessage, 
-                content: updatedText,
-                timestamp: Date.now(),
-                updatedAt: Date.now()  // ✅ 追加: 更新時刻を記録
-              };
-              
-              const newSession = { 
-                ...prevSession, 
-                messages: updatedMessages,
-                updatedAt: Date.now()
-              };
-              
-              console.log('✅ [ChatbotPage] Session state updated:', {
-                sessionId: newSession.id,
-                messageCount: newSession.messages.length,
-                firstMessageLength: newSession.messages[0]?.content?.length
-              });
-              
-              return newSession;
-            });
-            
-            console.log('✅ [ChatbotPage] Agent選択変更によるIntroduction文更新完了');
-          } catch (error) {
-            console.error('❌ [ChatbotPage] Introduction文更新エラー:', error);
-          }
-        }
-      } else {
-        console.warn('⚠️ [ChatbotPage] Introduction文更新スキップ:', {
+      // ✅ FIX v14: Validate currentSession BEFORE calling setCurrentSession
+      // This prevents the v9 issue where returning undefined from callback causes session to become undefined
+      if (!currentSession) {
+        console.error('❌ [ChatbotPage] currentSession is null/undefined, cannot update');
+        return; // Exit early - don't call setCurrentSession at all
+      }
+      
+      if (!agentMode || !user) {
+        console.warn('⚠️ [ChatbotPage] Introduction文更新スキップ - validation failed:', {
           agentMode,
           hasCurrentSession: !!currentSession,
-          hasUser: !!user,
-          messagesIsArray: Array.isArray(currentSession?.messages),
-          messagesLength: currentSession?.messages?.length
+          hasUser: !!user
         });
+        return; // Exit early
+      }
+      
+      if (!Array.isArray(currentSession.messages) || currentSession.messages.length === 0) {
+        console.warn('⚠️ [ChatbotPage] Introduction文更新スキップ - messages invalid:', {
+          messagesType: typeof currentSession.messages,
+          messagesIsArray: Array.isArray(currentSession.messages),
+          messagesLength: currentSession.messages?.length
+        });
+        return; // Exit early
+      }
+      
+      const firstMessage = currentSession.messages[0];
+      
+      if (!firstMessage || firstMessage.id !== '1' || firstMessage.role !== 'assistant') {
+        console.warn('⚠️ [ChatbotPage] First message validation failed:', {
+          hasFirstMessage: !!firstMessage,
+          firstMessageId: firstMessage?.id,
+          firstMessageRole: firstMessage?.role
+        });
+        return; // Exit early
+      }
+      
+      console.log('🔄 [ChatbotPage] Agent選択変更によるIntroduction文更新:', agentInfo?.agentId || 'null (Agent選択解除)');
+      
+      try {
+        // Generate updated text
+        const updatedText = generateAgentModeInitialMessage(
+          user?.username || 'Unknown',
+          user?.role || 'User',
+          userDirectories,
+          agentInfo, // 選択されたAgent情報を使用（nullの場合はフォールバック表示）
+          t, // Introduction用翻訳フック
+          tAgent // Agent情報用翻訳フック
+        );
+        
+        console.log('✅ [ChatbotPage] Introduction文生成完了, length:', updatedText?.length);
+        
+        // Validate updatedText before proceeding
+        if (!updatedText || typeof updatedText !== 'string') {
+          console.error('❌ [ChatbotPage] Invalid updatedText, aborting update');
+          return; // Exit early
+        }
+        
+        // ✅ FIX v19: Direct update approach (avoid Zustand callback issues)
+        // Create new session object directly, then pass to setCurrentSession
+        console.log('🔄 [ChatbotPage v19] Creating updated session object directly...');
+        
+        // Update first message with new Introduction Text
+        const updatedMessages = currentSession.messages.map((msg, index) => {
+          if (index === 0) {
+            return {
+              ...msg,
+              content: updatedText,
+              timestamp: Date.now(),
+              updatedAt: Date.now()
+            };
+          }
+          return msg;
+        });
+        
+        // Create new session object with all required fields
+        const newSession: ChatSession = {
+          ...currentSession,
+          messages: updatedMessages,
+          updatedAt: Date.now()
+        };
+        
+        console.log('✅ [ChatbotPage v19] New session object created:', {
+          sessionId: newSession.id,
+          messageCount: newSession.messages.length,
+          firstMessageLength: newSession.messages[0]?.content?.length,
+          hasAllFields: !!(newSession.id && newSession.messages && newSession.createdAt)
+        });
+        
+        // ✅ v19: Update Zustand store directly (no callback)
+        setCurrentSession(newSession);
+        console.log('✅ [ChatbotPage v19] Zustand store updated directly');
+        
+        // ✅ v19: Force re-render to ensure React detects the change
+        setRenderKey(prev => prev + 1);
+        console.log('🔄 [ChatbotPage v19] Force re-render triggered, renderKey:', renderKey + 1);
+      } catch (error) {
+        console.error('❌ [ChatbotPage] Introduction文更新エラー:', error);
+        // Don't call setCurrentSession on error - preserve current state
       }
     };
 
@@ -897,7 +944,19 @@ function ChatbotPageContent() {
       window.removeEventListener('agent-selection-changed', handleAgentSelectionChange as EventListener);
       console.log('🔇 [ChatbotPage] agent-selection-changedイベントリスナー解除');
     };
-  }, [agentMode, currentSession, user, userDirectories, t, tAgent]);  // ✅ FIX v3: currentSession全体を依存配列に追加
+  }, [agentMode, user, userDirectories, currentSession, t, tAgent]);  // ✅ FIX v14: Added currentSession back to deps (safe now with early exit pattern)
+
+  // ✅ DEBUG v6: Monitor currentSession changes
+  useEffect(() => {
+    console.log('🔍 [ChatbotPage] currentSession changed:', {
+      sessionId: currentSession?.id,
+      messagesLength: currentSession?.messages?.length,
+      firstMessageLength: currentSession?.messages?.[0]?.content?.length,
+      firstMessagePreview: currentSession?.messages?.[0]?.content?.substring(0, 100),
+      updateKey: (currentSession as any)?._updateKey,
+      timestamp: Date.now()
+    });
+  }, [currentSession]);
 
   // モデル選択時にヘッダー表示を更新するためのuseEffectt
   useEffect(() => {
@@ -956,74 +1015,156 @@ function ChatbotPageContent() {
   }, [selectedModelId]);
 
   // Agent情報が取得されたときにIntroduction Textを更新（Agentモード時のみ）
+  // ✅ FIX v10: Added Array.isArray() check to prevent "Cannot read properties of undefined (reading 'length')" error
+  // ✅ FIX v13: Added enhanced logging to identify which hook causes currentSession to become undefined
   useEffect(() => {
-    // ✅ CRITICAL FIX: Check if messages is an array before accessing length
-    if (agentMode && agentInfo && currentSession && user && Array.isArray(currentSession.messages) && currentSession.messages.length > 0) {
-      const firstMessage = currentSession.messages[0];
-      
-      if (firstMessage && firstMessage.id === '1' && firstMessage.role === 'assistant') {
-        console.log('🤖 [ChatbotPage] Agent情報取得完了 - Introduction文を更新:', agentInfo);
-        
-        // Agent情報を含む初期メッセージを生成
-        const updatedText = generateAgentModeInitialMessage(
-          user?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
-          user?.role || 'User',
-          userDirectories,
-          agentInfo,
-          t, // Introduction用翻訳フック
-          tAgent // Agent情報用翻訳フック
-        );
-        
-        // メッセージを更新（新しいオブジェクトを作成して状態更新を確実にする）
-        setCurrentSession(prevSession => {
-          if (!prevSession || prevSession.id !== currentSession.id) return prevSession;
-          
-          const updatedMessages = [...prevSession.messages];
-          updatedMessages[0] = { 
-            ...firstMessage, 
-            content: updatedText,
-            timestamp: Date.now() // タイムスタンプを更新して変更を明確にする
-          };
-          
-          return { 
-            ...prevSession, 
-            messages: updatedMessages,
-            updatedAt: Date.now()
-          };
-        });
-        
-        console.log('✅ [ChatbotPage] Agent情報付きIntroduction文を更新完了');
-      }
+    console.log('🔍 [useEffect Hook 1: Agent情報取得] Starting...', {
+      hasCurrentSession: !!currentSession,
+      currentSessionId: currentSession?.id,
+      agentMode,
+      hasAgentInfo: !!agentInfo,
+      hasUser: !!user,
+      messagesType: typeof currentSession?.messages,
+      messagesIsArray: Array.isArray(currentSession?.messages),
+      messagesLength: currentSession?.messages?.length,
+      timestamp: Date.now()
+    });
+    
+    // ✅ CRITICAL FIX v10: Check currentSession AND messages is an array before accessing length
+    if (!currentSession || !agentMode || !agentInfo || !user) {
+      console.log('⚠️ [useEffect Hook 1: Agent情報取得] Early return - validation failed:', {
+        hasCurrentSession: !!currentSession,
+        agentMode,
+        hasAgentInfo: !!agentInfo,
+        hasUser: !!user
+      });
+      return;
     }
+    
+    if (!Array.isArray(currentSession.messages) || currentSession.messages.length === 0) {
+      console.warn('⚠️ [useEffect Hook 1: Agent情報取得] messages is not an array or empty:', {
+        messagesType: typeof currentSession.messages,
+        messagesIsArray: Array.isArray(currentSession.messages),
+        messagesLength: currentSession.messages?.length
+      });
+      return;
+    }
+    
+    const firstMessage = currentSession.messages[0];
+      
+    
+    if (!firstMessage || firstMessage.id !== '1' || firstMessage.role !== 'assistant') {
+      return;
+    }
+    
+    console.log('🤖 [ChatbotPage] Agent情報取得完了 - Introduction文を更新:', agentInfo);
+    
+    // Agent情報を含む初期メッセージを生成
+    const updatedText = generateAgentModeInitialMessage(
+      user.username,
+      user.role || 'User',
+      userDirectories,
+      agentInfo,
+      t, // Introduction用翻訳フック
+      tAgent // Agent情報用翻訳フック
+    );
+    
+    // メッセージを更新（新しいオブジェクトを作成して状態更新を確実にする）
+    setCurrentSession(prevSession => {
+      if (!prevSession || prevSession.id !== currentSession.id) return prevSession;
+      
+      const updatedMessages = [...prevSession.messages];
+      updatedMessages[0] = { 
+        ...firstMessage, 
+        content: updatedText,
+        timestamp: Date.now() // タイムスタンプを更新して変更を明確にする
+      };
+      
+      return { 
+        ...prevSession, 
+        messages: updatedMessages,
+        updatedAt: Date.now()
+      };
+    });
+    
+    console.log('✅ [useEffect Hook 1: Agent情報取得] Completed successfully');
   }, [agentMode, agentInfo, currentSession?.id, user?.username, userDirectories, t, tAgent]); // ✅ FIX: Add tAgent to dependency array
 
   // ディレクトリ情報が取得されたら初期メッセージを更新（多言語対応）
+  // ✅ FIX v10: Added Array.isArray() check to prevent "Cannot read properties of undefined (reading 'length')" error
+  // ✅ FIX v13: Added enhanced logging to identify which hook causes currentSession to become undefined
   useEffect(() => {
-    // ✅ CRITICAL FIX: Check if messages is an array before accessing length
-    if (userDirectories && currentSession && user && Array.isArray(currentSession.messages) && currentSession.messages.length > 0) {
-      // 初期メッセージのみを更新（無限ループを防ぐ）
-      const firstMessage = currentSession.messages[0];
-      const checkText = memoizedLocale === 'en' ? 'FSx for ONTAP Production' : 'FSx for ONTAP実環境';
-      
-      if (firstMessage && firstMessage.id === '1' && firstMessage.role === 'assistant' && !firstMessage.content.includes(checkText)) {
-        // 多言語対応の初期メッセージを生成
-        // コンポーネントレベルのtを使用
-        const updatedText = generateInitialMessageWithDirectories(
-          user.username,
-          user.role || 'User',
-          userDirectories,
-          t  // Use component-level t
-        );
-
-        const updatedMessages = [...currentSession.messages];
-        updatedMessages[0] = { ...firstMessage, content: updatedText };
-        setCurrentSession({ ...currentSession, messages: updatedMessages });
-      }
+    console.log('🔍 [useEffect Hook 2: ディレクトリ情報取得] Starting...', {
+      hasUserDirectories: !!userDirectories,
+      hasCurrentSession: !!currentSession,
+      currentSessionId: currentSession?.id,
+      hasUser: !!user,
+      messagesType: typeof currentSession?.messages,
+      messagesIsArray: Array.isArray(currentSession?.messages),
+      messagesLength: currentSession?.messages?.length,
+      timestamp: Date.now()
+    });
+    
+    // ✅ CRITICAL FIX v10: Check currentSession AND messages is an array before accessing length
+    if (!userDirectories || !currentSession || !user) {
+      console.log('⚠️ [useEffect Hook 2: ディレクトリ情報取得] Early return - validation failed:', {
+        hasUserDirectories: !!userDirectories,
+        hasCurrentSession: !!currentSession,
+        hasUser: !!user
+      });
+      return;
     }
+    
+    if (!Array.isArray(currentSession.messages) || currentSession.messages.length === 0) {
+      console.warn('⚠️ [useEffect Hook 2: ディレクトリ情報取得] messages is not an array or empty:', {
+        messagesType: typeof currentSession.messages,
+        messagesIsArray: Array.isArray(currentSession.messages),
+        messagesLength: currentSession.messages?.length
+      });
+      return;
+    }
+    
+    // 初期メッセージのみを更新（無限ループを防ぐ）
+    const firstMessage = currentSession.messages[0];
+    const checkText = memoizedLocale === 'en' ? 'FSx for ONTAP Production' : 'FSx for ONTAP実環境';
+    
+    if (firstMessage && firstMessage.id === '1' && firstMessage.role === 'assistant' && !firstMessage.content.includes(checkText)) {
+      // 多言語対応の初期メッセージを生成
+      // コンポーネントレベルのtを使用
+      const updatedText = generateInitialMessageWithDirectories(
+        user.username,
+        user.role || 'User',
+        userDirectories,
+        t  // Use component-level t
+      );
+
+      const updatedMessages = [...currentSession.messages];
+      updatedMessages[0] = { ...firstMessage, content: updatedText };
+      setCurrentSession({ ...currentSession, messages: updatedMessages });
+      console.log('✅ [useEffect Hook 2: ディレクトリ情報取得] Updated message');
+    } else {
+      console.log('⚠️ [useEffect Hook 2: ディレクトリ情報取得] Skipped - message already contains directory info');
+    }
+    
+    console.log('✅ [useEffect Hook 2: ディレクトリ情報取得] Completed successfully');
   }, [userDirectories, memoizedLocale]);
 
   // モード切り替え時にIntroduction Textを更新
+  // ✅ FIX v10: Added Array.isArray() check to prevent "Cannot read properties of undefined (reading 'length')" error
+  // ✅ FIX v13: Added enhanced logging to identify which hook causes currentSession to become undefined
   useEffect(() => {
+    console.log('🔍 [useEffect Hook 3: モード切り替え] Starting...', {
+      agentMode,
+      lastAgentMode: lastAgentModeRef.current,
+      modeChanged: lastAgentModeRef.current !== agentMode,
+      hasCurrentSession: !!currentSession,
+      currentSessionId: currentSession?.id,
+      hasUser: !!user,
+      messagesType: typeof currentSession?.messages,
+      messagesIsArray: Array.isArray(currentSession?.messages),
+      messagesLength: currentSession?.messages?.length,
+      timestamp: Date.now()
+    });
     // ✅ FIX: Only update if mode actually changed (prevent infinite loop)
     if (lastAgentModeRef.current === agentMode) {
       console.log('🔍 [ChatbotPage] モード変更なし - スキップ:', { agentMode });
@@ -1033,7 +1174,7 @@ function ChatbotPageContent() {
     // Update the ref to track current mode
     lastAgentModeRef.current = agentMode;
     
-    // ✅ CRITICAL FIX: Early return if user is null to prevent "Cannot read properties of null" error
+    // ✅ CRITICAL FIX v10: Early return if user is null to prevent "Cannot read properties of null" error
     if (!user) {
       console.log('⚠️ [ChatbotPage] User is null, skipping mode switch initialization');
       return;
@@ -1052,7 +1193,7 @@ function ChatbotPageContent() {
       if (agentMode) {
         // Agentモード: Agent情報を含む初期メッセージ
         initialMessageText = generateAgentModeInitialMessage(
-          user.username,  // ✅ Safe: user is not null here
+          user.username,
           user.role || 'User',
           userDirectories,
           agentInfo,
@@ -1063,14 +1204,14 @@ function ChatbotPageContent() {
         // Knowledge Baseモード: 通常の初期メッセージ
         if (userDirectories) {
           initialMessageText = generateInitialMessageWithDirectories(
-            user.username,  // ✅ Safe: user is not null here
+            user.username,
             user.role || 'User',
             userDirectories,
             t
           );
         } else {
           initialMessageText = generateInitialMessage(
-            user.username,  // ✅ Safe: user is not null here
+            user.username,
             user.role || 'User',
             t
           );
@@ -1097,7 +1238,7 @@ function ChatbotPageContent() {
       return;
     }
     
-    // ✅ CRITICAL FIX: Check if messages is an array before accessing length
+    // ✅ CRITICAL FIX v10: Check if messages is an array before accessing length
     if (!Array.isArray(currentSession.messages) || currentSession.messages.length === 0) {
       console.log('⚠️ [ChatbotPage] セッションは存在するがメッセージが空のため、初期メッセージを追加');
       
@@ -1105,8 +1246,8 @@ function ChatbotPageContent() {
       
       if (agentMode) {
         initialMessageText = generateAgentModeInitialMessage(
-          user?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
-          user?.role || 'User',
+          user.username,
+          user.role || 'User',
           userDirectories,
           agentInfo,
           t,
@@ -1199,58 +1340,93 @@ function ChatbotPageContent() {
         };
       });
       
-      console.log('✅ [ChatbotPage] モード切り替えによるIntroduction文更新完了');
+      console.log('✅ [useEffect Hook 3: モード切り替え] Updated message');
+    } else {
+      console.log('⚠️ [useEffect Hook 3: モード切り替え] Skipped - first message validation failed');
     }
+    
+    console.log('✅ [useEffect Hook 3: モード切り替え] Completed successfully');
   }, [agentMode, user, userDirectories, agentInfo, t, tAgent]); // ✅ FIX: Add all dependencies including tAgent
 
   // ロケール変更時に初期メッセージを更新（Introduction文の言語切り替え対応）
+  // ✅ FIX v10: Added Array.isArray() check to prevent "Cannot read properties of undefined (reading 'length')" error
+  // ✅ FIX v13: Added enhanced logging to identify which hook causes currentSession to become undefined
   useEffect(() => {
-    // ✅ CRITICAL FIX: Check if messages is an array before accessing length
-    if (!currentSession || !user || !Array.isArray(currentSession.messages) || currentSession.messages.length === 0) return;
+    console.log('🔍 [useEffect Hook 4: ロケール変更] Starting...', {
+      locale: memoizedLocale,
+      hasCurrentSession: !!currentSession,
+      currentSessionId: currentSession?.id,
+      hasUser: !!user,
+      messagesType: typeof currentSession?.messages,
+      messagesIsArray: Array.isArray(currentSession?.messages),
+      messagesLength: currentSession?.messages?.length,
+      timestamp: Date.now()
+    });
+    
+    // ✅ CRITICAL FIX v10: Check currentSession AND messages is an array before accessing length
+    if (!currentSession || !user) {
+      console.log('⚠️ [useEffect Hook 4: ロケール変更] Early return - validation failed:', {
+        hasCurrentSession: !!currentSession,
+        hasUser: !!user
+      });
+      return;
+    }
+    
+    if (!Array.isArray(currentSession.messages) || currentSession.messages.length === 0) {
+      console.warn('⚠️ [useEffect Hook 4: ロケール変更] messages is not an array or empty:', {
+        messagesType: typeof currentSession.messages,
+        messagesIsArray: Array.isArray(currentSession.messages),
+        messagesLength: currentSession.messages?.length
+      });
+      return;
+    }
     
     // 初期メッセージのみを更新（無限ループを防ぐ）
     const firstMessage = currentSession.messages[0];
     
-    if (firstMessage && firstMessage.id === '1' && firstMessage.role === 'assistant') {
-      console.log('🌐 [ChatbotPage] ロケール変更検出 - Introduction文を更新:', memoizedLocale);
-      
-      let updatedText: string;
-      
-      if (agentMode) {
-        // Agentモード: Agent情報を含む初期メッセージ
-        updatedText = generateAgentModeInitialMessage(
+    if (!firstMessage || firstMessage.id !== '1' || firstMessage.role !== 'assistant') {
+      return;
+    }
+    
+    console.log('🌐 [ChatbotPage] ロケール変更検出 - Introduction文を更新:', memoizedLocale);
+    
+    let updatedText: string;
+    
+    if (agentMode) {
+      // Agentモード: Agent情報を含む初期メッセージ
+      updatedText = generateAgentModeInitialMessage(
+        user.username,
+        user.role || 'User',
+        userDirectories,
+        agentInfo,
+        t, // Introduction用翻訳フック
+        tAgent // Agent情報用翻訳フック
+      );
+    } else {
+      // Knowledge Baseモード: 通常の初期メッセージ
+      if (userDirectories) {
+        updatedText = generateInitialMessageWithDirectories(
           user.username,
           user.role || 'User',
           userDirectories,
-          agentInfo,
-          t, // Introduction用翻訳フック
-          tAgent // Agent情報用翻訳フック
+          t // Introduction用翻訳フック
         );
       } else {
-        // Knowledge Baseモード: 通常の初期メッセージ
-        if (userDirectories) {
-          updatedText = generateInitialMessageWithDirectories(
-            user.username,
-            user.role || 'User',
-            userDirectories,
-            t // Introduction用翻訳フック
-          );
-        } else {
-          updatedText = generateInitialMessage(
-            user.username,
-            user.role || 'User',
-            t // Introduction用翻訳フック
-          );
-        }
+        updatedText = generateInitialMessage(
+          user.username,
+          user.role || 'User',
+          t // Introduction用翻訳フック
+        );
       }
-      
-      // メッセージを更新
-      const updatedMessages = [...currentSession.messages];
-      updatedMessages[0] = { ...firstMessage, content: updatedText };
-      setCurrentSession({ ...currentSession, messages: updatedMessages });
-      
-      console.log('✅ [ChatbotPage] Introduction文を更新完了');
     }
+    
+    // メッセージを更新
+    const updatedMessages = [...currentSession.messages];
+    updatedMessages[0] = { ...firstMessage, content: updatedText };
+    setCurrentSession({ ...currentSession, messages: updatedMessages });
+    
+    console.log('✅ [useEffect Hook 4: ロケール変更] Updated message');
+    console.log('✅ [useEffect Hook 4: ロケール変更] Completed successfully');
   }, [memoizedLocale, agentMode, agentInfo, t, tAgent]); // ✅ FIX: Add tAgent to dependency array
 
   const scrollToBottom = () => {
@@ -2131,28 +2307,70 @@ function ChatbotPageContent() {
           )}
           
           {/* メッセージリスト */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-4 bg-white dark:bg-gray-900">
-            {currentSession?.messages?.map((message: Message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-sm md:max-w-md lg:max-w-lg xl:max-w-2xl px-4 py-3 rounded-lg ${message.role === 'user'
-                    ? 'bg-blue-600 text-white mr-2'
-                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm border dark:border-gray-700 ml-2'
-                    }`}
-                >
-                  <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                    <MessageContent content={message.content} />
-                  </div>
-                  <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
-                    {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('ja-JP') : ''}
-                  </p>
-                </div>
+          <div key={renderKey} className="flex-1 overflow-y-auto p-4 space-y-4 pb-4 bg-white dark:bg-gray-900">
+            {(() => {
+              console.log('🎨 [ChatbotPage v17] Rendering messages area:', {
+                renderKey,
+                hasCurrentSession: !!currentSession,
+                currentSessionId: currentSession?.id,
+                messagesCount: currentSession?.messages?.length,
+                messagesIsArray: Array.isArray(currentSession?.messages),
+                firstMessageId: currentSession?.messages?.[0]?.id,
+                firstMessageRole: currentSession?.messages?.[0]?.role,
+                firstMessageContentType: typeof currentSession?.messages?.[0]?.content,
+                firstMessageContentLength: currentSession?.messages?.[0]?.content?.length,
+                firstMessageContentPreview: currentSession?.messages?.[0]?.content?.substring(0, 100)
+              });
+              return null;
+            })()}
+            
+            {!currentSession && (
+              <div className="text-center text-gray-500 dark:text-gray-400 mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                ⚠️ No current session (currentSession is null/undefined)
               </div>
-            ))}
+            )}
+            
+            {currentSession && (!currentSession.messages || !Array.isArray(currentSession.messages) || currentSession.messages.length === 0) && (
+              <div className="text-center text-gray-500 dark:text-gray-400 mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                ⚠️ No messages in session (messages: {JSON.stringify({
+                  exists: !!currentSession.messages,
+                  isArray: Array.isArray(currentSession.messages),
+                  length: currentSession.messages?.length
+                })})
+              </div>
+            )}
+            
+            {currentSession?.messages?.map((message: Message, index) => {
+              console.log(`🎨 [ChatbotPage v17] Rendering message ${index}:`, {
+                id: message.id,
+                role: message.role,
+                contentType: typeof message.content,
+                contentLength: message.content?.length,
+                contentPreview: message.content?.substring(0, 50)
+              });
+              
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-sm md:max-w-md lg:max-w-lg xl:max-w-2xl px-4 py-3 rounded-lg ${message.role === 'user'
+                      ? 'bg-blue-600 text-white mr-2'
+                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm border dark:border-gray-700 ml-2'
+                      }`}
+                  >
+                    <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                      <MessageContent content={message.content} />
+                    </div>
+                    <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                      }`}>
+                      {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('ja-JP') : ''}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-white text-gray-900 shadow-sm border rounded-lg px-4 py-3 ml-2">

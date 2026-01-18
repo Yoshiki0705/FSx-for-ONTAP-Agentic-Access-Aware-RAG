@@ -73,7 +73,17 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
   
   currentSession: null,
-  setCurrentSession: (session) => set({ currentSession: session }),
+  setCurrentSession: (session) => {
+    // ✅ FIX v7: Ensure messages is always an array to prevent "Cannot read properties of undefined (reading 'length')" error
+    if (session && (!session.messages || !Array.isArray(session.messages))) {
+      console.warn('⚠️ [ChatStore] Invalid messages array detected, initializing as empty array:', session);
+      session = {
+        ...session,
+        messages: []
+      };
+    }
+    set({ currentSession: session });
+  },
   
   chatSessions: [],
   setChatSessions: (sessions) => set({ chatSessions: sessions }),
