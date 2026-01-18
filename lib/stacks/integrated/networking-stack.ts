@@ -93,6 +93,7 @@ export class NetworkingStack extends cdk.Stack {
         // VPCをインポート
         this.vpc = ec2.Vpc.fromVpcAttributes(this, 'ImportedVpc', {
           vpcId: props.existingVpcId,
+          vpcCidrBlock: props.existingVpcCidr || vpcInfo.vpcCidrBlock || '10.21.0.0/16', // ✅ vpcCidrBlockを明示的に設定
           availabilityZones: vpcInfo.availabilityZones.length > 0 
             ? vpcInfo.availabilityZones 
             : ['ap-northeast-1a', 'ap-northeast-1c', 'ap-northeast-1d'],
