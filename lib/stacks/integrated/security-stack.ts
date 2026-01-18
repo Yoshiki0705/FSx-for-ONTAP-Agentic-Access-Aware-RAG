@@ -9,6 +9,7 @@
  */
 
 import * as cdk from 'aws-cdk-lib';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as kms from 'aws-cdk-lib/aws-kms';
 import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import { Construct } from 'constructs';
@@ -47,6 +48,10 @@ export interface SecurityStackProps extends cdk.StackProps {
   
   // Windows AD Instance ID（NetworkingStackから受け取る）
   readonly windowsAdInstanceId?: string;
+  
+  // VPC設定（Windows AD EC2作成用）
+  readonly vpc?: ec2.IVpc;
+  readonly vpcId?: string;
 }
 
 /**
@@ -280,18 +285,60 @@ export class SecurityStack extends cdk.Stack {
       return;
     }
 
+    // 0. Windows AD EC2作成（Identity機能が有効で、Windows AD設定がある場合）
+    let windowsAdInstance: WindowsAdConstruct | undefined;
+    let adEc2InstanceId: string | undefined;
+    
+    if (agentCoreConfig.identity?.enabled && agentCoreConfig.identity.windowsAdConfig?.enabled) {
+      console.log('🪟 Windows AD EC2作成中...');
+      
+      const windowsAdConfig = agentCoreConfig.identity.windowsAdConfig;
+      
+      // VPCを取得（propsから、またはインポート）
+      let vpc: ec2.IVpc;
+      if (props.vpc) {
+        vpc = props.vpc;
+      } else if (props.vpcId) {
+        vpc = ec2.Vpc.fromLookup(this, 'ImportedVpc', {
+          vpcId: props.vpcId
+        });
+      } else {
+        console.error('❌ VPCが指定されていません。Windows AD EC2を作成できません。');
+        throw new Error('VPC is required for Windows AD EC2');
+      }
+      
+      // Windows AD EC2作成
+      windowsAdInstance = new WindowsAdConstruct(this, 'WindowsAd', {
+        vpc: vpc,
+        projectName: props.projectName,
+        environment: props.environment,
+        domainName: windowsAdConfig.domainName || 'permission-aware-rag.local',
+        instanceType: windowsAdConfig.instanceType 
+          ? this.parseInstanceType(windowsAdConfig.instanceType)
+          : undefined,
+        keyName: windowsAdConfig.keyName || undefined
+      });
+      
+      adEc2InstanceId = windowsAdInstance.instanceId;
+      
+      console.log('✅ Windows AD EC2作成完了');
+      console.log(`   - Instance ID: ${adEc2InstanceId}`);
+      console.log(`   - Domain Name: ${windowsAdConfig.domainName || 'permission-aware-rag.local'}`);
+    }
+
     // 1. Identity Construct（認証・認可）
     if (agentCoreConfig.identity?.enabled) {
       console.log('🔐 Identity Construct作成中...');
       
       const adSyncConfig = agentCoreConfig.identity.adSyncConfig;
       
-      // AD EC2インスタンスIDを取得（NetworkingStackから、または設定から）
-      const adEc2InstanceId = props.windowsAdInstanceId || 
+      // AD EC2インスタンスIDを取得（上で作成したインスタンス、propsから、または設定から）
+      const finalAdEc2InstanceId = adEc2InstanceId || 
+        props.windowsAdInstanceId || 
         props.config.adEc2InstanceId || 
         adSyncConfig?.adEc2InstanceId;
       
-      if (!adEc2InstanceId && adSyncConfig?.adSyncEnabled) {
+      if (!finalAdEc2InstanceId && adSyncConfig?.adSyncEnabled) {
         console.warn('⚠️ AD EC2インスタンスIDが指定されていないため、AD Sync機能は無効化されます');
       }
       
@@ -300,7 +347,7 @@ export class SecurityStack extends cdk.Stack {
         projectName: props.projectName,
         environment: props.environment,
         adSyncEnabled: adSyncConfig?.adSyncEnabled ?? false,
-        adEc2InstanceId: adEc2InstanceId,
+        adEc2InstanceId: finalAdEc2InstanceId,
         identityTableName: adSyncConfig?.identityTableName,
         sidCacheTtl: adSyncConfig?.sidCacheTtl ?? 86400, // 24時間
         ssmTimeout: adSyncConfig?.ssmTimeout ?? 30,
@@ -311,6 +358,112 @@ export class SecurityStack extends cdk.Stack {
       console.log(`   - Identity Table: ${this.agentCoreIdentity.identityTable.tableName}`);
       if (this.agentCoreIdentity.adSyncFunction) {
         console.log(`   - AD Sync Function: ${this.agentCoreIdentity.adSyncFunction.functionName}`);
+      }
+      
+      // Windows AD EC2が作成された場合、SSM Run Command権限を付与
+      if (windowsAdInstance && this.agentCoreIdentity.adSyncFunction) {
+        windowsAdInstance.grantSsmRunCommand(this.agentCoreIdentity.lambdaRole);
+        console.log('✅ AD Sync Lambda に SSM Run Command 権限を付与');
+      }
+      
+      // VPCエンドポイント作成（SSM接続用）
+      if (windowsAdInstance) {
+        console.log('🔌 SSM用VPCエンドポイント作成中...');
+        
+        // VPCを取得（propsから、またはインポート）
+        let vpcForEndpoints: ec2.IVpc;
+        if (props.vpc) {
+          vpcForEndpoints = props.vpc;
+        } else if (props.vpcId) {
+          vpcForEndpoints = ec2.Vpc.fromLookup(this, 'ImportedVpcForEndpoints', {
+            vpcId: props.vpcId
+          });
+        } else {
+          console.error('❌ VPCが指定されていません。VPCエンドポイントを作成できません。');
+          throw new Error('VPC is required for VPC Endpoints');
+        }
+        
+        // セキュリティグループ作成（VPCエンドポイント用）
+        const vpcEndpointSecurityGroup = new ec2.SecurityGroup(this, 'VpcEndpointSecurityGroup', {
+          vpc: vpcForEndpoints,
+          description: 'Security group for SSM VPC Endpoints',
+          allowAllOutbound: true,
+        });
+        
+        // Windows AD EC2からのHTTPS接続を許可
+        vpcEndpointSecurityGroup.addIngressRule(
+          windowsAdInstance.securityGroup,
+          ec2.Port.tcp(443),
+          'Allow HTTPS from Windows AD EC2'
+        );
+        
+        // プライベートサブネットを動的に取得
+        // 優先順位: 1. cdk.context.json, 2. VPC Lookup（Windows AD EC2と同じAZ）
+        let privateSubnetSelection: ec2.SubnetSelection;
+        const contextPrivateSubnetId = this.node.tryGetContext('privateSubnetId');
+        
+        if (contextPrivateSubnetId) {
+          // Option 1: cdk.context.jsonから取得
+          console.log(`📍 プライベートサブネットID（context）: ${contextPrivateSubnetId}`);
+          privateSubnetSelection = {
+            subnets: [ec2.Subnet.fromSubnetId(this, 'PrivateSubnet', contextPrivateSubnetId)]
+          };
+        } else {
+          // Option 2: VPCからプライベートサブネットを自動選択（最初のAZ）
+          console.log('📍 プライベートサブネット（VPC Lookup - 最初のAZ）');
+          privateSubnetSelection = {
+            subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+            availabilityZones: [vpcForEndpoints.availabilityZones[0]]
+          };
+        }
+        
+        // SSM VPCエンドポイント
+        const ssmEndpoint = new ec2.InterfaceVpcEndpoint(this, 'SsmVpcEndpoint', {
+          vpc: vpcForEndpoints,
+          service: ec2.InterfaceVpcEndpointAwsService.SSM,
+          privateDnsEnabled: true,
+          securityGroups: [vpcEndpointSecurityGroup],
+          subnets: privateSubnetSelection,
+        });
+        
+        // EC2 Messages VPCエンドポイント
+        const ec2MessagesEndpoint = new ec2.InterfaceVpcEndpoint(this, 'Ec2MessagesVpcEndpoint', {
+          vpc: vpcForEndpoints,
+          service: ec2.InterfaceVpcEndpointAwsService.EC2_MESSAGES,
+          privateDnsEnabled: true,
+          securityGroups: [vpcEndpointSecurityGroup],
+          subnets: privateSubnetSelection,
+        });
+        
+        // SSM Messages VPCエンドポイント
+        const ssmMessagesEndpoint = new ec2.InterfaceVpcEndpoint(this, 'SsmMessagesVpcEndpoint', {
+          vpc: vpcForEndpoints,
+          service: ec2.InterfaceVpcEndpointAwsService.SSM_MESSAGES,
+          privateDnsEnabled: true,
+          securityGroups: [vpcEndpointSecurityGroup],
+          subnets: privateSubnetSelection,
+        });
+        
+        console.log('✅ SSM用VPCエンドポイント作成完了');
+        
+        // CloudFormation Outputs
+        new cdk.CfnOutput(this, 'SsmVpcEndpointId', {
+          value: ssmEndpoint.vpcEndpointId,
+          description: 'SSM VPC Endpoint ID',
+          exportName: `${this.stackName}-SsmVpcEndpointId`,
+        });
+        
+        new cdk.CfnOutput(this, 'Ec2MessagesVpcEndpointId', {
+          value: ec2MessagesEndpoint.vpcEndpointId,
+          description: 'EC2 Messages VPC Endpoint ID',
+          exportName: `${this.stackName}-Ec2MessagesVpcEndpointId`,
+        });
+        
+        new cdk.CfnOutput(this, 'SsmMessagesVpcEndpointId', {
+          value: ssmMessagesEndpoint.vpcEndpointId,
+          description: 'SSM Messages VPC Endpoint ID',
+          exportName: `${this.stackName}-SsmMessagesVpcEndpointId`,
+        });
       }
     }
 
@@ -388,5 +541,35 @@ export class SecurityStack extends cdk.Stack {
     }
 
     console.log('✅ AgentCore Outputs作成完了');
+  }
+
+  /**
+   * インスタンスタイプ文字列をパース（例: "t3.medium" → ec2.InstanceType）
+   */
+  private parseInstanceType(instanceTypeStr: string): ec2.InstanceType {
+    const parts = instanceTypeStr.split('.');
+    if (parts.length !== 2) {
+      throw new Error(`Invalid instance type format: ${instanceTypeStr}. Expected format: "t3.medium"`);
+    }
+    
+    const instanceClass = parts[0].toUpperCase();
+    const instanceSize = parts[1].toUpperCase();
+    
+    // ec2.InstanceClassとec2.InstanceSizeの型安全な変換
+    const classKey = instanceClass as keyof typeof ec2.InstanceClass;
+    const sizeKey = instanceSize as keyof typeof ec2.InstanceSize;
+    
+    if (!(classKey in ec2.InstanceClass)) {
+      throw new Error(`Unknown instance class: ${instanceClass}`);
+    }
+    
+    if (!(sizeKey in ec2.InstanceSize)) {
+      throw new Error(`Unknown instance size: ${instanceSize}`);
+    }
+    
+    return ec2.InstanceType.of(
+      ec2.InstanceClass[classKey],
+      ec2.InstanceSize[sizeKey]
+    );
   }
 }
