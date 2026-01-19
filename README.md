@@ -2697,6 +2697,319 @@ npx cdk deploy TokyoRegion-permission-aware-rag-prod-Data \
 
 ---
 
+## 💾 FSx for ONTAP Deployment Guide
+
+**最終更新**: 2026-01-19  
+**ステータス**: Phase 1 完了 ✅
+
+### 概要
+
+このプロジェクトは、Amazon FSx for ONTAPを使用した高性能ファイルストレージとWindows Active Directory統合による権限管理をサポートしています。
+
+### 🎯 FSx for ONTAPの利点
+
+- **高性能**: 最大2 GB/sのスループット、サブミリ秒のレイテンシ
+- **AD統合**: Windows Active Directoryとのネイティブ統合
+- **S3互換**: S3 Access Pointsを通じたLambdaからのアクセス
+- **データ効率**: 重複排除、圧縮、シンプロビジョニング
+- **スナップショット**: ポイントインタイムリカバリ
+
+### 📋 前提条件
+
+#### 必須リソース
+- **既存VPC**: NetworkingStackまたはWebAppStackで作成されたVPC
+- **プライベートサブネット**: 最低1つ（SINGLE_AZ_1）または2つ（MULTI_AZ_1）
+- **Active Directory**: Windows AD EC2インスタンス（オプション、権限管理に必要）
+
+#### 推奨構成
+- **ストレージ容量**: 1024 GB（1 TB）以上
+- **スループット容量**: 128 MB/s以上
+- **デプロイメントタイプ**: SINGLE_AZ_1（開発）、MULTI_AZ_1（本番）
+- **バックアップ保持期間**: 7日間
+
+### 🚀 デプロイ手順
+
+#### Step 1: cdk.context.jsonの設定
+
+**重要**: FSx for ONTAPを既存VPCにデプロイする場合、VPCインポートは不要です。`ec2.Vpc.fromVpcAttributes()`を使用して直接VPC IDとサブネットIDを指定します。
+
+```json
+{
+  "storage": {
+    "fsxOntap": {
+      "enabled": true,
+      "fileSystemType": "ONTAP",
+      "storageCapacity": 1024,
+      "throughputCapacity": 128,
+      "deploymentType": "SINGLE_AZ_1",
+      "preferredSubnetId": "subnet-xxxxxxxxxxxxxxxxx",
+      "automaticBackupRetentionDays": 7,
+      "dailyAutomaticBackupStartTime": "01:00",
+      "weeklyMaintenanceStartTime": "1:01:00",
+      "svm": {
+        "name": "permission-aware-rag-svm",
+        "rootVolumeSecurityStyle": "MIXED"
+      },
+      "volumes": {
+        "data": {
+          "enabled": true,
+          "name": "data_volume",
+          "junctionPath": "/data",
+          "sizeInMegabytes": 102400,
+          "storageEfficiencyEnabled": true,
+          "securityStyle": "MIXED"
+        }
+      },
+      "s3AccessPoint": {
+        "enabled": true,
+        "fileSystemIdentity": {
+          "type": "WINDOWS",
+          "windowsUser": {
+            "name": "Administrator"
+          }
+        },
+        "networkConfiguration": {
+          "vpcRestricted": true,
+          "vpcId": "vpc-xxxxxxxxxxxxxxxxx"
+        }
+      }
+    }
+  }
+}
+```
+
+#### Step 2: VPC設定（bin/data-stack-app.ts）
+
+**既存VPCを使用する場合**（推奨）:
+
+```typescript
+// 既存VPC情報
+const existingVpcId = 'vpc-09aa251d6db52b1fc';
+const existingPrivateSubnetIds = [
+  'subnet-0a84a16a1641e970f', // ap-northeast-1a
+  'subnet-0c4599b4863ff4d33', // ap-northeast-1c
+  'subnet-0c9ad18a58c06e7c5', // ap-northeast-1d
+];
+
+// fromVpcAttributesを使用（VPCインポート不要）
+const vpcConfig = {
+  vpcId: existingVpcId,
+  availabilityZones: ['ap-northeast-1a', 'ap-northeast-1c', 'ap-northeast-1d'],
+  privateSubnetIds: existingPrivateSubnetIds,
+  privateSubnetRouteTableIds: [
+    'rtb-007b7bfa6f7888a07', // ap-northeast-1a
+    'rtb-0c55af1c4547236c7', // ap-northeast-1c
+    'rtb-0e249dd6df9a20e78', // ap-northeast-1d
+  ],
+};
+```
+
+**重要なポイント**:
+- ✅ **VPCインポート不要**: `ec2.Vpc.fromVpcAttributes()`で直接指定
+- ✅ **サブネット数**: SINGLE_AZ_1は1つ、MULTI_AZ_1は2つ必要
+- ✅ **CDK要件**: 全てのサブネットを指定（CDKはAZ数の倍数を要求）
+- ✅ **FSx使用**: 実際には最初のサブネットのみ使用
+
+#### Step 3: TypeScript直接実行でデプロイ
+
+**重要**: `npm run build`でコンパイルしたJavaScriptではなく、`npx ts-node`でTypeScriptを直接実行してください。
+
+```bash
+# ✅ 正しい方法: TypeScript直接実行
+npx cdk deploy TokyoRegion-permission-aware-rag-prod-Data \
+  --app 'npx ts-node bin/data-stack-app.ts' \
+  --require-approval never \
+  --region ap-northeast-1
+
+# ❌ 間違った方法: 古いJavaScriptが実行される可能性
+npx cdk deploy --app 'node bin/deploy-production.js'
+```
+
+**デプロイ時間**: 約30-45分（FSx作成は時間がかかります）
+
+#### Step 4: デプロイ検証
+
+```bash
+# FSx File Systemの確認
+aws fsx describe-file-systems \
+  --region ap-northeast-1 \
+  --query 'FileSystems[?FileSystemType==`ONTAP`].[FileSystemId,Lifecycle,StorageCapacity]' \
+  --output table
+
+# SVMの確認
+aws fsx describe-storage-virtual-machines \
+  --region ap-northeast-1 \
+  --query 'StorageVirtualMachines[].[StorageVirtualMachineId,Name,Lifecycle]' \
+  --output table
+
+# S3 Access Pointの確認
+aws s3control list-access-points \
+  --account-id $(aws sts get-caller-identity --query Account --output text) \
+  --region ap-northeast-1
+```
+
+### 🔧 トラブルシューティング
+
+#### 問題1: "Exactly 1 subnet IDs are required for SINGLE_AZ_1"
+
+**原因**: デプロイメントタイプに対してサブネット数が不正
+
+**解決策**: 
+- SINGLE_AZ_1: 1つのサブネットを指定
+- MULTI_AZ_1: 2つのサブネットを指定
+
+#### 問題2: VPC Import失敗
+
+**原因**: VPCインポートを使用している
+
+**解決策**: `ec2.Vpc.fromVpcAttributes()`を使用してVPC IDとサブネットIDを直接指定
+
+```typescript
+// ❌ 悪い例: VPCインポート
+const vpc = ec2.Vpc.fromLookup(this, 'ImportedVpc', {
+  vpcId: 'vpc-xxxxxxxxxxxxxxxxx'
+});
+
+// ✅ 良い例: fromVpcAttributes
+const vpc = ec2.Vpc.fromVpcAttributes(this, 'ExistingVpc', {
+  vpcId: 'vpc-xxxxxxxxxxxxxxxxx',
+  availabilityZones: ['ap-northeast-1a', 'ap-northeast-1c', 'ap-northeast-1d'],
+  privateSubnetIds: ['subnet-xxx', 'subnet-yyy', 'subnet-zzz'],
+});
+```
+
+#### 問題3: OpenSearch条件チェックエラー
+
+**原因**: `if (props.config.openSearch?.enabled)`では`false`と`undefined`を区別できない
+
+**解決策**: 明示的に`true`をチェック
+
+```typescript
+// ❌ 悪い例
+if (props.config.openSearch?.enabled) {
+  // falseとundefinedを区別できない
+}
+
+// ✅ 良い例
+if (props.config.openSearch?.enabled === true) {
+  // trueのみ実行
+}
+```
+
+### 💰 コスト見積もり
+
+#### 月額コスト（ap-northeast-1）
+
+| コンポーネント | 設定 | 月額コスト |
+|--------------|------|-----------|
+| FSx Storage | 1024 GB | $148.48 |
+| FSx Throughput | 128 MB/s | $281.60 |
+| FSx Backup | 7日間保持 | $2.50 |
+| DynamoDB | 6テーブル | $5.00 |
+| S3 Bucket | 最小使用 | $0.50 |
+| Lambda | 推定 | $0.17 |
+| **合計** | | **$438.25/月** |
+
+#### コスト最適化
+
+1. **スループット削減**: 128 MB/s → 64 MB/s = $140.80/月削減
+2. **バックアップ削減**: 7日間 → 0日間 = $2.50/月削減
+3. **予約容量**: 1年契約 = 20%削減
+
+### 📊 5フェーズデプロイメント計画
+
+#### Phase 1: FSx Deployment ✅ 完了
+
+- FSx File System作成
+- SVM作成
+- Gateway Volume作成
+- S3 Access Point作成
+- DynamoDBテーブル作成
+
+**所要時間**: 66分47秒  
+**ステータス**: ✅ 完了（2026-01-19）
+
+#### Phase 2: AD Integration ⏳ 次のステップ
+
+**目的**: FSx SVMをActive Directoryドメインに参加
+
+**タスク**:
+1. AD DNS IPの設定
+2. SVMをドメインに参加
+3. AD統合の検証
+4. AD認証のテスト
+
+**所要時間**: 約30分
+
+**コマンド例**:
+```bash
+# SVM AD設定更新
+aws fsx update-storage-virtual-machine \
+  --storage-virtual-machine-id svm-xxxxxxxxxxxxxxxxx \
+  --active-directory-configuration \
+    SelfManagedActiveDirectoryConfiguration={
+      DomainName=permission-aware-rag.local,
+      OrganizationalUnitDistinguishedName="OU=Computers,DC=permission-aware-rag,DC=local",
+      FileSystemAdministratorsGroup="Domain Admins",
+      UserName=Administrator,
+      Password=<password>,
+      DnsIps=["10.21.3.10"]
+    }
+```
+
+#### Phase 3: User Directories Creation ⏳ 計画中
+
+**目的**: ディレクトリ構造の作成とWindows ACL権限設定
+
+**タスク**:
+1. FSxボリュームをAD EC2にマウント
+2. ディレクトリ作成: `/shared`, `/public`, `/user/*`, `/test-data`
+3. Windows ACL権限設定
+4. テストユーザーでの権限検証
+
+**所要時間**: 約1時間
+
+#### Phase 4: API Route Update ⏳ 計画中
+
+**目的**: 実際のFSxクエリを使用するようAPIを更新
+
+**タスク**:
+1. `docker/nextjs/src/app/api/fsx/directories/route.ts`の修正
+2. WebApp Lambda環境変数の追加
+3. Lambda関数`lambda/permissions/fsx-permission-service.ts`のデプロイ
+4. 実ユーザーでのAPIエンドポイントテスト
+
+**所要時間**: 約2時間
+
+#### Phase 5: Testing & Verification ⏳ 計画中
+
+**目的**: 実ユーザーとデータでの包括的テスト
+
+**タスク**:
+1. testuser、admin、testuser0でのAPIエンドポイントテスト
+2. UIが実際のFSxディレクトリを表示することを検証
+3. 権限の正確性を検証
+4. パフォーマンステスト（< 3秒）
+5. 負荷テスト（100同時ユーザー）
+
+**所要時間**: 約3時間
+
+### 📚 関連ドキュメント
+
+- **デプロイ成功レポート**: `development/docs/reports/local/01-19-fsx-ontap-existing-vpc-deployment-success.md`
+- **5フェーズ計画**: `development/docs/reports/local/01-19-fsx-ontap-deployment-plan.md`
+- **デプロイサマリー**: `development/docs/reports/local/01-19-fsx-deployment-summary.md`
+- **デプロイログ**: `development/logs/fsx-ontap-deployment-20260119-185921.log`
+- **出力ファイル**: `development/configs/fsx-ontap-outputs.json`
+
+### 🔗 AWS公式ドキュメント
+
+- [FSx for ONTAP User Guide](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/)
+- [FSx for ONTAP S3 Access Points](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/s3-access-points.html)
+- [FSx for ONTAP Active Directory Integration](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/self-managed-AD.html)
+
+---
+
 ## 🤖 Amazon Bedrock AgentCoreデプロイメント
 
 ### AgentCore機能の有効化/無効化
