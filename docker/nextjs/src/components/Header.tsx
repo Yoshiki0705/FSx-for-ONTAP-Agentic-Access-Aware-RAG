@@ -50,13 +50,27 @@ export function Header({
   }, [checkSession, isAuthenticated, locale, router]);
 
   const handleSignOut = async () => {
-    if (!csrfToken) {
-      console.error('CSRF token not available for signout');
-      return;
+    try {
+      if (!csrfToken) {
+        console.warn('⚠️ CSRF token not available, proceeding with local cleanup');
+        throw new Error('CSRF token not available');
+      }
+      
+      await signOut(csrfToken);
+      console.log('✅ Sign-out API succeeded');
+    } catch (error) {
+      console.error('❌ Sign-out error:', error);
+      // エラーが発生してもローカルクリーンアップは実行
+    } finally {
+      // ✅ 必ずローカルストレージをクリアしてリダイレクト
+      console.log('🧹 Cleaning up local storage and redirecting...');
+      localStorage.removeItem('user');
+      localStorage.removeItem('session');
+      localStorage.removeItem('chatSessions');
+      
+      // サインインページにリダイレクト
+      window.location.href = `/${locale}/signin`;
     }
-    
-    await signOut(csrfToken);
-    router.push(`/${locale}/signin`);
   };
 
   if (!hasMounted) {

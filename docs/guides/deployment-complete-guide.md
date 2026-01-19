@@ -648,9 +648,214 @@ aws ec2 describe-vpc-endpoints \
 
 ---
 
-## 7. マルチリージョンデプロイ
+## 7. リソース競合チェック（CDKデプロイ時）
 
-### 7.1 対応リージョン一覧（14リージョン）
+### 7.1 概要
+
+CloudFormationの`AWS::EarlyValidation::ResourceExistenceCheck`フックにより、既存リソースとの競合が検出されるとデプロイが失敗します。DataStackデプロイ時は、必ずリソース競合チェックを実行してください。
+
+**典型的なエラー**:
+```
+Failed to create ChangeSet: FAILED, The following hook(s)/validation failed: 
+[AWS::EarlyValidation::ResourceExistenceCheck]
+```
+
+**主な原因**:
+- DynamoDBテーブル名の重複
+- CloudFormationスタックの問題のある状態（ROLLBACK_COMPLETE等）
+- 既存リソースとの名前衝突
+
+### 7.2 推奨デプロイフロー（DataStack）
+
+#### フロー1: 自動修復デプロイ（推奨）
+
+```bash
+# 統合スクリプトで自動修復 + デプロイ
+./development/scripts/deployment/deploy-with-conflict-check.sh \
+  TokyoRegion-permission-aware-rag-prod-Data --auto-fix
+
+# 期待される動作:
+# - 競合チェック実行
+# - 競合が検出された場合、ユーザー確認後に自動削除
+# - CDKデプロイ実行
+# - デプロイ後確認
+```
+
+#### フロー2: 手動確認デプロイ
+
+```bash
+# 1. 競合チェックのみ実行
+npx ts-node development/scripts/deployment/pre-deploy-check.ts \
+  --stack-name TokyoRegion-permission-aware-rag-prod-Data
+
+# 2. 競合があれば手動で解決
+aws dynamodb delete-table --table-name prod-permission-cache
+aws dynamodb delete-table --table-name prod-user-access-table
+
+# 3. CDKデプロイ
+npx cdk deploy TokyoRegion-permission-aware-rag-prod-Data \
+  --app 'npx ts-node bin/data-stack-app.ts' \
+  --require-approval never
+```
+
+### 7.3 DataStack特有の注意事項
+
+#### TypeScript実行方法（重要）
+
+**問題**: `npm run build`でコンパイルしたJavaScriptファイルを実行すると、古いバージョンが実行される可能性がある
+
+**解決**: `npx ts-node`を使用してTypeScriptを直接実行する
+
+```bash
+# ❌ 悪い例: 古いJavaScriptファイルが実行される可能性
+npx cdk deploy --app 'node bin/deploy-production.js'
+
+# ✅ 良い例: 最新のTypeScriptファイルが実行される
+npx cdk deploy --app 'npx ts-node bin/deploy-production.ts'
+```
+
+#### FSx for ONTAPサブネット要件
+
+**問題**: FSx for ONTAPのデプロイメントタイプによってサブネット数が異なる
+
+**解決**: デプロイメントタイプを確認してから、適切なサブネット数を決定する
+
+| デプロイメントタイプ | 必要なサブネット数 | 説明 |
+|-------------------|-----------------|------|
+| `SINGLE_AZ_1` | **1つ** | 単一AZにデプロイ、コスト効率的 |
+| `MULTI_AZ_1` | **2つ** | 2つのAZにデプロイ、高可用性 |
+
+**実装例**:
+```typescript
+// デプロイメントタイプに応じてサブネット数を決定
+const deploymentType = config.deploymentType || 'SINGLE_AZ_1';
+const requiredSubnetCount = deploymentType === 'SINGLE_AZ_1' ? 1 : 2;
+const fsxSubnetIds = this.props.privateSubnetIds.slice(0, requiredSubnetCount);
+```
+
+#### OpenSearch条件チェック
+
+**問題**: `if (props.config.openSearch?.enabled)`では`false`と`undefined`を区別できない
+
+**解決**: `if (props.config.openSearch?.enabled === true)`で明示的にチェック
+
+```typescript
+// ❌ 悪い例: false と undefined を区別できない
+if (props.config.openSearch?.enabled) {
+  // OpenSearch作成
+}
+
+// ✅ 良い例: 明示的に true をチェック
+if (props.config.openSearch?.enabled === true) {
+  // OpenSearch作成
+} else {
+  console.log('OpenSearch Serverless is disabled, skipping creation');
+}
+```
+
+#### 既存VPCインポート時の型安全性
+
+**問題**: 既存VPCをインポートする場合は`IVpc`型を返すが、`this.vpc`が`Vpc`型で宣言されていた
+
+**解決**: `this.vpc`の型を`Vpc`から`IVpc`に変更
+
+```typescript
+// ❌ 悪い例: Vpc型で宣言
+public readonly vpc: cdk.aws_ec2.Vpc;
+
+// ✅ 良い例: IVpc型で宣言（既存VPCインポート対応）
+public readonly vpc: cdk.aws_ec2.IVpc;
+```
+
+### 7.4 DataStackデプロイ手順（完全版）
+
+```bash
+# Phase 1: 古いスタック削除（ROLLBACK_COMPLETE状態の場合）
+aws cloudformation delete-stack \
+  --stack-name TokyoRegion-permission-aware-rag-prod-Data \
+  --region ap-northeast-1
+
+# 削除完了を待機（約5分）
+aws cloudformation wait stack-delete-complete \
+  --stack-name TokyoRegion-permission-aware-rag-prod-Data \
+  --region ap-northeast-1
+
+# Phase 2: 競合リソース削除（必要に応じて）
+aws dynamodb delete-table --table-name prod-permission-cache --region ap-northeast-1
+aws dynamodb delete-table --table-name prod-user-access-table --region ap-northeast-1
+
+# Phase 3: DataStackデプロイ（TypeScript直接実行）
+npx cdk deploy TokyoRegion-permission-aware-rag-prod-Data \
+  --app 'npx ts-node bin/deploy-production.ts' \
+  --require-approval never
+
+# Phase 4: デプロイ確認
+# FSx File System確認
+aws fsx describe-file-systems \
+  --region ap-northeast-1 \
+  --query 'FileSystems[?Tags[?Key==`Environment` && Value==`prod`]].[FileSystemId,FileSystemType,StorageCapacity,Lifecycle,SubnetIds]' \
+  --output table
+
+# DynamoDB Tables確認
+aws dynamodb list-tables \
+  --region ap-northeast-1 \
+  --query 'TableNames[?contains(@, `prod`)]' \
+  --output table
+```
+
+### 7.5 利用可能なツール
+
+#### 1. リソース競合ハンドラー（CDKコード内）
+**ファイル**: `lib/utils/resource-conflict-handler.ts`
+
+```typescript
+import { ResourceConflictHandler, ResourceConflictAspect } from '../lib/utils/resource-conflict-handler';
+
+// Aspectとして追加（bin/data-stack-app.tsで既に統合済み）
+const conflictAspect = new ResourceConflictAspect(conflictHandler);
+cdk.Aspects.of(stack).add(conflictAspect);
+```
+
+#### 2. デプロイ前チェックスクリプト
+**ファイル**: `development/scripts/deployment/pre-deploy-check.ts`
+
+```bash
+# チェックのみ
+npx ts-node development/scripts/deployment/pre-deploy-check.ts \
+  --stack-name TokyoRegion-permission-aware-rag-prod-Data
+
+# 自動修復（実行）
+npx ts-node development/scripts/deployment/pre-deploy-check.ts \
+  --stack-name TokyoRegion-permission-aware-rag-prod-Data \
+  --auto-fix
+```
+
+#### 3. 統合デプロイスクリプト
+**ファイル**: `development/scripts/deployment/deploy-with-conflict-check.sh`
+
+```bash
+# 自動修復してデプロイ
+./development/scripts/deployment/deploy-with-conflict-check.sh \
+  TokyoRegion-permission-aware-rag-prod-Data --auto-fix
+
+# ドライラン
+./development/scripts/deployment/deploy-with-conflict-check.sh \
+  TokyoRegion-permission-aware-rag-prod-Data --auto-fix --dry-run
+```
+
+### 7.6 ベストプラクティス
+
+1. **デプロイ前に必ず競合チェック**: 統合スクリプトを使用（推奨）
+2. **ドライランで動作確認**: 本番デプロイ前にドライランで確認
+3. **TypeScript直接実行**: `npx ts-node`を使用して最新コードを実行
+4. **テーブル命名規則の統一**: `{ProjectName}-{Environment}-{TableName}`形式
+5. **CDK Aspectの活用**: `bin/data-stack-app.ts`で既に統合済み
+
+---
+
+## 8. マルチリージョンデプロイ
+
+### 8.1 対応リージョン一覧（14リージョン）
 
 #### 日本地域（2リージョン）
 - 🇯🇵 **東京** (`ap-northeast-1`) - Bedrockサポート

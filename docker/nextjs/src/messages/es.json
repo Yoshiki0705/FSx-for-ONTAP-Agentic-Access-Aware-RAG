@@ -5,6 +5,8 @@
     "contextOptimization": "Optimización del contexto",
     "contextOptimizationDesc": "Generar respuestas óptimas basadas en el contexto",
     "modeDescription": "El modo Agent proporciona capacidades avanzadas de razonamiento y búsqueda de documentos.",
+    "description": "Descripción",
+    "agentSpecificFeatures": "Este Agent proporciona las funciones descritas en la descripción anterior.",
     "error": {},
     "features": "Funciones del Agent",
     "information": "Información del Agent",

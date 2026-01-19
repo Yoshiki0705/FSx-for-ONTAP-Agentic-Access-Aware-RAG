@@ -11,11 +11,12 @@
 1. [概要](#概要)
 2. [アーキテクチャ](#アーキテクチャ)
 3. [Introduction Text動的更新の実装](#introduction-text動的更新の実装)
-4. [サイドバーとメインチャットの連動](#サイドバーとメインチャットの連動)
-5. [翻訳キーの実装パターン](#翻訳キーの実装パターン)
-6. [React State管理のベストプラクティス](#react-state管理のベストプラクティス)
-7. [トラブルシューティング](#トラブルシューティング)
-8. [デプロイメント](#デプロイメント)
+4. [Agent Description表示機能](#agent-description表示機能)
+5. [サイドバーとメインチャットの連動](#サイドバーとメインチャットの連動)
+6. [翻訳キーの実装パターン](#翻訳キーの実装パターン)
+7. [React State管理のベストプラクティス](#react-state管理のベストプラクティス)
+8. [トラブルシューティング](#トラブルシューティング)
+9. [デプロイメント](#デプロイメント)
 
 ---
 
@@ -172,6 +173,161 @@ setRenderKey(prev => prev + 1);
 - Agent選択変更時
 - モード切り替え時（Agent ↔ KB）
 - ロケール変更時
+
+---
+
+## Agent Description表示機能
+
+### 概要
+
+Agent選択時に、選択されたAgentの実際の説明（description）と機能を表示する機能です。
+Agent固有の情報を表示することで、ユーザーは各Agentの特徴を理解しやすくなります。
+
+### 実装の背景
+
+**問題**: 全てのAgentで同じ汎用的な機能説明が表示されていた
+- 多段階推論 (Multi-step Reasoning)
+- 自動文書検索 (Automatic Document Search)
+- コンテキスト最適化 (Context Optimization)
+
+**解決策**: `agentInfo.description`フィールドからAgent固有の説明を取得して表示
+
+### コード実装
+
+**ファイル**: `docker/nextjs/src/app/[locale]/genai/page.tsx` (Lines 157-189)
+
+```typescript
+// ✅ Agent固有の説明を使用（利用可能な場合）
+const agentDescription = agentInfo.description 
+  ? `\n\n**📝 ${tAgent('description')}**\n${agentInfo.description}`
+  : '';
+
+const agentSection = `
+
+**🤖 ${tAgent('information')}**
+• **${tAgent('agentId')}**: ${agentInfo.agentId || 'N/A'}
+• **${tAgent('agentName')}**: ${agentInfo.agentName || agentInfo.name || 'N/A'}
+• **${tAgent('version')}**: ${agentInfo.agentVersion || agentInfo.latestAgentVersion || 'N/A'}
+• **${tAgent('status')}**: ${agentInfo.agentStatus || agentInfo.status || 'N/A'}
+• **${tAgent('model')}**: ${agentInfo.foundationModel || 'N/A'}
+• **${tAgent('lastUpdated')}**: ${agentInfo.updatedAt ? new Date(agentInfo.updatedAt).toLocaleDateString('ja-JP') : 'N/A'}${agentDescription}
+
+**🧠 ${tAgent('features')}**
+${agentInfo.description 
+  ? `${tAgent('agentSpecificFeatures')}`  // Agent固有の機能説明がある場合
+  : `• **${tAgent('multiStepReasoning')}**: ${tAgent('multiStepReasoningDesc')}
+• **${tAgent('automaticDocumentSearch')}**: ${tAgent('automaticDocumentSearchDesc')}
+• **${tAgent('contextOptimization')}**: ${tAgent('contextOptimizationDesc')}`}
+
+${tAgent('modeDescription')}`;
+```
+
+### 表示パターン
+
+#### パターン1: Agent with Description
+
+**条件**: `agentInfo.description`フィールドが存在する
+
+**表示例**:
+```markdown
+**🤖 Agent情報**
+• **Agent ID**: RVAPZQREEU
+• **Agent名**: Sales Support Agent
+• **バージョン**: 1.0
+• **ステータス**: PREPARED
+• **モデル**: anthropic.claude-3-sonnet-20240229-v1:0
+• **最終更新**: 2024/12/15
+
+**📝 説明**
+This Agent specializes in sales support, providing product recommendations,
+pricing information, and customer inquiry handling.
+
+**🧠 機能**
+このAgentは、上記の説明に記載された機能を提供します。
+
+Agentモードでは、より高度な推論と文書検索機能をご利用いただけます。
+```
+
+#### パターン2: Agent without Description
+
+**条件**: `agentInfo.description`フィールドが存在しない
+
+**表示例**:
+```markdown
+**🤖 Agent情報**
+• **Agent ID**: RVAPZQREEU
+• **Agent名**: Generic Agent
+• **バージョン**: 1.0
+• **ステータス**: PREPARED
+• **モデル**: anthropic.claude-3-sonnet-20240229-v1:0
+• **最終更新**: 2024/12/15
+
+**🧠 機能**
+• **多段階推論**: 複雑な問題を段階的に分析・解決
+• **自動文書検索**: 関連文書を自動的に検索・参照
+• **コンテキスト最適化**: 文脈に応じた最適な回答生成
+
+Agentモードでは、より高度な推論と文書検索機能をご利用いただけます。
+```
+
+### 翻訳キー
+
+**全8言語対応** (ja, en, ko, zh-CN, zh-TW, fr, de, es):
+
+1. **`agent.description`**: "説明" / "Description" / "설명" / "描述" / etc.
+2. **`agent.agentSpecificFeatures`**: Agent固有の機能説明テキスト
+
+**日本語の例**:
+```json
+{
+  "agent": {
+    "description": "説明",
+    "agentSpecificFeatures": "このAgentは、上記の説明に記載された機能を提供します。"
+  }
+}
+```
+
+**英語の例**:
+```json
+{
+  "agent": {
+    "description": "Description",
+    "agentSpecificFeatures": "This Agent provides the capabilities described in the description above."
+  }
+}
+```
+
+### データソース
+
+**AgentSummary Interface** (`docker/nextjs/src/hooks/useAgentsList.ts`):
+
+```typescript
+export interface AgentSummary {
+  agentId: string;
+  agentName: string;
+  agentStatus: string;
+  agentVersion?: string;
+  latestAgentVersion?: string;
+  description?: string;  // ✅ Agent固有の説明（オプショナル）
+  foundationModel?: string;
+  updatedAt?: string;
+  createdAt?: string;
+}
+```
+
+### ベストプラクティス
+
+1. **Graceful Fallback**: `description`が存在しない場合は汎用的な機能説明を表示
+2. **多言語対応**: 全8言語で翻訳キーを提供
+3. **Null Safety**: `agentInfo.description`の存在チェックを必ず実行
+4. **ユーザー体験**: Agent固有の情報を表示することで、各Agentの特徴を明確化
+
+### デプロイ情報
+
+- **デプロイ日時**: 2026-01-19 01:54 JST
+- **Image Tag**: `agent-description-20260118-164851`
+- **ステータス**: ✅ PRODUCTION READY
+- **詳細レポート**: `development/docs/reports/local/01-19-phase1-task2-agent-description-deployment-success.md`
 
 ---
 

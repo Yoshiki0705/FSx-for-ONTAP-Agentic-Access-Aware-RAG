@@ -10,6 +10,8 @@
     "information": "Agent 정보",
     "multiStepReasoning": "다단계 추론",
     "multiStepReasoningDesc": "복잡한 문제를 단계별로 해결",
+    "description": "설명",
+    "agentSpecificFeatures": "이 Agent는 위 설명에 명시된 기능을 제공합니다.",
     "wizard": {
       "basicSettings": "기본 설정",
       "basicSettingsDesc": "에이전트 이름 및 설명 구성",

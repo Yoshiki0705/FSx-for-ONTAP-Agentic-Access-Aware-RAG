@@ -1,0 +1,19 @@
+{
+  "name": "agent-core-ad-sync",
+  "version": "1.0.0",
+  "description": "AgentCore AD Sync Handler - Active Directory SID自動取得",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ssm": "^3.700.0",
+    "@aws-sdk/client-dynamodb": "^3.700.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3"
+  }
+}

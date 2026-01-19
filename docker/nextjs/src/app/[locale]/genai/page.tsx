@@ -5,7 +5,7 @@ import { ErrorBoundary } from '../../../components/ui/ErrorBoundary';
 // Force dynamic rendering to prevent SSR errors with client-only hooks
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useChatStore } from '../../../store';
@@ -157,15 +157,25 @@ const generateAgentModeInitialMessage = (
   // Agent情報が利用可能な場合は追加（動的Agent情報を使用）
   if (agentInfo && typeof agentInfo === 'object') {
     try {
+      // ✅ TASK 2 FIX: Enhanced logging to track description field
       console.log('🤖 [generateAgentModeInitialMessage] Adding agent info section...', {
         agentId: agentInfo.agentId,
         agentName: agentInfo.agentName,
-        status: agentInfo.agentStatus || agentInfo.status
+        status: agentInfo.agentStatus || agentInfo.status,
+        hasDescription: !!agentInfo.description,
+        descriptionLength: agentInfo.description?.length,
+        descriptionPreview: agentInfo.description?.substring(0, 50),
+        allKeys: Object.keys(agentInfo)
       });
 
       // Test tAgent function before using it
       const testTranslation = tAgent('information');
       console.log('✅ [generateAgentModeInitialMessage] tAgent test passed:', testTranslation);
+
+      // ✅ Agent固有の説明を使用（利用可能な場合）
+      const agentDescription = agentInfo.description 
+        ? `\n\n**📝 ${tAgent('description')}**\n${agentInfo.description}`
+        : '';
 
       const agentSection = `
 
@@ -175,12 +185,14 @@ const generateAgentModeInitialMessage = (
 • **${tAgent('version')}**: ${agentInfo.agentVersion || agentInfo.latestAgentVersion || 'N/A'}
 • **${tAgent('status')}**: ${agentInfo.agentStatus || agentInfo.status || 'N/A'}
 • **${tAgent('model')}**: ${agentInfo.foundationModel || 'N/A'}
-• **${tAgent('lastUpdated')}**: ${agentInfo.updatedAt ? new Date(agentInfo.updatedAt).toLocaleDateString('ja-JP') : 'N/A'}
+• **${tAgent('lastUpdated')}**: ${agentInfo.updatedAt ? new Date(agentInfo.updatedAt).toLocaleDateString('ja-JP') : 'N/A'}${agentDescription}
 
 **🧠 ${tAgent('features')}**
-• **${tAgent('multiStepReasoning')}**: ${tAgent('multiStepReasoningDesc')}
+${agentInfo.description 
+  ? `${tAgent('agentSpecificFeatures')}`  // Agent固有の機能説明がある場合
+  : `• **${tAgent('multiStepReasoning')}**: ${tAgent('multiStepReasoningDesc')}
 • **${tAgent('automaticDocumentSearch')}**: ${tAgent('automaticDocumentSearchDesc')}
-• **${tAgent('contextOptimization')}**: ${tAgent('contextOptimizationDesc')}
+• **${tAgent('contextOptimization')}**: ${tAgent('contextOptimizationDesc')}`}
 
 ${tAgent('modeDescription')}`;
 
@@ -476,8 +488,9 @@ function ChatbotPageContent() {
   // Zustandストアを強制的に初期化（Next.js 15のTree Shaking対策）
   const regionStore = useRegionStore();
   
-  // ✅ 2026-01-17: useAuthStoreと同期してuser stateを管理
-  const { session, isAuthenticated } = useAuthStore();
+  // ✅ 2026-01-19: useAuthStoreと同期してuser stateを管理（sign-out fix）
+  const authStore = useAuthStore();
+  const { session, isAuthenticated } = authStore;
   
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -676,6 +689,38 @@ function ChatbotPageContent() {
         
         setUser(parsedUser);
 
+        // ✅ 2026-01-19 v3: useAuthStoreを直接更新してHeader.tsxのサインアウトボタンを有効化
+        // checkSession()はCookie認証に依存し失敗するため、localStorageから取得したユーザー情報で直接更新
+        console.log('🔄 [ChatbotPage v3] Syncing authentication state with useAuthStore...', {
+          username: parsedUser.username,
+          role: parsedUser.role
+        });
+        
+        // useAuthStoreの状態を直接設定（Zustand setState使用）
+        const session = {
+          user: {
+            username: parsedUser.username,
+            role: parsedUser.role || 'user',
+            permissions: parsedUser.permissions || []
+          },
+          loginTime: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          lastActivity: new Date().toISOString()
+        };
+        
+        // Zustand storeを正しく更新（setState使用）
+        useAuthStore.setState({
+          isAuthenticated: true,
+          session: session,
+          isLoading: false
+        });
+        
+        console.log('✅ [ChatbotPage v3] useAuthStore updated directly:', {
+          isAuthenticated: true,
+          hasSession: true,
+          sessionUser: parsedUser.username
+        });
+
         // FSxディレクトリ情報の取得
         const fetchUserDirectories = async () => {
           setIsLoadingDirectories(true);
@@ -828,9 +873,15 @@ function ChatbotPageContent() {
   useEffect(() => {
     const handleAgentSelectionChange = (event: CustomEvent) => {
       const { agentInfo, executionStatus, progressReport } = event.detail;
+      
+      // ✅ TASK 2 FIX: Enhanced logging to track description field
       console.log('🤖 [ChatbotPage] Agent選択変更イベント受信:', {
         hasAgentInfo: !!agentInfo,
         agentId: agentInfo?.agentId,
+        agentName: agentInfo?.agentName,
+        hasDescription: !!agentInfo?.description,
+        descriptionLength: agentInfo?.description?.length,
+        descriptionPreview: agentInfo?.description?.substring(0, 50),
         hasExecutionStatus: !!executionStatus,
         hasProgressReport: !!progressReport,
         timestamp: event.detail.timestamp
@@ -1777,16 +1828,26 @@ function ChatbotPageContent() {
     }
   };
 
+  // ✅ v10: Use useRef and useEffect for direct DOM manipulation
+  // This bypasses React's event system entirely and attaches handler after mount
+  const signOutButtonRef = useRef<HTMLButtonElement>(null);
+  
   const handleSignOut = async () => {
+    const signOutVersion = 'v12'; // ✅ v12: setTimeout fix for DOM update timing
+    console.log(`🔘 [handleSignOut ${signOutVersion}] Sign-out button clicked!`);
     try {
       // CSRF tokenを取得
+      console.log(`🔄 [handleSignOut ${signOutVersion}] Fetching CSRF token...`);
       const csrfResponse = await fetch('/api/auth/csrf-token');
       if (!csrfResponse.ok) {
+        console.warn(`⚠️ [handleSignOut ${signOutVersion}] Failed to get CSRF token, proceeding with local cleanup`);
         throw new Error('Failed to get CSRF token');
       }
       const { token: csrfToken } = await csrfResponse.json();
+      console.log(`✅ [handleSignOut ${signOutVersion}] CSRF token obtained`);
 
       // サインアウトAPIを呼び出し
+      console.log(`🔄 [handleSignOut ${signOutVersion}] Calling sign-out API...`);
       const response = await fetch('/api/auth/signout', {
         method: 'POST',
         headers: {
@@ -1796,18 +1857,61 @@ function ChatbotPageContent() {
       });
 
       if (!response.ok) {
+        console.warn(`⚠️ [handleSignOut ${signOutVersion}] Sign-out API failed, proceeding with local cleanup`);
         throw new Error('Sign-out failed');
       }
+      
+      console.log(`✅ [handleSignOut ${signOutVersion}] Sign-out API succeeded`);
     } catch (error) {
-      console.error('Sign-out error:', error);
+      console.error(`❌ [handleSignOut ${signOutVersion}] Sign-out error:`, error);
+      // エラーが発生してもローカルクリーンアップは実行
     } finally {
-      // ローカルストレージをクリア
+      // ✅ 必ずローカルストレージをクリアしてリダイレクト
+      console.log(`🧹 [handleSignOut ${signOutVersion}] Cleaning up local storage and redirecting...`);
       localStorage.removeItem('user');
+      localStorage.removeItem('session');
+      localStorage.removeItem('chatSessions');
+      
       // サインインページにリダイレクト
-      router.push('/signin');
+      const redirectUrl = `/${memoizedLocale}/signin`;
+      console.log(`🔄 [handleSignOut ${signOutVersion}] Redirecting to ${redirectUrl}`);
+      window.location.href = redirectUrl;
     }
   };
+  
+  // ✅ v12: Attach event handler after component mount using useEffect with setTimeout
+  // setTimeout ensures DOM is fully updated before attaching handler
+  useEffect(() => {
+    console.log('🔧 [useEffect v12] Attaching sign-out button handler...');
+    
+    // Use setTimeout with 100ms delay to ensure Header component is fully mounted
+    const timeoutId = setTimeout(() => {
+      const button = signOutButtonRef.current;
+      
+      if (button) {
+        console.log('✅ [useEffect v12] Button ref found, attaching onclick handler');
+        button.onclick = (e) => {
+          e.preventDefault();
+          console.log('🔘 [DOM onclick v12] Sign-out button clicked - calling handleSignOut()');
+          handleSignOut();
+        };
+      } else {
+        console.warn('⚠️ [useEffect v12] Button ref not found');
+      }
+    }, 100); // 100ms delay to ensure Header is fully mounted
+    
+    // Cleanup
+    return () => {
+      clearTimeout(timeoutId);
+      const button = signOutButtonRef.current;
+      if (button) {
+        console.log('🧹 [useEffect v10] Cleaning up onclick handler');
+        button.onclick = null;
+      }
+    };
+  }, [user, memoizedLocale]); // Re-attach when user or locale changes
 
+  // ✅ v5: Early return check AFTER handleSignOut is defined
   if (!isClient || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -2243,7 +2347,7 @@ function ChatbotPageContent() {
                   {t('auth.welcomeMessage', { username: user?.username })}
                 </span>
                 <button
-                  onClick={handleSignOut}
+                  ref={signOutButtonRef}
                   className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                 >
                   {translations.signOutButton}

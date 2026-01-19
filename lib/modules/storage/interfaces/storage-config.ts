@@ -266,6 +266,59 @@ export interface S3CustomBucket {
 }
 
 /**
+ * FSx for ONTAP S3 Access Point設定
+ */
+export interface FsxOntapS3AccessPointConfig {
+  /** S3 Access Point有効化 */
+  readonly enabled: boolean;
+  
+  /** 
+   * S3 Access Point名（オプション）
+   * 指定しない場合は自動生成: {projectName}-{environment}-gateway-specs-ap
+   */
+  readonly name?: string;
+  
+  /** ファイルシステムユーザーID設定 */
+  readonly fileSystemIdentity: {
+    /** ユーザータイプ: UNIX or WINDOWS */
+    readonly type: 'UNIX' | 'WINDOWS';
+    
+    /** UNIXユーザー設定（type='UNIX'の場合） */
+    readonly unixUser?: {
+      /** UNIXユーザー名（例: 'ec2-user', 'root'） */
+      readonly name: string;
+    };
+    
+    /** Windowsユーザー設定（type='WINDOWS'の場合） */
+    readonly windowsUser?: {
+      /** Windowsユーザー名（例: 'Administrator'） */
+      readonly name: string;
+    };
+  };
+  
+  /** ネットワーク設定（オプション） */
+  readonly networkConfiguration?: {
+    /** VPC制限を有効化するか */
+    readonly vpcRestricted: boolean;
+    
+    /** VPC ID（vpcRestricted=trueの場合は必須） */
+    readonly vpcId?: string;
+  };
+  
+  /** IAMポリシー設定（オプション） */
+  readonly iamPolicy?: {
+    /** IAMポリシーを有効化するか */
+    readonly enabled: boolean;
+    
+    /** 許可するIAMプリンシパル（IAM Role ARNs） */
+    readonly allowedPrincipals?: string[];
+    
+    /** 許可するS3アクション（例: ['s3:GetObject', 's3:ListBucket']） */
+    readonly allowedActions?: string[];
+  };
+}
+
+/**
  * FSx設定
  */
 export interface FsxConfig {
@@ -289,6 +342,9 @@ export interface FsxConfig {
   
   /** ONTAP固有設定 */
   readonly ontapConfig?: FsxOntapConfig;
+  
+  /** S3 Access Point設定（FSx for ONTAP専用） */
+  readonly s3AccessPoint?: FsxOntapS3AccessPointConfig;
   
   // storage-construct.ts互換性のための追加プロパティ
   /** 自動バックアップ保持期間（日） */
@@ -466,6 +522,27 @@ export interface StorageConfig {
   /** FSx ONTAP設定（environment-config.ts互換性のため） */
   readonly fsxOntap?: FsxConfig;
   
+  /** Gateway Construct用S3バケット設定 */
+  readonly gateway?: {
+    /**
+     * Gateway機能を有効化するか
+     * @default false
+     */
+    readonly enabled?: boolean;
+    
+    /**
+     * OpenAPI仕様ファイルのデプロイ設定
+     * @default true
+     */
+    readonly deploySpecs?: boolean;
+    
+    /**
+     * バケット名プレフィックス（オプション）
+     * 指定しない場合は {projectName}-{environment}-gateway-specs
+     */
+    readonly bucketNamePrefix?: string;
+  };
+  
   /** バックアップ設定 */
   readonly backup?: StorageBackupConfig;
   
@@ -611,5 +688,15 @@ export interface StorageOutputs {
   /** FSxデータベースボリューム */
   readonly fsxDatabaseVolume?: fsx.CfnVolume;
   readonly fsxDatabaseVolumeId?: string;
+  
+  /** FSx Gateway Specsボリューム */
+  readonly fsxGatewayVolume?: fsx.CfnVolume;
+  readonly fsxGatewayVolumeId?: string;
+  
+  /** FSx S3 Access Point */
+  readonly fsxS3AccessPoint?: fsx.CfnS3AccessPointAttachment;
+  readonly fsxS3AccessPointArn?: string;
+  readonly fsxS3AccessPointAlias?: string;
+  readonly fsxS3AccessPointName?: string;
   
 }

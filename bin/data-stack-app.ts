@@ -31,10 +31,10 @@ const regionPrefix = 'TokyoRegion';
 
 // NetworkingStackからのVPC情報（CloudFormation出力値から取得）
 const vpcConfig = {
-  vpcId: 'vpc-05273211525990e49',
-  availabilityZones: ['ap-northeast-1a', 'ap-northeast-1c', 'ap-northeast-1d'],
-  publicSubnetIds: ['subnet-0789b65b5bcb18500', 'subnet-07526121a7c92b606', 'subnet-0fa216f00fc37302d'],
-  privateSubnetIds: ['subnet-0680aed62b70b92e8', 'subnet-0140b35055e9e388b', 'subnet-077ec5d7d1a6ed82f'],
+  vpcId: 'vpc-066c268dc0cd2e6fd',
+  availabilityZones: ['ap-northeast-1a', 'ap-northeast-1c'],
+  publicSubnetIds: ['subnet-009f9c39eb1783be3', 'subnet-0bcf9bb06f9123bc6'],
+  privateSubnetIds: ['subnet-06047e82ccdc7fbea', 'subnet-0e48a5cddf1c88b57'],
   vpcCidrBlock: '10.0.0.0/16',
 };
 
@@ -50,9 +50,9 @@ const dataStackConfig = {
       DataClassification: 'Confidential',
       RetentionPeriod: '0days',
     },
-    // FSx設定（主要ストレージ）- 一時的に無効化してEarly Validation errorの原因を特定
+    // FSx設定（主要ストレージ）- Phase 5: FSx for ONTAP + S3 Access Point統合
     fsx: {
-      enabled: false, // 一時的に無効化
+      enabled: true, // ✅ Phase 5: FSx for ONTAP再有効化
       fileSystemType: 'ONTAP' as const,
       storageCapacity: 1024,
       throughputCapacity: 128,
@@ -65,6 +65,32 @@ const dataStackConfig = {
         retentionDays: 0,
         disableBackupConfirmed: true,
       },
+      // ✅ Phase 5: S3 Access Point設定（IaC準拠）
+      s3AccessPoint: {
+        enabled: true,
+        name: `${projectName}-${environment}-gateway-specs-ap`, // 動的生成
+        fileSystemIdentity: {
+          type: 'UNIX' as const,
+          unixUser: {
+            name: 'ec2-user', // UNIXユーザー（ファイルシステム権限あり）
+          },
+        },
+        networkConfiguration: {
+          vpcRestricted: true, // VPC制限を有効化
+          vpcId: vpcConfig.vpcId, // vpc-066c268dc0cd2e6fd（動的参照）
+        },
+        iamPolicy: {
+          enabled: false, // 初期デプロイでは無効化（後で有効化可能）
+          allowedPrincipals: [], // IAM Role ARNs（後で追加）
+          allowedActions: ['s3:GetObject', 's3:ListBucket'], // 基本的なS3アクション
+        },
+      },
+    },
+    // Gateway設定（Phase 4: AgentCore Gateway統合）
+    gateway: {
+      enabled: true,
+      deploySpecs: true,
+      bucketNamePrefix: 'permission-aware-rag', // Optional
     },
   },
   
@@ -155,17 +181,17 @@ const dataStackConfig = {
   },
 };
 
-// DataStack作成（VPC設定なし - DynamoDBのみデプロイ）
+// DataStack作成（VPC設定あり - FSx for ONTAP用）
 const dataStack = new DataStack(app, `${regionPrefix}-${projectName}-${environment}-Data`, {
   env,
-  description: 'Data and Storage Stack - DynamoDB only (FSx disabled for testing)',
+  description: 'Data and Storage Stack - DynamoDB + FSx for ONTAP + Gateway Specs Bucket',
   
   // 統合設定
   config: dataStackConfig,
   
-  // VPC設定（NetworkingStackから）- 一時的にコメントアウト
-  // vpc: vpcConfig,
-  // privateSubnetIds: vpcConfig.privateSubnetIds,
+  // VPC設定（NetworkingStackから）- FSx for ONTAP用
+  vpc: vpcConfig,
+  privateSubnetIds: vpcConfig.privateSubnetIds,
   
   // プロジェクト設定
   projectName,

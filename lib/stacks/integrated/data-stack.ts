@@ -11,6 +11,8 @@
 import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import { Construct } from 'constructs';
 
 // 統合ストレージコンストラクト（モジュラーアーキテクチャ）
@@ -170,6 +172,11 @@ export class DataStack extends cdk.Stack {
     // 他スタックからの参照用プロパティ設定
     this.setupCrossStackReferences();
 
+    // Gateway Construct用S3バケット作成（Phase 4: AgentCore Gateway統合）
+    if (props.config.storage?.gateway?.enabled) {
+      this.createGatewaySpecsBucket(props);
+    }
+
     // スタック出力
     this.createOutputs();
 
@@ -281,8 +288,23 @@ export class DataStack extends cdk.Stack {
         });
       }
 
-      //   });
-      // }
+      // FSx S3 Access Point ARN（動的取得）
+      if (this.storage.outputs.fsxS3AccessPointArn) {
+        new cdk.CfnOutput(this, 'FsxS3AccessPointArn', {
+          value: this.storage.outputs.fsxS3AccessPointArn,
+          description: 'FSx for ONTAP S3 Access Point ARN',
+          exportName: `${this.stackName}-FsxS3AccessPointArn`,
+        });
+      }
+
+      // FSx S3 Access Point Alias（動的取得）
+      if (this.storage.outputs.fsxS3AccessPointAlias) {
+        new cdk.CfnOutput(this, 'FsxS3AccessPointAlias', {
+          value: this.storage.outputs.fsxS3AccessPointAlias,
+          description: 'FSx for ONTAP S3 Access Point Alias',
+          exportName: `${this.stackName}-FsxS3AccessPointAlias`,
+        });
+      }
     }
 
     console.log('📤 DataStack出力値作成完了');
@@ -448,5 +470,123 @@ export class DataStack extends cdk.Stack {
     });
 
     console.log('✅ 機能復旧用DynamoDBテーブル作成完了');
+  }
+
+  /**
+   * Gateway Construct用S3バケット作成（Phase 4: AgentCore Gateway統合）
+   */
+  private createGatewaySpecsBucket(props: DataStackProps): void {
+    console.log('📦 Gateway用S3バケット作成中...');
+    
+    const gatewayBucketName = props.config.storage?.gateway?.bucketNamePrefix 
+      ? `${props.config.storage.gateway.bucketNamePrefix}-${props.environment}`
+      : `${props.projectName}-${props.environment}-gateway-specs`;
+    
+    const gatewayBucket = new s3.Bucket(this, 'GatewaySpecsBucket', {
+      bucketName: gatewayBucketName,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      versioned: true,
+      lifecycleRules: [
+        {
+          id: 'DeleteOldVersions',
+          enabled: true,
+          noncurrentVersionExpiration: cdk.Duration.days(30),
+        },
+      ],
+      removalPolicy: props.environment === 'prod' 
+        ? cdk.RemovalPolicy.RETAIN 
+        : cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: props.environment !== 'prod',
+    });
+    
+    // S3バケット名を出力（他スタックからの参照用）
+    this.s3BucketNames['gatewaySpecs'] = gatewayBucket.bucketName;
+    
+    // CloudFormation Output
+    new cdk.CfnOutput(this, 'GatewaySpecsBucketName', {
+      value: gatewayBucket.bucketName,
+      description: 'Gateway Specs S3 Bucket Name',
+      exportName: `${this.stackName}-GatewaySpecsBucketName`,
+    });
+    
+    new cdk.CfnOutput(this, 'GatewaySpecsBucketArn', {
+      value: gatewayBucket.bucketArn,
+      description: 'Gateway Specs S3 Bucket ARN',
+      exportName: `${this.stackName}-GatewaySpecsBucketArn`,
+    });
+    
+    // サンプルOpenAPI仕様をデプロイ時に作成（オプション）
+    if (props.config.storage?.gateway?.deploySpecs !== false) {
+      new s3deploy.BucketDeployment(this, 'GatewaySpecsDeployment', {
+        sources: [
+          s3deploy.Source.data(
+            'openapi/sample-openapi.yaml', 
+            this.getSampleOpenApiSpec()
+          )
+        ],
+        destinationBucket: gatewayBucket,
+      });
+    }
+    
+    console.log('✅ Gateway用S3バケット作成完了');
+  }
+
+  /**
+   * サンプルOpenAPI仕様生成メソッド
+   */
+  private getSampleOpenApiSpec(): string {
+    return `openapi: 3.0.0
+info:
+  title: FSx for ONTAP Document API
+  description: API for accessing documents stored in FSx for ONTAP via S3 Access Points
+  version: 1.0.0
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+paths:
+  /documents:
+    get:
+      summary: List documents
+      description: Retrieve a list of documents accessible via FSx for ONTAP
+      operationId: listDocuments
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of documents to return
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Document'
+components:
+  schemas:
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+        size:
+          type: integer
+        lastModified:
+          type: string
+          format: date-time`;
   }
 }

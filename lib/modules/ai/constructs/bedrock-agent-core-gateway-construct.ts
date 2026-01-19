@@ -18,15 +18,17 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as kms from 'aws-cdk-lib/aws-kms';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 
 /**
  * REST API変換設定
  */
 export interface RestApiConversionConfig {
   /**
-   * OpenAPI仕様ファイルのパス（S3 URIまたはローカルパス）
+   * OpenAPI仕様ファイルのS3キー
+   * バケット名はgatewaySpecsBucketから取得
    */
-  readonly openApiSpecPath: string;
+  readonly openApiSpecKey?: string;
 
   /**
    * API Gateway統合設定
@@ -35,12 +37,12 @@ export interface RestApiConversionConfig {
     /**
      * API Gateway REST APIのID
      */
-    readonly apiId: string;
+    readonly apiId?: string;
 
     /**
      * API Gatewayのステージ名
      */
-    readonly stageName: string;
+    readonly stageName?: string;
 
     /**
      * 認証タイプ（IAM, COGNITO, API_KEY, NONE）
@@ -75,8 +77,9 @@ export interface RestApiConversionConfig {
 export interface LambdaFunctionConversionConfig {
   /**
    * 変換対象のLambda関数ARNリスト
+   * 空の場合はLambda Converter機能を無効化
    */
-  readonly functionArns: string[];
+  readonly functionArns?: string[];
 
   /**
    * Lambda関数のメタデータ取得方法
@@ -126,7 +129,7 @@ export interface McpServerIntegrationConfig {
   /**
    * MCPサーバーのエンドポイントURL
    */
-  readonly serverEndpoint: string;
+  readonly serverEndpoint?: string;
 
   /**
    * MCPサーバーの認証設定
@@ -149,17 +152,17 @@ export interface McpServerIntegrationConfig {
       /**
        * クライアントID
        */
-      readonly clientId: string;
+      readonly clientId?: string;
 
       /**
        * クライアントシークレット（Secrets Manager ARN）
        */
-      readonly clientSecretArn: string;
+      readonly clientSecretArn?: string;
 
       /**
        * トークンエンドポイント
        */
-      readonly tokenEndpoint: string;
+      readonly tokenEndpoint?: string;
     };
   };
 
@@ -228,6 +231,18 @@ export interface BedrockAgentCoreGatewayConstructProps {
    * 環境名（dev, staging, prod等）
    */
   readonly environment: string;
+
+  /**
+   * Gateway Specs S3バケット（DataStackから参照）
+   * IaC化: CloudFormation Importから動的に取得
+   */
+  readonly gatewaySpecsBucket?: s3.IBucket;
+  
+  /**
+   * FSx for ONTAP File System ID（DataStackから参照）
+   * IaC化: CloudFormation Importから動的に取得
+   */
+  readonly fsxFileSystemId?: string;
 
   /**
    * REST API変換設定
@@ -311,6 +326,7 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
 
     if (!this.enabled) {
       // 無効化されている場合は何もしない
+      console.log('ℹ️  Gateway Constructは無効化されています');
       return;
     }
 
@@ -323,19 +339,33 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
     // CloudWatch Logsロググループの作成
     this.logGroup = this.createLogGroup(props);
 
-    // REST API変換機能の実装
-    if (props.restApiConversion) {
+    // REST API変換機能の実装（条件付き）
+    if (props.restApiConversion && props.gatewaySpecsBucket) {
+      console.log('🔄 REST API Converter作成中...');
       this.restApiConverterFunction = this.createRestApiConverterFunction(props);
+      console.log('✅ REST API Converter作成完了');
+    } else if (props.restApiConversion) {
+      console.warn('⚠️  REST API変換が有効ですが、gatewaySpecsBucketが提供されていません');
     }
 
-    // Lambda関数変換機能の実装
-    if (props.lambdaFunctionConversion) {
+    // Lambda関数変換機能の実装（条件付き）
+    if (props.lambdaFunctionConversion && 
+        props.lambdaFunctionConversion.functionArns && 
+        props.lambdaFunctionConversion.functionArns.length > 0) {
+      console.log('🔄 Lambda Function Converter作成中...');
       this.lambdaConverterFunction = this.createLambdaConverterFunction(props);
+      console.log('✅ Lambda Function Converter作成完了');
+    } else if (props.lambdaFunctionConversion) {
+      console.log('ℹ️  Lambda Function Converterは無効化されています（functionArnsが空）');
     }
 
-    // MCPサーバー統合機能の実装
-    if (props.mcpServerIntegration) {
+    // MCPサーバー統合機能の実装（条件付き）
+    if (props.mcpServerIntegration && props.mcpServerIntegration.serverEndpoint) {
+      console.log('🔄 MCP Server Integration作成中...');
       this.mcpIntegrationFunction = this.createMcpIntegrationFunction(props);
+      console.log('✅ MCP Server Integration作成完了');
+    } else if (props.mcpServerIntegration) {
+      console.warn('⚠️  MCP Server統合が有効ですが、serverEndpointが提供されていません');
     }
 
     // タグの適用
@@ -355,11 +385,33 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
    * KMS暗号化キーを作成
    */
   private createEncryptionKey(props: BedrockAgentCoreGatewayConstructProps): kms.Key {
-    return new kms.Key(this, 'EncryptionKey', {
+    const key = new kms.Key(this, 'EncryptionKey', {
       description: `Encryption key for ${props.projectName}-${props.environment} Bedrock AgentCore Gateway`,
       enableKeyRotation: true,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
+    
+    // CloudWatch Logsに KMS key使用権限を付与
+    key.addToResourcePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      principals: [new iam.ServicePrincipal(`logs.${cdk.Stack.of(this).region}.amazonaws.com`)],
+      actions: [
+        'kms:Encrypt',
+        'kms:Decrypt',
+        'kms:ReEncrypt*',
+        'kms:GenerateDataKey*',
+        'kms:CreateGrant',
+        'kms:DescribeKey',
+      ],
+      resources: ['*'],
+      conditions: {
+        ArnLike: {
+          'kms:EncryptionContext:aws:logs:arn': `arn:aws:logs:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:log-group:/aws/bedrock-agent-core/gateway/${props.projectName}-${props.environment}`,
+        },
+      },
+    }));
+    
+    return key;
   }
 
   /**
@@ -408,8 +460,9 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
       }));
     }
 
-    // Lambda権限の追加（Lambda関数変換が有効な場合）
-    if (props.lambdaFunctionConversion) {
+    // Lambda権限の追加（Lambda関数変換が有効で、functionArnsが提供されている場合のみ）
+    if (props.lambdaFunctionConversion?.functionArns && 
+        props.lambdaFunctionConversion.functionArns.length > 0) {
       role.addToPolicy(new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         actions: [
@@ -422,18 +475,28 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
       }));
     }
 
-    // Secrets Manager権限の追加（MCPサーバー統合が有効な場合）
+    // Secrets Manager権限の追加（MCPサーバー統合が有効で、secretArnsが提供されている場合のみ）
     if (props.mcpServerIntegration?.authentication) {
-      role.addToPolicy(new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: [
-          'secretsmanager:GetSecretValue',
-        ],
-        resources: [
-          props.mcpServerIntegration.authentication.apiKeySecretArn || '*',
-          props.mcpServerIntegration.authentication.oauth2Config?.clientSecretArn || '*',
-        ].filter(arn => arn !== '*'),
-      }));
+      const secretArns: string[] = [];
+      
+      if (props.mcpServerIntegration.authentication.apiKeySecretArn) {
+        secretArns.push(props.mcpServerIntegration.authentication.apiKeySecretArn);
+      }
+      
+      if (props.mcpServerIntegration.authentication.oauth2Config?.clientSecretArn) {
+        secretArns.push(props.mcpServerIntegration.authentication.oauth2Config.clientSecretArn);
+      }
+      
+      // secretArnsが存在する場合のみポリシーを追加
+      if (secretArns.length > 0) {
+        role.addToPolicy(new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [
+            'secretsmanager:GetSecretValue',
+          ],
+          resources: secretArns,
+        }));
+      }
     }
 
     return role;
@@ -443,35 +506,48 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
    * CloudWatch Logsロググループを作成
    */
   private createLogGroup(props: BedrockAgentCoreGatewayConstructProps): logs.LogGroup {
-    return new logs.LogGroup(this, 'LogGroup', {
+    const logGroup = new logs.LogGroup(this, 'LogGroup', {
       logGroupName: `/aws/bedrock-agent-core/gateway/${props.projectName}-${props.environment}`,
       retention: props.logRetentionDays ?? logs.RetentionDays.ONE_WEEK,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
-      encryptionKey: this.encryptionKey,
+      // KMS暗号化を無効化（CloudWatch Logsとの互換性問題を回避）
+      // encryptionKey: this.encryptionKey,
     });
+    
+    return logGroup;
   }
 
   /**
-   * REST API変換Lambda関数を作成
+   * REST API変換Lambda関数を作成（IaC版）
    */
   private createRestApiConverterFunction(props: BedrockAgentCoreGatewayConstructProps): lambda.Function {
-    if (!props.restApiConversion) {
-      throw new Error('REST API変換設定が指定されていません');
+    if (!props.restApiConversion || !props.gatewaySpecsBucket) {
+      throw new Error('REST API変換設定またはgatewaySpecsBucketが指定されていません');
     }
 
     const config = props.restApiConversion;
 
-    // 環境変数の準備
+    // 環境変数の準備（完全動的）
     const environment: { [key: string]: string } = {
       PROJECT_NAME: props.projectName,
       ENVIRONMENT: props.environment,
-      OPENAPI_SPEC_PATH: config.openApiSpecPath,
+      GATEWAY_SPECS_BUCKET: props.gatewaySpecsBucket.bucketName,
+      OPENAPI_SPEC_KEY: config.openApiSpecKey || 'openapi/sample-openapi.yaml',
     };
 
-    // API Gateway統合設定
+    // FSx File System ID（オプション）
+    if (props.fsxFileSystemId) {
+      environment.FSX_FILE_SYSTEM_ID = props.fsxFileSystemId;
+    }
+
+    // API Gateway統合設定（オプション）
     if (config.apiGatewayIntegration) {
-      environment.API_GATEWAY_ID = config.apiGatewayIntegration.apiId;
-      environment.API_GATEWAY_STAGE = config.apiGatewayIntegration.stageName;
+      if (config.apiGatewayIntegration.apiId) {
+        environment.API_GATEWAY_ID = config.apiGatewayIntegration.apiId;
+      }
+      if (config.apiGatewayIntegration.stageName) {
+        environment.API_GATEWAY_STAGE = config.apiGatewayIntegration.stageName;
+      }
       if (config.apiGatewayIntegration.authType) {
         environment.AUTH_TYPE = config.apiGatewayIntegration.authType;
       }
@@ -503,21 +579,8 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
       description: `REST API Converter for ${props.projectName}-${props.environment} Bedrock AgentCore Gateway`,
     });
 
-    // S3読み取り権限の追加（OpenAPI仕様がS3にある場合）
-    if (config.openApiSpecPath.startsWith('s3://')) {
-      const match = config.openApiSpecPath.match(/^s3:\/\/([^\/]+)\//);
-      if (match) {
-        const bucketName = match[1];
-        fn.addToRolePolicy(new iam.PolicyStatement({
-          effect: iam.Effect.ALLOW,
-          actions: [
-            's3:GetObject',
-            's3:GetObjectVersion',
-          ],
-          resources: [`arn:aws:s3:::${bucketName}/*`],
-        }));
-      }
-    }
+    // S3読み取り権限の追加（Gateway Specs Bucket）
+    props.gatewaySpecsBucket.grantRead(fn);
 
     return fn;
   }
@@ -577,16 +640,18 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
       description: `Lambda Function Converter for ${props.projectName}-${props.environment} Bedrock AgentCore Gateway`,
     });
 
-    // Lambda関数メタデータ取得権限の追加
-    fn.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'lambda:GetFunction',
-        'lambda:GetFunctionConfiguration',
-        'lambda:ListTags',
-      ],
-      resources: config.functionArns,
-    }));
+    // Lambda関数メタデータ取得権限の追加（functionArnsが提供されている場合のみ）
+    if (config.functionArns && config.functionArns.length > 0) {
+      fn.addToRolePolicy(new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'lambda:GetFunction',
+          'lambda:GetFunctionConfiguration',
+          'lambda:ListTags',
+        ],
+        resources: config.functionArns,
+      }));
+    }
 
     // Lambda関数呼び出し権限の追加（カスタムメタデータプロバイダーがある場合）
     if (config.metadataSource?.customMetadataProvider) {
@@ -617,6 +682,11 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
       PROJECT_NAME: props.projectName,
       ENVIRONMENT: props.environment,
     };
+
+    // MCPサーバーエンドポイント（オプション）
+    if (config.serverEndpoint) {
+      environment.MCP_SERVER_ENDPOINT = config.serverEndpoint;
+    }
 
     // WebSocket統合設定
     if (config.webSocketConfig) {

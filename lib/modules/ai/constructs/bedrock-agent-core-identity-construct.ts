@@ -129,13 +129,21 @@ export class BedrockAgentCoreIdentityConstruct extends Construct {
       this.lambdaRole.addToPolicy(new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         actions: [
-          'ssm:SendCommand',
-          'ssm:GetCommandInvocation'
+          'ssm:SendCommand'
         ],
         resources: [
           `arn:aws:ec2:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:instance/${props.adEc2InstanceId}`,
           `arn:aws:ssm:${cdk.Stack.of(this).region}::document/AWS-RunPowerShellScript`
         ]
+      }));
+
+      // SSM GetCommandInvocation権限（全リソース）
+      this.lambdaRole.addToPolicy(new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'ssm:GetCommandInvocation'
+        ],
+        resources: ['*']
       }));
 
       // VPC統合が有効な場合、VPC権限追加
@@ -158,7 +166,19 @@ export class BedrockAgentCoreIdentityConstruct extends Construct {
         functionName: `${props.projectName}-${props.environment}-ad-sync`,
         runtime: lambda.Runtime.NODEJS_20_X,
         handler: 'index.handler',
-        code: lambda.Code.fromAsset('lambda/agent-core-ad-sync'),
+        code: lambda.Code.fromAsset('lambda/agent-core-ad-sync', {
+          bundling: {
+            image: lambda.Runtime.NODEJS_20_X.bundlingImage,
+            command: [
+              'bash', '-c', [
+                'npm install --production',
+                'npx tsc',
+                'cp -r dist/* /asset-output/',
+                'cp -r node_modules /asset-output/'
+              ].join(' && ')
+            ]
+          }
+        }),
         role: this.lambdaRole,
         timeout: cdk.Duration.seconds(props.ssmTimeout ? props.ssmTimeout + 30 : 60),
         memorySize: 512,

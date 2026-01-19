@@ -39,17 +39,9 @@ export class BedrockAgentCoreRuntimeConstruct extends Construct {
       description: props.description || 'Bedrock Agent Core Runtime Function',
       runtime: props.lambdaConfig?.runtime || lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
-      code: lambda.Code.fromInline(`
-        exports.handler = async (event) => {
-          console.log('Event:', JSON.stringify(event, null, 2));
-          return {
-            statusCode: 200,
-            body: JSON.stringify({ message: 'Bedrock Agent Core Runtime Function' })
-          };
-        };
-      `),
+      code: lambda.Code.fromAsset('lambda/agent-core-runtime'),
       timeout: props.lambdaConfig?.timeout || cdk.Duration.seconds(30),
-      memorySize: props.lambdaConfig?.memorySize || 128,
+      memorySize: props.lambdaConfig?.memorySize || 2048,
       environment: props.lambdaConfig?.environment,
       role: this.executionRole,
       logRetention: props.logRetention || logs.RetentionDays.ONE_WEEK,

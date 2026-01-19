@@ -16,6 +16,7 @@
 
 import * as AWS from 'aws-sdk';
 import * as cdk from 'aws-cdk-lib';
+import { IConstruct } from 'constructs';
 
 export interface ResourceConflictCheckResult {
   hasConflict: boolean;
@@ -512,7 +513,7 @@ export class ResourceConflictAspect implements cdk.IAspect {
     this.handler = handler;
   }
 
-  visit(node: cdk.IConstruct): void {
+  visit(node: IConstruct): void {
     // DynamoDBテーブルを収集
     if (node instanceof cdk.aws_dynamodb.Table) {
       const table = node as cdk.aws_dynamodb.Table;
@@ -524,8 +525,9 @@ export class ResourceConflictAspect implements cdk.IAspect {
     // Security Groupを収集
     if (node instanceof cdk.aws_ec2.SecurityGroup) {
       const sg = node as cdk.aws_ec2.SecurityGroup;
-      if (sg.securityGroupName) {
-        this.securityGroupNames.push(sg.securityGroupName);
+      // securityGroupName is not available in CDK v2, use securityGroupId instead
+      if (sg.securityGroupId) {
+        this.securityGroupNames.push(sg.securityGroupId);
       }
     }
   }

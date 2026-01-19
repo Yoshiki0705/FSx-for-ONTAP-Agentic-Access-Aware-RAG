@@ -20,6 +20,8 @@
     "contextOptimization": "上下文优化",
     "contextOptimizationDesc": "根据上下文生成最佳回答",
     "modeDescription": "Agent 模式提供高级推理和文档搜索功能。",
+    "description": "描述",
+    "agentSpecificFeatures": "此 Agent 提供上述描述中列出的功能。",
     "createAgent": "创建 Agent",
     "createNew": "创建新 Agent",
     "delete": "删除代理",

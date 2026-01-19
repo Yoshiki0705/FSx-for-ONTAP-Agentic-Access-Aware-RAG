@@ -131,14 +131,15 @@ export async function handler(event: AdSyncEvent): Promise<AdSyncResponse> {
       }
     };
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
     console.error('AD Sync failed:', error);
     
     return {
       success: false,
       error: {
-        code: error.code || 'UNKNOWN_ERROR',
-        message: error.message || 'Unknown error occurred'
+        code: err.code || 'UNKNOWN_ERROR',
+        message: err.message || 'Unknown error occurred'
       }
     };
   }
@@ -200,9 +201,10 @@ async function getAdUserInfoWithRetry(
       const userInfo = await getAdUserInfo(username);
       return userInfo;
       
-    } catch (error) {
-      lastError = error;
-      console.error(`Attempt ${attempt} failed:`, error.message);
+    } catch (error: unknown) {
+      const err = error as Error;
+      lastError = err;
+      console.error(`Attempt ${attempt} failed:`, err.message);
       
       if (attempt < maxRetries) {
         // Exponential backoff: 1s, 2s, 4s
@@ -299,55 +301,75 @@ async function waitForCommandCompletion(
   commandId: string,
   instanceId: string
 ): Promise<SsmCommandResult> {
-  const maxAttempts = Math.ceil(SSM_TIMEOUT / 2); // 2秒ごとにポーリング
+  // 初回ポーリング前に5秒待機（SSM Commandの処理開始を待つ）
+  console.log('Waiting 5 seconds for SSM Command to register...');
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  
+  const maxAttempts = Math.ceil(SSM_TIMEOUT / 5); // 5秒ごとにポーリング
   let attempts = 0;
   
   while (attempts < maxAttempts) {
     attempts++;
     
-    const getCommand: GetCommandInvocationCommandOutput = await ssmClient.send(
-      new GetCommandInvocationCommand({
-        CommandId: commandId,
-        InstanceId: instanceId
-      })
-    );
-    
-    const status = getCommand.Status;
-    
-    if (status === 'Success') {
-      return {
-        commandId,
-        status: 'Success',
-        output: getCommand.StandardOutputContent || ''
-      };
+    try {
+      const getCommand: GetCommandInvocationCommandOutput = await ssmClient.send(
+        new GetCommandInvocationCommand({
+          CommandId: commandId,
+          InstanceId: instanceId
+        })
+      );
+      
+      const status = getCommand.Status;
+      
+      if (status === 'Success') {
+        return {
+          commandId,
+          status: 'Success',
+          output: getCommand.StandardOutputContent || ''
+        };
+      }
+      
+      if (status === 'Failed') {
+        return {
+          commandId,
+          status: 'Failed',
+          error: getCommand.StandardErrorContent || 'Unknown error'
+        };
+      }
+      
+      if (status === 'TimedOut') {
+        return {
+          commandId,
+          status: 'TimedOut',
+          error: 'Command execution timed out'
+        };
+      }
+      
+      if (status === 'Cancelled') {
+        return {
+          commandId,
+          status: 'Cancelled',
+          error: 'Command was cancelled'
+        };
+      }
+      
+      // まだ実行中の場合は待機
+      console.log(`Command status: ${status}, waiting 5 seconds... (${attempts}/${maxAttempts})`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+    } catch (error: unknown) {
+      const err = error as { name?: string; message?: string };
+      
+      // InvocationDoesNotExist エラーの場合は待機して再試行
+      if (err.name === 'InvocationDoesNotExist' && attempts < maxAttempts) {
+        console.log(`Command invocation not yet available, retrying... (${attempts}/${maxAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        continue;
+      }
+      
+      // その他のエラーは再スロー
+      throw error;
     }
-    
-    if (status === 'Failed') {
-      return {
-        commandId,
-        status: 'Failed',
-        error: getCommand.StandardErrorContent || 'Unknown error'
-      };
-    }
-    
-    if (status === 'TimedOut') {
-      return {
-        commandId,
-        status: 'TimedOut',
-        error: 'Command execution timed out'
-      };
-    }
-    
-    if (status === 'Cancelled') {
-      return {
-        commandId,
-        status: 'Cancelled',
-        error: 'Command was cancelled'
-      };
-    }
-    
-    // まだ実行中の場合は待機
-    await new Promise(resolve => setTimeout(resolve, 2000));
   }
   
   // タイムアウト
@@ -376,9 +398,10 @@ function parsePowerShellOutput(output: string): AdUserInfo {
       gidNumber: parsed.gidNumber || undefined
     };
     
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error as Error;
     console.error('Failed to parse PowerShell output:', output);
-    throw new Error(`Failed to parse PowerShell output: ${error.message}`);
+    throw new Error(`Failed to parse PowerShell output: ${err.message}`);
   }
 }
 
@@ -406,7 +429,7 @@ async function saveSidToDb(
     item.gid = { N: adUserInfo.gidNumber.toString() };
   }
   
-  const result: PutItemCommandOutput = await dynamoClient.send(new PutItemCommand({
+  await dynamoClient.send(new PutItemCommand({
     TableName: IDENTITY_TABLE_NAME,
     Item: item
   }));

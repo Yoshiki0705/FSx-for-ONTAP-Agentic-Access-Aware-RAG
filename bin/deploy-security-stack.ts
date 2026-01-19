@@ -56,6 +56,7 @@ new SecurityStack(app, `TokyoRegion-${projectName}-${environment}-Security`, {
   config: config,
   projectName: projectName,
   environment: environment,
+  vpcId: vpcId, // VPC IDを直接渡す
   env: {
     account: account,
     region: region

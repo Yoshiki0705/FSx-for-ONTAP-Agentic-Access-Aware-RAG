@@ -190,6 +190,7 @@ const securityStack = new SecurityStack(app, `TokyoRegion-${projectName}-${envir
   projectName: projectName,
   environment: environment,
   agentCore: app.node.tryGetContext('agentCore'), // AgentCore設定を渡す
+  vpc: networkingStack.vpc, // NetworkingStackからVPCを渡す
   env: env,
   description: 'Security Stack - KMS Keys, IAM Roles, AgentCore Identity (GuardDuty uses existing detector)',
 });

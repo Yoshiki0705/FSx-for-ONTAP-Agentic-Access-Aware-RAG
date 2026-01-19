@@ -23,6 +23,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as bedrock from 'aws-cdk-lib/aws-bedrock';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 
 // Phase 7: 型定義の厳密化 - Stack間インターフェース
 import { INetworkingStack, ISecurityStack } from './interfaces/stack-interfaces';
@@ -278,9 +279,6 @@ export class WebAppStack extends cdk.Stack {
       console.log(`ℹ️ imageTagを環境変数から取得: ${finalImageTag}`);
     }
     
-    // imageTagを更新
-    imageTag = finalImageTag;
-    
     // 設定値の取得（デフォルト値を使用）
     const projectName = config.naming?.projectName || DEFAULT_WEBAPP_CONFIG.projectName;
     const environment = config.naming?.environment || DEFAULT_WEBAPP_CONFIG.environment;
@@ -510,6 +508,20 @@ export class WebAppStack extends cdk.Stack {
           enableLogging: false,
         });
         console.log('✅ CloudFront配信作成完了');
+        
+        // CSRF保護用の環境変数を追加（CloudFront URL + Lambda Function URL）
+        // 2026-01-19: Sign-out CSRF validation fix
+        const cloudfrontUrl = `https://${this.distribution.distributionDomainName}`;
+        const lambdaFunctionUrl = this.functionUrl.url.replace(/\/$/, ''); // 末尾のスラッシュを削除
+        
+        this.webAppFunction.addEnvironment('CLOUDFRONT_URL', cloudfrontUrl);
+        this.webAppFunction.addEnvironment('LAMBDA_FUNCTION_URL', lambdaFunctionUrl);
+        this.webAppFunction.addEnvironment('NEXTAUTH_URL', cloudfrontUrl); // NextAuth.js互換性のため
+        
+        console.log(`✅ CSRF保護用環境変数追加完了:`);
+        console.log(`   - CLOUDFRONT_URL: ${cloudfrontUrl}`);
+        console.log(`   - LAMBDA_FUNCTION_URL: ${lambdaFunctionUrl}`);
+        console.log(`   - NEXTAUTH_URL: ${cloudfrontUrl}`);
       } else {
         console.log('⚠️  CloudFront配信作成をスキップ（環境別制御）');
       }
@@ -1532,17 +1544,54 @@ export class WebAppStack extends cdk.Stack {
       console.log('✅ Runtime Construct作成完了');
     }
 
-    // 2. Gateway Construct（API/Lambda/MCP統合）
+    // 2. Gateway Construct（API/Lambda/MCP統合）- IaC版
     if (agentCoreConfig.gateway?.enabled) {
-      console.log('🌉 Gateway Construct作成中...');
-      this.agentCoreGateway = new BedrockAgentCoreGatewayConstruct(this, "AgentCoreGateway", {
-        projectName: config.naming?.projectName || "permission-aware-rag",
-        environment,
-        restApiConversion: agentCoreConfig.gateway.restApiConversionConfig as any,
-        lambdaFunctionConversion: agentCoreConfig.gateway.lambdaFunctionConversionConfig as any,
-        mcpServerIntegration: agentCoreConfig.gateway.mcpServerIntegrationConfig as any,
-      });
-      console.log('✅ Gateway Construct作成完了');
+      console.log('🌉 Gateway Construct作成中（IaC版）...');
+      
+      // DataStackからCloudFormation Importで動的に取得
+      const dataStackName = `${regionPrefix}-${projectName}-${environment}-Data`;
+      
+      // Gateway Specs Bucket名をCloudFormation Importから取得
+      let gatewaySpecsBucket: s3.IBucket | undefined;
+      try {
+        const gatewayBucketName = cdk.Fn.importValue(`${dataStackName}-GatewaySpecsBucketName`);
+        gatewaySpecsBucket = s3.Bucket.fromBucketName(
+          this,
+          'ImportedGatewaySpecsBucket',
+          gatewayBucketName
+        );
+        console.log(`✅ Gateway Specs Bucket参照成功: ${gatewayBucketName}`);
+      } catch (error) {
+        console.warn('⚠️  Gateway Specs Bucketが見つかりません。DataStackをデプロイしてください。');
+      }
+      
+      // FSx File System IDをCloudFormation Importから取得
+      let fsxFileSystemId: string | undefined;
+      try {
+        fsxFileSystemId = cdk.Fn.importValue(`${dataStackName}-FsxFileSystemId`);
+        console.log(`✅ FSx File System ID参照成功: ${fsxFileSystemId}`);
+      } catch (error) {
+        console.warn('⚠️  FSx File System IDが見つかりません。DataStackでFSx for ONTAPを有効化してください。');
+      }
+      
+      // Gateway Constructを作成（条件付き）
+      if (gatewaySpecsBucket) {
+        this.agentCoreGateway = new BedrockAgentCoreGatewayConstruct(this, "AgentCoreGateway", {
+          projectName: config.naming?.projectName || "permission-aware-rag",
+          environment,
+          gatewaySpecsBucket, // IaC: CloudFormation Importから動的取得
+          fsxFileSystemId, // IaC: CloudFormation Importから動的取得（オプション）
+          restApiConversion: agentCoreConfig.gateway.restApiConversionConfig as any,
+          lambdaFunctionConversion: agentCoreConfig.gateway.lambdaFunctionConversionConfig as any,
+          mcpServerIntegration: agentCoreConfig.gateway.mcpServerIntegrationConfig as any,
+        });
+        console.log('✅ Gateway Construct作成完了（IaC版）');
+      } else {
+        console.warn('⚠️  Gateway Specs Bucketが利用できないため、Gateway Construct作成をスキップします');
+        console.warn('   次のステップ:');
+        console.warn('   1. DataStackをデプロイ: npx cdk deploy TokyoRegion-permission-aware-rag-prod-Data');
+        console.warn('   2. WebAppStackを再デプロイ: npx cdk deploy TokyoRegion-permission-aware-rag-prod-WebApp');
+      }
     }
 
     // 3. Memory Construct（長期記憶）

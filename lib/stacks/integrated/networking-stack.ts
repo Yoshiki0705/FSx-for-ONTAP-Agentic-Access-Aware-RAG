@@ -54,7 +54,7 @@ export interface NetworkingStackProps extends cdk.StackProps {
 
 export class NetworkingStack extends cdk.Stack {
   public readonly networkingConstruct: NetworkingConstruct;
-  public readonly vpc: cdk.aws_ec2.Vpc;
+  public readonly vpc: cdk.aws_ec2.IVpc; // ✅ IVpc型に変更（既存VPCインポート対応）
   public readonly publicSubnets: cdk.aws_ec2.ISubnet[];
   public readonly privateSubnets: cdk.aws_ec2.ISubnet[];
   public readonly isolatedSubnets: cdk.aws_ec2.ISubnet[];
@@ -407,7 +407,7 @@ export class NetworkingStack extends cdk.Stack {
    * 他のスタックで使用するためのネットワーク情報を取得
    */
   public getNetworkingInfo(): {
-    vpc: cdk.aws_ec2.Vpc;
+    vpc: cdk.aws_ec2.IVpc; // ✅ IVpc型に変更
     publicSubnets: cdk.aws_ec2.ISubnet[];
     privateSubnets: cdk.aws_ec2.ISubnet[];
     isolatedSubnets: cdk.aws_ec2.ISubnet[];

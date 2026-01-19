@@ -5,6 +5,8 @@
     "contextOptimization": "情境最佳化",
     "contextOptimizationDesc": "根據上下文生成最佳答案",
     "modeDescription": "Agent 模式提供進階推理和文件搜尋功能。",
+    "description": "描述",
+    "agentSpecificFeatures": "此 Agent 提供上述描述中列出的功能。",
     "error": {},
     "features": "Agent 功能",
     "information": "Agent 資訊",

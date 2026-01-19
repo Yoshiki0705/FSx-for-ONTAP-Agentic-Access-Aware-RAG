@@ -158,6 +158,7 @@ export async function GET(request: NextRequest) {
       const agentInfo = {
         agentId: agentResponse.agent.agentId,
         agentName: agentResponse.agent.agentName,
+        description: agentResponse.agent.description || null,  // ✅ description フィールドを追加
         aliasId: aliasInfo?.aliasId || null,
         aliasName: aliasInfo?.aliasName || null,
         version: aliasInfo?.routingConfiguration?.[0]?.agentVersion || 'DRAFT',

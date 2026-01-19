@@ -16,6 +16,7 @@
     "@aws-sdk/client-cognito-identity-provider": "^3.930.0",
     "@aws-sdk/client-dynamodb": "^3.930.0",
     "@aws-sdk/client-fsx": "^3.930.0",
+    "@aws-sdk/client-iam": "^3.930.0",
     "@aws-sdk/client-lambda": "^3.930.0",
     "@aws-sdk/client-ssm": "^3.930.0",
     "@aws-sdk/client-sts": "^3.971.0",
