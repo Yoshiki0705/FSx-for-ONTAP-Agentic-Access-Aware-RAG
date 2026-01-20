@@ -113,7 +113,7 @@
     "current": "Current Model",
     "provider": "Provider",
     "foundationModel": "Foundation Model",
-    "modelCount": "Model Count",
+    "modelCount": "{count} models",
     "selectModel": "Please select a model",
     "selectedModel": "Selected Model"
   },
@@ -183,7 +183,7 @@
   },
   "region": {
     "bedrockRegion": "Bedrock Region",
-    "modelCount": "Model Count",
+    "modelCount": "{count} models available",
     "change": "Change",
     "primaryRegion": "Primary Region",
     "region": "Region",

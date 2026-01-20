@@ -537,6 +537,193 @@ aws cloudfront create-invalidation \
 
 ---
 
+## 5.5 AgentCore Gateway デプロイメント
+
+**v2.4.0以降**: AgentCore Gateway Constructは、AWS-managed KMS暗号化を使用してCloudWatch Logsを保護します。
+
+### Gateway Constructの概要
+
+AgentCore Gateway Constructは、既存のREST API、Lambda関数、MCPサーバーをBedrock Agent Toolsに変換する統合レイヤーです。
+
+**主要機能**:
+- REST API変換（OpenAPI仕様からTool定義を自動生成）
+- Lambda関数変換（既存Lambda関数をAgent Toolsとして統合）
+- MCP Server統合（Model Context Protocol対応）
+
+**デプロイ構成**:
+- **Infrastructure**: IAM Role、CloudWatch Logs、DynamoDB（Memory Table）
+- **Lambda Functions**: REST API Converter、Lambda Function Converter、MCP Server Integration（オプション）
+
+### KMS暗号化のベストプラクティス
+
+#### AWS-Managed KMS vs Customer-Managed KMS
+
+| 項目 | AWS-Managed KMS | Customer-Managed KMS |
+|------|----------------|---------------------|
+| **セットアップ** | 簡単（自動） | 複雑（KMSポリシー必要） |
+| **CloudWatch Logs権限** | 自動設定 | 手動設定必要 |
+| **キーローテーション** | 自動 | 手動（有効化可能） |
+| **コスト** | 無料 | $1/月/キー |
+| **制御** | 限定的 | 完全制御 |
+| **デプロイ時間** | 高速（~47秒） | 低速（KMS作成+ポリシー） |
+| **推奨用途** | ほとんどのユースケース | 厳格なコンプライアンス要件 |
+
+**推奨事項**: 厳格なコンプライアンス要件がない限り、AWS-managed KMS暗号化を使用してください。
+
+### Gateway Infrastructure デプロイ
+
+#### Step 1: Gateway Infrastructure のみデプロイ
+
+```bash
+# Gateway Infrastructure デプロイ（Lambda関数なし）
+npx cdk deploy TokyoRegion-permission-aware-rag-prod-AgentCore-Gateway \
+  --app 'npx ts-node bin/deploy-agentcore-gateway-only.ts' \
+  --require-approval never \
+  --region ap-northeast-1
+```
+
+**作成されるリソース**:
+- IAM Role: `AgentCoreGatewayExecutionRole`
+- IAM Policy: `AgentCoreGatewayExecutionRoleDefaultPolicy`
+- CloudWatch Logs: `/aws/bedrock-agent-core/gateway/{projectName}-{environment}`
+- KMS Key: `AgentCoreGatewayEncryptionKey`（将来の使用のため）
+- DynamoDB Table: `AgentCoreMemoryMemoryTable`
+
+**デプロイ時間**: 約47秒
+
+#### Step 2: Gateway Lambda Functions デプロイ（オプション）
+
+Gateway Lambda関数をデプロイするには、以下のいずれかのリソースが必要です：
+
+**必要なリソース**:
+1. **S3バケット**（REST API変換用）: OpenAPI仕様ファイルを格納
+2. **Lambda関数ARNリスト**（Lambda変換用）: 既存Lambda関数のARN
+3. **MCP Serverエンドポイント**（MCP統合用）: MCP ServerのURL
+
+**設定例**:
+```typescript
+// bin/deploy-agentcore-gateway-only.ts
+const gateway = new BedrockAgentCoreGatewayConstruct(stack, 'AgentCoreGateway', {
+  projectName: 'permission-aware-rag',
+  environment: 'prod',
+  
+  // REST API変換を有効化
+  gatewaySpecsBucket: s3.Bucket.fromBucketName(this, 'Bucket', 'your-bucket-name'),
+  restApiConversion: {
+    openApiSpecKey: 'openapi/sample-openapi.yaml',
+  },
+  
+  // Lambda関数変換を有効化
+  lambdaFunctionConversion: {
+    functionArns: [
+      'arn:aws:lambda:ap-northeast-1:178625946981:function:your-function-1',
+      'arn:aws:lambda:ap-northeast-1:178625946981:function:your-function-2',
+    ],
+  },
+  
+  // MCP Server統合を有効化
+  mcpServerIntegration: {
+    serverEndpoint: 'https://your-mcp-server.example.com',
+  },
+});
+```
+
+**再デプロイ**:
+```bash
+npx cdk deploy TokyoRegion-permission-aware-rag-prod-AgentCore-Gateway \
+  --app 'npx ts-node bin/deploy-agentcore-gateway-only.ts' \
+  --require-approval never \
+  --region ap-northeast-1
+```
+
+### 条件付きIAMポリシー
+
+Gateway Constructは、リソースが提供されている場合のみIAMポリシーを追加します。これにより、CDK検証エラーを防ぎます。
+
+**実装例**:
+```typescript
+// Lambda関数ARNが提供されている場合のみ権限を追加
+if (props.lambdaFunctionConversion?.functionArns && 
+    props.lambdaFunctionConversion.functionArns.length > 0) {
+  role.addToPolicy(new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ['lambda:InvokeFunction'],
+    resources: props.lambdaFunctionConversion.functionArns,
+  }));
+}
+
+// KMS権限の追加（customer-managed keyが提供されている場合のみ）
+if (this.encryptionKey) {
+  role.addToPolicy(new iam.PolicyStatement({
+    effect: iam.Effect.ALLOW,
+    actions: ['kms:Decrypt', 'kms:Encrypt', 'kms:GenerateDataKey'],
+    resources: [this.encryptionKey.keyArn],
+  }));
+}
+```
+
+### トラブルシューティング
+
+#### 問題1: CloudWatch Logs KMS権限エラー
+
+**症状**:
+```
+Resource handler returned message: "User: arn:aws:sts::123456789012:assumed-role/cdk-hnb659fds-cfn-exec-role-123456789012-ap-northeast-1/AWSCloudFormation is not authorized to perform: kms:CreateGrant on resource: arn:aws:kms:ap-northeast-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+```
+
+**解決策**: AWS-managed KMS暗号化を使用（デフォルト）
+```typescript
+// encryptionKeyプロパティを指定しない
+const logGroup = new logs.LogGroup(this, 'LogGroup', {
+  logGroupName: `/aws/bedrock-agent-core/gateway/${projectName}-${environment}`,
+  retention: logs.RetentionDays.ONE_WEEK,
+  removalPolicy: cdk.RemovalPolicy.DESTROY,
+  // AWS-managed暗号化（自動）
+});
+```
+
+#### 問題2: IAMポリシー検証エラー
+
+**症状**:
+```
+Invalid policy: Empty array or wildcard ARN
+```
+
+**解決策**: 条件付きIAMポリシー作成を使用
+```typescript
+// リソースが提供されている場合のみポリシーを追加
+if (props.lambdaFunctionConversion?.functionArns && 
+    props.lambdaFunctionConversion.functionArns.length > 0) {
+  role.addToPolicy(new iam.PolicyStatement({...}));
+}
+```
+
+### 検証手順
+
+```bash
+# 1. IAM Role確認
+aws iam get-role \
+  --role-name AgentCoreGatewayExecutionRole7730E9B0 \
+  --region ap-northeast-1
+
+# 2. CloudWatch Logs確認
+aws logs describe-log-groups \
+  --log-group-name-prefix "/aws/bedrock-agent-core/gateway" \
+  --region ap-northeast-1
+
+# 3. DynamoDB Table確認
+aws dynamodb describe-table \
+  --table-name AgentCoreMemoryMemoryTable22F44D07 \
+  --region ap-northeast-1
+
+# 4. Lambda関数確認（Lambda関数デプロイ後）
+aws lambda list-functions \
+  --query 'Functions[?contains(FunctionName, `AgentCoreGateway`)].FunctionName' \
+  --region ap-northeast-1
+```
+
+---
+
 ## 6. Lambda VPC配置
 
 ### 6.1 VPC配置オプション

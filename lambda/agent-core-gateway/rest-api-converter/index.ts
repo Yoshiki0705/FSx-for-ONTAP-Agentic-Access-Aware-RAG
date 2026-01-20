@@ -16,8 +16,9 @@ import * as yaml from 'js-yaml';
 interface EnvironmentVariables {
   PROJECT_NAME: string;
   ENVIRONMENT: string;
-  OPENAPI_SPEC_PATH: string;
-  FSX_ONTAP_ACCESS_POINT_ARN: string;  // FSx for ONTAP + S3 Access Points統合
+  GATEWAY_SPECS_BUCKET: string;  // ✅ 修正: OPENAPI_SPEC_PATH → GATEWAY_SPECS_BUCKET
+  OPENAPI_SPEC_KEY: string;      // ✅ 修正: 追加
+  FSX_FILE_SYSTEM_ID?: string;   // ✅ 修正: FSX_ONTAP_ACCESS_POINT_ARN → FSX_FILE_SYSTEM_ID (オプション)
   API_GATEWAY_ID?: string;
   API_GATEWAY_STAGE?: string;
   AUTH_TYPE?: string;
@@ -139,18 +140,19 @@ const s3Client = new S3Client({});
 function getEnvironmentVariables(): EnvironmentVariables {
   const projectName = process.env.PROJECT_NAME;
   const environment = process.env.ENVIRONMENT;
-  const openApiSpecPath = process.env.OPENAPI_SPEC_PATH;
-  const fsxOntapAccessPointArn = process.env.FSX_ONTAP_ACCESS_POINT_ARN;
+  const gatewaySpecsBucket = process.env.GATEWAY_SPECS_BUCKET;
+  const openApiSpecKey = process.env.OPENAPI_SPEC_KEY;
 
-  if (!projectName || !environment || !openApiSpecPath || !fsxOntapAccessPointArn) {
-    throw new Error('必須環境変数が設定されていません: PROJECT_NAME, ENVIRONMENT, OPENAPI_SPEC_PATH, FSX_ONTAP_ACCESS_POINT_ARN');
+  if (!projectName || !environment || !gatewaySpecsBucket || !openApiSpecKey) {
+    throw new Error('必須環境変数が設定されていません: PROJECT_NAME, ENVIRONMENT, GATEWAY_SPECS_BUCKET, OPENAPI_SPEC_KEY');
   }
 
   return {
     PROJECT_NAME: projectName,
     ENVIRONMENT: environment,
-    OPENAPI_SPEC_PATH: openApiSpecPath,
-    FSX_ONTAP_ACCESS_POINT_ARN: fsxOntapAccessPointArn,
+    GATEWAY_SPECS_BUCKET: gatewaySpecsBucket,
+    OPENAPI_SPEC_KEY: openApiSpecKey,
+    FSX_FILE_SYSTEM_ID: process.env.FSX_FILE_SYSTEM_ID,
     API_GATEWAY_ID: process.env.API_GATEWAY_ID,
     API_GATEWAY_STAGE: process.env.API_GATEWAY_STAGE,
     AUTH_TYPE: process.env.AUTH_TYPE,
@@ -163,49 +165,33 @@ function getEnvironmentVariables(): EnvironmentVariables {
 /**
  * OpenAPI仕様を読み込む
  * 
- * FSx for ONTAP + S3 Access Points経由でアクセスします。
- * S3バケットへの直接アクセスは行いません。
+ * S3バケットから直接アクセスします。
  */
 async function loadOpenApiSpec(
-  specPath: string,
-  fsxOntapAccessPointArn: string
+  bucketName: string,
+  specKey: string
 ): Promise<OpenApiSpec> {
-  console.log(`OpenAPI仕様を読み込み中: ${specPath}`);
-  console.log(`FSx for ONTAP Access Point ARN: ${fsxOntapAccessPointArn}`);
+  console.log(`OpenAPI仕様を読み込み中: s3://${bucketName}/${specKey}`);
 
-  // S3 Access Point ARN経由でアクセス
-  if (specPath.startsWith('s3://')) {
-    // S3 URIからキーを抽出
-    const match = specPath.match(/^s3:\/\/[^\/]+\/(.+)$/);
-    if (!match) {
-      throw new Error(`無効なS3 URI: ${specPath}`);
-    }
+  // S3から取得
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: specKey,
+  });
+  const response = await s3Client.send(command);
 
-    const key = match[1];
-
-    // FSx for ONTAP + S3 Access Points経由でアクセス
-    const command = new GetObjectCommand({
-      Bucket: fsxOntapAccessPointArn,  // S3 Access Point ARNを使用
-      Key: key,
-    });
-    const response = await s3Client.send(command);
-
-    if (!response.Body) {
-      throw new Error(`S3オブジェクトが見つかりません: ${specPath}`);
-    }
-
-    const bodyString = await response.Body.transformToString();
-
-    // YAML または JSON をパース
-    if (key.endsWith('.yaml') || key.endsWith('.yml')) {
-      return yaml.load(bodyString) as OpenApiSpec;
-    } else {
-      return JSON.parse(bodyString) as OpenApiSpec;
-    }
+  if (!response.Body) {
+    throw new Error(`S3オブジェクトが見つかりません: s3://${bucketName}/${specKey}`);
   }
 
-  // ローカルファイルの場合（Lambda環境では使用不可）
-  throw new Error('ローカルファイルパスはサポートされていません。S3 URIを使用してください。');
+  const bodyString = await response.Body.transformToString();
+
+  // YAML または JSON をパース
+  if (specKey.endsWith('.yaml') || specKey.endsWith('.yml')) {
+    return yaml.load(bodyString) as OpenApiSpec;
+  } else {
+    return JSON.parse(bodyString) as OpenApiSpec;
+  }
 }
 
 /**
@@ -367,11 +353,13 @@ export async function handler(event: RestApiConverterEvent): Promise<RestApiConv
     // 環境変数を取得
     const env = getEnvironmentVariables();
 
-    // OpenAPI仕様パスを決定
-    const specPath = event.openApiSpecPath || env.OPENAPI_SPEC_PATH;
+    // OpenAPI仕様キーを決定
+    const specKey = event.openApiSpecPath 
+      ? event.openApiSpecPath.replace(/^s3:\/\/[^\/]+\//, '')  // S3 URIからキーを抽出
+      : env.OPENAPI_SPEC_KEY;
 
-    // OpenAPI仕様を読み込む（FSx for ONTAP + S3 Access Points経由）
-    const spec = await loadOpenApiSpec(specPath, env.FSX_ONTAP_ACCESS_POINT_ARN);
+    // OpenAPI仕様を読み込む（S3バケットから直接）
+    const spec = await loadOpenApiSpec(env.GATEWAY_SPECS_BUCKET, specKey);
 
     // 変換オプションを決定
     const conversionOptions = {

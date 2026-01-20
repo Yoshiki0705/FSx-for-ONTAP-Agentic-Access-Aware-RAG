@@ -169,7 +169,7 @@
   "model": {
     "current": "Modelo actual",
     "foundationModel": "Modelo base",
-    "modelCount": "modelos",
+    "modelCount": "{count} modelos",
     "models": "modelos",
     "provider": "Proveedor",
     "providers": "proveedores",
@@ -202,7 +202,7 @@
     "changeRegionConfirm": "¿Cambiar región a {regionName} ({region})?",
     "currentModels": "Modelos actuales",
     "currentlyInUse": "En uso",
-    "modelCount": "Número de modelos",
+    "modelCount": "{count} modelos disponibles",
     "pageWillReload": "La página se recargará después del cambio de región.",
     "primaryRegion": "Región principal",
     "primaryRegionInUse": "Región principal (En uso)",

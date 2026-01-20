@@ -7,19 +7,46 @@ export async function POST(request: Request) {
     
     console.log(`[SignIn API] サインイン試行: ${username}`);
     
-    // シンプルな認証チェック（元の実装に合わせて後で AWS Cognito に置き換え可能）
-    const validUsers = ['testuser', 'admin'];
-    const validTestUsers = Array.from({length: 50}, (_, i) => `testuser${i}`);
-    const allValidUsers = [...validUsers, ...validTestUsers];
+    // 有効なユーザーとパスワード（config/users.jsonに基づく）
+    const validUsers = [
+      'admin',
+      'testuser',
+      'user1',
+      'user2',
+      'manager1',
+      'developer1',
+      'analyst1',
+      'testuser_new',
+      'demo_user'
+    ];
     
-    if (allValidUsers.includes(username) && password === 'password') {
+    // デフォルトパスワード
+    const defaultPassword = 'TestUser123!';
+    
+    if (validUsers.includes(username) && password === defaultPassword) {
+      // ユーザーロールの決定
+      let role = 'user';
+      let permissions = ['read', 'model:claude-haiku'];
+      
+      if (username === 'admin') {
+        role = 'administrator';
+        permissions = ['read', 'write', 'delete', 'admin', 'agent:create', 'model:all'];
+      } else if (username === 'manager1' || username === 'testuser_new') {
+        role = 'manager';
+        permissions = ['read', 'write', 'model:claude-sonnet', 'team_management'];
+      } else if (username === 'developer1' || username === 'demo_user') {
+        role = 'developer';
+        permissions = ['read', 'write', 'model:claude-sonnet', 'code_access', 'api_access'];
+      } else if (username === 'analyst1') {
+        role = 'analyst';
+        permissions = ['read', 'model:claude-sonnet', 'data_analysis', 'report_generation'];
+      }
+      
       // セッション作成（JWTトークン生成）
       const user = {
         username,
-        role: username === 'admin' ? 'administrator' : 'user',
-        permissions: username === 'admin' 
-          ? ['read', 'write', 'delete', 'admin', 'agent:create', 'model:all']
-          : ['read', 'model:claude-haiku']
+        role,
+        permissions
       };
       
       const session = await sessionManager.createSession(user);
@@ -52,14 +79,14 @@ export async function POST(request: Request) {
       console.log(`❌ サインイン失敗: ${username} - 認証情報が正しくありません`);
       return NextResponse.json({ 
         success: false,
-        error: "ユーザー名またはパスワードが正しくありません"
+        error: "Username or password is incorrect"
       }, { status: 401 });
     }
   } catch (error) {
     console.error('[SignIn API] エラー:', error);
     return NextResponse.json({ 
       success: false,
-      error: "サーバーエラーが発生しました"
+      error: "Server error occurred"
     }, { status: 500 });
   }
 }

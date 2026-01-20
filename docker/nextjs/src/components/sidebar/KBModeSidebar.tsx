@@ -241,14 +241,7 @@ export function KBModeSidebar({
 
         {/* Bedrockリージョン選択セクション */}
         <div className="p-2 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t('region.bedrockRegion')}</h3>
-          <div className="text-xs text-gray-600 dark:text-gray-400">
-            <div>🌍 東京 (ap-northeast-1)</div>
-            <div>🤖 37モデル利用可能</div>
-            <button className="text-blue-600 hover:text-blue-800 text-xs mt-1">
-              {t('region.change')}
-            </button>
-          </div>
+          <RegionSelector />
         </div>
 
         {/* チャット履歴設定セクション */}

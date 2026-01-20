@@ -236,13 +236,112 @@ aws lambda get-function-configuration \
   --function-name AgentCoreRuntime
 ```
 
+### KMS暗号化のベストプラクティス
+
+#### AWS-Managed KMS vs Customer-Managed KMS
+
+AgentCore Gateway Constructは、CloudWatch LogsにAWS-managed KMS暗号化を使用します。これにより、複雑なKMSポリシー管理が不要になり、デプロイが簡素化されます。
+
+**比較表**:
+
+| 項目 | AWS-Managed KMS | Customer-Managed KMS |
+|------|----------------|---------------------|
+| **セットアップ複雑度** | 低（自動） | 高（KMSポリシー必要） |
+| **CloudWatch Logs権限** | 自動設定 | 手動設定必要 |
+| **キーローテーション** | 自動（AWS管理） | 手動（有効化可能） |
+| **コスト** | 無料 | $1/月/キー |
+| **制御レベル** | 限定的 | 完全制御 |
+| **デプロイ時間** | 高速 | 低速（KMS作成+ポリシー） |
+| **メンテナンス** | ゼロ | 継続的管理必要 |
+| **推奨用途** | ほとんどのユースケース | 厳格なコンプライアンス要件 |
+
+#### 実装例
+
+**AWS-Managed KMS（推奨）**:
+```typescript
+// CloudWatch Logsの作成（AWS-managed暗号化）
+const logGroup = new logs.LogGroup(this, 'LogGroup', {
+  logGroupName: `/aws/bedrock-agent-core/gateway/${projectName}-${environment}`,
+  retention: logs.RetentionDays.ONE_WEEK,
+  removalPolicy: cdk.RemovalPolicy.DESTROY,
+  // encryptionKeyを指定しない = AWS-managed暗号化（自動）
+});
+```
+
+**Customer-Managed KMS（コンプライアンス要件がある場合のみ）**:
+```typescript
+// KMSキー作成
+const key = new kms.Key(this, 'EncryptionKey', {
+  description: `Encryption key for ${projectName}-${environment}`,
+  enableKeyRotation: true,
+  removalPolicy: cdk.RemovalPolicy.RETAIN,
+});
+
+// CloudWatch Logs用のKMSポリシー追加
+key.addToResourcePolicy(new iam.PolicyStatement({
+  effect: iam.Effect.ALLOW,
+  principals: [new iam.ServicePrincipal('logs.amazonaws.com')],
+  actions: ['kms:Encrypt', 'kms:Decrypt', 'kms:GenerateDataKey'],
+  resources: ['*'],
+  conditions: {
+    ArnLike: {
+      'kms:EncryptionContext:aws:logs:arn': `arn:aws:logs:${region}:${account}:log-group:/aws/bedrock-agent-core/*`,
+    },
+  },
+}));
+
+// CloudWatch Logsの作成（customer-managed暗号化）
+const logGroup = new logs.LogGroup(this, 'LogGroup', {
+  logGroupName: `/aws/bedrock-agent-core/gateway/${projectName}-${environment}`,
+  retention: logs.RetentionDays.ONE_WEEK,
+  removalPolicy: cdk.RemovalPolicy.DESTROY,
+  encryptionKey: key,  // Customer-managed key
+});
+```
+
+#### 推奨事項
+
+1. **デフォルトはAWS-Managed KMS**: 厳格なコンプライアンス要件がない限り、AWS-managed KMS暗号化を使用
+2. **コスト最適化**: 非本番環境ではAWS-managed KMSを使用してコスト削減
+3. **条件付きIAMポリシー**: リソースが提供されている場合のみIAMポリシーを追加
+   ```typescript
+   // KMS権限の追加（customer-managed keyが提供されている場合のみ）
+   if (this.encryptionKey) {
+     role.addToPolicy(new iam.PolicyStatement({
+       effect: iam.Effect.ALLOW,
+       actions: ['kms:Decrypt', 'kms:Encrypt', 'kms:GenerateDataKey'],
+       resources: [this.encryptionKey.keyArn],
+     }));
+   }
+   ```
+
+#### トラブルシューティング
+
+**問題**: CloudWatch Logs作成時にKMS権限エラー
+
+**症状**:
+```
+Resource handler returned message: "User: arn:aws:sts::123456789012:assumed-role/cdk-hnb659fds-cfn-exec-role-123456789012-ap-northeast-1/AWSCloudFormation is not authorized to perform: kms:CreateGrant on resource: arn:aws:kms:ap-northeast-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+```
+
+**解決策**: AWS-managed KMS暗号化に切り替える
+```typescript
+// encryptionKeyプロパティを削除
+const logGroup = new logs.LogGroup(this, 'LogGroup', {
+  logGroupName: `/aws/bedrock-agent-core/gateway/${projectName}-${environment}`,
+  retention: logs.RetentionDays.ONE_WEEK,
+  removalPolicy: cdk.RemovalPolicy.DESTROY,
+  // encryptionKeyを指定しない
+});
+```
+
 ---
 
-## 運用・保守
+## 運用・保守（続き）
 
-### 日常運用タスク
+### 日常運用タスク（続き）
 
-#### 日次チェック
+#### 日次チェック（続き）
 
 ```bash
 # ヘルスチェック

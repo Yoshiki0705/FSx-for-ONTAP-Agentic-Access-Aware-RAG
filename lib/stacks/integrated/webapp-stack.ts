@@ -308,6 +308,7 @@ export class WebAppStack extends cdk.Stack {
 
     // モード判定とリソースセットアップ
     if (standaloneMode) {
+      this.setupStandaloneResources(existingVpcId, existingSecurityGroupId, projectName, environment, regionPrefix);
     } else {
       this.setupIntegratedResources(networkingStack, securityStack);
     }
@@ -427,7 +428,7 @@ export class WebAppStack extends cdk.Stack {
         environment: {
           NODE_ENV: 'production',
           BEDROCK_REGION: config.ai?.bedrock?.region || 'us-east-1',
-          AWS_LWA_INVOKE_MODE: 'response_stream',
+          // 2026-01-19: Removed AWS_LWA_INVOKE_MODE - use default buffered mode for Next.js standalone
           AWS_LWA_PORT: '3000',
           RUST_LOG: 'info',
           
@@ -482,7 +483,9 @@ export class WebAppStack extends cdk.Stack {
           allowedHeaders: ['*'],
           maxAge: cdk.Duration.days(1),
         },
-        invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+        // 2026-01-19: Changed to BUFFERED for Next.js standalone compatibility
+        // RESPONSE_STREAM causes 403 errors with CloudFront
+        invokeMode: lambda.InvokeMode.BUFFERED,
       });
 
       // CloudFront Distribution（環境別制御対応）
@@ -500,9 +503,10 @@ export class WebAppStack extends cdk.Stack {
             cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
             compress: true,
             cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-            // 2026-01-14: Changed to ALL_VIEWER to forward all headers including Host header
-            // This fixes Agent mode errors caused by missing headers
-            originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
+            // 2026-01-19: Changed to ALL_VIEWER_EXCEPT_HOST_HEADER for Lambda Function URL compatibility
+            // Lambda Function URL rejects requests with CloudFront Host header
+            // ALL_VIEWER causes 403 AccessDeniedException
+            originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
           },
           priceClass: cloudfront.PriceClass.PRICE_CLASS_200,
           enableLogging: false,
@@ -511,17 +515,25 @@ export class WebAppStack extends cdk.Stack {
         
         // CSRF保護用の環境変数を追加（CloudFront URL + Lambda Function URL）
         // 2026-01-19: Sign-out CSRF validation fix
+        // Note: Using CfnOutput instead of addEnvironment to avoid circular dependency
         const cloudfrontUrl = `https://${this.distribution.distributionDomainName}`;
         const lambdaFunctionUrl = this.functionUrl.url.replace(/\/$/, ''); // 末尾のスラッシュを削除
         
-        this.webAppFunction.addEnvironment('CLOUDFRONT_URL', cloudfrontUrl);
-        this.webAppFunction.addEnvironment('LAMBDA_FUNCTION_URL', lambdaFunctionUrl);
-        this.webAppFunction.addEnvironment('NEXTAUTH_URL', cloudfrontUrl); // NextAuth.js互換性のため
+        // Store URLs for later manual configuration
+        new cdk.CfnOutput(this, 'CloudFrontUrlForEnv', {
+          value: cloudfrontUrl,
+          description: 'CloudFront URL - Lambda環境変数CLOUDFRONT_URLに設定してください',
+        });
         
-        console.log(`✅ CSRF保護用環境変数追加完了:`);
+        new cdk.CfnOutput(this, 'LambdaFunctionUrlForEnv', {
+          value: lambdaFunctionUrl,
+          description: 'Lambda Function URL - Lambda環境変数LAMBDA_FUNCTION_URLに設定してください',
+        });
+        
+        console.log(`✅ CSRF保護用URL出力完了（手動設定が必要）:`);
         console.log(`   - CLOUDFRONT_URL: ${cloudfrontUrl}`);
         console.log(`   - LAMBDA_FUNCTION_URL: ${lambdaFunctionUrl}`);
-        console.log(`   - NEXTAUTH_URL: ${cloudfrontUrl}`);
+        console.log(`   ⚠️  デプロイ後、これらの値をLambda環境変数に手動で設定してください`);
       } else {
         console.log('⚠️  CloudFront配信作成をスキップ（環境別制御）');
       }
@@ -762,6 +774,7 @@ export class WebAppStack extends cdk.Stack {
 
     // IAMロールの作成（必須）
     console.log('🔑 IAMロールを作成');
+    this.createIamRoles(projectName, environment, regionPrefix);
 
     console.log('✅ スタンドアローンモード: リソースセットアップ完了');
   }

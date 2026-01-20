@@ -169,7 +169,7 @@
   "model": {
     "current": "현재 모델",
     "foundationModel": "기본 모델",
-    "modelCount": "모델",
+    "modelCount": "{count}개 모델",
     "models": "모델",
     "provider": "제공업체",
     "providers": "제공업체",
@@ -202,7 +202,7 @@
     "changeRegionConfirm": "지역을 {regionName} ({region})로 변경하시겠습니까?",
     "currentModels": "현재 모델",
     "currentlyInUse": "사용 중",
-    "modelCount": "모델 수",
+    "modelCount": "{count}개 모델 사용 가능",
     "pageWillReload": "지역 변경 후 페이지가 다시 로드됩니다.",
     "primaryRegion": "기본 지역",
     "primaryRegionInUse": "기본 지역 (사용 중)",

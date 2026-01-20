@@ -92,6 +92,26 @@ export function ModelSelector({
   const handleModelChange = useCallback((modelId: string) => {
     const targetModel = allModels.find(m => m.id === modelId);
     handleModelSelection(targetModel, onModelChange, modelId);
+    
+    // ✅ Phase 2.1: Dispatch modelChanged event for Introduction Text updates
+    console.log('📢 [ModelSelector] Dispatching modelChanged event:', {
+      modelId,
+      modelName: targetModel?.name,
+      provider: targetModel?.provider,
+      category: targetModel?.category
+    });
+    
+    window.dispatchEvent(new CustomEvent('modelChanged', {
+      detail: {
+        modelId,
+        modelName: targetModel?.name || modelId,
+        provider: targetModel?.provider || 'Unknown',
+        category: targetModel?.category || 'chat',
+        available: targetModel?.available ?? true
+      },
+      bubbles: true,
+      cancelable: true
+    }));
   }, [allModels, onModelChange]);
 
   return (

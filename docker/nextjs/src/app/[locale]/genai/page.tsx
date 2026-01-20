@@ -563,6 +563,7 @@ function ChatbotPageContent() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastAgentModeRef = useRef<boolean | null>(null); // ✅ Track last agent mode to detect changes
+  const signOutButtonRef = useRef<HTMLButtonElement>(null); // ✅ v15: Ref for sign-out button
   const router = useRouter();
 
   // チャットストアの使用
@@ -854,19 +855,183 @@ function ChatbotPageContent() {
     scrollToBottom();
   }, [currentSession?.messages]);
 
-  // モデル変更イベントリスナー
+  // モデル変更イベントリスナー（Phase 2.1: Enhanced with Introduction Text update)
   useEffect(() => {
     const handleModelChange = (event: CustomEvent) => {
-      const { modelId } = event.detail;
-      console.log('🔄 [ChatbotPage] モデル変更イベント受信:', modelId);
+      const { modelId, modelName, provider } = event.detail;
+      console.log('🔄 [ChatbotPage] モデル変更イベント受信:', {
+        modelId,
+        modelName,
+        provider
+      });
+      
+      // Update selected model ID
       setSelectedModelId(modelId);
+      
+      // ✅ Phase 2.1: Update Introduction Text with new model info
+      if (!currentSession || !Array.isArray(currentSession.messages) || currentSession.messages.length === 0) {
+        console.warn('⚠️ [ChatbotPage] Introduction文更新スキップ - invalid session');
+        return;
+      }
+      
+      if (!agentMode || !user) {
+        console.warn('⚠️ [ChatbotPage] Introduction文更新スキップ - not in agent mode or no user');
+        return;
+      }
+      
+      try {
+        console.log('🔄 [ChatbotPage] モデル変更によるIntroduction文更新:', modelName);
+        
+        // Get current agent info from session or state
+        const currentAgentInfo = currentSession.agentInfo || null;
+        
+        // Generate updated Introduction Text with new model info
+        const updatedText = generateAgentModeInitialMessage(
+          user?.username || 'Unknown',
+          user?.role || 'User',
+          userDirectories,
+          currentAgentInfo,
+          t,
+          tAgent
+        );
+        
+        console.log('✅ [ChatbotPage] Introduction文生成完了 (model change), length:', updatedText?.length);
+        
+        if (!updatedText || typeof updatedText !== 'string') {
+          console.error('❌ [ChatbotPage] Invalid updatedText, aborting update');
+          return;
+        }
+        
+        // Update first message with new Introduction Text
+        const updatedMessages = currentSession.messages.map((msg, index) => {
+          if (index === 0) {
+            return {
+              ...msg,
+              content: updatedText,
+              timestamp: Date.now(),
+              updatedAt: Date.now()
+            };
+          }
+          return msg;
+        });
+        
+        // Create new session object (v19 direct update pattern)
+        const newSession: ChatSession = {
+          ...currentSession,
+          messages: updatedMessages,
+          updatedAt: Date.now()
+        };
+        
+        console.log('✅ [ChatbotPage] New session object created (model change):', {
+          sessionId: newSession.id,
+          messageCount: newSession.messages.length,
+          firstMessageLength: newSession.messages[0]?.content?.length
+        });
+        
+        // Update Zustand store directly (no callback)
+        setCurrentSession(newSession);
+        
+        // Force re-render (v17 pattern)
+        setRenderKey(prev => prev + 1);
+        console.log('🔄 [ChatbotPage] Force re-render triggered (model change), renderKey:', renderKey + 1);
+        
+      } catch (error) {
+        console.error('❌ [ChatbotPage] Introduction文更新エラー (model change):', error);
+      }
     };
 
     window.addEventListener('modelChanged', handleModelChange as EventListener);
     return () => {
       window.removeEventListener('modelChanged', handleModelChange as EventListener);
     };
-  }, []);
+  }, [currentSession, user, agentMode, t, tAgent, renderKey]);
+
+  // ✅ Phase 2.1: Region変更イベントリスナー（NEW）
+  useEffect(() => {
+    const handleRegionChange = (event: CustomEvent) => {
+      const { region } = event.detail;
+      console.log('🌍 [ChatbotPage] リージョン変更イベント受信:', region);
+      
+      // ✅ Phase 2.1: Update Introduction Text with new region info
+      if (!currentSession || !Array.isArray(currentSession.messages) || currentSession.messages.length === 0) {
+        console.warn('⚠️ [ChatbotPage] Introduction文更新スキップ - invalid session');
+        return;
+      }
+      
+      if (!agentMode || !user) {
+        console.warn('⚠️ [ChatbotPage] Introduction文更新スキップ - not in agent mode or no user');
+        return;
+      }
+      
+      try {
+        console.log('🔄 [ChatbotPage] リージョン変更によるIntroduction文更新:', region);
+        
+        // Get current agent info from session or state
+        const currentAgentInfo = currentSession.agentInfo || null;
+        
+        // Generate updated Introduction Text with new region info
+        const updatedText = generateAgentModeInitialMessage(
+          user?.username || 'Unknown',
+          user?.role || 'User',
+          userDirectories,
+          currentAgentInfo,
+          t,
+          tAgent
+        );
+        
+        console.log('✅ [ChatbotPage] Introduction文生成完了 (region change), length:', updatedText?.length);
+        
+        if (!updatedText || typeof updatedText !== 'string') {
+          console.error('❌ [ChatbotPage] Invalid updatedText, aborting update');
+          return;
+        }
+        
+        // Update first message with new Introduction Text
+        const updatedMessages = currentSession.messages.map((msg, index) => {
+          if (index === 0) {
+            return {
+              ...msg,
+              content: updatedText,
+              timestamp: Date.now(),
+              updatedAt: Date.now()
+            };
+          }
+          return msg;
+        });
+        
+        // Create new session object (v19 direct update pattern)
+        const newSession: ChatSession = {
+          ...currentSession,
+          messages: updatedMessages,
+          updatedAt: Date.now()
+        };
+        
+        console.log('✅ [ChatbotPage] New session object created (region change):', {
+          sessionId: newSession.id,
+          messageCount: newSession.messages.length,
+          firstMessageLength: newSession.messages[0]?.content?.length
+        });
+        
+        // Update Zustand store directly (no callback)
+        setCurrentSession(newSession);
+        
+        // Force re-render (v17 pattern)
+        setRenderKey(prev => prev + 1);
+        console.log('🔄 [ChatbotPage] Force re-render triggered (region change), renderKey:', renderKey + 1);
+        
+      } catch (error) {
+        console.error('❌ [ChatbotPage] Introduction文更新エラー (region change):', error);
+      }
+    };
+
+    window.addEventListener('regionChanged', handleRegionChange as EventListener);
+    console.log('👂 [ChatbotPage] regionChangedイベントリスナー登録完了');
+    
+    return () => {
+      window.removeEventListener('regionChanged', handleRegionChange as EventListener);
+      console.log('🧹 [ChatbotPage] regionChangedイベントリスナー解除');
+    };
+  }, [currentSession, user, agentMode, t, tAgent, renderKey]);
 
   // Agent選択変更イベントリスナー（Issue 3対応）
   // ✅ FIX v14: Check currentSession BEFORE calling setCurrentSession to prevent undefined state
@@ -1828,23 +1993,24 @@ function ChatbotPageContent() {
     }
   };
 
-  // ✅ v10: Use useRef and useEffect for direct DOM manipulation
-  // This bypasses React's event system entirely and attaches handler after mount
-  const signOutButtonRef = useRef<HTMLButtonElement>(null);
+  // ✅ v16: handleSignOut function with CSRF token support and stable handler attachment
+  // Ref is defined at the top with other refs (line ~565)
+  // useEffect now uses empty dependency array to prevent handler cleanup during re-renders
   
   const handleSignOut = async () => {
-    const signOutVersion = 'v12'; // ✅ v12: setTimeout fix for DOM update timing
+    const signOutVersion = 'v16'; // ✅ v16: Fixed useEffect dependency array (2026-01-19)
     console.log(`🔘 [handleSignOut ${signOutVersion}] Sign-out button clicked!`);
     try {
       // CSRF tokenを取得
       console.log(`🔄 [handleSignOut ${signOutVersion}] Fetching CSRF token...`);
       const csrfResponse = await fetch('/api/auth/csrf-token');
       if (!csrfResponse.ok) {
-        console.warn(`⚠️ [handleSignOut ${signOutVersion}] Failed to get CSRF token, proceeding with local cleanup`);
-        throw new Error('Failed to get CSRF token');
+        const errorText = await csrfResponse.text();
+        console.warn(`⚠️ [handleSignOut ${signOutVersion}] Failed to get CSRF token (${csrfResponse.status}):`, errorText);
+        throw new Error(`Failed to get CSRF token: ${csrfResponse.status}`);
       }
       const { token: csrfToken } = await csrfResponse.json();
-      console.log(`✅ [handleSignOut ${signOutVersion}] CSRF token obtained`);
+      console.log(`✅ [handleSignOut ${signOutVersion}] CSRF token obtained:`, csrfToken?.substring(0, 20) + '...');
 
       // サインアウトAPIを呼び出し
       console.log(`🔄 [handleSignOut ${signOutVersion}] Calling sign-out API...`);
@@ -1852,16 +2018,18 @@ function ChatbotPageContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
+          'X-CSRF-Token': csrfToken  // ✅ CSRFトークンをヘッダーに含める
         }
       });
 
       if (!response.ok) {
-        console.warn(`⚠️ [handleSignOut ${signOutVersion}] Sign-out API failed, proceeding with local cleanup`);
-        throw new Error('Sign-out failed');
+        const errorText = await response.text();
+        console.warn(`⚠️ [handleSignOut ${signOutVersion}] Sign-out API failed (${response.status}):`, errorText);
+        throw new Error(`Sign-out failed: ${response.status}`);
       }
       
-      console.log(`✅ [handleSignOut ${signOutVersion}] Sign-out API succeeded`);
+      const result = await response.json();
+      console.log(`✅ [handleSignOut ${signOutVersion}] Sign-out API succeeded:`, result);
     } catch (error) {
       console.error(`❌ [handleSignOut ${signOutVersion}] Sign-out error:`, error);
       // エラーが発生してもローカルクリーンアップは実行
@@ -1872,6 +2040,14 @@ function ChatbotPageContent() {
       localStorage.removeItem('session');
       localStorage.removeItem('chatSessions');
       
+      // ✅ useAuthStoreもクリア（Header.tsxのサインアウトボタンと同期）
+      useAuthStore.setState({
+        isAuthenticated: false,
+        session: null,
+        isLoading: false
+      });
+      console.log(`✅ [handleSignOut ${signOutVersion}] useAuthStore cleared`);
+      
       // サインインページにリダイレクト
       const redirectUrl = `/${memoizedLocale}/signin`;
       console.log(`🔄 [handleSignOut ${signOutVersion}] Redirecting to ${redirectUrl}`);
@@ -1879,37 +2055,44 @@ function ChatbotPageContent() {
     }
   };
   
-  // ✅ v12: Attach event handler after component mount using useEffect with setTimeout
+  // ✅ v17: Attach event handler after user is loaded
   // setTimeout ensures DOM is fully updated before attaching handler
+  // Dependency on user ensures handler is attached after user state is loaded
   useEffect(() => {
-    console.log('🔧 [useEffect v12] Attaching sign-out button handler...');
+    // Skip if user is not loaded yet
+    if (!user) {
+      console.log('⏳ [useEffect v17] Waiting for user to load...');
+      return;
+    }
     
-    // Use setTimeout with 100ms delay to ensure Header component is fully mounted
+    console.log('🔧 [useEffect v17] User loaded, attaching sign-out button handler...');
+    
+    // Use setTimeout with 100ms delay to ensure button is fully rendered
     const timeoutId = setTimeout(() => {
       const button = signOutButtonRef.current;
       
       if (button) {
-        console.log('✅ [useEffect v12] Button ref found, attaching onclick handler');
+        console.log('✅ [useEffect v17] Button ref found, attaching onclick handler');
         button.onclick = (e) => {
           e.preventDefault();
-          console.log('🔘 [DOM onclick v12] Sign-out button clicked - calling handleSignOut()');
+          console.log('🔘 [DOM onclick v17] Sign-out button clicked - calling handleSignOut()');
           handleSignOut();
         };
       } else {
-        console.warn('⚠️ [useEffect v12] Button ref not found');
+        console.warn('⚠️ [useEffect v17] Button ref not found');
       }
-    }, 100); // 100ms delay to ensure Header is fully mounted
+    }, 100); // 100ms delay to ensure button is fully rendered
     
     // Cleanup
     return () => {
       clearTimeout(timeoutId);
       const button = signOutButtonRef.current;
       if (button) {
-        console.log('🧹 [useEffect v10] Cleaning up onclick handler');
+        console.log('🧹 [useEffect v17] Cleaning up onclick handler');
         button.onclick = null;
       }
     };
-  }, [user, memoizedLocale]); // Re-attach when user or locale changes
+  }, [user]); // ✅ v17: Dependency on user - attach handler after user is loaded
 
   // ✅ v5: Early return check AFTER handleSignOut is defined
   if (!isClient || !user) {

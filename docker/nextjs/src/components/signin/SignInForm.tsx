@@ -71,7 +71,7 @@ function UsernameField({ value, onChange, disabled }: InputFieldProps) {
   return (
     <div>
       <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
-        ユーザー名
+        Username
       </label>
       <input
         id="username"
@@ -79,7 +79,7 @@ function UsernameField({ value, onChange, disabled }: InputFieldProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-        placeholder="ユーザー名を入力"
+        placeholder="Enter username"
         disabled={disabled}
         required
       />
@@ -91,7 +91,7 @@ function PasswordField({ value, onChange, disabled }: InputFieldProps) {
   return (
     <div>
       <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-        パスワード
+        Password
       </label>
       <input
         id="password"
@@ -99,7 +99,7 @@ function PasswordField({ value, onChange, disabled }: InputFieldProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-        placeholder="パスワードを入力"
+        placeholder="Enter password"
         disabled={disabled}
         required
       />
@@ -132,10 +132,10 @@ function SubmitButton({ isLoading }: { isLoading: boolean }) {
       {isLoading ? (
         <div className="flex items-center justify-center">
           <LoadingSpinner />
-          サインイン中...
+          Signing in...
         </div>
       ) : (
-        'サインイン'
+        'Sign In'
       )}
     </button>
   );

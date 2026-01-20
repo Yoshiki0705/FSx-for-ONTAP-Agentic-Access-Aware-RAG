@@ -330,8 +330,9 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
       return;
     }
 
-    // KMS暗号化キーの作成または取得
-    this.encryptionKey = props.encryptionKey ?? this.createEncryptionKey(props);
+    // KMS暗号化キーの作成または取得（AWS-managed keyを使用する場合はundefined）
+    // Option 2: AWS-managed KMS keyを使用（customer-managed keyの問題を回避）
+    this.encryptionKey = props.encryptionKey ?? undefined as any;
 
     // IAM実行ロールの作成
     this.executionRole = this.createExecutionRole(props);
@@ -382,39 +383,6 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
   }
 
   /**
-   * KMS暗号化キーを作成
-   */
-  private createEncryptionKey(props: BedrockAgentCoreGatewayConstructProps): kms.Key {
-    const key = new kms.Key(this, 'EncryptionKey', {
-      description: `Encryption key for ${props.projectName}-${props.environment} Bedrock AgentCore Gateway`,
-      enableKeyRotation: true,
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
-    });
-    
-    // CloudWatch Logsに KMS key使用権限を付与
-    key.addToResourcePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      principals: [new iam.ServicePrincipal(`logs.${cdk.Stack.of(this).region}.amazonaws.com`)],
-      actions: [
-        'kms:Encrypt',
-        'kms:Decrypt',
-        'kms:ReEncrypt*',
-        'kms:GenerateDataKey*',
-        'kms:CreateGrant',
-        'kms:DescribeKey',
-      ],
-      resources: ['*'],
-      conditions: {
-        ArnLike: {
-          'kms:EncryptionContext:aws:logs:arn': `arn:aws:logs:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:log-group:/aws/bedrock-agent-core/gateway/${props.projectName}-${props.environment}`,
-        },
-      },
-    }));
-    
-    return key;
-  }
-
-  /**
    * IAM実行ロールを作成
    */
   private createExecutionRole(props: BedrockAgentCoreGatewayConstructProps): iam.Role {
@@ -426,16 +394,18 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
       ],
     });
 
-    // KMS権限の追加
-    role.addToPolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'kms:Decrypt',
-        'kms:Encrypt',
-        'kms:GenerateDataKey',
-      ],
-      resources: [this.encryptionKey.keyArn],
-    }));
+    // KMS権限の追加（customer-managed keyが提供されている場合のみ）
+    if (this.encryptionKey) {
+      role.addToPolicy(new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'kms:Decrypt',
+          'kms:Encrypt',
+          'kms:GenerateDataKey',
+        ],
+        resources: [this.encryptionKey.keyArn],
+      }));
+    }
 
     // Bedrock権限の追加
     role.addToPolicy(new iam.PolicyStatement({
@@ -510,8 +480,8 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
       logGroupName: `/aws/bedrock-agent-core/gateway/${props.projectName}-${props.environment}`,
       retention: props.logRetentionDays ?? logs.RetentionDays.ONE_WEEK,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
-      // KMS暗号化を無効化（CloudWatch Logsとの互換性問題を回避）
-      // encryptionKey: this.encryptionKey,
+      // Option 2: AWS-managed KMS keyを使用（encryptionKeyを指定しない）
+      // CloudWatch Logsは自動的にAWS-managed keyで暗号化される
     });
     
     return logGroup;
@@ -569,7 +539,7 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
     // Lambda関数の作成
     const fn = new lambda.Function(this, 'RestApiConverterFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
+      handler: 'index.handler',  // ✅ index.handlerを指定（コンパイル済みindex.jsをルートに配置）
       code: lambda.Code.fromAsset('lambda/agent-core-gateway/rest-api-converter'),
       role: this.executionRole,
       environment,
@@ -630,7 +600,7 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
     // Lambda関数の作成
     const fn = new lambda.Function(this, 'LambdaConverterFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
+      handler: 'index.handler',  // ✅ index.handlerを指定（コンパイル済みindex.jsをルートに配置）
       code: lambda.Code.fromAsset('lambda/agent-core-gateway/lambda-function-converter'),
       role: this.executionRole,
       environment,
@@ -719,7 +689,7 @@ export class BedrockAgentCoreGatewayConstruct extends Construct {
     // Lambda関数の作成
     const fn = new lambda.Function(this, 'McpIntegrationFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
+      handler: 'index.handler',  // ✅ index.handlerを指定（コンパイル済みindex.jsをルートに配置）
       code: lambda.Code.fromAsset('lambda/agent-core-gateway/mcp-server-integration'),
       role: this.executionRole,
       environment,

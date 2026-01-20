@@ -169,7 +169,7 @@
   "model": {
     "current": "當前模型",
     "foundationModel": "基礎模型",
-    "modelCount": "模型",
+    "modelCount": "{count}個模型",
     "models": "模型",
     "provider": "提供商",
     "providers": "提供商",
@@ -211,7 +211,7 @@
     "region": "區域",
     "supportedRegions": "支援的區域 (Bedrock Agents)",
     "unsupportedRegions": "不支援的區域 (Bedrock Agents)",
-    "modelCount": "模型數量",
+    "modelCount": "{count}個模型可用",
     "change": "更改"
   },
   "regionSelector": {

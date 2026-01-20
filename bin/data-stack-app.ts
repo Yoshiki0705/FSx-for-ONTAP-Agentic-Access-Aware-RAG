@@ -29,14 +29,37 @@ const projectName = 'permission-aware-rag';
 const environment = 'prod';
 const regionPrefix = 'TokyoRegion';
 
-// NetworkingStackからのVPC情報（CloudFormation出力値から取得）
+// 既存VPC情報（既存のNetworkingStack、WebAppStackが稼働しているVPC）
+// FSx for ONTAPは既存VPCのプライベートサブネットにデプロイ
+const existingVpcId = 'vpc-09aa251d6db52b1fc';
+// 全3つのプライベートサブネット（CDKはAZ数の倍数を要求）
+const existingPrivateSubnetIds = [
+  'subnet-0a84a16a1641e970f', // ap-northeast-1a
+  'subnet-0c4599b4863ff4d33', // ap-northeast-1c
+  'subnet-0c9ad18a58c06e7c5', // ap-northeast-1d
+];
+
+console.log('📍 既存VPC情報:');
+console.log(`   VPC ID: ${existingVpcId}`);
+console.log(`   プライベートサブネット: ${existingPrivateSubnetIds.length}個`);
+existingPrivateSubnetIds.forEach((subnetId, index) => {
+  console.log(`   - Subnet ${index + 1}: ${subnetId}`);
+});
+
+// VPC設定: ec2.Vpc.fromVpcAttributesを使用して既存VPCを参照
+// FSx for ONTAPはSINGLE_AZ_1なので最初のサブネットのみ使用されるが、
+// CDKはAZ数の倍数のサブネットを要求するため全3つを指定
 const vpcConfig = {
-  vpcId: 'vpc-066c268dc0cd2e6fd',
-  availabilityZones: ['ap-northeast-1a', 'ap-northeast-1c'],
-  publicSubnetIds: ['subnet-009f9c39eb1783be3', 'subnet-0bcf9bb06f9123bc6'],
-  privateSubnetIds: ['subnet-06047e82ccdc7fbea', 'subnet-0e48a5cddf1c88b57'],
-  vpcCidrBlock: '10.0.0.0/16',
+  vpcId: existingVpcId,
+  availabilityZones: ['ap-northeast-1a', 'ap-northeast-1c', 'ap-northeast-1d'],
+  privateSubnetIds: existingPrivateSubnetIds,
+  privateSubnetRouteTableIds: [
+    'rtb-007b7bfa6f7888a07', // ap-northeast-1a
+    'rtb-0c55af1c4547236c7', // ap-northeast-1c
+    'rtb-0e249dd6df9a20e78', // ap-northeast-1d
+  ],
 };
+const privateSubnetIds = existingPrivateSubnetIds;
 
 // DataStack完全設定（型定義に完全準拠）
 const dataStackConfig = {
@@ -77,7 +100,7 @@ const dataStackConfig = {
         },
         networkConfiguration: {
           vpcRestricted: true, // VPC制限を有効化
-          vpcId: vpcConfig.vpcId, // vpc-066c268dc0cd2e6fd（動的参照）
+          vpcId: existingVpcId, // 既存VPCを使用
         },
         iamPolicy: {
           enabled: false, // 初期デプロイでは無効化（後で有効化可能）
@@ -190,8 +213,9 @@ const dataStack = new DataStack(app, `${regionPrefix}-${projectName}-${environme
   config: dataStackConfig,
   
   // VPC設定（NetworkingStackから）- FSx for ONTAP用
+  // undefinedを渡すとDataStack内で自動的にVPCが作成される
   vpc: vpcConfig,
-  privateSubnetIds: vpcConfig.privateSubnetIds,
+  privateSubnetIds: privateSubnetIds,
   
   // プロジェクト設定
   projectName,

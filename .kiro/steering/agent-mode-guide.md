@@ -1135,8 +1135,151 @@ curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" \
 
 ---
 
+## 🎯 useEffect依存配列のベストプラクティス（2026-01-20追加）
+
+### サインアウトボタン修正から得られた教訓
+
+**背景**: サインアウトボタン修正（v14→v15→v16→v17）で、条件付きレンダリングとuseEffect依存配列の重要性が明確になりました。
+
+### 問題: 条件付きレンダリング要素へのアクセス
+
+```typescript
+// JSX: 条件付きレンダリング
+{user && <button ref={signOutButtonRef}>サインアウト</button>}
+
+// ❌ v16の失敗例: 空の依存配列
+useEffect(() => {
+  const button = signOutButtonRef.current;
+  if (button) {
+    button.onclick = handleSignOut;
+  }
+}, []); // ❌ マウント時に1回だけ実行 → userがnullでボタンが存在しない
+```
+
+**問題点**:
+1. useEffectはマウント時に即座に実行
+2. この時点で`user`はまだ`null`（非同期ロード中）
+3. ボタンは`{user && ...}`で条件付きレンダリング → まだ存在しない
+4. `signOutButtonRef.current`は`null` → ハンドラー未設定
+5. 後で`user`がロードされても、useEffectは再実行されない
+
+### 解決策: 状態を依存配列に含める
+
+```typescript
+// ✅ v17の成功例: userを依存配列に含める
+useEffect(() => {
+  // 1. userがロードされるまで待機
+  if (!user) {
+    console.log('⏳ Waiting for user to load...');
+    return;
+  }
+  
+  console.log('🔧 User loaded, attaching sign-out button handler...');
+  
+  // 2. DOMが安定するまで100ms待機
+  const timeoutId = setTimeout(() => {
+    const button = signOutButtonRef.current;
+    
+    if (button) {
+      console.log('✅ Button ref found, attaching onclick handler');
+      button.onclick = (e) => {
+        e.preventDefault();
+        handleSignOut();
+      };
+    }
+  }, 100);
+  
+  // 3. クリーンアップ
+  return () => {
+    clearTimeout(timeoutId);
+    const button = signOutButtonRef.current;
+    if (button) {
+      button.onclick = null;
+    }
+  };
+}, [user]); // ✅ userを依存配列に含める
+```
+
+### 一般的なパターン
+
+```typescript
+// パターン: {condition && <Element ref={ref}>}
+// 解決策: useEffect(..., [condition])
+
+// 例1: ユーザー認証
+{user && <button ref={buttonRef}>...</button>}
+useEffect(() => {
+  if (!user) return;
+  // buttonRefにアクセス
+}, [user]); // ✅
+
+// 例2: Agent情報
+{agentInfo && <div ref={divRef}>...</div>}
+useEffect(() => {
+  if (!agentInfo) return;
+  // divRefにアクセス
+}, [agentInfo]); // ✅
+
+// 例3: モード切り替え
+{mode === 'agent' && <section ref={sectionRef}>...</section>}
+useEffect(() => {
+  if (mode !== 'agent') return;
+  // sectionRefにアクセス
+}, [mode]); // ✅
+```
+
+### Agent Mode実装への適用
+
+Agent Mode開発でも同じパターンが適用されます：
+
+```typescript
+// Agent情報が条件付きレンダリングされる場合
+{agentInfo && (
+  <div ref={agentInfoRef}>
+    <h3>{agentInfo.agentName}</h3>
+    <p>{agentInfo.description}</p>
+  </div>
+)}
+
+// useEffectで依存配列にagentInfoを含める
+useEffect(() => {
+  if (!agentInfo) {
+    console.log('⏳ Waiting for agent info to load...');
+    return;
+  }
+  
+  console.log('🔧 Agent info loaded, updating UI...');
+  
+  const timeoutId = setTimeout(() => {
+    const element = agentInfoRef.current;
+    if (element) {
+      // 要素にアクセス
+    }
+  }, 100);
+  
+  return () => clearTimeout(timeoutId);
+}, [agentInfo]); // ✅ agentInfoを依存配列に含める
+```
+
+### ベストプラクティスチェックリスト
+
+- [ ] 条件付きレンダリング要素にアクセスする場合、条件となる状態を依存配列に含める
+- [ ] useEffect内で状態の早期チェック（`if (!state) return;`）を実行
+- [ ] refアクセス前に100ms遅延を入れてDOMの安定を待つ
+- [ ] クリーンアップ関数でタイムアウトをクリア
+- [ ] 詳細なログでデバッグを容易にする
+
+### 関連ドキュメント
+
+- **サインアウト修正v17成功レポート**: `development/docs/reports/local/01-20-signout-fix-v17-verification-results.md`
+- **v17根本原因分析**: `development/docs/reports/local/01-19-signout-fix-v17-root-cause-analysis.md`
+- **v16根本原因分析**: `development/docs/reports/local/01-19-signout-fix-v16-root-cause-analysis.md`
+- **最終検証レポート**: `development/docs/reports/local/01-20-signout-fix-final-verification-success.md`
+
+---
+
 **ガイド作成日**: 2026-01-19  
-**最終更新日**: 2026-01-19  
+**最終更新日**: 2026-01-20  
 **作成者**: Kiro AI Assistant  
-**レビュー**: Phase 1完了時点での知見を集約
+**レビュー**: Phase 1完了時点での知見を集約、サインアウト修正の教訓を追加
 

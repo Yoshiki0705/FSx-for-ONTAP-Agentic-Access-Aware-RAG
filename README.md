@@ -287,6 +287,91 @@ https://d3p7l2uoh6npdr.cloudfront.net/ja/genai?mode=agent
 # - 新しいチャット作成時のAgent情報反映
 ```
 
+##### React useEffect依存配列のベストプラクティス（v2.9.1追加）
+
+**背景**: サインアウトボタン修正（v14→v15→v16→v17）で得られた重要な知見
+
+**問題**: 条件付きレンダリングされる要素にアクセスするuseEffectで、依存配列が不適切だとレースコンディションが発生
+
+```typescript
+// ❌ v16の失敗例: 空の依存配列
+const signOutButtonRef = useRef<HTMLButtonElement>(null);
+
+useEffect(() => {
+  const button = signOutButtonRef.current;
+  if (button) {
+    button.onclick = handleSignOut;
+  }
+}, []); // ❌ マウント時に1回だけ実行 → userがnullでボタンが存在しない
+
+// JSX: 条件付きレンダリング
+{user && <button ref={signOutButtonRef}>サインアウト</button>}
+
+// ✅ v17の成功例: userを依存配列に含める
+useEffect(() => {
+  // 1. userがロードされるまで待機
+  if (!user) {
+    console.log('⏳ Waiting for user to load...');
+    return;
+  }
+  
+  console.log('🔧 User loaded, attaching sign-out button handler...');
+  
+  // 2. DOMが安定するまで100ms待機
+  const timeoutId = setTimeout(() => {
+    const button = signOutButtonRef.current;
+    
+    if (button) {
+      console.log('✅ Button ref found, attaching onclick handler');
+      button.onclick = (e) => {
+        e.preventDefault();
+        handleSignOut();
+      };
+    }
+  }, 100);
+  
+  // 3. クリーンアップ
+  return () => {
+    clearTimeout(timeoutId);
+    const button = signOutButtonRef.current;
+    if (button) {
+      button.onclick = null;
+    }
+  };
+}, [user]); // ✅ userを依存配列に含める
+```
+
+**一般的なパターン**:
+```typescript
+// パターン: {condition && <Element ref={ref}>}
+// 解決策: useEffect(..., [condition])
+
+// 例1: ユーザー認証
+{user && <button ref={buttonRef}>...</button>}
+useEffect(() => {
+  if (!user) return;
+  // buttonRefにアクセス
+}, [user]); // ✅
+
+// 例2: Agent情報
+{agentInfo && <div ref={divRef}>...</div>}
+useEffect(() => {
+  if (!agentInfo) return;
+  // divRefにアクセス
+}, [agentInfo]); // ✅
+```
+
+**重要ポイント**:
+1. ✅ 条件付きレンダリング要素にアクセスする場合、条件となる状態を依存配列に含める
+2. ✅ useEffect内で状態の早期チェック（`if (!state) return;`）を実行
+3. ✅ refアクセス前に100ms遅延を入れてDOMの安定を待つ
+4. ✅ クリーンアップ関数でタイムアウトをクリア
+
+**詳細ドキュメント**:
+- [統合開発ルール](.kiro/steering/consolidated-development-rules.md) - React useEffect依存配列のベストプラクティス（完全版）
+- [Agent Mode開発ガイド](.kiro/steering/agent-mode-guide.md) - useEffect依存配列のベストプラクティス
+- [サインアウト修正v17成功レポート](development/docs/reports/local/01-20-signout-fix-v17-verification-results.md)
+
 ### 📚 詳細ドキュメント
 - **[AgentCore統合v2デプロイガイド](docs/AgentCore統合v2デプロイガイド.md)** - 詳細なデプロイ手順とTIPS
 - **[ハイブリッドアーキテクチャ実装ガイド](docs/guides/agentcore-complete-guide.md)** - アーキテクチャ設計詳細
@@ -1698,6 +1783,111 @@ POST /policy/approve
   "comment": "承認しました"
 }
 ```
+
+#### 10. Gateway - API統合・変換レイヤー
+
+**概要**: 既存APIやLambda関数をBedrock Agent Toolsに変換する統合レイヤー
+
+**主な機能**:
+- REST API変換（OpenAPI仕様からTool定義を自動生成）
+- Lambda関数変換（既存Lambda関数をAgent Toolsとして統合）
+- MCP Server統合（Model Context Protocol対応）
+- API Gateway統合
+- 認証・認可管理
+
+**デプロイ構成**:
+- **Infrastructure**: IAM Role、CloudWatch Logs、DynamoDB（Memory Table）
+- **Lambda Functions**: REST API Converter、Lambda Function Converter、MCP Server Integration（オプション）
+
+**使用例**:
+```typescript
+import { BedrockAgentCoreGatewayConstruct } from './lib/modules/ai/constructs/bedrock-agent-core-gateway-construct';
+
+const gateway = new BedrockAgentCoreGatewayConstruct(this, 'Gateway', {
+  enabled: true,
+  projectName: 'my-project',
+  environment: 'prod',
+  
+  // REST API変換（オプション）
+  gatewaySpecsBucket: s3.Bucket.fromBucketName(this, 'Bucket', 'my-openapi-specs'),
+  restApiConversion: {
+    openApiSpecKey: 'openapi/my-api.yaml',
+  },
+  
+  // Lambda関数変換（オプション）
+  lambdaFunctionConversion: {
+    functionArns: [
+      'arn:aws:lambda:ap-northeast-1:123456789012:function:my-function-1',
+      'arn:aws:lambda:ap-northeast-1:123456789012:function:my-function-2',
+    ],
+  },
+  
+  // MCP Server統合（オプション）
+  mcpServerIntegration: {
+    serverEndpoint: 'https://my-mcp-server.example.com',
+  },
+});
+```
+
+**CloudWatch Logs暗号化**:
+
+Gateway Constructは、CloudWatch LogsにAWS-managed KMS暗号化を使用します。これにより、複雑なKMSポリシー管理が不要になり、デプロイが簡素化されます。
+
+```typescript
+// AWS-managed KMS暗号化（自動）
+const logGroup = new logs.LogGroup(this, 'LogGroup', {
+  logGroupName: `/aws/bedrock-agent-core/gateway/${projectName}-${environment}`,
+  retention: logs.RetentionDays.ONE_WEEK,
+  removalPolicy: cdk.RemovalPolicy.DESTROY,
+  // encryptionKeyを指定しない = AWS-managed暗号化
+});
+```
+
+**KMS暗号化の選択肢**:
+
+| 項目 | AWS-Managed KMS | Customer-Managed KMS |
+|------|----------------|---------------------|
+| **セットアップ** | 簡単（自動） | 複雑（KMSポリシー必要） |
+| **CloudWatch Logs権限** | 自動設定 | 手動設定必要 |
+| **キーローテーション** | 自動 | 手動（有効化可能） |
+| **コスト** | 無料 | $1/月/キー |
+| **制御** | 限定的 | 完全制御 |
+| **推奨用途** | ほとんどのユースケース | 厳格なコンプライアンス要件 |
+
+**推奨事項**: 厳格なコンプライアンス要件がない限り、AWS-managed KMS暗号化を使用してください。
+
+**デプロイ方法**:
+
+```bash
+# Gateway Infrastructure のみデプロイ（Lambda関数なし）
+npx cdk deploy TokyoRegion-permission-aware-rag-prod-AgentCore-Gateway \
+  --app 'npx ts-node bin/deploy-agentcore-gateway-only.ts' \
+  --require-approval never
+
+# Gateway Lambda関数を含む完全デプロイ（必要なリソースを提供後）
+# 1. S3バケット作成（REST API変換用）
+# 2. Lambda関数ARNリスト準備（Lambda変換用）
+# 3. MCP Serverエンドポイント設定（MCP統合用）
+# 4. 上記の設定を反映してデプロイ
+```
+
+**注意事項**:
+
+1. **条件付きIAMポリシー**: リソースが提供されている場合のみIAMポリシーを追加
+   ```typescript
+   // Lambda関数ARNが提供されている場合のみ権限を追加
+   if (props.lambdaFunctionConversion?.functionArns && 
+       props.lambdaFunctionConversion.functionArns.length > 0) {
+     role.addToPolicy(new iam.PolicyStatement({...}));
+   }
+   ```
+
+2. **段階的デプロイ**: Infrastructure → Lambda Functions の順でデプロイ推奨
+
+3. **リソース要件**: Gateway Lambda関数をデプロイするには、以下のいずれかが必要
+   - S3バケット（REST API変換用）
+   - Lambda関数ARNリスト（Lambda変換用）
+   - MCP Serverエンドポイント（MCP統合用）
 
 ### 🎯 ユースケース
 

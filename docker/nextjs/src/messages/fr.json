@@ -169,7 +169,7 @@
   "model": {
     "current": "Modèle actuel",
     "foundationModel": "Modèle de base",
-    "modelCount": "modèles",
+    "modelCount": "{count} modèles",
     "models": "modèles",
     "provider": "Fournisseur",
     "providers": "fournisseurs",
@@ -211,7 +211,7 @@
     "region": "Région",
     "supportedRegions": "Régions prises en charge (Bedrock Agents)",
     "unsupportedRegions": "Régions non prises en charge (Bedrock Agents)",
-    "modelCount": "Nombre de modèles",
+    "modelCount": "{count} modèles disponibles",
     "change": "Changer"
   },
   "regionSelector": {

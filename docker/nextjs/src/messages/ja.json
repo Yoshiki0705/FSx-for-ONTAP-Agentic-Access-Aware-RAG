@@ -113,7 +113,7 @@
     "current": "現在のモデル",
     "provider": "プロバイダー",
     "foundationModel": "基盤モデル",
-    "modelCount": "モデル数",
+    "modelCount": "{count}モデル",
     "selectModel": "モデルを選択してください",
     "selectedModel": "選択されたモデル"
   },
@@ -183,7 +183,7 @@
   },
   "region": {
     "bedrockRegion": "Bedrockリージョン",
-    "modelCount": "モデル数",
+    "modelCount": "{count}モデル利用可能",
     "change": "変更",
     "primaryRegion": "プライマリリージョン",
     "region": "リージョン",
