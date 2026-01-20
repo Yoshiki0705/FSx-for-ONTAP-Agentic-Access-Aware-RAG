@@ -67,7 +67,8 @@ export async function middleware(request: NextRequest) {
     '/_next',
     '/favicon.ico',
     '/manifest.json',
-    '/images'
+    '/images',
+    '/config' // ✅ Phase 2.2: Config files for mode-specific lists
   ];
   
   // 静的ファイルの場合は早期リターン
