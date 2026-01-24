@@ -51,17 +51,88 @@ const validateAndSanitizeLocale = (locale: string): SupportedLocale => {
   return 'ja';
 };
 
+// FSxディレクトリセクション生成関数（Phase 4: FSx Directory Display）
+// 2026-01-20: Added FSx directory display functionality
+async function generateFsxDirectoriesSection(
+  tFsx: any,  // useTranslations('fsx')
+  userId: string
+): Promise<string> {
+  console.log('📁 [generateFsxDirectoriesSection] Starting...', { userId, hasTFsx: !!tFsx });
+
+  // ✅ Validate translation function
+  if (!tFsx || typeof tFsx !== 'function') {
+    console.error('❌ [generateFsxDirectoriesSection] Invalid tFsx function:', tFsx);
+    return '';
+  }
+
+  try {
+    // 1. Fetch FSx directories from API
+    console.log('🔄 [generateFsxDirectoriesSection] Fetching directories from API...');
+    const response = await fetch(`/api/fsx/user-directories?userId=${encodeURIComponent(userId)}`);
+    
+    if (!response.ok) {
+      console.error('❌ [generateFsxDirectoriesSection] API error:', response.status);
+      return `\n\n**📁 ${tFsx('accessibleDirectories')}**\n${tFsx('errorLoadingDirectories')}`;
+    }
+
+    const data = await response.json();
+    console.log('✅ [generateFsxDirectoriesSection] Data received:', {
+      totalDirectories: data.totalDirectories,
+      totalSize: data.totalSize,
+      dataSource: data.dataSource
+    });
+
+    // 2. Check if directories exist
+    if (!data.accessibleDirectories || data.accessibleDirectories.length === 0) {
+      console.warn('⚠️ [generateFsxDirectoriesSection] No directories found');
+      return `\n\n**📁 ${tFsx('accessibleDirectories')}**\n${tFsx('noDirectories')}`;
+    }
+
+    // 3. Format directories list
+    const directoriesList = data.accessibleDirectories
+      .map((dir: any) => {
+        const permissions = dir.permissions.join(', ');
+        return `• **${dir.path}**: ${dir.description}\n  - ${permissions} | ${dir.size} | ${dir.fileCount.toLocaleString()} files`;
+      })
+      .join('\n');
+
+    // 4. Build FSx section
+    const fsxSection = `
+
+**📁 ${tFsx('accessibleDirectories')}**
+
+**${tFsx('summary')}**
+• **${tFsx('totalDirectories')}**: ${data.totalDirectories}
+• **${tFsx('totalSize')}**: ${data.totalSize}
+• **${tFsx('dataSource')}**: ${data.dataSource === 'simulated' ? tFsx('simulated') : tFsx('real')}
+
+${directoriesList}`;
+
+    console.log('✅ [generateFsxDirectoriesSection] FSx section generated, length:', fsxSection.length);
+    return fsxSection;
+
+  } catch (error) {
+    console.error('❌ [generateFsxDirectoriesSection] Error:', error);
+    return `\n\n**📁 ${tFsx('accessibleDirectories')}**\n${tFsx('errorLoadingDirectories')}`;
+  }
+}
+
 // 初期メッセージ生成関数（ロケール対応・i18n対応）
 // 2026-01-14: Enhanced null safety to prevent undefined errors
 // 2026-01-14 v4: Added comprehensive logging and defensive checks
+// 2026-01-22: Added SID information display (Phase 5)
 const generateInitialMessage = (
   username: string, 
   role: string, 
-  t: any  // useTranslations() - ルートレベルの翻訳フック
+  t: any,  // useTranslations() - ルートレベルの翻訳フック
+  sid?: string,  // AD SID (Optional - Phase 5)
+  distinguishedName?: string  // Distinguished Name (Optional - Phase 5)
 ): string => {
   console.log('🔍 [generateInitialMessage] Starting...', { 
     username, 
     role, 
+    sid,
+    distinguishedName,
     hasT: !!t, 
     tType: typeof t 
   });
@@ -77,13 +148,18 @@ const generateInitialMessage = (
     const testTranslation = t('introduction.welcome', { username });
     console.log('✅ [generateInitialMessage] Translation test passed:', testTranslation?.substring(0, 50));
 
+    // SID情報セクション（利用可能な場合）
+    const sidSection = sid ? `
+• **AD SID**: ${sid}${distinguishedName ? `
+• **Distinguished Name**: ${distinguishedName}` : ''}` : '';
+
     const message = `${t('introduction.welcome', { username })}
 
 **${t('introduction.title')}**
 
 **${t('introduction.yourPermissions')}**
 • **${t('introduction.user')}**: ${username}
-• **${t('introduction.role')}**: ${role || 'User'}
+• **${t('introduction.role')}**: ${role || 'User'}${sidSection}
 • **${t('introduction.accessibleDirectories')}**: ${t('introduction.loading')}
 
 *${t('introduction.checkingPermissions')}*
@@ -105,23 +181,34 @@ ${t('introduction.askAnything')}`;
 // Agentモード用の初期メッセージ生成関数（Agent情報付き）
 // 2026-01-14: Enhanced null safety to prevent "Cannot read properties of undefined" errors
 // 2026-01-14 v4: Added comprehensive logging and defensive checks
-const generateAgentModeInitialMessage = (
+// 2026-01-20: Made async to support FSx directory fetching (Phase 4)
+// 2026-01-22: Added SID information display (Phase 5)
+const generateAgentModeInitialMessage = async (
   username: string,
   role: string,
   userDirectories: any,
   agentInfo: any,
   t: any,      // useTranslations() - ルートレベルの翻訳フック
-  tAgent: any  // useTranslations('agent') - Agent情報用
-): string => {
+  tAgent: any, // useTranslations('agent') - Agent情報用
+  tFsx: any,   // useTranslations('fsx') - FSx情報用
+  userId: string, // User ID for FSx API
+  sid?: string,  // AD SID (Optional - Phase 5)
+  distinguishedName?: string  // Distinguished Name (Optional - Phase 5)
+): Promise<string> => {
   console.log('🔍 [generateAgentModeInitialMessage] Starting...', { 
     username, 
     role, 
+    userId,
+    sid,
+    distinguishedName,
     hasUserDirectories: !!userDirectories,
     hasAgentInfo: !!agentInfo,
     hasT: !!t, 
     hasTAgent: !!tAgent,
+    hasTFsx: !!tFsx,
     tType: typeof t,
-    tAgentType: typeof tAgent
+    tAgentType: typeof tAgent,
+    tFsxType: typeof tFsx
   });
 
   // ✅ Validate all parameters to prevent undefined errors
@@ -135,12 +222,17 @@ const generateAgentModeInitialMessage = (
     return `Welcome to Agent Mode, ${username}!\n\nAgent translation system is not available. Please reload the page.`;
   }
 
+  if (!tFsx || typeof tFsx !== 'function') {
+    console.error('❌ [generateAgentModeInitialMessage] Invalid tFsx function:', tFsx);
+    // Continue without FSx section
+  }
+
   let baseMessage: string;
   
   try {
     baseMessage = userDirectories 
-      ? generateInitialMessageWithDirectories(username, role, userDirectories, t)
-      : generateInitialMessage(username, role, t);
+      ? generateInitialMessageWithDirectories(username, role, userDirectories, t, sid, distinguishedName)
+      : generateInitialMessage(username, role, t, sid, distinguishedName);
 
     console.log('✅ [generateAgentModeInitialMessage] Base message generated, length:', baseMessage?.length);
   } catch (error) {
@@ -152,6 +244,19 @@ const generateAgentModeInitialMessage = (
   if (!baseMessage || typeof baseMessage !== 'string') {
     console.error('❌ [generateAgentModeInitialMessage] Invalid baseMessage:', baseMessage);
     return `Welcome to Agent Mode, ${username}!\n\nError: Failed to generate base message`;
+  }
+
+  // ✅ Phase 4: Fetch and add FSx directories section
+  let fsxSection = '';
+  if (tFsx && typeof tFsx === 'function' && userId) {
+    try {
+      console.log('📁 [generateAgentModeInitialMessage] Fetching FSx directories...');
+      fsxSection = await generateFsxDirectoriesSection(tFsx, userId);
+      console.log('✅ [generateAgentModeInitialMessage] FSx section added, length:', fsxSection.length);
+    } catch (error) {
+      console.error('❌ [generateAgentModeInitialMessage] Error fetching FSx directories:', error);
+      // Continue without FSx section
+    }
   }
 
   // Agent情報が利用可能な場合は追加（動的Agent情報を使用）
@@ -197,11 +302,11 @@ ${agentInfo.description
 ${tAgent('modeDescription')}`;
 
       console.log('✅ [generateAgentModeInitialMessage] Agent section generated, length:', agentSection?.length);
-      return baseMessage + agentSection;
+      return baseMessage + fsxSection + agentSection;
     } catch (error) {
       console.error('❌ [generateAgentModeInitialMessage] Error generating agent section:', error);
       // Fallback to base message if agent section generation fails
-      return baseMessage + `\n\n**Agent Mode**\n\nError loading agent information: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return baseMessage + fsxSection + `\n\n**Agent Mode**\n\nError loading agent information: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
@@ -220,24 +325,29 @@ ${tAgent('modeDescription')}
 • **${tAgent('contextOptimization')}**: ${tAgent('contextOptimizationDesc')}`;
 
     console.log('✅ [generateAgentModeInitialMessage] Fallback section generated');
-    return baseMessage + agentFallbackSection;
+    return baseMessage + fsxSection + agentFallbackSection;
   } catch (error) {
     console.error('❌ [generateAgentModeInitialMessage] Error generating fallback section:', error);
     // Return base message if fallback generation fails
-    return baseMessage + `\n\n**Agent Mode**\n\nLoading agent information...`;
+    return baseMessage + fsxSection + `\n\n**Agent Mode**\n\nLoading agent information...`;
   }
 };
 // 2026-01-14: Enhanced null safety to prevent undefined errors
 // 2026-01-14 v4: Added comprehensive logging and defensive checks
+// 2026-01-22: Added SID information display (Phase 5)
 const generateInitialMessageWithDirectories = (
   username: string,
   role: string,
   userDirectories: any,
-  t: any  // useTranslations() - ルートレベルの翻訳フック
+  t: any,  // useTranslations() - ルートレベルの翻訳フック
+  sid?: string,  // AD SID (Optional - Phase 5)
+  distinguishedName?: string  // Distinguished Name (Optional - Phase 5)
 ): string => {
   console.log('🔍 [generateInitialMessageWithDirectories] Starting...', { 
     username, 
     role, 
+    sid,
+    distinguishedName,
     hasUserDirectories: !!userDirectories,
     hasT: !!t,
     tType: typeof t,
@@ -253,7 +363,7 @@ const generateInitialMessageWithDirectories = (
   // ✅ Validate userDirectories
   if (!userDirectories || typeof userDirectories !== 'object') {
     console.error('❌ [generateInitialMessageWithDirectories] Invalid userDirectories:', userDirectories);
-    return generateInitialMessage(username, role, t);
+    return generateInitialMessage(username, role, t, sid, distinguishedName);
   }
 
   try {
@@ -286,13 +396,18 @@ const generateInitialMessageWithDirectories = (
 
     console.log('✅ [generateInitialMessageWithDirectories] Directory note:', directoryNote?.substring(0, 50));
 
+    // SID情報セクション（利用可能な場合）
+    const sidSection = sid ? `
+• **AD SID**: ${sid}${distinguishedName ? `
+• **Distinguished Name**: ${distinguishedName}` : ''}` : '';
+
     const message = `${t('introduction.welcome', { username })}
 
 **${t('introduction.title')}**
 
 **${t('introduction.yourPermissions')}**
 • **${t('introduction.user')}**: ${username}
-• **${t('introduction.role')}**: ${role || 'User'}
+• **${t('introduction.role')}**: ${role || 'User'}${sidSection}
 • **${t('introduction.accessibleDirectories')}**: ${directoryDisplay}
 
 ${directoryNote}
@@ -421,6 +536,7 @@ function ChatbotPageContent() {
   // 翻訳フック（名前空間なし - 完全パスで翻訳キーを指定）
   const t = useTranslations();
   const tAgent = useTranslations('agent');  // Agent情報用の翻訳フック
+  const tFsx = useTranslations('fsx');      // ✅ Phase 4: FSx情報用の翻訳フック
   
   // next-intlの正しいロケール取得方法を使用（hydration mismatch回避）
   const currentLocale = useLocale();
@@ -688,6 +804,46 @@ function ChatbotPageContent() {
           localStorage.setItem('user', JSON.stringify(parsedUser));
         }
         
+        // ✅ Phase 5マイグレーション: SID/DNが存在しない場合、Get SID APIを呼び出し
+        if (parsedUser && !parsedUser.sid) {
+          console.log('🔄 [ChatbotPage Phase 5] Migrating user object to Phase 5 format (adding SID/DN)...');
+          
+          try {
+            const response = await fetch('/api/auth/get-sid', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                userId: parsedUser.username,
+                forceRefresh: false 
+              }),
+            });
+            
+            if (response.ok) {
+              const sidData = await response.json();
+              parsedUser.sid = sidData.sid;
+              parsedUser.distinguishedName = sidData.distinguishedName;
+              
+              // localStorageを更新
+              localStorage.setItem('user', JSON.stringify(parsedUser));
+              console.log('✅ [ChatbotPage Phase 5] User object migrated successfully:', {
+                username: parsedUser.username,
+                hasSid: !!parsedUser.sid,
+                hasDistinguishedName: !!parsedUser.distinguishedName
+              });
+            } else {
+              console.warn('⚠️ [ChatbotPage Phase 5] Get SID API failed, continuing without SID/DN');
+            }
+          } catch (error) {
+            console.error('❌ [ChatbotPage Phase 5] Migration failed:', error);
+            // エラーが発生しても続行（SID/DNなしで動作）
+          }
+        } else if (parsedUser?.sid) {
+          console.log('✅ [ChatbotPage Phase 5] User object already has SID/DN:', {
+            username: parsedUser.username,
+            sid: parsedUser.sid?.substring(0, 20) + '...'
+          });
+        }
+        
         setUser(parsedUser);
 
         // ✅ 2026-01-19 v3: useAuthStoreを直接更新してHeader.tsxのサインアウトボタンを有効化
@@ -789,13 +945,17 @@ function ChatbotPageContent() {
             console.log('🤖 [ChatbotPage] Generating Agent mode initial message...');
             // Agentモード用の初期メッセージ（Agent情報は後で更新）
             try {
-              initialMessageText = generateAgentModeInitialMessage(
+              initialMessageText = await generateAgentModeInitialMessage(
                 parsedUser?.username || 'Unknown',  // ✅ 2026-01-17: Null safety
                 parsedUser?.role || 'User',
                 null, // userDirectoriesは後で更新
                 null, // agentInfoは後で更新
                 t, // Introduction用翻訳フック
-                tAgent // Agent情報用翻訳フック
+                tAgent, // Agent情報用翻訳フック
+                tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+                parsedUser?.username || 'Unknown', // ✅ Phase 4: userId
+                parsedUser?.sid,  // ✅ Phase 5: AD SID
+                parsedUser?.distinguishedName  // ✅ Phase 5: Distinguished Name
               );
               console.log('✅ [ChatbotPage] Agent mode initial message generated, length:', initialMessageText?.length);
             } catch (error) {
@@ -809,7 +969,9 @@ function ChatbotPageContent() {
               initialMessageText = generateInitialMessage(
                 parsedUser.username,
                 parsedUser.role || 'User',
-                t
+                t,
+                parsedUser?.sid,  // ✅ Phase 5: AD SID
+                parsedUser?.distinguishedName  // ✅ Phase 5: Distinguished Name
               );
               console.log('✅ [ChatbotPage] KB mode initial message generated, length:', initialMessageText?.length);
             } catch (error) {
@@ -857,7 +1019,7 @@ function ChatbotPageContent() {
 
   // モデル変更イベントリスナー（Phase 2.1: Enhanced with Introduction Text update)
   useEffect(() => {
-    const handleModelChange = (event: CustomEvent) => {
+    const handleModelChange = async (event: CustomEvent) => {
       const { modelId, modelName, provider } = event.detail;
       console.log('🔄 [ChatbotPage] モデル変更イベント受信:', {
         modelId,
@@ -886,13 +1048,17 @@ function ChatbotPageContent() {
         const currentAgentInfo = currentSession.agentInfo || null;
         
         // Generate updated Introduction Text with new model info
-        const updatedText = generateAgentModeInitialMessage(
+        const updatedText = await generateAgentModeInitialMessage(
           user?.username || 'Unknown',
           user?.role || 'User',
           userDirectories,
           currentAgentInfo,
           t,
-          tAgent
+          tAgent,
+          tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+          user?.username || 'Unknown', // ✅ Phase 4: userId
+          user?.sid,  // ✅ Phase 5: AD SID
+          user?.distinguishedName  // ✅ Phase 5: Distinguished Name
         );
         
         console.log('✅ [ChatbotPage] Introduction文生成完了 (model change), length:', updatedText?.length);
@@ -948,7 +1114,7 @@ function ChatbotPageContent() {
 
   // ✅ Phase 2.1: Region変更イベントリスナー（NEW）
   useEffect(() => {
-    const handleRegionChange = (event: CustomEvent) => {
+    const handleRegionChange = async (event: CustomEvent) => {
       const { region } = event.detail;
       console.log('🌍 [ChatbotPage] リージョン変更イベント受信:', region);
       
@@ -970,13 +1136,17 @@ function ChatbotPageContent() {
         const currentAgentInfo = currentSession.agentInfo || null;
         
         // Generate updated Introduction Text with new region info
-        const updatedText = generateAgentModeInitialMessage(
+        const updatedText = await generateAgentModeInitialMessage(
           user?.username || 'Unknown',
           user?.role || 'User',
           userDirectories,
           currentAgentInfo,
           t,
-          tAgent
+          tAgent,
+          tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+          user?.username || 'Unknown', // ✅ Phase 4: userId
+          user?.sid,  // ✅ Phase 5: AD SID
+          user?.distinguishedName  // ✅ Phase 5: Distinguished Name
         );
         
         console.log('✅ [ChatbotPage] Introduction文生成完了 (region change), length:', updatedText?.length);
@@ -1031,12 +1201,12 @@ function ChatbotPageContent() {
       window.removeEventListener('regionChanged', handleRegionChange as EventListener);
       console.log('🧹 [ChatbotPage] regionChangedイベントリスナー解除');
     };
-  }, [currentSession, user, agentMode, t, tAgent, renderKey]);
+  }, [currentSession, user, agentMode, t, tAgent, tFsx, userDirectories, renderKey]);
 
   // Agent選択変更イベントリスナー（Issue 3対応）
   // ✅ FIX v14: Check currentSession BEFORE calling setCurrentSession to prevent undefined state
   useEffect(() => {
-    const handleAgentSelectionChange = (event: CustomEvent) => {
+    const handleAgentSelectionChange = async (event: CustomEvent) => {
       const { agentInfo, executionStatus, progressReport } = event.detail;
       
       // ✅ TASK 2 FIX: Enhanced logging to track description field
@@ -1092,13 +1262,15 @@ function ChatbotPageContent() {
       
       try {
         // Generate updated text
-        const updatedText = generateAgentModeInitialMessage(
+        const updatedText = await generateAgentModeInitialMessage(
           user?.username || 'Unknown',
           user?.role || 'User',
           userDirectories,
           agentInfo, // 選択されたAgent情報を使用（nullの場合はフォールバック表示）
           t, // Introduction用翻訳フック
-          tAgent // Agent情報用翻訳フック
+          tAgent, // Agent情報用翻訳フック
+          tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+          user?.username || 'Unknown' // ✅ Phase 4: userId
         );
         
         console.log('✅ [ChatbotPage] Introduction文生成完了, length:', updatedText?.length);
@@ -1234,21 +1406,22 @@ function ChatbotPageContent() {
   // ✅ FIX v10: Added Array.isArray() check to prevent "Cannot read properties of undefined (reading 'length')" error
   // ✅ FIX v13: Added enhanced logging to identify which hook causes currentSession to become undefined
   useEffect(() => {
-    console.log('🔍 [useEffect Hook 1: Agent情報取得] Starting...', {
-      hasCurrentSession: !!currentSession,
-      currentSessionId: currentSession?.id,
-      agentMode,
-      hasAgentInfo: !!agentInfo,
-      hasUser: !!user,
-      messagesType: typeof currentSession?.messages,
-      messagesIsArray: Array.isArray(currentSession?.messages),
-      messagesLength: currentSession?.messages?.length,
-      timestamp: Date.now()
-    });
-    
-    // ✅ CRITICAL FIX v10: Check currentSession AND messages is an array before accessing length
-    if (!currentSession || !agentMode || !agentInfo || !user) {
-      console.log('⚠️ [useEffect Hook 1: Agent情報取得] Early return - validation failed:', {
+    const updateIntroductionText = async () => {
+      console.log('🔍 [useEffect Hook 1: Agent情報取得] Starting...', {
+        hasCurrentSession: !!currentSession,
+        currentSessionId: currentSession?.id,
+        agentMode,
+        hasAgentInfo: !!agentInfo,
+        hasUser: !!user,
+        messagesType: typeof currentSession?.messages,
+        messagesIsArray: Array.isArray(currentSession?.messages),
+        messagesLength: currentSession?.messages?.length,
+        timestamp: Date.now()
+      });
+      
+      // ✅ CRITICAL FIX v10: Check currentSession AND messages is an array before accessing length
+      if (!currentSession || !agentMode || !agentInfo || !user) {
+        console.log('⚠️ [useEffect Hook 1: Agent情報取得] Early return - validation failed:', {
         hasCurrentSession: !!currentSession,
         agentMode,
         hasAgentInfo: !!agentInfo,
@@ -1276,13 +1449,15 @@ function ChatbotPageContent() {
     console.log('🤖 [ChatbotPage] Agent情報取得完了 - Introduction文を更新:', agentInfo);
     
     // Agent情報を含む初期メッセージを生成
-    const updatedText = generateAgentModeInitialMessage(
+    const updatedText = await generateAgentModeInitialMessage(
       user.username,
       user.role || 'User',
       userDirectories,
       agentInfo,
       t, // Introduction用翻訳フック
-      tAgent // Agent情報用翻訳フック
+      tAgent, // Agent情報用翻訳フック
+      tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+      user.username // ✅ Phase 4: userId
     );
     
     // メッセージを更新（新しいオブジェクトを作成して状態更新を確実にする）
@@ -1304,6 +1479,9 @@ function ChatbotPageContent() {
     });
     
     console.log('✅ [useEffect Hook 1: Agent情報取得] Completed successfully');
+    };
+    
+    updateIntroductionText();
   }, [agentMode, agentInfo, currentSession?.id, user?.username, userDirectories, t, tAgent]); // ✅ FIX: Add tAgent to dependency array
 
   // ディレクトリ情報が取得されたら初期メッセージを更新（多言語対応）
@@ -1369,10 +1547,11 @@ function ChatbotPageContent() {
   // ✅ FIX v10: Added Array.isArray() check to prevent "Cannot read properties of undefined (reading 'length')" error
   // ✅ FIX v13: Added enhanced logging to identify which hook causes currentSession to become undefined
   useEffect(() => {
-    console.log('🔍 [useEffect Hook 3: モード切り替え] Starting...', {
-      agentMode,
-      lastAgentMode: lastAgentModeRef.current,
-      modeChanged: lastAgentModeRef.current !== agentMode,
+    const handleModeSwitch = async () => {
+      console.log('🔍 [useEffect Hook 3: モード切り替え] Starting...', {
+        agentMode,
+        lastAgentMode: lastAgentModeRef.current,
+        modeChanged: lastAgentModeRef.current !== agentMode,
       hasCurrentSession: !!currentSession,
       currentSessionId: currentSession?.id,
       hasUser: !!user,
@@ -1408,13 +1587,15 @@ function ChatbotPageContent() {
       
       if (agentMode) {
         // Agentモード: Agent情報を含む初期メッセージ
-        initialMessageText = generateAgentModeInitialMessage(
+        initialMessageText = await generateAgentModeInitialMessage(
           user.username,
           user.role || 'User',
           userDirectories,
           agentInfo,
           t,
-          tAgent
+          tAgent,
+          tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+          user.username // ✅ Phase 4: userId
         );
       } else {
         // Knowledge Baseモード: 通常の初期メッセージ
@@ -1461,13 +1642,15 @@ function ChatbotPageContent() {
       let initialMessageText: string;
       
       if (agentMode) {
-        initialMessageText = generateAgentModeInitialMessage(
+        initialMessageText = await generateAgentModeInitialMessage(
           user.username,
           user.role || 'User',
           userDirectories,
           agentInfo,
           t,
-          tAgent
+          tAgent,
+          tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+          user.username // ✅ Phase 4: userId
         );
       } else {
         if (userDirectories) {
@@ -1512,13 +1695,15 @@ function ChatbotPageContent() {
       
       if (agentMode) {
         // Agentモード: Agent情報を含む初期メッセージ
-        updatedText = generateAgentModeInitialMessage(
+        updatedText = await generateAgentModeInitialMessage(
           user.username,
           user.role || 'User',
           userDirectories,
           agentInfo,
           t, // Introduction用翻訳フック
-          tAgent // Agent情報用翻訳フック
+          tAgent, // Agent情報用翻訳フック
+          tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+          user.username // ✅ Phase 4: userId
         );
       } else {
         // Knowledge Baseモード: 通常の初期メッセージ
@@ -1562,27 +1747,31 @@ function ChatbotPageContent() {
     }
     
     console.log('✅ [useEffect Hook 3: モード切り替え] Completed successfully');
+    };
+    
+    handleModeSwitch();
   }, [agentMode, user, userDirectories, agentInfo, t, tAgent]); // ✅ FIX: Add all dependencies including tAgent
 
   // ロケール変更時に初期メッセージを更新（Introduction文の言語切り替え対応）
   // ✅ FIX v10: Added Array.isArray() check to prevent "Cannot read properties of undefined (reading 'length')" error
   // ✅ FIX v13: Added enhanced logging to identify which hook causes currentSession to become undefined
   useEffect(() => {
-    console.log('🔍 [useEffect Hook 4: ロケール変更] Starting...', {
-      locale: memoizedLocale,
-      hasCurrentSession: !!currentSession,
-      currentSessionId: currentSession?.id,
-      hasUser: !!user,
-      messagesType: typeof currentSession?.messages,
-      messagesIsArray: Array.isArray(currentSession?.messages),
-      messagesLength: currentSession?.messages?.length,
-      timestamp: Date.now()
-    });
-    
-    // ✅ CRITICAL FIX v10: Check currentSession AND messages is an array before accessing length
-    if (!currentSession || !user) {
-      console.log('⚠️ [useEffect Hook 4: ロケール変更] Early return - validation failed:', {
+    const handleLocaleChange = async () => {
+      console.log('🔍 [useEffect Hook 4: ロケール変更] Starting...', {
+        locale: memoizedLocale,
         hasCurrentSession: !!currentSession,
+        currentSessionId: currentSession?.id,
+        hasUser: !!user,
+        messagesType: typeof currentSession?.messages,
+        messagesIsArray: Array.isArray(currentSession?.messages),
+        messagesLength: currentSession?.messages?.length,
+        timestamp: Date.now()
+      });
+      
+      // ✅ CRITICAL FIX v10: Check currentSession AND messages is an array before accessing length
+      if (!currentSession || !user) {
+        console.log('⚠️ [useEffect Hook 4: ロケール変更] Early return - validation failed:', {
+          hasCurrentSession: !!currentSession,
         hasUser: !!user
       });
       return;
@@ -1610,13 +1799,15 @@ function ChatbotPageContent() {
     
     if (agentMode) {
       // Agentモード: Agent情報を含む初期メッセージ
-      updatedText = generateAgentModeInitialMessage(
+      updatedText = await generateAgentModeInitialMessage(
         user.username,
         user.role || 'User',
         userDirectories,
         agentInfo,
         t, // Introduction用翻訳フック
-        tAgent // Agent情報用翻訳フック
+        tAgent, // Agent情報用翻訳フック
+        tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+        user.username // ✅ Phase 4: userId
       );
     } else {
       // Knowledge Baseモード: 通常の初期メッセージ
@@ -1643,6 +1834,9 @@ function ChatbotPageContent() {
     
     console.log('✅ [useEffect Hook 4: ロケール変更] Updated message');
     console.log('✅ [useEffect Hook 4: ロケール変更] Completed successfully');
+    };
+    
+    handleLocaleChange();
   }, [memoizedLocale, agentMode, agentInfo, t, tAgent]); // ✅ FIX: Add tAgent to dependency array
 
   const scrollToBottom = () => {
@@ -2113,20 +2307,22 @@ function ChatbotPageContent() {
             agentMode={agentMode}
             currentSessionId={currentSession?.id}
             sessions={Array.isArray(chatSessions) ? chatSessions : []}
-            onNewChat={() => {
+            onNewChat={async () => {
               if (!user) return;
               const sessionTitle = memoizedLocale === 'en' 
                 ? `New Chat - ${new Date().toLocaleDateString('en-US')}`
                 : `新しいチャット - ${new Date().toLocaleDateString('ja-JP')}`;
               
               // Agentモード用の初期メッセージを生成
-              const initialMessageText = generateAgentModeInitialMessage(
+              const initialMessageText = await generateAgentModeInitialMessage(
                 user.username,
                 user.role || 'User',
                 userDirectories,
                 agentInfo, // 現在のAgent情報を使用
                 t, // Introduction用翻訳フック
-                tAgent // Agent情報用翻訳フック
+                tAgent, // Agent情報用翻訳フック
+                tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+                user.username // ✅ Phase 4: userId
               );
               
               const newSession: ChatSession = {
@@ -2371,27 +2567,13 @@ function ChatbotPageContent() {
 
             {/* AIモデル選択セクション */}
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
-              {agentMode && agentId ? (
-                // Agentモード: AgentModelSelectorを使用
-                <div className="space-y-2">
-                  <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300">Agent Model</h3>
-                  <AgentModelSelector
-                    agentId={agentId}
-                    currentModelId={agentInfo?.foundationModel || selectedModelId || ''}
-                    onModelChange={(modelId) => {
-                      console.log('🔄 [ChatbotPage] Agent モデル変更:', modelId);
-                      setSelectedModelId(modelId);
-                    }}
-                  />
-                </div>
-              ) : (
-                // Knowledge Baseモード: 通常のModelSelectorを使用
-                <ModelSelector
-                  selectedModelId={selectedModelId}
-                  onModelChange={setSelectedModelId}
-                  showAdvancedFilters={true}
-                />
-              )}
+              {/* ✅ Task 2 Fix: Agent mode時も通常のModelSelectorを使用 */}
+              <ModelSelector
+                mode={agentMode ? 'agent' : 'kb'}
+                selectedModelId={selectedModelId}
+                onModelChange={setSelectedModelId}
+                showAdvancedFilters={true}
+              />
             </div>
 
             {/* 権限制御状態セクション */}
@@ -2437,7 +2619,7 @@ function ChatbotPageContent() {
                   
                   {/* 新しいチャットボタン */}
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (!user) return;
                       
                       // モードに応じた初期メッセージを生成
@@ -2445,13 +2627,15 @@ function ChatbotPageContent() {
                       
                       if (agentMode) {
                         // Agentモード用の初期メッセージ
-                        const initialMessageText = generateAgentModeInitialMessage(
+                        const initialMessageText = await generateAgentModeInitialMessage(
                           user.username,
                           user.role || 'User',
                           userDirectories,
                           agentInfo,
                           t,  // ✅ Fixed: use t instead of tIntro
-                          tAgent   // ✅ Fixed: add tAgent parameter
+                          tAgent,   // ✅ Fixed: add tAgent parameter
+                          tFsx,   // ✅ Phase 4: FSx情報用翻訳フック
+                          user.username // ✅ Phase 4: userId
                         );
                         
                         initialMessages = [{
