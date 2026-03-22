@@ -74,6 +74,8 @@ export class DemoWebAppStack extends cdk.Stack {
         'bedrock:Retrieve',
         'bedrock:RetrieveAndGenerate',
         'bedrock:ListFoundationModels',
+        'bedrock:GetInferenceProfile',
+        'bedrock:ListInferenceProfiles',
       ],
       resources: ['*'],
     }));
