@@ -148,8 +148,9 @@ export async function GET(request: NextRequest) {
       const userId = payload.userId as string;
       const username = payload.username as string || userId;
       const email = payload.email as string;
+      const role = payload.role as string || 'user';
       
-      console.log(`[SessionAPI] JWT検証成功: sessionId=${sessionId}, userId=${userId}, username=${username}`);
+      console.log(`[SessionAPI] JWT検証成功: sessionId=${sessionId}, userId=${userId}, username=${username}, role=${role}`);
 
       // JWTペイロードからセッション情報を返す（DynamoDBアクセス不要）
       return NextResponse.json({
@@ -159,6 +160,7 @@ export async function GET(request: NextRequest) {
           userId,
           username,
           email,
+          role,
           createdAt: new Date(payload.iat! * 1000).toISOString(),
           lastAccessedAt: new Date().toISOString(),
           expiresAt: new Date(payload.exp! * 1000).toISOString()

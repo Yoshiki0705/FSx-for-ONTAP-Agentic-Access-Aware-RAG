@@ -431,7 +431,7 @@ function validateInput(message: string, userId: string): void {
     throw new Error('無効なメッセージ形式です');
   }
   
-  if (!userId || typeof userId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(userId)) {
+  if (!userId || typeof userId !== 'string' || !/^[a-zA-Z0-9_.@+-]+$/.test(userId)) {
     throw new Error('無効なユーザーID形式です');
   }
 }

@@ -57,6 +57,8 @@ export class DemoWebAppStack extends cdk.Stack {
         // Bedrock KB設定
         BEDROCK_KB_ID: knowledgeBaseId,
         BEDROCK_REGION: cdk.Aws.REGION,
+        // Permission check無効化（デモ環境ではPermission Filter Lambdaを使わない）
+        ENABLE_PERMISSION_CHECK: 'false',
         // アプリケーション設定
         NODE_ENV: 'production',
         AWS_LWA_PORT: '3000',
@@ -71,6 +73,7 @@ export class DemoWebAppStack extends cdk.Stack {
         'bedrock:InvokeModelWithResponseStream',
         'bedrock:Retrieve',
         'bedrock:RetrieveAndGenerate',
+        'bedrock:ListFoundationModels',
       ],
       resources: ['*'],
     }));

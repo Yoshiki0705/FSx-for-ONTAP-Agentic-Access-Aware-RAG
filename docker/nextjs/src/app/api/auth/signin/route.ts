@@ -1,92 +1,126 @@
 import { NextResponse } from "next/server";
-import { sessionManager } from '@/lib/auth/session-manager';
+import {
+  CognitoIdentityProviderClient,
+  InitiateAuthCommand,
+  GetUserCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
+import { SignJWT } from "jose";
+
+const cognitoClient = new CognitoIdentityProviderClient({
+  region: process.env.COGNITO_REGION || process.env.AWS_REGION || "ap-northeast-1",
+});
+
+const jwtSecret = new TextEncoder().encode(
+  process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production"
+);
 
 export async function POST(request: Request) {
   try {
     const { username, password } = await request.json();
-    
-    console.log(`[SignIn API] サインイン試行: ${username}`);
-    
-    // 有効なユーザーとパスワード（config/users.jsonに基づく）
-    const validUsers = [
-      'admin',
-      'testuser',
-      'user1',
-      'user2',
-      'manager1',
-      'developer1',
-      'analyst1',
-      'testuser_new',
-      'demo_user'
-    ];
-    
-    // デフォルトパスワード
-    const defaultPassword = 'TestUser123!';
-    
-    if (validUsers.includes(username) && password === defaultPassword) {
-      // ユーザーロールの決定
-      let role = 'user';
-      let permissions = ['read', 'model:claude-haiku'];
-      
-      if (username === 'admin') {
-        role = 'administrator';
-        permissions = ['read', 'write', 'delete', 'admin', 'agent:create', 'model:all'];
-      } else if (username === 'manager1' || username === 'testuser_new') {
-        role = 'manager';
-        permissions = ['read', 'write', 'model:claude-sonnet', 'team_management'];
-      } else if (username === 'developer1' || username === 'demo_user') {
-        role = 'developer';
-        permissions = ['read', 'write', 'model:claude-sonnet', 'code_access', 'api_access'];
-      } else if (username === 'analyst1') {
-        role = 'analyst';
-        permissions = ['read', 'model:claude-sonnet', 'data_analysis', 'report_generation'];
-      }
-      
-      // セッション作成（JWTトークン生成）
-      const user = {
-        username,
-        role,
-        permissions
-      };
-      
-      const session = await sessionManager.createSession(user);
-      
-      console.log(`[SignIn API] セッション作成成功: ${username} (セッションID: ${session.session.sessionId})`);
-      
-      // レスポンス作成
-      const response = NextResponse.json({ 
+    const clientId = process.env.COGNITO_CLIENT_ID;
+
+    if (!clientId) {
+      console.error("[SignIn API] COGNITO_CLIENT_ID が未設定");
+      return NextResponse.json(
+        { success: false, error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
+
+    console.log(`[SignIn API] Cognito認証試行: ${username}`);
+
+    // Cognito USER_PASSWORD_AUTH フロー
+    const authResult = await cognitoClient.send(
+      new InitiateAuthCommand({
+        AuthFlow: "USER_PASSWORD_AUTH",
+        ClientId: clientId,
+        AuthParameters: {
+          USERNAME: username,
+          PASSWORD: password,
+        },
+      })
+    );
+
+    if (!authResult.AuthenticationResult?.AccessToken) {
+      return NextResponse.json(
+        { success: false, error: "Authentication failed" },
+        { status: 401 }
+      );
+    }
+
+    // Cognitoからユーザー情報を取得
+    let email = username;
+    try {
+      const userInfo = await cognitoClient.send(
+        new GetUserCommand({
+          AccessToken: authResult.AuthenticationResult.AccessToken,
+        })
+      );
+      const emailAttr = userInfo.UserAttributes?.find(
+        (a) => a.Name === "email"
+      );
+      if (emailAttr?.Value) email = emailAttr.Value;
+    } catch {
+      // ユーザー情報取得失敗は無視
+    }
+
+    // ロール決定（メールアドレスベース）
+    let role = "user";
+    let permissions = ["read", "model:claude-haiku"];
+    if (email.startsWith("admin")) {
+      role = "administrator";
+      permissions = ["read", "write", "delete", "admin", "model:all"];
+    }
+
+    // 自前JWTトークン生成（ミドルウェア互換）
+    const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    const token = await new SignJWT({
+      sessionId,
+      userId: email,
+      username: email,
+      role,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("24h")
+      .sign(jwtSecret);
+
+    console.log(`✅ Cognito認証成功: ${email} (role: ${role})`);
+
+    const response = NextResponse.json(
+      {
         success: true,
         message: "Sign-in successful",
-        user: {
-          username,
-          role: user.role
-        }
-      }, { status: 200 });
-      
-      // JWTトークンをCookieに設定（middlewareが期待する名前: session-token）
-      response.cookies.set('session-token', session.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24, // 24時間
-        path: '/'
-      });
-      
-      console.log(`✅ サインイン成功: ${username} (セッションID: ${session.session.sessionId})`);
-      
-      return response;
-    } else {
-      console.log(`❌ サインイン失敗: ${username} - 認証情報が正しくありません`);
-      return NextResponse.json({ 
-        success: false,
-        error: "Username or password is incorrect"
-      }, { status: 401 });
+        user: { username: email, role },
+      },
+      { status: 200 }
+    );
+
+    response.cookies.set("session-token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24,
+      path: "/",
+    });
+
+    return response;
+  } catch (error: any) {
+    console.error("[SignIn API] エラー:", error.name, error.message);
+
+    if (
+      error.name === "NotAuthorizedException" ||
+      error.name === "UserNotFoundException"
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Username or password is incorrect" },
+        { status: 401 }
+      );
     }
-  } catch (error) {
-    console.error('[SignIn API] エラー:', error);
-    return NextResponse.json({ 
-      success: false,
-      error: "Server error occurred"
-    }, { status: 500 });
+
+    return NextResponse.json(
+      { success: false, error: "Server error occurred" },
+      { status: 500 }
+    );
   }
 }

@@ -582,28 +582,39 @@ function ChatbotPageContent() {
         
         if (userData) {
           parsedUser = JSON.parse(userData);
-        } else {
-          // localStorageにない場合は、セッションAPIで確認
+        }
+        
+        // セッションAPIでJWTからroleを取得（localStorageのroleが古い場合に対応）
+        try {
           const response = await fetch('/api/auth/session');
           const data = await response.json();
           
-          if (!data.success || !data.session) {
+          if (data.success && data.session) {
+            if (parsedUser) {
+              // localStorageのユーザー情報にセッションAPIのroleを反映
+              parsedUser.role = data.session.role || parsedUser.role || 'user';
+              localStorage.setItem('user', JSON.stringify(parsedUser));
+            } else {
+              // localStorageにない場合はセッションAPIから作成
+              parsedUser = {
+                username: data.session.username,
+                userId: data.session.userId,
+                role: data.session.role || 'user',
+                permissions: []
+              };
+              localStorage.setItem('user', JSON.stringify(parsedUser));
+            }
+          } else if (!parsedUser) {
             console.error('認証失敗: セッションが見つかりません');
             router.push('/signin');
             return;
           }
-          
-          // セッションAPIから取得したユーザー情報を使用
-          // ✅ 実際のAPIレスポンス構造: data.session.{sessionId, userId, username, expiresAt}
-          parsedUser = {
-            username: data.session.username,
-            userId: data.session.userId,
-            role: 'user',
-            permissions: []
-          };
-          
-          // localStorageにも保存（次回のため）
-          localStorage.setItem('user', JSON.stringify(parsedUser));
+        } catch (sessionError) {
+          console.warn('⚠️ セッションAPI呼び出し失敗、localStorageのデータを使用:', sessionError);
+          if (!parsedUser) {
+            router.push('/signin');
+            return;
+          }
         }
         
         // ✅ Phase 5マイグレーション: SID/DNが存在しない場合、Get SID APIを呼び出し

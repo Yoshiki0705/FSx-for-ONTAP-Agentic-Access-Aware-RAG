@@ -1,63 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { sessionManager } from '@/lib/auth/session-manager';
-import { CSRFMiddleware } from '@/lib/security/csrf-protection';
-
-const CSRF_SECRET = process.env.CSRF_SECRET || 'your-csrf-secret-change-in-production-2024';
-
-// 動的にallowedOriginsを構築（環境変数から取得）
-const getAllowedOrigins = (): string[] => {
-  const origins = [
-    process.env.NEXTAUTH_URL || 'http://localhost:3000',
-    'http://localhost:3000',
-    'https://localhost:3000'
-  ];
-
-  // CloudFront URL（環境変数から取得）
-  if (process.env.CLOUDFRONT_URL) {
-    origins.push(process.env.CLOUDFRONT_URL);
-  }
-
-  // Lambda Function URL（環境変数から取得）
-  if (process.env.LAMBDA_FUNCTION_URL) {
-    origins.push(process.env.LAMBDA_FUNCTION_URL);
-  }
-
-  return origins;
-};
-
-// CSRFMiddleware インスタンス
-const csrfMiddleware = new CSRFMiddleware({
-  secret: CSRF_SECRET,
-  allowedOrigins: getAllowedOrigins()
-});
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    // CSRF保護の検証
-    const csrfValidation = await csrfMiddleware.validateRequest(request);
-    if (!csrfValidation.valid) {
-      console.warn('[Auth] CSRF検証失敗:', csrfValidation.error);
-      return NextResponse.json(
-        { error: 'セキュリティ検証に失敗しました' },
-        { status: 403 }
-      );
-    }
-
-    const session = await sessionManager.getSessionFromCookies();
-    
-    if (session) {
-      await sessionManager.deleteSession(session.sessionId);
-      console.log(`[Auth] ユーザー ${session.user.username} がサインアウトしました`);
-    }
+    console.log("[SignOut API] サインアウト処理開始");
 
     const response = NextResponse.json({ success: true });
-    sessionManager.clearSessionCookie(response);
-    
+
+    // session-token Cookieを削除
+    response.cookies.set("session-token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 0,
+      path: "/",
+    });
+
+    console.log("✅ サインアウト成功");
     return response;
   } catch (error) {
-    console.error('[Auth] サインアウトエラー:', error);
+    console.error("[SignOut API] エラー:", error);
     return NextResponse.json(
-      { error: 'サインアウトに失敗しました' },
+      { error: "サインアウトに失敗しました" },
       { status: 500 }
     );
   }
