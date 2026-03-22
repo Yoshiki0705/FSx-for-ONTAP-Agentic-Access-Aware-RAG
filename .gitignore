@@ -81,3 +81,6 @@ config/environments/
 # Docker一時ファイル
 docker/nextjs/lambda-deployment.zip
 docker/nextjs/tsconfig.tsbuildinfo
+
+# Sensitive environment docs (never commit)
+docs/demo-environment-guide.md
