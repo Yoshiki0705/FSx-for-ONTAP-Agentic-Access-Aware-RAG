@@ -5,7 +5,6 @@ import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { locales } from '../../i18n/config';
 import { ThemeProvider } from '../../components/providers/ThemeProvider';
-import { AgentCreationWizardProvider } from '../../components/bedrock/AgentCreationWizardProvider';
 import "../globals.css";
 
 const inter = Inter({
@@ -59,7 +58,6 @@ export default async function LocaleLayout({
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
             {children}
-            <AgentCreationWizardProvider />
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

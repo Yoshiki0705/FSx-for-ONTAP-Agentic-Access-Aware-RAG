@@ -3,91 +3,23 @@
     {
       "username": "admin",
       "role": "administrator",
-      "description": "システム管理者"
+      "description": "システム管理者 / System Administrator"
     },
     {
-      "username": "testuser",
+      "username": "user",
       "role": "user",
-      "description": "テストユーザー"
-    },
-    {
-      "username": "user1",
-      "role": "user",
-      "description": "一般ユーザー1"
-    },
-    {
-      "username": "user2",
-      "role": "user",
-      "description": "一般ユーザー2"
-    },
-    {
-      "username": "manager1",
-      "role": "manager",
-      "description": "マネージャー1"
-    },
-    {
-      "username": "developer1",
-      "role": "developer",
-      "description": "開発者1"
-    },
-    {
-      "username": "analyst1",
-      "role": "analyst",
-      "description": "アナリスト1"
-    },
-    {
-      "username": "testuser_new",
-      "role": "manager",
-      "description": "テスト用新規マネージャー"
-    },
-    {
-      "username": "demo_user",
-      "role": "developer",
-      "description": "デモ用開発者"
+      "description": "一般ユーザー / General User"
     }
   ],
   "roles": {
     "administrator": {
       "permissions": [
         "read_documents",
-        "search_documents", 
+        "search_documents",
         "chat_access",
-        "admin_access",
-        "user_management",
-        "system_config",
-        "audit_logs"
+        "admin_access"
       ],
       "description": "全権限を持つ管理者"
-    },
-    "manager": {
-      "permissions": [
-        "read_documents",
-        "search_documents",
-        "chat_access",
-        "team_management",
-        "report_access"
-      ],
-      "description": "チーム管理とレポートアクセス権限"
-    },
-    "developer": {
-      "permissions": [
-        "read_documents",
-        "search_documents",
-        "chat_access",
-        "code_access",
-        "api_access"
-      ],
-      "description": "開発者向け権限"
-    },
-    "analyst": {
-      "permissions": [
-        "read_documents",
-        "search_documents",
-        "chat_access",
-        "data_analysis",
-        "report_generation"
-      ],
-      "description": "データ分析とレポート生成権限"
     },
     "user": {
       "permissions": [
@@ -99,7 +31,6 @@
     }
   },
   "settings": {
-    "defaultPassword": "TestUser123!",
     "passwordPolicy": {
       "minLength": 8,
       "requireUppercase": true,

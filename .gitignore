@@ -1,146 +1,83 @@
-# ===== Permission-aware RAG FSxN System =====
+# ===== Permission-aware RAG FSxN CDK =====
 
-# 環境固有情報（非公開）
-development/
-*.local
+# Node.js
+node_modules/
+dist/
+build/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript compiled output
+*.js
+*.d.ts
+*.js.map
+!jest.config.js
+!docker/nextjs/**/*.js
+!docker/nextjs/**/*.mjs
+
+# Next.js
+docker/nextjs/.next/
+docker/nextjs/out/
+
+# CDK
+cdk.out/
+cdk.out.*/
+cdk.context.json
+
+# 環境変数（.env.exampleは公開対象）
+.env
 .env.*
-!.env.template
+!.env.example
 
-# Kiro設定ファイル（開発環境固有）
+# Kiro IDE設定（開発環境固有）
 .kiro/
+
+# VS Code設定
+.vscode/
+
+# 開発環境固有
+development/
+backups/
 
 # 機密情報
 *.pem
 *.key
 *.p12
 *.pfx
-**/credentials
-**/secrets
-**/*secret*
-**/*private*
 
-# 実行ログ・一時ファイル
-logs/
-temp/
-*.log
-*.tmp
-*.cache
+# バックアップファイル
 *.backup
-*.backup.*
-
-# バックアップファイル（追加パターン）
-**/*-config-fix.txt
-**/modular-integrated-app.ts.backup*
-backups/
-
-# 開発者固有ファイル
-.vscode/settings.json
-.idea/
-**/.DS_Store
-.history/
-
-# Node.js
-**/node_modules/
-**/dist/
-**/build/
-**/.next/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Python
-**/__pycache__/
-**/*.pyc
-**/*.pyo
-**/*.pyd
-.Python
-**/.venv/
-**/venv/
-**/.env
-
-# CDK
-**/cdk.out/
-**/cdk.context.json
-
-# AWS
-.aws/
-**/.aws/
-
-# Docker
-**/.dockerignore
-**/Dockerfile.local
-
-# OS固有
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-
-# エディタ固有
-*.sublime-*
-.vscode/
-.idea/
-
-# 公開対象ファイル（明示的に追加）
-!templates/
-!docs/README.md
-!docs/ARCHITECTURE.md
-!docs/DEPLOYMENT_GUIDE.md
-!docs/CONFIGURATION.md
-!README.md
-!LICENSE
-!CONTRIBUTING.md
-
-# テンプレートファイル（公開対象）
-!**/*.template.*
-!**/example.*
-!**/sample.*
-
-# ドキュメント（公開対象）
-!**/README.md
-!**/CHANGELOG.md
-!**/LICENSE
-
-# Lambda結果ファイル（開発時の一時ファイル）
-lambda-*-result.json
-cloudfront-*-invalidation.json
+*.backup-*
+*.bak*
+*.disabled
+*.broken
+*.deprecated
 
 # 一時ファイル
-temp_*.tsx
-temp_*.ts
-temp_*.jsx
-temp_*.js
+temp/
+*.tmp
+*.cache
+*.log
+*.zip
 
-# バックアップディレクトリ
-backups/
+# Lambda結果ファイル
+lambda-*-result.json
+cloudfront-*-invalidation.json
 
 # macOS
 .DS_Store
 .AppleDouble
 .LSOverride
 
-# CDK出力（環境固有）
-cdk-outputs.json
-cdk.context.json
+# CDK context環境固有ファイル
+cdk.context.json.production
+cdk.context.json.staging
+cdk.context.json.minimal
 
-# 開発環境固有ファイル
-development/scripts/temp/*.json
-development/scripts/temp/*.sh
+# 環境固有設定
+config/environments/
 
-
-# ===== 開発環境固有ファイル（2026-01-06追加） =====
-
-# 開発レポート（開発過程の詳細記録、1138ファイル）
-development/docs/reports/
-
-# 開発ドキュメントアーカイブ
-development/docs/archive/
-development/docs/temp/
-
-# 一時ファイル（追加パターン）
-development/scripts/temp/*.ts
-development/scripts/temp/*.json
-development/scripts/temp/temp_*
-
-# 品質チェックレポート
-development/docs/quality-check/
+# Docker一時ファイル
+docker/nextjs/lambda-deployment.zip
+docker/nextjs/tsconfig.tsbuildinfo

@@ -1,0 +1,9 @@
+{
+  "metadataAttributes": {
+    "access_level": "public",
+    "owner_sid": "S-1-5-21-0000000000-0000000000-0000000000-1001",
+    "allowed_group_sids": ["S-1-1-0"],
+    "department": "general",
+    "document_type": "overview"
+  }
+}

@@ -11,7 +11,7 @@ We release patches for security vulnerabilities for the following versions:
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability within this project, please send an email to yoshiki.fujiwara@netapp.com. All security vulnerabilities will be promptly addressed.
+If you discover a security vulnerability within this project, please open a GitHub issue with the label `security`. All security vulnerabilities will be promptly addressed.
 
 Please include the following information in your report:
 
@@ -84,4 +84,4 @@ This project follows AWS Well-Architected Framework security best practices and 
 
 ## Contact
 
-For security concerns, please contact: yoshiki.fujiwara@netapp.com
+For security concerns, please open a GitHub issue with the label `security`.

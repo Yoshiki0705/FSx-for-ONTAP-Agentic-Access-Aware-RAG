@@ -1,0 +1,12 @@
+{
+  "metadataAttributes": {
+    "access_level": "restricted",
+    "owner_sid": "S-1-5-21-0000000000-0000000000-0000000000-1001",
+    "allowed_group_sids": [
+      "S-1-5-21-0000000000-0000000000-0000000000-1100",
+      "S-1-5-21-0000000000-0000000000-0000000000-512"
+    ],
+    "department": "engineering",
+    "document_type": "plan"
+  }
+}

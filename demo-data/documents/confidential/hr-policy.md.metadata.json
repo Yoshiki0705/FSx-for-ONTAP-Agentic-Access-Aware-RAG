@@ -1,0 +1,9 @@
+{
+  "metadataAttributes": {
+    "access_level": "confidential",
+    "owner_sid": "S-1-5-21-0000000000-0000000000-0000000000-500",
+    "allowed_group_sids": ["S-1-5-21-0000000000-0000000000-0000000000-512"],
+    "department": "hr",
+    "document_type": "policy"
+  }
+}
