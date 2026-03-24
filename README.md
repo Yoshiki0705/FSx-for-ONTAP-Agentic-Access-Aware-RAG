@@ -25,8 +25,8 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
                               ┌───────────┴───────────┐
                               ▼                       ▼
                      ┌────────────────┐     ┌──────────────────┐
-                     │ S3 Data Bucket │     │ FSx for ONTAP    │
-                     │ (KB DataSource)│     │ (SVM + Volume)   │
+                     │ S3 Bucket      │     │ FSx for ONTAP    │
+                     │ (メタデータ同期)│     │ (SVM + Volume)   │
                      └────────────────┘     └────────┬─────────┘
                                                      │ CIFS/SMB
                                                      ▼
@@ -489,7 +489,7 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 | Auth | Amazon Cognito |
 | AI/RAG | Amazon Bedrock Knowledge Base + OpenSearch Serverless |
 | Embedding | Amazon Titan Text Embeddings v2 (`amazon.titan-embed-text-v2:0`, 1024次元) |
-| Storage | FSx for NetApp ONTAP (FlexCache) + S3 |
+| Storage | Amazon FSx for NetApp ONTAP + S3 |
 | Compute | Lambda Web Adapter + CloudFront |
 | Permission | DynamoDB (user-access: SIDデータ, perm-cache: 権限キャッシュ) |
 | Security | AWS WAF + IAM Auth + OAC + Geo制限 |

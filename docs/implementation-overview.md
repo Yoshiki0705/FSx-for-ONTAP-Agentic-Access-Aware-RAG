@@ -435,8 +435,8 @@ DynamoDB user-access テーブル
                               ┌───────────┴───────────┐
                               ▼                       ▼
                      ┌────────────────┐     ┌──────────────────┐
-                     │ S3 Data Bucket │     │ FSx for ONTAP    │
-                     │ (KB DataSource)│     │ (SVM + Volume)   │
+                     │ S3 Bucket      │     │ FSx for ONTAP    │
+                     │ (メタデータ同期)│     │ (SVM + Volume)   │
                      └────────────────┘     └────────┬─────────┘
                                                      │ CIFS/SMB
                                                      ▼
