@@ -70,6 +70,9 @@ cloudfront-*-invalidation.json
 .AppleDouble
 .LSOverride
 
+# Screenshots (local verification only)
+screenshots/
+
 # CDK context環境固有ファイル
 cdk.context.json.production
 cdk.context.json.staging
@@ -82,5 +85,5 @@ config/environments/
 docker/nextjs/lambda-deployment.zip
 docker/nextjs/tsconfig.tsbuildinfo
 
-# Sensitive environment docs (never commit)
-docs/demo-environment-guide.md
+# Embedding server .env (defaults only, no secrets)
+!docker/embed/.env

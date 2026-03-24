@@ -1,39 +1,35 @@
-# プラットフォーム指定を動的に変更
-ARG TARGETPLATFORM
-FROM --platform=$TARGETPLATFORM rockylinux:9.3-minimal
+# FSx ONTAP Embedding Server
+# CIFSマウントされたドキュメントをBedrock Titan Embed v2でベクトル化し
+# OpenSearch Serverlessにインデックスする
+
+FROM --platform=linux/amd64 node:22-slim
 
 WORKDIR /opt/netapp/ai
 
-RUN microdnf install -y \
-    xz \
+# cifs-utils for CIFS mount (if needed inside container)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     cifs-utils \
-    tar \
-    make \
-    gcc \
-    gcc-c++ \
-    python3 \
-    python3-pip \
-    nodejs \
-    npm
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-ENV NODE_VERSION 22.2.0
-RUN curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n | bash -s latest \
-    && npm install -g npm@latest
+# Dependencies (install all for build, then prune)
+COPY package.json ./
+RUN npm install
 
-ENV PYTHON=/usr/bin/python3
+# Source code
+COPY tsconfig.json ./
+COPY src/ ./src/
 
-ADD package.json ./
-ADD package-lock.json ./
-ADD src/ ./
-ADD tsconfig.json ./
+# Build TypeScript
+RUN ./node_modules/.bin/tsc
 
-# pnpmインストールエラーを回避するため、npmを使用するか、pnpmを確実にインストール
-RUN npm ci --only=production || npm install --force
+# Prune dev dependencies
+RUN npm prune --omit=dev
 
-RUN npm run build
+# Create data/db mount points
+RUN mkdir -p /opt/netapp/ai/data /opt/netapp/ai/db
 
-ADD migrations ./migrations
-ADD .env ./
+# Copy .env as defaults (overridden by Docker -e flags)
+COPY .env ./
 
-# JSON形式のCMDに修正（警告解消）
 CMD ["node", "dist/index.js"]
