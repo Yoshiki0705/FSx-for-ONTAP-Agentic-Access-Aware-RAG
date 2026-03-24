@@ -15,6 +15,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as directoryservice from 'aws-cdk-lib/aws-directoryservice';
 import { Construct } from 'constructs';
 
 export interface DemoStorageStackProps extends cdk.StackProps {
@@ -23,6 +24,10 @@ export interface DemoStorageStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
   privateSubnets: ec2.ISubnet[];
   fsxSg: ec2.ISecurityGroup;
+  /** AD管理者パスワード（cdk.context.jsonのadPasswordから取得） */
+  adPassword?: string;
+  /** ADドメイン名（デフォルト: demo.local） */
+  adDomainName?: string;
 }
 
 export class DemoStorageStack extends cdk.Stack {
@@ -38,12 +43,34 @@ export class DemoStorageStack extends cdk.Stack {
   public readonly permissionCacheTable: dynamodb.Table;
   /** ユーザーアクセステーブル（SID→ユーザーマッピング） */
   public readonly userAccessTable: dynamodb.Table;
+  /** AWS Managed Microsoft AD */
+  public readonly managedAd?: directoryservice.CfnMicrosoftAD;
 
   constructor(scope: Construct, id: string, props: DemoStorageStackProps) {
     super(scope, id, props);
 
-    const { projectName, environment, privateSubnets, fsxSg } = props;
+    const { projectName, environment, vpc, privateSubnets, fsxSg, adPassword, adDomainName } = props;
     const prefix = `${projectName}-${environment}`;
+    const domainName = adDomainName || 'demo.local';
+
+    // ========================================
+    // AWS Managed Microsoft AD
+    // ========================================
+    // SVM をADに参加させるために必要。
+    // Standard Edition（Small）で十分（検証用途）。
+    // ADパスワードが設定されている場合のみ作成。
+    if (adPassword) {
+      this.managedAd = new directoryservice.CfnMicrosoftAD(this, 'ManagedAd', {
+        name: domainName,
+        password: adPassword,
+        edition: 'Standard',
+        vpcSettings: {
+          vpcId: vpc.vpcId,
+          subnetIds: privateSubnets.slice(0, 2).map(s => s.subnetId),
+        },
+      });
+      cdk.Tags.of(this.managedAd).add('Name', `${prefix}-ad`);
+    }
 
     // ========================================
     // FSx for ONTAP
@@ -68,11 +95,31 @@ export class DemoStorageStack extends cdk.Stack {
     });
 
     // Storage Virtual Machine（SVM）
-    this.svm = new fsx.CfnStorageVirtualMachine(this, 'Svm', {
+    // ADが設定されている場合、SVMをADドメインに参加させる。
+    // これにより、CIFS共有でNTFS ACL（SIDベース）が使用可能になる。
+    const svmConfig: Record<string, any> = {
       fileSystemId: this.fileSystem.ref,
       name: `${prefix.replace(/[^a-zA-Z0-9]/g, '')}svm`,
       rootVolumeSecurityStyle: 'NTFS',
-    });
+    };
+
+    if (this.managedAd && adPassword) {
+      svmConfig.activeDirectoryConfiguration = {
+        netBiosName: 'RAGSVM',
+        selfManagedActiveDirectoryConfiguration: {
+          domainName: domainName,
+          userName: 'Admin',
+          password: adPassword,
+          dnsIps: cdk.Token.asList(this.managedAd.getAtt('DnsIpAddresses')),
+          fileSystemAdministratorsGroup: 'Domain Admins',
+        },
+      };
+    }
+
+    this.svm = new fsx.CfnStorageVirtualMachine(this, 'Svm', svmConfig as fsx.CfnStorageVirtualMachineProps);
+    if (this.managedAd) {
+      this.svm.addDependency(this.managedAd);
+    }
 
     // データボリューム
     this.volume = new fsx.CfnVolume(this, 'DataVolume', {
@@ -254,6 +301,20 @@ export class DemoStorageStack extends cdk.Stack {
       value: s3ApResource.getAttString('AccessPointArn'),
       description: 'S3 Access Point ARN. May be empty if creation was deferred.',
     });
+
+    if (this.managedAd) {
+      new cdk.CfnOutput(this, 'ManagedAdId', {
+        value: this.managedAd.ref,
+        description: 'AWS Managed Microsoft AD Directory ID',
+        exportName: `${prefix}-ManagedAdId`,
+      });
+
+      new cdk.CfnOutput(this, 'AdDomainName', {
+        value: domainName,
+        description: 'Active Directory domain name',
+        exportName: `${prefix}-AdDomainName`,
+      });
+    }
 
     cdk.Tags.of(this).add('Project', projectName);
     cdk.Tags.of(this).add('Environment', environment);

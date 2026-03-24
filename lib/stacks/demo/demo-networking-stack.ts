@@ -84,6 +84,49 @@ export class DemoNetworkingStack extends cdk.Stack {
       'ONTAP REST API from VPC',
     );
 
+    // CIFS/SMB (445) - VPC内からのみ許可（AD連携時に必要）
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(445),
+      'CIFS/SMB from VPC',
+    );
+
+    // DNS (53 TCP/UDP) - AD連携時に必要
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(53),
+      'DNS TCP from VPC',
+    );
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.udp(53),
+      'DNS UDP from VPC',
+    );
+
+    // Kerberos (88 TCP/UDP) - AD認証に必要
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(88),
+      'Kerberos TCP from VPC',
+    );
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.udp(88),
+      'Kerberos UDP from VPC',
+    );
+
+    // LDAP (389 TCP/UDP) - AD連携に必要
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(389),
+      'LDAP TCP from VPC',
+    );
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.udp(389),
+      'LDAP UDP from VPC',
+    );
+
     // Lambda → FSx 通信許可
     this.fsxSg.addIngressRule(
       this.lambdaSg,

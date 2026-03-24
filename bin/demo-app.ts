@@ -33,6 +33,9 @@ const projectName = app.node.tryGetContext('projectName') || 'perm-rag-demo';
 const environment = app.node.tryGetContext('environment') || 'demo';
 const allowedIps: string[] = app.node.tryGetContext('allowedIps') || [];
 const allowedCountries: string[] = app.node.tryGetContext('allowedCountries') || ['JP'];
+// AD連携（オプション）: cdk.context.jsonにadPasswordを設定するとAWS Managed ADを作成しSVMをドメイン参加させる
+const adPassword: string | undefined = app.node.tryGetContext('adPassword');
+const adDomainName: string | undefined = app.node.tryGetContext('adDomainName');
 
 const primaryEnv: cdk.Environment = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
@@ -89,6 +92,8 @@ const storageStack = new DemoStorageStack(app, `${stackPrefix}-Storage`, {
   vpc: networkingStack.vpc,
   privateSubnets: networkingStack.privateSubnets,
   fsxSg: networkingStack.fsxSg,
+  adPassword,
+  adDomainName,
   env: primaryEnv,
   description: `[${projectName}] FSx ONTAP + SVM + S3 + DynamoDB`,
 });

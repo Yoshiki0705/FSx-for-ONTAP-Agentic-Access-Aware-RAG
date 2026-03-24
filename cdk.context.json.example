@@ -1,5 +1,9 @@
 {
   "projectName": "perm-rag-demo",
   "environment": "demo",
-  "imageTag": "latest"
+  "imageTag": "latest",
+  "allowedCountries": ["JP"],
+  "allowedIps": [],
+  "adPassword": "YourStrongP@ssw0rd123",
+  "adDomainName": "demo.local"
 }

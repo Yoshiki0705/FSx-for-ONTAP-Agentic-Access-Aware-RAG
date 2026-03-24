@@ -38,7 +38,7 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 | WafStack | us-east-1 | WAF WebACL, IP Set | CloudFront用WAF（レートリミット、マネージドルール） |
 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups | ネットワーク基盤 |
 | SecurityStack | ap-northeast-1 | Cognito User Pool | 認証・認可 |
-| StorageStack | ap-northeast-1 | FSx ONTAP + SVM + S3 AP, S3, DynamoDB | ストレージ・キャッシュ |
+| StorageStack | ap-northeast-1 | FSx ONTAP + SVM + S3 AP, S3, DynamoDB, (AD) | ストレージ・キャッシュ（AD連携オプション） |
 | AIStack | ap-northeast-1 | Bedrock KB, OpenSearch Serverless | RAG検索基盤 |
 | WebAppStack | ap-northeast-1 | Lambda (IAM Auth + OAC), CloudFront | Webアプリケーション |
 
@@ -160,6 +160,31 @@ cat > cdk.context.json << 'EOF'
 }
 EOF
 ```
+
+#### Active Directory連携（オプション）
+
+FSx ONTAP SVMをActive Directoryドメインに参加させ、CIFS共有でNTFS ACL（SIDベース）を使用する場合は、`cdk.context.json` に以下を追加します。
+
+```bash
+cat > cdk.context.json << 'EOF'
+{
+  "projectName": "rag-demo",
+  "environment": "demo",
+  "imageTag": "latest",
+  "allowedIps": [],
+  "allowedCountries": ["JP"],
+  "adPassword": "YourStrongP@ssw0rd123",
+  "adDomainName": "demo.local"
+}
+EOF
+```
+
+| パラメータ | 型 | デフォルト | 説明 |
+|-----------|-----|----------|------|
+| `adPassword` | string | 未設定（AD作成なし） | AWS Managed Microsoft AD管理者パスワード。設定するとADを作成しSVMをドメイン参加させる |
+| `adDomainName` | string | `demo.local` | ADドメイン名（FQDN） |
+
+> **Note**: AD作成には追加で20〜30分かかります。ADなしでもSIDフィルタリングのデモは可能です（DynamoDBのSIDデータで検証）。
 
 ### Step 6: CDKデプロイ
 
