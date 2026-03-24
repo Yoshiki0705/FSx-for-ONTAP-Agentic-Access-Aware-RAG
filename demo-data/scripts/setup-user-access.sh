@@ -23,9 +23,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TABLE_NAME="${USER_ACCESS_TABLE_NAME:?環境変数 USER_ACCESS_TABLE_NAME を設定してください}"
 REGION="${AWS_REGION:-ap-northeast-1}"
 
-# Cognitoユーザーのsub（デプロイ時に取得した値を設定）
-ADMIN_USER_ID="${ADMIN_USER_SUB:?環境変数 ADMIN_USER_SUB を設定してください}"
-REGULAR_USER_ID="${REGULAR_USER_SUB:?環境変数 REGULAR_USER_SUB を設定してください}"
+# ユーザーID（アプリケーションのJWTではメールアドレスがuserIdとして使用される）
+ADMIN_USER_ID="${ADMIN_USER_ID:-admin@example.com}"
+REGULAR_USER_ID="${REGULAR_USER_ID:-user@example.com}"
 
 # ドメインSID（テスト環境用の固定値）
 DOMAIN_SID="S-1-5-21-0000000000-0000000000-0000000000"
