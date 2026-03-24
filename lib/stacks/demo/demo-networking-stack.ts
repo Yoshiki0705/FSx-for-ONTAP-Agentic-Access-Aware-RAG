@@ -63,11 +63,14 @@ export class DemoNetworkingStack extends cdk.Stack {
     });
 
     // FSx ONTAP用セキュリティグループ
+    // allowAllOutbound: true — FSxはADドメインコントローラーへの
+    // アウトバウンド通信（DNS/53, Kerberos/88, LDAP/389, SMB/445, RPC/135, 
+    // LDAPS/636, Kerberos-pwd/464, Ephemeral/1024-65535）が必要
     this.fsxSg = new ec2.SecurityGroup(this, 'FsxSg', {
       vpc: this.vpc,
       securityGroupName: `${prefix}-fsx-sg`,
       description: 'Security group for FSx for ONTAP',
-      allowAllOutbound: false,
+      allowAllOutbound: true,
     });
 
     // NFS (2049) - VPC内からのみ許可
