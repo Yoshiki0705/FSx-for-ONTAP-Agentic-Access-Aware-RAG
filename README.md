@@ -60,7 +60,7 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 
 > **Note**: ビルドとデプロイはすべてEC2上で実行します。ローカル環境との差分を防ぐためです。
 
-## デプロイガイド
+## デプロイ手順
 
 ### Step 1: EC2インスタンスの起動
 
@@ -204,10 +204,10 @@ docker push \
 
 > **Note**: `docker` コマンドで権限エラーが出る場合は、`newgrp docker` を実行するか、一度ログアウト・再ログインしてください。
 
-### Step 8: テストデータのセットアップ
+### Step 8: 検証データのセットアップ
 
 ```bash
-# テストユーザー作成（admin + restricted user）
+# 検証用ユーザー作成（admin + restricted user）
 bash demo-data/scripts/create-demo-users.sh
 
 # ユーザーSIDデータ登録（DynamoDB user-accessテーブル）
@@ -229,7 +229,7 @@ bash demo-data/scripts/upload-demo-data.sh
 bash demo-data/scripts/sync-kb-datasource.sh
 ```
 
-### Step 9: アプリケーションへのアクセス
+### Step 9: アプリケーションへのアクセスと検証
 
 CloudFormation出力からCloudFront URLを取得します。
 
@@ -240,7 +240,7 @@ aws cloudformation describe-stacks \
   --output text
 ```
 
-### Cleanup
+### リソースの削除
 
 ```bash
 # 全リソース削除
@@ -352,7 +352,7 @@ aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 │   └── types.ts                      # 型定義
 ├── docker/nextjs/                    # Next.jsアプリケーション
 ├── demo-data/
-│   ├── documents/                    # サンプルドキュメント（検証用）+ .metadata.json（SID情報）
+│   ├── documents/                    # 検証用ドキュメント + .metadata.json（SID情報）
 │   ├── scripts/                      # セットアップスクリプト（ユーザー作成、SIDデータ登録等）
 │   └── guides/                       # 検証シナリオ・ONTAP設定ガイド
 ├── docs/
