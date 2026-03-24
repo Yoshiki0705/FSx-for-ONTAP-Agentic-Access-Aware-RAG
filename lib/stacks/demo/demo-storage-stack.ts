@@ -95,26 +95,14 @@ export class DemoStorageStack extends cdk.Stack {
     });
 
     // Storage Virtual Machine（SVM）
-    // ADが設定されている場合、SVMをADドメインに参加させる。
-    // これにより、CIFS共有でNTFS ACL（SIDベース）が使用可能になる。
+    // AD参加はCDKデプロイ後にCLIで実行する（SVM更新のタイミング制御のため）。
+    // 手順: aws fsx update-storage-virtual-machine --storage-virtual-machine-id <SVM_ID> \
+    //       --active-directory-configuration '{...}'
     const svmConfig: Record<string, any> = {
       fileSystemId: this.fileSystem.ref,
       name: `${prefix.replace(/[^a-zA-Z0-9]/g, '')}svm`,
       rootVolumeSecurityStyle: 'NTFS',
     };
-
-    if (this.managedAd && adPassword) {
-      svmConfig.activeDirectoryConfiguration = {
-        netBiosName: 'RAGSVM',
-        selfManagedActiveDirectoryConfiguration: {
-          domainName: domainName,
-          userName: 'Admin',
-          password: adPassword,
-          dnsIps: cdk.Token.asList(this.managedAd.getAtt('DnsIpAddresses')),
-          fileSystemAdministratorsGroup: 'Domain Admins',
-        },
-      };
-    }
 
     this.svm = new fsx.CfnStorageVirtualMachine(this, 'Svm', svmConfig as fsx.CfnStorageVirtualMachineProps);
     if (this.managedAd) {
