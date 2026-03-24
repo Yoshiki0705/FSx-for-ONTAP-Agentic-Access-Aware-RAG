@@ -10,46 +10,68 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 
 ```
 ┌──────────┐     ┌──────────┐     ┌────────────┐     ┌─────────────────────┐
-│ Browser  │────▶│ AWS WAF  │────▶│ CloudFront │────▶│ Lambda Web Adapter  │
+│ ブラウザ  │────▶│ AWS WAF  │────▶│ CloudFront │────▶│ Lambda Web Adapter  │
 └──────────┘     └──────────┘     │ (OAC+Geo)  │     │ (Next.js, IAM Auth) │
                                    └────────────┘     └──────┬──────────────┘
                                                              │
                        ┌─────────────────────┬───────────────┼────────────────────┐
                        ▼                     ▼               ▼                    ▼
               ┌─────────────┐    ┌──────────────────┐ ┌──────────────┐   ┌──────────────┐
-              │ Cognito     │    │ Bedrock KB       │ │ Permission   │   │ DynamoDB     │
-              │ User Pool   │    │ + OpenSearch     │ │ Service      │   │ (権限Cache)  │
-              └─────────────┘    │   Serverless     │ │ (Lambda)     │   └──────────────┘
-                                 └────────┬─────────┘ └──────────────┘
+              │ Cognito     │    │ Bedrock KB       │ │ DynamoDB     │   │ DynamoDB     │
+              │ User Pool   │    │ + OpenSearch     │ │ user-access  │   │ perm-cache   │
+              └─────────────┘    │   Serverless     │ │ (SIDデータ)  │   │ (権限Cache)  │
+                                 └────────┬─────────┘ └──────────────┘   └──────────────┘
                                           │
                               ┌───────────┴───────────┐
                               ▼                       ▼
                      ┌────────────────┐     ┌──────────────────┐
                      │ S3 Data Bucket │     │ FSx for ONTAP    │
                      │ (KB DataSource)│     │ (SVM + Volume)   │
-                     └────────────────┘     │ + S3 Access Point│
+                     └────────────────┘     └────────┬─────────┘
+                                                     │ CIFS/SMB
+                                                     ▼
+                                            ┌──────────────────┐
+                                            │ Embedding EC2    │
+                                            │ (Titan Embed v2) │
                                             └──────────────────┘
 ```
 
+## 実装概要（7つの観点）
+
+本システムの実装内容を7つの観点で整理しています。各項目の詳細は [docs/implementation-overview.md](docs/implementation-overview.md) を参照してください。
+
+| # | 観点 | 概要 | 関連CDKスタック |
+|---|------|------|----------------|
+| 1 | Chatbotアプリケーション | Next.js 15 (App Router) をLambda Web Adapterでサーバーレス実行。CloudFront経由で配信 | WebAppStack |
+| 2 | AWS WAF | レートリミット、IP Reputation、OWASP準拠ルール、SQLi防御、IP許可リストの6ルール構成 | WafStack |
+| 3 | IAM認証 | Lambda Function URL IAM Auth + CloudFront OAC (SigV4署名) による多層セキュリティ | WebAppStack |
+| 4 | ベクトルDB (AOSS) | OpenSearch Serverlessベクトル検索コレクション（1024次元、HNSW/faiss/l2） | AIStack |
+| 5 | Embedding Server | FSx ONTAPボリュームをCIFS/SMBマウントしたEC2でドキュメントをベクトル化しAOSSに書き込み | EmbeddingStack |
+| 6 | Titan Text Embeddings | `amazon.titan-embed-text-v2:0`（1024次元）をKB取り込みとEmbeddingサーバーの両方で使用 | AIStack |
+| 7 | SIDメタデータ + 権限フィルタリング | NTFS ACLのSID情報を`.metadata.json`で管理し、検索時にユーザーSIDと照合してフィルタリング | StorageStack |
+
 ## CDK Stack Structure
 
-| Stack | Region | Resources | Description |
-|-------|--------|-----------|-------------|
-| WafStack | us-east-1 | WAF WebACL, IP Set | CloudFront用WAF（レートリミット、マネージドルール） |
-| NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups | ネットワーク基盤 |
-| SecurityStack | ap-northeast-1 | Cognito User Pool | 認証・認可 |
-| StorageStack | ap-northeast-1 | FSx ONTAP + SVM + S3 AP, S3, DynamoDB, (AD) | ストレージ・キャッシュ（AD連携オプション） |
-| AIStack | ap-northeast-1 | Bedrock KB, OpenSearch Serverless | RAG検索基盤 |
-| WebAppStack | ap-northeast-1 | Lambda (IAM Auth + OAC), CloudFront | Webアプリケーション |
-| EmbeddingStack (optional) | ap-northeast-1 | EC2 (m5.large), ECR | FlexCache CIFSマウント + Embeddingサーバー |
+| # | Stack | Region | Resources | Description |
+|---|-------|--------|-----------|-------------|
+| 1 | WafStack | us-east-1 | WAF WebACL, IPセット | CloudFront用WAF（レートリミット、マネージドルール） |
+| 2 | NetworkingStack | ap-northeast-1 | VPC, サブネット, セキュリティグループ | ネットワーク基盤 |
+| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client | 認証・認可 |
+| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD) | ストレージ・SIDデータ・権限キャッシュ（AD連携オプション） |
+| 5 | AIStack | ap-northeast-1 | Bedrock KB, OpenSearch Serverless | RAG検索基盤（Titan Embed v2） |
+| 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront | Webアプリケーション |
+| 7 | EmbeddingStack（任意） | ap-northeast-1 | EC2 (m5.large), ECR | FlexCache CIFSマウント + Embeddingサーバー |
 
-### セキュリティ機能
+### セキュリティ機能（6層防御）
 
-- **AWS WAF**: レートリミット、IP Reputation、Common Rule Set、SQLi防御、IP許可リスト
-- **IAM認証**: Lambda Function URLにAWS_IAM認証、CloudFront OAC（SigV4署名）
-- **Geo制限**: 日本国内のみアクセス許可（設定変更可能）
-- **SIDフィルタリング**: NTFS ACLベースの権限フィルタリング有効
-- **FSx ONTAP S3 Access Point**: WINDOWSユーザータイプ、NTFS ACLベースのファイルレベル認可
+| レイヤー | 技術 | 目的 |
+|---------|------|------|
+| L1: ネットワーク | CloudFront Geo制限 | 地理的アクセス制限（デフォルト: 日本のみ） |
+| L2: WAF | AWS WAF (6ルール) | 攻撃パターン検出・ブロック |
+| L3: オリジン認証 | CloudFront OAC (SigV4) | CloudFront以外からの直接アクセス防止 |
+| L4: API認証 | Lambda Function URL IAM Auth | IAM認証によるアクセス制御 |
+| L5: ユーザー認証 | Cognito JWT | ユーザーレベルの認証・認可 |
+| L6: データ認可 | SIDフィルタリング | ドキュメントレベルのアクセス制御 |
 
 ## Prerequisites
 
@@ -237,15 +259,7 @@ docker push \
 bash demo-data/scripts/create-demo-users.sh
 
 # ユーザーSIDデータ登録（DynamoDB user-accessテーブル）
-# Cognitoユーザーのsubを環境変数に設定
-export ADMIN_USER_SUB=$(aws cognito-idp admin-get-user \
-  --user-pool-id $COGNITO_USER_POOL_ID \
-  --username admin@example.com \
-  --query 'UserAttributes[?Name==`sub`].Value' --output text)
-export REGULAR_USER_SUB=$(aws cognito-idp admin-get-user \
-  --user-pool-id $COGNITO_USER_POOL_ID \
-  --username user@example.com \
-  --query 'UserAttributes[?Name==`sub`].Value' --output text)
+# 本アプリケーションではメールアドレスをuserIdとして使用します
 bash demo-data/scripts/setup-user-access.sh
 
 # サンプルドキュメントをS3にアップロード（.metadata.json含む）
@@ -254,6 +268,8 @@ bash demo-data/scripts/upload-demo-data.sh
 # Bedrock KBデータソース同期
 bash demo-data/scripts/sync-kb-datasource.sh
 ```
+
+> **Note**: `setup-user-access.sh` はDynamoDB `user-access`テーブルにメールアドレス（例: `admin@example.com`）をキーとしてSIDデータを登録します。アプリケーションのJWTではメールアドレスが`userId`として使用されます。
 
 ### Step 9: アプリケーションへのアクセスと検証
 
@@ -472,20 +488,22 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 | Frontend | Next.js 15 + React 18 + Tailwind CSS |
 | Auth | Amazon Cognito |
 | AI/RAG | Amazon Bedrock Knowledge Base + OpenSearch Serverless |
+| Embedding | Amazon Titan Text Embeddings v2 (`amazon.titan-embed-text-v2:0`, 1024次元) |
 | Storage | FSx for NetApp ONTAP (FlexCache) + S3 |
 | Compute | Lambda Web Adapter + CloudFront |
-| Permission | Lambda (Permission Service) + DynamoDB (Cache) |
+| Permission | DynamoDB (user-access: SIDデータ, perm-cache: 権限キャッシュ) |
+| Security | AWS WAF + IAM Auth + OAC + Geo制限 |
 
 ## Project Structure
 
 ```
 ├── bin/
-│   └── demo-app.ts                  # CDKエントリーポイント（6+1スタック構成）
+│   └── demo-app.ts                  # CDKエントリーポイント（7スタック構成）
 ├── lib/stacks/demo/
 │   ├── demo-waf-stack.ts             # WAF WebACL (us-east-1)
 │   ├── demo-networking-stack.ts      # VPC, Subnets, SG
 │   ├── demo-security-stack.ts        # Cognito
-│   ├── demo-storage-stack.ts         # FSx ONTAP + SVM + S3 AP, S3, DynamoDB
+│   ├── demo-storage-stack.ts         # FSx ONTAP + SVM + Volume, S3, DynamoDB×2, AD
 │   ├── demo-ai-stack.ts             # Bedrock KB, OpenSearch Serverless
 │   ├── demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
 │   └── demo-embedding-stack.ts       # (optional) Embedding Server (FlexCache CIFS)
@@ -499,7 +517,12 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 │   ├── scripts/                      # セットアップスクリプト（ユーザー作成、SIDデータ登録等）
 │   └── guides/                       # 検証シナリオ・ONTAP設定ガイド
 ├── docs/
-│   └── SID-Filtering-Architecture.md # SIDフィルタリング アーキテクチャ詳細
+│   ├── implementation-overview.md    # 実装内容の詳細説明（7つの観点）
+│   ├── SID-Filtering-Architecture.md # SIDフィルタリング アーキテクチャ詳細
+│   ├── demo-recording-guide.md       # 検証デモ動画撮影手順書（6つの証跡）
+│   ├── demo-environment-guide.md     # 検証環境セットアップガイド
+│   ├── verification-report.md        # デプロイ後の検証手順とテストケース
+│   └── DOCUMENTATION_INDEX.md        # ドキュメントインデックス
 ├── tests/unit/                       # ユニットテスト・プロパティテスト
 └── .env.example                      # 環境変数テンプレート
 ```
