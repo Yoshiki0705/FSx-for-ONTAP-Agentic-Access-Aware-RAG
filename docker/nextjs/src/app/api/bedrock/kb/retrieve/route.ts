@@ -96,7 +96,8 @@ export async function POST(request: NextRequest) {
     let modelArn: string;
     if (resolvedModelId.match(/^(us|eu|apac)\./)) {
       // Inference profile: ARN形式で指定
-      modelArn = `arn:aws:bedrock:${region}:${process.env.AWS_ACCOUNT_ID || '178625946981'}:inference-profile/${resolvedModelId}`;
+      const accountId = process.env.AWS_ACCOUNT_ID || process.env.CDK_DEFAULT_ACCOUNT || '';
+      modelArn = `arn:aws:bedrock:${region}:${accountId}:inference-profile/${resolvedModelId}`;
     } else {
       // 通常のモデル: foundation-model ARN
       modelArn = `arn:aws:bedrock:${region}::foundation-model/${resolvedModelId}`;

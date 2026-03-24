@@ -77,7 +77,7 @@ aws ec2 run-instances \
   --iam-instance-profile Name=<ADMIN_INSTANCE_PROFILE> \
   --associate-public-ip-address \
   --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":50,"VolumeType":"gp3"}}]' \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=cdk-deploy-demo}]'
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=cdk-deploy-server}]'
 ```
 
 セキュリティグループはアウトバウンド443（HTTPS）が開いていればSSM Session Managerが動作します。インバウンドルールは不要です。
@@ -188,7 +188,7 @@ aws ecr get-login-password --region ap-northeast-1 | \
   <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com
 
 # Dockerイメージビルド
-IMAGE_TAG="demo-$(date +%Y%m%d-%H%M%S)"
+IMAGE_TAG="v$(date +%Y%m%d-%H%M%S)"
 docker build --no-cache \
   -t permission-aware-rag-webapp:${IMAGE_TAG} \
   -f docker/nextjs/Dockerfile \
@@ -204,10 +204,10 @@ docker push \
 
 > **Note**: `docker` コマンドで権限エラーが出る場合は、`newgrp docker` を実行するか、一度ログアウト・再ログインしてください。
 
-### Step 8: デモデータのセットアップ
+### Step 8: テストデータのセットアップ
 
 ```bash
-# デモユーザー作成（admin + restricted user）
+# テストユーザー作成（admin + restricted user）
 bash demo-data/scripts/create-demo-users.sh
 
 # サンプルドキュメントをS3にアップロード
@@ -297,16 +297,16 @@ aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 │   └── types.ts                      # 型定義
 ├── docker/nextjs/                    # Next.jsアプリケーション
 ├── demo-data/
-│   ├── documents/                    # サンプルドキュメント
+│   ├── documents/                    # サンプルドキュメント（検証用）
 │   ├── scripts/                      # セットアップスクリプト
-│   └── guides/                       # デモシナリオ・ONTAP設定ガイド
+│   └── guides/                       # 検証シナリオ・ONTAP設定ガイド
 ├── tests/unit/                       # ユニットテスト・プロパティテスト
 └── .env.example                      # 環境変数テンプレート
 ```
 
-## Demo Scenario
+## 検証シナリオ
 
-デモの詳細手順は [demo-data/guides/demo-scenario.md](demo-data/guides/demo-scenario.md) を参照してください。
+権限フィルタリングの動作検証手順は [demo-data/guides/demo-scenario.md](demo-data/guides/demo-scenario.md) を参照してください。
 
 2種類のユーザー（管理者・一般ユーザー）で同じ質問をすると、アクセス権に基づいて異なる検索結果が返ることを確認できます。
 
