@@ -9,9 +9,10 @@
 6スタック全てが `CREATE_COMPLETE` または `UPDATE_COMPLETE` であることを確認します。
 
 ```bash
+# projectNameに合わせてプレフィックスを変更（例: perm-rag-demo）
 aws cloudformation list-stacks \
   --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
-  --query 'StackSummaries[?starts_with(StackName, `rag-demo`)].{Name:StackName,Status:StackStatus}' \
+  --query 'StackSummaries[?starts_with(StackName, `perm-rag-demo`)].{Name:StackName,Status:StackStatus}' \
   --output table
 ```
 
@@ -20,7 +21,7 @@ aws cloudformation list-stacks \
 | WafStack | us-east-1 | WebACL（6ルール）、IP Set |
 | NetworkingStack | ap-northeast-1 | VPC、Subnets、Security Groups |
 | SecurityStack | ap-northeast-1 | Cognito User Pool、Client |
-| StorageStack | ap-northeast-1 | FSx ONTAP、S3、DynamoDB×2 |
+| StorageStack | ap-northeast-1 | FSx ONTAP、S3、DynamoDB×2、AWS Managed AD |
 | AIStack | ap-northeast-1 | Bedrock KB、OpenSearch Serverless |
 | WebAppStack | ap-northeast-1 | Lambda (Web Adapter)、CloudFront |
 
@@ -31,24 +32,27 @@ aws cloudformation list-stacks \
 デプロイ後、以降の検証で使用するリソースIDをCloudFormation出力から取得します。
 
 ```bash
+# スタックプレフィックス（cdk.context.jsonのprojectName-environmentに合わせる）
+STACK_PREFIX="perm-rag-demo-demo"
+
 # CloudFront URL
 CF_URL=$(aws cloudformation describe-stacks \
-  --stack-name rag-demo-demo-WebApp \
+  --stack-name ${STACK_PREFIX}-WebApp \
   --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' --output text)
 
 # Lambda Function URL
 LAMBDA_URL=$(aws cloudformation describe-stacks \
-  --stack-name rag-demo-demo-WebApp \
+  --stack-name ${STACK_PREFIX}-WebApp \
   --query 'Stacks[0].Outputs[?OutputKey==`LambdaFunctionUrl`].OutputValue' --output text)
 
 # Cognito User Pool ID
 COGNITO_POOL=$(aws cloudformation describe-stacks \
-  --stack-name rag-demo-demo-Security \
+  --stack-name ${STACK_PREFIX}-Security \
   --query 'Stacks[0].Outputs[?contains(OutputKey,`UserPool`)].OutputValue' --output text)
 
 # Knowledge Base ID
 KB_ID=$(aws cloudformation describe-stacks \
-  --stack-name rag-demo-demo-AI \
+  --stack-name ${STACK_PREFIX}-AI \
   --query 'Stacks[0].Outputs[?OutputKey==`KnowledgeBaseId`].OutputValue' --output text)
 
 echo "CloudFront: ${CF_URL}"

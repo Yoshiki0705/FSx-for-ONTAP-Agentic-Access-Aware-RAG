@@ -13,7 +13,8 @@
 | ドキュメント | 内容 |
 |-------------|------|
 | [demo-data/guides/demo-scenario.md](../demo-data/guides/demo-scenario.md) | 検証シナリオ（管理者 vs 一般ユーザーの権限差異確認） |
-| [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP CLI/REST APIによるボリューム・ACL設定 |
+| [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD連携・CIFS共有・NTFS ACL設定 |
+| [docs/demo-environment-guide.md](demo-environment-guide.md) | デプロイ済み環境のリソースID・アクセス情報・検証済み機能一覧 |
 
 ## セットアップスクリプト
 

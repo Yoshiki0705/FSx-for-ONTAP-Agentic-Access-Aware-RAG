@@ -449,9 +449,31 @@ excludedRules: [
 
 2種類のユーザー（管理者・一般ユーザー）で同じ質問をすると、アクセス権に基づいて異なる検索結果が返ることを確認できます。
 
-## FSx ONTAP Setup
+## FSx ONTAP + Active Directory Setup
 
-FSx ONTAPのボリューム設定・S3 Access Point・ACL設定の手順は [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) を参照してください。
+FSx ONTAPのAD連携・CIFS共有・NTFS ACL設定の手順は [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) を参照してください。
+
+CDKデプロイでAWS Managed Microsoft ADとFSx ONTAP（SVM + Volume）が作成されます。SVMのADドメイン参加はデプロイ後にCLIで実行します（タイミング制御のため）。
+
+```bash
+# AD DNS IP取得
+AD_DNS_IPS=$(aws ds describe-directories --region ap-northeast-1 \
+  --query 'DirectoryDescriptions[?Name==`demo.local`].DnsIpAddrs' --output json)
+
+# SVM AD参加
+aws fsx update-storage-virtual-machine \
+  --storage-virtual-machine-id <SVM_ID> \
+  --active-directory-configuration '{
+    "NetBiosName": "RAGSVM",
+    "SelfManagedActiveDirectoryConfiguration": {
+      "DomainName": "demo.local",
+      "UserName": "Admin",
+      "Password": "<AD_PASSWORD>",
+      "DnsIps": <AD_DNS_IPS>,
+      "FileSystemAdministratorsGroup": "Domain Admins"
+    }
+  }' --region ap-northeast-1
+```
 
 S3 Access Pointの設計判断（WINDOWSユーザータイプ、Internetアクセス）の詳細もガイドに記載しています。
 
