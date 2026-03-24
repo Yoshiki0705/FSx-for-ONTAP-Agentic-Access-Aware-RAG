@@ -984,16 +984,16 @@ function ChatbotPageContent() {
         ? localStorage.getItem('selectedKnowledgeBaseId') || process.env.NEXT_PUBLIC_BEDROCK_KB_ID || ''
         : '';
       
-      // KB IDが設定されている場合はKB Retrieve APIを使用
-      if (knowledgeBaseId) {
-        console.log(`📚 [KB] Using KB Retrieve API: knowledgeBaseId=${knowledgeBaseId}`);
+      // KB Retrieve APIを使用（KB IDはサーバーサイドでBEDROCK_KB_ID環境変数にフォールバック）
+      {
+        console.log(`📚 [KB] Using KB Retrieve API: knowledgeBaseId=${knowledgeBaseId || '(server-side fallback)'}`);
         
         const response = await fetch('/api/bedrock/kb/retrieve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query,
-            knowledgeBaseId,
+            ...(knowledgeBaseId ? { knowledgeBaseId } : {}),
             modelId: selectedModelId,
             userId: user.username,
             region: currentRegion,

@@ -106,7 +106,7 @@ async function getUserSIDs(userId: string): Promise<UserAccessRecord | null> {
     return {
       userId: item.userId,
       userSID: item.userSID || '',
-      groupSIDs: item.groupSIDs || item.SID || [],
+      groupSIDs: item.groupSIDs || item.sids || item.SID || [],
       displayName: item.displayName,
       source: item.source,
     };
@@ -149,13 +149,27 @@ export async function POST(request: NextRequest) {
     const body: RetrieveRequest = await request.json();
     const {
       query,
-      knowledgeBaseId,
       userId,
       sessionId,
     } = body;
 
+    // KB IDはリクエストボディ → サーバー環境変数の順でフォールバック
+    const knowledgeBaseId = body.knowledgeBaseId || process.env.BEDROCK_KB_ID || '';
     const region = body.region || process.env.BEDROCK_REGION || 'ap-northeast-1';
-    const modelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0';
+    const rawModelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0';
+
+    // Inference profile prefix (e.g. "apac.", "us.", "eu.") を除去
+    const baseModelId = rawModelId.replace(/^(apac|us|eu)\./i, '');
+
+    // KB RetrieveAndGenerate APIはAnthropicモデルのみサポート
+    // Nova/Meta/Cohere等は500エラーを返すため、Claude Haikuにフォールバック
+    const KB_FALLBACK_MODEL = 'anthropic.claude-3-haiku-20240307-v1:0';
+    const modelId = baseModelId.startsWith('anthropic.')
+      ? baseModelId
+      : (() => {
+          console.warn(`⚠️ [KB Retrieve] モデル ${baseModelId} はKB RetrieveAndGenerate非対応、${KB_FALLBACK_MODEL} にフォールバック`);
+          return KB_FALLBACK_MODEL;
+        })();
 
     // 入力検証
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
@@ -167,7 +181,7 @@ export async function POST(request: NextRequest) {
 
     if (!knowledgeBaseId) {
       return NextResponse.json(
-        { success: false, error: 'Knowledge Base IDが指定されていません' },
+        { success: false, error: 'Knowledge Base IDが指定されていません。BEDROCK_KB_ID環境変数を設定してください。' },
         { status: 400 }
       );
     }
@@ -284,17 +298,30 @@ export async function POST(request: NextRequest) {
       filteredCitations = formattedCitations.filter((cite) => {
         const meta = cite.metadata as Record<string, unknown>;
         // メタデータからallowed_group_sidsを取得
+        // Bedrock KBはmetadataAttributesの中身をフラットに返す場合と
+        // ネストして返す場合があるため、両方をチェック
         let allowedSIDs: string[] = [];
-        if (Array.isArray(meta?.allowed_group_sids)) {
-          allowedSIDs = meta.allowed_group_sids as string[];
-        } else if (typeof meta?.allowed_group_sids === 'string') {
+        
+        // フラットなメタデータ（meta.allowed_group_sids）
+        const rawSIDs = meta?.allowed_group_sids 
+          ?? (meta?.metadataAttributes as Record<string, unknown>)?.allowed_group_sids;
+        
+        if (Array.isArray(rawSIDs)) {
+          allowedSIDs = rawSIDs as string[];
+        } else if (typeof rawSIDs === 'string') {
           // 文字列の場合はJSON解析を試みる
           try {
-            allowedSIDs = JSON.parse(meta.allowed_group_sids as string);
+            allowedSIDs = JSON.parse(rawSIDs as string);
           } catch {
-            allowedSIDs = [meta.allowed_group_sids as string];
+            allowedSIDs = [rawSIDs as string];
           }
         }
+        
+        console.log(`🔍 [SID Filter] Document metadata for ${cite.fileName}:`, {
+          metaKeys: Object.keys(meta || {}),
+          rawSIDs,
+          allowedSIDs,
+        });
 
         const allowed = checkSIDAccess(allUserSIDs, allowedSIDs);
         const matchedSID = allowed
