@@ -41,6 +41,7 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + S3 AP, S3, DynamoDB, (AD) | ストレージ・キャッシュ（AD連携オプション） |
 | AIStack | ap-northeast-1 | Bedrock KB, OpenSearch Serverless | RAG検索基盤 |
 | WebAppStack | ap-northeast-1 | Lambda (IAM Auth + OAC), CloudFront | Webアプリケーション |
+| EmbeddingStack (optional) | ap-northeast-1 | EC2 (m5.large), ECR | FlexCache CIFSマウント + Embeddingサーバー |
 
 ### セキュリティ機能
 
@@ -353,6 +354,65 @@ excludedRules: [
 
 変更後は `npx cdk deploy --all --app "npx ts-node bin/demo-app.ts"` で反映されます。WAFスタックは `us-east-1` にデプロイされるため、クロスリージョンデプロイが自動的に行われます。
 
+## Embeddingサーバー（オプション）
+
+FlexCache CacheボリュームをCIFSマウントしてEmbeddingを実行するEC2サーバーです。FSx ONTAP S3 Access Pointが利用できない場合（FlexCache Cacheボリュームでは2026年3月時点で未対応）の代替パスとして使用します。
+
+### 2つのデータ取り込みパス
+
+| パス | 方式 | データソース | 状況 |
+|------|------|-------------|------|
+| Option A（デフォルト） | S3バケット + Bedrock KB S3データソース | S3にアップロードしたドキュメント | 常に利用可能 |
+| Option B（オプション） | Embeddingサーバー + CIFSマウント | FlexCache Cacheボリューム上のドキュメント | `-c enableEmbeddingServer=true` で有効化 |
+
+### Embeddingサーバーのデプロイ
+
+```bash
+# Step 1: Embeddingスタックをデプロイ
+CIFSDATA_VOL_NAME=smb_share RAGDB_VOL_PATH=/smb_share/ragdb \
+  npx cdk deploy perm-rag-demo-demo-Embedding \
+  --app "npx ts-node bin/demo-app.ts" \
+  -c enableEmbeddingServer=true \
+  -c embeddingAdSecretArn=arn:aws:secretsmanager:ap-northeast-1:<ACCOUNT_ID>:secret:<SECRET_NAME> \
+  -c embeddingAdUserName=Admin \
+  -c embeddingAdDomain=demo.local
+
+# Step 2: EmbeddingコンテナイメージをECRにプッシュ
+# CloudFormation出力からECRリポジトリURIを取得
+ECR_URI=$(aws cloudformation describe-stacks \
+  --stack-name perm-rag-demo-demo-Embedding \
+  --query 'Stacks[0].Outputs[?OutputKey==`EmbeddingEcrRepoUri`].OutputValue' \
+  --output text)
+
+aws ecr get-login-password --region ap-northeast-1 | \
+  docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com
+
+docker build -t ${ECR_URI}:latest docker/embed/
+docker push ${ECR_URI}:latest
+```
+
+### Embeddingサーバーのコンテキストパラメータ
+
+| パラメータ | 環境変数 | デフォルト | 説明 |
+|-----------|---------|----------|------|
+| `enableEmbeddingServer` | - | `false` | Embeddingスタックの有効化 |
+| `cifsdataVolName` | `CIFSDATA_VOL_NAME` | `smb_share` | CIFSマウントするFlexCache Cacheボリューム名 |
+| `ragdbVolPath` | `RAGDB_VOL_PATH` | `/smb_share/ragdb` | ragdbのCIFSマウントパス |
+| `embeddingAdSecretArn` | - | (必須) | AD管理者パスワードのSecrets Manager ARN |
+| `embeddingAdUserName` | - | `Admin` | ADサービスアカウントユーザー名 |
+| `embeddingAdDomain` | - | `demo.local` | ADドメイン名 |
+
+### 動作の仕組み
+
+EC2インスタンス（m5.large）が起動時に以下を実行します:
+
+1. Secrets ManagerからADパスワードを取得
+2. FSx APIからSVMのSMBエンドポイントIPを取得
+3. CIFSでFlexCache Cacheボリュームを `/tmp/data` にマウント
+4. ragdbディレクトリを `/tmp/db` にマウント
+5. ECRからEmbeddingコンテナイメージをプルして実行
+6. コンテナがマウントされたドキュメントを読み取り、OpenSearch Serverlessにベクトルデータを書き込み
+
 ## How Permission-aware RAG Works
 
 ### 処理フロー
@@ -420,14 +480,15 @@ excludedRules: [
 
 ```
 ├── bin/
-│   └── demo-app.ts                  # CDKエントリーポイント（6スタック構成）
+│   └── demo-app.ts                  # CDKエントリーポイント（6+1スタック構成）
 ├── lib/stacks/demo/
 │   ├── demo-waf-stack.ts             # WAF WebACL (us-east-1)
 │   ├── demo-networking-stack.ts      # VPC, Subnets, SG
 │   ├── demo-security-stack.ts        # Cognito
 │   ├── demo-storage-stack.ts         # FSx ONTAP + SVM + S3 AP, S3, DynamoDB
 │   ├── demo-ai-stack.ts             # Bedrock KB, OpenSearch Serverless
-│   └── demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
+│   ├── demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
+│   └── demo-embedding-stack.ts       # (optional) Embedding Server (FlexCache CIFS)
 ├── lambda/permissions/
 │   ├── permission-filter-handler.ts  # 権限フィルタリングLambda
 │   ├── permission-calculator.ts      # SID/ACL照合ロジック
