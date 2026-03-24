@@ -210,7 +210,19 @@ docker push \
 # テストユーザー作成（admin + restricted user）
 bash demo-data/scripts/create-demo-users.sh
 
-# サンプルドキュメントをS3にアップロード
+# ユーザーSIDデータ登録（DynamoDB user-accessテーブル）
+# Cognitoユーザーのsubを環境変数に設定
+export ADMIN_USER_SUB=$(aws cognito-idp admin-get-user \
+  --user-pool-id $COGNITO_USER_POOL_ID \
+  --username admin@example.com \
+  --query 'UserAttributes[?Name==`sub`].Value' --output text)
+export REGULAR_USER_SUB=$(aws cognito-idp admin-get-user \
+  --user-pool-id $COGNITO_USER_POOL_ID \
+  --username user@example.com \
+  --query 'UserAttributes[?Name==`sub`].Value' --output text)
+bash demo-data/scripts/setup-user-access.sh
+
+# サンプルドキュメントをS3にアップロード（.metadata.json含む）
 bash demo-data/scripts/upload-demo-data.sh
 
 # Bedrock KBデータソース同期
@@ -261,11 +273,54 @@ aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 
 ## How Permission-aware RAG Works
 
+### 処理フロー
+
+```
+ユーザー          Next.js API           DynamoDB          Bedrock KB
+  │                  │                    │                  │
+  │ 1.質問送信       │                    │                  │
+  │─────────────────▶│                    │                  │
+  │                  │ 2.ユーザーSID取得   │                  │
+  │                  │───────────────────▶│                  │
+  │                  │◀───────────────────│                  │
+  │                  │ userSID + groupSIDs│                  │
+  │                  │                    │                  │
+  │                  │ 3.RAG検索                             │
+  │                  │─────────────────────────────────────▶│
+  │                  │◀─────────────────────────────────────│
+  │                  │ 検索結果 + メタデータ(SID)            │
+  │                  │                    │                  │
+  │                  │ 4.SIDマッチング    │                  │
+  │                  │ ユーザーSID ∩      │                  │
+  │                  │ ドキュメントSID    │                  │
+  │                  │                    │                  │
+  │ 5.フィルタ済み結果│                    │                  │
+  │◀─────────────────│                    │                  │
+```
+
 1. ユーザーがチャットで質問を送信
-2. Bedrock Knowledge Baseがベクトル検索で関連ドキュメントを取得
-3. Permission Serviceがユーザーの SID/ACL 情報に基づいてフィルタリング
-4. アクセス権のあるドキュメントのみを使って回答を生成
-5. ソースドキュメント情報（citation）を回答と共に表示
+2. DynamoDB `user-access` テーブルからユーザーのSIDリスト（個人SID + グループSID）を取得
+3. Bedrock Knowledge Baseがベクトル検索で関連ドキュメントを取得（メタデータにSID情報を含む）
+4. 各ドキュメントの `allowed_group_sids` とユーザーのSIDリストを照合し、マッチしたドキュメントのみ許可
+5. アクセス権のあるドキュメントのみを使って回答を生成し、citation情報と共に表示
+
+### SIDフィルタリングの仕組み
+
+各ドキュメントには `.metadata.json` でNTFS ACLのSID情報が付与されています。検索時にユーザーのSIDとドキュメントのSIDを照合し、マッチした場合のみアクセスを許可します。
+
+```
+■ 管理者ユーザー: SID = [...-512 (Domain Admins), S-1-1-0 (Everyone)]
+  public/     (Everyone)      → S-1-1-0 マッチ → ✅ 許可
+  confidential/ (Domain Admins) → ...-512 マッチ → ✅ 許可
+  restricted/ (Engineering+DA) → ...-512 マッチ → ✅ 許可
+
+■ 一般ユーザー: SID = [...-1001, S-1-1-0 (Everyone)]
+  public/     (Everyone)      → S-1-1-0 マッチ → ✅ 許可
+  confidential/ (Domain Admins) → マッチなし   → ❌ 拒否
+  restricted/ (Engineering+DA) → マッチなし   → ❌ 拒否
+```
+
+詳細は [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) を参照してください。
 
 ## Tech Stack
 
@@ -297,9 +352,11 @@ aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 │   └── types.ts                      # 型定義
 ├── docker/nextjs/                    # Next.jsアプリケーション
 ├── demo-data/
-│   ├── documents/                    # サンプルドキュメント（検証用）
-│   ├── scripts/                      # セットアップスクリプト
+│   ├── documents/                    # サンプルドキュメント（検証用）+ .metadata.json（SID情報）
+│   ├── scripts/                      # セットアップスクリプト（ユーザー作成、SIDデータ登録等）
 │   └── guides/                       # 検証シナリオ・ONTAP設定ガイド
+├── docs/
+│   └── SID-Filtering-Architecture.md # SIDフィルタリング アーキテクチャ詳細
 ├── tests/unit/                       # ユニットテスト・プロパティテスト
 └── .env.example                      # 環境変数テンプレート
 ```
