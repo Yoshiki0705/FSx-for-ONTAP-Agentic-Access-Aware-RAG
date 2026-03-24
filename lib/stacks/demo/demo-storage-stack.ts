@@ -243,16 +243,16 @@ export class DemoStorageStack extends cdk.Stack {
       exportName: `${prefix}-S3AccessPointName`,
     });
 
+    // S3 AP出力: 空文字列はCloudFormationエクスポートで拒否されるため、
+    // exportNameを使わず、出力のみにする（参照が必要な場合はSSMパラメータを使用）
     new cdk.CfnOutput(this, 'S3AccessPointAlias', {
       value: s3ApResource.getAttString('AccessPointAlias'),
-      description: 'S3 Access Point alias (use as S3 bucket name in Bedrock KB)',
-      exportName: `${prefix}-S3AccessPointAlias`,
+      description: 'S3 Access Point alias (use as S3 bucket name in Bedrock KB). May be empty if creation was deferred.',
     });
 
     new cdk.CfnOutput(this, 'S3AccessPointArn', {
       value: s3ApResource.getAttString('AccessPointArn'),
-      description: 'S3 Access Point ARN',
-      exportName: `${prefix}-S3AccessPointArn`,
+      description: 'S3 Access Point ARN. May be empty if creation was deferred.',
     });
 
     cdk.Tags.of(this).add('Project', projectName);
@@ -454,11 +454,12 @@ exports.handler = async (event) => {
 
       // API未対応やリージョン制限の場合はフォールバック
       // （S3 AP作成失敗でもスタック全体は失敗させない）
+      // 注意: CloudFormationは空文字列のOutputを拒否するため、プレースホルダー値を返す
       console.warn('Falling back: S3 AP creation deferred to post-deploy step');
       const fallbackId = 'fsx-s3-ap-deferred-' + volumeId;
       await sendCfnResponse(event, 'SUCCESS', fallbackId, {
-        AccessPointArn: '',
-        AccessPointAlias: '',
+        AccessPointArn: 'NOT_CREATED',
+        AccessPointAlias: 'NOT_CREATED',
         AccessPointName: apName,
         VolumeId: volumeId,
         Message: 'S3 AP creation deferred. Use CLI: aws fsx create-and-attach-s3-access-point --volume-id ' + volumeId,
@@ -468,10 +469,11 @@ exports.handler = async (event) => {
   } catch (err) {
     console.error('Handler error:', err);
     // スタック全体を失敗させないためSUCCESSを返す（S3 APは後から手動作成可能）
+    // 注意: CloudFormationは空文字列のOutputを拒否するため、プレースホルダー値を返す
     const fallbackId = 'fsx-s3-ap-error-' + (volumeId || 'unknown');
     await sendCfnResponse(event, 'SUCCESS', fallbackId, {
-      AccessPointArn: '',
-      AccessPointAlias: '',
+      AccessPointArn: 'NOT_CREATED',
+      AccessPointAlias: 'NOT_CREATED',
       Message: 'S3 AP creation failed: ' + err.message + '. Create manually post-deploy.',
     });
   }

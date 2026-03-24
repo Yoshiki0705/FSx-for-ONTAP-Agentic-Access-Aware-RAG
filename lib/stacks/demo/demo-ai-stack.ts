@@ -114,7 +114,7 @@ export class DemoAIStack extends cdk.Stack {
 
     // --- データアクセスポリシー ---
     const dataAccessPolicy = new opensearchserverless.CfnAccessPolicy(this, 'OssDataAccessPolicy', {
-      name: `${collectionName}-access`,
+      name: `${collectionName}-dat`,
       type: 'data',
       policy: cdk.Fn.join('', [
         '[{"Rules":[{"ResourceType":"collection","Resource":["collection/',
