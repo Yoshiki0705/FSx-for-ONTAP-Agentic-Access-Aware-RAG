@@ -17,6 +17,8 @@ export interface DemoAIStackProps extends cdk.StackProps {
   projectName: string;
   environment: string;
   dataBucket: s3.IBucket;
+  /** FSx ONTAP S3 Access Point名（StorageStackから） */
+  s3AccessPointName?: string;
 }
 
 export class DemoAIStack extends cdk.Stack {
@@ -26,7 +28,7 @@ export class DemoAIStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: DemoAIStackProps) {
     super(scope, id, props);
 
-    const { projectName, environment, dataBucket } = props;
+    const { projectName, environment, dataBucket, s3AccessPointName } = props;
     const prefix = `${projectName}-${environment}`;
     const collectionName = `${projectName}-${environment}-vectors`.substring(0, 32).toLowerCase();
     const indexName = 'bedrock-knowledge-base-default-index';
@@ -80,6 +82,15 @@ export class DemoAIStack extends cdk.Stack {
             new iam.PolicyStatement({
               actions: ['s3:GetObject', 's3:ListBucket'],
               resources: [dataBucket.bucketArn, `${dataBucket.bucketArn}/*`],
+            }),
+            // FSx ONTAP S3 Access Point経由のアクセス権限
+            // S3 APエイリアスをBedrock KBデータソースとして使用する場合に必要
+            new iam.PolicyStatement({
+              actions: ['s3:GetObject', 's3:ListBucket', 's3:GetBucketLocation'],
+              resources: [
+                `arn:aws:s3:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:accesspoint/*`,
+                `arn:aws:s3:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:accesspoint/*/object/*`,
+              ],
             }),
           ],
         }),
@@ -167,6 +178,10 @@ export class DemoAIStack extends cdk.Stack {
     this.knowledgeBaseId = kb.attrKnowledgeBaseId;
 
     // --- S3データソース ---
+    // デフォルトではS3バケットをデータソースとして使用。
+    // FSx ONTAP S3 Access Pointが利用可能な場合、デプロイ後にBedrock KBコンソールまたは
+    // APIでデータソースをS3 APエイリアスに切り替え可能。
+    // 参考: https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/accessing-data-via-s3-access-points.html
     new bedrock.CfnDataSource(this, 'S3DataSource', {
       knowledgeBaseId: kb.attrKnowledgeBaseId,
       name: `${prefix}-s3-datasource`,

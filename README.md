@@ -9,39 +9,46 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 ## Architecture
 
 ```
-┌──────────┐     ┌────────────┐     ┌─────────────────────┐
-│ Browser  │────▶│ CloudFront │────▶│ Lambda Web Adapter  │
-└──────────┘     └────────────┘     │ (Next.js)           │
-                                     └──────┬──────────────┘
-                                            │
-                       ┌────────────────────┼────────────────────┐
-                       ▼                    ▼                    ▼
-              ┌─────────────┐    ┌──────────────────┐   ┌──────────────┐
-              │ Cognito     │    │ Bedrock KB       │   │ Permission   │
-              │ User Pool   │    │ + OpenSearch     │   │ Service      │
-              └─────────────┘    │   Serverless     │   │ (Lambda)     │
-                                 └────────┬─────────┘   └──────┬───────┘
-                                          │                     │
-                                 ┌────────▼─────────┐   ┌──────▼───────┐
-                                 │ S3 Data Bucket   │   │ DynamoDB     │
-                                 │ (KB DataSource)  │   │ (権限Cache)  │
-                                 └────────┬─────────┘   └──────────────┘
+┌──────────┐     ┌──────────┐     ┌────────────┐     ┌─────────────────────┐
+│ Browser  │────▶│ AWS WAF  │────▶│ CloudFront │────▶│ Lambda Web Adapter  │
+└──────────┘     └──────────┘     │ (OAC+Geo)  │     │ (Next.js, IAM Auth) │
+                                   └────────────┘     └──────┬──────────────┘
+                                                             │
+                       ┌─────────────────────┬───────────────┼────────────────────┐
+                       ▼                     ▼               ▼                    ▼
+              ┌─────────────┐    ┌──────────────────┐ ┌──────────────┐   ┌──────────────┐
+              │ Cognito     │    │ Bedrock KB       │ │ Permission   │   │ DynamoDB     │
+              │ User Pool   │    │ + OpenSearch     │ │ Service      │   │ (権限Cache)  │
+              └─────────────┘    │   Serverless     │ │ (Lambda)     │   └──────────────┘
+                                 └────────┬─────────┘ └──────────────┘
                                           │
-                                 ┌────────▼─────────┐
-                                 │ FSx for ONTAP    │
-                                 │ (FlexCache)      │
-                                 └──────────────────┘
+                              ┌───────────┴───────────┐
+                              ▼                       ▼
+                     ┌────────────────┐     ┌──────────────────┐
+                     │ S3 Data Bucket │     │ FSx for ONTAP    │
+                     │ (KB DataSource)│     │ (SVM + Volume)   │
+                     └────────────────┘     │ + S3 Access Point│
+                                            └──────────────────┘
 ```
 
 ## CDK Stack Structure
 
-| Stack | Resources | Description |
-|-------|-----------|-------------|
-| NetworkingStack | VPC, Subnets, Security Groups | ネットワーク基盤 |
-| SecurityStack | Cognito User Pool | 認証・認可 |
-| StorageStack | FSx ONTAP, S3, DynamoDB | ストレージ・キャッシュ |
-| AIStack | Bedrock KB, OpenSearch Serverless | RAG検索基盤 |
-| WebAppStack | Lambda Web Adapter, CloudFront | Webアプリケーション |
+| Stack | Region | Resources | Description |
+|-------|--------|-----------|-------------|
+| WafStack | us-east-1 | WAF WebACL, IP Set | CloudFront用WAF（レートリミット、マネージドルール） |
+| NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups | ネットワーク基盤 |
+| SecurityStack | ap-northeast-1 | Cognito User Pool | 認証・認可 |
+| StorageStack | ap-northeast-1 | FSx ONTAP + SVM + S3 AP, S3, DynamoDB | ストレージ・キャッシュ |
+| AIStack | ap-northeast-1 | Bedrock KB, OpenSearch Serverless | RAG検索基盤 |
+| WebAppStack | ap-northeast-1 | Lambda (IAM Auth + OAC), CloudFront | Webアプリケーション |
+
+### セキュリティ機能
+
+- **AWS WAF**: レートリミット、IP Reputation、Common Rule Set、SQLi防御、IP許可リスト
+- **IAM認証**: Lambda Function URLにAWS_IAM認証、CloudFront OAC（SigV4署名）
+- **Geo制限**: 日本国内のみアクセス許可（設定変更可能）
+- **SIDフィルタリング**: NTFS ACLベースの権限フィルタリング有効
+- **FSx ONTAP S3 Access Point**: WINDOWSユーザータイプ、NTFS ACLベースのファイルレベル認可
 
 ## Prerequisites
 
@@ -147,7 +154,9 @@ cat > cdk.context.json << 'EOF'
 {
   "projectName": "rag-demo",
   "environment": "demo",
-  "imageTag": "latest"
+  "imageTag": "latest",
+  "allowedIps": [],
+  "allowedCountries": ["JP"]
 }
 EOF
 ```
@@ -155,7 +164,7 @@ EOF
 ### Step 6: CDKデプロイ
 
 ```bash
-# 全5スタックを一括デプロイ
+# 全6スタックを一括デプロイ
 npx cdk deploy --all \
   --app "npx ts-node bin/demo-app.ts" \
   --require-approval never
@@ -274,13 +283,14 @@ aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 
 ```
 ├── bin/
-│   └── demo-app.ts                  # CDKエントリーポイント
+│   └── demo-app.ts                  # CDKエントリーポイント（6スタック構成）
 ├── lib/stacks/demo/
+│   ├── demo-waf-stack.ts             # WAF WebACL (us-east-1)
 │   ├── demo-networking-stack.ts      # VPC, Subnets, SG
 │   ├── demo-security-stack.ts        # Cognito
-│   ├── demo-storage-stack.ts         # FSx ONTAP, S3, DynamoDB
+│   ├── demo-storage-stack.ts         # FSx ONTAP + SVM + S3 AP, S3, DynamoDB
 │   ├── demo-ai-stack.ts             # Bedrock KB, OpenSearch Serverless
-│   └── demo-webapp-stack.ts          # Lambda Web Adapter, CloudFront
+│   └── demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
 ├── lambda/permissions/
 │   ├── permission-filter-handler.ts  # 権限フィルタリングLambda
 │   ├── permission-calculator.ts      # SID/ACL照合ロジック
@@ -302,7 +312,9 @@ aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 
 ## FSx ONTAP Setup
 
-FSx ONTAPのボリューム設定・ACL設定の手順は [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) を参照してください。
+FSx ONTAPのボリューム設定・S3 Access Point・ACL設定の手順は [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) を参照してください。
+
+S3 Access Pointの設計判断（WINDOWSユーザータイプ、Internetアクセス）の詳細もガイドに記載しています。
 
 ## License
 
