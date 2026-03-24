@@ -271,6 +271,63 @@ aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 |------|------|------|
 | SSMでインスタンスが表示されない | IAMロール未設定 or アウトバウンド443閉鎖 | IAMインスタンスプロファイルとSGアウトバウンドルールを確認 |
 
+## WAF & Geo制限の設定
+
+### WAFルール構成
+
+CloudFront用WAFは `us-east-1` にデプロイされ、6つのルールで構成されています（優先度順に評価）。
+
+| 優先度 | ルール名 | 種別 | 説明 |
+|--------|---------|------|------|
+| 100 | RateLimit | カスタム | 1つのIPアドレスから5分間に3000リクエストを超えるとブロック |
+| 200 | AWSIPReputationList | AWSマネージド | ボットネット、DDoS送信元など悪意のあるIPアドレスをブロック |
+| 300 | AWSCommonRuleSet | AWSマネージド | OWASP Top 10準拠の汎用ルール（XSS、LFI、RFI等）。RAGリクエストとの互換性のため `GenericRFI_BODY`、`SizeRestrictions_BODY`、`CrossSiteScripting_BODY` を除外 |
+| 400 | AWSKnownBadInputs | AWSマネージド | Log4j（CVE-2021-44228）等の既知の脆弱性を悪用するリクエストをブロック |
+| 500 | AWSSQLiRuleSet | AWSマネージド | SQLインジェクション攻撃パターンを検出・ブロック |
+| 600 | IPAllowList | カスタム（任意） | `allowedIps` が設定されている場合のみ有効。リスト外のIPをブロック |
+
+### Geo制限
+
+CloudFrontレベルで地理的アクセス制限を適用します。WAFとは別レイヤーの保護です。
+
+- デフォルト: 日本（`JP`）のみ許可
+- CloudFrontの `GeoRestriction.allowlist` で実装
+- 許可国以外からのアクセスは `403 Forbidden` を返す
+
+### 設定方法
+
+`cdk.context.json` で以下の値を変更します。
+
+```json
+{
+  "allowedIps": ["203.0.113.0/24", "198.51.100.1/32"],
+  "allowedCountries": ["JP", "US"]
+}
+```
+
+| パラメータ | 型 | デフォルト | 説明 |
+|-----------|-----|----------|------|
+| `allowedIps` | string[] | `[]`（制限なし） | 許可するIPアドレスのCIDRリスト。空の場合はIPフィルタルール自体が作成されない |
+| `allowedCountries` | string[] | `["JP"]` | CloudFront Geo制限で許可する国コード（ISO 3166-1 alpha-2） |
+
+### カスタマイズ例
+
+レートリミットの閾値変更やルールの追加・除外は `lib/stacks/demo/demo-waf-stack.ts` を直接編集します。
+
+```typescript
+// レートリミットを1000 req/5minに変更する場合
+rateBasedStatement: { limit: 1000, aggregateKeyType: 'IP' },
+
+// Common Rule Setの除外ルールを変更する場合
+excludedRules: [
+  { name: 'GenericRFI_BODY' },
+  { name: 'SizeRestrictions_BODY' },
+  // CrossSiteScripting_BODY を除外リストから外す（有効化する）場合はこの行を削除
+],
+```
+
+変更後は `npx cdk deploy --all --app "npx ts-node bin/demo-app.ts"` で反映されます。WAFスタックは `us-east-1` にデプロイされるため、クロスリージョンデプロイが自動的に行われます。
+
 ## How Permission-aware RAG Works
 
 ### 処理フロー
