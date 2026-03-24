@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     const region = body.region || process.env.BEDROCK_REGION || 'ap-northeast-1';
-    const modelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
+    const modelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0';
 
     // 入力検証
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
@@ -212,21 +212,11 @@ export async function POST(request: NextRequest) {
     // ========================================
     const client = new BedrockAgentRuntimeClient({ region });
 
-    // Inference profile解決
-    const { resolveInferenceProfile } = await import('@/lib/inference-profile-resolver');
-    const resolvedModelId = resolveInferenceProfile(modelId, region);
-    
-    let modelArn: string;
-    if (resolvedModelId.match(/^(us|eu|apac)\./)) {
-      const accountId = process.env.AWS_ACCOUNT_ID || process.env.CDK_DEFAULT_ACCOUNT || '';
-      modelArn = `arn:aws:bedrock:${region}:${accountId}:inference-profile/${resolvedModelId}`;
-    } else {
-      modelArn = `arn:aws:bedrock:${region}::foundation-model/${resolvedModelId}`;
-    }
+    // Foundation model ARNを直接構築（KB RetrieveAndGenerateではinference profileではなくfoundation modelを使用）
+    const modelArn = `arn:aws:bedrock:${region}::foundation-model/${modelId}`;
 
-    console.log('🎯 [KB Retrieve] モデル解決:', {
-      original: modelId,
-      resolved: resolvedModelId,
+    console.log('🎯 [KB Retrieve] モデルARN:', {
+      modelId,
       modelArn,
     });
 
