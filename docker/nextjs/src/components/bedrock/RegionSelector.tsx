@@ -275,12 +275,12 @@ export function RegionSelector({
           <div className="flex items-center space-x-2 text-xs text-gray-600">
             <span className="flex items-center space-x-1">
               <span className="text-green-600">✅</span>
-              <span>{t('modelCount', { count: supportedRegions.length })}</span>
+              <span>{supportedRegions.length}{t('supportedRegions')}</span>
             </span>
             {showUnsupportedRegions && unsupportedRegions.length > 0 && (
               <span className="flex items-center space-x-1">
                 <span className="text-red-600">❌</span>
-                <span>{t('modelCount', { count: unsupportedRegions.length })}</span>
+                <span>{unsupportedRegions.length}</span>
               </span>
             )}
           </div>
@@ -372,7 +372,7 @@ export function RegionSelector({
             <div>
               <div className="text-xs font-medium text-gray-700 mb-2 flex items-center space-x-2">
                 <span>✅ {t('supportedRegions')}</span>
-                <span className="text-gray-500">({t('modelCount', { count: supportedRegions.length })})</span>
+                <span className="text-gray-500">({supportedRegions.length}リージョン)</span>
               </div>
               
               {isLoading ? (
@@ -499,7 +499,7 @@ export function RegionSelector({
               <div>
                 <div className="text-xs font-medium text-gray-500 mb-2 flex items-center space-x-2">
                   <span>❌ {t('unsupportedRegions')}</span>
-                  <span className="text-gray-400">({t('modelCount', { count: unsupportedRegions.length })})</span>
+                  <span className="text-gray-400">({unsupportedRegions.length}リージョン)</span>
                 </div>
                 <div className="space-y-1">
                   {unsupportedRegions.map((region) => (
