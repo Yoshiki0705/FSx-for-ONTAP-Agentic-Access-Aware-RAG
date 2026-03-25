@@ -1,425 +1,163 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   BedrockAgentRuntimeClient,
-  RetrieveAndGenerateCommand,
-  RetrieveAndGenerateCommandInput,
+  RetrieveCommand,
+  RetrieveCommandInput,
 } from '@aws-sdk/client-bedrock-agent-runtime';
+import {
+  BedrockRuntimeClient,
+  ConverseCommand,
+} from '@aws-sdk/client-bedrock-runtime';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 /**
- * RAG検索API Route — SIDベース権限フィルタリング統合
- * 
- * POST /api/bedrock/kb/retrieve
- * 
- * ┌──────────┐    ┌──────────────┐    ┌───────────────────┐    ┌──────────────┐
- * │ ユーザー  │───▶│ KB Retrieve  │───▶│ Bedrock KB        │───▶│ OpenSearch   │
- * │ (query)  │    │ API Route    │    │ RetrieveAndGenerate│    │ Serverless   │
- * └──────────┘    └──────┬───────┘    └───────────────────┘    └──────────────┘
- *                        │                                            │
- *                        │  ┌─────────────────────────────────────────┘
- *                        │  │ 検索結果（ドキュメント + メタデータ）
- *                        │  ▼
- *                 ┌──────┴───────┐    ┌──────────────┐
- *                 │ SIDフィルタ   │◀──│ DynamoDB     │
- *                 │ リング処理   │    │ user-access  │
- *                 └──────┬───────┘    │ (ユーザーSID)│
- *                        │            └──────────────┘
- *                        ▼
- *                 ┌──────────────┐
- *                 │ フィルタ済み  │
- *                 │ 検索結果     │
- *                 └──────────────┘
- * 
- * SIDフィルタリングロジック:
- *   1. DynamoDB user-accessテーブルからユーザーのSIDリストを取得
- *      （個人SID + 所属グループSID）
- *   2. Bedrock KB検索結果の各ドキュメントからメタデータを取得
- *      （allowed_group_sids: アクセス許可されたSIDリスト）
- *   3. ユーザーのSIDリストとドキュメントのallowed_group_sidsを照合
- *   4. いずれかのSIDがマッチすればアクセス許可、マッチしなければ拒否
- *   5. 権限チェック失敗時は安全側フォールバック（全ドキュメント拒否）
+ * RAG検索API — Retrieve API + SIDフィルタリング + Converse API（2段階方式）
  */
 
 interface RetrieveRequest {
   query: string;
-  knowledgeBaseId: string;
+  knowledgeBaseId?: string;
   modelId?: string;
   userId: string;
   region?: string;
-  sessionId?: string;
 }
 
-interface Citation {
-  generatedResponsePart?: {
-    textResponsePart?: {
-      text?: string;
-      span?: { start?: number; end?: number };
-    };
-  };
-  retrievedReferences?: Array<{
-    content?: { text?: string };
-    location?: {
-      type?: string;
-      s3Location?: { uri?: string };
-    };
-    metadata?: Record<string, unknown>;
-  }>;
-}
-
-/** DynamoDB user-accessテーブルのレコード */
 interface UserAccessRecord {
   userId: string;
   userSID: string;
   groupSIDs: string[];
-  displayName?: string;
-  source?: string;
 }
 
-// DynamoDBクライアント（Lambda実行環境でリージョン自動検出）
 const dynamoClient = new DynamoDBClient({
   region: process.env.AWS_REGION || process.env.BEDROCK_REGION || 'ap-northeast-1',
 });
 
-/**
- * DynamoDB user-accessテーブルからユーザーのSID情報を取得
- */
 async function getUserSIDs(userId: string): Promise<UserAccessRecord | null> {
   const tableName = process.env.USER_ACCESS_TABLE_NAME;
-  if (!tableName) {
-    console.warn('⚠️ [SID Filter] USER_ACCESS_TABLE_NAME が未設定');
-    return null;
-  }
-
+  if (!tableName) return null;
   try {
     const result = await dynamoClient.send(new GetItemCommand({
       TableName: tableName,
       Key: { userId: { S: userId } },
     }));
-
-    if (!result.Item) {
-      console.warn(`⚠️ [SID Filter] ユーザー ${userId} のSID情報が見つかりません`);
-      return null;
-    }
-
+    if (!result.Item) return null;
     const item = unmarshall(result.Item);
     return {
       userId: item.userId,
       userSID: item.userSID || '',
-      groupSIDs: item.groupSIDs || item.sids || item.SID || [],
-      displayName: item.displayName,
-      source: item.source,
+      groupSIDs: item.groupSIDs || [],
     };
-  } catch (error) {
-    console.error('❌ [SID Filter] DynamoDB読み取りエラー:', error);
+  } catch {
     return null;
   }
 }
 
-/**
- * SIDベースの権限フィルタリング
- * 
- * ユーザーのSIDリスト（個人SID + グループSID）と
- * ドキュメントのallowed_group_sids（アクセス許可SIDリスト）を照合する。
- * 
- * マッチング条件:
- *   - ユーザーのいずれかのSIDが、ドキュメントのallowed_group_sidsに含まれていればアクセス許可
- *   - S-1-1-0（Everyone）はすべてのユーザーにマッチ
- *   - allowed_group_sidsが空またはメタデータなしの場合はアクセス拒否（安全側）
- */
-function checkSIDAccess(
-  userSIDs: string[],
-  documentAllowedSIDs: string[],
-): boolean {
-  if (!Array.isArray(documentAllowedSIDs) || documentAllowedSIDs.length === 0) {
-    return false; // メタデータなし → 安全側で拒否
-  }
-
-  // ユーザーのいずれかのSIDがドキュメントの許可SIDリストに含まれているか
-  for (const userSID of userSIDs) {
-    if (documentAllowedSIDs.includes(userSID)) {
-      return true;
-    }
-  }
-  return false;
+function checkSIDAccess(userSIDs: string[], docSIDs: string[]): boolean {
+  if (!Array.isArray(docSIDs) || docSIDs.length === 0) return false;
+  return userSIDs.some(sid => docSIDs.includes(sid));
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: RetrieveRequest = await request.json();
-    const {
-      query,
-      userId,
-      sessionId,
-    } = body;
-
-    // KB IDはリクエストボディ → サーバー環境変数の順でフォールバック
+    const { query, userId } = body;
     const knowledgeBaseId = body.knowledgeBaseId || process.env.BEDROCK_KB_ID || '';
     const region = body.region || process.env.BEDROCK_REGION || 'ap-northeast-1';
     const rawModelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0';
-
-    // Inference profile prefix (e.g. "apac.", "us.", "eu.") を除去
     const baseModelId = rawModelId.replace(/^(apac|us|eu)\./i, '');
 
-    // KB RetrieveAndGenerate APIはAnthropicモデルのみサポート
-    // Nova/Meta/Cohere等は500エラーを返すため、Claude Haikuにフォールバック
-    const KB_FALLBACK_MODEL = 'anthropic.claude-3-haiku-20240307-v1:0';
-    const modelId = baseModelId.startsWith('anthropic.')
-      ? baseModelId
-      : (() => {
-          console.warn(`⚠️ [KB Retrieve] モデル ${baseModelId} はKB RetrieveAndGenerate非対応、${KB_FALLBACK_MODEL} にフォールバック`);
-          return KB_FALLBACK_MODEL;
-        })();
+    if (!query?.trim()) return NextResponse.json({ success: false, error: 'クエリが空です' }, { status: 400 });
+    if (!knowledgeBaseId) return NextResponse.json({ success: false, error: 'KB ID未設定' }, { status: 400 });
+    if (!userId) return NextResponse.json({ success: false, error: 'ユーザーID未指定' }, { status: 400 });
 
-    // 入力検証
-    if (!query || typeof query !== 'string' || query.trim().length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'クエリが空です' },
-        { status: 400 }
-      );
-    }
+    console.log('🔍 [KB] Retrieve API開始:', { query: query.substring(0, 80), knowledgeBaseId, userId });
 
-    if (!knowledgeBaseId) {
-      return NextResponse.json(
-        { success: false, error: 'Knowledge Base IDが指定されていません。BEDROCK_KB_ID環境変数を設定してください。' },
-        { status: 400 }
-      );
-    }
-
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'ユーザーIDが指定されていません' },
-        { status: 400 }
-      );
-    }
-
-    console.log('🔍 [KB Retrieve] RAG検索開始:', {
-      query: query.substring(0, 100),
-      knowledgeBaseId,
-      modelId,
-      userId,
-      region,
-    });
-
-    // ========================================
-    // Step 1: ユーザーのSID情報をDynamoDBから取得
-    // ========================================
+    // Step 1: ユーザーSID取得
     const userAccess = await getUserSIDs(userId);
     const allUserSIDs: string[] = [];
-
     if (userAccess) {
       if (userAccess.userSID) allUserSIDs.push(userAccess.userSID);
       if (Array.isArray(userAccess.groupSIDs)) allUserSIDs.push(...userAccess.groupSIDs);
-      console.log('🔑 [SID Filter] ユーザーSID取得:', {
-        userId,
-        userSID: userAccess.userSID,
-        groupSIDs: userAccess.groupSIDs,
-        totalSIDs: allUserSIDs.length,
-        displayName: userAccess.displayName,
-      });
-    } else {
-      console.warn('⚠️ [SID Filter] SID情報なし → 安全側フォールバック（全拒否）');
     }
+    console.log('🔑 [SID] ユーザーSIDs:', allUserSIDs);
 
-    // ========================================
-    // Step 2: Bedrock KB検索
-    // ========================================
-    const client = new BedrockAgentRuntimeClient({ region });
-
-    // Foundation model ARNを直接構築（KB RetrieveAndGenerateではinference profileではなくfoundation modelを使用）
-    const modelArn = `arn:aws:bedrock:${region}::foundation-model/${modelId}`;
-
-    console.log('🎯 [KB Retrieve] モデルARN:', {
-      modelId,
-      modelArn,
-    });
-
-    const input: RetrieveAndGenerateCommandInput = {
-      input: { text: query },
-      retrieveAndGenerateConfiguration: {
-        type: 'KNOWLEDGE_BASE',
-        knowledgeBaseConfiguration: {
-          knowledgeBaseId,
-          modelArn,
-          retrievalConfiguration: {
-            vectorSearchConfiguration: {
-              numberOfResults: 10,
-            },
-          },
-        },
-      },
+    // Step 2: Bedrock KB Retrieve API
+    const kbClient = new BedrockAgentRuntimeClient({ region });
+    const retrieveInput: RetrieveCommandInput = {
+      knowledgeBaseId,
+      retrievalQuery: { text: query },
+      retrievalConfiguration: { vectorSearchConfiguration: { numberOfResults: 10 } },
     };
+    const retrieveResponse = await kbClient.send(new RetrieveCommand(retrieveInput));
+    const results = retrieveResponse.retrievalResults || [];
+    console.log('✅ [KB] 検索結果:', results.length, '件');
 
-    if (sessionId) {
-      input.sessionId = sessionId;
-    }
+    // Step 3: SIDフィルタリング
+    type FilterDetail = { fileName: string; documentSIDs: string[]; matched: boolean; matchedSID?: string };
+    const details: FilterDetail[] = [];
+    const allowed: { fileName: string; s3Uri: string; content: string; metadata: Record<string, unknown> }[] = [];
 
-    const command = new RetrieveAndGenerateCommand(input);
-    const response = await client.send(command);
+    for (const r of results) {
+      const s3Uri = r.location?.s3Location?.uri || '';
+      const fileName = s3Uri.split('/').pop() || s3Uri;
+      const content = r.content?.text || '';
+      const meta = (r.metadata || {}) as Record<string, unknown>;
 
-    console.log('✅ [KB Retrieve] Bedrock KB応答受信:', {
-      hasOutput: !!response.output,
-      outputLength: response.output?.text?.length,
-      citationCount: response.citations?.length || 0,
-      sessionId: response.sessionId,
-    });
+      let docSIDs: string[] = [];
+      const raw = meta?.allowed_group_sids ?? (meta?.metadataAttributes as Record<string, unknown>)?.allowed_group_sids;
+      if (Array.isArray(raw)) docSIDs = raw as string[];
+      else if (typeof raw === 'string') { try { docSIDs = JSON.parse(raw); } catch { docSIDs = [raw]; } }
 
-    // ========================================
-    // Step 3: Citation情報を整形
-    // ========================================
-    const citations: Citation[] = response.citations || [];
-    const formattedCitations = citations.flatMap((citation) => {
-      const refs = citation.retrievedReferences || [];
-      return refs.map((ref) => {
-        const s3Uri = ref.location?.s3Location?.uri || '';
-        const fileName = s3Uri.split('/').pop() || s3Uri;
-        return {
-          fileName,
-          s3Uri,
-          content: ref.content?.text?.substring(0, 500) || '',
-          metadata: ref.metadata || {},
-        };
-      });
-    });
+      console.log('🔍 [SID] ' + fileName + ': metaKeys=' + JSON.stringify(Object.keys(meta)) + ', docSIDs=' + JSON.stringify(docSIDs));
 
-    // ========================================
-    // Step 4: SIDベース権限フィルタリング
-    // ========================================
-    let filteredCitations = formattedCitations;
-    const sidFilterDetails: Array<{
-      fileName: string;
-      documentSIDs: string[];
-      matched: boolean;
-      matchedSID?: string;
-    }> = [];
-
-    if (allUserSIDs.length > 0) {
-      // SID情報がある場合: SIDマッチングでフィルタリング
-      filteredCitations = formattedCitations.filter((cite) => {
-        const meta = cite.metadata as Record<string, unknown>;
-        // メタデータからallowed_group_sidsを取得
-        // Bedrock KBはmetadataAttributesの中身をフラットに返す場合と
-        // ネストして返す場合があるため、両方をチェック
-        let allowedSIDs: string[] = [];
-        
-        // フラットなメタデータ（meta.allowed_group_sids）
-        const rawSIDs = meta?.allowed_group_sids 
-          ?? (meta?.metadataAttributes as Record<string, unknown>)?.allowed_group_sids;
-        
-        if (Array.isArray(rawSIDs)) {
-          allowedSIDs = rawSIDs as string[];
-        } else if (typeof rawSIDs === 'string') {
-          // 文字列の場合はJSON解析を試みる
-          try {
-            allowedSIDs = JSON.parse(rawSIDs as string);
-          } catch {
-            allowedSIDs = [rawSIDs as string];
-          }
-        }
-        
-        console.log(`🔍 [SID Filter] Document metadata for ${cite.fileName}:`, {
-          metaKeys: Object.keys(meta || {}),
-          rawSIDs,
-          allowedSIDs,
-        });
-
-        const allowed = checkSIDAccess(allUserSIDs, allowedSIDs);
-        const matchedSID = allowed
-          ? allUserSIDs.find(sid => allowedSIDs.includes(sid))
-          : undefined;
-
-        sidFilterDetails.push({
-          fileName: cite.fileName,
-          documentSIDs: allowedSIDs,
-          matched: allowed,
-          matchedSID,
-        });
-
-        console.log(`🔐 [SID Filter] ${cite.fileName}: ${allowed ? '✅ ALLOW' : '❌ DENY'}`, {
-          documentSIDs: allowedSIDs,
-          matchedSID,
-        });
-
-        return allowed;
-      });
-    } else {
-      // SID情報がない場合: 安全側フォールバック（全ドキュメント拒否）
-      filteredCitations = [];
-      formattedCitations.forEach((cite) => {
-        sidFilterDetails.push({
-          fileName: cite.fileName,
-          documentSIDs: [],
-          matched: false,
-        });
-      });
+      const ok = allUserSIDs.length > 0 && checkSIDAccess(allUserSIDs, docSIDs);
+      const matchedSID = ok ? allUserSIDs.find(s => docSIDs.includes(s)) : undefined;
+      details.push({ fileName, documentSIDs: docSIDs, matched: ok, matchedSID });
+      console.log('🔐 [SID] ' + fileName + ': ' + (ok ? '✅ ALLOW' : '❌ DENY'));
+      if (ok) allowed.push({ fileName, s3Uri, content, metadata: meta });
     }
 
     const filterLog = {
-      totalDocuments: formattedCitations.length,
-      allowedDocuments: filteredCitations.length,
-      deniedDocuments: formattedCitations.length - filteredCitations.length,
-      userId,
-      userSIDs: allUserSIDs,
-      filterMethod: allUserSIDs.length > 0 ? 'SID_MATCHING' : 'DENY_ALL_FALLBACK',
-      details: sidFilterDetails,
+      totalDocuments: results.length,
+      allowedDocuments: allowed.length,
+      deniedDocuments: results.length - allowed.length,
+      userId, userSIDs: allUserSIDs,
+      filterMethod: allUserSIDs.length > 0 ? 'SID_MATCHING' : 'DENY_ALL',
+      details,
       timestamp: new Date().toISOString(),
     };
+    console.log('🔐 [SID] 完了:', JSON.stringify({ total: results.length, allowed: allowed.length }));
 
-    console.log('🔐 [SID Filter] フィルタリング完了:', {
-      total: filterLog.totalDocuments,
-      allowed: filterLog.allowedDocuments,
-      denied: filterLog.deniedDocuments,
-      method: filterLog.filterMethod,
-    });
+    // Step 4: Converse APIで回答生成
+    let answer = '';
+    if (allowed.length > 0) {
+      const ctx = allowed.map((r, i) => '[Doc' + (i+1) + ': ' + r.fileName + ']\n' + r.content).join('\n\n');
+      const converseClient = new BedrockRuntimeClient({ region });
+      const modelId = baseModelId.startsWith('anthropic.') || baseModelId.startsWith('amazon.') ? baseModelId : 'anthropic.claude-3-haiku-20240307-v1:0';
+      const resp = await converseClient.send(new ConverseCommand({
+        modelId,
+        messages: [{ role: 'user', content: [{ text: '以下のドキュメントを参照して質問に日本語で回答してください。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。\n\n' + ctx + '\n\n質問: ' + query }] }],
+        inferenceConfig: { maxTokens: 2000, temperature: 0.1 },
+      }));
+      const outputContent = resp.output?.message?.content?.[0];
+      answer = (outputContent && 'text' in outputContent) ? (outputContent.text || '') : '';
+      console.log('✅ [Converse] 回答生成:', answer.length, '文字');
+    } else {
+      answer = 'アクセス権限のあるドキュメントが見つかりませんでした。この情報へのアクセス権限がない可能性があります。';
+    }
 
     return NextResponse.json({
-      success: true,
-      answer: response.output?.text || '',
-      citations: filteredCitations,
+      success: true, answer,
+      citations: allowed.map(r => ({ fileName: r.fileName, s3Uri: r.s3Uri, content: r.content.substring(0, 500), metadata: r.metadata })),
       filterLog,
-      sessionId: response.sessionId,
-      metadata: {
-        knowledgeBaseId,
-        modelId,
-        region,
-        timestamp: new Date().toISOString(),
-      },
+      metadata: { knowledgeBaseId, modelId: baseModelId, region, timestamp: new Date().toISOString() },
     });
   } catch (error) {
-    console.error('❌ [KB Retrieve] RAG検索エラー:', error);
-
-    const errorName = error instanceof Error ? error.constructor.name : 'UnknownError';
-    const errorMessage = error instanceof Error ? error.message : 'RAG検索に失敗しました';
-
-    const errorMessages: Record<string, { ja: string; en: string }> = {
-      ThrottlingException: {
-        ja: 'リクエストが多すぎます。しばらく待ってから再試行してください。',
-        en: 'Too many requests. Please wait and try again.',
-      },
-      ServiceUnavailableException: {
-        ja: 'サービスが一時的に利用できません。しばらく待ってから再試行してください。',
-        en: 'Service temporarily unavailable. Please try again later.',
-      },
-      ValidationException: {
-        ja: '入力内容を確認してください。',
-        en: 'Please check your input.',
-      },
-    };
-
-    const userMessage = errorMessages[errorName] || {
-      ja: 'エラーが発生しました。再試行してください。',
-      en: 'An error occurred. Please try again.',
-    };
-
+    console.error('❌ [KB] エラー:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: userMessage.ja,
-        errorEn: userMessage.en,
-        errorType: errorName,
-        details: errorMessage,
-      },
-      { status: errorName === 'ThrottlingException' ? 429 : 500 }
+      { success: false, error: 'エラーが発生しました。再試行してください。', details: error instanceof Error ? error.message : '' },
+      { status: 500 },
     );
   }
 }

@@ -997,7 +997,8 @@ function ChatbotPageContent() {
             modelId: selectedModelId,
             userId: user.username,
             region: currentRegion,
-            sessionId: currentSession?.id,
+            // Note: sessionIdはBedrock KB APIが返すUUID形式でなければならないため、
+            // アプリ内部のセッションIDは送らない（各リクエストを独立したKB検索として扱う）
           }),
         });
 
