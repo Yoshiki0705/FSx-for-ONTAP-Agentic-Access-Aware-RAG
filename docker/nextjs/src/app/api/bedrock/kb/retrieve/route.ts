@@ -50,6 +50,7 @@ function checkSIDAccess(userSIDs: string[], docSIDs: string[]): boolean {
  */
 const ON_DEMAND_BLOCKED = new Set([
   'amazon.nova-pro-v1:0', 'amazon.nova-micro-v1:0', 'amazon.nova-2-lite-v1:0',
+  'nvidia.nemotron-super-3-120b',
 ]);
 
 function resolveConverseModelId(rawModelId: string): string {
