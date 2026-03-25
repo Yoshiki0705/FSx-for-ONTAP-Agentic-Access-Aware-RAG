@@ -303,7 +303,8 @@
       "test": "🧪 Testbenutzer: Simulierte Berechtigungen",
       "simulated": "⚠️ Simulation: FSx ist verfügbar, aber Berechtigungsinformationen konnten nicht abgerufen werden",
       "unavailable": "❌ FSx nicht verfügbar: Anzeige von Fallback-Verzeichnissen",
-      "unknown": "❓ Unbekannt: Anzeige von Standardverzeichnissen"
+      "unknown": "❓ Unbekannt: Anzeige von Standardverzeichnissen",
+      "sidBased": "🔐 SID-basierte Zugriffsberechtigungen"
     }
   }
 }

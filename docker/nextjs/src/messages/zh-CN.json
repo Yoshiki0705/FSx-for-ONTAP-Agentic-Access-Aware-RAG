@@ -26,7 +26,6 @@
     "createNew": "创建新 Agent",
     "delete": "删除代理",
     "deleteConfirm": "确定要删除\"{name}\"吗？此操作无法撤销。",
-    "description": "描述",
     "error": {},
     "features": "Agent 功能",
     "hint": "提示",
@@ -380,7 +379,8 @@
       "test": "🧪 测试用户：模拟权限",
       "simulated": "⚠️ 模拟：FSx 可用但无法获取权限信息",
       "unavailable": "❌ FSx 不可用：显示备用目录",
-      "unknown": "❓ 未知：显示默认目录"
+      "unknown": "❓ 未知：显示默认目录",
+      "sidBased": "🔐 基于SID的访问权限"
     }
   }
 }

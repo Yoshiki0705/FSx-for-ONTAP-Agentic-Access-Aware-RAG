@@ -303,7 +303,8 @@
       "test": "🧪 Usuario de prueba: Permisos simulados",
       "simulated": "⚠️ Simulación: FSx está disponible pero no se pudo recuperar la información de permisos",
       "unavailable": "❌ FSx no disponible: Mostrando directorios de respaldo",
-      "unknown": "❓ Desconocido: Mostrando directorios predeterminados"
+      "unknown": "❓ Desconocido: Mostrando directorios predeterminados",
+      "sidBased": "🔐 Permisos de acceso basados en SID"
     }
   }
 }

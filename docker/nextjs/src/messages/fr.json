@@ -303,7 +303,8 @@
       "test": "🧪 Utilisateur de test : Permissions simulées",
       "simulated": "⚠️ Simulation : FSx est disponible mais les informations de permission n'ont pas pu être récupérées",
       "unavailable": "❌ FSx indisponible : Affichage des répertoires de secours",
-      "unknown": "❓ Inconnu : Affichage des répertoires par défaut"
+      "unknown": "❓ Inconnu : Affichage des répertoires par défaut",
+      "sidBased": "🔐 Permissions d'accès basées sur SID"
     }
   }
 }

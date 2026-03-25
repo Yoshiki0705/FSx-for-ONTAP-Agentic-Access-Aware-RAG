@@ -303,7 +303,8 @@
       "test": "🧪 測試用戶：模擬權限",
       "simulated": "⚠️ 模擬：FSx 可用但無法獲取權限資訊",
       "unavailable": "❌ FSx 不可用：顯示備用目錄",
-      "unknown": "❓ 未知：顯示預設目錄"
+      "unknown": "❓ 未知：顯示預設目錄",
+      "sidBased": "🔐 基於SID的存取權限"
     }
   }
 }
