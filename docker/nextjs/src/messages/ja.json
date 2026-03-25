@@ -165,6 +165,7 @@
     "askAnything": "何でもお気軽にお聞きください！",
     "directoryType": {
       "actual": "🟢 FSx for ONTAP本番環境 (ID: {fsxId})",
+      "sidBased": "🔐 SIDベースのアクセス権限",
       "test": "🧪 テストユーザー: 模擬権限",
       "simulated": "⚠️ シミュレーション環境",
       "unavailable": "❌ FSx環境利用不可",

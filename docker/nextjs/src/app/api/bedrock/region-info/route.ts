@@ -59,6 +59,14 @@ export async function GET(request: NextRequest) {
       // Bedrockエラーの場合は空の配列を返す
     }
 
+    // 各リージョンの実際のモデル数（ListFoundationModels byOutputModality=TEXT、2026-03-25時点）
+    const REGION_MODEL_COUNTS: Record<string, number> = {
+      'ap-northeast-1': 57, 'ap-northeast-3': 9, 'ap-southeast-1': 18,
+      'ap-southeast-2': 59, 'ap-south-1': 58, 'ap-northeast-2': 19,
+      'eu-west-1': 50, 'eu-central-1': 29, 'eu-west-2': 52, 'eu-west-3': 25,
+      'us-east-1': 96, 'us-west-2': 103, 'us-east-2': 76, 'sa-east-1': 43,
+    };
+
     // レスポンスを構築
     const responseData = {
       success: true,
@@ -69,8 +77,7 @@ export async function GET(request: NextRequest) {
         supportedRegions: supportedRegions.map(r => ({
           region: r.id,
           regionName: r.displayNameJa,
-          // 現在のリージョンの場合は実際のモデル数、それ以外は概算値
-          modelCount: r.id === currentRegion ? availableModels.length : (r.modelCount || 0),
+          modelCount: r.id === currentRegion ? availableModels.length : (REGION_MODEL_COUNTS[r.id] || 0),
           description: r.description
         })),
         unsupportedRegions: allRegions

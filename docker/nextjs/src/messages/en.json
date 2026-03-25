@@ -165,6 +165,7 @@
     "askAnything": "Feel free to ask anything!",
     "directoryType": {
       "actual": "🟢 FSx for ONTAP Production (ID: {fsxId})",
+      "sidBased": "🔐 SID-based access permissions",
       "test": "🧪 Test User: Simulated permissions",
       "simulated": "⚠️ Simulation environment",
       "unavailable": "❌ FSx environment unavailable",

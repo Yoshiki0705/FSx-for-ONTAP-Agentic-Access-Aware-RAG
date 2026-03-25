@@ -223,6 +223,9 @@ const generateInitialMessageWithDirectories = (
       case 'actual':
         directoryNote = t('introduction.directoryType.actual', { fsxId });
         break;
+      case 'sid-based':
+        directoryNote = t('introduction.directoryType.sidBased') || '🔐 SIDベースのアクセス権限';
+        break;
       case 'test':
         directoryNote = t('introduction.directoryType.test');
         break;
