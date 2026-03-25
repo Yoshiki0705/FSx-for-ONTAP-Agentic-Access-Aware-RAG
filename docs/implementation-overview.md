@@ -32,7 +32,7 @@ Next.js 15（App Router）で実装したRAGチャットボットアプリケー
 | フレームワーク | Next.js 15 (App Router, standalone output) |
 | UI | React 18 + Tailwind CSS |
 | 認証 | Amazon Cognito (JWT) |
-| AI/RAG | Amazon Bedrock Knowledge Base RetrieveAndGenerate API |
+| AI/RAG | Amazon Bedrock Knowledge Base Retrieve API + Converse API |
 | ランタイム | Lambda Web Adapter (Rust) + Docker コンテナ |
 | CDN | Amazon CloudFront |
 
@@ -365,32 +365,38 @@ DynamoDB user-access テーブル
 └──────────────────────┴──────────────────────┴────────────────────────┘
 ```
 
-### フィルタリング処理フロー
+### フィルタリング処理フロー（2段階方式）
 
 ```
-ユーザー          Next.js API Route        DynamoDB          Bedrock KB
-  │                  │                       │                  │
-  │ 1. 質問送信      │                       │                  │
-  │─────────────────▶│                       │                  │
-  │                  │ 2. ユーザーSID取得     │                  │
-  │                  │──────────────────────▶│                  │
-  │                  │◀──────────────────────│                  │
-  │                  │ userSID + groupSIDs   │                  │
-  │                  │                       │                  │
-  │                  │ 3. RAG検索（全ドキュメント）              │
-  │                  │─────────────────────────────────────────▶│
-  │                  │◀─────────────────────────────────────────│
-  │                  │ 検索結果 + メタデータ(allowed_group_sids) │
-  │                  │                       │                  │
-  │                  │ 4. SIDマッチング       │                  │
-  │                  │ ユーザーSID ∩ ドキュメントSID             │
-  │                  │ → マッチ: ALLOW                          │
-  │                  │ → 不一致: DENY                           │
-  │                  │                       │                  │
-  │ 5. フィルタ済み  │                       │                  │
-  │    検索結果      │                       │                  │
-  │◀─────────────────│                       │                  │
+ユーザー          Next.js API Route        DynamoDB          Bedrock KB        Bedrock Converse
+  │                  │                       │                  │                  │
+  │ 1. 質問送信      │                       │                  │                  │
+  │─────────────────▶│                       │                  │                  │
+  │                  │ 2. ユーザーSID取得     │                  │                  │
+  │                  │──────────────────────▶│                  │                  │
+  │                  │◀──────────────────────│                  │                  │
+  │                  │ userSID + groupSIDs   │                  │                  │
+  │                  │                       │                  │                  │
+  │                  │ 3. Retrieve API（ベクトル検索）           │                  │
+  │                  │─────────────────────────────────────────▶│                  │
+  │                  │◀─────────────────────────────────────────│                  │
+  │                  │ 検索結果 + メタデータ(allowed_group_sids) │                  │
+  │                  │                       │                  │                  │
+  │                  │ 4. SIDマッチング       │                  │                  │
+  │                  │ ユーザーSID ∩ ドキュメントSID             │                  │
+  │                  │ → マッチ: ALLOW                          │                  │
+  │                  │ → 不一致: DENY                           │                  │
+  │                  │                       │                  │                  │
+  │                  │ 5. Converse API（許可ドキュメントのみで回答生成）            │
+  │                  │────────────────────────────────────────────────────────────▶│
+  │                  │◀────────────────────────────────────────────────────────────│
+  │                  │                       │                  │                  │
+  │ 6. フィルタ済み  │                       │                  │                  │
+  │    回答+Citation │                       │                  │                  │
+  │◀─────────────────│                       │                  │                  │
 ```
+
+Retrieve APIを使用する理由: RetrieveAndGenerate APIはcitationのメタデータ（`allowed_group_sids`）を返さないため、SIDフィルタリングが機能しません。Retrieve APIはメタデータを正しく返すため、2段階方式（Retrieve → SIDフィルタ → Converse）を採用しています。
 
 ### 安全側フォールバック（Fail-Closed）
 
