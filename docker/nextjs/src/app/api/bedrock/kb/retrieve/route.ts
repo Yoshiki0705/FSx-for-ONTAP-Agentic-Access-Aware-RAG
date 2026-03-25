@@ -42,11 +42,23 @@ function checkSIDAccess(userSIDs: string[], docSIDs: string[]): boolean {
   return userSIDs.some(sid => docSIDs.includes(sid));
 }
 
-/** Converse APIで使用するモデルIDを決定 */
+/**
+ * Converse APIで使用するモデルIDを決定。
+ * - apac./us./eu. プレフィックス付き → そのまま（inference profile）
+ * - on-demand不可モデル（一部anthropic, amazon.nova-pro/micro等）→ フォールバック
+ * - それ以外（google, qwen, deepseek, mistral, openai等）→ そのまま
+ */
+const ON_DEMAND_BLOCKED = new Set([
+  'amazon.nova-pro-v1:0', 'amazon.nova-micro-v1:0', 'amazon.nova-2-lite-v1:0',
+]);
+
 function resolveConverseModelId(rawModelId: string): string {
+  // inference profileプレフィックス付き → そのまま
   if (/^(apac|us|eu)\./i.test(rawModelId)) return rawModelId;
-  if (rawModelId.startsWith('anthropic.')) return rawModelId;
-  return 'anthropic.claude-3-haiku-20240307-v1:0';
+  // on-demand不可リストに該当 → フォールバック
+  if (ON_DEMAND_BLOCKED.has(rawModelId)) return 'anthropic.claude-3-haiku-20240307-v1:0';
+  // それ以外はそのまま試行（google, qwen, deepseek, mistral, openai, anthropic等）
+  return rawModelId;
 }
 
 const CONVERSE_FALLBACK_MODELS = [
@@ -54,7 +66,6 @@ const CONVERSE_FALLBACK_MODELS = [
   'anthropic.claude-3-haiku-20240307-v1:0',
 ];
 
-/** Converse APIを呼び出し、Legacyモデルエラー時はフォールバック */
 async function callConverse(
   client: BedrockRuntimeClient,
   modelId: string,
@@ -74,8 +85,11 @@ async function callConverse(
       return { text, usedModel: mid };
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      const isRetryable = errMsg.includes('Legacy') || errMsg.includes('ResourceNotFoundException') || errMsg.includes('on-demand throughput');
-      console.warn('[Converse] Failed:', mid, '-', errMsg.substring(0, 120));
+      const isRetryable = errMsg.includes('Legacy') ||
+        errMsg.includes('ResourceNotFoundException') ||
+        errMsg.includes('on-demand throughput') ||
+        errMsg.includes('ValidationException');
+      console.warn('[Converse] Failed:', mid, '-', errMsg.substring(0, 150));
       if (!isRetryable) throw err;
     }
   }
@@ -143,27 +157,29 @@ export async function POST(request: NextRequest) {
     };
     console.log('[SID] Done:', filterLog.allowedDocuments, '/', filterLog.totalDocuments);
 
-    // Step 4: Converse APIで回答生成（Legacyモデルエラー時は自動フォールバック）
+    // Step 4: Converse APIで回答生成（エラー時は自動フォールバック）
     let answer = '';
-    let usedModelId = resolveConverseModelId(rawModelId);
+    const converseModelId = resolveConverseModelId(rawModelId);
 
     if (allowed.length > 0) {
       const ctx = allowed.map((r, i) => `[Doc${i + 1}: ${r.fileName}]\n${r.content}`).join('\n\n');
       const converseClient = new BedrockRuntimeClient({ region });
       const prompt = `以下のドキュメントを参照して質問に日本語で回答してください。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。\n\n${ctx}\n\n質問: ${query}`;
-      const result = await callConverse(converseClient, usedModelId, prompt);
+      const result = await callConverse(converseClient, converseModelId, prompt);
       answer = result.text;
-      usedModelId = result.usedModel;
+      return NextResponse.json({
+        success: true, answer,
+        citations: allowed.map(r => ({ fileName: r.fileName, s3Uri: r.s3Uri, content: r.content.substring(0, 500), metadata: r.metadata })),
+        filterLog,
+        metadata: { knowledgeBaseId, modelId: result.usedModel, region, timestamp: new Date().toISOString() },
+      });
     } else {
       answer = 'アクセス権限のあるドキュメントが見つかりませんでした。この情報へのアクセス権限がない可能性があります。';
+      return NextResponse.json({
+        success: true, answer, citations: [], filterLog,
+        metadata: { knowledgeBaseId, modelId: converseModelId, region, timestamp: new Date().toISOString() },
+      });
     }
-
-    return NextResponse.json({
-      success: true, answer,
-      citations: allowed.map(r => ({ fileName: r.fileName, s3Uri: r.s3Uri, content: r.content.substring(0, 500), metadata: r.metadata })),
-      filterLog,
-      metadata: { knowledgeBaseId, modelId: usedModelId, region, timestamp: new Date().toISOString() },
-    });
   } catch (error) {
     console.error('[KB] Error:', error);
     return NextResponse.json(
