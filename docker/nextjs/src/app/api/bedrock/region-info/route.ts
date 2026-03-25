@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
           region: r.id,
           regionName: r.displayNameJa,
           // 現在のリージョンの場合は実際のモデル数、それ以外は概算値
-          modelCount: r.id === currentRegion ? availableModels.filter(m => m.provider !== 'Unknown').length : (r.modelCount || 0),
+          modelCount: r.id === currentRegion ? availableModels.length : (r.modelCount || 0),
           description: r.description
         })),
         unsupportedRegions: allRegions
@@ -82,9 +82,8 @@ export async function GET(request: NextRequest) {
           })),
         availableModels,
         unavailableModels,
-        // Unknownプロバイダーを除外したモデル数
-        availableModelsCount: availableModels.filter(m => m.provider !== 'Unknown').length,
-        unavailableModelsCount: unavailableModels.filter(m => m.provider !== 'Unknown').length
+        availableModelsCount: availableModels.length,
+        unavailableModelsCount: unavailableModels.length
       }
     };
 

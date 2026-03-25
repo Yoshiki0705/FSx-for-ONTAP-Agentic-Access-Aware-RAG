@@ -502,6 +502,7 @@ function ChatbotPageContent() {
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_MODEL_ID);
   const [selectedModelName, setSelectedModelName] = useState('Amazon Nova Pro');
   const [userDirectories, setUserDirectories] = useState<any>(null);
+  const [availableModelCount, setAvailableModelCount] = useState<number>(0);
   const [isLoadingDirectories, setIsLoadingDirectories] = useState(false);
   
   // エラーアクション関連のstate（将来の拡張用）
@@ -542,6 +543,18 @@ function ChatbotPageContent() {
       isLoading: regionStore.isChangingRegion
     });
   }, []);
+
+  // モデル数を取得
+  useEffect(() => {
+    fetch('/api/bedrock/region-info')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setAvailableModelCount(data.data.availableModelsCount || 0);
+        }
+      })
+      .catch(() => {});
+  }, [regionStore.selectedRegion]);
 
   // ✅ 2026-01-17: useAuthStoreとlocal user stateを同期（race condition対策）
   useEffect(() => {
@@ -1370,12 +1383,10 @@ function ChatbotPageContent() {
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t('region.bedrockRegion')}</h3>
               <div className="text-xs text-gray-600 dark:text-gray-400">
-                <div>🌍 東京 (ap-northeast-1)</div>
-                <div>🤖 37モデル利用可能</div>
-                <button className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-xs mt-1">
-                  {t('region.change')}
-                </button>
+                <div>🌍 {regionStore.selectedRegion === 'ap-northeast-1' ? '東京' : regionStore.selectedRegion} ({regionStore.selectedRegion})</div>
+                <div>🤖 {availableModelCount}モデル利用可能</div>
               </div>
+              <RegionSelector />
             </div>
 
             {/* チャット履歴設定セクション */}
