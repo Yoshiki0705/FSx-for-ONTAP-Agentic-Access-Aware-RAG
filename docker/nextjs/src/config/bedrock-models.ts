@@ -99,16 +99,8 @@ const FALLBACK_MODELS: BedrockModel[] = [
     temperature: 0.7,
     topP: 0.9
   },
-  {
-    id: 'apac.anthropic.claude-3-sonnet-20240229-v1:0',
-    name: 'Claude 3 Sonnet',
-    description: 'Claude 3 Sonnet - 安定版',
-    provider: 'anthropic',
-    category: 'chat',
-    maxTokens: 4000,
-    temperature: 0.7,
-    topP: 0.9
-  }
+  // Note: Claude 3 Sonnet (apac.anthropic.claude-3-sonnet-20240229-v1:0) は
+  // Legacyモデルとしてアクセス拒否されるため、フォールバックリストから除外
 ];
 
 // 動的モデルデータ（キャッシュ用）

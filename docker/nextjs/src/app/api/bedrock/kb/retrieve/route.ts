@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   BedrockAgentRuntimeClient,
   RetrieveCommand,
-  RetrieveCommandInput,
 } from '@aws-sdk/client-bedrock-agent-runtime';
 import {
   BedrockRuntimeClient,
@@ -43,6 +42,46 @@ function checkSIDAccess(userSIDs: string[], docSIDs: string[]): boolean {
   return userSIDs.some(sid => docSIDs.includes(sid));
 }
 
+/** Converse APIで使用するモデルIDを決定 */
+function resolveConverseModelId(rawModelId: string): string {
+  if (/^(apac|us|eu)\./i.test(rawModelId)) return rawModelId;
+  if (rawModelId.startsWith('anthropic.')) return rawModelId;
+  return 'anthropic.claude-3-haiku-20240307-v1:0';
+}
+
+const CONVERSE_FALLBACK_MODELS = [
+  'apac.amazon.nova-lite-v1:0',
+  'anthropic.claude-3-haiku-20240307-v1:0',
+];
+
+/** Converse APIを呼び出し、Legacyモデルエラー時はフォールバック */
+async function callConverse(
+  client: BedrockRuntimeClient,
+  modelId: string,
+  prompt: string,
+): Promise<{ text: string; usedModel: string }> {
+  const modelsToTry = [modelId, ...CONVERSE_FALLBACK_MODELS.filter(m => m !== modelId)];
+  for (const mid of modelsToTry) {
+    try {
+      console.log('[Converse] Trying:', mid);
+      const resp = await client.send(new ConverseCommand({
+        modelId: mid,
+        messages: [{ role: 'user', content: [{ text: prompt }] }],
+        inferenceConfig: { maxTokens: 2000, temperature: 0.1 },
+      }));
+      const outputContent = resp.output?.message?.content?.[0];
+      const text = (outputContent && 'text' in outputContent) ? (outputContent.text || '') : '';
+      return { text, usedModel: mid };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const isRetryable = errMsg.includes('Legacy') || errMsg.includes('ResourceNotFoundException') || errMsg.includes('on-demand throughput');
+      console.warn('[Converse] Failed:', mid, '-', errMsg.substring(0, 120));
+      if (!isRetryable) throw err;
+    }
+  }
+  throw new Error('All Converse models failed');
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: RetrieveRequest = await request.json();
@@ -50,14 +89,14 @@ export async function POST(request: NextRequest) {
     const knowledgeBaseId = body.knowledgeBaseId || process.env.BEDROCK_KB_ID || '';
     const region = body.region || process.env.BEDROCK_REGION || 'ap-northeast-1';
     const rawModelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0';
-    const baseModelId = rawModelId.replace(/^(apac|us|eu)\./i, '');
 
     if (!query?.trim()) return NextResponse.json({ success: false, error: 'empty' }, { status: 400 });
     if (!knowledgeBaseId) return NextResponse.json({ success: false, error: 'no KB ID' }, { status: 400 });
     if (!userId) return NextResponse.json({ success: false, error: 'no userId' }, { status: 400 });
 
-    console.log('[KB] Start:', { query: query.substring(0, 80), knowledgeBaseId, userId });
+    console.log('[KB] Start:', { query: query.substring(0, 80), knowledgeBaseId, userId, rawModelId });
 
+    // Step 1: ユーザーSID取得
     const userAccess = await getUserSIDs(userId);
     const allUserSIDs: string[] = [];
     if (userAccess) {
@@ -65,16 +104,17 @@ export async function POST(request: NextRequest) {
       if (Array.isArray(userAccess.groupSIDs)) allUserSIDs.push(...userAccess.groupSIDs);
     }
 
+    // Step 2: Bedrock KB Retrieve API
     const kbClient = new BedrockAgentRuntimeClient({ region });
-    const retrieveInput: RetrieveCommandInput = {
+    const retrieveResponse = await kbClient.send(new RetrieveCommand({
       knowledgeBaseId,
       retrievalQuery: { text: query },
       retrievalConfiguration: { vectorSearchConfiguration: { numberOfResults: 10 } },
-    };
-    const retrieveResponse = await kbClient.send(new RetrieveCommand(retrieveInput));
+    }));
     const results = retrieveResponse.retrievalResults || [];
     console.log('[KB] Results:', results.length);
 
+    // Step 3: SIDフィルタリング
     type FilterDetail = { fileName: string; documentSIDs: string[]; matched: boolean; matchedSID?: string };
     const details: FilterDetail[] = [];
     const allowed: { fileName: string; s3Uri: string; content: string; metadata: Record<string, unknown> }[] = [];
@@ -103,34 +143,17 @@ export async function POST(request: NextRequest) {
     };
     console.log('[SID] Done:', filterLog.allowedDocuments, '/', filterLog.totalDocuments);
 
+    // Step 4: Converse APIで回答生成（Legacyモデルエラー時は自動フォールバック）
     let answer = '';
-    let usedModelId = baseModelId;
+    let usedModelId = resolveConverseModelId(rawModelId);
 
     if (allowed.length > 0) {
       const ctx = allowed.map((r, i) => `[Doc${i + 1}: ${r.fileName}]\n${r.content}`).join('\n\n');
       const converseClient = new BedrockRuntimeClient({ region });
-
-      let converseModelId: string;
-      if (rawModelId.startsWith('anthropic.')) {
-        converseModelId = rawModelId;
-      } else if (/^(apac|us|eu)\./i.test(rawModelId)) {
-        converseModelId = rawModelId;
-      } else if (baseModelId.startsWith('anthropic.')) {
-        converseModelId = baseModelId;
-      } else {
-        converseModelId = 'anthropic.claude-3-haiku-20240307-v1:0';
-      }
-      usedModelId = converseModelId;
-      console.log('[Converse] Model:', converseModelId);
-
       const prompt = `以下のドキュメントを参照して質問に日本語で回答してください。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。\n\n${ctx}\n\n質問: ${query}`;
-      const resp = await converseClient.send(new ConverseCommand({
-        modelId: converseModelId,
-        messages: [{ role: 'user', content: [{ text: prompt }] }],
-        inferenceConfig: { maxTokens: 2000, temperature: 0.1 },
-      }));
-      const outputContent = resp.output?.message?.content?.[0];
-      answer = (outputContent && 'text' in outputContent) ? (outputContent.text || '') : '';
+      const result = await callConverse(converseClient, usedModelId, prompt);
+      answer = result.text;
+      usedModelId = result.usedModel;
     } else {
       answer = 'アクセス権限のあるドキュメントが見つかりませんでした。この情報へのアクセス権限がない可能性があります。';
     }
