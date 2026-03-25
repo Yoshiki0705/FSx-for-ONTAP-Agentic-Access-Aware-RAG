@@ -216,8 +216,123 @@ export const PROVIDER_PATTERNS: ProviderPattern[] = [
       /^qwen\./,                // qwen.qwen3-235b-a22b-2507-v1:0
     ],
     providerNamePatterns: ['qwen'],
-    requestFormat: 'prompt-based',    // 重要: QwenはOpenAI Chat Completion形式を使用
+    requestFormat: 'prompt-based',
     responseFormat: 'choices[0].message.content',
+    parameterMapping: {
+      maxTokens: 'max_tokens',
+      temperature: 'temperature',
+      topP: 'top_p'
+    },
+    priority: 100
+  },
+  
+  // ========================================
+  // Google Gemma
+  // ========================================
+  {
+    name: 'google',
+    modelIdPatterns: [
+      /^google\./,              // google.gemma-3-27b-it
+    ],
+    providerNamePatterns: ['google'],
+    requestFormat: 'prompt-based',
+    responseFormat: 'choices[0].message.content',
+    parameterMapping: {
+      maxTokens: 'max_tokens',
+      temperature: 'temperature',
+      topP: 'top_p'
+    },
+    priority: 100
+  },
+  
+  // ========================================
+  // NVIDIA Nemotron
+  // ========================================
+  {
+    name: 'nvidia',
+    modelIdPatterns: [
+      /^nvidia\./,              // nvidia.nemotron-nano-12b-v2
+    ],
+    providerNamePatterns: ['nvidia'],
+    requestFormat: 'prompt-based',
+    responseFormat: 'choices[0].message.content',
+    parameterMapping: {
+      maxTokens: 'max_tokens',
+      temperature: 'temperature',
+      topP: 'top_p'
+    },
+    priority: 100
+  },
+  
+  // ========================================
+  // MiniMax
+  // ========================================
+  {
+    name: 'minimax',
+    modelIdPatterns: [
+      /^minimax\./,             // minimax.minimax-m2
+    ],
+    providerNamePatterns: ['minimax'],
+    requestFormat: 'prompt-based',
+    responseFormat: 'choices[0].message.content',
+    parameterMapping: {
+      maxTokens: 'max_tokens',
+      temperature: 'temperature',
+      topP: 'top_p'
+    },
+    priority: 100
+  },
+  
+  // ========================================
+  // ZAI (Zhipu AI) GLM
+  // ========================================
+  {
+    name: 'zai',
+    modelIdPatterns: [
+      /^zai\./,                 // zai.glm-4.7
+    ],
+    providerNamePatterns: ['zai', 'zhipu'],
+    requestFormat: 'prompt-based',
+    responseFormat: 'choices[0].message.content',
+    parameterMapping: {
+      maxTokens: 'max_tokens',
+      temperature: 'temperature',
+      topP: 'top_p'
+    },
+    priority: 100
+  },
+  
+  // ========================================
+  // Moonshot AI (Kimi)
+  // ========================================
+  {
+    name: 'moonshot',
+    modelIdPatterns: [
+      /^moonshot\./,            // moonshot.kimi-k2-thinking
+      /^moonshotai\./,          // moonshotai.kimi-k2.5
+    ],
+    providerNamePatterns: ['moonshot', 'moonshotai'],
+    requestFormat: 'prompt-based',
+    responseFormat: 'choices[0].message.content',
+    parameterMapping: {
+      maxTokens: 'max_tokens',
+      temperature: 'temperature',
+      topP: 'top_p'
+    },
+    priority: 100
+  },
+  
+  // ========================================
+  // Twelve Labs (Pegasus)
+  // ========================================
+  {
+    name: 'twelvelabs',
+    modelIdPatterns: [
+      /^twelvelabs\./,          // twelvelabs.pegasus-1-2-v1:0
+    ],
+    providerNamePatterns: ['twelvelabs', 'twelve labs'],
+    requestFormat: 'prompt-based',
+    responseFormat: 'text',
     parameterMapping: {
       maxTokens: 'max_tokens',
       temperature: 'temperature',

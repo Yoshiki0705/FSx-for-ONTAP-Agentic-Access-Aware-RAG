@@ -58,12 +58,9 @@ export function processModelsFromRegionInfo(regionInfo: BedrockRegionInfo | null
     return [FALLBACK_MODEL];
   }
 
-  // Unknownプロバイダーを除外
-  const filterUnknown = (model: any) => model.provider && model.provider !== 'Unknown' && model.provider !== 'unknown';
-
+  // 全モデルを表示（プロバイダー名がUnknownでも除外しない）
   return [
     ...regionInfo.availableModels
-      .filter(filterUnknown)
       .map(model => ({
         id: model.id,
         name: model.name,
@@ -74,7 +71,6 @@ export function processModelsFromRegionInfo(regionInfo: BedrockRegionInfo | null
         description: model.description || `${model.provider}の${model.name}モデル`
       })),
     ...regionInfo.unavailableModels
-      .filter(filterUnknown)
       .map(model => ({
         id: model.modelId,
         name: model.modelName,

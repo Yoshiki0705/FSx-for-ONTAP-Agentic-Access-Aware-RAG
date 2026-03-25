@@ -48,7 +48,7 @@ export interface BedrockModel {
   /** モデルの説明 */
   description: string;
   /** プロバイダー名 */
-  provider: 'anthropic' | 'amazon' | 'meta' | 'mistral' | 'ai21' | 'cohere' | 'stability' | 'openai' | 'deepseek' | 'unknown';
+  provider: 'anthropic' | 'amazon' | 'meta' | 'mistral' | 'ai21' | 'cohere' | 'stability' | 'openai' | 'deepseek' | 'google' | 'nvidia' | 'minimax' | 'zai' | 'moonshot' | 'twelvelabs' | 'unknown';
   /** モデルカテゴリー */
   category: 'chat' | 'embedding' | 'image';
   /** 最大トークン数 */
