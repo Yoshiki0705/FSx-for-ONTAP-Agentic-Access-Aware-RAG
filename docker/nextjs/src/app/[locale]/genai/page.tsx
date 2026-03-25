@@ -20,6 +20,7 @@ import { MessageContent } from '../../../components/chat/MessageContent';
 import { CitationDisplay, CitationItem } from '../../../components/chat/CitationDisplay';
 import { useThemeStore, initializeThemeListener } from '../../../store/useThemeStore';
 import { LanguageSwitcher } from '../../../components/ui/LanguageSwitcher';
+import { RegionConfigManager } from '../../../config/region-config-manager';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -1383,7 +1384,7 @@ function ChatbotPageContent() {
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t('region.bedrockRegion')}</h3>
               <div className="text-xs text-gray-600 dark:text-gray-400">
-                <div>🌍 {regionStore.selectedRegion === 'ap-northeast-1' ? '東京' : regionStore.selectedRegion} ({regionStore.selectedRegion})</div>
+                <div>🌍 {RegionConfigManager.getRegionDisplayName(regionStore.selectedRegion)} ({regionStore.selectedRegion})</div>
                 <div>🤖 {availableModelCount}モデル利用可能</div>
               </div>
               <RegionSelector />
