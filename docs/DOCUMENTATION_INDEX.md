@@ -10,6 +10,7 @@
 | [docs/verification-report.md](verification-report.md) | デプロイ後の検証手順とテストケース |
 | [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（開発者・運用者向け） |
 | [docs/demo-recording-guide.md](demo-recording-guide.md) | 検証デモ動画撮影手順書（6つの証跡） |
+| [docs/embedding-server-design.md](embedding-server-design.md) | Embeddingサーバー設計・実装ドキュメント |
 
 ## セットアップ・検証
 
