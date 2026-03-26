@@ -26,36 +26,57 @@
 
 **目的**: `setup-user-access.sh`の手動SID登録を、AD Sync Lambdaによる自動取得に置き換え
 
-**対象ファイル**:
-- `lambda/agent-core-ad-sync/index.ts` — 既存のAD Sync Lambda
-- `lib/stacks/demo/demo-security-stack.ts` — AD Sync Lambda + Identity Tableを追加
-- `demo-data/scripts/setup-user-access.sh` — AD Sync Lambda呼び出しに変更
+**既存実装**: `lambda/agent-core-ad-sync/index.ts`（SSM→PowerShell→Get-ADUser方式）
 
-**前提条件**:
-- AWS Managed Microsoft AD（StorageStackで作成済み）
-- Windows AD EC2インスタンス（SSM対応）
+**デモ環境の制約**:
+- AWS Managed Microsoft AD（`demo.local`）を使用（Windows EC2なし）
+- SSM方式はWindows AD EC2が必要
+- 代替案: LDAP直接クエリ方式（Lambda→VPC→AD LDAPエンドポイント）
 
-**実装内容**:
-1. DemoSecurityStackにAD Sync Lambda関数を追加
-2. Identity Table（DynamoDB）を追加（24時間TTLキャッシュ）
-3. SSM Run Command権限をLambdaロールに付与
-4. `setup-user-access.sh`をAD Sync Lambda呼び出しに変更
+**実装オプション**:
+
+| オプション | 方式 | 前提条件 | 複雑度 |
+|-----------|------|---------|--------|
+| A | 既存AD Sync Lambda（SSM方式） | Windows AD EC2を追加 | 中 |
+| B | LDAP直接クエリ Lambda（新規） | VPC Lambda + AD DNS IP | 高 |
+| C | 既存AD Sync + フォールバック | Windows EC2あれば自動、なければ手動 | 低 |
+
+**推奨**: オプションC（段階的統合）
+1. DemoSecurityStackにAD Sync Lambda関数を追加（オプション）
+2. Windows AD EC2がある場合はSSM方式で自動SID取得
+3. Windows AD EC2がない場合は`setup-user-access.sh`で手動登録（現状維持）
+4. 将来的にLDAP方式に拡張可能
 
 ---
 
-### Phase 2: .metadata.json 自動生成（優先度: 高）
+### Phase 2: .metadata.json 自動生成 + S3 Access Point統合（優先度: 高）
 
-**目的**: Embeddingサーバーの`processFile()`内でONTAP REST APIからACLを自動取得し、`.metadata.json`を自動生成
+**目的**: ONTAP REST APIでACLを自動取得し、`.metadata.json`をFSx ONTAPボリュームに格納。S3 Access Points経由でBedrock KBに取り込む
 
-**対象ファイル**:
-- `docker/embed/src/index.ts` — ACL自動取得ロジックを追加
-- `lib/stacks/demo/demo-embedding-stack.ts` — FSx管理エンドポイントへのアクセス権限を追加
+**方式**:
+```
+FSx ONTAP Volume
+  ├── public/company-overview.md
+  ├── public/company-overview.md.metadata.json  ← ONTAP REST APIで自動生成
+  ├── confidential/financial-report.md
+  ├── confidential/financial-report.md.metadata.json  ← ONTAP REST APIで自動生成
+  └── ...
+      │
+      ▼ S3 Access Point
+      │
+      ▼ Bedrock KB データソース（S3 APエイリアス）
+```
 
 **実装内容**:
-1. `processFile()`にONTAP REST API呼び出しを追加
-2. ファイルのACL（SID情報）を取得
-3. `.metadata.json`を自動生成（既存ファイルがある場合はスキップ）
-4. EmbeddingスタックのIAMロールにFSx管理API権限を追加
+1. Embeddingサーバーの`processFile()`にONTAP REST API ACL取得を追加
+2. 取得したACL（SID情報）から`.metadata.json`を自動生成
+3. `.metadata.json`をFSx ONTAPボリュームに書き込み（CIFSマウント経由）
+4. Bedrock KBデータソースをS3 Access Pointエイリアスに設定
+5. KBデータソース同期で`.metadata.json`付きドキュメントを取り込み
+
+**検証項目**:
+- Bedrock KBがS3 Access Point経由で`.metadata.json`を認識するか
+- S3 AP経由のKB同期でメタデータがRetrieve APIに含まれるか
 
 ---
 
