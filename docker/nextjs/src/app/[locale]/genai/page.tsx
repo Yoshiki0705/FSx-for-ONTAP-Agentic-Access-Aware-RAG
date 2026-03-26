@@ -21,6 +21,8 @@ import { CitationDisplay, CitationItem } from '../../../components/chat/Citation
 import { useThemeStore, initializeThemeListener } from '../../../store/useThemeStore';
 import { LanguageSwitcher } from '../../../components/ui/LanguageSwitcher';
 import { RegionConfigManager } from '../../../config/region-config-manager';
+import { AgentModeSidebar } from '../../../components/bedrock/AgentModeSidebar';
+import { useAgentStore } from '../../../store/useAgentStore';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -518,6 +520,16 @@ function ChatbotPageContent() {
   const [userDirectories, setUserDirectories] = useState<any>(null);
   const [availableModelCount, setAvailableModelCount] = useState<number>(0);
   const [isLoadingDirectories, setIsLoadingDirectories] = useState(false);
+
+  // Agent/KBモード切替
+  const [agentMode, setAgentMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('mode') === 'agent';
+    }
+    return false;
+  });
+  const { selectedAgentId } = useAgentStore();
   
   // エラーアクション関連のstate（将来の拡張用）
   // const [errorActions, setErrorActions] = useState<any[]>([]);
@@ -1052,6 +1064,52 @@ function ChatbotPageContent() {
     }
   };
 
+  // Agent モードのレスポンス生成
+  const generateAgentResponse = async (query: string): Promise<{ answer: string; citations: CitationItem[] }> => {
+    try {
+      const currentRegion = typeof window !== 'undefined'
+        ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
+        : 'ap-northeast-1';
+
+      console.log('🤖 [Agent] Sending request:', { query: query.substring(0, 100), agentId: selectedAgentId, region: currentRegion });
+
+      const response = await fetch('/api/bedrock/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: query,
+          userId: user.username,
+          sessionId: currentSession?.id || `session_${Date.now()}`,
+          selectedAgentId: selectedAgentId || undefined,
+          action: 'invoke',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        return {
+          answer: data.response || data.completion || data.message || 'Agent response received.',
+          citations: (data.citations || []).map((c: any) => ({
+            fileName: c.fileName || c.sourceUri?.split('/').pop() || 'Unknown',
+            s3Uri: c.sourceUri || c.s3Uri || '',
+            content: c.content || c.text || '',
+            metadata: c.metadata || {},
+          })),
+        };
+      } else {
+        throw new Error(data.error || 'Agent invocation failed');
+      }
+    } catch (error) {
+      console.error('❌ [Agent] Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        answer: `**Agent エラー**\n\n• **Agent ID**: ${selectedAgentId || '未選択'}\n• **時刻**: ${new Date().toLocaleString('ja-JP')}\n\n**対処方法:**\n1. サイドバーでAgentを選択してください\n2. リージョンを変更してみてください\n\n**詳細:** ${errorMessage}`,
+        citations: [],
+      };
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || isLoading || !currentSession) return;
@@ -1070,8 +1128,10 @@ function ChatbotPageContent() {
     setIsLoading(true);
 
     try {
-      // KBモードでRAG処理
-      const { answer: responseText, citations } = await generateRAGResponse(currentInput);
+      // モードに応じてRAG処理またはAgent処理を実行
+      const { answer: responseText, citations } = agentMode
+        ? await generateAgentResponse(currentInput)
+        : await generateRAGResponse(currentInput);
 
       const botMessageId = `bot-${Date.now()}`;
       const botResponse: Message = {
@@ -1222,8 +1282,20 @@ function ChatbotPageContent() {
 
   return (
     <div className="h-screen bg-white dark:bg-gray-900 flex overflow-hidden">
-      {/* KBモードサイドバー */}
+      {/* サイドバー（モードに応じて切替） */}
       <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 overflow-hidden bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0`}>
+        {agentMode ? (
+          /* Agentモードサイドバー */
+          <AgentModeSidebar
+            selectedModelId={selectedModelId}
+            onModelChange={setSelectedModelId}
+            onCreateAgent={() => {
+              window.dispatchEvent(new CustomEvent('open-agent-creation-wizard'));
+            }}
+            locale={memoizedLocale}
+          />
+        ) : (
+          /* KBモードサイドバー */
           <div className="h-full flex flex-col">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{translations.settingsPanel}</h2>
@@ -1412,7 +1484,7 @@ function ChatbotPageContent() {
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
               {/* ✅ Task 2 Fix: Agent mode時も通常のModelSelectorを使用 */}
               <ModelSelector
-                mode="kb"
+                mode={agentMode ? 'agent' : 'kb'}
                 selectedModelId={selectedModelId}
                 onModelChange={setSelectedModelId}
                 showAdvancedFilters={true}
@@ -1437,7 +1509,9 @@ function ChatbotPageContent() {
               </div>
             </div>
           </div>
+          </div>
         </div>
+        )}
         </div>
 
       {/* メインコンテンツ */}
@@ -1458,6 +1532,40 @@ function ChatbotPageContent() {
                 </button>
                 <div className="flex items-center space-x-3">
                   <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{translations.title}</h1>
+                  
+                  {/* KB/Agent モード切替トグル */}
+                  <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                    <button
+                      onClick={() => {
+                        setAgentMode(false);
+                        const url = new URL(window.location.href);
+                        url.searchParams.delete('mode');
+                        window.history.replaceState({}, '', url.toString());
+                      }}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                        !agentMode
+                          ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                    >
+                      📚 KB
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAgentMode(true);
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('mode', 'agent');
+                        window.history.replaceState({}, '', url.toString());
+                      }}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                        agentMode
+                          ? 'bg-white dark:bg-gray-600 text-purple-600 dark:text-purple-400 shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                    >
+                      🤖 Agent
+                    </button>
+                  </div>
                   
                   {/* 新しいチャットボタン */}
                   <button
