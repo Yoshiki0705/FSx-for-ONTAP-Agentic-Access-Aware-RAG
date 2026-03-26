@@ -381,6 +381,9 @@
       "unavailable": "❌ FSx 不可用：显示备用目录",
       "unknown": "❓ 未知：显示默认目录",
       "sidBased": "🔐 基于SID的访问权限"
-    }
+    },
+    "fsxDirectories": "FSx可访问目录",
+    "ragDirectories": "RAG可搜索目录",
+    "embeddedDirectories": "嵌入对象目录"
   }
 }

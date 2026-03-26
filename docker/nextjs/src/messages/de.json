@@ -305,6 +305,9 @@
       "unavailable": "❌ FSx nicht verfügbar: Anzeige von Fallback-Verzeichnissen",
       "unknown": "❓ Unbekannt: Anzeige von Standardverzeichnissen",
       "sidBased": "🔐 SID-basierte Zugriffsberechtigungen"
-    }
+    },
+    "fsxDirectories": "FSx-zugängliche Verzeichnisse",
+    "ragDirectories": "RAG-durchsuchbare Verzeichnisse",
+    "embeddedDirectories": "Eingebettete Verzeichnisse"
   }
 }

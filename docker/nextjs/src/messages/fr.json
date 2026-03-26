@@ -305,6 +305,9 @@
       "unavailable": "❌ FSx indisponible : Affichage des répertoires de secours",
       "unknown": "❓ Inconnu : Affichage des répertoires par défaut",
       "sidBased": "🔐 Permissions d'accès basées sur SID"
-    }
+    },
+    "fsxDirectories": "Répertoires accessibles FSx",
+    "ragDirectories": "Répertoires recherchables RAG",
+    "embeddedDirectories": "Répertoires indexés"
   }
 }

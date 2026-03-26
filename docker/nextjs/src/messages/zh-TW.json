@@ -305,6 +305,9 @@
       "unavailable": "❌ FSx 不可用：顯示備用目錄",
       "unknown": "❓ 未知：顯示預設目錄",
       "sidBased": "🔐 基於SID的存取權限"
-    }
+    },
+    "fsxDirectories": "FSx可存取目錄",
+    "ragDirectories": "RAG可搜尋目錄",
+    "embeddedDirectories": "嵌入對象目錄"
   }
 }

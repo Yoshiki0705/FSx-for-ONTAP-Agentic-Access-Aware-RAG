@@ -213,7 +213,15 @@ const generateInitialMessageWithDirectories = (
       ? userDirectories.accessibleDirectories.join(', ')
       : 'N/A';
     
-    console.log('✅ [generateInitialMessageWithDirectories] Directory display:', directoryDisplay);
+    const ragDirectoryDisplay = Array.isArray(userDirectories.ragAccessibleDirectories)
+      ? userDirectories.ragAccessibleDirectories.join(', ')
+      : '';
+    
+    const embeddedDirectoryDisplay = Array.isArray(userDirectories.embeddedDirectories)
+      ? userDirectories.embeddedDirectories.join(', ')
+      : '';
+    
+    console.log('✅ [generateInitialMessageWithDirectories] Directory display:', directoryDisplay, 'RAG:', ragDirectoryDisplay);
     
     // ディレクトリタイプに応じたメッセージを取得
     let directoryNote = '';
@@ -253,7 +261,9 @@ const generateInitialMessageWithDirectories = (
 **${t('introduction.yourPermissions')}**
 • **${t('introduction.user')}**: ${username}
 • **${t('introduction.role')}**: ${role || 'User'}${sidSection}
-• **${t('introduction.accessibleDirectories')}**: ${directoryDisplay}
+• **📁 ${t('introduction.fsxDirectories') || 'FSxアクセス可能ディレクトリ'}**: ${directoryDisplay}
+• **🔍 ${t('introduction.ragDirectories') || 'RAG検索可能ディレクトリ'}**: ${ragDirectoryDisplay || directoryDisplay}${embeddedDirectoryDisplay ? `
+• **📚 ${t('introduction.embeddedDirectories') || 'Embedding対象ディレクトリ'}**: ${embeddedDirectoryDisplay}` : ''}
 
 ${directoryNote}
 
