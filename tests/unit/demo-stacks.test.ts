@@ -79,6 +79,7 @@ function createTestStacks(projectName: string, environment: string) {
     wafWebAclArn: waf.webAclArn,
     permissionCacheTable: storage.permissionCacheTable,
     userAccessTable: storage.userAccessTable,
+    dataBucket: storage.dataBucket,
     allowedCountries: ['JP'],
     env: primaryEnv,
     crossRegionReferences: true,

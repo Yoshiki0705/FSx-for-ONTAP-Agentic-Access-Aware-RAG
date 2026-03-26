@@ -117,6 +117,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   wafWebAclArn: wafStack.webAclArn,
   permissionCacheTable: storageStack.permissionCacheTable,
   userAccessTable: storageStack.userAccessTable,
+  dataBucket: storageStack.dataBucket,
   allowedCountries,
   env: primaryEnv, crossRegionReferences: true,
   description: `[${projectName}] Lambda Web Adapter + CloudFront (IAM Auth + OAC + WAF)`,
