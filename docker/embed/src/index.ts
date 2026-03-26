@@ -233,17 +233,41 @@ async function main(): Promise<void> {
       awaitWriteFinish: { stabilityThreshold: 2000, pollInterval: 100 },
     });
 
-    watcher.on('add', async (fp: string) => {
+    // 並行実行を防ぐキュー（大量ファイル同時アップロード対策）
+    const queue: string[] = [];
+    let processing = false;
+    async function processQueue() {
+      if (processing) return;
+      processing = true;
+      while (queue.length > 0) {
+        const fp = queue.shift()!;
+        try {
+          await processFile(fp);
+          const rel = path.relative(DATA_DIR, fp);
+          const mtime = fs.statSync(fp).mtime.toISOString();
+          const proc = loadProcessed();
+          proc[rel] = { mtime, indexedAt: new Date().toISOString() };
+          saveProcessed(proc);
+        } catch (e) {
+          console.error(`❌ ファイル処理失敗: ${fp}`, e);
+        }
+      }
+      processing = false;
+    }
+
+    watcher.on('add', (fp: string) => {
       if (!fp.endsWith('.metadata.json')) {
         console.log(`\n📥 新規ファイル検出: ${fp}`);
-        await processFile(fp);
+        queue.push(fp);
+        processQueue();
       }
     });
 
-    watcher.on('change', async (fp: string) => {
+    watcher.on('change', (fp: string) => {
       if (!fp.endsWith('.metadata.json')) {
         console.log(`\n📝 ファイル変更検出: ${fp}`);
-        await processFile(fp);
+        queue.push(fp);
+        processQueue();
       }
     });
 
