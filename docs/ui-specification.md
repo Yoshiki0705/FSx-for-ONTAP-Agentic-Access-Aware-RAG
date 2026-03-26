@@ -31,16 +31,38 @@
 
 ### アクセス可能ディレクトリの仕組み
 
-「アクセス可能ディレクトリ」は、Embeddingされている全ディレクトリではなく、**そのユーザーのSIDに基づいてアクセス権を持つディレクトリ**を表示します。
+Introduction Messageには3種類のディレクトリ情報が表示されます。
+
+| 項目 | アイコン | データソース | 説明 |
+|------|---------|------------|------|
+| FSxアクセス可能ディレクトリ | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | FSx ONTAP上でファイルレベルでアクセス可能なディレクトリ |
+| RAG検索可能ディレクトリ | 🔍 | S3 `.metadata.json` のSID照合 | KB検索でSIDマッチするドキュメントのディレクトリ |
+| Embedding対象ディレクトリ | 📚 | S3バケット内の全`.metadata.json` | KBにインデックスされている全ディレクトリ |
+
+#### ユーザー別の表示例
+
+| ユーザー | FSxアクセス | RAG検索 | Embedding対象 |
+|---------|-----------|---------|-------------|
+| admin@example.com | `public/`, `confidential/`, `restricted/` | `public/`, `confidential/`, `restricted/` | `public/`, `confidential/`, `restricted/` |
+| user@example.com | `public/` | `public/` | `public/`, `confidential/`, `restricted/` |
+
+一般ユーザーはEmbedding対象の3ディレクトリ全てを確認できますが、実際にRAG検索でアクセスできるのは`public/`のみです。これにより「どのデータが存在するか」と「自分がアクセスできるデータ」の違いが明確になります。
+
+#### データ取得フロー
 
 ```
 /api/fsx/directories?username={email}
   ↓
-DynamoDB user-access テーブルからSID取得
+1. DynamoDB user-access → ユーザーSID取得
   ↓
-SID → ディレクトリ マッピングで計算
+2. FSxディレクトリ: SID → SID_DIRECTORY_MAP で計算
   ↓
-アクセス可能ディレクトリ一覧を返却
+3. RAG/Embeddingディレクトリ: S3バケットの.metadata.jsonをスキャン
+   - 各ファイルの allowed_group_sids とユーザーSIDを照合
+   - マッチ → RAGアクセス可能
+   - 全ディレクトリ → Embedding対象
+  ↓
+4. 3種類のディレクトリ情報を返却
 ```
 
 #### SIDとディレクトリのマッピング
@@ -251,6 +273,7 @@ Lambda関数に設定する環境変数です。
 
 | 変数名 | 説明 | 例 |
 |--------|------|-----|
+| `DATA_BUCKET_NAME` | KBデータソースS3バケット名 | `perm-rag-demo-demo-kb-data-178625946981` |
 | `BEDROCK_KB_ID` | Knowledge Base ID | `3ZZMK6YA0Q` |
 | `BEDROCK_REGION` | Bedrockリージョン | `ap-northeast-1` |
 | `USER_ACCESS_TABLE_NAME` | DynamoDB user-accessテーブル名 | `perm-rag-demo-demo-user-access` |
