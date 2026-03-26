@@ -252,6 +252,70 @@ docker push \
 
 > **Note**: `docker` コマンドで権限エラーが出る場合は、`newgrp docker` を実行するか、一度ログアウト・再ログインしてください。
 
+#### Docker環境がない場合（CodeBuild使用）
+
+EC2にDocker環境がない場合は、CodeBuildでビルドできます。
+
+```bash
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
+# ソースをzip化してS3にアップロード
+cd docker/nextjs
+zip -qr /tmp/nextjs-source.zip . -x 'node_modules/*' '.next/*' 'out/*'
+aws s3 cp /tmp/nextjs-source.zip s3://<DATA_BUCKET_NAME>/codebuild/nextjs-source.zip
+cd ../..
+
+# CodeBuild用IAMロール作成（初回のみ）
+aws iam create-role --role-name webapp-codebuild-role \
+  --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"codebuild.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+aws iam attach-role-policy --role-name webapp-codebuild-role --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
+aws iam attach-role-policy --role-name webapp-codebuild-role --policy-arn arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+aws iam attach-role-policy --role-name webapp-codebuild-role --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+# CodeBuildプロジェクト作成（初回のみ）
+aws codebuild create-project --name webapp-docker-build \
+  --source '{"type":"S3","location":"<DATA_BUCKET_NAME>/codebuild/nextjs-source.zip"}' \
+  --artifacts '{"type":"NO_ARTIFACTS"}' \
+  --environment '{"type":"LINUX_CONTAINER","image":"aws/codebuild/standard:7.0","computeType":"BUILD_GENERAL1_MEDIUM","privilegedMode":true}' \
+  --service-role "arn:aws:iam::${ACCOUNT_ID}:role/webapp-codebuild-role" \
+  --region ap-northeast-1
+
+# ビルド実行（インラインbuildspec）
+IMAGE_TAG="v$(date +%Y%m%d-%H%M%S)"
+aws codebuild start-build --project-name webapp-docker-build \
+  --buildspec-override "$(cat <<EOF
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com
+      - ECR_URI=${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp
+  build:
+    commands:
+      - docker build --no-cache -t \${ECR_URI}:${IMAGE_TAG} -f Dockerfile .
+      - docker tag \${ECR_URI}:${IMAGE_TAG} \${ECR_URI}:latest
+  post_build:
+    commands:
+      - docker push \${ECR_URI}:${IMAGE_TAG}
+      - docker push \${ECR_URI}:latest
+EOF
+)" --region ap-northeast-1
+```
+
+#### Lambda関数のイメージ更新
+
+ビルド完了後、Lambda関数のコンテナイメージを更新します。
+
+```bash
+STACK_PREFIX="rag-demo-demo"
+FUNCTION_NAME="${STACK_PREFIX}-webapp"
+
+aws lambda update-function-code \
+  --function-name ${FUNCTION_NAME} \
+  --image-uri ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:${IMAGE_TAG} \
+  --region ap-northeast-1
+```
+
 ### Step 8: 検証データのセットアップ
 
 ```bash
