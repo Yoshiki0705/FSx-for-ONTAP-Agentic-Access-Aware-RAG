@@ -17,6 +17,8 @@ interface RetrieveRequest {
   modelId?: string;
   userId: string;
   region?: string;
+  agentMode?: boolean;
+  agentId?: string;
 }
 
 interface UserAccessRecord { userId: string; userSID: string; groupSIDs: string[]; }
@@ -210,7 +212,13 @@ export async function POST(request: NextRequest) {
     if (allowed.length > 0) {
       const ctx = allowed.map((r, i) => `[Doc${i + 1}: ${r.fileName}]\n${r.content}`).join('\n\n');
       const converseClient = new BedrockRuntimeClient({ region });
-      const prompt = `以下のドキュメントを参照して質問に日本語で回答してください。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。\n\n${ctx}\n\n質問: ${query}`;
+      const isAgentMode = body.agentMode === true;
+    const agentId = body.agentId || '';
+
+    const systemPrompt = isAgentMode
+      ? '以下のドキュメントを参照して質問に日本語で回答してください。あなたはAIエージェントとして、多段階推論と文書検索を活用して回答します。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。'
+      : '以下のドキュメントを参照して質問に日本語で回答してください。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。';
+      const prompt = `${systemPrompt}\n\n${ctx}\n\n質問: ${query}`;
       const result = await callConverse(converseClient, converseModelId, prompt);
       return NextResponse.json({
         success: true, answer: result.text,

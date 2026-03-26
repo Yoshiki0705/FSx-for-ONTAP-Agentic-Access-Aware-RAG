@@ -1064,44 +1064,62 @@ function ChatbotPageContent() {
     }
   };
 
-  // Agent モードのレスポンス生成
+  // Agent モードのレスポンス生成（ハイブリッド方式）
+  // KB Retrieve API → SIDフィルタリング → 許可ドキュメントをコンテキストとしてConverse APIに渡す
+  // これにより、AgentモードでもPermission-awareなRAGが実現される
   const generateAgentResponse = async (query: string): Promise<{ answer: string; citations: CitationItem[] }> => {
     try {
       const currentRegion = typeof window !== 'undefined'
         ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
         : 'ap-northeast-1';
 
-      console.log('🤖 [Agent] Sending request:', { query: query.substring(0, 100), agentId: selectedAgentId, region: currentRegion });
+      const knowledgeBaseId = typeof window !== 'undefined'
+        ? localStorage.getItem('selectedKnowledgeBaseId') || process.env.NEXT_PUBLIC_BEDROCK_KB_ID || ''
+        : '';
 
-      const response = await fetch('/api/bedrock/agent', {
+      console.log('🤖 [Agent Hybrid] KB Retrieve + SID Filter + Agent Response:', {
+        query: query.substring(0, 100),
+        agentId: selectedAgentId,
+        region: currentRegion,
+      });
+
+      // Step 1: KB Retrieve API（SIDフィルタリング付き）を呼び出し
+      // 既存のKB APIを使ってPermission-awareな検索結果を取得
+      const response = await fetch('/api/bedrock/kb/retrieve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: query,
+          query,
+          ...(knowledgeBaseId ? { knowledgeBaseId } : {}),
+          modelId: selectedModelId,
           userId: user.username,
-          sessionId: currentSession?.id || `session_${Date.now()}`,
-          selectedAgentId: selectedAgentId || undefined,
-          action: 'invoke',
+          region: currentRegion,
+          // Agent Hybrid: Agentモードであることを示すフラグ
+          agentMode: true,
+          agentId: selectedAgentId || undefined,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
+        if (data.filterLog) {
+          console.log('🔐 [Agent Hybrid] Permission filter:', data.filterLog);
+        }
         return {
-          answer: data.response || data.completion || data.message || 'Agent response received.',
+          answer: data.answer || 'No response',
           citations: (data.citations || []).map((c: any) => ({
-            fileName: c.fileName || c.sourceUri?.split('/').pop() || 'Unknown',
-            s3Uri: c.sourceUri || c.s3Uri || '',
-            content: c.content || c.text || '',
+            fileName: c.fileName || 'Unknown',
+            s3Uri: c.s3Uri || '',
+            content: c.content || '',
             metadata: c.metadata || {},
           })),
         };
       } else {
-        throw new Error(data.error || 'Agent invocation failed');
+        throw new Error(data.error || 'Agent hybrid response failed');
       }
     } catch (error) {
-      console.error('❌ [Agent] Error:', error);
+      console.error('❌ [Agent Hybrid] Error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         answer: `**Agent エラー**\n\n• **Agent ID**: ${selectedAgentId || '未選択'}\n• **時刻**: ${new Date().toLocaleString('ja-JP')}\n\n**対処方法:**\n1. サイドバーでAgentを選択してください\n2. リージョンを変更してみてください\n\n**詳細:** ${errorMessage}`,
@@ -1469,7 +1487,7 @@ function ChatbotPageContent() {
             <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
               <div className="text-xs text-gray-600 dark:text-gray-400">
                 <div className="font-medium mb-2 text-gray-700 dark:text-gray-300">
-                  {translations.operationMode}: 📚 Knowledge Base
+                  {translations.operationMode}: {agentMode ? '🤖 Agent' : '📚 Knowledge Base'}
                 </div>
                 <div className="space-y-1 text-blue-700 dark:text-blue-400">
                   <div className="font-medium">{translations.kbFeatures}</div>
@@ -1628,10 +1646,14 @@ function ChatbotPageContent() {
                 {/* 言語切り替え */}
                 <LanguageSwitcher currentLocale={memoizedLocale} variant="dropdown" />
                 
-                {/* KBモード表示 */}
-                <span className="flex items-center space-x-1 px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <span>📚</span>
-                  <span>Knowledge Base</span>
+                {/* モード表示 */}
+                <span className={`flex items-center space-x-1 px-3 py-1.5 text-sm font-medium rounded-lg ${
+                  agentMode
+                    ? 'text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30'
+                    : 'text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30'
+                }`}>
+                  <span>{agentMode ? '🤖' : '📚'}</span>
+                  <span>{agentMode ? 'Agent' : 'Knowledge Base'}</span>
                 </span>
                 
                 <ThemeToggle variant="icon" />
