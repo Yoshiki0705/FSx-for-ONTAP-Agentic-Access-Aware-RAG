@@ -438,12 +438,23 @@ excludedRules: [
 
 FlexCache CacheボリュームをCIFSマウントしてEmbeddingを実行するEC2サーバーです。FSx ONTAP S3 Access Pointが利用できない場合（FlexCache Cacheボリュームでは2026年3月時点で未対応）の代替パスとして使用します。
 
-### 2つのデータ取り込みパス
+### データ取り込みパス
 
-| パス | 方式 | データソース | 状況 |
-|------|------|-------------|------|
-| Option A（デフォルト） | S3バケット + Bedrock KB S3データソース | S3にアップロードしたドキュメント | 常に利用可能 |
-| Option B（オプション） | Embeddingサーバー + CIFSマウント | FlexCache Cacheボリューム上のドキュメント | `-c enableEmbeddingServer=true` で有効化 |
+| パス | 方式 | データソース | CDK有効化 | 状況 |
+|------|------|-------------|----------|------|
+| Option A（デフォルト） | S3バケット + Bedrock KB S3データソース | S3にアップロードしたドキュメント | 常に有効 | ✅ 利用可能 |
+| Option B（オプション） | Embeddingサーバー + CIFSマウント → AOSS直接書き込み | FSx ONTAPボリューム上のドキュメント | `-c enableEmbeddingServer=true` | ✅ 利用可能 |
+| Option C（将来対応） | S3 Access Point + Bedrock KB | FSx ONTAPボリューム（S3 AP経由） | 未実装 | ⚠️ FlexCache未対応 |
+
+#### S3 Access Pointについて
+
+StorageStackはFSx ONTAPボリュームにS3 Access Pointを自動作成します（WINDOWSユーザータイプ、NTFS ACLベース認可）。ただし、以下の制約があります:
+
+- FlexCache CacheボリュームではS3 Access Pointが利用不可（2026年3月時点）
+- Bedrock KBのデータソースとしてS3 Access Pointを使用する機能は未実装（Option C）
+- 現在のKBデータソースはS3バケット直接参照（Option A）
+
+S3 Access Pointは将来的にFlexCache対応が実現した際に、Option Cとして活用できるよう基盤を準備しています。
 
 ### Embeddingサーバーのデプロイ
 
