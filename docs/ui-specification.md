@@ -307,3 +307,138 @@ Lambda関数に設定する環境変数です。
 |------|------|------|
 | 不明な環境と表示 | `directoryType`が未対応の値 | `page.tsx`のswitchケースを確認 |
 | ディレクトリが空 | SIDデータ未登録 | `setup-user-access.sh`実行 |
+
+
+---
+
+## 8. KB/Agentモード切替
+
+### 概要
+
+ヘッダーにKB/Agentモード切替トグルを配置し、2つのモードをシームレスに切り替えられます。
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ ≡  RAG System  [📚 KB] [🤖 Agent]  ➕  Nova Pro  🇯🇵  │
+│                                                         │
+│    📚 Knowledge Base  ← モードに応じて動的に変化        │
+│    🤖 Agent                                             │
+└─────────────────────────────────────────────────────────┘
+```
+
+### モード切替の仕組み
+
+| 項目 | 説明 |
+|------|------|
+| トグル位置 | ヘッダーのタイトル右横 |
+| 状態管理 | `useState` + URLパラメータ（`?mode=agent`） |
+| 永続化 | URLパラメータで永続化（ブックマーク可能） |
+| デフォルト | KBモード（`?mode`パラメータなし） |
+
+### モード別の動作
+
+| 機能 | KBモード | Agentモード |
+|------|---------|------------|
+| サイドバー | KBModeSidebar（インライン） | AgentModeSidebar（コンポーネント） |
+| モデルリスト | `/api/bedrock/region-info`（全モデル） | `/api/bedrock/agent-models`（Agent対応モデルのみ） |
+| モデル取得方式 | 静的設定 + API | Bedrock `ListFoundationModels` API（`ON_DEMAND` + `TEXT`フィルタ） |
+| チャットAPI | `/api/bedrock/kb/retrieve` | `/api/bedrock/kb/retrieve`（`agentMode=true`フラグ付き） |
+| SIDフィルタリング | ✅ あり | ✅ あり（ハイブリッド方式） |
+| ヘッダーバッジ | 📚 Knowledge Base（青） | 🤖 Agent（紫） |
+| 動作モード表示 | 📚 Knowledge Base | 🤖 Agent |
+
+### Agentモードのハイブリッド方式
+
+Agentモードでは、Permission-awareなRAGを実現するためにハイブリッド方式を採用しています。
+
+```
+ユーザー質問
+  │
+  ▼
+KB Retrieve API（ベクトル検索）
+  │
+  ▼
+SIDフィルタリング（KBモードと同じパイプライン）
+  │ ユーザーSID ∩ ドキュメントSID → 許可/拒否
+  ▼
+許可ドキュメントのみをコンテキストとして
+  │
+  ▼
+Converse API（Agent用システムプロンプト付き）
+  │ 「AIエージェントとして多段階推論と文書検索を活用して回答」
+  ▼
+回答 + Citation表示
+```
+
+**なぜハイブリッド方式か:**
+- Bedrock Agent InvokeAgent APIはアプリ側でのSIDフィルタリングの余地がない
+- KB Retrieve APIはメタデータ（`allowed_group_sids`）を返すため、SIDフィルタリングが可能
+- 既存のSIDフィルタリングパイプラインをそのまま再利用できる
+
+### Agent対応モデルの動的取得
+
+Agent対応モデルはハードコードせず、Bedrock APIから動的に取得します。
+
+```
+/api/bedrock/agent-models?region=ap-northeast-1
+  │
+  ▼
+BedrockClient.ListFoundationModels({
+  byOutputModality: 'TEXT',
+  byInferenceType: 'ON_DEMAND',
+})
+  │
+  ▼
+フィルタ:
+  - TEXT入力 + TEXT出力
+  - ON_DEMAND推論サポート
+  - Embeddingモデル除外
+  │
+  ▼
+Agent対応モデルリスト（メンテナンス不要）
+```
+
+### AgentModeSidebarの構成
+
+```
+┌─────────────────────────┐
+│ Agent情報               │
+│  [Agent選択 ▼]          │
+│  Agent ID: RVAPZQREEU   │
+│  Agent名: CustomerSupp..│
+│  ステータス: ✅ PREPARED │
+│  [🚀 新規作成] [🗑️ 削除]│
+├─────────────────────────┤
+│ Bedrockリージョン       │
+│  🏆 東京 (ap-northeast-1)│
+├─────────────────────────┤
+│ AIモデル選択            │
+│  ✅ Nova Pro (amazon)   │
+│  ▶ amazon 6個           │
+│  ▶ anthropic 8個        │
+│  ...                    │
+├─────────────────────────┤
+│ 機能                    │
+│  多段階推論             │
+│  自動文書検索           │
+│  コンテキスト最適化     │
+├─────────────────────────┤
+│ チャット履歴            │
+│  □ 履歴保存             │
+│  □ 自動タイトル生成     │
+└─────────────────────────┘
+```
+
+### 関連ファイル
+
+| ファイル | 役割 |
+|---------|------|
+| `docker/nextjs/src/app/[locale]/genai/page.tsx` | モード切替トグル、条件付きサイドバーレンダリング |
+| `docker/nextjs/src/components/bedrock/AgentModeSidebar.tsx` | Agentモードサイドバー |
+| `docker/nextjs/src/components/bedrock/AgentInfoSection.tsx` | Agent選択・情報表示 |
+| `docker/nextjs/src/components/bedrock/ModelSelector.tsx` | モデル選択（`mode`プロパティでKB/Agent切替） |
+| `docker/nextjs/src/app/api/bedrock/agent-models/route.ts` | Agent対応モデルAPI（動的取得） |
+| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | Agent API（invoke, create, delete, list） |
+| `docker/nextjs/src/hooks/useAgentMode.ts` | モード切替ロジック |
+| `docker/nextjs/src/hooks/useAgentsList.ts` | Agent一覧取得 |
+| `docker/nextjs/src/store/useAgentStore.ts` | Agent状態管理（Zustand） |

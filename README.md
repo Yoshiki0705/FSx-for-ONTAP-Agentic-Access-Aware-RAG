@@ -36,19 +36,20 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
                                             └──────────────────┘
 ```
 
-## 実装概要（7つの観点）
+## 実装概要（8つの観点）
 
-本システムの実装内容を7つの観点で整理しています。各項目の詳細は [docs/implementation-overview.md](docs/implementation-overview.md) を参照してください。
+本システムの実装内容を8つの観点で整理しています。各項目の詳細は [docs/implementation-overview.md](docs/implementation-overview.md) を参照してください。
 
 | # | 観点 | 概要 | 関連CDKスタック |
 |---|------|------|----------------|
-| 1 | Chatbotアプリケーション | Next.js 15 (App Router) をLambda Web Adapterでサーバーレス実行。CloudFront経由で配信 | WebAppStack |
+| 1 | Chatbotアプリケーション | Next.js 15 (App Router) をLambda Web Adapterでサーバーレス実行。KB/Agentモード切替対応 | WebAppStack |
 | 2 | AWS WAF | レートリミット、IP Reputation、OWASP準拠ルール、SQLi防御、IP許可リストの6ルール構成 | WafStack |
-| 3 | IAM認証 | Lambda Function URL IAM Auth + CloudFront OAC (SigV4署名) による多層セキュリティ | WebAppStack |
+| 3 | IAM認証 | Lambda Function URL + CloudFront OAC による多層セキュリティ | WebAppStack |
 | 4 | ベクトルDB (AOSS) | OpenSearch Serverlessベクトル検索コレクション（1024次元、HNSW/faiss/l2） | AIStack |
 | 5 | Embedding Server | FSx ONTAPボリュームをCIFS/SMBマウントしたEC2でドキュメントをベクトル化しAOSSに書き込み | EmbeddingStack |
 | 6 | Titan Text Embeddings | `amazon.titan-embed-text-v2:0`（1024次元）をKB取り込みとEmbeddingサーバーの両方で使用 | AIStack |
 | 7 | SIDメタデータ + 権限フィルタリング | NTFS ACLのSID情報を`.metadata.json`で管理し、検索時にユーザーSIDと照合してフィルタリング | StorageStack |
+| 8 | KB/Agentモード切替 | KBモード（文書検索）とAgentモード（多段階推論）をトグルで切替。両モードでPermission-aware | WebAppStack |
 
 ## CDK Stack Structure
 
@@ -683,12 +684,18 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 │   ├── permission-calculator.ts      # SID/ACL照合ロジック
 │   └── types.ts                      # 型定義
 ├── docker/nextjs/                    # Next.jsアプリケーション
+│   ├── src/app/[locale]/genai/       # メインチャットページ（KB/Agentモード切替）
+│   ├── src/components/bedrock/       # AgentModeSidebar, AgentInfoSection, ModelSelector等
+│   ├── src/hooks/                    # useAgentMode, useAgentsList, useAgentInfo等
+│   ├── src/store/                    # useAgentStore (Zustand)
+│   └── src/app/api/bedrock/          # KB/Agent APIルート
 ├── demo-data/
 │   ├── documents/                    # 検証用ドキュメント + .metadata.json（SID情報）
 │   ├── scripts/                      # セットアップスクリプト（ユーザー作成、SIDデータ登録等）
 │   └── guides/                       # 検証シナリオ・ONTAP設定ガイド
 ├── docs/
-│   ├── implementation-overview.md    # 実装内容の詳細説明（7つの観点）
+│   ├── implementation-overview.md    # 実装内容の詳細説明（8つの観点）
+│   ├── ui-specification.md           # UI仕様書（KB/Agentモード切替、サイドバー設計）
 │   ├── stack-unification-plan.md     # デモ/統合スタック統一計画（Phase 1-4）
 │   ├── embedding-server-design.md    # Embeddingサーバー設計（ONTAP ACL自動取得含む）
 │   ├── SID-Filtering-Architecture.md # SIDフィルタリング アーキテクチャ詳細

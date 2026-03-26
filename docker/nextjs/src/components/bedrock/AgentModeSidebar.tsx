@@ -74,7 +74,8 @@ export function AgentModeSidebar({
   }, [rawAgentInfo, normalizedAgentInfo, validationResult, isValid, errorMessage, warningMessages, processingTime]);
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="h-full flex flex-col overflow-y-auto">
+      <div className="space-y-6 p-4">
       {/* Agent Information */}
       <AgentInfoSection 
         agentInfo={normalizedAgentInfo}
@@ -116,6 +117,7 @@ export function AgentModeSidebar({
           selectedModelId={selectedModelId}
           onModelChange={onModelChange}
           showAdvancedFilters={true}
+          mode="agent"
         />
       </div>
 
@@ -141,6 +143,7 @@ export function AgentModeSidebar({
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

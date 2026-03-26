@@ -19,34 +19,67 @@ interface ModelSelectorProps {
   selectedModelId: string;
   onModelChange: (modelId: string) => void;
   showAdvancedFilters?: boolean;
+  /** 'kb' (default) uses region-info API, 'agent' uses agent-models API */
+  mode?: 'kb' | 'agent';
 }
 
 // カスタムフックでデータ取得ロジックを分離
-function useBedrockRegionInfo() {
+function useBedrockRegionInfo(mode: 'kb' | 'agent' = 'kb') {
   const [regionInfo, setRegionInfo] = useState<BedrockRegionInfo | null>(null);
   const [isLoadingRegionInfo, setIsLoadingRegionInfo] = useState(false);
-  const locale = useLocale(); // ロケールを取得
+  const locale = useLocale();
 
   useEffect(() => {
     const fetchRegionInfo = async () => {
       setIsLoadingRegionInfo(true);
       try {
-        const response = await fetch('/api/bedrock/region-info');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            setRegionInfo(data.data);
+        if (mode === 'agent') {
+          // Agent mode: agent-models APIからモデルリストを取得
+          const region = typeof window !== 'undefined'
+            ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
+            : 'ap-northeast-1';
+          const response = await fetch(`/api/bedrock/agent-models?region=${region}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.models) {
+              // agent-models APIのレスポンスをregionInfo形式に変換
+              const models = data.models.map((m: any) => ({
+                modelId: m.modelId,
+                modelName: m.modelName || m.modelId,
+                providerName: m.provider || 'unknown',
+                available: true,
+                inputModalities: m.inputModalities || ['TEXT'],
+                outputModalities: m.outputModalities || ['TEXT'],
+              }));
+              setRegionInfo({
+                region,
+                availableModelsCount: models.length,
+                unavailableModelsCount: 0,
+                availableModels: models,
+                unavailableModels: [],
+              } as any);
+              console.log(`🤖 [ModelSelector] Agent models loaded: ${models.length}`);
+            }
+          }
+        } else {
+          // KB mode: region-info APIからモデルリストを取得
+          const response = await fetch('/api/bedrock/region-info');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              setRegionInfo(data.data);
+            }
           }
         }
       } catch (error) {
-        console.error('Failed to fetch region info:', error);
+        console.error('Failed to fetch model info:', error);
       } finally {
         setIsLoadingRegionInfo(false);
       }
     };
 
     fetchRegionInfo();
-  }, [locale]); // localeが変更されたときに再取得
+  }, [locale, mode]);
 
   return { regionInfo, isLoadingRegionInfo };
 }
@@ -54,18 +87,20 @@ function useBedrockRegionInfo() {
 export function ModelSelector({ 
   selectedModelId, 
   onModelChange, 
-  showAdvancedFilters = false 
+  showAdvancedFilters = false,
+  mode = 'kb',
 }: ModelSelectorProps) {
   const t = useTranslations('model.selector');
   const locale = useLocale(); // ロケールを取得
   const [isExpanded, setIsExpanded] = useState(false);
   const [showRegionInfo, setShowRegionInfo] = useState(false);
-  const { regionInfo, isLoadingRegionInfo } = useBedrockRegionInfo();
+  const { regionInfo, isLoadingRegionInfo } = useBedrockRegionInfo(mode);
 
   // デバッグ用ログ
   console.log('🔍 ModelSelector rendered with:', { 
     selectedModelId, 
     showAdvancedFilters,
+    mode,
     locale, // ロケールをログに追加
     regionInfo: regionInfo ? {
       availableCount: regionInfo.availableModelsCount,
