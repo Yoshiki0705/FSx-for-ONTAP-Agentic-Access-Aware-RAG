@@ -148,6 +148,12 @@ export class DemoWebAppStack extends cdk.Stack {
         'bedrock:ListFoundationModels',
         'bedrock:GetInferenceProfile',
         'bedrock:ListInferenceProfiles',
+        // Agent mode
+        'bedrock:InvokeAgent',
+        'bedrock:ListAgents',
+        'bedrock:GetAgent',
+        'bedrock:ListAgentAliases',
+        'bedrock:GetAgentAlias',
       ],
       resources: ['*'],
     }));
