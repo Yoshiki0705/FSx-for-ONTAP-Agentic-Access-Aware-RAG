@@ -22,30 +22,33 @@
 
 ## 統一計画（フェーズ別）
 
-### Phase 1: AD Sync Lambda のデモスタック統合（優先度: 高）
+### Phase 1: AD Sync Lambda のデモスタック統合（優先度: 高） ✅ 完了
 
-**目的**: `setup-user-access.sh`の手動SID登録を、AD Sync Lambdaによる自動取得に置き換え
+**実装済み**: AD Sync Lambda（`lambda/agent-core-ad-sync/index.ts`）がManaged AD + Self-managed AD両対応で実装済み。
 
-**既存実装**: `lambda/agent-core-ad-sync/index.ts`（SSM→PowerShell→Get-ADUser方式）
+**CDKコンテキストパラメータ**:
 
-**デモ環境の制約**:
-- AWS Managed Microsoft AD（`demo.local`）を使用（Windows EC2なし）
-- SSM方式はWindows AD EC2が必要
-- 代替案: LDAP直接クエリ方式（Lambda→VPC→AD LDAPエンドポイント）
+| パラメータ | 値 | 説明 |
+|-----------|-----|------|
+| `adType` | `managed` | AWS Managed AD / AD Connector（Directory Service API + SSM） |
+| `adType` | `self-managed` | セルフマネージドAD（SSM→Windows EC2→PowerShell） |
+| `adType` | `none`（デフォルト） | AD Sync無効（手動SID登録） |
+| `adEc2InstanceId` | `i-xxx` | Windows AD EC2インスタンスID（self-managed / managed+EC2） |
+| `adDirectoryId` | `d-xxx` | AWS Managed AD Directory ID（managed） |
 
-**実装オプション**:
+**使用例**:
+```bash
+# Managed AD + Windows EC2
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c adType=managed -c adDirectoryId=d-xxx -c adEc2InstanceId=i-xxx
 
-| オプション | 方式 | 前提条件 | 複雑度 |
-|-----------|------|---------|--------|
-| A | 既存AD Sync Lambda（SSM方式） | Windows AD EC2を追加 | 中 |
-| B | LDAP直接クエリ Lambda（新規） | VPC Lambda + AD DNS IP | 高 |
-| C | 既存AD Sync + フォールバック | Windows EC2あれば自動、なければ手動 | 低 |
+# Self-managed AD
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c adType=self-managed -c adEc2InstanceId=i-xxx
 
-**推奨**: オプションC（段階的統合）
-1. DemoSecurityStackにAD Sync Lambda関数を追加（オプション）
-2. Windows AD EC2がある場合はSSM方式で自動SID取得
-3. Windows AD EC2がない場合は`setup-user-access.sh`で手動登録（現状維持）
-4. 将来的にLDAP方式に拡張可能
+# AD Sync無効（デフォルト、手動SID登録）
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts"
+```
 
 ---
 
