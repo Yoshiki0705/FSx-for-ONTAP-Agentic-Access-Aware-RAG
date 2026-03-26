@@ -376,13 +376,19 @@ aws cloudformation describe-stacks \
 ### リソースの削除
 
 ```bash
+# Embeddingスタックを使用した場合は先に削除
+aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1 2>/dev/null
+aws cloudformation wait stack-delete-complete --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1 2>/dev/null
+
 # 全リソース削除
 npx cdk destroy --all \
-  --app "npx ts-node bin/demo-app.ts"
+  --app "npx ts-node bin/demo-app.ts" --force
 
 # EC2インスタンス終了
 aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 ```
+
+> **Note**: 削除が`DELETE_FAILED`になった場合は、下記トラブルシューティングの「`cdk destroy` 時の削除順序問題」を参照してください。
 
 ## トラブルシューティング
 
@@ -403,6 +409,111 @@ aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 | 症状 | 原因 | 対処 |
 |------|------|------|
 | SSMでインスタンスが表示されない | IAMロール未設定 or アウトバウンド443閉鎖 | IAMインスタンスプロファイルとSGアウトバウンドルールを確認 |
+
+### `cdk destroy` 時の削除順序問題
+
+環境を削除する際、以下の順序で問題が発生することがあります。
+
+#### 問題1: Embeddingスタックが残っているとAIスタックが削除できない
+
+`enableEmbeddingServer=true`でデプロイした場合、`cdk destroy --all`はEmbeddingスタックを認識しません（CDKコンテキストに依存するため）。
+
+```bash
+# 先にEmbeddingスタックを手動削除
+aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1
+aws cloudformation wait stack-delete-complete --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1
+
+# その後にcdk destroy
+npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" --force
+```
+
+#### 問題2: Bedrock KBにデータソースが残っていると削除失敗
+
+KBはデータソースが紐づいていると削除できません。AIスタック削除が`DELETE_FAILED`になった場合:
+
+```bash
+# データソースを先に削除
+KB_ID=$(aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-AI --region ap-northeast-1 \
+  --query 'Stacks[0].Outputs[?OutputKey==`KnowledgeBaseId`].OutputValue' --output text)
+DS_IDS=$(aws bedrock-agent list-data-sources --knowledge-base-id $KB_ID --region ap-northeast-1 \
+  --query 'dataSourceSummaries[].dataSourceId' --output text)
+for DS_ID in $DS_IDS; do
+  aws bedrock-agent delete-data-source --knowledge-base-id $KB_ID --data-source-id $DS_ID --region ap-northeast-1
+done
+sleep 10
+
+# AIスタック削除を再試行
+aws cloudformation delete-stack --stack-name perm-rag-demo-demo-AI --region ap-northeast-1
+```
+
+#### 問題3: S3 Access PointがアタッチされているとFSxボリューム削除失敗
+
+StorageスタックのFSx ONTAPボリュームにS3 APがアタッチされていると削除できません:
+
+```bash
+# S3 APをデタッチ・削除
+aws fsx detach-and-delete-s3-access-point --name perm-rag-demo-s3ap --region ap-northeast-1
+sleep 30
+
+# Storageスタック削除を再試行
+aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Storage --region ap-northeast-1
+```
+
+#### 問題4: AD Controller SGが孤立してVPC削除をブロック
+
+Managed ADを使用した場合、AD削除後もAD ControllerのSGが残ることがあります:
+
+```bash
+# 孤立SGを特定
+VPC_ID=$(aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-Networking --region ap-northeast-1 \
+  --query 'Stacks[0].Outputs[?OutputKey==`VpcId`].OutputValue' --output text)
+aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" "Name=group-name,Values=d-*_controllers" \
+  --region ap-northeast-1 --query 'SecurityGroups[].GroupId' --output text
+
+# SGを削除
+aws ec2 delete-security-group --group-id <SG_ID> --region ap-northeast-1
+
+# Networkingスタック削除を再試行
+aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Networking --region ap-northeast-1
+```
+
+#### 推奨: 完全削除スクリプト
+
+上記の問題を回避する完全削除手順:
+
+```bash
+# 1. Embeddingスタック削除（存在する場合）
+aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1 2>/dev/null
+aws cloudformation wait stack-delete-complete --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1 2>/dev/null
+
+# 2. KBデータソース削除
+KB_ID=$(aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-AI --region ap-northeast-1 \
+  --query 'Stacks[0].Outputs[?OutputKey==`KnowledgeBaseId`].OutputValue' --output text 2>/dev/null)
+if [ -n "$KB_ID" ] && [ "$KB_ID" != "None" ]; then
+  for DS_ID in $(aws bedrock-agent list-data-sources --knowledge-base-id $KB_ID --region ap-northeast-1 \
+    --query 'dataSourceSummaries[].dataSourceId' --output text 2>/dev/null); do
+    aws bedrock-agent delete-data-source --knowledge-base-id $KB_ID --data-source-id $DS_ID --region ap-northeast-1
+  done
+  sleep 10
+fi
+
+# 3. S3 AP削除
+aws fsx detach-and-delete-s3-access-point --name perm-rag-demo-s3ap --region ap-northeast-1 2>/dev/null
+sleep 30
+
+# 4. CDK destroy
+npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" --force
+
+# 5. 孤立AD SG削除（必要な場合）
+VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=*perm-rag*" --region ap-northeast-1 \
+  --query 'Vpcs[0].VpcId' --output text 2>/dev/null)
+if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
+  for SG_ID in $(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" "Name=group-name,Values=d-*_controllers" \
+    --region ap-northeast-1 --query 'SecurityGroups[].GroupId' --output text 2>/dev/null); do
+    aws ec2 delete-security-group --group-id $SG_ID --region ap-northeast-1
+  done
+fi
+```
 
 ## WAF & Geo制限の設定
 

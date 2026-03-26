@@ -492,10 +492,23 @@ exports.handler = async (event) => {
         // PhysicalResourceIdからAP ARNを取得
         const physicalId = event.PhysicalResourceId || '';
         if (physicalId.startsWith('arn:aws:s3:')) {
+          // ARNが利用可能な場合はARNで削除
           const resp = await signedFsxRequest('POST', 'DetachAndDeleteS3AccessPoint', {
             S3AccessPointArn: physicalId,
           }, region);
-          console.log('Delete response:', JSON.stringify(resp));
+          console.log('Delete by ARN response:', JSON.stringify(resp));
+        } else {
+          // ARNが利用不可（deferred/error）の場合はAP名で削除を試行
+          // これにより、S3 AP作成がフォールバックした場合でもクリーンアップが行われる
+          console.log('PhysicalResourceId is not an ARN, trying delete by name:', apName);
+          try {
+            const { FSxClient: FsxCli, DetachAndDeleteS3AccessPointCommand } = require('@aws-sdk/client-fsx');
+            const fsx = new FsxCli({ region });
+            await fsx.send(new DetachAndDeleteS3AccessPointCommand({ Name: apName }));
+            console.log('Delete by name succeeded:', apName);
+          } catch (nameErr) {
+            console.warn('Delete by name failed (may not exist):', nameErr.message);
+          }
         }
       } catch (delErr) {
         console.warn('Delete failed (best effort):', delErr.message);
