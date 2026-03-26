@@ -54,6 +54,8 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts"
 
 ### Phase 2: .metadata.json 自動生成 + S3 Access Point統合（優先度: 高）
 
+**ステータス**: ✅ 実装完了
+
 **目的**: ONTAP REST APIでACLを自動取得し、`.metadata.json`をFSx ONTAPボリュームに格納。S3 Access Points経由でBedrock KBに取り込む
 
 **方式**:
@@ -85,6 +87,8 @@ FSx ONTAP Volume
 
 ### Phase 3: Permission Filter Lambda の統合（優先度: 中）
 
+**ステータス**: ✅ 実装完了
+
 **目的**: Next.js API Route内のSIDフィルタリングを、専用のPermission Filter Lambdaに移行
 
 **対象ファイル**:
@@ -103,13 +107,15 @@ FSx ONTAP Volume
 
 ### Phase 4: セキュリティ強化（優先度: 低）
 
+**ステータス**: ✅ 実装完了
+
 **目的**: エンタープライズセキュリティ機能の追加
 
 **実装内容**:
-1. Bedrock Guardrails（コンテンツ安全性）
-2. KMS暗号化（DynamoDB、S3）
-3. CloudTrail監査ログ
-4. VPCエンドポイント（SSM、Bedrock）
+1. Bedrock Guardrails（コンテンツ安全性） → `-c enableGuardrails=true`
+2. KMS暗号化（DynamoDB、S3） → `-c enableKmsEncryption=true`
+3. CloudTrail監査ログ → `-c enableCloudTrail=true`
+4. VPCエンドポイント（Bedrock, SSM, Secrets Manager, CloudWatch Logs, S3, DynamoDB） → `-c enableVpcEndpoints=true`
 
 ---
 
@@ -139,7 +145,7 @@ Phase 4: セキュリティ強化 → エンタープライズ機能
 | `lambda/permissions/fsx-permission-service.ts` | なし | Phase 2で統合 |
 | `EmbeddingBatchIntegration` | `DemoEmbeddingStack` | 既存で十分 |
 | `BedrockAgentConstruct` | なし | 将来対応 |
-| `BedrockGuardrails` | なし | Phase 4 |
+| `BedrockGuardrails` | なし | Phase 4で追加 ✅ |
 
 ---
 

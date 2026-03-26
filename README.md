@@ -55,12 +55,12 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 | # | Stack | Region | Resources | Description |
 |---|-------|--------|-----------|-------------|
 | 1 | WafStack | us-east-1 | WAF WebACL, IPセット | CloudFront用WAF（レートリミット、マネージドルール） |
-| 2 | NetworkingStack | ap-northeast-1 | VPC, サブネット, セキュリティグループ | ネットワーク基盤 |
-| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client | 認証・認可 |
-| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD) | ストレージ・SIDデータ・権限キャッシュ（AD連携オプション） |
-| 5 | AIStack | ap-northeast-1 | Bedrock KB, OpenSearch Serverless | RAG検索基盤（Titan Embed v2） |
-| 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront | Webアプリケーション |
-| 7 | EmbeddingStack（任意） | ap-northeast-1 | EC2 (m5.large), ECR | FlexCache CIFSマウント + Embeddingサーバー |
+| 2 | NetworkingStack | ap-northeast-1 | VPC, サブネット, セキュリティグループ, VPCエンドポイント（オプション） | ネットワーク基盤 |
+| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, AD Sync Lambda（オプション） | 認証・認可 |
+| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS暗号化（オプション）, CloudTrail（オプション） | ストレージ・SIDデータ・権限キャッシュ |
+| 5 | AIStack | ap-northeast-1 | Bedrock KB, OpenSearch Serverless, Bedrock Guardrails（オプション） | RAG検索基盤（Titan Embed v2） |
+| 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda（オプション） | Webアプリケーション |
+| 7 | EmbeddingStack（任意） | ap-northeast-1 | EC2 (m5.large), ECR, ONTAP ACL自動取得（オプション） | FlexCache CIFSマウント + Embeddingサーバー |
 
 ### セキュリティ機能（6層防御）
 
@@ -208,6 +208,33 @@ EOF
 | `adDomainName` | string | `demo.local` | ADドメイン名（FQDN） |
 
 > **Note**: AD作成には追加で20〜30分かかります。ADなしでもSIDフィルタリングのデモは可能です（DynamoDBのSIDデータで検証）。
+
+#### エンタープライズ機能（オプション）
+
+以下のCDKコンテキストパラメータで、セキュリティ強化・アーキテクチャ統一機能を有効化できます。
+
+```json
+{
+  "useS3AccessPoint": "true",
+  "usePermissionFilterLambda": "true",
+  "enableGuardrails": "true",
+  "enableKmsEncryption": "true",
+  "enableCloudTrail": "true",
+  "enableVpcEndpoints": "true"
+}
+```
+
+| パラメータ | デフォルト | 説明 |
+|-----------|----------|------|
+| `ontapMgmtIp` | (なし) | ONTAP管理IP。設定するとEmbeddingサーバーが`.metadata.json`をONTAP REST APIから自動生成 |
+| `ontapSvmUuid` | (なし) | SVM UUID（`ontapMgmtIp`と併用） |
+| `ontapAdminSecretArn` | (なし) | ONTAP管理者パスワードのSecrets Manager ARN |
+| `useS3AccessPoint` | `false` | S3 Access PointをBedrock KBデータソースとして使用 |
+| `usePermissionFilterLambda` | `false` | SIDフィルタリングを専用Lambda経由で実行（インラインフィルタリングのフォールバック付き） |
+| `enableGuardrails` | `false` | Bedrock Guardrails（有害コンテンツフィルタ + PII保護） |
+| `enableKmsEncryption` | `false` | KMS CMKによるS3・DynamoDB暗号化（キーローテーション有効） |
+| `enableCloudTrail` | `false` | CloudTrail監査ログ（S3データアクセス + Lambda呼び出し、90日保持） |
+| `enableVpcEndpoints` | `false` | VPCエンドポイント（S3, DynamoDB, Bedrock, SSM, Secrets Manager, CloudWatch Logs） |
 
 ### Step 6: CDKデプロイ
 
@@ -619,7 +646,8 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 │   ├── demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
 │   └── demo-embedding-stack.ts       # (optional) Embedding Server (FlexCache CIFS)
 ├── lambda/permissions/
-│   ├── permission-filter-handler.ts  # 権限フィルタリングLambda
+│   ├── permission-filter-handler.ts  # 権限フィルタリングLambda（ACLベース、統合スタック用）
+│   ├── metadata-filter-handler.ts    # 権限フィルタリングLambda（メタデータベース、デモスタック用）
 │   ├── permission-calculator.ts      # SID/ACL照合ロジック
 │   └── types.ts                      # 型定義
 ├── docker/nextjs/                    # Next.jsアプリケーション
@@ -629,6 +657,8 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 │   └── guides/                       # 検証シナリオ・ONTAP設定ガイド
 ├── docs/
 │   ├── implementation-overview.md    # 実装内容の詳細説明（7つの観点）
+│   ├── stack-unification-plan.md     # デモ/統合スタック統一計画（Phase 1-4）
+│   ├── embedding-server-design.md    # Embeddingサーバー設計（ONTAP ACL自動取得含む）
 │   ├── SID-Filtering-Architecture.md # SIDフィルタリング アーキテクチャ詳細
 │   ├── demo-recording-guide.md       # 検証デモ動画撮影手順書（6つの証跡）
 │   ├── demo-environment-guide.md     # 検証環境セットアップガイド

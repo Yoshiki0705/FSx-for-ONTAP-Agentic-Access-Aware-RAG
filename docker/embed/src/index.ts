@@ -11,6 +11,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as https from 'https';
 import * as dotenv from 'dotenv';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { indexDocument, initOssClient } from './oss-client';
@@ -24,6 +25,13 @@ const EMBEDDING_MODEL = process.env.ENV_EMBEDDING_MODEL_ID || 'amazon.titan-embe
 const INDEX_NAME = process.env.ENV_INDEX_NAME || 'bedrock-knowledge-base-default-index';
 const COLLECTION_NAME = process.env.ENV_OPEN_SEARCH_SERVERLESS_COLLECTION_NAME || '';
 const WATCH_MODE = process.env.ENV_WATCH_MODE === 'true';
+
+// ONTAP REST API設定（.metadata.json自動生成用）
+const ONTAP_MGMT_IP = process.env.ENV_ONTAP_MGMT_IP || '';
+const ONTAP_SVM_UUID = process.env.ENV_ONTAP_SVM_UUID || '';
+const ONTAP_USERNAME = process.env.ENV_ONTAP_USERNAME || 'fsxadmin';
+const ONTAP_PASSWORD = process.env.ENV_ONTAP_PASSWORD || '';
+const AUTO_METADATA = process.env.ENV_AUTO_METADATA === 'true';
 
 const bedrock = new BedrockRuntimeClient({ region: REGION });
 
@@ -86,6 +94,152 @@ function loadMetadata(docPath: string): DocMetadata {
   return {};
 }
 
+// ========================================
+// ONTAP REST API ACL取得 + .metadata.json自動生成
+// ========================================
+
+/** ONTAP REST APIレスポンスの型定義 */
+interface OntapAclEntry {
+  user: string;
+  access: string;
+  access_control: string;
+  apply_to?: { files: boolean; sub_folders: boolean; this_folder: boolean };
+}
+
+interface OntapAclResponse {
+  svm?: { uuid: string; name: string };
+  path?: string;
+  acls?: OntapAclEntry[];
+}
+
+/**
+ * ONTAP REST APIでファイル/ディレクトリのNTFS ACLを取得
+ * GET https://{MGMT_IP}/api/protocols/file-security/permissions/{SVM_UUID}/{PATH}
+ */
+async function fetchOntapAcl(relativePath: string): Promise<OntapAclResponse | null> {
+  if (!ONTAP_MGMT_IP || !ONTAP_SVM_UUID) {
+    return null;
+  }
+
+  // ファイルの親ディレクトリのACLを取得（ファイル単位ではなくディレクトリ単位が一般的）
+  const dirPath = path.dirname(relativePath);
+  const ontapPath = '/' + dirPath.replace(/\\/g, '/');
+  const encodedPath = encodeURIComponent(ontapPath);
+  const apiPath = `/api/protocols/file-security/permissions/${ONTAP_SVM_UUID}/${encodedPath}`;
+
+  const auth = Buffer.from(`${ONTAP_USERNAME}:${ONTAP_PASSWORD}`).toString('base64');
+
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: ONTAP_MGMT_IP,
+      port: 443,
+      path: apiPath,
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Accept': 'application/json',
+      },
+      rejectUnauthorized: false, // FSx ONTAP uses self-signed certs
+    }, (res) => {
+      let data = '';
+      res.on('data', (c) => data += c);
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          try {
+            resolve(JSON.parse(data));
+          } catch {
+            console.warn(`⚠️ ONTAP ACLレスポンスのパース失敗: ${ontapPath}`);
+            resolve(null);
+          }
+        } else {
+          console.warn(`⚠️ ONTAP ACL取得失敗 (${res.statusCode}): ${ontapPath}`);
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', (e) => {
+      console.warn(`⚠️ ONTAP REST API接続エラー: ${e.message}`);
+      resolve(null);
+    });
+    req.end();
+  });
+}
+
+/** ONTAP ACLレスポンスからSIDリストを抽出 */
+function extractSidsFromAcl(acl: OntapAclResponse): string[] {
+  if (!acl.acls || acl.acls.length === 0) return [];
+
+  const sids: Set<string> = new Set();
+  for (const entry of acl.acls) {
+    // "read" or "full_control" アクセス権を持つユーザー/グループのSIDを抽出
+    // ONTAP REST APIはuser フィールドにSIDまたはドメイン\ユーザー名を返す
+    if (entry.access === 'access_allow' && entry.user) {
+      const user = entry.user;
+      // SID形式（S-1-...）の場合はそのまま追加
+      if (user.startsWith('S-1-')) {
+        sids.add(user);
+      }
+      // BUILTIN\Users等の場合はWell-known SIDに変換
+      else if (user.toLowerCase().includes('everyone') || user === 'S-1-1-0') {
+        sids.add('S-1-1-0');
+      }
+    }
+  }
+  return Array.from(sids);
+}
+
+/** アクセスレベルをディレクトリ名から推定 */
+function inferAccessLevel(relativePath: string): string {
+  const dir = path.dirname(relativePath).toLowerCase();
+  if (dir.includes('confidential')) return 'confidential';
+  if (dir.includes('restricted')) return 'restricted';
+  if (dir.includes('public')) return 'public';
+  return 'internal';
+}
+
+/**
+ * .metadata.jsonを自動生成してファイルシステムに書き込む
+ * ONTAP REST APIからACLを取得し、SID情報を含むメタデータを生成
+ */
+async function generateMetadata(filePath: string): Promise<DocMetadata> {
+  const relativePath = path.relative(DATA_DIR, filePath);
+  console.log(`  🔑 ONTAP ACL取得中: ${relativePath}`);
+
+  const acl = await fetchOntapAcl(relativePath);
+  if (!acl) {
+    console.log(`  ⏭️ ACL取得不可、デフォルトメタデータを使用`);
+    return {};
+  }
+
+  const sids = extractSidsFromAcl(acl);
+  if (sids.length === 0) {
+    console.log(`  ⚠️ ACLからSIDを抽出できませんでした`);
+    return {};
+  }
+
+  const accessLevel = inferAccessLevel(relativePath);
+  const metadata: DocMetadata = {
+    metadataAttributes: {
+      access_level: accessLevel,
+      allowed_group_sids: sids,
+      department: path.dirname(relativePath).split('/')[0] || 'general',
+      auto_generated: true,
+      generated_at: new Date().toISOString(),
+    },
+  };
+
+  // .metadata.jsonをファイルシステムに書き込み
+  const metaPath = filePath + '.metadata.json';
+  try {
+    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2));
+    console.log(`  ✅ .metadata.json自動生成: ${path.basename(metaPath)} (SIDs: ${sids.join(', ')})`);
+  } catch (e) {
+    console.warn(`  ⚠️ .metadata.json書き込み失敗: ${metaPath}`, e);
+  }
+
+  return metadata;
+}
+
 /** テキストをチャンクに分割（シンプルな固定サイズ分割） */
 function chunkText(text: string, chunkSize = 1000, overlap = 200): string[] {
   const chunks: string[] = [];
@@ -134,7 +288,11 @@ async function processFile(filePath: string): Promise<number> {
     return 0;
   }
 
-  const metadata = loadMetadata(filePath);
+  // メタデータ取得: 既存の.metadata.jsonを優先、なければONTAP REST APIで自動生成
+  let metadata = loadMetadata(filePath);
+  if (!metadata.metadataAttributes && AUTO_METADATA) {
+    metadata = await generateMetadata(filePath);
+  }
   const chunks = chunkText(content);
   console.log(`  📝 ${chunks.length} チャンクに分割`);
 
@@ -181,6 +339,12 @@ async function main(): Promise<void> {
   console.log(`  インデックス名: ${INDEX_NAME}`);
   console.log(`  コレクション名: ${COLLECTION_NAME}`);
   console.log(`  監視モード: ${WATCH_MODE}`);
+  console.log(`  メタデータ自動生成: ${AUTO_METADATA}`);
+  if (AUTO_METADATA) {
+    console.log(`  ONTAP管理IP: ${ONTAP_MGMT_IP || '(未設定)'}`);
+    console.log(`  ONTAP SVM UUID: ${ONTAP_SVM_UUID || '(未設定)'}`);
+    console.log(`  ONTAP ユーザー: ${ONTAP_USERNAME}`);
+  }
 
   // OpenSearch Serverless クライアント初期化
   await initOssClient(REGION, COLLECTION_NAME);

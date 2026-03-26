@@ -14,7 +14,9 @@ import * as fsx from 'aws-cdk-lib/aws-fsx';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as kms from 'aws-cdk-lib/aws-kms';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as cloudtrail from 'aws-cdk-lib/aws-cloudtrail';
 import * as directoryservice from 'aws-cdk-lib/aws-directoryservice';
 import { Construct } from 'constructs';
 
@@ -28,6 +30,10 @@ export interface DemoStorageStackProps extends cdk.StackProps {
   adPassword?: string;
   /** ADドメイン名（デフォルト: demo.local） */
   adDomainName?: string;
+  /** KMS暗号化を有効化するか（デフォルト: false） */
+  enableKmsEncryption?: boolean;
+  /** CloudTrail監査ログを有効化するか（デフォルト: false） */
+  enableCloudTrail?: boolean;
 }
 
 export class DemoStorageStack extends cdk.Stack {
@@ -45,13 +51,29 @@ export class DemoStorageStack extends cdk.Stack {
   public readonly userAccessTable: dynamodb.Table;
   /** AWS Managed Microsoft AD */
   public readonly managedAd?: directoryservice.CfnMicrosoftAD;
+  /** KMS暗号化キー（enableKmsEncryption=trueの場合） */
+  public readonly encryptionKey?: kms.Key;
 
   constructor(scope: Construct, id: string, props: DemoStorageStackProps) {
     super(scope, id, props);
 
-    const { projectName, environment, vpc, privateSubnets, fsxSg, adPassword, adDomainName } = props;
+    const { projectName, environment, vpc, privateSubnets, fsxSg, adPassword, adDomainName, enableKmsEncryption, enableCloudTrail } = props;
     const prefix = `${projectName}-${environment}`;
     const domainName = adDomainName || 'demo.local';
+
+    // ========================================
+    // KMS暗号化キー（オプション）
+    // ========================================
+    let kmsKey: kms.Key | undefined;
+    if (enableKmsEncryption) {
+      kmsKey = new kms.Key(this, 'EncryptionKey', {
+        alias: `${prefix}-encryption-key`,
+        description: `Encryption key for ${projectName} data at rest`,
+        enableKeyRotation: true,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      });
+      this.encryptionKey = kmsKey;
+    }
 
     // ========================================
     // AWS Managed Microsoft AD
@@ -133,7 +155,8 @@ export class DemoStorageStack extends cdk.Stack {
       bucketName: `${prefix}-kb-data-${cdk.Aws.ACCOUNT_ID}`,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
-      encryption: s3.BucketEncryption.S3_MANAGED,
+      encryption: kmsKey ? s3.BucketEncryption.KMS : s3.BucketEncryption.S3_MANAGED,
+      encryptionKey: kmsKey,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       versioned: false,
     });
@@ -149,6 +172,7 @@ export class DemoStorageStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: 'ttl',
+      ...(kmsKey ? { encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED, encryptionKey: kmsKey } : {}),
     });
 
     // ユーザーアクセステーブル（userId → SIDリストのマッピング）
@@ -157,6 +181,7 @@ export class DemoStorageStack extends cdk.Stack {
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      ...(kmsKey ? { encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED, encryptionKey: kmsKey } : {}),
     });
 
     // ========================================
@@ -233,6 +258,42 @@ export class DemoStorageStack extends cdk.Stack {
     s3ApCreatorFn.addPermission('CfnInvoke', {
       principal: new iam.ServicePrincipal('cloudformation.amazonaws.com'),
     });
+
+    // ========================================
+    // CloudTrail監査ログ（オプション）
+    // ========================================
+    if (enableCloudTrail) {
+      const trailBucket = new s3.Bucket(this, 'TrailBucket', {
+        bucketName: `${prefix}-cloudtrail-${cdk.Aws.ACCOUNT_ID}`,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+        autoDeleteObjects: true,
+        encryption: kmsKey ? s3.BucketEncryption.KMS : s3.BucketEncryption.S3_MANAGED,
+        encryptionKey: kmsKey,
+        blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+        lifecycleRules: [{ expiration: cdk.Duration.days(90) }],
+      });
+
+      const trail = new cloudtrail.Trail(this, 'AuditTrail', {
+        trailName: `${prefix}-audit-trail`,
+        bucket: trailBucket,
+        isMultiRegionTrail: false,
+        includeGlobalServiceEvents: false,
+        enableFileValidation: true,
+      });
+
+      // Bedrock API呼び出しの監査
+      trail.addEventSelector(cloudtrail.DataResourceType.LAMBDA_FUNCTION, ['arn:aws:lambda']);
+
+      // S3データアクセスの監査
+      trail.addEventSelector(cloudtrail.DataResourceType.S3_OBJECT, [
+        `${this.dataBucket.bucketArn}/`,
+      ]);
+
+      new cdk.CfnOutput(this, 'CloudTrailName', {
+        value: trail.trailArn,
+        description: 'CloudTrail audit trail ARN',
+      });
+    }
 
     // ========================================
     // CloudFormation出力

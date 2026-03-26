@@ -8,6 +8,7 @@ import {
   ConverseCommand,
 } from '@aws-sdk/client-bedrock-runtime';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 interface RetrieveRequest {
@@ -20,9 +21,15 @@ interface RetrieveRequest {
 
 interface UserAccessRecord { userId: string; userSID: string; groupSIDs: string[]; }
 
+const PERMISSION_FILTER_LAMBDA_ARN = process.env.PERMISSION_FILTER_LAMBDA_ARN || '';
+
 const dynamoClient = new DynamoDBClient({
   region: process.env.AWS_REGION || process.env.BEDROCK_REGION || 'ap-northeast-1',
 });
+
+const lambdaClient = PERMISSION_FILTER_LAMBDA_ARN
+  ? new LambdaClient({ region: process.env.AWS_REGION || process.env.BEDROCK_REGION || 'ap-northeast-1' })
+  : null;
 
 async function getUserSIDs(userId: string): Promise<UserAccessRecord | null> {
   const tableName = process.env.USER_ACCESS_TABLE_NAME;
@@ -42,23 +49,14 @@ function checkSIDAccess(userSIDs: string[], docSIDs: string[]): boolean {
   return userSIDs.some(sid => docSIDs.includes(sid));
 }
 
-/**
- * Converse APIで使用するモデルIDを決定。
- * - apac./us./eu. プレフィックス付き → そのまま（inference profile）
- * - on-demand不可モデル（一部anthropic, amazon.nova-pro/micro等）→ フォールバック
- * - それ以外（google, qwen, deepseek, mistral, openai等）→ そのまま
- */
 const ON_DEMAND_BLOCKED = new Set([
   'amazon.nova-pro-v1:0', 'amazon.nova-micro-v1:0', 'amazon.nova-2-lite-v1:0',
   'nvidia.nemotron-super-3-120b',
 ]);
 
 function resolveConverseModelId(rawModelId: string): string {
-  // inference profileプレフィックス付き → そのまま
   if (/^(apac|us|eu)\./i.test(rawModelId)) return rawModelId;
-  // on-demand不可リストに該当 → フォールバック
   if (ON_DEMAND_BLOCKED.has(rawModelId)) return 'anthropic.claude-3-haiku-20240307-v1:0';
-  // それ以外はそのまま試行（google, qwen, deepseek, mistral, openai, anthropic等）
   return rawModelId;
 }
 
@@ -97,6 +95,41 @@ async function callConverse(
   throw new Error('All Converse models failed');
 }
 
+/** Permission Filter Lambdaを呼び出してSIDフィルタリングを実行 */
+async function invokePermissionFilterLambda(
+  userId: string,
+  parsedResults: { content: string; s3Uri: string; score?: number; metadata: Record<string, unknown> }[],
+): Promise<{
+  allowed: { fileName: string; s3Uri: string; content: string; metadata: Record<string, unknown> }[];
+  filterLog: Record<string, unknown>;
+} | null> {
+  if (!lambdaClient || !PERMISSION_FILTER_LAMBDA_ARN) return null;
+  try {
+    const resp = await lambdaClient.send(new InvokeCommand({
+      FunctionName: PERMISSION_FILTER_LAMBDA_ARN,
+      Payload: Buffer.from(JSON.stringify({
+        userId,
+        retrievalResults: parsedResults.map(r => ({ content: r.content, s3Uri: r.s3Uri, score: r.score, metadata: r.metadata })),
+      })),
+    }));
+    if (resp.FunctionError) { console.error('[PermFilter Lambda] Error:', resp.FunctionError); return null; }
+    const result = JSON.parse(new TextDecoder().decode(resp.Payload));
+    console.log(`[PermFilter Lambda] ${result.allowedDocuments}/${result.totalDocuments} allowed`);
+    return {
+      allowed: result.allowed || [],
+      filterLog: {
+        totalDocuments: result.totalDocuments, allowedDocuments: result.allowedDocuments,
+        deniedDocuments: result.deniedDocuments, userId: result.userId, userSIDs: result.userSIDs,
+        filterMethod: result.filterMethod, details: result.filterLog,
+        timestamp: new Date().toISOString(), source: 'lambda',
+      },
+    };
+  } catch (error) {
+    console.error('[PermFilter Lambda] Invocation failed, falling back to inline:', error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: RetrieveRequest = await request.json();
@@ -111,15 +144,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[KB] Start:', { query: query.substring(0, 80), knowledgeBaseId, userId, rawModelId });
 
-    // Step 1: ユーザーSID取得
-    const userAccess = await getUserSIDs(userId);
-    const allUserSIDs: string[] = [];
-    if (userAccess) {
-      if (userAccess.userSID) allUserSIDs.push(userAccess.userSID);
-      if (Array.isArray(userAccess.groupSIDs)) allUserSIDs.push(...userAccess.groupSIDs);
-    }
-
-    // Step 2: Bedrock KB Retrieve API
+    // Step 1: Bedrock KB Retrieve API
     const kbClient = new BedrockAgentRuntimeClient({ region });
     const retrieveResponse = await kbClient.send(new RetrieveCommand({
       knowledgeBaseId,
@@ -129,37 +154,57 @@ export async function POST(request: NextRequest) {
     const results = retrieveResponse.retrievalResults || [];
     console.log('[KB] Results:', results.length);
 
-    // Step 3: SIDフィルタリング
-    type FilterDetail = { fileName: string; documentSIDs: string[]; matched: boolean; matchedSID?: string };
-    const details: FilterDetail[] = [];
-    const allowed: { fileName: string; s3Uri: string; content: string; metadata: Record<string, unknown> }[] = [];
+    // Retrieve結果を共通フォーマットに変換
+    const parsedResults = results.map(r => ({
+      content: r.content?.text || '',
+      s3Uri: r.location?.s3Location?.uri || '',
+      score: r.score,
+      metadata: (r.metadata || {}) as Record<string, unknown>,
+    }));
 
-    for (const r of results) {
-      const s3Uri = r.location?.s3Location?.uri || '';
-      const fileName = s3Uri.split('/').pop() || s3Uri;
-      const content = r.content?.text || '';
-      const meta = (r.metadata || {}) as Record<string, unknown>;
-      let docSIDs: string[] = [];
-      const raw = meta?.allowed_group_sids ?? (meta?.metadataAttributes as Record<string, unknown>)?.allowed_group_sids;
-      if (Array.isArray(raw)) docSIDs = raw as string[];
-      else if (typeof raw === 'string') { try { docSIDs = JSON.parse(raw); } catch { docSIDs = [raw]; } }
-      const ok = allUserSIDs.length > 0 && checkSIDAccess(allUserSIDs, docSIDs);
-      const matchedSID = ok ? allUserSIDs.find(s => docSIDs.includes(s)) : undefined;
-      details.push({ fileName, documentSIDs: docSIDs, matched: ok, matchedSID });
-      if (ok) allowed.push({ fileName, s3Uri, content, metadata: meta });
+    // Step 2: SIDフィルタリング（Lambda優先、フォールバック: インライン）
+    type FilterDetail = { fileName: string; documentSIDs: string[]; matched: boolean; matchedSID?: string };
+    let filterLog: Record<string, unknown>;
+    let allowed: { fileName: string; s3Uri: string; content: string; metadata: Record<string, unknown> }[];
+
+    const lambdaResult = await invokePermissionFilterLambda(userId, parsedResults);
+
+    if (lambdaResult) {
+      allowed = lambdaResult.allowed;
+      filterLog = lambdaResult.filterLog;
+    } else {
+      // フォールバック: インラインSIDフィルタリング
+      const userAccess = await getUserSIDs(userId);
+      const allUserSIDs: string[] = [];
+      if (userAccess) {
+        if (userAccess.userSID) allUserSIDs.push(userAccess.userSID);
+        if (Array.isArray(userAccess.groupSIDs)) allUserSIDs.push(...userAccess.groupSIDs);
+      }
+      const details: FilterDetail[] = [];
+      allowed = [];
+      for (const r of parsedResults) {
+        const fileName = r.s3Uri.split('/').pop() || r.s3Uri;
+        let docSIDs: string[] = [];
+        const raw = r.metadata?.allowed_group_sids ?? (r.metadata?.metadataAttributes as Record<string, unknown>)?.allowed_group_sids;
+        if (Array.isArray(raw)) docSIDs = raw as string[];
+        else if (typeof raw === 'string') { try { docSIDs = JSON.parse(raw); } catch { docSIDs = [raw]; } }
+        const ok = allUserSIDs.length > 0 && checkSIDAccess(allUserSIDs, docSIDs);
+        const matchedSID = ok ? allUserSIDs.find(s => docSIDs.includes(s)) : undefined;
+        details.push({ fileName, documentSIDs: docSIDs, matched: ok, matchedSID });
+        if (ok) allowed.push({ fileName, s3Uri: r.s3Uri, content: r.content, metadata: r.metadata });
+      }
+      filterLog = {
+        totalDocuments: results.length, allowedDocuments: allowed.length,
+        deniedDocuments: results.length - allowed.length,
+        userId, userSIDs: allUserSIDs,
+        filterMethod: allUserSIDs.length > 0 ? 'SID_MATCHING' : 'DENY_ALL',
+        details, timestamp: new Date().toISOString(), source: 'inline',
+      };
     }
 
-    const filterLog = {
-      totalDocuments: results.length, allowedDocuments: allowed.length,
-      deniedDocuments: results.length - allowed.length,
-      userId, userSIDs: allUserSIDs,
-      filterMethod: allUserSIDs.length > 0 ? 'SID_MATCHING' : 'DENY_ALL',
-      details, timestamp: new Date().toISOString(),
-    };
-    console.log('[SID] Done:', filterLog.allowedDocuments, '/', filterLog.totalDocuments);
+    console.log('[SID] Done:', (filterLog as Record<string, unknown>).allowedDocuments, '/', (filterLog as Record<string, unknown>).totalDocuments);
 
-    // Step 4: Converse APIで回答生成（エラー時は自動フォールバック）
-    let answer = '';
+    // Step 3: Converse APIで回答生成
     const converseModelId = resolveConverseModelId(rawModelId);
 
     if (allowed.length > 0) {
@@ -167,17 +212,17 @@ export async function POST(request: NextRequest) {
       const converseClient = new BedrockRuntimeClient({ region });
       const prompt = `以下のドキュメントを参照して質問に日本語で回答してください。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。\n\n${ctx}\n\n質問: ${query}`;
       const result = await callConverse(converseClient, converseModelId, prompt);
-      answer = result.text;
       return NextResponse.json({
-        success: true, answer,
+        success: true, answer: result.text,
         citations: allowed.map(r => ({ fileName: r.fileName, s3Uri: r.s3Uri, content: r.content.substring(0, 500), metadata: r.metadata })),
         filterLog,
         metadata: { knowledgeBaseId, modelId: result.usedModel, region, timestamp: new Date().toISOString() },
       });
     } else {
-      answer = 'アクセス権限のあるドキュメントが見つかりませんでした。この情報へのアクセス権限がない可能性があります。';
       return NextResponse.json({
-        success: true, answer, citations: [], filterLog,
+        success: true,
+        answer: 'アクセス権限のあるドキュメントが見つかりませんでした。この情報へのアクセス権限がない可能性があります。',
+        citations: [], filterLog,
         metadata: { knowledgeBaseId, modelId: converseModelId, region, timestamp: new Date().toISOString() },
       });
     }

@@ -72,6 +72,11 @@ docker/embed/
 | `ENV_INDEX_NAME` | `bedrock-knowledge-base-default-index` | AOSSインデックス名 |
 | `ENV_OPEN_SEARCH_SERVERLESS_COLLECTION_NAME` | (必須) | AOSSコレクション名 |
 | `ENV_WATCH_MODE` | `false` | 監視モード有効化 |
+| `ENV_AUTO_METADATA` | `false` | ONTAP REST APIによる.metadata.json自動生成 |
+| `ENV_ONTAP_MGMT_IP` | (空) | ONTAP管理エンドポイントIP |
+| `ENV_ONTAP_SVM_UUID` | (空) | SVM UUID |
+| `ENV_ONTAP_USERNAME` | `fsxadmin` | ONTAP管理者ユーザー名 |
+| `ENV_ONTAP_PASSWORD` | (空) | ONTAP管理者パスワード |
 
 ---
 
@@ -85,10 +90,14 @@ docker/embed/
 3. DATA_DIR を再帰スキャン（.md, .txt, .html, .csv, .json, .xml）
 4. 各ファイルについて:
    a. mtime が processed.json と同じならスキップ
-   b. テキスト読み取り → チャンク分割（1000文字、200文字オーバーラップ）
-   c. 各チャンクを Bedrock Titan Embed v2 でベクトル化
-   d. AOSS にインデックス（Bedrock KB互換フォーマット）
-   e. processed.json を更新
+   b. .metadata.json が存在すればそれを使用
+   c. .metadata.json が存在せず ENV_AUTO_METADATA=true の場合:
+      - ONTAP REST API (`GET /api/protocols/file-security/permissions/{SVM_UUID}/{PATH}`) でACL取得
+      - ACLからSIDを抽出し .metadata.json を自動生成・書き込み
+   d. テキスト読み取り → チャンク分割（1000文字、200文字オーバーラップ）
+   e. 各チャンクを Bedrock Titan Embed v2 でベクトル化
+   f. AOSS にインデックス（Bedrock KB互換フォーマット）
+   g. processed.json を更新
 5. 処理完了サマリーを出力して終了
 ```
 
@@ -192,8 +201,8 @@ AOSSインデックスは`dynamic: false`で作成されています。これに
 |------|------|
 | AD同期Lambda | SSM経由でADユーザーのSIDを自動取得しDynamoDBに保存（実装済み） |
 | FSx権限サービス | SSM経由でGet-AclでNTFS ACLを取得（実装済み） |
-| ONTAP REST API | FSx ONTAP管理エンドポイント経由でACLを直接取得（`GET /api/protocols/file-security/permissions`） |
-| S3 Access Point | S3 AP経由でファイルアクセス時にNTFS ACLが自動適用される |
+| ONTAP REST API | FSx ONTAP管理エンドポイント経由でACLを直接取得（実装済み: `ENV_AUTO_METADATA=true`） |
+| S3 Access Point | S3 AP経由でファイルアクセス時にNTFS ACLが自動適用される（CDK対応済み: `useS3AccessPoint=true`） |
 
 #### S3 Access Point利用時（Option C）
 

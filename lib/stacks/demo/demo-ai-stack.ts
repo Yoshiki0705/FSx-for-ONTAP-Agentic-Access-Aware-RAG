@@ -19,16 +19,28 @@ export interface DemoAIStackProps extends cdk.StackProps {
   dataBucket: s3.IBucket;
   /** FSx ONTAP S3 Access Point名（StorageStackから） */
   s3AccessPointName?: string;
+  /** S3 Access Point ARN（StorageStackから） */
+  s3AccessPointArn?: string;
+  /** S3 Access Point Alias（StorageStackから、S3バケット名として使用） */
+  s3AccessPointAlias?: string;
+  /** S3 APをKBデータソースとして使用するか（デフォルト: false） */
+  useS3AccessPoint?: boolean;
+  /** Bedrock Guardrailsを有効化するか（デフォルト: false） */
+  enableGuardrails?: boolean;
 }
 
 export class DemoAIStack extends cdk.Stack {
   public readonly knowledgeBaseId: string;
   public readonly ossCollection: opensearchserverless.CfnCollection;
+  /** Bedrock Guardrail ID（enableGuardrails=trueの場合） */
+  public readonly guardrailId?: string;
+  /** Bedrock Guardrail Version（enableGuardrails=trueの場合） */
+  public readonly guardrailVersion?: string;
 
   constructor(scope: Construct, id: string, props: DemoAIStackProps) {
     super(scope, id, props);
 
-    const { projectName, environment, dataBucket, s3AccessPointName } = props;
+    const { projectName, environment, dataBucket, s3AccessPointName, s3AccessPointArn, s3AccessPointAlias, useS3AccessPoint, enableGuardrails } = props;
     const prefix = `${projectName}-${environment}`;
     const collectionName = `${projectName}-${environment}-vectors`.substring(0, 32).toLowerCase();
     const indexName = 'bedrock-knowledge-base-default-index';
@@ -178,18 +190,87 @@ export class DemoAIStack extends cdk.Stack {
     this.knowledgeBaseId = kb.attrKnowledgeBaseId;
 
     // --- S3データソース ---
-    // デフォルトではS3バケットをデータソースとして使用。
-    // FSx ONTAP S3 Access Pointが利用可能な場合、デプロイ後にBedrock KBコンソールまたは
-    // APIでデータソースをS3 APエイリアスに切り替え可能。
-    // 参考: https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/accessing-data-via-s3-access-points.html
-    new bedrock.CfnDataSource(this, 'S3DataSource', {
-      knowledgeBaseId: kb.attrKnowledgeBaseId,
-      name: `${prefix}-s3-datasource`,
-      dataSourceConfiguration: {
-        type: 'S3',
-        s3Configuration: { bucketArn: dataBucket.bucketArn },
-      },
-    });
+    // useS3AccessPoint=trueの場合、FSx ONTAP S3 Access Pointをデータソースとして使用。
+    // S3 APエイリアスはS3バケット名として扱われ、Bedrock KBがFSx上のデータを直接読み取る。
+    // .metadata.jsonファイルもS3 AP経由で取り込まれ、SIDフィルタリングが有効になる。
+    if (useS3AccessPoint && s3AccessPointArn) {
+      // S3 Access Pointデータソース
+      // Bedrock KBはS3 AP ARNをbucketArnとして受け付ける
+      new bedrock.CfnDataSource(this, 'S3ApDataSource', {
+        knowledgeBaseId: kb.attrKnowledgeBaseId,
+        name: `${prefix}-s3ap-datasource`,
+        dataSourceConfiguration: {
+          type: 'S3',
+          s3Configuration: {
+            bucketArn: s3AccessPointArn,
+          },
+        },
+      });
+
+      new cdk.CfnOutput(this, 'DataSourceType', {
+        value: 'S3_ACCESS_POINT',
+        description: 'KB data source type: FSx ONTAP S3 Access Point',
+      });
+      if (s3AccessPointAlias) {
+        new cdk.CfnOutput(this, 'S3ApAlias', {
+          value: s3AccessPointAlias,
+          description: 'S3 Access Point alias used as KB data source',
+        });
+      }
+    } else {
+      // デフォルト: S3バケットデータソース
+      new bedrock.CfnDataSource(this, 'S3DataSource', {
+        knowledgeBaseId: kb.attrKnowledgeBaseId,
+        name: `${prefix}-s3-datasource`,
+        dataSourceConfiguration: {
+          type: 'S3',
+          s3Configuration: { bucketArn: dataBucket.bucketArn },
+        },
+      });
+
+      new cdk.CfnOutput(this, 'DataSourceType', {
+        value: 'S3_BUCKET',
+        description: 'KB data source type: S3 Bucket (switch to S3 AP with useS3AccessPoint=true)',
+      });
+    }
+
+    // --- Bedrock Guardrails（オプション） ---
+    // コンテンツ安全性フィルタリング: 有害コンテンツ、PII、プロンプトインジェクション対策
+    if (enableGuardrails) {
+      const guardrail = new bedrock.CfnGuardrail(this, 'Guardrail', {
+        name: `${prefix}-guardrail`,
+        blockedInputMessaging: 'この入力はセキュリティポリシーにより拒否されました。',
+        blockedOutputsMessaging: 'この回答はセキュリティポリシーにより制限されました。',
+        contentPolicyConfig: {
+          filtersConfig: [
+            { type: 'SEXUAL', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+            { type: 'VIOLENCE', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+            { type: 'HATE', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+            { type: 'INSULTS', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+            { type: 'MISCONDUCT', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+            { type: 'PROMPT_ATTACK', inputStrength: 'HIGH', outputStrength: 'NONE' },
+          ],
+        },
+        sensitiveInformationPolicyConfig: {
+          piiEntitiesConfig: [
+            { type: 'EMAIL', action: 'ANONYMIZE' },
+            { type: 'PHONE', action: 'ANONYMIZE' },
+            { type: 'NAME', action: 'ANONYMIZE' },
+            { type: 'US_SOCIAL_SECURITY_NUMBER', action: 'BLOCK' },
+            { type: 'CREDIT_DEBIT_CARD_NUMBER', action: 'BLOCK' },
+          ],
+        },
+      });
+
+      this.guardrailId = guardrail.attrGuardrailId;
+      this.guardrailVersion = 'DRAFT';
+
+      new cdk.CfnOutput(this, 'GuardrailId', {
+        value: guardrail.attrGuardrailId,
+        description: 'Bedrock Guardrail ID for content safety filtering',
+        exportName: `${prefix}-GuardrailId`,
+      });
+    }
 
     // --- CloudFormation出力 ---
     new cdk.CfnOutput(this, 'KnowledgeBaseId', {

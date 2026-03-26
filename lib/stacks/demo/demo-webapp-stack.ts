@@ -41,6 +41,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   dataBucket: s3.IBucket;
   /** Geo制限対象国コード（デフォルト: JP） */
   allowedCountries?: string[];
+  /** Permission Filter Lambdaを使用するか（デフォルト: false、Next.js内でフィルタリング） */
+  usePermissionFilterLambda?: boolean;
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -48,6 +50,8 @@ export class DemoWebAppStack extends cdk.Stack {
   public readonly distribution: cloudfront.Distribution;
   /** Lambda関数 */
   public readonly webAppFunction: lambda.DockerImageFunction;
+  /** Permission Filter Lambda（オプション） */
+  public readonly permissionFilterFunction?: lambda.Function;
 
   constructor(scope: Construct, id: string, props: DemoWebAppStackProps) {
     super(scope, id, props);
@@ -57,6 +61,7 @@ export class DemoWebAppStack extends cdk.Stack {
       userPool, userPoolClient, knowledgeBaseId, imageUri,
       wafWebAclArn, permissionCacheTable, userAccessTable, dataBucket,
       allowedCountries = ['JP'],
+      usePermissionFilterLambda = false,
     } = props;
     const prefix = `${projectName}-${environment}`;
 
@@ -94,6 +99,40 @@ export class DemoWebAppStack extends cdk.Stack {
         RUST_LOG: 'info',
       },
     });
+
+    // ========================================
+    // Permission Filter Lambda（オプション）
+    // ========================================
+    let permFilterFnArn = '';
+    if (usePermissionFilterLambda) {
+      const permFilterFn = new lambda.Function(this, 'PermFilterFn', {
+        functionName: `${prefix}-perm-filter`,
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: 'metadata-filter-handler.handler',
+        code: lambda.Code.fromAsset('lambda/permissions'),
+        timeout: cdk.Duration.seconds(30),
+        memorySize: 256,
+        vpc,
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        securityGroups: [lambdaSg],
+        environment: {
+          PERMISSION_CACHE_TABLE: permissionCacheTable.tableName,
+          USER_ACCESS_TABLE_NAME: userAccessTable.tableName,
+        },
+      });
+      permissionCacheTable.grantReadWriteData(permFilterFn);
+      userAccessTable.grantReadData(permFilterFn);
+      permFilterFnArn = permFilterFn.functionArn;
+      (this as any).permissionFilterFunction = permFilterFn;
+
+      // WebApp LambdaからPermission Filter Lambdaを呼び出す権限
+      permFilterFn.grantInvoke(this.webAppFunction);
+    }
+
+    // WebApp環境変数にPermission Filter Lambda ARNを追加
+    if (permFilterFnArn) {
+      this.webAppFunction.addEnvironment('PERMISSION_FILTER_LAMBDA_ARN', permFilterFnArn);
+    }
 
     // ========================================
     // IAMポリシー
@@ -218,6 +257,7 @@ export class DemoWebAppStack extends cdk.Stack {
         `WAF: ${wafWebAclArn ? 'Enabled' : 'Not configured'}`,
         `Geo Restriction: ${allowedCountries.join(', ')}`,
         'Permission Check: Enabled (SID-based filtering)',
+        `Permission Filter: ${usePermissionFilterLambda ? 'Lambda' : 'Inline (Next.js API)'}`,
       ].join(' | '),
     });
 

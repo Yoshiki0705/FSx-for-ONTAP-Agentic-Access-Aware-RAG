@@ -12,6 +12,8 @@ import { Construct } from 'constructs';
 export interface DemoNetworkingStackProps extends cdk.StackProps {
   projectName: string;
   environment: string;
+  /** VPCエンドポイントを有効化するか（デフォルト: false） */
+  enableVpcEndpoints?: boolean;
 }
 
 export class DemoNetworkingStack extends cdk.Stack {
@@ -29,7 +31,7 @@ export class DemoNetworkingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: DemoNetworkingStackProps) {
     super(scope, id, props);
 
-    const { projectName, environment } = props;
+    const { projectName, environment, enableVpcEndpoints } = props;
     const prefix = `${projectName}-${environment}`;
 
     // VPC（2 AZ、Public + Private サブネット）
@@ -136,6 +138,74 @@ export class DemoNetworkingStack extends cdk.Stack {
       ec2.Port.tcp(2049),
       'NFS from Lambda',
     );
+
+    // ========================================
+    // VPCエンドポイント（オプション）
+    // ========================================
+    // NAT Gateway経由のインターネットアクセスを減らし、
+    // AWSサービスへのプライベート接続を確立する。
+    if (enableVpcEndpoints) {
+      // Gateway Endpoints（無料）
+      this.vpc.addGatewayEndpoint('S3Endpoint', {
+        service: ec2.GatewayVpcEndpointAwsService.S3,
+      });
+      this.vpc.addGatewayEndpoint('DynamoDbEndpoint', {
+        service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
+      });
+
+      // Interface Endpoints（有料、セキュリティ要件に応じて有効化）
+      const interfaceEndpointSg = new ec2.SecurityGroup(this, 'VpceInterfaceSg', {
+        vpc: this.vpc,
+        securityGroupName: `${prefix}-vpce-sg`,
+        description: 'Security group for VPC Interface Endpoints',
+        allowAllOutbound: true,
+      });
+      interfaceEndpointSg.addIngressRule(
+        ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+        ec2.Port.tcp(443),
+        'HTTPS from VPC',
+      );
+
+      // Bedrock Runtime
+      this.vpc.addInterfaceEndpoint('BedrockRuntimeEndpoint', {
+        service: ec2.InterfaceVpcEndpointAwsService.BEDROCK_RUNTIME,
+        securityGroups: [interfaceEndpointSg],
+        privateDnsEnabled: true,
+      });
+
+      // Bedrock Agent Runtime
+      this.vpc.addInterfaceEndpoint('BedrockAgentRuntimeEndpoint', {
+        service: ec2.InterfaceVpcEndpointAwsService.BEDROCK_AGENT_RUNTIME,
+        securityGroups: [interfaceEndpointSg],
+        privateDnsEnabled: true,
+      });
+
+      // SSM（Session Manager / AD Sync Lambda用）
+      this.vpc.addInterfaceEndpoint('SsmEndpoint', {
+        service: ec2.InterfaceVpcEndpointAwsService.SSM,
+        securityGroups: [interfaceEndpointSg],
+        privateDnsEnabled: true,
+      });
+      this.vpc.addInterfaceEndpoint('SsmMessagesEndpoint', {
+        service: ec2.InterfaceVpcEndpointAwsService.SSM_MESSAGES,
+        securityGroups: [interfaceEndpointSg],
+        privateDnsEnabled: true,
+      });
+
+      // Secrets Manager
+      this.vpc.addInterfaceEndpoint('SecretsManagerEndpoint', {
+        service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+        securityGroups: [interfaceEndpointSg],
+        privateDnsEnabled: true,
+      });
+
+      // CloudWatch Logs（Lambda ログ出力用）
+      this.vpc.addInterfaceEndpoint('CloudWatchLogsEndpoint', {
+        service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+        securityGroups: [interfaceEndpointSg],
+        privateDnsEnabled: true,
+      });
+    }
 
     // CloudFormation出力
     new cdk.CfnOutput(this, 'VpcId', {

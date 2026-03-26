@@ -51,6 +51,12 @@ export interface DemoEmbeddingStackProps extends cdk.StackProps {
   cifsdataVolName: string;
   /** ragdbボリュームパス（CIFSマウント内の相対パス） */
   ragdbVolPath: string;
+  /** ONTAP管理エンドポイントIP（.metadata.json自動生成用、オプション） */
+  ontapMgmtIp?: string;
+  /** ONTAP SVM UUID（.metadata.json自動生成用、オプション） */
+  ontapSvmUuid?: string;
+  /** ONTAP管理者パスワードのSecrets Manager ARN（オプション、adSecretArnと共用可） */
+  ontapAdminSecretArn?: string;
 }
 
 export class DemoEmbeddingStack extends cdk.Stack {
@@ -64,8 +70,10 @@ export class DemoEmbeddingStack extends cdk.Stack {
       projectName, environment, vpc, privateSubnets,
       ossCollection, svm, adSecretArn, adUserName, adDomain,
       cifsdataVolName, ragdbVolPath,
+      ontapMgmtIp, ontapSvmUuid, ontapAdminSecretArn,
     } = props;
     const prefix = `${projectName}-${environment}`;
+    const autoMetadataEnabled = !!(ontapMgmtIp && ontapSvmUuid);
 
     // ========================================
     // ECRリポジトリ（イメージは別途ビルド・プッシュ）
@@ -178,7 +186,7 @@ export class DemoEmbeddingStack extends cdk.Stack {
     instanceRole.addToPrincipalPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['secretsmanager:GetSecretValue'],
-      resources: [adSecretArn],
+      resources: [adSecretArn, ...(ontapAdminSecretArn ? [ontapAdminSecretArn] : [])],
     }));
 
     // ========================================
@@ -244,6 +252,24 @@ PYEOF`,
     );
 
     // ECR認証 + Docker実行
+    // ONTAP管理者パスワード取得（自動メタデータ生成が有効な場合）
+    if (autoMetadataEnabled) {
+      const ontapSecretArn = ontapAdminSecretArn || adSecretArn;
+      userData.addCommands(
+        `cat > /tmp/get_ontap_password.py << 'PYEOF'
+import boto3, json
+def get_secret():
+    sm = boto3.client("secretsmanager", region_name="${region}")
+    resp = sm.get_secret_value(SecretId="${ontapSecretArn}")
+    secret = json.loads(resp["SecretString"])
+    return secret.get("password", secret.get("fsxadmin", ""))
+print(get_secret())
+PYEOF`,
+        'ONTAP_PASSWORD=$(python3 /tmp/get_ontap_password.py)',
+        'echo "ONTAP admin password retrieved"',
+      );
+    }
+
     userData.addCommands(
       `sudo aws ecr get-login-password --region ${region} | sudo docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com`,
       [
@@ -252,6 +278,13 @@ PYEOF`,
         '-v /tmp/db:/opt/netapp/ai/db',
         `-e ENV_REGION="${region}"`,
         `-e ENV_OPEN_SEARCH_SERVERLESS_COLLECTION_NAME="${ossCollection.name}"`,
+        ...(autoMetadataEnabled ? [
+          '-e ENV_AUTO_METADATA="true"',
+          `-e ENV_ONTAP_MGMT_IP="${ontapMgmtIp}"`,
+          `-e ENV_ONTAP_SVM_UUID="${ontapSvmUuid}"`,
+          '-e ENV_ONTAP_USERNAME="fsxadmin"',
+          '-e ENV_ONTAP_PASSWORD="$ONTAP_PASSWORD"',
+        ] : []),
         `${ecrRepoUri}:latest`,
       ].join(' '),
       'docker logs $(docker ps -aq | head -n1)',
@@ -303,6 +336,16 @@ PYEOF`,
       value: ragdbVolPath,
       description: 'Ragdb volume path mounted on embedding server',
     });
+    if (autoMetadataEnabled) {
+      new cdk.CfnOutput(this, 'AutoMetadataEnabled', {
+        value: 'true',
+        description: 'ONTAP REST API ACL auto-metadata generation is enabled',
+      });
+      new cdk.CfnOutput(this, 'OntapMgmtIp', {
+        value: ontapMgmtIp!,
+        description: 'ONTAP management endpoint IP for ACL retrieval',
+      });
+    }
 
     // ========================================
     // cdk-nag suppressions

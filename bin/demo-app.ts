@@ -11,11 +11,11 @@
  *   6. WebAppStack               - Lambda Web Adapter + CloudFront
  *   7. EmbeddingStack (optional) - FlexCache CIFS mount + Embedding Server
  *
- * Embeddingサーバー（オプション）:
- *   CIFSDATA_VOL_NAME=smb_share RAGDB_VOL_PATH=/smb_share/ragdb \
- *     npx cdk deploy ${stackPrefix}-Embedding \
- *     -c enableEmbeddingServer=true \
- *     -c embeddingAdSecretArn=arn:aws:secretsmanager:...
+ * オプション（CDKコンテキストパラメータ）:
+ *   Phase 2: -c ontapMgmtIp=... -c ontapSvmUuid=... -c useS3AccessPoint=true
+ *   Phase 3: -c usePermissionFilterLambda=true
+ *   Phase 4: -c enableGuardrails=true -c enableKmsEncryption=true
+ *            -c enableCloudTrail=true -c enableVpcEndpoints=true
  */
 
 import 'source-map-support/register';
@@ -30,7 +30,13 @@ import { DemoEmbeddingStack } from '../lib/stacks/demo/demo-embedding-stack';
 
 const app = new cdk.App();
 
-// CDK contextパラメータ
+/** CDKコンテキストからboolean値を取得するヘルパー */
+function ctxBool(key: string): boolean {
+  const v = app.node.tryGetContext(key);
+  return v === 'true' || v === true;
+}
+
+// 基本パラメータ
 const projectName = app.node.tryGetContext('projectName') || 'perm-rag-demo';
 const environment = app.node.tryGetContext('environment') || 'demo';
 const allowedIps: string[] = app.node.tryGetContext('allowedIps') || [];
@@ -39,17 +45,27 @@ const adPassword: string | undefined = app.node.tryGetContext('adPassword');
 const adDomainName: string | undefined = app.node.tryGetContext('adDomainName');
 
 // Embeddingサーバー（オプション）
-const enableEmbedding: boolean =
-  app.node.tryGetContext('enableEmbeddingServer') === 'true' ||
-  app.node.tryGetContext('enableEmbeddingServer') === true;
-const cifsdataVolName: string =
-  app.node.tryGetContext('cifsdataVolName') || process.env.CIFSDATA_VOL_NAME || 'smb_share';
-const ragdbVolPath: string =
-  app.node.tryGetContext('ragdbVolPath') || process.env.RAGDB_VOL_PATH || '/smb_share/ragdb';
+const enableEmbedding = ctxBool('enableEmbeddingServer');
+const cifsdataVolName: string = app.node.tryGetContext('cifsdataVolName') || process.env.CIFSDATA_VOL_NAME || 'smb_share';
+const ragdbVolPath: string = app.node.tryGetContext('ragdbVolPath') || process.env.RAGDB_VOL_PATH || '/smb_share/ragdb';
 const embeddingAdSecretArn: string | undefined = app.node.tryGetContext('embeddingAdSecretArn');
 const embeddingAdUserName: string = app.node.tryGetContext('embeddingAdUserName') || 'Admin';
-const embeddingAdDomain: string =
-  app.node.tryGetContext('embeddingAdDomain') || adDomainName || 'demo.local';
+const embeddingAdDomain: string = app.node.tryGetContext('embeddingAdDomain') || adDomainName || 'demo.local';
+
+// Phase 2: ONTAP ACL自動取得 + S3 AP
+const ontapMgmtIp: string | undefined = app.node.tryGetContext('ontapMgmtIp');
+const ontapSvmUuid: string | undefined = app.node.tryGetContext('ontapSvmUuid');
+const ontapAdminSecretArn: string | undefined = app.node.tryGetContext('ontapAdminSecretArn');
+const useS3AccessPoint = ctxBool('useS3AccessPoint');
+
+// Phase 3: Permission Filter Lambda
+const usePermissionFilterLambda = ctxBool('usePermissionFilterLambda');
+
+// Phase 4: セキュリティ強化
+const enableGuardrails = ctxBool('enableGuardrails');
+const enableKmsEncryption = ctxBool('enableKmsEncryption');
+const enableCloudTrail = ctxBool('enableCloudTrail');
+const enableVpcEndpoints = ctxBool('enableVpcEndpoints');
 
 const primaryEnv: cdk.Environment = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
@@ -71,6 +87,7 @@ const wafStack = new DemoWafStack(app, `${stackPrefix}-Waf`, {
 // Stack 2: NetworkingStack
 const networkingStack = new DemoNetworkingStack(app, `${stackPrefix}-Networking`, {
   projectName, environment,
+  enableVpcEndpoints,
   env: primaryEnv,
   description: `[${projectName}] VPC, Subnets, Security Groups`,
 });
@@ -90,6 +107,8 @@ const storageStack = new DemoStorageStack(app, `${stackPrefix}-Storage`, {
   privateSubnets: networkingStack.privateSubnets,
   fsxSg: networkingStack.fsxSg,
   adPassword, adDomainName,
+  enableKmsEncryption,
+  enableCloudTrail,
   env: primaryEnv,
   description: `[${projectName}] FSx ONTAP + SVM + S3 + DynamoDB`,
 });
@@ -99,6 +118,8 @@ storageStack.addDependency(networkingStack);
 const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   projectName, environment,
   dataBucket: storageStack.dataBucket,
+  useS3AccessPoint,
+  enableGuardrails,
   env: primaryEnv,
   description: `[${projectName}] Bedrock Knowledge Base, OpenSearch Serverless`,
 });
@@ -119,6 +140,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   userAccessTable: storageStack.userAccessTable,
   dataBucket: storageStack.dataBucket,
   allowedCountries,
+  usePermissionFilterLambda,
   env: primaryEnv, crossRegionReferences: true,
   description: `[${projectName}] Lambda Web Adapter + CloudFront (IAM Auth + OAC + WAF)`,
 });
@@ -144,6 +166,9 @@ if (enableEmbedding) {
     adUserName: embeddingAdUserName,
     adDomain: embeddingAdDomain,
     cifsdataVolName, ragdbVolPath,
+    ontapMgmtIp,
+    ontapSvmUuid,
+    ontapAdminSecretArn,
     env: primaryEnv,
     description: `[${projectName}] Embedding Server (FlexCache CIFS mount)`,
   });
