@@ -262,7 +262,7 @@ const generateInitialMessageWithDirectories = (
 • **${t('introduction.user')}**: ${username}
 • **${t('introduction.role')}**: ${role || 'User'}${sidSection}
 • **📁 ${t('introduction.fsxDirectories') || 'FSxアクセス可能ディレクトリ'}**: ${directoryDisplay}
-• **🔍 ${t('introduction.ragDirectories') || 'RAG検索可能ディレクトリ'}**: ${ragDirectoryDisplay || directoryDisplay}${embeddedDirectoryDisplay ? `
+• **🔍 ${t('introduction.ragDirectories') || 'RAG検索可能ディレクトリ'}**: ${ragDirectoryDisplay || directoryDisplay}${embeddedDirectoryDisplay && embeddedDirectoryDisplay === (ragDirectoryDisplay || directoryDisplay) ? `
 • **📚 ${t('introduction.embeddedDirectories') || 'Embedding対象ディレクトリ'}**: ${embeddedDirectoryDisplay}` : ''}
 
 ${directoryNote}
