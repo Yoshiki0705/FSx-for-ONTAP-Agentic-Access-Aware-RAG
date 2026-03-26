@@ -530,14 +530,20 @@ FSx ONTAP Volume (/data)
 
 #### S3 Access Pointデータソースのセットアップ
 
-CDKデプロイ後、以下のスクリプトでS3 AP作成 → KBデータソース追加 → 同期を一括実行します。
+CDKデプロイ後、`post-deploy-setup.sh`でS3 AP作成→データアップロード→KB同期を一括実行します。
+
+S3 APのユーザータイプはAD設定に応じて自動選択されます:
+
+| AD設定 | ボリュームスタイル | S3 APユーザータイプ | 動作 |
+|--------|------------------|-------------------|------|
+| `adPassword`設定あり | NTFS | WINDOWS (`DOMAIN\Admin`) | NTFS ACLが自動適用。SMBユーザーのファイル権限がそのまま反映される |
+| `adPassword`未設定 | NTFS | UNIX (`root`) | 全ファイルアクセス可能。権限制御は`.metadata.json`のSIDで実現 |
+
+> **本番環境推奨**: AD連携 + WINDOWSユーザータイプを使用することで、SMBで設定したNTFS ACLがS3 AP経由のアクセスにも自動適用されます。
 
 ```bash
-# FSx ONTAPにデモデータをアップロード（S3 AP経由）
-bash demo-data/scripts/upload-demo-data-s3ap.sh
-
-# S3 AP → KBデータソース追加 → 同期
-bash demo-data/scripts/setup-kb-datasource.sh
+# ポストデプロイセットアップ（S3 AP作成 + データ + KB同期 + ユーザー作成）
+bash demo-data/scripts/post-deploy-setup.sh
 ```
 
 ### Embeddingサーバーのデプロイ

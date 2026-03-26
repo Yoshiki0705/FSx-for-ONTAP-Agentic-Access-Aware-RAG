@@ -63,15 +63,38 @@ echo ""
 # ========================================
 echo "📎 Step 1/5: S3 Access Point セットアップ..."
 
+# S3 APユーザータイプを判定（CDKスタック出力から取得）
+S3AP_USER_TYPE=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Storage --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`S3AccessPointUserType`].OutputValue' --output text 2>/dev/null || echo "UNIX")
+# "WINDOWS (...)" → "WINDOWS" に正規化
+S3AP_USER_TYPE=$(echo "$S3AP_USER_TYPE" | awk '{print $1}')
+echo "  S3 AP User Type: $S3AP_USER_TYPE"
+
 S3AP_ALIAS=$(aws fsx describe-s3-access-point-attachments --region $REGION \
   --query "S3AccessPointAttachments[?Name=='${S3AP_NAME}'].S3AccessPoint.Alias" --output text 2>/dev/null || echo "")
 
 if [ -z "$S3AP_ALIAS" ] || [ "$S3AP_ALIAS" = "None" ] || [ "$S3AP_ALIAS" = "" ]; then
   echo "  S3 AP が存在しません。作成します..."
+
+  # ユーザータイプに応じてFileSystemIdentityを構築
+  if [ "$S3AP_USER_TYPE" = "WINDOWS" ]; then
+    # WINDOWS: SVMがAD参加済みであることが前提
+    # ADドメイン名を取得
+    AD_DOMAIN=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Storage --region $REGION \
+      --query 'Stacks[0].Outputs[?OutputKey==`AdDomainName`].OutputValue' --output text 2>/dev/null || echo "demo.local")
+    FS_IDENTITY="{\"Type\":\"WINDOWS\",\"WindowsUser\":{\"Name\":\"${AD_DOMAIN}\\\\Admin\"}}"
+    echo "  WINDOWS identity: ${AD_DOMAIN}\\Admin"
+    echo "  ⚠️ SVMがADドメインに参加済みであることを確認してください"
+  else
+    # UNIX: AD不要
+    FS_IDENTITY='{"Type":"UNIX","UnixUser":{"Name":"root"}}'
+    echo "  UNIX identity: root"
+  fi
+
   aws fsx create-and-attach-s3-access-point \
     --name "$S3AP_NAME" \
     --type ONTAP \
-    --ontap-configuration "{\"VolumeId\":\"${VOLUME_ID}\",\"FileSystemIdentity\":{\"Type\":\"UNIX\",\"UnixUser\":{\"Name\":\"root\"}}}" \
+    --ontap-configuration "{\"VolumeId\":\"${VOLUME_ID}\",\"FileSystemIdentity\":${FS_IDENTITY}}" \
     --region $REGION --output json > /dev/null 2>&1
 
   echo "  ⏳ S3 AP 作成完了を待機中..."

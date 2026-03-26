@@ -245,21 +245,32 @@ export class DemoStorageStack extends cdk.Stack {
       code: lambda.Code.fromInline(this.getS3ApCreatorCode()),
     });
 
+    // S3 APのユーザータイプはボリュームのセキュリティスタイルに合わせる:
+    // - NTFS + AD → WINDOWS（NTFS ACLが自動適用、SMBユーザーのアクセス制御が有効）
+    // - NTFS + AD なし → UNIX root（AD参加前でもS3 AP作成可能、全ファイルアクセス）
+    // - UNIX → UNIX
+    //
+    // AD設定がある場合、S3 APはSVM AD参加後にポストデプロイスクリプトで作成する。
+    // AD設定がない場合、CDKカスタムリソースで即座に作成する。
+    const hasAd = !!adPassword;
+    const s3ApUserType = hasAd ? 'WINDOWS' : 'UNIX';
+    const s3ApUserName = hasAd ? `${domainName}\\Admin` : 'root';
+
     const s3ApResource = new cdk.CustomResource(this, 'FsxS3AccessPoint', {
       serviceToken: s3ApCreatorFn.functionArn,
       properties: {
         VolumeId: this.volume.ref,
         AccessPointName: s3ApName,
-        // UNIX: AD参加不要でS3 AP経由のアクセスが可能
-        // rootユーザー（UID 0）で全ファイルへのアクセス権を確保
-        FileSystemUserType: 'UNIX',
-        FileSystemUserName: 'root',
+        FileSystemUserType: s3ApUserType,
+        FileSystemUserName: s3ApUserName,
         // Internet: Bedrock KBがパブリックAPI経由でアクセス（IAMポリシーで認可制御）
         NetworkOrigin: 'Internet',
         // S3 APポリシー: アカウント内の全プリンシパルにアクセスを許可
         SetAccessPointPolicy: 'true',
         AccountId: cdk.Aws.ACCOUNT_ID,
-        KbRoleArn: '', // AIStack作成後にKBロールARNを設定（ポストデプロイで対応）
+        // AD設定がある場合、S3 AP作成はSVM AD参加後まで延期
+        // カスタムリソースLambdaはフォールバックしてSUCCESSを返す
+        DeferIfAdRequired: hasAd ? 'true' : 'false',
         Timestamp: Date.now().toString(),
       },
     });
@@ -347,6 +358,11 @@ export class DemoStorageStack extends cdk.Stack {
       value: s3ApName,
       description: 'FSx ONTAP S3 Access Point name',
       exportName: `${prefix}-S3AccessPointName`,
+    });
+
+    new cdk.CfnOutput(this, 'S3AccessPointUserType', {
+      value: s3ApUserType,
+      description: `S3 AP user type: ${s3ApUserType} (${hasAd ? 'AD enabled, NTFS ACL applied' : 'No AD, root access'})`,
     });
 
     // S3 AP出力: 空文字列はCloudFormationエクスポートで拒否されるため、
@@ -533,6 +549,42 @@ exports.handler = async (event) => {
     console.log('Creating FSx ONTAP S3 Access Point:', {
       volumeId, apName, userType, networkOrigin,
     });
+
+    // AD設定がある場合、SVM AD参加状態を確認
+    // AD参加前はWINDOWSユーザータイプのS3 APを作成できないため延期
+    if (props.DeferIfAdRequired === 'true' && userType === 'WINDOWS') {
+      try {
+        const { FSxClient: FsxCli, DescribeStorageVirtualMachinesCommand } = require('@aws-sdk/client-fsx');
+        const fsx = new FsxCli({ region });
+        // ボリュームからSVM IDを取得
+        const { DescribeVolumesCommand } = require('@aws-sdk/client-fsx');
+        const volResp = await fsx.send(new DescribeVolumesCommand({ VolumeIds: [volumeId] }));
+        const svmId = volResp.Volumes?.[0]?.OntapConfiguration?.StorageVirtualMachineId;
+        if (svmId) {
+          const svmResp = await fsx.send(new DescribeStorageVirtualMachinesCommand({ StorageVirtualMachineIds: [svmId] }));
+          const adConfig = svmResp.StorageVirtualMachines?.[0]?.ActiveDirectoryConfiguration;
+          const adJoined = adConfig?.SelfManagedActiveDirectoryConfiguration?.DomainName;
+          if (!adJoined) {
+            console.log('SVM is not AD-joined yet. Deferring S3 AP creation to post-deploy script.');
+            console.log('Run: bash demo-data/scripts/post-deploy-setup.sh after SVM AD join.');
+            const fallbackId = 'fsx-s3-ap-deferred-ad-' + volumeId;
+            await sendCfnResponse(event, 'SUCCESS', fallbackId, {
+              AccessPointArn: 'DEFERRED_AD_JOIN',
+              AccessPointAlias: 'DEFERRED_AD_JOIN',
+              AccessPointName: apName,
+              VolumeId: volumeId,
+              Message: 'S3 AP creation deferred until SVM AD join. Run post-deploy-setup.sh after AD join.',
+              UserType: userType,
+              UserName: props.FileSystemUserName || '',
+            });
+            return;
+          }
+          console.log('SVM is AD-joined to:', adJoined);
+        }
+      } catch (checkErr) {
+        console.warn('AD join check failed, attempting S3 AP creation anyway:', checkErr.message);
+      }
+    }
 
     // Updateの場合、既存APを削除してから再作成
     if (event.RequestType === 'Update' && event.PhysicalResourceId) {
