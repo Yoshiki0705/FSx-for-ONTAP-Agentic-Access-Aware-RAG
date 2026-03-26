@@ -97,6 +97,8 @@ DynamoDB user-access テーブル
 
 Bedrock KB検索結果の各Citationには、S3上の `.metadata.json` から取り込まれたメタデータが含まれます。
 
+> **`.metadata.json`の作成方法**: 現在の検証環境では手動作成のサンプルデータです。本番環境ではONTAP REST APIやPowerShell（Get-Acl）でNTFS ACLからSIDを自動取得して生成できます。詳細は [docs/embedding-server-design.md](embedding-server-design.md) の「メタデータの構造」セクションを参照してください。
+
 ```
 ドキュメントメタデータ（.metadata.json）
 ┌──────────────────────────┬──────────────────────────────────────┐

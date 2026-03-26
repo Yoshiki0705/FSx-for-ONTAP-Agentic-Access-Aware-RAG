@@ -155,7 +155,52 @@ AOSSインデックスは`dynamic: false`で作成されています。これに
 
 ### メタデータの構造
 
-`.metadata.json`の`metadataAttributes`がそのまま`AMAZON_BEDROCK_METADATA`に含まれます。
+各ドキュメントには対応する`.metadata.json`ファイルが必要です。このファイルにNTFS ACLのSID情報を記載することで、RAG検索時のアクセス制御が実現されます。
+
+#### `.metadata.json`のSID情報の取得方法
+
+現在の検証環境では、`.metadata.json`は手動で作成されたサンプルデータです（`demo-data/documents/`配下）。
+
+本番環境でのSID情報取得には以下の方法があります:
+
+| 方法 | 説明 | 自動化 |
+|------|------|--------|
+| 手動作成 | ドキュメントアップロード時に`.metadata.json`を手動で作成 | ❌ |
+| ONTAP REST API | FSx ONTAP管理エンドポイント経由でNTFS ACLを取得（`GET /api/protocols/file-security/permissions`） | ✅ |
+| PowerShell (Get-Acl) | SMBマウント経由でWindows ACLを取得し、SIDを抽出 | ✅ |
+| icacls コマンド | Windowsの`icacls`コマンドでACL情報を取得 | ✅ |
+| S3 Access Point | S3 AP経由でファイルアクセス時にNTFS ACLが自動適用される（メタデータ不要） | ✅ |
+
+#### ONTAP REST APIでのACL取得例
+
+```bash
+# FSx ONTAP管理エンドポイント経由でファイルのACLを取得
+curl -sk -u fsxadmin:<PASSWORD> \
+  "https://<MGMT_IP>/api/protocols/file-security/permissions/<SVM_UUID>/<VOLUME_NAME>/<FILE_PATH>" \
+  | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+acls = data.get('acls', [])
+for acl in acls:
+    print(f'SID: {acl[\"user_or_group\"]} Permission: {acl[\"access\"]}')
+"
+```
+
+#### 自動化の将来構想
+
+Embeddingサーバーの`processFile()`内で、ドキュメント処理前にONTAP REST APIからACL情報を取得し、`.metadata.json`を自動生成する拡張が可能です:
+
+```
+ファイル検出 → ONTAP REST API でACL取得 → .metadata.json 自動生成 → チャンク分割 → Embedding → インデックス
+```
+
+現時点では`.metadata.json`の手動作成が前提ですが、この拡張により完全自動化が実現できます。
+
+#### S3 Access Point利用時（Option C）
+
+S3 Access Point経由でBedrock KBがドキュメントを取り込む場合、NTFS ACLはS3 Access Pointの`FileSystemIdentity`（WINDOWSタイプ）で自動適用されます。ただし、Bedrock KBのRetrieve APIが返すメタデータにACL情報が含まれるかは、S3 Access Pointの実装に依存します。現時点では`.metadata.json`によるSID管理が確実な方法です。
+
+#### `.metadata.json`のフォーマット
 
 ```json
 // .metadata.json
