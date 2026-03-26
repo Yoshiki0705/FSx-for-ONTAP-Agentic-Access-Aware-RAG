@@ -119,9 +119,9 @@ export class DemoAIStack extends cdk.Stack {
       policy: cdk.Fn.join('', [
         '[{"Rules":[{"ResourceType":"collection","Resource":["collection/',
         collectionName,
-        '"],"Permission":["aoss:CreateCollectionItems","aoss:UpdateCollectionItems","aoss:DescribeCollectionItems"]},{"ResourceType":"index","Resource":["index/',
+        '"],"Permission":["aoss:CreateCollectionItems","aoss:UpdateCollectionItems","aoss:DescribeCollectionItems","aoss:DeleteCollectionItems"]},{"ResourceType":"index","Resource":["index/',
         collectionName,
-        '/*"],"Permission":["aoss:CreateIndex","aoss:UpdateIndex","aoss:DescribeIndex","aoss:ReadDocument","aoss:WriteDocument"]}],"Principal":["',
+        '/*"],"Permission":["aoss:CreateIndex","aoss:UpdateIndex","aoss:DescribeIndex","aoss:DeleteIndex","aoss:ReadDocument","aoss:WriteDocument"]}],"Principal":["',
         kbRole.roleArn,
         '","',
         indexCreatorFn.role!.roleArn,
@@ -326,6 +326,9 @@ exports.handler = async (event, context) => {
     const body = {
       settings: { 'index.knn': true, number_of_shards: 2, number_of_replicas: 0 },
       mappings: {
+        // dynamic: false で未定義フィールドの自動マッピング作成を防止
+        // Embeddingサーバー等が追加フィールドを書き込んでもインデックススキーマは変わらない
+        dynamic: false,
         properties: {
           'bedrock-knowledge-base-default-vector': {
             type: 'knn_vector', dimension: 1024,
