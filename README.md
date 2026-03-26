@@ -444,17 +444,48 @@ FlexCache CacheボリュームをCIFSマウントしてEmbeddingを実行するE
 |------|------|-------------|----------|------|
 | Option A（デフォルト） | S3バケット + Bedrock KB S3データソース | S3にアップロードしたドキュメント | 常に有効 | ✅ 利用可能 |
 | Option B（オプション） | Embeddingサーバー + CIFSマウント → AOSS直接書き込み | FSx ONTAPボリューム上のドキュメント | `-c enableEmbeddingServer=true` | ✅ 利用可能 |
-| Option C（将来対応） | S3 Access Point + Bedrock KB | FSx ONTAPボリューム（S3 AP経由） | 未実装 | ⚠️ FlexCache未対応 |
+| Option C（オプション） | S3 Access Point + Bedrock KB | FSx ONTAPボリューム（S3 AP経由） | デプロイ後に手動設定 | ✅ SnapMirror対応、FlexCache近日対応 |
 
 #### S3 Access Pointについて
 
-StorageStackはFSx ONTAPボリュームにS3 Access Pointを自動作成します（WINDOWSユーザータイプ、NTFS ACLベース認可）。ただし、以下の制約があります:
+StorageStackはFSx ONTAPボリュームにS3 Access Pointを自動作成します（WINDOWSユーザータイプ、NTFS ACLベース認可）。
 
-- FlexCache CacheボリュームではS3 Access Pointが利用不可（2026年3月時点）
-- Bedrock KBのデータソースとしてS3 Access Pointを使用する機能は未実装（Option C）
-- 現在のKBデータソースはS3バケット直接参照（Option A）
+- SnapMirror構成のボリュームでは利用可能
+- FlexCache Cacheボリュームは近日対応予定
+- CDKデプロイ後、Bedrock KBコンソールまたはAPIでデータソースをS3 APエイリアスに切り替え可能
 
-S3 Access Pointは将来的にFlexCache対応が実現した際に、Option Cとして活用できるよう基盤を準備しています。
+#### Option C: S3 Access Pointデータソースの設定手順
+
+CDKデプロイ後、以下の手順でS3 Access PointをBedrock KBのデータソースとして追加します。
+
+```bash
+# 1. S3 Access Pointの作成（CDKで自動作成されない場合）
+aws fsx create-and-attach-s3-access-point \
+  --name "<PREFIX>-s3ap" \
+  --type ONTAP \
+  --ontap-configuration '{"VolumeId":"<VOLUME_ID>","FileSystemIdentity":{"Type":"WINDOWS","WindowsUser":{"Name":"<DOMAIN>\\<USER>"}}}' \
+  --region ap-northeast-1
+
+# 2. S3 Access Pointエイリアスを取得
+S3AP_ALIAS=$(aws fsx describe-s3-access-point-attachments \
+  --region ap-northeast-1 \
+  --query 'S3AccessPointAttachments[?Name==`<PREFIX>-s3ap`].S3AccessPoint.Alias' --output text)
+
+# 3. Bedrock KBにS3 APデータソースを追加
+aws bedrock-agent create-data-source \
+  --knowledge-base-id <KB_ID> \
+  --name "fsx-s3ap-datasource" \
+  --data-source-configuration '{
+    "type": "S3",
+    "s3Configuration": {"bucketArn": "arn:aws:s3:::'${S3AP_ALIAS}'"}
+  }' --region ap-northeast-1
+
+# 4. データソース同期
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
 
 ### Embeddingサーバーのデプロイ
 

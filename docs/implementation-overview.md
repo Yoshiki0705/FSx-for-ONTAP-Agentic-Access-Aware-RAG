@@ -200,8 +200,8 @@ Amazon FSx for NetApp ONTAPのボリュームをCIFS/SMBでマウントしたEC2
 | パス | 方式 | CDK有効化 | 状況 |
 |------|------|----------|------|
 | Option A（デフォルト） | S3バケット → Bedrock KB S3データソース | 常に有効 | ✅ |
-| Option B（本セクション） | Embeddingサーバー（CIFSマウント）→ AOSS直接書き込み | `-c enableEmbeddingServer=true` | ✅ |
-| Option C（将来対応） | S3 Access Point → Bedrock KB | 未実装 | ⚠️ FlexCache未対応 |
+| Option B（オプション） | Embeddingサーバー（CIFSマウント）→ AOSS直接書き込み | `-c enableEmbeddingServer=true` | ✅ |
+| Option C（オプション） | S3 Access Point → Bedrock KB | デプロイ後に手動設定 | ✅ SnapMirror対応、FlexCache近日対応 |
 
 > **S3 Access Pointについて**: StorageStackはFSx ONTAPボリュームにS3 Access Pointを自動作成しますが、FlexCache CacheボリュームではS3 Access Pointが利用不可（2026年3月時点）のため、Bedrock KBデータソースとしては未使用です。将来FlexCache対応が実現した際にOption Cとして活用できるよう基盤を準備しています。
 
