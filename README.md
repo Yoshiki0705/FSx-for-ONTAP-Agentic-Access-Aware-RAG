@@ -239,7 +239,7 @@ EOF
 ### Step 6: CDKデプロイ
 
 ```bash
-# 全6スタックを一括デプロイ
+# 全6スタックを一括デプロイ（30〜40分）
 npx cdk deploy --all \
   --app "npx ts-node bin/demo-app.ts" \
   --require-approval never
@@ -247,119 +247,48 @@ npx cdk deploy --all \
 
 > **所要時間の目安**: FSx for ONTAPの作成に20〜30分かかるため、全体で30〜40分程度です。
 
-### Step 7: Dockerイメージのビルドとプッシュ（WebApp用）
+### Step 7: ポストデプロイセットアップ（1コマンド）
+
+CDKデプロイ完了後、以下の1コマンドで全セットアップが完了します:
+
+```bash
+bash demo-data/scripts/post-deploy-setup.sh
+```
+
+このスクリプトが自動的に以下を実行します:
+1. S3 Access Point作成 + ポリシー設定
+2. FSx ONTAPにデモデータアップロード（S3 AP経由）
+3. Bedrock KBデータソース追加 + 同期
+4. DynamoDBにユーザーSIDデータ登録
+5. Cognitoにデモユーザー作成（admin / user）
+
+> **所要時間**: 2〜5分（KB同期待ち含む）
+
+### Step 8: Dockerイメージのビルドとプッシュ（WebApp用）
 
 CDKデプロイ後、WebAppStack用のDockerイメージをビルドしてECRにプッシュします。
 
 ```bash
-# ECRリポジトリ作成（初回のみ）
-aws ecr create-repository \
-  --repository-name permission-aware-rag-webapp \
-  --region ap-northeast-1
-
-# ECR認証
-aws ecr get-login-password --region ap-northeast-1 | \
-  docker login --username AWS --password-stdin \
-  <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com
-
-# Dockerイメージビルド
-IMAGE_TAG="v$(date +%Y%m%d-%H%M%S)"
-docker build --no-cache \
-  -t permission-aware-rag-webapp:${IMAGE_TAG} \
-  -f docker/nextjs/Dockerfile \
-  docker/nextjs/
-
-# ECRにプッシュ
-docker tag permission-aware-rag-webapp:${IMAGE_TAG} \
-  <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:${IMAGE_TAG}
-
-docker push \
-  <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:${IMAGE_TAG}
-```
-
-> **Note**: `docker` コマンドで権限エラーが出る場合は、`newgrp docker` を実行するか、一度ログアウト・再ログインしてください。
-
-#### Docker環境がない場合（CodeBuild使用）
-
-EC2にDocker環境がない場合は、CodeBuildでビルドできます。
-
-```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
-# ソースをzip化してS3にアップロード
-cd docker/nextjs
-zip -qr /tmp/nextjs-source.zip . -x 'node_modules/*' '.next/*' 'out/*'
-aws s3 cp /tmp/nextjs-source.zip s3://<DATA_BUCKET_NAME>/codebuild/nextjs-source.zip
-cd ../..
+# ECRリポジトリ作成（初回のみ）
+aws ecr create-repository --repository-name permission-aware-rag-webapp --region ap-northeast-1 2>/dev/null || true
 
-# CodeBuild用IAMロール作成（初回のみ）
-aws iam create-role --role-name webapp-codebuild-role \
-  --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"codebuild.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
-aws iam attach-role-policy --role-name webapp-codebuild-role --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
-aws iam attach-role-policy --role-name webapp-codebuild-role --policy-arn arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-aws iam attach-role-policy --role-name webapp-codebuild-role --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+# ECR認証 + ビルド + プッシュ
+aws ecr get-login-password --region ap-northeast-1 | \
+  docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com
 
-# CodeBuildプロジェクト作成（初回のみ）
-aws codebuild create-project --name webapp-docker-build \
-  --source '{"type":"S3","location":"<DATA_BUCKET_NAME>/codebuild/nextjs-source.zip"}' \
-  --artifacts '{"type":"NO_ARTIFACTS"}' \
-  --environment '{"type":"LINUX_CONTAINER","image":"aws/codebuild/standard:7.0","computeType":"BUILD_GENERAL1_MEDIUM","privilegedMode":true}' \
-  --service-role "arn:aws:iam::${ACCOUNT_ID}:role/webapp-codebuild-role" \
-  --region ap-northeast-1
-
-# ビルド実行（インラインbuildspec）
 IMAGE_TAG="v$(date +%Y%m%d-%H%M%S)"
-aws codebuild start-build --project-name webapp-docker-build \
-  --buildspec-override "$(cat <<EOF
-version: 0.2
-phases:
-  pre_build:
-    commands:
-      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com
-      - ECR_URI=${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp
-  build:
-    commands:
-      - docker build --no-cache -t \${ECR_URI}:${IMAGE_TAG} -f Dockerfile .
-      - docker tag \${ECR_URI}:${IMAGE_TAG} \${ECR_URI}:latest
-  post_build:
-    commands:
-      - docker push \${ECR_URI}:${IMAGE_TAG}
-      - docker push \${ECR_URI}:latest
-EOF
-)" --region ap-northeast-1
-```
+docker build --no-cache -t permission-aware-rag-webapp:${IMAGE_TAG} -f docker/nextjs/Dockerfile docker/nextjs/
+docker tag permission-aware-rag-webapp:${IMAGE_TAG} ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:${IMAGE_TAG}
+docker push ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:${IMAGE_TAG}
 
-#### Lambda関数のイメージ更新
-
-ビルド完了後、Lambda関数のコンテナイメージを更新します。
-
-```bash
-STACK_PREFIX="rag-demo-demo"
-FUNCTION_NAME="${STACK_PREFIX}-webapp"
-
+# Lambda関数のイメージ更新
 aws lambda update-function-code \
-  --function-name ${FUNCTION_NAME} \
+  --function-name perm-rag-demo-demo-webapp \
   --image-uri ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:${IMAGE_TAG} \
   --region ap-northeast-1
 ```
-
-### Step 8: 検証データのセットアップ
-
-```bash
-# 検証用ユーザー作成（admin + restricted user）
-bash demo-data/scripts/create-demo-users.sh
-
-# ユーザーSIDデータ登録（DynamoDB user-accessテーブル）
-bash demo-data/scripts/setup-user-access.sh
-
-# FSx ONTAPにデモデータをアップロード（S3 Access Point経由）
-bash demo-data/scripts/upload-demo-data-s3ap.sh
-
-# S3 AP → Bedrock KBデータソース追加 → 同期
-bash demo-data/scripts/setup-kb-datasource.sh
-```
-
-> **Note**: データはFSx ONTAPボリュームにS3 Access Point経由で配置されます。S3バケットへの直接アップロードは不要です。
 
 ### Step 9: アプリケーションへのアクセスと検証
 
@@ -367,7 +296,7 @@ CloudFormation出力からCloudFront URLを取得します。
 
 ```bash
 aws cloudformation describe-stacks \
-  --stack-name rag-demo-demo-WebApp \
+  --stack-name perm-rag-demo-demo-WebApp \
   --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' \
   --output text
 ```

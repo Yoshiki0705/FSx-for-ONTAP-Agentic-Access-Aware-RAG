@@ -225,6 +225,10 @@ export class DemoStorageStack extends cdk.Stack {
               ],
               resources: [`arn:aws:s3:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:accesspoint/*`],
             }),
+            new iam.PolicyStatement({
+              actions: ['s3:PutAccessPointPolicy', 's3:GetAccessPointPolicy'],
+              resources: ['*'],
+            }),
           ],
         }),
       },
@@ -246,10 +250,16 @@ export class DemoStorageStack extends cdk.Stack {
       properties: {
         VolumeId: this.volume.ref,
         AccessPointName: s3ApName,
-        // WINDOWS: NTFS ACLベースの認可（SVMのセキュリティスタイルと一致）
-        FileSystemUserType: 'WINDOWS',
+        // UNIX: AD参加不要でS3 AP経由のアクセスが可能
+        // rootユーザー（UID 0）で全ファイルへのアクセス権を確保
+        FileSystemUserType: 'UNIX',
+        FileSystemUserName: 'root',
         // Internet: Bedrock KBがパブリックAPI経由でアクセス（IAMポリシーで認可制御）
         NetworkOrigin: 'Internet',
+        // S3 APポリシー: アカウント内の全プリンシパルにアクセスを許可
+        SetAccessPointPolicy: 'true',
+        AccountId: cdk.Aws.ACCOUNT_ID,
+        KbRoleArn: '', // AIStack作成後にKBロールARNを設定（ポストデプロイで対応）
         Timestamp: Date.now().toString(),
       },
     });
@@ -542,18 +552,24 @@ exports.handler = async (event) => {
     }
 
     // S3 Access Point作成
+    const fsUserType = props.FileSystemUserType || 'UNIX';
+    const fsUserName = props.FileSystemUserName || 'root';
     const s3ApConfig = {
       Name: apName,
-      FileSystemUserType: userType,
     };
-    // VPCアクセスの場合はNetworkOriginを設定（Internetの場合は省略）
-    if (networkOrigin === 'Vpc') {
-      s3ApConfig.NetworkOrigin = 'Vpc';
+
+    // FileSystemIdentityを設定
+    const fsIdentity = { Type: fsUserType };
+    if (fsUserType === 'UNIX') {
+      fsIdentity.UnixUser = { Name: fsUserName };
+    } else if (fsUserType === 'WINDOWS') {
+      fsIdentity.WindowsUser = { Name: fsUserName };
     }
 
     const createResp = await signedFsxRequest('POST', 'CreateAndAttachS3AccessPoint', {
       VolumeId: volumeId,
       S3AccessPointConfiguration: s3ApConfig,
+      FileSystemIdentity: fsIdentity,
     }, region);
 
     console.log('Create response:', JSON.stringify(createResp));
@@ -562,6 +578,33 @@ exports.handler = async (event) => {
       const apArn = createResp.body?.S3AccessPointArn || '';
       const apAlias = createResp.body?.S3AccessPointAlias || '';
       console.log('S3 Access Point created:', { apArn, apAlias });
+
+      // S3 APポリシーを設定（アカウント内の全プリンシパルにアクセスを許可）
+      if (props.SetAccessPointPolicy === 'true' && apArn) {
+        try {
+          const accountId = props.AccountId || process.env.AWS_ACCOUNT_ID || '';
+          const policyDoc = JSON.stringify({
+            Version: '2012-10-17',
+            Statement: [{
+              Sid: 'AllowAccountAccess',
+              Effect: 'Allow',
+              Principal: { AWS: 'arn:aws:iam::' + accountId + ':root' },
+              Action: ['s3:GetObject', 's3:PutObject', 's3:ListBucket'],
+              Resource: [apArn, apArn + '/object/*'],
+            }],
+          });
+          const { S3ControlClient, PutAccessPointPolicyCommand } = require('@aws-sdk/client-s3-control');
+          const s3ctrl = new S3ControlClient({ region });
+          await s3ctrl.send(new PutAccessPointPolicyCommand({
+            AccountId: accountId,
+            Name: apName,
+            Policy: policyDoc,
+          }));
+          console.log('S3 AP policy set successfully');
+        } catch (polErr) {
+          console.warn('Failed to set S3 AP policy (non-fatal):', polErr.message);
+        }
+      }
 
       await sendCfnResponse(event, 'SUCCESS', apArn, {
         AccessPointArn: apArn,

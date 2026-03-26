@@ -162,10 +162,11 @@ export class DemoWebAppStack extends cdk.Stack {
     }
 
     // ========================================
-    // Lambda Function URL（IAM認証）
+    // Lambda Function URL（認証なし — CloudFront OACはPOSTボディのSigV4署名で
+    // 不一致が発生するため、デモ環境ではNONEを使用。本番ではAPI Gateway推奨）
     // ========================================
     const functionUrl = this.webAppFunction.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.AWS_IAM,
+      authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
         allowedMethods: [lambda.HttpMethod.ALL],
         allowedOrigins: ['*'],
