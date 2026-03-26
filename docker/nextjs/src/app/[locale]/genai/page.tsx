@@ -644,45 +644,8 @@ function ChatbotPageContent() {
           }
         }
         
-        // ✅ Phase 5マイグレーション: SID/DNが存在しない場合、Get SID APIを呼び出し
-        if (parsedUser && !parsedUser.sid) {
-          console.log('🔄 [ChatbotPage Phase 5] Migrating user object to Phase 5 format (adding SID/DN)...');
-          
-          try {
-            const response = await fetch('/api/auth/get-sid', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                userId: parsedUser.username,
-                forceRefresh: false 
-              }),
-            });
-            
-            if (response.ok) {
-              const sidData = await response.json();
-              parsedUser.sid = sidData.sid;
-              parsedUser.distinguishedName = sidData.distinguishedName;
-              
-              // localStorageを更新
-              localStorage.setItem('user', JSON.stringify(parsedUser));
-              console.log('✅ [ChatbotPage Phase 5] User object migrated successfully:', {
-                username: parsedUser.username,
-                hasSid: !!parsedUser.sid,
-                hasDistinguishedName: !!parsedUser.distinguishedName
-              });
-            } else {
-              console.warn('⚠️ [ChatbotPage Phase 5] Get SID API failed, continuing without SID/DN');
-            }
-          } catch (error) {
-            console.error('❌ [ChatbotPage Phase 5] Migration failed:', error);
-            // エラーが発生しても続行（SID/DNなしで動作）
-          }
-        } else if (parsedUser?.sid) {
-          console.log('✅ [ChatbotPage Phase 5] User object already has SID/DN:', {
-            username: parsedUser.username,
-            sid: parsedUser.sid?.substring(0, 20) + '...'
-          });
-        }
+        // SID情報はサーバーサイド（KB Retrieve API）でDynamoDBから取得するため、
+        // フロントエンドでのSID取得は不要
         
         setUser(parsedUser);
 
