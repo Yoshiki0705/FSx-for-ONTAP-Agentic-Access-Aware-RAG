@@ -12,7 +12,7 @@
  *   7. EmbeddingStack (optional) - FlexCache CIFS mount + Embedding Server
  *
  * オプション（CDKコンテキストパラメータ）:
- *   Phase 2: -c ontapMgmtIp=... -c ontapSvmUuid=... -c useS3AccessPoint=true
+ *   Phase 2: -c ontapMgmtIp=... -c ontapSvmUuid=...
  *   Phase 3: -c usePermissionFilterLambda=true
  *   Phase 4: -c enableGuardrails=true -c enableKmsEncryption=true
  *            -c enableCloudTrail=true -c enableVpcEndpoints=true
@@ -56,7 +56,7 @@ const embeddingAdDomain: string = app.node.tryGetContext('embeddingAdDomain') ||
 const ontapMgmtIp: string | undefined = app.node.tryGetContext('ontapMgmtIp');
 const ontapSvmUuid: string | undefined = app.node.tryGetContext('ontapSvmUuid');
 const ontapAdminSecretArn: string | undefined = app.node.tryGetContext('ontapAdminSecretArn');
-const useS3AccessPoint = ctxBool('useS3AccessPoint');
+
 
 // Phase 3: Permission Filter Lambda
 const usePermissionFilterLambda = ctxBool('usePermissionFilterLambda');
@@ -117,13 +117,12 @@ storageStack.addDependency(networkingStack);
 // Stack 5: AIStack
 const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   projectName, environment,
-  dataBucket: storageStack.dataBucket,
-  useS3AccessPoint,
+
+
   enableGuardrails,
   env: primaryEnv,
   description: `[${projectName}] Bedrock Knowledge Base, OpenSearch Serverless`,
 });
-aiStack.addDependency(storageStack);
 
 // Stack 6: WebAppStack
 const imageTag = app.node.tryGetContext('imageTag') || 'latest';
@@ -138,7 +137,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   wafWebAclArn: wafStack.webAclArn,
   permissionCacheTable: storageStack.permissionCacheTable,
   userAccessTable: storageStack.userAccessTable,
-  dataBucket: storageStack.dataBucket,
+
   allowedCountries,
   usePermissionFilterLambda,
   env: primaryEnv, crossRegionReferences: true,

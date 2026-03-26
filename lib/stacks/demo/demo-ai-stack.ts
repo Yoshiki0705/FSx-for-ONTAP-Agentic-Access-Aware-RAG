@@ -2,12 +2,14 @@
  * DemoAIStack
  * 
  * Bedrock Knowledge Base + OpenSearch Serverless（ベクトルストア）を作成する。
- * S3データソースをStorageStackのdataBucketから参照。
+ * データソースはCDKデプロイ後にS3 Access Point経由で追加する（FSx ONTAP専用）。
+ * 
+ * データフロー:
+ *   FSx ONTAP Volume → S3 Access Point → Bedrock KB データソース → AOSS
  */
 
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as opensearchserverless from 'aws-cdk-lib/aws-opensearchserverless';
 import * as bedrock from 'aws-cdk-lib/aws-bedrock';
@@ -16,15 +18,6 @@ import { Construct } from 'constructs';
 export interface DemoAIStackProps extends cdk.StackProps {
   projectName: string;
   environment: string;
-  dataBucket: s3.IBucket;
-  /** FSx ONTAP S3 Access Point名（StorageStackから） */
-  s3AccessPointName?: string;
-  /** S3 Access Point ARN（StorageStackから） */
-  s3AccessPointArn?: string;
-  /** S3 Access Point Alias（StorageStackから、S3バケット名として使用） */
-  s3AccessPointAlias?: string;
-  /** S3 APをKBデータソースとして使用するか（デフォルト: false） */
-  useS3AccessPoint?: boolean;
   /** Bedrock Guardrailsを有効化するか（デフォルト: false） */
   enableGuardrails?: boolean;
 }
@@ -40,7 +33,7 @@ export class DemoAIStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: DemoAIStackProps) {
     super(scope, id, props);
 
-    const { projectName, environment, dataBucket, s3AccessPointName, s3AccessPointArn, s3AccessPointAlias, useS3AccessPoint, enableGuardrails } = props;
+    const { projectName, environment, enableGuardrails } = props;
     const prefix = `${projectName}-${environment}`;
     const collectionName = `${projectName}-${environment}-vectors`.substring(0, 32).toLowerCase();
     const indexName = 'bedrock-knowledge-base-default-index';
@@ -91,12 +84,8 @@ export class DemoAIStack extends cdk.Stack {
               actions: ['aoss:APIAccessAll'],
               resources: [this.ossCollection.attrArn],
             }),
-            new iam.PolicyStatement({
-              actions: ['s3:GetObject', 's3:ListBucket'],
-              resources: [dataBucket.bucketArn, `${dataBucket.bucketArn}/*`],
-            }),
             // FSx ONTAP S3 Access Point経由のアクセス権限
-            // S3 APエイリアスをBedrock KBデータソースとして使用する場合に必要
+            // S3 APエイリアスをBedrock KBデータソースとして使用
             new iam.PolicyStatement({
               actions: ['s3:GetObject', 's3:ListBucket', 's3:GetBucketLocation'],
               resources: [
@@ -189,50 +178,23 @@ export class DemoAIStack extends cdk.Stack {
 
     this.knowledgeBaseId = kb.attrKnowledgeBaseId;
 
-    // --- S3データソース ---
-    // useS3AccessPoint=trueの場合、FSx ONTAP S3 Access Pointをデータソースとして使用。
-    // S3 APエイリアスはS3バケット名として扱われ、Bedrock KBがFSx上のデータを直接読み取る。
-    // .metadata.jsonファイルもS3 AP経由で取り込まれ、SIDフィルタリングが有効になる。
-    if (useS3AccessPoint && s3AccessPointArn) {
-      // S3 Access Pointデータソース
-      // Bedrock KBはS3 AP ARNをbucketArnとして受け付ける
-      new bedrock.CfnDataSource(this, 'S3ApDataSource', {
-        knowledgeBaseId: kb.attrKnowledgeBaseId,
-        name: `${prefix}-s3ap-datasource`,
-        dataSourceConfiguration: {
-          type: 'S3',
-          s3Configuration: {
-            bucketArn: s3AccessPointArn,
-          },
-        },
-      });
+    // --- データソース ---
+    // データソースはCDKデプロイ時には作成しない。
+    // FSx ONTAP S3 Access Pointが利用可能になった後（SVM AD参加 + S3 AP作成後）に
+    // demo-data/scripts/setup-kb-datasource.sh で追加する。
+    //
+    // データフロー:
+    //   1. CDKデプロイ → KB + AOSS作成（データソースなし）
+    //   2. SVM AD参加（手動 or スクリプト）
+    //   3. S3 AP作成（手動 or スクリプト）
+    //   4. setup-kb-datasource.sh → S3 APデータソース追加 + 同期
+    //
+    // 参考: https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/s3-access-points.html
 
-      new cdk.CfnOutput(this, 'DataSourceType', {
-        value: 'S3_ACCESS_POINT',
-        description: 'KB data source type: FSx ONTAP S3 Access Point',
-      });
-      if (s3AccessPointAlias) {
-        new cdk.CfnOutput(this, 'S3ApAlias', {
-          value: s3AccessPointAlias,
-          description: 'S3 Access Point alias used as KB data source',
-        });
-      }
-    } else {
-      // デフォルト: S3バケットデータソース
-      new bedrock.CfnDataSource(this, 'S3DataSource', {
-        knowledgeBaseId: kb.attrKnowledgeBaseId,
-        name: `${prefix}-s3-datasource`,
-        dataSourceConfiguration: {
-          type: 'S3',
-          s3Configuration: { bucketArn: dataBucket.bucketArn },
-        },
-      });
-
-      new cdk.CfnOutput(this, 'DataSourceType', {
-        value: 'S3_BUCKET',
-        description: 'KB data source type: S3 Bucket (switch to S3 AP with useS3AccessPoint=true)',
-      });
-    }
+    new cdk.CfnOutput(this, 'DataSourceType', {
+      value: 'S3_ACCESS_POINT (post-deploy)',
+      description: 'KB data source: FSx ONTAP S3 AP. Run setup-kb-datasource.sh after SVM AD join + S3 AP creation.',
+    });
 
     // --- Bedrock Guardrails（オプション） ---
     // コンテンツ安全性フィルタリング: 有害コンテンツ、PII、プロンプトインジェクション対策

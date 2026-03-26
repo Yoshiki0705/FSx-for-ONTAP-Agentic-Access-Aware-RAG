@@ -350,17 +350,16 @@ aws lambda update-function-code \
 bash demo-data/scripts/create-demo-users.sh
 
 # ユーザーSIDデータ登録（DynamoDB user-accessテーブル）
-# 本アプリケーションではメールアドレスをuserIdとして使用します
 bash demo-data/scripts/setup-user-access.sh
 
-# サンプルドキュメントをS3にアップロード（.metadata.json含む）
-bash demo-data/scripts/upload-demo-data.sh
+# FSx ONTAPにデモデータをアップロード（S3 Access Point経由）
+bash demo-data/scripts/upload-demo-data-s3ap.sh
 
-# Bedrock KBデータソース同期
-bash demo-data/scripts/sync-kb-datasource.sh
+# S3 AP → Bedrock KBデータソース追加 → 同期
+bash demo-data/scripts/setup-kb-datasource.sh
 ```
 
-> **Note**: `setup-user-access.sh` はDynamoDB `user-access`テーブルにメールアドレス（例: `admin@example.com`）をキーとしてSIDデータを登録します。アプリケーションのJWTではメールアドレスが`userId`として使用されます。
+> **Note**: データはFSx ONTAPボリュームにS3 Access Point経由で配置されます。S3バケットへの直接アップロードは不要です。
 
 ### Step 9: アプリケーションへのアクセスと検証
 
@@ -578,51 +577,38 @@ FlexCache CacheボリュームをCIFSマウントしてEmbeddingを実行するE
 
 ### データ取り込みパス
 
-| パス | 方式 | データソース | CDK有効化 | 状況 |
-|------|------|-------------|----------|------|
-| Option A（デフォルト） | S3バケット + Bedrock KB S3データソース | S3にアップロードしたドキュメント | 常に有効 | ✅ 利用可能 |
-| Option B（オプション） | Embeddingサーバー + CIFSマウント → AOSS直接書き込み | FSx ONTAPボリューム上のドキュメント | `-c enableEmbeddingServer=true` | ✅ 利用可能 |
-| Option C（オプション） | S3 Access Point + Bedrock KB | FSx ONTAPボリューム（S3 AP経由） | デプロイ後に手動設定 | ✅ SnapMirror対応、FlexCache近日対応 |
+本システムはFSx ONTAP → S3 Access Point → Bedrock KBの一本道アーキテクチャです。
 
-#### S3 Access Pointについて
+```
+FSx ONTAP Volume (/data)
+  ├── public/company-overview.md
+  ├── public/company-overview.md.metadata.json
+  ├── confidential/financial-report.md
+  ├── confidential/financial-report.md.metadata.json
+  └── ...
+      │ S3 Access Point
+      ▼
+  Bedrock KB データソース（S3 APエイリアス）
+      │ Ingestion Job
+      ▼
+  OpenSearch Serverless（ベクトルストア）
+```
 
-StorageStackはFSx ONTAPボリュームにS3 Access Pointを自動作成します（WINDOWSユーザータイプ、NTFS ACLベース認可）。
+| パス | 方式 | CDK有効化 | 状況 |
+|------|------|----------|------|
+| メイン | FSx ONTAP → S3 Access Point → Bedrock KB | CDKデプロイ後にスクリプトで設定 | ✅ |
+| 代替（オプション） | Embeddingサーバー（CIFSマウント）→ AOSS直接書き込み | `-c enableEmbeddingServer=true` | ✅ |
 
-- SnapMirror構成のボリュームでは利用可能
-- FlexCache Cacheボリュームは近日対応予定
-- CDKデプロイ後、Bedrock KBコンソールまたはAPIでデータソースをS3 APエイリアスに切り替え可能
+#### S3 Access Pointデータソースのセットアップ
 
-#### Option C: S3 Access Pointデータソースの設定手順
-
-CDKデプロイ後、以下の手順でS3 Access PointをBedrock KBのデータソースとして追加します。
+CDKデプロイ後、以下のスクリプトでS3 AP作成 → KBデータソース追加 → 同期を一括実行します。
 
 ```bash
-# 1. S3 Access Pointの作成（CDKで自動作成されない場合）
-aws fsx create-and-attach-s3-access-point \
-  --name "<PREFIX>-s3ap" \
-  --type ONTAP \
-  --ontap-configuration '{"VolumeId":"<VOLUME_ID>","FileSystemIdentity":{"Type":"WINDOWS","WindowsUser":{"Name":"<DOMAIN>\\<USER>"}}}' \
-  --region ap-northeast-1
+# FSx ONTAPにデモデータをアップロード（S3 AP経由）
+bash demo-data/scripts/upload-demo-data-s3ap.sh
 
-# 2. S3 Access Pointエイリアスを取得
-S3AP_ALIAS=$(aws fsx describe-s3-access-point-attachments \
-  --region ap-northeast-1 \
-  --query 'S3AccessPointAttachments[?Name==`<PREFIX>-s3ap`].S3AccessPoint.Alias' --output text)
-
-# 3. Bedrock KBにS3 APデータソースを追加
-aws bedrock-agent create-data-source \
-  --knowledge-base-id <KB_ID> \
-  --name "fsx-s3ap-datasource" \
-  --data-source-configuration '{
-    "type": "S3",
-    "s3Configuration": {"bucketArn": "arn:aws:s3:::'${S3AP_ALIAS}'"}
-  }' --region ap-northeast-1
-
-# 4. データソース同期
-aws bedrock-agent start-ingestion-job \
-  --knowledge-base-id <KB_ID> \
-  --data-source-id <DATA_SOURCE_ID> \
-  --region ap-northeast-1
+# S3 AP → KBデータソース追加 → 同期
+bash demo-data/scripts/setup-kb-datasource.sh
 ```
 
 ### Embeddingサーバーのデプロイ

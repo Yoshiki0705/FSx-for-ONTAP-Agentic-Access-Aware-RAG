@@ -37,8 +37,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   permissionCacheTable: dynamodb.ITable;
   /** ユーザーアクセスDynamoDBテーブル */
   userAccessTable: dynamodb.ITable;
-  /** KBデータソースS3バケット */
-  dataBucket: s3.IBucket;
+  /** KBデータソースS3バケット（ディレクトリ情報取得用、オプション） */
+  dataBucket?: s3.IBucket;
   /** Geo制限対象国コード（デフォルト: JP） */
   allowedCountries?: string[];
   /** Permission Filter Lambdaを使用するか（デフォルト: false、Next.js内でフィルタリング） */
@@ -91,8 +91,8 @@ export class DemoWebAppStack extends cdk.Stack {
         ENABLE_PERMISSION_CHECK: 'true',
         PERMISSION_CACHE_TABLE: permissionCacheTable.tableName,
         USER_ACCESS_TABLE_NAME: userAccessTable.tableName,
-        // KBデータソースS3バケット（ディレクトリ情報取得用）
-        DATA_BUCKET_NAME: dataBucket.bucketName,
+        // KBデータソースS3バケット（ディレクトリ情報取得用、オプション）
+        ...(dataBucket ? { DATA_BUCKET_NAME: dataBucket.bucketName } : {}),
         // アプリケーション設定
         NODE_ENV: 'production',
         AWS_LWA_PORT: '3000',
@@ -156,8 +156,10 @@ export class DemoWebAppStack extends cdk.Stack {
     permissionCacheTable.grantReadWriteData(this.webAppFunction);
     userAccessTable.grantReadData(this.webAppFunction);
 
-    // S3権限（KBデータソースバケットの.metadata.json読み取り）
-    dataBucket.grantRead(this.webAppFunction);
+    // S3権限（KBデータソースバケットの.metadata.json読み取り、オプション）
+    if (dataBucket) {
+      dataBucket.grantRead(this.webAppFunction);
+    }
 
     // ========================================
     // Lambda Function URL（IAM認証）
