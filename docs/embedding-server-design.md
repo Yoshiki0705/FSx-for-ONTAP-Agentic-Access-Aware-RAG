@@ -159,42 +159,41 @@ AOSSインデックスは`dynamic: false`で作成されています。これに
 
 #### `.metadata.json`のSID情報の取得方法
 
-現在の検証環境では、`.metadata.json`は手動で作成されたサンプルデータです（`demo-data/documents/`配下）。
+本システムには、NTFS ACLからSIDを自動取得する仕組みが実装されています。
 
-本番環境でのSID情報取得には以下の方法があります:
+| コンポーネント | 実装ファイル | 機能 |
+|--------------|------------|------|
+| AD同期Lambda | `lambda/agent-core-ad-sync/index.ts` | SSM経由でPowerShellを実行し、ADユーザーのSID情報を取得してDynamoDBに保存 |
+| FSx権限サービス | `lambda/permissions/fsx-permission-service.ts` | SSM経由でGet-Aclを実行し、ファイル/ディレクトリのNTFS ACL（SID）を取得 |
+| AD Sync設定 | `types/agentcore-config.ts` (`AdSyncConfig`) | AD同期の有効化、キャッシュTTL、SSMタイムアウト等の設定 |
 
-| 方法 | 説明 | 自動化 |
-|------|------|--------|
-| 手動作成 | ドキュメントアップロード時に`.metadata.json`を手動で作成 | ❌ |
-| ONTAP REST API | FSx ONTAP管理エンドポイント経由でNTFS ACLを取得（`GET /api/protocols/file-security/permissions`） | ✅ |
-| PowerShell (Get-Acl) | SMBマウント経由でWindows ACLを取得し、SIDを抽出 | ✅ |
-| icacls コマンド | Windowsの`icacls`コマンドでACL情報を取得 | ✅ |
-| S3 Access Point | S3 AP経由でファイルアクセス時にNTFS ACLが自動適用される（メタデータ不要） | ✅ |
+これらは統合スタック構成（`lib/stacks/integrated/`）に組み込まれています。デモスタック構成（`lib/stacks/demo/`）では、検証用にサンプルの`.metadata.json`を手動配置しています。
 
-#### ONTAP REST APIでのACL取得例
-
-```bash
-# FSx ONTAP管理エンドポイント経由でファイルのACLを取得
-curl -sk -u fsxadmin:<PASSWORD> \
-  "https://<MGMT_IP>/api/protocols/file-security/permissions/<SVM_UUID>/<VOLUME_NAME>/<FILE_PATH>" \
-  | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-acls = data.get('acls', [])
-for acl in acls:
-    print(f'SID: {acl[\"user_or_group\"]} Permission: {acl[\"access\"]}')
-"
-```
-
-#### 自動化の将来構想
-
-Embeddingサーバーの`processFile()`内で、ドキュメント処理前にONTAP REST APIからACL情報を取得し、`.metadata.json`を自動生成する拡張が可能です:
+#### SID自動取得の処理フロー
 
 ```
-ファイル検出 → ONTAP REST API でACL取得 → .metadata.json 自動生成 → チャンク分割 → Embedding → インデックス
+1. AD同期Lambda（ユーザーSID取得）
+   SSM → Windows EC2 → PowerShell (Get-ADUser) → SID取得 → DynamoDB user-access に保存
+
+2. FSx権限サービス（ファイルACL取得）
+   SSM → Windows EC2 → PowerShell (Get-Acl) → NTFS ACL取得 → SID抽出 → .metadata.json 生成可能
 ```
 
-現時点では`.metadata.json`の手動作成が前提ですが、この拡張により完全自動化が実現できます。
+#### デモ環境での簡易セットアップ
+
+デモスタックでは上記の自動化を使わず、以下の手動手順でSIDデータを設定しています:
+
+- `.metadata.json`: `demo-data/documents/`配下にサンプルを手動配置
+- DynamoDB user-access: `demo-data/scripts/setup-user-access.sh`でメールアドレスとSIDの対応を手動登録
+
+#### 本番環境での自動化オプション
+
+| 方法 | 説明 |
+|------|------|
+| AD同期Lambda | SSM経由でADユーザーのSIDを自動取得しDynamoDBに保存（実装済み） |
+| FSx権限サービス | SSM経由でGet-AclでNTFS ACLを取得（実装済み） |
+| ONTAP REST API | FSx ONTAP管理エンドポイント経由でACLを直接取得（`GET /api/protocols/file-security/permissions`） |
+| S3 Access Point | S3 AP経由でファイルアクセス時にNTFS ACLが自動適用される |
 
 #### S3 Access Point利用時（Option C）
 
