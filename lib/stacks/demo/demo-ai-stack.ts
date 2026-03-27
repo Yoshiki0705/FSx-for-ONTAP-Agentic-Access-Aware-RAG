@@ -588,9 +588,12 @@ function getParam(event, name) {
   const p = event.parameters?.find(p => p.name === name);
   if (p?.value) return p.value;
   if (event.requestBody?.content) {
-    for (const fields of Object.values(event.requestBody.content)) {
-      const f = fields.find(f => f.name === name);
-      if (f?.value) return f.value;
+    for (const ct of Object.values(event.requestBody.content)) {
+      const props = ct.properties || ct;
+      if (Array.isArray(props)) {
+        const f = props.find(f => f.name === name);
+        if (f?.value) return f.value;
+      }
     }
   }
   return '';
