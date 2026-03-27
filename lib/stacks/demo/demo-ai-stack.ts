@@ -11,6 +11,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as opensearchserverless from 'aws-cdk-lib/aws-opensearchserverless';
 import * as bedrock from 'aws-cdk-lib/aws-bedrock';
 import { Construct } from 'constructs';
@@ -247,13 +248,17 @@ export class DemoAIStack extends cdk.Stack {
     // --- Bedrock Agent + Permission-aware Action Group（オプション） ---
     if (enableAgent) {
       // Action Group Lambda: Permission-aware KB検索
-      const actionGroupFn = new lambda.Function(this, 'PermSearchFn', {
+      const actionGroupFn = new lambdaNodejs.NodejsFunction(this, 'PermSearchFn', {
         functionName: `${prefix}-perm-search`,
+        entry: 'lambda/bedrock-agent-actions/permission-aware-search.ts',
+        handler: 'handler',
         runtime: lambda.Runtime.NODEJS_20_X,
-        handler: 'permission-aware-search.handler',
-        code: lambda.Code.fromAsset('lambda/bedrock-agent-actions'),
         timeout: cdk.Duration.seconds(30),
         memorySize: 256,
+        bundling: {
+          minify: true,
+          sourceMap: true,
+        },
         environment: {
           KNOWLEDGE_BASE_ID: kb.attrKnowledgeBaseId,
           USER_ACCESS_TABLE_NAME: userAccessTableName || '',
