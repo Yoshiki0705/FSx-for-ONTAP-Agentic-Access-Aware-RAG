@@ -138,13 +138,19 @@ async function handleInvokeAgent(
 
   // Bedrock Agent呼び出し
   const sanitizedSessionId = (sessionId || `session-${userId}-${Date.now()}`)
-    .replace(/[^0-9a-zA-Z._:-]/g, '-'); // Bedrock Agent sessionId制約: [0-9a-zA-Z._:-]+
+    .replace(/[^0-9a-zA-Z._:-]/g, '-');
 
   const command = new InvokeAgentCommand({
     agentId: AGENT_ID,
     agentAliasId: AGENT_ALIAS_ID,
     sessionId: sanitizedSessionId,
     inputText: message,
+    // Permission-aware Action GroupにuserIdを渡す
+    sessionState: {
+      sessionAttributes: {
+        userId: userId || '',
+      },
+    },
   });
 
   const response = await agentRuntimeClient.send(command);
