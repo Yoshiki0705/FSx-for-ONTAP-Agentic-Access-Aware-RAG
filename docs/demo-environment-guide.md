@@ -493,12 +493,13 @@ bash demo-data/scripts/sync-kb-datasource.sh
 
 `cdk destroy --all`で全リソースを削除できますが、以下の依存関係により手動介入が必要な場合があります。
 
-| 問題 | 原因 | 対処 |
-|------|------|------|
-| AIスタック削除失敗 | KBにデータソースが残っている | データソースを先に削除 |
-| Storageスタック削除失敗 | S3 APがボリュームにアタッチ | S3 APを先にデタッチ・削除 |
-| Networkingスタック削除失敗 | AD Controller SGが孤立 | SGを手動削除 |
-| Embeddingスタック未認識 | CDKコンテキストに依存 | 手動で先に削除 |
+| 問題 | 原因 | CDK対応 |
+|------|------|---------|
+| AIスタック削除失敗 | KBにデータソースが残っている | ✅ KbCleanupカスタムリソースで自動削除 |
+| Storageスタック削除失敗 | S3 APがボリュームにアタッチ | ✅ S3 APカスタムリソースのDelete handlerで自動削除 |
+| Networkingスタック削除失敗 | AD Controller SGが孤立 | ❌ 手動削除が必要（下記スクリプト参照） |
+| Embeddingスタック未認識 | CDKコンテキストに依存 | ❌ 手動で先に削除 |
+| 手動作成リソース残留 | CodeBuild、ECR、IAMポリシー | ❌ 下記スクリプトで削除 |
 
 ### 推奨削除手順
 

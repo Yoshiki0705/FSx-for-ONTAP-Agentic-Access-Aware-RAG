@@ -329,20 +329,20 @@ aws cloudformation describe-stacks \
 
 ### リソースの削除
 
+全リソース（CDKスタック + 手動作成リソース）を一括削除するスクリプトを使用します:
+
 ```bash
-# Embeddingスタックを使用した場合は先に削除
-aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1 2>/dev/null
-aws cloudformation wait stack-delete-complete --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1 2>/dev/null
-
-# 全リソース削除
-npx cdk destroy --all \
-  --app "npx ts-node bin/demo-app.ts" --force
-
-# EC2インスタンス終了
-aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
+bash demo-data/scripts/cleanup-all.sh
 ```
 
-> **Note**: 削除が`DELETE_FAILED`になった場合は、下記トラブルシューティングの「`cdk destroy` 時の削除順序問題」を参照してください。
+このスクリプトが自動的に以下を実行します:
+1. 手動作成リソース削除（S3 AP、ECR、CodeBuild）
+2. Embeddingスタック削除（存在する場合）
+3. CDK destroy（全スタック）
+4. 残留スタックの個別削除
+5. 孤立AD SGの削除
+
+> **Note**: FSx ONTAPの削除に20-30分かかるため、全体で30-40分程度です。
 
 ## トラブルシューティング
 

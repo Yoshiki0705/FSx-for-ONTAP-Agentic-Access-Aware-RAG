@@ -188,6 +188,56 @@ export class DemoAIStack extends cdk.Stack {
 
     this.knowledgeBaseId = kb.attrKnowledgeBaseId;
 
+    // --- KB削除前クリーンアップ（カスタムリソース） ---
+    // CDK外で追加されたデータソースをKB削除前に自動削除する
+    const kbCleanupFn = new lambda.Function(this, 'KbCleanupFn', {
+      functionName: `${prefix}-kb-cleanup`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'index.handler',
+      timeout: cdk.Duration.minutes(5),
+      code: lambda.Code.fromInline(`
+const { BedrockAgentClient, ListDataSourcesCommand, DeleteDataSourceCommand } = require('@aws-sdk/client-bedrock-agent');
+const https = require('https');
+async function sendCfnResponse(event, status, physicalId, reason) {
+  const body = JSON.stringify({ Status: status, Reason: reason || '', PhysicalResourceId: physicalId || 'kb-cleanup', StackId: event.StackId, RequestId: event.RequestId, LogicalResourceId: event.LogicalResourceId });
+  const u = new URL(event.ResponseURL);
+  return new Promise((resolve, reject) => {
+    const req = https.request({ hostname: u.hostname, port: 443, path: u.pathname + u.search, method: 'PUT', headers: { 'Content-Type': '', 'Content-Length': body.length } }, (res) => { let d=''; res.on('data',c=>d+=c); res.on('end',()=>resolve(d)); });
+    req.on('error', reject); req.write(body); req.end();
+  });
+}
+exports.handler = async (event) => {
+  console.log('Event:', JSON.stringify(event));
+  if (event.RequestType !== 'Delete') { await sendCfnResponse(event, 'SUCCESS', 'kb-cleanup'); return; }
+  const kbId = event.ResourceProperties.KnowledgeBaseId;
+  const region = process.env.AWS_REGION;
+  try {
+    const client = new BedrockAgentClient({ region });
+    const ds = await client.send(new ListDataSourcesCommand({ knowledgeBaseId: kbId }));
+    for (const s of (ds.dataSourceSummaries || [])) {
+      console.log('Deleting data source:', s.dataSourceId);
+      await client.send(new DeleteDataSourceCommand({ knowledgeBaseId: kbId, dataSourceId: s.dataSourceId }));
+    }
+    if ((ds.dataSourceSummaries || []).length > 0) await new Promise(r => setTimeout(r, 10000));
+  } catch (e) { console.warn('Cleanup error (non-fatal):', e.message); }
+  await sendCfnResponse(event, 'SUCCESS', 'kb-cleanup');
+};
+      `),
+    });
+    kbCleanupFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['bedrock:ListDataSources', 'bedrock:DeleteDataSource'],
+      resources: [`arn:aws:bedrock:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:knowledge-base/*`],
+    }));
+    kbCleanupFn.addPermission('CfnInvoke', {
+      principal: new iam.ServicePrincipal('cloudformation.amazonaws.com'),
+    });
+    const kbCleanup = new cdk.CustomResource(this, 'KbCleanup', {
+      serviceToken: kbCleanupFn.functionArn,
+      properties: { KnowledgeBaseId: kb.attrKnowledgeBaseId, Timestamp: Date.now().toString() },
+    });
+    kbCleanup.node.addDependency(kb);
+    // KBはクリーンアップ完了後に削除される（CloudFormationの依存関係）
+
     // --- データソース ---
     // データソースはCDKデプロイ時には作成しない。
     // FSx ONTAP S3 Access Pointが利用可能になった後（SVM AD参加 + S3 AP作成後）に
