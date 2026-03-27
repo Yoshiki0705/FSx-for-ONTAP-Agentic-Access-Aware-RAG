@@ -362,6 +362,14 @@ aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
 
 環境を削除する際、以下の順序で問題が発生することがあります。
 
+#### 既知の問題: StorageスタックのUPDATE_ROLLBACK_COMPLETE
+
+CDKテンプレートの変更（S3 APカスタムリソースのプロパティ変更等）後に`cdk deploy --all`を実行すると、StorageスタックがUPDATE_ROLLBACK_COMPLETEになることがあります。
+
+- **影響**: `cdk deploy --all`が失敗する。リソース自体は正常に動作
+- **回避策**: `npx cdk deploy <STACK> --exclusively`で個別スタックを更新
+- **根本解決**: `cdk destroy`で全削除後にクリーンデプロイ
+
 #### 問題1: Embeddingスタックが残っているとAIスタックが削除できない
 
 `enableEmbeddingServer=true`でデプロイした場合、`cdk destroy --all`はEmbeddingスタックを認識しません（CDKコンテキストに依存するため）。
