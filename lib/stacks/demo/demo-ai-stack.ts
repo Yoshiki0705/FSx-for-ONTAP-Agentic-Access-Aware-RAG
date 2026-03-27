@@ -20,20 +20,30 @@ export interface DemoAIStackProps extends cdk.StackProps {
   environment: string;
   /** Bedrock Guardrailsを有効化するか（デフォルト: false） */
   enableGuardrails?: boolean;
+  /** Bedrock Agentを作成するか（デフォルト: false） */
+  enableAgent?: boolean;
+  /** ユーザーアクセスDynamoDBテーブル名（Agent Action Group用） */
+  userAccessTableName?: string;
+  /** ユーザーアクセスDynamoDBテーブルARN（Agent Action Group用） */
+  userAccessTableArn?: string;
 }
 
 export class DemoAIStack extends cdk.Stack {
   public readonly knowledgeBaseId: string;
   public readonly ossCollection: opensearchserverless.CfnCollection;
-  /** Bedrock Guardrail ID（enableGuardrails=trueの場合） */
+  /** Bedrock Guardrail ID */
   public readonly guardrailId?: string;
-  /** Bedrock Guardrail Version（enableGuardrails=trueの場合） */
+  /** Bedrock Guardrail Version */
   public readonly guardrailVersion?: string;
+  /** Bedrock Agent ID */
+  public readonly agentId?: string;
+  /** Bedrock Agent Alias ID */
+  public readonly agentAliasId?: string;
 
   constructor(scope: Construct, id: string, props: DemoAIStackProps) {
     super(scope, id, props);
 
-    const { projectName, environment, enableGuardrails } = props;
+    const { projectName, environment, enableGuardrails, enableAgent, userAccessTableName, userAccessTableArn } = props;
     const prefix = `${projectName}-${environment}`;
     const collectionName = `${projectName}-${environment}-vectors`.substring(0, 32).toLowerCase();
     const indexName = 'bedrock-knowledge-base-default-index';
@@ -231,6 +241,141 @@ export class DemoAIStack extends cdk.Stack {
         value: guardrail.attrGuardrailId,
         description: 'Bedrock Guardrail ID for content safety filtering',
         exportName: `${prefix}-GuardrailId`,
+      });
+    }
+
+    // --- Bedrock Agent + Permission-aware Action Group（オプション） ---
+    if (enableAgent) {
+      // Action Group Lambda: Permission-aware KB検索
+      const actionGroupFn = new lambda.Function(this, 'PermSearchFn', {
+        functionName: `${prefix}-perm-search`,
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: 'permission-aware-search.handler',
+        code: lambda.Code.fromAsset('lambda/bedrock-agent-actions'),
+        timeout: cdk.Duration.seconds(30),
+        memorySize: 256,
+        environment: {
+          KNOWLEDGE_BASE_ID: kb.attrKnowledgeBaseId,
+          USER_ACCESS_TABLE_NAME: userAccessTableName || '',
+        },
+      });
+
+      // Action Group LambdaのIAM権限
+      actionGroupFn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['bedrock:Retrieve'],
+        resources: [`arn:aws:bedrock:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:knowledge-base/*`],
+      }));
+      if (userAccessTableArn) {
+        actionGroupFn.addToRolePolicy(new iam.PolicyStatement({
+          actions: ['dynamodb:GetItem'],
+          resources: [userAccessTableArn],
+        }));
+      }
+
+      // Bedrock Agent用IAMロール
+      const agentRole = new iam.Role(this, 'AgentRole', {
+        roleName: `${prefix}-agent-role`,
+        assumedBy: new iam.ServicePrincipal('bedrock.amazonaws.com'),
+        inlinePolicies: {
+          AgentPolicy: new iam.PolicyDocument({
+            statements: [
+              new iam.PolicyStatement({
+                actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+                resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`],
+              }),
+              new iam.PolicyStatement({
+                actions: ['bedrock:Retrieve'],
+                resources: [`arn:aws:bedrock:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:knowledge-base/${kb.attrKnowledgeBaseId}`],
+              }),
+            ],
+          }),
+        },
+      });
+
+      // Bedrock Agent
+      const agent = new bedrock.CfnAgent(this, 'Agent', {
+        agentName: `${prefix}-agent`,
+        agentResourceRoleArn: agentRole.roleArn,
+        foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+        instruction: `あなたはPermission-aware RAGシステムのAIエージェントです。
+ユーザーの質問に対して、アクセス権限のある文書のみを参照して回答します。
+文書検索にはpermissionAwareSearch機能を使用してください。
+検索結果に基づいて、正確で簡潔な日本語の回答を生成してください。
+アクセス権限のない文書の情報は絶対に含めないでください。`,
+        description: 'Permission-aware RAG Agent with SID-based document filtering',
+        idleSessionTtlInSeconds: 600,
+        knowledgeBases: [{
+          knowledgeBaseId: kb.attrKnowledgeBaseId,
+          description: 'FSx ONTAP文書のベクトル検索（SIDメタデータ付き）',
+          knowledgeBaseState: 'ENABLED',
+        }],
+        actionGroups: [{
+          actionGroupName: 'PermissionAwareSearch',
+          description: 'SIDベースの権限フィルタリング付き文書検索',
+          actionGroupExecutor: { lambda: actionGroupFn.functionArn },
+          apiSchema: {
+            payload: JSON.stringify({
+              openapi: '3.0.0',
+              info: { title: 'Permission-aware Search', version: '2.0.0' },
+              paths: {
+                '/search': {
+                  post: {
+                    operationId: 'permissionAwareSearch',
+                    summary: '権限認識型文書検索',
+                    description: 'ユーザーのSID権限に基づいてフィルタリングされた文書を検索します',
+                    requestBody: {
+                      required: true,
+                      content: {
+                        'application/json': {
+                          schema: {
+                            type: 'object',
+                            properties: {
+                              query: { type: 'string', description: '検索クエリ' },
+                              maxResults: { type: 'integer', description: '最大結果数', default: 5 },
+                            },
+                            required: ['query'],
+                          },
+                        },
+                      },
+                    },
+                    responses: { '200': { description: '検索成功' } },
+                  },
+                },
+              },
+            }),
+          },
+        }],
+      });
+
+      // Action Group LambdaへのBedrock Agent呼び出し権限
+      actionGroupFn.addPermission('BedrockAgentInvoke', {
+        principal: new iam.ServicePrincipal('bedrock.amazonaws.com'),
+        sourceArn: agent.attrAgentArn,
+      });
+
+      // Agent Alias
+      const agentAlias = new bedrock.CfnAgentAlias(this, 'AgentAlias', {
+        agentId: agent.attrAgentId,
+        agentAliasName: `${prefix}-alias`,
+        description: 'Permission-aware RAG Agent alias',
+      });
+
+      this.agentId = agent.attrAgentId;
+      this.agentAliasId = agentAlias.attrAgentAliasId;
+
+      new cdk.CfnOutput(this, 'AgentId', {
+        value: agent.attrAgentId,
+        description: 'Bedrock Agent ID',
+        exportName: `${prefix}-AgentId`,
+      });
+      new cdk.CfnOutput(this, 'AgentAliasId', {
+        value: agentAlias.attrAgentAliasId,
+        description: 'Bedrock Agent Alias ID',
+        exportName: `${prefix}-AgentAliasId`,
+      });
+      new cdk.CfnOutput(this, 'ActionGroupLambda', {
+        value: actionGroupFn.functionArn,
+        description: 'Permission-aware search Action Group Lambda ARN',
       });
     }
 

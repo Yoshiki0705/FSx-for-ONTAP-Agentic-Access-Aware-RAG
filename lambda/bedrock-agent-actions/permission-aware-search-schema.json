@@ -1,0 +1,72 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Permission-aware Document Search API",
+    "version": "2.0.0",
+    "description": "SIDベースの権限フィルタリング付き文書検索API。Bedrock KB Retrieve APIで検索し、ユーザーのNTFS ACL SIDに基づいてアクセス制御を行います。"
+  },
+  "paths": {
+    "/search": {
+      "post": {
+        "summary": "権限認識型文書検索",
+        "description": "ユーザーの質問に関連する文書をBedrock Knowledge Baseから検索し、ユーザーのSID情報に基づいてアクセス権限のある文書のみを返します。",
+        "operationId": "permissionAwareSearch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "検索クエリ（ユーザーの質問）"
+                  },
+                  "maxResults": {
+                    "type": "integer",
+                    "description": "返却する文書の最大数",
+                    "default": 5,
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                },
+                "required": ["query"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "検索成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "documentId": { "type": "string" },
+                          "title": { "type": "string" },
+                          "content": { "type": "string" },
+                          "score": { "type": "number" },
+                          "source": { "type": "string" },
+                          "accessLevel": { "type": "string" }
+                        }
+                      }
+                    },
+                    "count": { "type": "integer" },
+                    "message": { "type": "string" },
+                    "filterMethod": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
