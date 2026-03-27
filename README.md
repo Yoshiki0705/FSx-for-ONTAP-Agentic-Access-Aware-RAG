@@ -165,11 +165,17 @@ npm install
 
 ### Step 4: CDK Bootstrap（初回のみ）
 
-対象リージョンでCDK Bootstrapが未実行の場合に実行します。
+対象リージョンでCDK Bootstrapが未実行の場合に実行します。WAFスタックはus-east-1にデプロイされるため、両リージョンでBootstrapが必要です。
 
 ```bash
-npx cdk bootstrap --app "npx ts-node bin/demo-app.ts"
+# ap-northeast-1（メインリージョン）
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/ap-northeast-1
+
+# us-east-1（WAFスタック用）
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/us-east-1
 ```
+
+> **別AWSアカウントにデプロイする場合**: `cdk.context.json`のAZキャッシュ（`availability-zones:account=...`）を削除してください。CDKが新しいアカウントのAZ情報を自動取得します。
 
 ### Step 5: CDK Context設定
 
