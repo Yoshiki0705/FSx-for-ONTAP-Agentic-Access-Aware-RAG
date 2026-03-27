@@ -11,7 +11,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as opensearchserverless from 'aws-cdk-lib/aws-opensearchserverless';
 import * as bedrock from 'aws-cdk-lib/aws-bedrock';
 import { Construct } from 'constructs';
@@ -248,17 +247,13 @@ export class DemoAIStack extends cdk.Stack {
     // --- Bedrock Agent + Permission-aware Action Group（オプション） ---
     if (enableAgent) {
       // Action Group Lambda: Permission-aware KB検索
-      const actionGroupFn = new lambdaNodejs.NodejsFunction(this, 'PermSearchFn', {
+      const actionGroupFn = new lambda.Function(this, 'PermSearchFn', {
         functionName: `${prefix}-perm-search`,
-        entry: 'lambda/bedrock-agent-actions/permission-aware-search.ts',
-        handler: 'handler',
         runtime: lambda.Runtime.NODEJS_20_X,
+        handler: 'index.handler',
         timeout: cdk.Duration.seconds(30),
         memorySize: 256,
-        bundling: {
-          minify: true,
-          sourceMap: true,
-        },
+        code: lambda.Code.fromInline(this.getPermSearchCode()),
         environment: {
           KNOWLEDGE_BASE_ID: kb.attrKnowledgeBaseId,
           USER_ACCESS_TABLE_NAME: userAccessTableName || '',
@@ -562,4 +557,107 @@ exports.handler = async (event, context) => {
 };
     `;
   }
+
+  /** Permission-aware KB検索 Action Group Lambdaのインラインコード */
+  private getPermSearchCode(): string {
+    return `
+const { DynamoDBClient, GetItemCommand } = require('@aws-sdk/client-dynamodb');
+const { BedrockAgentRuntimeClient, RetrieveCommand } = require('@aws-sdk/client-bedrock-agent-runtime');
+const { unmarshall } = require('@aws-sdk/util-dynamodb');
+
+const REGION = process.env.AWS_REGION || 'ap-northeast-1';
+const KB_ID = process.env.KNOWLEDGE_BASE_ID || '';
+const TABLE = process.env.USER_ACCESS_TABLE_NAME || '';
+const dynamo = new DynamoDBClient({ region: REGION });
+const kb = new BedrockAgentRuntimeClient({ region: REGION });
+
+async function getSIDs(userId) {
+  if (!TABLE || !userId) return [];
+  try {
+    const r = await dynamo.send(new GetItemCommand({ TableName: TABLE, Key: { userId: { S: userId } } }));
+    if (!r.Item) return [];
+    const item = unmarshall(r.Item);
+    const sids = [];
+    if (item.userSID) sids.push(item.userSID);
+    if (Array.isArray(item.groupSIDs)) sids.push(...item.groupSIDs);
+    return sids;
+  } catch { return []; }
 }
+
+function getParam(event, name) {
+  const p = event.parameters?.find(p => p.name === name);
+  if (p?.value) return p.value;
+  if (event.requestBody?.content) {
+    for (const fields of Object.values(event.requestBody.content)) {
+      const f = fields.find(f => f.name === name);
+      if (f?.value) return f.value;
+    }
+  }
+  return '';
+}
+
+exports.handler = async (event) => {
+  console.log('[PermSearch] Event:', JSON.stringify(event));
+  const query = getParam(event, 'query');
+  const max = parseInt(getParam(event, 'maxResults') || '5', 10);
+  const userId = event.sessionAttributes?.userId || event.promptSessionAttributes?.userId || '';
+
+  const makeResp = (status, body) => ({
+    messageVersion: '1.0',
+    response: {
+      actionGroup: event.actionGroup,
+      apiPath: event.apiPath,
+      httpMethod: event.httpMethod,
+      httpStatusCode: status,
+      responseBody: { 'application/json': { body: JSON.stringify(body) } },
+    },
+  });
+
+  if (!query) return makeResp(400, { error: 'query required', results: [], count: 0 });
+  if (!KB_ID) return makeResp(500, { error: 'KB_ID not set', results: [], count: 0 });
+
+  try {
+    const resp = await kb.send(new RetrieveCommand({
+      knowledgeBaseId: KB_ID,
+      retrievalQuery: { text: query },
+      retrievalConfiguration: { vectorSearchConfiguration: { numberOfResults: max * 2 } },
+    }));
+    const results = resp.retrievalResults || [];
+    const userSIDs = await getSIDs(userId);
+    console.log('[PermSearch] KB:', results.length, 'SIDs:', userSIDs.length);
+
+    if (userSIDs.length === 0) {
+      return makeResp(200, { results: [], count: 0, message: 'No user permissions found', filterMethod: 'DENY_ALL' });
+    }
+
+    const allowed = [];
+    for (const r of results) {
+      const meta = r.metadata || {};
+      const uri = r.location?.s3Location?.uri || '';
+      const fn = uri.split('/').pop() || uri;
+      let docSIDs = [];
+      const raw = meta.allowed_group_sids ?? meta.metadataAttributes?.allowed_group_sids;
+      if (Array.isArray(raw)) docSIDs = raw;
+      else if (typeof raw === 'string') { try { docSIDs = JSON.parse(raw); } catch { docSIDs = [raw]; } }
+      if (userSIDs.some(s => docSIDs.includes(s))) {
+        allowed.push({ documentId: fn, title: fn, content: r.content?.text || '', score: r.score || 0, source: uri, accessLevel: meta.access_level || 'unknown' });
+      }
+    }
+
+    const limited = allowed.slice(0, max);
+    console.log('[PermSearch] Allowed:', allowed.length, '/', results.length);
+    return makeResp(200, {
+      results: limited, count: limited.length,
+      message: limited.length > 0 ? limited.length + ' documents found' : 'No accessible documents found',
+      filterMethod: 'SID_MATCHING',
+    });
+  } catch (err) {
+    console.error('[PermSearch] Error:', err);
+    return makeResp(500, { error: err.message, results: [], count: 0 });
+  }
+};
+    `;
+  }
+}
+
+// Add getPermSearchCode method to DemoAIStack - appended outside class, need to insert inside
