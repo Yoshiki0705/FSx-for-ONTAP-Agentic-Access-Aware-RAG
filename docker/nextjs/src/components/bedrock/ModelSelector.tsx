@@ -44,15 +44,18 @@ function useBedrockRegionInfo(mode: 'kb' | 'agent' = 'kb') {
             if (data.success && data.models) {
               // agent-models APIのレスポンスをregionInfo形式に変換
               const models = data.models.map((m: any) => ({
-                modelId: m.modelId,
-                modelName: m.modelName || m.modelId,
-                providerName: m.provider || 'unknown',
+                id: m.modelId,
+                name: m.modelName || m.modelId,
+                provider: m.provider || 'unknown',
+                category: 'General',
                 available: true,
+                description: m.description || `${m.provider} ${m.modelName}`,
                 inputModalities: m.inputModalities || ['TEXT'],
                 outputModalities: m.outputModalities || ['TEXT'],
               }));
               setRegionInfo({
-                region,
+                currentRegion: region,
+                currentRegionName: region,
                 availableModelsCount: models.length,
                 unavailableModelsCount: 0,
                 availableModels: models,
