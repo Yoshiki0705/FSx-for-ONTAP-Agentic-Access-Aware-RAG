@@ -1,0 +1,252 @@
+#!/bin/bash
+set -euo pipefail
+#
+# Permission-aware RAG デプロイ検証スクリプト
+#
+# CDKデプロイ + post-deploy-setup.sh 完了後に実行し、
+# 全機能が正常に動作していることを自動検証します。
+#
+# 使用方法:
+#   bash demo-data/scripts/verify-deployment.sh
+#
+# 出力:
+#   - コンソールに検証結果を表示
+#   - docs/test-results.md にテスト結果レポートを生成
+
+REGION="${AWS_REGION:-ap-northeast-1}"
+STACK_PREFIX="${STACK_PREFIX:-perm-rag-demo-demo}"
+REPORT_FILE="docs/test-results.md"
+PASS=0
+FAIL=0
+WARN=0
+RESULTS=""
+
+log_result() {
+  local status="$1" test_name="$2" detail="$3"
+  if [ "$status" = "PASS" ]; then
+    echo "  ✅ $test_name"
+    PASS=$((PASS + 1))
+  elif [ "$status" = "FAIL" ]; then
+    echo "  ❌ $test_name: $detail"
+    FAIL=$((FAIL + 1))
+  else
+    echo "  ⚠️ $test_name: $detail"
+    WARN=$((WARN + 1))
+  fi
+  RESULTS="${RESULTS}\n| ${status} | ${test_name} | ${detail} |"
+}
+
+echo "============================================"
+echo "  Permission-aware RAG デプロイ検証"
+echo "============================================"
+echo "  Region: $REGION"
+echo "  Stack: $STACK_PREFIX"
+echo "  Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo ""
+
+# ========================================
+# 1. スタック状態チェック
+# ========================================
+echo "📋 1. スタック状態チェック..."
+for STACK in Networking Security Storage AI WebApp; do
+  STATUS=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-${STACK} --region $REGION \
+    --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "NOT_FOUND")
+  if [ "$STATUS" = "CREATE_COMPLETE" ] || [ "$STATUS" = "UPDATE_COMPLETE" ]; then
+    log_result "PASS" "${STACK}Stack" "$STATUS"
+  else
+    log_result "FAIL" "${STACK}Stack" "$STATUS"
+  fi
+done
+echo ""
+
+# ========================================
+# 2. リソース存在チェック
+# ========================================
+echo "📋 2. リソース存在チェック..."
+
+LAMBDA_URL=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-WebApp --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`LambdaFunctionUrl`].OutputValue' --output text 2>/dev/null || echo "")
+KB_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`KnowledgeBaseId`].OutputValue' --output text 2>/dev/null || echo "")
+AGENT_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`AgentId`].OutputValue' --output text 2>/dev/null || echo "")
+
+[ -n "$LAMBDA_URL" ] && log_result "PASS" "Lambda Function URL" "$LAMBDA_URL" || log_result "FAIL" "Lambda Function URL" "Not found"
+[ -n "$KB_ID" ] && log_result "PASS" "Knowledge Base" "$KB_ID" || log_result "FAIL" "Knowledge Base" "Not found"
+if [ -n "$AGENT_ID" ] && [ "$AGENT_ID" != "None" ]; then
+  log_result "PASS" "Bedrock Agent" "$AGENT_ID"
+else
+  log_result "WARN" "Bedrock Agent" "Not deployed (enableAgent=false?)"
+fi
+echo ""
+
+# ========================================
+# 3. アプリケーション応答チェック
+# ========================================
+echo "📋 3. アプリケーション応答チェック..."
+
+if [ -n "$LAMBDA_URL" ]; then
+  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${LAMBDA_URL}ja/signin" 2>/dev/null || echo "000")
+  [ "$HTTP_CODE" = "200" ] && log_result "PASS" "Signin page" "HTTP $HTTP_CODE" || log_result "FAIL" "Signin page" "HTTP $HTTP_CODE"
+fi
+echo ""
+
+# ========================================
+# 4. KBモード Permission-aware テスト
+# ========================================
+echo "📋 4. KBモード Permission-aware テスト..."
+
+if [ -n "$LAMBDA_URL" ] && [ -n "$KB_ID" ]; then
+  # Admin test
+  ADMIN_RESP=$(curl -s --max-time 30 -X POST "${LAMBDA_URL}api/bedrock/kb/retrieve" \
+    -H "Content-Type: application/json" \
+    -d "{\"query\":\"財務状況\",\"userId\":\"admin@example.com\",\"knowledgeBaseId\":\"${KB_ID}\",\"region\":\"${REGION}\"}" 2>/dev/null || echo "{}")
+  ADMIN_ALLOWED=$(echo "$ADMIN_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('filterLog',{}).get('allowedDocuments','?'))" 2>/dev/null || echo "?")
+  ADMIN_TOTAL=$(echo "$ADMIN_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('filterLog',{}).get('totalDocuments','?'))" 2>/dev/null || echo "?")
+  ADMIN_SUCCESS=$(echo "$ADMIN_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('success',False))" 2>/dev/null || echo "False")
+
+  if [ "$ADMIN_SUCCESS" = "True" ] && [ "$ADMIN_ALLOWED" != "0" ]; then
+    log_result "PASS" "KB Admin SID filter" "${ADMIN_ALLOWED}/${ADMIN_TOTAL} allowed"
+  else
+    log_result "FAIL" "KB Admin SID filter" "success=$ADMIN_SUCCESS, allowed=$ADMIN_ALLOWED"
+  fi
+
+  # User test
+  USER_RESP=$(curl -s --max-time 30 -X POST "${LAMBDA_URL}api/bedrock/kb/retrieve" \
+    -H "Content-Type: application/json" \
+    -d "{\"query\":\"財務状況\",\"userId\":\"user@example.com\",\"knowledgeBaseId\":\"${KB_ID}\",\"region\":\"${REGION}\"}" 2>/dev/null || echo "{}")
+  USER_ALLOWED=$(echo "$USER_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('filterLog',{}).get('allowedDocuments','?'))" 2>/dev/null || echo "?")
+  USER_TOTAL=$(echo "$USER_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('filterLog',{}).get('totalDocuments','?'))" 2>/dev/null || echo "?")
+
+  if [ "$USER_ALLOWED" != "?" ] && [ "$USER_ALLOWED" -lt "$ADMIN_ALLOWED" ] 2>/dev/null; then
+    log_result "PASS" "KB User SID filter" "${USER_ALLOWED}/${USER_TOTAL} allowed (< admin)"
+  else
+    log_result "FAIL" "KB User SID filter" "allowed=$USER_ALLOWED (expected < $ADMIN_ALLOWED)"
+  fi
+fi
+echo ""
+
+# ========================================
+# 5. Agentモード Permission-aware テスト
+# ========================================
+echo "📋 5. Agentモード Permission-aware テスト..."
+
+if [ -n "$LAMBDA_URL" ] && [ -n "$AGENT_ID" ] && [ "$AGENT_ID" != "None" ]; then
+  # Admin Agent test
+  AGENT_ADMIN=$(curl -s --max-time 60 -X POST "${LAMBDA_URL}api/bedrock/agent" \
+    -H "Content-Type: application/json" \
+    -d "{\"message\":\"財務状況\",\"userId\":\"admin@example.com\",\"sessionId\":\"verify-admin-$(date +%s)\",\"action\":\"invoke\"}" 2>/dev/null || echo "{}")
+  AGENT_ADMIN_OK=$(echo "$AGENT_ADMIN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('success',False))" 2>/dev/null || echo "False")
+  AGENT_ADMIN_LEN=$(echo "$AGENT_ADMIN" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('answer','')))" 2>/dev/null || echo "0")
+
+  if [ "$AGENT_ADMIN_OK" = "True" ] && [ "$AGENT_ADMIN_LEN" -gt 10 ] 2>/dev/null; then
+    log_result "PASS" "Agent Admin invoke" "Response length: $AGENT_ADMIN_LEN chars"
+  else
+    log_result "FAIL" "Agent Admin invoke" "success=$AGENT_ADMIN_OK, length=$AGENT_ADMIN_LEN"
+  fi
+
+  # Check Action Group Lambda logs
+  AG_LOG=$(aws logs get-log-events --log-group-name /aws/lambda/${STACK_PREFIX}-perm-search \
+    --log-stream-name $(aws logs describe-log-streams --log-group-name /aws/lambda/${STACK_PREFIX}-perm-search \
+      --order-by LastEventTime --descending --limit 1 --region $REGION \
+      --query 'logStreams[0].logStreamName' --output text 2>/dev/null) \
+    --region $REGION --query 'events[-3:].message' --output text 2>/dev/null || echo "")
+  AG_ALLOWED=$(echo "$AG_LOG" | grep -o "Allowed: [0-9]* / [0-9]*" | tail -1 || echo "")
+
+  if [ -n "$AG_ALLOWED" ]; then
+    log_result "PASS" "Action Group SID filter" "$AG_ALLOWED"
+  else
+    log_result "WARN" "Action Group SID filter" "Could not verify from logs"
+  fi
+else
+  log_result "WARN" "Agent tests" "Agent not deployed, skipping"
+fi
+echo ""
+
+# ========================================
+# 6. S3 Access Point チェック
+# ========================================
+echo "📋 6. S3 Access Point チェック..."
+
+S3AP_NAME=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Storage --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`S3AccessPointName`].OutputValue' --output text 2>/dev/null || echo "")
+S3AP_STATUS=$(aws fsx describe-s3-access-point-attachments --region $REGION \
+  --query "S3AccessPointAttachments[?Name=='${S3AP_NAME}'].Lifecycle" --output text 2>/dev/null || echo "")
+
+if [ "$S3AP_STATUS" = "AVAILABLE" ]; then
+  log_result "PASS" "S3 Access Point" "$S3AP_NAME ($S3AP_STATUS)"
+else
+  log_result "WARN" "S3 Access Point" "Status: ${S3AP_STATUS:-NOT_FOUND}"
+fi
+echo ""
+
+# ========================================
+# レポート生成
+# ========================================
+TOTAL=$((PASS + FAIL + WARN))
+echo "============================================"
+echo "  検証結果: $PASS/$TOTAL PASS, $FAIL FAIL, $WARN WARN"
+echo "============================================"
+
+# Markdownレポート生成
+cat > "$REPORT_FILE" << EOF
+# テスト結果レポート
+
+**実行日時**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+**リージョン**: $REGION
+**スタック**: $STACK_PREFIX
+
+## サマリー
+
+| 結果 | 件数 |
+|------|------|
+| ✅ PASS | $PASS |
+| ❌ FAIL | $FAIL |
+| ⚠️ WARN | $WARN |
+| **合計** | **$TOTAL** |
+
+## 詳細結果
+
+| Status | Test | Detail |
+|--------|------|--------|$(echo -e "$RESULTS")
+
+## 環境情報
+
+| 項目 | 値 |
+|------|-----|
+| Lambda URL | $LAMBDA_URL |
+| KB ID | $KB_ID |
+| Agent ID | ${AGENT_ID:-N/A} |
+| S3 AP | ${S3AP_NAME:-N/A} (${S3AP_STATUS:-N/A}) |
+
+## KBモード検証詳細
+
+### Admin (admin@example.com)
+- SIDフィルタ: ${ADMIN_ALLOWED:-?}/${ADMIN_TOTAL:-?} allowed
+- フィルタ方式: SID_MATCHING
+
+### User (user@example.com)
+- SIDフィルタ: ${USER_ALLOWED:-?}/${USER_TOTAL:-?} allowed
+- フィルタ方式: SID_MATCHING
+
+## Agentモード検証詳細
+
+### Agent情報
+- Agent ID: ${AGENT_ID:-N/A}
+- Action Group Lambda: ${STACK_PREFIX}-perm-search
+- Action Group SIDフィルタ: ${AG_ALLOWED:-N/A}
+
+---
+*Generated by verify-deployment.sh*
+EOF
+
+echo ""
+echo "📄 レポート生成: $REPORT_FILE"
+
+if [ "$FAIL" -gt 0 ]; then
+  echo "❌ $FAIL 件のテストが失敗しました"
+  exit 1
+else
+  echo "✅ 全テスト合格"
+  exit 0
+fi

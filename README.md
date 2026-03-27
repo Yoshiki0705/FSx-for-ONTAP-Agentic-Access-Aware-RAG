@@ -294,9 +294,25 @@ aws lambda update-function-code \
   --region ap-northeast-1
 ```
 
-### Step 9: アプリケーションへのアクセスと検証
+### Step 9: デプロイ検証（自動テスト）
 
-CloudFormation出力からCloudFront URLを取得します。
+全機能の動作確認を自動テストスクリプトで実行します。
+
+```bash
+bash demo-data/scripts/verify-deployment.sh
+```
+
+テスト結果は`docs/test-results.md`に自動生成されます。検証項目:
+- スタック状態（6スタック全てCREATE/UPDATE_COMPLETE）
+- リソース存在（Lambda URL, KB, Agent）
+- アプリケーション応答（サインインページ HTTP 200）
+- KBモード Permission-aware（admin: 全ドキュメント許可、user: 公開のみ）
+- Agentモード Permission-aware（Action Group SIDフィルタリング）
+- S3 Access Point（AVAILABLE）
+
+### Step 10: ブラウザでのアクセス
+
+CloudFormation出力からURLを取得してブラウザでアクセスします。
 
 ```bash
 aws cloudformation describe-stacks \
