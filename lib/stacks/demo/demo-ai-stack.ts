@@ -293,22 +293,20 @@ export class DemoAIStack extends cdk.Stack {
       });
 
       // Bedrock Agent
+      // KB紐づけはAction Group経由で行うため、knowledgeBasesは設定しない
+      // これにより、AgentはAction Group（Permission-aware Search）経由でのみKBにアクセスする
       const agent = new bedrock.CfnAgent(this, 'Agent', {
         agentName: `${prefix}-agent`,
         agentResourceRoleArn: agentRole.roleArn,
         foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
         instruction: `あなたはPermission-aware RAGシステムのAIエージェントです。
-ユーザーの質問に対して、アクセス権限のある文書のみを参照して回答します。
-文書検索にはpermissionAwareSearch機能を使用してください。
+ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って文書を検索してから回答してください。
+この機能はユーザーのアクセス権限に基づいてフィルタリングされた文書のみを返します。
 検索結果に基づいて、正確で簡潔な日本語の回答を生成してください。
-アクセス権限のない文書の情報は絶対に含めないでください。`,
+permissionAwareSearchを使わずに回答しないでください。必ず検索してから回答してください。`,
         description: 'Permission-aware RAG Agent with SID-based document filtering',
         idleSessionTtlInSeconds: 600,
-        knowledgeBases: [{
-          knowledgeBaseId: kb.attrKnowledgeBaseId,
-          description: 'FSx ONTAP文書のベクトル検索（SIDメタデータ付き）',
-          knowledgeBaseState: 'ENABLED',
-        }],
+        // knowledgeBases は設定しない（Action Group経由でPermission-awareにアクセス）
         actionGroups: [{
           actionGroupName: 'PermissionAwareSearch',
           description: 'SIDベースの権限フィルタリング付き文書検索',
