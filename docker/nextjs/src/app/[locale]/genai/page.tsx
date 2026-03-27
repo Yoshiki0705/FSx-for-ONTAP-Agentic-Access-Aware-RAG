@@ -538,6 +538,18 @@ function ChatbotPageContent() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const signOutButtonRef = useRef<HTMLButtonElement>(null);
+
+  // ワークフロー選択イベントリスナー
+  useEffect(() => {
+    const handleWorkflow = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.prompt) {
+        setInputText(detail.prompt);
+      }
+    };
+    window.addEventListener('agent-workflow-selected', handleWorkflow);
+    return () => window.removeEventListener('agent-workflow-selected', handleWorkflow);
+  }, []);
   const router = useRouter();
 
   // チャットストアの使用
@@ -1064,27 +1076,91 @@ function ChatbotPageContent() {
     }
   };
 
-  // Agent モードのレスポンス生成（ハイブリッド方式）
-  // KB Retrieve API → SIDフィルタリング → 許可ドキュメントをコンテキストとしてConverse APIに渡す
-  // これにより、AgentモードでもPermission-awareなRAGが実現される
+  // Agent モードのレスポンス生成（InvokeAgent API）
+  // Bedrock AgentのInvokeAgent APIを直接呼び出し、Agentの多段階推論を活用
+  // Permission-awareはAgent側のKB設定またはAction Groupで実現
+  // フォールバック: Agent呼び出し失敗時はKB Retrieve + SIDフィルタリング（ハイブリッド方式）
   const generateAgentResponse = async (query: string): Promise<{ answer: string; citations: CitationItem[] }> => {
     try {
       const currentRegion = typeof window !== 'undefined'
         ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
         : 'ap-northeast-1';
 
-      const knowledgeBaseId = typeof window !== 'undefined'
-        ? localStorage.getItem('selectedKnowledgeBaseId') || process.env.NEXT_PUBLIC_BEDROCK_KB_ID || ''
-        : '';
-
-      console.log('🤖 [Agent Hybrid] KB Retrieve + SID Filter + Agent Response:', {
+      console.log('🤖 [Agent] InvokeAgent:', {
         query: query.substring(0, 100),
         agentId: selectedAgentId,
         region: currentRegion,
       });
 
-      // Step 1: KB Retrieve API（SIDフィルタリング付き）を呼び出し
-      // 既存のKB APIを使ってPermission-awareな検索結果を取得
+      // Step 1: InvokeAgent APIを呼び出し
+      const agentResponse = await fetch('/api/bedrock/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: query,
+          userId: user.username,
+          sessionId: currentSession?.id || `session-${Date.now()}`,
+          selectedAgentId: selectedAgentId || undefined,
+          action: 'invoke',
+        }),
+      });
+
+      const agentData = await agentResponse.json();
+
+      if (agentData.success && agentData.answer) {
+        console.log('✅ [Agent] InvokeAgent success');
+        // Agent応答からcitationを抽出（traceにKB検索結果が含まれる場合）
+        const agentCitations: CitationItem[] = [];
+        if (agentData.metadata?.citations) {
+          for (const c of agentData.metadata.citations) {
+            agentCitations.push({
+              fileName: c.fileName || c.sourceUri?.split('/').pop() || 'Unknown',
+              s3Uri: c.sourceUri || c.s3Uri || '',
+              content: c.content || c.text || '',
+              metadata: c.metadata || {},
+            });
+          }
+        }
+        // traceからKB検索結果を抽出
+        if (agentData.metadata?.trace) {
+          for (const t of agentData.metadata.trace) {
+            const refs = t?.trace?.orchestrationTrace?.observation?.knowledgeBaseLookupOutput?.retrievedReferences;
+            if (refs) {
+              for (const ref of refs) {
+                const uri = ref.location?.s3Location?.uri || '';
+                agentCitations.push({
+                  fileName: uri.split('/').pop() || 'Unknown',
+                  s3Uri: uri,
+                  content: ref.content?.text || '',
+                  metadata: {},
+                });
+              }
+            }
+          }
+        }
+        return { answer: agentData.answer, citations: agentCitations };
+      }
+
+      // Agent呼び出し失敗 → フォールバック: KB Retrieve + SIDフィルタリング
+      console.warn('⚠️ [Agent] InvokeAgent failed, falling back to KB hybrid:', agentData.error);
+      return await generateAgentFallback(query, currentRegion);
+    } catch (error) {
+      console.error('❌ [Agent] Error, falling back to KB hybrid:', error);
+      const currentRegion = typeof window !== 'undefined'
+        ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
+        : 'ap-northeast-1';
+      return await generateAgentFallback(query, currentRegion);
+    }
+  };
+
+  // Agent フォールバック: KB Retrieve + SIDフィルタリング + Converse
+  const generateAgentFallback = async (query: string, region: string): Promise<{ answer: string; citations: CitationItem[] }> => {
+    try {
+      const knowledgeBaseId = typeof window !== 'undefined'
+        ? localStorage.getItem('selectedKnowledgeBaseId') || process.env.NEXT_PUBLIC_BEDROCK_KB_ID || ''
+        : '';
+
+      console.log('🔄 [Agent Fallback] KB Retrieve + SID Filter');
       const response = await fetch('/api/bedrock/kb/retrieve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1093,19 +1169,13 @@ function ChatbotPageContent() {
           ...(knowledgeBaseId ? { knowledgeBaseId } : {}),
           modelId: selectedModelId,
           userId: user.username,
-          region: currentRegion,
-          // Agent Hybrid: Agentモードであることを示すフラグ
+          region,
           agentMode: true,
-          agentId: selectedAgentId || undefined,
         }),
       });
 
       const data = await response.json();
-
       if (data.success) {
-        if (data.filterLog) {
-          console.log('🔐 [Agent Hybrid] Permission filter:', data.filterLog);
-        }
         return {
           answer: data.answer || 'No response',
           citations: (data.citations || []).map((c: any) => ({
@@ -1115,14 +1185,12 @@ function ChatbotPageContent() {
             metadata: c.metadata || {},
           })),
         };
-      } else {
-        throw new Error(data.error || 'Agent hybrid response failed');
       }
+      throw new Error(data.error || 'Fallback failed');
     } catch (error) {
-      console.error('❌ [Agent Hybrid] Error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
-        answer: `**Agent エラー**\n\n• **Agent ID**: ${selectedAgentId || '未選択'}\n• **時刻**: ${new Date().toLocaleString('ja-JP')}\n\n**対処方法:**\n1. サイドバーでAgentを選択してください\n2. リージョンを変更してみてください\n\n**詳細:** ${errorMessage}`,
+        answer: `**Agent エラー**\n\n• **Agent ID**: ${selectedAgentId || '未選択'}\n• **時刻**: ${new Date().toLocaleString('ja-JP')}\n\n**詳細:** ${errorMessage}`,
         citations: [],
       };
     }

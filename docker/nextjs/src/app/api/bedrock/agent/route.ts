@@ -137,10 +137,13 @@ async function handleInvokeAgent(
   });
 
   // Bedrock Agent呼び出し
+  const sanitizedSessionId = (sessionId || `session-${userId}-${Date.now()}`)
+    .replace(/[^0-9a-zA-Z._:-]/g, '-'); // Bedrock Agent sessionId制約: [0-9a-zA-Z._:-]+
+
   const command = new InvokeAgentCommand({
     agentId: AGENT_ID,
     agentAliasId: AGENT_ALIAS_ID,
-    sessionId: sessionId || `session-${userId}-${Date.now()}`,
+    sessionId: sanitizedSessionId,
     inputText: message,
   });
 

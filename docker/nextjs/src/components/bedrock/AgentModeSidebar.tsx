@@ -124,6 +124,37 @@ export function AgentModeSidebar({
       {/* Agent Features */}
       <AgentFeaturesSection locale={locale} />
 
+      {/* ワークフロー選択 */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          🔧 ワークフロー
+        </h3>
+        <div className="space-y-1">
+          {[
+            { icon: '📊', label: '財務レポート分析', prompt: '最新の財務レポートを分析して、売上状況と投資計画をまとめてください。' },
+            { icon: '📝', label: 'プロジェクト進捗確認', prompt: 'プロジェクト計画の進捗状況を確認し、主要マイルストーンと技術的課題を教えてください。' },
+            { icon: '🔍', label: 'ドキュメント横断検索', prompt: '社内ドキュメントを横断的に検索し、主要な情報をまとめてください。' },
+            { icon: '📋', label: '人事ポリシー確認', prompt: '人事ポリシーの内容を確認し、リモートワーク制度と休暇制度について教えてください。' },
+          ].map((wf, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                // ワークフロー選択時にチャット入力欄にプロンプトを設定
+                const event = new CustomEvent('agent-workflow-selected', {
+                  detail: { prompt: wf.prompt, label: wf.label },
+                  bubbles: true,
+                });
+                window.dispatchEvent(event);
+              }}
+              className="w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300 transition-colors flex items-center space-x-2"
+            >
+              <span>{wf.icon}</span>
+              <span>{wf.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Chat History Settings */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-gray-700">
