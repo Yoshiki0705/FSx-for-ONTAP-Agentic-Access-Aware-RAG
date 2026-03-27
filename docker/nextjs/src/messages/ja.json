@@ -66,7 +66,6 @@
     "activeStatus": "アクティブ",
     "inactiveStatus": "非アクティブ",
     "lastUsed": "最終使用",
-    "description": "説明",
     "createNew": "新規作成",
     "deleteConfirm": "{name}を削除しますか？",
     "deleteSuccess": "Agentの削除が完了しました",
@@ -82,7 +81,9 @@
       "knowledgeBaseDesc": "接続するナレッジベースを選択",
       "actionGroups": "アクショングループ",
       "actionGroupsDesc": "Agentが実行できるアクションを設定"
-    }
+    },
+    "hint": "ヒント",
+    "hintDesc": "ワークフローを選択するか、自由にチャットしてください"
   },
   "chatbot": {
     "sidebarToggleClose": "サイドバーを閉じる",
@@ -148,7 +149,10 @@
       "automaticDocumentSearchDesc": "関連文書を自動的に検索・参照",
       "contextOptimization": "コンテキスト最適化",
       "contextOptimizationDesc": "文脈に応じた最適な回答生成"
-    }
+    },
+    "saveHistory": "履歴を保存",
+    "autoTitleGeneration": "自動タイトル生成",
+    "sessionActive": "セッション有効"
   },
   "introduction": {
     "welcome": "こんにちは、{username}さん！",
@@ -215,7 +219,8 @@
     "changeUnexpectedError": "予期しないエラー: {error}",
     "reloadError": "ページリロードエラー",
     "validationWarning": "リージョン検証警告: {message}\nフォールバック: {fallbackRegion}",
-    "unsupportedWarning": "{regionName} はサポート外です。\n{warningMessage}"
+    "unsupportedWarning": "{regionName} はサポート外です。\n{warningMessage}",
+    "title": "リージョン設定"
   },
   "search": {
     "placeholder": "検索..."

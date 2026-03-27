@@ -66,7 +66,6 @@
     "activeStatus": "Active",
     "inactiveStatus": "Inactive",
     "lastUsed": "Last Used",
-    "description": "Description",
     "createNew": "Create New",
     "deleteConfirm": "Delete {name}?",
     "deleteSuccess": "Agent deletion completed",
@@ -82,7 +81,9 @@
       "knowledgeBaseDesc": "Select knowledge bases to connect",
       "actionGroups": "Action Groups",
       "actionGroupsDesc": "Configure actions the agent can perform"
-    }
+    },
+    "hint": "Hint",
+    "hintDesc": "Select a workflow or chat freely"
   },
   "chatbot": {
     "sidebarToggleClose": "Close sidebar",
@@ -148,7 +149,10 @@
       "automaticDocumentSearchDesc": "Automatically search and reference related documents",
       "contextOptimization": "Context Optimization",
       "contextOptimizationDesc": "Generate optimal responses based on context"
-    }
+    },
+    "saveHistory": "Save History",
+    "autoTitleGeneration": "Auto Title Generation",
+    "sessionActive": "Session Active"
   },
   "introduction": {
     "welcome": "Hello, {username}!",
@@ -215,7 +219,8 @@
     "changeUnexpectedError": "Unexpected error: {error}",
     "reloadError": "Page reload error",
     "validationWarning": "Region validation warning: {message}\nFallback: {fallbackRegion}",
-    "unsupportedWarning": "{regionName} is not supported.\n{warningMessage}"
+    "unsupportedWarning": "{regionName} is not supported.\n{warningMessage}",
+    "title": "Region Settings"
   },
   "search": {
     "placeholder": "Search..."
