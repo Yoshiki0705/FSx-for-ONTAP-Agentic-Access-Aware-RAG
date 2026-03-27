@@ -9,7 +9,7 @@ const app = new cdk.App();
 
 const stack = new cdk.Stack(app, 'TokyoRegion-permission-aware-rag-prod-AgentCore-Gateway', {
   env: {
-    account: '178625946981',
+    account: process.env.CDK_DEFAULT_ACCOUNT || '',
     region: 'ap-northeast-1',
   },
   description: 'AgentCore Gateway with Full Lambda Functions',
@@ -51,8 +51,8 @@ const gateway = new BedrockAgentCoreGatewayConstruct(stack, 'AgentCoreGateway', 
   // Lambda Function Conversion (enabled with existing Lambda functions)
   lambdaFunctionConversion: {
     functionArns: [
-      'arn:aws:lambda:ap-northeast-1:178625946981:function:TokyoRegion-permission-aware-rag-prod-AgentCoreRuntime',
-      'arn:aws:lambda:ap-northeast-1:178625946981:function:TokyoRegion-permission-aware-rag-prod-AgentCore-V2',
+      'arn:aws:lambda:ap-northeast-1:${process.env.CDK_DEFAULT_ACCOUNT}:function:TokyoRegion-permission-aware-rag-prod-AgentCoreRuntime',
+      'arn:aws:lambda:ap-northeast-1:${process.env.CDK_DEFAULT_ACCOUNT}:function:TokyoRegion-permission-aware-rag-prod-AgentCore-V2',
     ],
     metadataSource: {
       useTags: true,

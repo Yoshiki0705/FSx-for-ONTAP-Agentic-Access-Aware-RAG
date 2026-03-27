@@ -10,7 +10,7 @@ const app = new cdk.App();
 const projectName = app.node.tryGetContext('projectName') || 'permission-aware-rag';
 const environment = app.node.tryGetContext('environment') || 'prod';
 const region = process.env.CDK_DEFAULT_REGION || 'ap-northeast-1';
-const account = process.env.CDK_DEFAULT_ACCOUNT || '178625946981';
+const account = process.env.CDK_DEFAULT_ACCOUNT || process.env.CDK_DEFAULT_ACCOUNT || '';
 
 // VPC ID取得
 const vpcId = process.env.VPC_ID || app.node.tryGetContext('vpcId');

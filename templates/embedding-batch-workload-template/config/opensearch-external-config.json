@@ -4,7 +4,7 @@
   "region": "ap-northeast-1",
   "version": "1.0.0",
   "aws": {
-    "account": "178625946981",
+    "account": "<ACCOUNT_ID>",
     "profile": "default"
   },
   "stackNaming": {
@@ -95,7 +95,7 @@
         "authentication": {
           "type": "basic",
           "username": "embedding_admin",
-          "passwordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:178625946981:secret:opensearch-master-password"
+          "passwordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:<ACCOUNT_ID>:secret:opensearch-master-password"
         }
       }
     }

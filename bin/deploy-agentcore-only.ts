@@ -9,7 +9,7 @@ const app = new cdk.App();
 
 const stack = new cdk.Stack(app, 'TokyoRegion-permission-aware-rag-prod-AgentCore-Lambda', {
   env: {
-    account: '178625946981',
+    account: process.env.CDK_DEFAULT_ACCOUNT || '',
     region: 'ap-northeast-1',
   },
   description: 'AgentCore Lambda Functions Only',

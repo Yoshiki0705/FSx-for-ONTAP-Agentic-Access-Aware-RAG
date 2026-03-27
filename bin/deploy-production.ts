@@ -62,7 +62,7 @@ const app = new cdk.App();
 const projectName = 'permission-aware-rag';
 const environment = 'prod';
 const region = 'ap-northeast-1';
-const account = '178625946981';
+const account = process.env.CDK_DEFAULT_ACCOUNT || '';
 
 // 既存VPC情報（cdk.context.jsonから取得）
 const existingVpcId = 'vpc-09aa251d6db52b1fc';

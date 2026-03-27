@@ -273,7 +273,7 @@ Lambda関数に設定する環境変数です。
 
 | 変数名 | 説明 | 例 |
 |--------|------|-----|
-| `DATA_BUCKET_NAME` | KBデータソースS3バケット名 | `perm-rag-demo-demo-kb-data-178625946981` |
+| `DATA_BUCKET_NAME` | KBデータソースS3バケット名 | `perm-rag-demo-demo-kb-data-${ACCOUNT_ID}` |
 | `BEDROCK_KB_ID` | Knowledge Base ID | `3ZZMK6YA0Q` |
 | `BEDROCK_REGION` | Bedrockリージョン | `ap-northeast-1` |
 | `USER_ACCESS_TABLE_NAME` | DynamoDB user-accessテーブル名 | `perm-rag-demo-demo-user-access` |

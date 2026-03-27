@@ -147,7 +147,7 @@ EOF
         
         aws iam attach-role-policy \
             --role-name lambda-execution-role \
-            --policy-arn "arn:aws:iam::178625946981:policy/VectorDatabaseTestPolicy" \
+            --policy-arn "arn:aws:iam::${AWS_ACCOUNT_ID}:policy/VectorDatabaseTestPolicy" \
             --profile user01 >/dev/null 2>&1 || true
         
         # 少し待機

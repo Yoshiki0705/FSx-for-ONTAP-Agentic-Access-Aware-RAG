@@ -841,9 +841,9 @@ fi
 
 # 7. ECRプッシュ
 docker tag permission-aware-rag-webapp:agent-mode-fix-v22 \
-  178625946981.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:agent-mode-fix-v22
+  <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:agent-mode-fix-v22
 
-docker push 178625946981.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:agent-mode-fix-v22
+docker push <ACCOUNT_ID>.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:agent-mode-fix-v22
 ```
 
 
