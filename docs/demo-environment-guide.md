@@ -67,17 +67,36 @@ done
 
 1. CloudFront URLにアクセス → `/ja/signin`
 2. テストユーザーでサインイン
-3. チャット画面でモデル選択（推奨: `amazon.nova-lite-v1:0`）
-4. RAG検索で権限フィルタリングを確認
+3. **KBモード**: チャット画面でモデル選択 → RAG検索で権限フィルタリングを確認
+4. **Agentモード**: ヘッダーの「🤖 Agent」ボタンをクリック → Agent選択 → ワークフロー選択 or 自由チャット
 
 ### 権限差異の確認
 
 管理者と一般ユーザーで同じ質問をすると、SIDフィルタリングにより異なる結果が返ります。
+KBモード・Agentモード両方で同じ権限制御が適用されます。
 
-| 質問例 | admin | user |
-|--------|-------|------|
-| 「会社の売上はいくらですか？」 | ✅ 財務レポート参照 | ❌ 公開情報のみ |
+| 質問例 | admin (KB/Agent) | user (KB/Agent) |
+|--------|-------------------|-----------------|
+| 「会社の売上はいくらですか？」 | ✅ 財務レポート参照（6/6許可） | ❌ 公開情報のみ（2/6許可） |
 | 「リモートワークのポリシーは？」 | ✅ 人事ポリシー参照 | ❌ アクセス拒否 |
+| 「プロジェクト計画は？」 | ✅ 計画書参照 | ❌ アクセス拒否 |
+
+### Agentモードの検証
+
+1. ヘッダーの「🤖 Agent」ボタンをクリック
+2. サイドバーでAgentを選択（`perm-rag-demo-demo-agent`）
+3. ワークフロー選択（📊 財務レポート分析 等）またはチャット入力
+4. Agent応答を確認（Permission-aware Action Group経由でSIDフィルタリング適用）
+
+### CDKデプロイオプション
+
+```bash
+# Agent + 全オプション有効
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c enableAgent=true \
+  -c enableGuardrails=true \
+  --require-approval never
+```
 | 「製品の概要を教えてください」 | ✅ 製品カタログ参照 | ✅ 製品カタログ参照 |
 
 詳細は [demo-data/guides/demo-scenario.md](../demo-data/guides/demo-scenario.md) を参照。
