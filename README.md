@@ -233,6 +233,7 @@ EOF
 | `useS3AccessPoint` | `false` | S3 Access PointをBedrock KBデータソースとして使用 |
 | `usePermissionFilterLambda` | `false` | SIDフィルタリングを専用Lambda経由で実行（インラインフィルタリングのフォールバック付き） |
 | `enableGuardrails` | `false` | Bedrock Guardrails（有害コンテンツフィルタ + PII保護） |
+| `enableAgent` | `false` | Bedrock Agent + Permission-aware Action Group（KB検索 + SIDフィルタリング） |
 | `enableKmsEncryption` | `false` | KMS CMKによるS3・DynamoDB暗号化（キーローテーション有効） |
 | `enableCloudTrail` | `false` | CloudTrail監査ログ（S3データアクセス + Lambda呼び出し、90日保持） |
 | `enableVpcEndpoints` | `false` | VPCエンドポイント（S3, DynamoDB, Bedrock, SSM, Secrets Manager, CloudWatch Logs） |
@@ -240,9 +241,11 @@ EOF
 ### Step 6: CDKデプロイ
 
 ```bash
-# 全6スタックを一括デプロイ（30〜40分）
+# 全スタックを一括デプロイ（30〜40分）
+# enableAgent=true でBedrock Agent + Permission-aware Action Groupも作成
 npx cdk deploy --all \
   --app "npx ts-node bin/demo-app.ts" \
+  -c enableAgent=true \
   --require-approval never
 ```
 

@@ -42,6 +42,10 @@ USER_ACCESS_TABLE=$(aws cloudformation describe-stacks --stack-name ${STACK_PREF
   --query 'Stacks[0].Outputs[?OutputKey==`UserAccessTableName`].OutputValue' --output text)
 KB_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
   --query 'Stacks[0].Outputs[?OutputKey==`KnowledgeBaseId`].OutputValue' --output text)
+AGENT_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`AgentId`].OutputValue' --output text 2>/dev/null || echo "")
+AGENT_ALIAS_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`AgentAliasId`].OutputValue' --output text 2>/dev/null || echo "")
 USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Security --region $REGION \
   --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' --output text)
 LAMBDA_URL=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-WebApp --region $REGION \
@@ -53,6 +57,10 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 echo "  Volume ID: $VOLUME_ID"
 echo "  S3 AP Name: $S3AP_NAME"
 echo "  KB ID: $KB_ID"
+if [ -n "$AGENT_ID" ] && [ "$AGENT_ID" != "None" ]; then
+  echo "  Agent ID: $AGENT_ID"
+  echo "  Agent Alias: $AGENT_ALIAS_ID"
+fi
 echo "  User Pool: $USER_POOL_ID"
 echo "  Lambda URL: $LAMBDA_URL"
 echo "  CloudFront: $CF_URL"
@@ -225,14 +233,29 @@ echo "    user@example.com  / $DEMO_PASSWORD (公開ドキュメントのみ)"
 echo ""
 echo "  KB ID: $KB_ID"
 echo "  S3 AP: $S3AP_NAME ($S3AP_ALIAS)"
+if [ -n "$AGENT_ID" ] && [ "$AGENT_ID" != "None" ]; then
+  echo "  Agent ID: $AGENT_ID (Alias: $AGENT_ALIAS_ID)"
+fi
 echo ""
 echo "  検証コマンド:"
-echo "    # 管理者テスト（機密情報にアクセス可能）"
+echo "    # KBモード: 管理者テスト（機密情報にアクセス可能）"
 echo "    curl -s -X POST '${LAMBDA_URL}api/bedrock/kb/retrieve' \\"
 echo "      -H 'Content-Type: application/json' \\"
 echo "      -d '{\"query\":\"財務状況\",\"userId\":\"admin@example.com\",\"knowledgeBaseId\":\"${KB_ID}\",\"region\":\"${REGION}\"}'"
 echo ""
-echo "    # 一般ユーザーテスト（機密情報にアクセス不可）"
+echo "    # KBモード: 一般ユーザーテスト（機密情報にアクセス不可）"
 echo "    curl -s -X POST '${LAMBDA_URL}api/bedrock/kb/retrieve' \\"
 echo "      -H 'Content-Type: application/json' \\"
 echo "      -d '{\"query\":\"財務状況\",\"userId\":\"user@example.com\",\"knowledgeBaseId\":\"${KB_ID}\",\"region\":\"${REGION}\"}'"
+if [ -n "$AGENT_ID" ] && [ "$AGENT_ID" != "None" ]; then
+  echo ""
+  echo "    # Agentモード: 管理者テスト"
+  echo "    curl -s -X POST '${LAMBDA_URL}api/bedrock/agent' \\"
+  echo "      -H 'Content-Type: application/json' \\"
+  echo "      -d '{\"message\":\"財務状況\",\"userId\":\"admin@example.com\",\"sessionId\":\"test-001\",\"action\":\"invoke\"}'"
+  echo ""
+  echo "    # Agentモード: 一般ユーザーテスト"
+  echo "    curl -s -X POST '${LAMBDA_URL}api/bedrock/agent' \\"
+  echo "      -H 'Content-Type: application/json' \\"
+  echo "      -d '{\"message\":\"財務状況\",\"userId\":\"user@example.com\",\"sessionId\":\"test-002\",\"action\":\"invoke\"}'"
+fi

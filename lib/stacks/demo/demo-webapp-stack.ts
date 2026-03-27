@@ -43,6 +43,10 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   allowedCountries?: string[];
   /** Permission Filter Lambdaを使用するか（デフォルト: false、Next.js内でフィルタリング） */
   usePermissionFilterLambda?: boolean;
+  /** Bedrock Agent ID（AIStackから） */
+  agentId?: string;
+  /** Bedrock Agent Alias ID（AIStackから） */
+  agentAliasId?: string;
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -63,6 +67,7 @@ export class DemoWebAppStack extends cdk.Stack {
       allowedCountries = ['JP'],
       usePermissionFilterLambda = false,
     } = props;
+    const { agentId, agentAliasId } = props;
     const prefix = `${projectName}-${environment}`;
 
     // ========================================
@@ -97,6 +102,9 @@ export class DemoWebAppStack extends cdk.Stack {
         NODE_ENV: 'production',
         AWS_LWA_PORT: '3000',
         RUST_LOG: 'info',
+        // Bedrock Agent設定（オプション）
+        ...(agentId ? { BEDROCK_AGENT_ID: agentId } : {}),
+        ...(agentAliasId ? { BEDROCK_AGENT_ALIAS_ID: agentAliasId } : {}),
       },
     });
 
