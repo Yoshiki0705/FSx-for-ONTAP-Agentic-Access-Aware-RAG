@@ -8,7 +8,7 @@ export interface TaskCardProps {
   isFavorite: boolean;
   isHighlighted?: boolean;
   onFavoriteToggle: (cardId: string) => void;
-  onClick: (promptTemplate: string, label: string) => void;
+  onClick: (promptTemplate: string, label: string, cardId?: string) => void;
   locale: string;
 }
 
@@ -34,11 +34,11 @@ export function TaskCard({ card, isFavorite, isHighlighted, onFavoriteToggle, on
           ? 'border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20'
           : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
       }`}
-      onClick={() => onClick(prompt, title)}
+      onClick={() => onClick(prompt, title, card.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onClick(prompt, title);
+          onClick(prompt, title, card.id);
         }
       }}
     >

@@ -15,7 +15,7 @@ import { TaskCard } from './TaskCard';
 export interface CardGridProps {
   mode: 'kb' | 'agent';
   locale: string;
-  onCardClick: (promptTemplate: string, label: string) => void;
+  onCardClick: (promptTemplate: string, label: string, cardId?: string) => void;
   username: string;
   role: string;
   userDirectories: any | null;

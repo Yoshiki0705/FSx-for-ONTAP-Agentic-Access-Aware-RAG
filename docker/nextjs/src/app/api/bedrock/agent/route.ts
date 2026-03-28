@@ -440,7 +440,27 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
         });
         const aliasResponse = await agentClient.send(aliasCommand);
         agentAliasId = aliasResponse.agentAlias?.agentAliasId;
-        console.log(`✅ Agent Alias作成完了: ${agentAliasId}`);
+        console.log(`✅ Agent Alias作成開始: ${agentAliasId}`);
+
+        // Alias がPREPAREDになるまでポーリング
+        if (agentAliasId) {
+          for (let i = 0; i < 12; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+            const aliasCheck = await agentClient.send(
+              new GetAgentAliasCommand({ agentId: newAgentId, agentAliasId })
+            );
+            const aliasStatus = aliasCheck.agentAlias?.agentAliasStatus || 'UNKNOWN';
+            console.log(`  [${i + 1}/12] Alias status: ${aliasStatus}`);
+            if (aliasStatus === 'PREPARED') {
+              console.log(`✅ Agent Alias PREPARED: ${agentAliasId}`);
+              break;
+            }
+            if (aliasStatus === 'FAILED') {
+              console.error(`❌ Agent Alias FAILED: ${agentAliasId}`);
+              break;
+            }
+          }
+        }
       } catch (pollError) {
         console.error('[Bedrock Agent] Polling/Alias error:', pollError);
         return NextResponse.json(

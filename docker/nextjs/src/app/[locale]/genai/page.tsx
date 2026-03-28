@@ -25,6 +25,10 @@ import { AgentModeSidebar } from '../../../components/bedrock/AgentModeSidebar';
 import { useAgentStore } from '../../../store/useAgentStore';
 import { CardGrid } from '../../../components/cards/CardGrid';
 import { CollapsiblePanel } from '../../../components/ui/CollapsiblePanel';
+import { resolveAgentForCard } from '../../../services/cardAgentBindingService';
+import { useCardAgentMappingStore } from '../../../store/useCardAgentMappingStore';
+import type { CardData } from '../../../constants/card-constants';
+import { getCardsByMode } from '../../../constants/card-constants';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -1784,9 +1788,24 @@ function ChatbotPageContent() {
                 mode={agentMode ? 'agent' : 'kb'}
                 locale={memoizedLocale}
                 selectedAgentId={agentMode ? selectedAgentId : null}
-                onCardClick={(prompt, label) => {
+                onCardClick={async (prompt, label, cardId) => {
                   setInputText(prompt);
-                  if (agentMode) {
+                  if (agentMode && cardId) {
+                    // Agent mode: resolve agent via bindingService
+                    try {
+                      const agentCards = getCardsByMode('agent');
+                      const card = agentCards.find(c => c.id === cardId);
+                      if (card) {
+                        const mappingStore = useCardAgentMappingStore.getState();
+                        const result = await resolveAgentForCard(card, mappingStore);
+                        if (result.agentId) {
+                          useAgentStore.getState().setSelectedAgentId(result.agentId);
+                          console.log(`✅ [CardGrid] Agent resolved: ${result.agentId} (source: ${result.source})`);
+                        }
+                      }
+                    } catch (err) {
+                      console.warn('⚠️ [CardGrid] Agent resolution failed, using default:', err);
+                    }
                     window.dispatchEvent(new CustomEvent('agent-workflow-selected', {
                       detail: { prompt, label },
                       bubbles: true,
