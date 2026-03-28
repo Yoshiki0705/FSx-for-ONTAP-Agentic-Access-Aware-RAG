@@ -87,3 +87,4 @@ docker/nextjs/tsconfig.tsbuildinfo
 
 # Embedding server .env (defaults only, no secrets)
 !docker/embed/.env
+docs/memo
