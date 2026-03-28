@@ -67,7 +67,63 @@ echo "  CloudFront: $CF_URL"
 echo ""
 
 # ========================================
-# 1. S3 Access Point の確認・作成
+# 1. SVM AD参加（WINDOWSユーザータイプの場合）
+# ========================================
+echo "🔑 Step 0/5: SVM AD参加チェック..."
+
+SVM_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Storage --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`SvmId`].OutputValue' --output text)
+AD_DOMAIN=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Storage --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`AdDomainName`].OutputValue' --output text 2>/dev/null || echo "")
+AD_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Storage --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`ManagedAdId`].OutputValue' --output text 2>/dev/null || echo "")
+
+SVM_AD=$(aws fsx describe-storage-virtual-machines --storage-virtual-machine-ids $SVM_ID --region $REGION \
+  --query 'StorageVirtualMachines[0].ActiveDirectoryConfiguration.SelfManagedActiveDirectoryConfiguration.DomainName' --output text 2>/dev/null || echo "")
+
+if [ -n "$AD_ID" ] && [ "$AD_ID" != "None" ] && ([ -z "$SVM_AD" ] || [ "$SVM_AD" = "None" ]); then
+  echo "  AD detected ($AD_DOMAIN) but SVM not joined. Joining..."
+  AD_DNS=$(aws ds describe-directories --directory-ids $AD_ID --region $REGION \
+    --query 'DirectoryDescriptions[0].DnsIpAddrs' --output json)
+  AD_PASSWORD="${AD_PASSWORD:-DemoP@ssw0rd123}"
+  AD_DOMAIN_UPPER=$(echo "$AD_DOMAIN" | tr '[:lower:]' '[:upper:]')
+  AD_SHORT=$(echo "$AD_DOMAIN" | cut -d. -f1)
+
+  aws fsx update-storage-virtual-machine --storage-virtual-machine-id $SVM_ID \
+    --active-directory-configuration "{
+      \"NetBiosName\": \"RAGSVM\",
+      \"SelfManagedActiveDirectoryConfiguration\": {
+        \"DomainName\": \"${AD_DOMAIN}\",
+        \"OrganizationalUnitDistinguishedName\": \"OU=Computers,OU=${AD_SHORT},DC=${AD_SHORT},DC=$(echo $AD_DOMAIN | cut -d. -f2)\",
+        \"UserName\": \"Admin\",
+        \"Password\": \"${AD_PASSWORD}\",
+        \"DnsIps\": ${AD_DNS},
+        \"FileSystemAdministratorsGroup\": \"Domain Admins\"
+      }
+    }" --region $REGION > /dev/null 2>&1
+
+  echo "  ⏳ SVM AD参加を待機中..."
+  for i in $(seq 1 30); do
+    sleep 20
+    SVM_STATUS=$(aws fsx describe-storage-virtual-machines --storage-virtual-machine-ids $SVM_ID --region $REGION \
+      --query 'StorageVirtualMachines[0].Lifecycle' --output text)
+    SVM_AD=$(aws fsx describe-storage-virtual-machines --storage-virtual-machine-ids $SVM_ID --region $REGION \
+      --query 'StorageVirtualMachines[0].ActiveDirectoryConfiguration.SelfManagedActiveDirectoryConfiguration.DomainName' --output text 2>/dev/null || echo "")
+    if [ -n "$SVM_AD" ] && [ "$SVM_AD" != "None" ] && [ "$SVM_STATUS" = "CREATED" ]; then
+      echo "  ✅ SVM AD参加完了: $SVM_AD"
+      break
+    fi
+    echo "    [$i/30] SVM: $SVM_STATUS, AD: $SVM_AD"
+  done
+elif [ -n "$SVM_AD" ] && [ "$SVM_AD" != "None" ]; then
+  echo "  ✅ SVM already AD-joined: $SVM_AD"
+else
+  echo "  ⏭️ No AD configured, skipping SVM AD join"
+fi
+echo ""
+
+# ========================================
+# 2. S3 Access Point の確認・作成
 # ========================================
 echo "📎 Step 1/5: S3 Access Point セットアップ..."
 
@@ -116,18 +172,33 @@ if [ -z "$S3AP_ALIAS" ] || [ "$S3AP_ALIAS" = "None" ] || [ "$S3AP_ALIAS" = "" ];
 
   S3AP_ALIAS=$(aws fsx describe-s3-access-point-attachments --region $REGION \
     --query "S3AccessPointAttachments[?Name=='${S3AP_NAME}'].S3AccessPoint.Alias" --output text)
+
+  # S3 APポリシー設定
+  S3AP_ARN=$(aws fsx describe-s3-access-point-attachments --region $REGION \
+    --query "S3AccessPointAttachments[?Name=='${S3AP_NAME}'].S3AccessPoint.ResourceARN" --output text)
+  aws s3control put-access-point-policy --account-id $ACCOUNT_ID --name $S3AP_NAME \
+    --policy "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowAll\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":[\"s3:GetObject\",\"s3:PutObject\",\"s3:ListBucket\"],\"Resource\":[\"${S3AP_ARN}\",\"${S3AP_ARN}/object/*\"],\"Condition\":{\"StringEquals\":{\"aws:PrincipalAccount\":\"${ACCOUNT_ID}\"}}}]}" \
+    --region $REGION 2>/dev/null
+
+  # アクセステスト
+  echo "  🔍 S3 APアクセステスト..."
+  if echo "test" | aws s3 cp - "s3://${S3AP_ALIAS}/.access-test" --region $REGION 2>/dev/null; then
+    aws s3 rm "s3://${S3AP_ALIAS}/.access-test" --region $REGION 2>/dev/null
+    echo "  ✅ S3 APアクセス確認OK"
+  else
+    echo "  ⚠️ S3 APアクセステスト失敗"
+    echo "  💡 SSO assumed roleでアクセスできない場合、専用IAMロールを作成してください:"
+    echo "     1. IAMロール 's3ap-access-role' を作成（S3FullAccess + 現在のロールからAssumeRole可能）"
+    echo "     2. aws sts assume-role --role-arn arn:aws:iam::\${ACCOUNT_ID}:role/s3ap-access-role"
+    echo "     3. 取得した認証情報でS3 APにアクセス"
+    echo "  続行します..."
+  fi
 fi
 
 S3AP_ARN=$(aws fsx describe-s3-access-point-attachments --region $REGION \
   --query "S3AccessPointAttachments[?Name=='${S3AP_NAME}'].S3AccessPoint.ResourceARN" --output text)
 
 echo "  ✅ S3 AP: $S3AP_NAME (Alias: $S3AP_ALIAS)"
-
-# S3 APポリシー設定
-echo "  📋 S3 APポリシーを設定中..."
-aws s3control put-access-point-policy --account-id $ACCOUNT_ID --name $S3AP_NAME \
-  --policy "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowAll\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::${ACCOUNT_ID}:root\"},\"Action\":[\"s3:GetObject\",\"s3:PutObject\",\"s3:ListBucket\"],\"Resource\":[\"${S3AP_ARN}\",\"${S3AP_ARN}/object/*\"]}]}" \
-  --region $REGION 2>/dev/null && echo "  ✅ ポリシー設定完了" || echo "  ⚠️ ポリシー設定スキップ（既存）"
 echo ""
 
 # ========================================
