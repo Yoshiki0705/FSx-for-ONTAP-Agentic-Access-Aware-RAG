@@ -413,5 +413,13 @@
       "removeFromFavorites": "お気に入りから削除",
       "section": "お気に入り"
     }
+  },
+  "workflow": {
+    "creating": "Agent作成中...",
+    "preparing": "Agent準備中...",
+    "creatingAlias": "Alias作成中...",
+    "completed": "Agent作成完了",
+    "error": "Agent作成に失敗しました",
+    "resolving": "Agent検索中..."
   }
 }

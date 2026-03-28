@@ -12,6 +12,7 @@ import {
 import {
   BedrockAgentClient,
   CreateAgentCommand,
+  CreateAgentActionGroupCommand,
   DeleteAgentCommand,
   GetAgentCommand,
   ListAgentsCommand,
@@ -62,6 +63,112 @@ async function getAgentId(): Promise<string> {
 }
 
 const AGENT_ALIAS_ID = process.env.BEDROCK_AGENT_ALIAS_ID || 'TSTALIASID';
+
+/**
+ * Permission-aware Search Action Group OpenAPI Schema (inline)
+ * Source: lambda/bedrock-agent-actions/permission-aware-search-schema.json
+ */
+const PERMISSION_AWARE_SEARCH_SCHEMA = JSON.stringify({
+  openapi: '3.0.0',
+  info: {
+    title: 'Permission-aware Document Search API',
+    version: '2.0.0',
+    description: 'SIDベースの権限フィルタリング付き文書検索API。Bedrock KB Retrieve APIで検索し、ユーザーのNTFS ACL SIDに基づいてアクセス制御を行います。',
+  },
+  paths: {
+    '/search': {
+      post: {
+        summary: '権限認識型文書検索',
+        description: 'ユーザーの質問に関連する文書をBedrock Knowledge Baseから検索し、ユーザーのSID情報に基づいてアクセス権限のある文書のみを返します。',
+        operationId: 'permissionAwareSearch',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string', description: '検索クエリ（ユーザーの質問）' },
+                  maxResults: { type: 'integer', description: '返却する文書の最大数', default: 5, minimum: 1, maximum: 10 },
+                },
+                required: ['query'],
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: '検索成功',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    results: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          documentId: { type: 'string' },
+                          title: { type: 'string' },
+                          content: { type: 'string' },
+                          score: { type: 'number' },
+                          source: { type: 'string' },
+                          accessLevel: { type: 'string' },
+                        },
+                      },
+                    },
+                    count: { type: 'integer' },
+                    message: { type: 'string' },
+                    filterMethod: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+});
+
+/**
+ * AgentステータスをポーリングしてPREPARED状態を待つ
+ * @param agentId - ポーリング対象のAgent ID
+ * @param intervalMs - ポーリング間隔（ミリ秒）
+ * @param maxAttempts - 最大ポーリング回数
+ * @returns 最終的なAgentステータス
+ */
+async function pollAgentUntilPrepared(
+  agentId: string,
+  intervalMs: number = 5000,
+  maxAttempts: number = 12
+): Promise<string> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+
+    const getResponse = await agentClient.send(
+      new GetAgentCommand({ agentId })
+    );
+    const status = getResponse.agent?.agentStatus || 'UNKNOWN';
+
+    console.log(`[Bedrock Agent] Poll ${attempt}/${maxAttempts}: Agent ${agentId} status = ${status}`);
+
+    if (status === 'PREPARED') {
+      return status;
+    }
+    if (status === 'FAILED') {
+      const failureReasons = (getResponse.agent as any)?.failureReasons;
+      throw new Error(
+        `Agent preparation failed: ${failureReasons ? JSON.stringify(failureReasons) : 'Unknown reason'}`
+      );
+    }
+  }
+
+  throw new Error(
+    `Agent ${agentId} did not reach PREPARED status within ${maxAttempts * intervalMs / 1000} seconds (timeout)`
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -196,10 +303,31 @@ async function handleInvokeAgent(
 }
 
 /**
- * Agent作成処理（SSMパラメータ自動同期）
+ * Agent作成処理（SSMパラメータ自動同期 + Action Group紐付け対応）
+ *
+ * 拡張パラメータ:
+ *   attachActionGroup?: boolean - Permission-aware Action Groupを紐付けるか
+ *   actionGroupLambdaArn?: string - Action Group Lambda ARN（env PERM_SEARCH_LAMBDA_ARN fallback）
+ *
+ * attachActionGroup: true の場合のフロー:
+ *   1. CreateAgent
+ *   2. CreateAgentActionGroup (Lambda ARN利用可能時)
+ *   3. PrepareAgent
+ *   4. Poll GetAgent (5秒×最大12回) until PREPARED
+ *   5. CreateAgentAlias
+ *
+ * attachActionGroup: false/未指定の場合は従来フロー:
+ *   1. CreateAgent → PrepareAgent → CreateAgentAlias
  */
 async function handleCreateAgent(body: any): Promise<NextResponse> {
-  const { agentName, description, instruction, foundationModel } = body;
+  const {
+    agentName,
+    description,
+    instruction,
+    foundationModel,
+    attachActionGroup,
+    actionGroupLambdaArn,
+  } = body;
 
   if (!agentName) {
     return NextResponse.json(
@@ -209,7 +337,11 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
   }
 
   try {
-    console.log('[Bedrock Agent] Creating agent:', { agentName, foundationModel });
+    console.log('[Bedrock Agent] Creating agent:', {
+      agentName,
+      foundationModel,
+      attachActionGroup: !!attachActionGroup,
+    });
 
     // AWSアカウントIDを動的に取得
     const { STSClient, GetCallerIdentityCommand } = await import('@aws-sdk/client-sts');
@@ -227,8 +359,8 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
       description: description || `${agentName} - Created via UI`,
       instruction: instruction || 'You are a helpful AI assistant.',
       foundationModel: foundationModel || 'anthropic.claude-3-sonnet-20240229-v1:0',
-      agentResourceRoleArn: agentRoleArn, // 必須パラメータを追加
-      idleSessionTTLInSeconds: 1800, // 30分
+      agentResourceRoleArn: agentRoleArn,
+      idleSessionTTLInSeconds: 1800,
     });
 
     const createResponse = await agentClient.send(createCommand);
@@ -240,23 +372,92 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
 
     console.log(`✅ Agent作成成功: ${newAgentId}`);
 
-    // Agent準備（必須）
-    const prepareCommand = new PrepareAgentCommand({
-      agentId: newAgentId,
-    });
+    // Action Group紐付け結果を追跡
+    let actionGroupResult: { attached: boolean; name?: string; error?: string } | undefined;
+
+    // --- Action Group紐付け（attachActionGroup: true の場合） ---
+    if (attachActionGroup) {
+      const lambdaArn = actionGroupLambdaArn || process.env.PERM_SEARCH_LAMBDA_ARN;
+
+      if (lambdaArn) {
+        try {
+          console.log(`[Bedrock Agent] Attaching Action Group to agent ${newAgentId}, Lambda: ${lambdaArn}`);
+
+          const actionGroupCommand = new CreateAgentActionGroupCommand({
+            agentId: newAgentId,
+            agentVersion: 'DRAFT',
+            actionGroupName: 'PermissionAwareSearch',
+            description: 'SIDベースの権限フィルタリング付き文書検索',
+            actionGroupExecutor: { lambda: lambdaArn },
+            apiSchema: {
+              payload: PERMISSION_AWARE_SEARCH_SCHEMA,
+            },
+          });
+
+          await agentClient.send(actionGroupCommand);
+          console.log(`✅ Action Group紐付け成功: PermissionAwareSearch → ${newAgentId}`);
+          actionGroupResult = { attached: true, name: 'PermissionAwareSearch' };
+        } catch (agError) {
+          const errorMsg = agError instanceof Error ? agError.message : 'Action Group紐付けに失敗';
+          console.error(`⚠️ Action Group紐付けエラー (継続): ${errorMsg}`);
+          actionGroupResult = { attached: false, error: errorMsg };
+        }
+      } else {
+        console.warn('⚠️ Action Group Lambda ARN未設定: Action Groupなしで作成');
+        actionGroupResult = { attached: false, error: 'Lambda ARN not available (env PERM_SEARCH_LAMBDA_ARN not set, not passed in request)' };
+      }
+    }
+
+    // --- PrepareAgent ---
+    const prepareCommand = new PrepareAgentCommand({ agentId: newAgentId });
     await agentClient.send(prepareCommand);
-    console.log(`✅ Agent準備完了: ${newAgentId}`);
+    console.log(`✅ PrepareAgent呼び出し完了: ${newAgentId}`);
 
-    // Agent Alias作成
-    const aliasCommand = new CreateAgentAliasCommand({
-      agentId: newAgentId,
-      agentAliasName: 'PROD',
-      description: 'Production alias for the agent',
-    });
-    const aliasResponse = await agentClient.send(aliasCommand);
-    const agentAliasId = aliasResponse.agentAlias?.agentAliasId;
+    // --- ポーリング（attachActionGroup時は必須、それ以外も実行） ---
+    let agentAliasId: string | undefined;
 
-    console.log(`✅ Agent Alias作成完了: ${agentAliasId}`);
+    if (attachActionGroup) {
+      // Action Group紐付け時はポーリングでPREPARED状態を確認してからAlias作成
+      try {
+        const finalStatus = await pollAgentUntilPrepared(newAgentId, 5000, 12);
+        console.log(`✅ Agent PREPARED確認: ${newAgentId} (status: ${finalStatus})`);
+
+        // Agent Alias作成
+        const aliasCommand = new CreateAgentAliasCommand({
+          agentId: newAgentId,
+          agentAliasName: 'PROD',
+          description: 'Production alias for the agent',
+        });
+        const aliasResponse = await agentClient.send(aliasCommand);
+        agentAliasId = aliasResponse.agentAlias?.agentAliasId;
+        console.log(`✅ Agent Alias作成完了: ${agentAliasId}`);
+      } catch (pollError) {
+        console.error('[Bedrock Agent] Polling/Alias error:', pollError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: pollError instanceof Error ? pollError.message : 'Agent準備中にエラーが発生しました',
+            agent: {
+              agentId: newAgentId,
+              agentName,
+              status: 'PREPARING',
+            },
+            actionGroup: actionGroupResult,
+          },
+          { status: 500 }
+        );
+      }
+    } else {
+      // 従来フロー: PrepareAgent後すぐにAlias作成
+      const aliasCommand = new CreateAgentAliasCommand({
+        agentId: newAgentId,
+        agentAliasName: 'PROD',
+        description: 'Production alias for the agent',
+      });
+      const aliasResponse = await agentClient.send(aliasCommand);
+      agentAliasId = aliasResponse.agentAlias?.agentAliasId;
+      console.log(`✅ Agent Alias作成完了: ${agentAliasId}`);
+    }
 
     // SSMパラメータに自動登録
     try {
@@ -264,7 +465,6 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
       console.log(`✅ SSMパラメータ登録完了: ${newAgentId}`);
     } catch (ssmError) {
       console.error('⚠️ SSMパラメータ登録に失敗:', ssmError);
-      // SSM登録失敗はエラーとしない（Agentは作成済み）
     }
 
     return NextResponse.json({
@@ -276,7 +476,10 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
         status: createResponse.agent?.agentStatus,
         createdAt: createResponse.agent?.createdAt,
       },
-      message: 'Agent作成とSSMパラメータ登録が完了しました',
+      message: attachActionGroup
+        ? 'Agent作成、Action Group紐付け、SSMパラメータ登録が完了しました'
+        : 'Agent作成とSSMパラメータ登録が完了しました',
+      actionGroup: actionGroupResult,
     });
 
   } catch (error) {

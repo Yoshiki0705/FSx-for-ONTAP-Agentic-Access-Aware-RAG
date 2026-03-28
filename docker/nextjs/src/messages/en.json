@@ -413,5 +413,13 @@
       "removeFromFavorites": "Remove from favorites",
       "section": "Favorites"
     }
+  },
+  "workflow": {
+    "creating": "Creating Agent...",
+    "preparing": "Preparing Agent...",
+    "creatingAlias": "Creating Alias...",
+    "completed": "Agent creation complete",
+    "error": "Agent creation failed",
+    "resolving": "Resolving Agent..."
   }
 }

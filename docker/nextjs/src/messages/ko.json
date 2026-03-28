@@ -465,5 +465,13 @@
       "removeFromFavorites": "즐겨찾기에서 제거",
       "section": "즐겨찾기"
     }
+  },
+  "workflow": {
+    "creating": "Agent 생성 중...",
+    "preparing": "Agent 준비 중...",
+    "creatingAlias": "Alias 생성 중...",
+    "completed": "Agent 생성 완료",
+    "error": "Agent 생성 실패",
+    "resolving": "Agent 검색 중..."
   }
 }

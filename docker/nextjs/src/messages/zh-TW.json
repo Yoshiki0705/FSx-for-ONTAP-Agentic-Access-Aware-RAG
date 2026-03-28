@@ -495,5 +495,13 @@
       "removeFromFavorites": "從收藏中移除",
       "section": "收藏"
     }
+  },
+  "workflow": {
+    "creating": "建立Agent中...",
+    "preparing": "準備Agent中...",
+    "creatingAlias": "建立別名中...",
+    "completed": "Agent建立完成",
+    "error": "Agent建立失敗",
+    "resolving": "搜尋Agent中..."
   }
 }

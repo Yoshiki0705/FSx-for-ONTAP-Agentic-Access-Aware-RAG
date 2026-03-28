@@ -459,5 +459,13 @@
       "removeFromFavorites": "Eliminar de favoritos",
       "section": "Favoritos"
     }
+  },
+  "workflow": {
+    "creating": "Creando Agent...",
+    "preparing": "Preparando Agent...",
+    "creatingAlias": "Creando Alias...",
+    "completed": "Creación de Agent completada",
+    "error": "Error al crear Agent",
+    "resolving": "Buscando Agent..."
   }
 }
