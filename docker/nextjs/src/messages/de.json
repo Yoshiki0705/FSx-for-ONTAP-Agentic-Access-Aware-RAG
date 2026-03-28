@@ -236,6 +236,8 @@
     "dataCompliance": "Bitte beachten Sie die Datenschutzanforderungen"
   },
   "sidebar": {
+    "systemSettings": "Systemeinstellungen",
+    "workflow": "Workflows",
     "accessPermissions": "Zugriffsberechtigungen",
     "advancedControlActive": "Erweiterte Berechtigungskontrolle aktiv",
     "agentMode": "Agent-Modus",

@@ -7,11 +7,12 @@ import { RegionSelector } from '../bedrock/RegionSelector';
 import { ModelSelector } from '../bedrock/ModelSelector';
 import { AgentInfoSection } from '../bedrock/AgentInfoSection';
 import { AgentFeaturesSection } from '../bedrock/AgentFeaturesSection';
+import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
+import { WorkflowSection } from '@/components/ui/WorkflowSection';
 import { useAgentInfo } from '../../hooks/useAgentInfo';
 import { useBedrockConfig } from '../../hooks/useBedrockConfig';
 import { useAgentInfoNormalization } from '../../hooks/useAgentInfoNormalization';
 import { useAgentStore } from '../../store/useAgentStore';
-import { AGENT_CARDS } from '@/constants/card-constants';
 
 interface AgentModeSidebarProps {
   selectedModelId: string;
@@ -20,48 +21,46 @@ interface AgentModeSidebarProps {
   locale: string;
 }
 
-export function AgentModeSidebar({ 
-  selectedModelId, 
-  onModelChange, 
+export function AgentModeSidebar({
+  selectedModelId,
+  onModelChange,
   onCreateAgent,
-  locale
+  locale,
 }: AgentModeSidebarProps) {
   const t = useCustomTranslations(locale);
-  const tCards = useTranslations('cards');
+  const tSidebar = useTranslations('sidebar');
   const { config, isLoading: isConfigLoading } = useBedrockConfig();
   const { selectedAgentId } = useAgentStore();
-  
-  // 選択されたAgent IDを使用（優先順位: Store > Config）
+
   const effectiveAgentId = selectedAgentId || config?.agentId || '';
-  
+
   const { agentInfo, isLoading: isAgentLoading } = useAgentInfo({
     agentId: effectiveAgentId,
-    enabled: !!effectiveAgentId
+    enabled: !!effectiveAgentId,
   });
 
-  // Agent情報の型変換（null を undefined に変換）
-  const rawAgentInfo = agentInfo ? {
-    agentId: agentInfo.agentId,
-    aliasName: agentInfo.aliasName ?? null,  // null も許容
-    aliasId: agentInfo.aliasId ?? undefined,
-    version: agentInfo.version,
-    status: agentInfo.status || agentInfo.agentStatus,
-    foundationModel: agentInfo.foundationModel,
-    createdAt: agentInfo.createdAt,
-    updatedAt: agentInfo.lastUpdated
-  } : null;
+  const rawAgentInfo = agentInfo
+    ? {
+        agentId: agentInfo.agentId,
+        aliasName: agentInfo.aliasName ?? null,
+        aliasId: agentInfo.aliasId ?? undefined,
+        version: agentInfo.version,
+        status: agentInfo.status || agentInfo.agentStatus,
+        foundationModel: agentInfo.foundationModel,
+        createdAt: agentInfo.createdAt,
+        updatedAt: agentInfo.lastUpdated,
+      }
+    : null;
 
-  // Agent情報の正規化処理（カスタムフック使用）
   const {
     normalizedAgentInfo,
     validationResult,
     isValid,
     errorMessage,
     warningMessages,
-    processingTime
+    processingTime,
   } = useAgentInfoNormalization(rawAgentInfo);
 
-  // デバッグ情報の出力（開発環境のみ）
   useEffect(() => {
     if (process.env.NODE_ENV === 'development' && rawAgentInfo) {
       console.debug('AgentModeSidebar - Agent情報正規化結果:', {
@@ -71,111 +70,98 @@ export function AgentModeSidebar({
         isValid,
         errorMessage,
         warningMessages,
-        processingTime: `${processingTime.toFixed(2)}ms`
+        processingTime: `${processingTime.toFixed(2)}ms`,
       });
     }
   }, [rawAgentInfo, normalizedAgentInfo, validationResult, isValid, errorMessage, warningMessages, processingTime]);
 
+  const handleWorkflowSelect = (prompt: string, label: string, agentId?: string) => {
+    // WorkflowSection fires agent-workflow-selected CustomEvent internally
+  };
+
   return (
     <div className="h-full flex flex-col overflow-y-auto">
-      <div className="space-y-6 p-4">
-      {/* Agent Information */}
-      <AgentInfoSection 
-        agentInfo={normalizedAgentInfo}
-      />
+      {/* 1. Agent Information */}
+      <div className="p-4 space-y-4">
+        <AgentInfoSection agentInfo={normalizedAgentInfo} />
 
-      {/* エラー・警告表示 */}
-      {errorMessage && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <div className="text-sm text-red-800">
-            <strong>エラー:</strong> {errorMessage}
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 dark:bg-red-900/20 dark:border-red-800">
+            <div className="text-sm text-red-800 dark:text-red-300">
+              <strong>エラー:</strong> {errorMessage}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {warningMessages.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-          <div className="text-sm text-yellow-800">
-            <strong>警告:</strong>
-            <ul className="mt-1 list-disc list-inside">
-              {warningMessages.map((warning, index) => (
-                <li key={index}>{warning}</li>
-              ))}
-            </ul>
+        {warningMessages.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 dark:bg-yellow-900/20 dark:border-yellow-800">
+            <div className="text-sm text-yellow-800 dark:text-yellow-300">
+              <strong>警告:</strong>
+              <ul className="mt-1 list-disc list-inside">
+                {warningMessages.map((warning, index) => (
+                  <li key={index}>{warning}</li>
+                ))}
+              </ul>
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Region Selection */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-700">
-          {t('region.title')}
-        </h3>
-        <RegionSelector locale={locale} />
+        )}
       </div>
 
-      {/* Model Selection */}
-      <div className="space-y-2">
-        <ModelSelector
-          selectedModelId={selectedModelId}
-          onModelChange={onModelChange}
-          showAdvancedFilters={true}
-          mode="agent"
+      {/* 2. WorkflowSection */}
+      <div className="px-4 pb-4">
+        <WorkflowSection
+          locale={locale}
+          selectedAgentId={selectedAgentId}
+          onWorkflowSelect={handleWorkflowSelect}
         />
       </div>
 
-      {/* Agent Features */}
-      <AgentFeaturesSection locale={locale} />
+      {/* 3. CollapsiblePanel */}
+      <CollapsiblePanel
+        title={tSidebar('systemSettings')}
+        icon="⚙️"
+        storageKey="system-settings"
+        defaultExpanded={false}
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('region.title')}
+            </h3>
+            <RegionSelector />
+          </div>
 
-      {/* ワークフロー選択 */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          🔧 ワークフロー
-        </h3>
-        <div className="space-y-1">
-          {AGENT_CARDS.map((card) => {
-            const title = tCards(card.titleKey.replace(/^cards\./, ''));
-            const prompt = tCards(card.promptTemplateKey.replace(/^cards\./, ''));
-            return (
-              <button
-                key={card.id}
-                onClick={() => {
-                  const event = new CustomEvent('agent-workflow-selected', {
-                    detail: { prompt, label: title },
-                    bubbles: true,
-                  });
-                  window.dispatchEvent(event);
-                }}
-                className="w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300 transition-colors flex items-center space-x-2"
-              >
-                <span>{card.icon}</span>
-                <span>{title}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+          <div className="space-y-2">
+            <ModelSelector
+              selectedModelId={selectedModelId}
+              onModelChange={onModelChange}
+              showAdvancedFilters={true}
+              mode="agent"
+            />
+          </div>
 
-      {/* Chat History Settings */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-700">
-          {t('chat.chatHistory')}
-        </h3>
-        <div className="space-y-2 text-xs">
-          <label className="flex items-center space-x-2">
-            <input type="checkbox" className="rounded" />
-            <span>{t('chat.saveHistory')}</span>
-          </label>
-          <label className="flex items-center space-x-2">
-            <input type="checkbox" className="rounded" />
-            <span>{t('chat.autoTitleGeneration')}</span>
-          </label>
-          <div className="text-gray-600">
-            {t('sidebar.agentMode')} {t('chat.sessionActive')}
+          <AgentFeaturesSection locale={locale} />
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('chat.chatHistory')}
+            </h3>
+            <div className="space-y-2 text-xs">
+              <label className="flex items-center space-x-2">
+                <input type="checkbox" className="rounded" />
+                <span className="text-gray-700 dark:text-gray-300">{t('chat.saveHistory')}</span>
+              </label>
+              <label className="flex items-center space-x-2">
+                <input type="checkbox" className="rounded" />
+                <span className="text-gray-700 dark:text-gray-300">{t('chat.autoTitleGeneration')}</span>
+              </label>
+              <div className="text-gray-600 dark:text-gray-400">
+                {t('sidebar.agentMode')} {t('chat.sessionActive')}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </CollapsiblePanel>
     </div>
   );
 }

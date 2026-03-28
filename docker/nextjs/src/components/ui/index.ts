@@ -17,3 +17,6 @@ export { ThemeToggle } from './ThemeToggle';
 export { ThemeToggleButton } from './ThemeToggleButton';
 export { Toast } from './Toast';
 export { AgentModeToggle } from './AgentModeToggle';
+export { CollapsiblePanel } from './CollapsiblePanel';
+export type { CollapsiblePanelProps } from './CollapsiblePanel';
+export { WorkflowSection } from './WorkflowSection';

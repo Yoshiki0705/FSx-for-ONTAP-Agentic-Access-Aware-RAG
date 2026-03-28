@@ -6,12 +6,13 @@ import { CardData } from '@/constants/card-constants';
 export interface TaskCardProps {
   card: CardData;
   isFavorite: boolean;
+  isHighlighted?: boolean;
   onFavoriteToggle: (cardId: string) => void;
   onClick: (promptTemplate: string, label: string) => void;
   locale: string;
 }
 
-export function TaskCard({ card, isFavorite, onFavoriteToggle, onClick, locale }: TaskCardProps) {
+export function TaskCard({ card, isFavorite, isHighlighted, onFavoriteToggle, onClick, locale }: TaskCardProps) {
   const t = useTranslations('cards');
 
   // Strip 'cards.' prefix from keys for use with useTranslations('cards')
@@ -28,7 +29,11 @@ export function TaskCard({ card, isFavorite, onFavoriteToggle, onClick, locale }
     <div
       role="button"
       tabIndex={0}
-      className="relative flex flex-col gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer"
+      className={`relative flex flex-col gap-2 p-4 rounded-xl border shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer ${
+        isHighlighted
+          ? 'border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20'
+          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+      }`}
       onClick={() => onClick(prompt, title)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

@@ -236,6 +236,8 @@
     "dataCompliance": "Veuillez noter les exigences de conformité des données"
   },
   "sidebar": {
+    "systemSettings": "Paramètres système",
+    "workflow": "Flux de travail",
     "accessPermissions": "Autorisations d'accès",
     "advancedControlActive": "Contrôle avancé des autorisations actif",
     "agentMode": "Mode Agent",

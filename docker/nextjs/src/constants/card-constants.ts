@@ -1,6 +1,14 @@
 // Card data definitions and helper functions for the card-based task UI
 // Requirements: 2.4, 3.4, 8.1, 8.2, 8.3
 
+export interface WorkflowStep {
+  id: string;
+  titleKey: string;
+  descriptionKey: string;
+  order: number;
+  status?: 'pending' | 'active' | 'completed' | 'error';
+}
+
 export interface CardData {
   id: string;
   icon: string;
@@ -9,6 +17,9 @@ export interface CardData {
   promptTemplateKey: string;
   category: string;
   mode: 'kb' | 'agent';
+  agentId?: string;
+  workflowType?: 'single' | 'multi';
+  steps?: WorkflowStep[];
 }
 
 export interface CategoryData {

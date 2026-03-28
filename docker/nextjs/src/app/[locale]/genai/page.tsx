@@ -24,6 +24,7 @@ import { RegionConfigManager } from '../../../config/region-config-manager';
 import { AgentModeSidebar } from '../../../components/bedrock/AgentModeSidebar';
 import { useAgentStore } from '../../../store/useAgentStore';
 import { CardGrid } from '../../../components/cards/CardGrid';
+import { CollapsiblePanel } from '../../../components/ui/CollapsiblePanel';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -394,6 +395,7 @@ function ChatbotPageContent() {
   // 翻訳フック（名前空間なし - 完全パスで翻訳キーを指定）
   const t = useTranslations();
   const tFsx = useTranslations('fsx');      // FSx情報用の翻訳フック
+  const tSidebar = useTranslations('sidebar');  // サイドバー用の翻訳フック
   
   // next-intlの正しいロケール取得方法を使用（hydration mismatch回避）
   const currentLocale = useLocale();
@@ -1515,6 +1517,9 @@ function ChatbotPageContent() {
               )}
             </div>
 
+            {/* システム管理 CollapsiblePanel */}
+            <CollapsiblePanel title={tSidebar('systemSettings')} icon="⚙️" storageKey="system-settings">
+
             {/* Bedrockリージョン選択セクション */}
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t('region.bedrockRegion')}</h3>
@@ -1595,6 +1600,8 @@ function ChatbotPageContent() {
                 </div>
               </div>
             </div>
+
+            </CollapsiblePanel>
           </div>
         </div>
         )}
@@ -1776,6 +1783,7 @@ function ChatbotPageContent() {
               <CardGrid
                 mode={agentMode ? 'agent' : 'kb'}
                 locale={memoizedLocale}
+                selectedAgentId={agentMode ? selectedAgentId : null}
                 onCardClick={(prompt, label) => {
                   setInputText(prompt);
                   if (agentMode) {

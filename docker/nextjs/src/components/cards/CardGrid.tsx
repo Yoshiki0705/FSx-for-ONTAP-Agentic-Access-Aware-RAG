@@ -19,6 +19,7 @@ export interface CardGridProps {
   username: string;
   role: string;
   userDirectories: any | null;
+  selectedAgentId?: string | null;
 }
 
 export function CardGrid({
@@ -28,6 +29,7 @@ export function CardGrid({
   username,
   role,
   userDirectories,
+  selectedAgentId,
 }: CardGridProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [infoBannerExpanded, setInfoBannerExpanded] = useState(false);
@@ -73,6 +75,11 @@ export function CardGrid({
             key={card.id}
             card={card}
             isFavorite={isFavorite(card.id)}
+            isHighlighted={
+              selectedAgentId != null &&
+              card.agentId !== undefined &&
+              card.agentId === selectedAgentId
+            }
             onFavoriteToggle={toggleFavorite}
             onClick={onCardClick}
             locale={locale}

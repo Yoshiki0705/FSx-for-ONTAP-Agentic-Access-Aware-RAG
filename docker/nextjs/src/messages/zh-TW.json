@@ -236,6 +236,8 @@
     "dataCompliance": "請注意資料合規要求"
   },
   "sidebar": {
+    "systemSettings": "系統管理",
+    "workflow": "工作流程",
     "accessPermissions": "訪問權限",
     "advancedControlActive": "高級權限控制已激活",
     "agentMode": "Agent模式",

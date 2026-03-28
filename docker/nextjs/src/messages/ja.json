@@ -1,5 +1,7 @@
 {
   "sidebar": {
+    "systemSettings": "システム管理",
+    "workflow": "ワークフロー",
     "settingsPanel": "設定パネル",
     "userInfo": "ユーザー情報",
     "accessPermissions": "アクセス権限",

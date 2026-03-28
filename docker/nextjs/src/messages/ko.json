@@ -236,6 +236,8 @@
     "dataCompliance": "데이터 규정 준수 요구 사항에 유의하십시오"
   },
   "sidebar": {
+    "systemSettings": "시스템 관리",
+    "workflow": "워크플로우",
     "accessPermissions": "액세스 권한",
     "advancedControlActive": "고급 권한 제어 활성화",
     "agentMode": "Agent 모드",

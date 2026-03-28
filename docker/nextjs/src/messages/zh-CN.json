@@ -305,6 +305,8 @@
     "title": "设置"
   },
   "sidebar": {
+    "systemSettings": "系统管理",
+    "workflow": "工作流",
     "accessPermissions": "访问权限",
     "advancedControlActive": "高级权限控制已激活",
     "agentMode": "Agent模式",

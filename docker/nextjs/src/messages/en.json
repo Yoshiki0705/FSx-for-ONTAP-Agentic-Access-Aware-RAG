@@ -1,5 +1,7 @@
 {
   "sidebar": {
+    "systemSettings": "System Settings",
+    "workflow": "Workflows",
     "settingsPanel": "Settings Panel",
     "userInfo": "User Information",
     "accessPermissions": "Access Permissions",
