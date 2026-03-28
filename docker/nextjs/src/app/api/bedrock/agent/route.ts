@@ -372,6 +372,16 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
 
     console.log(`✅ Agent作成成功: ${newAgentId}`);
 
+    // Agent作成直後はCREATING状態のため、NOT_PREPAREDになるまで待機
+    console.log(`⏳ Agent ${newAgentId} がCREATING状態を抜けるまで待機...`);
+    for (let i = 0; i < 12; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      const checkResp = await agentClient.send(new GetAgentCommand({ agentId: newAgentId }));
+      const status = checkResp.agent?.agentStatus || 'UNKNOWN';
+      console.log(`  [${i + 1}/12] Agent status: ${status}`);
+      if (status !== 'CREATING') break;
+    }
+
     // Action Group紐付け結果を追跡
     let actionGroupResult: { attached: boolean; name?: string; error?: string } | undefined;
 
