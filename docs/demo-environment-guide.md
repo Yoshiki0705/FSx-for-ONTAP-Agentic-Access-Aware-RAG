@@ -88,6 +88,19 @@ KBモード・Agentモード両方で同じ権限制御が適用されます。
 3. ワークフロー選択（📊 財務レポート分析 等）またはチャット入力
 4. Agent応答を確認（Permission-aware Action Group経由でSIDフィルタリング適用）
 
+### 動的Agent作成機能
+
+Agentモードでワークフローカードをクリックすると、カテゴリに対応するBedrock Agentが自動的に検索・作成されます。
+
+| 項目 | 説明 |
+|------|------|
+| トリガー | ワークフローカードのクリック |
+| 動作 | AGENT_CATEGORY_MAPでカテゴリ判定 → 既存Agent検索 → 未発見時はCreateAgent APIで動的作成 |
+| 所要時間 | 初回作成時30〜60秒（ローディングUI表示）、2回目以降はlocalStorageキャッシュにより即座 |
+| Action Group | 動的作成されたAgentにPermission-aware Action Groupが自動アタッチ（PERM_SEARCH_LAMBDA_ARN環境変数で指定） |
+| キャッシュ | `useCardAgentMappingStore`（Zustand + localStorage）でカード-Agentマッピングを永続化 |
+| 必要権限 | Lambda IAMロールに`bedrock:CreateAgent`, `bedrock:PrepareAgent`, `bedrock:CreateAgentAlias`, `bedrock:CreateAgentActionGroup`, `iam:PassRole`が必要 |
+
 ### CDKデプロイオプション
 
 ```bash
