@@ -49,7 +49,7 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 | 5 | Embedding Server | FSx ONTAPボリュームをCIFS/SMBマウントしたEC2でドキュメントをベクトル化しAOSSに書き込み | EmbeddingStack |
 | 6 | Titan Text Embeddings | `amazon.titan-embed-text-v2:0`（1024次元）をKB取り込みとEmbeddingサーバーの両方で使用 | AIStack |
 | 7 | SIDメタデータ + 権限フィルタリング | NTFS ACLのSID情報を`.metadata.json`で管理し、検索時にユーザーSIDと照合してフィルタリング | StorageStack |
-| 8 | KB/Agentモード切替 | KBモード（文書検索）とAgentモード（多段階推論）をトグルで切替。両モードでPermission-aware | WebAppStack |
+| 8 | KB/Agentモード切替 | KBモード（文書検索）とAgentモード（多段階推論）をトグルで切替。動的Agent作成・カード紐付け。アウトプット指向ワークフロー（プレゼン資料、稟議書、議事録、レポート、契約書、オンボーディング）。両モードでPermission-aware | WebAppStack |
 
 ## CDK Stack Structure
 
@@ -60,7 +60,7 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, AD Sync Lambda（オプション） | 認証・認可 |
 | 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS暗号化（オプション）, CloudTrail（オプション） | ストレージ・SIDデータ・権限キャッシュ |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, OpenSearch Serverless, Bedrock Guardrails（オプション） | RAG検索基盤（Titan Embed v2） |
-| 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda（オプション） | Webアプリケーション |
+| 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda（オプション） | Webアプリケーション、Agent Management（動的Agent作成） |
 | 7 | EmbeddingStack（任意） | ap-northeast-1 | EC2 (m5.large), ECR, ONTAP ACL自動取得（オプション） | FlexCache CIFSマウント + Embeddingサーバー |
 
 ### セキュリティ機能（6層防御）
@@ -239,7 +239,7 @@ EOF
 | `useS3AccessPoint` | `false` | S3 Access PointをBedrock KBデータソースとして使用 |
 | `usePermissionFilterLambda` | `false` | SIDフィルタリングを専用Lambda経由で実行（インラインフィルタリングのフォールバック付き） |
 | `enableGuardrails` | `false` | Bedrock Guardrails（有害コンテンツフィルタ + PII保護） |
-| `enableAgent` | `false` | Bedrock Agent + Permission-aware Action Group（KB検索 + SIDフィルタリング） |
+| `enableAgent` | `false` | Bedrock Agent + Permission-aware Action Group（KB検索 + SIDフィルタリング）。動的Agent作成（カードクリック時にカテゴリ別Agentを自動作成・紐付け） |
 | `enableKmsEncryption` | `false` | KMS CMKによるS3・DynamoDB暗号化（キーローテーション有効） |
 | `enableCloudTrail` | `false` | CloudTrail監査ログ（S3データアクセス + Lambda呼び出し、90日保持） |
 | `enableVpcEndpoints` | `false` | VPCエンドポイント（S3, DynamoDB, Bedrock, SSM, Secrets Manager, CloudWatch Logs） |
@@ -717,7 +717,12 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 │   ├── src/components/cards/         # CardGrid, TaskCard, InfoBanner, CategoryFilter
 │   ├── src/constants/                # card-constants.ts（カードデータ定義）
 │   ├── src/hooks/                    # useAgentMode, useAgentsList, useAgentInfo等
+│   ├── src/services/cardAgentBindingService.ts  # Agent検索・動的作成サービス
 │   ├── src/store/                    # useAgentStore, useFavoritesStore (Zustand)
+│   ├── src/store/useCardAgentMappingStore.ts    # カード-Agentマッピング永続化
+│   ├── src/store/useSidebarStore.ts             # サイドバー折りたたみ状態管理
+│   ├── src/components/ui/CollapsiblePanel.tsx   # 折りたたみパネル
+│   ├── src/components/ui/WorkflowSection.tsx    # ワークフローセクション
 │   └── src/app/api/bedrock/          # KB/Agent APIルート
 ├── demo-data/
 │   ├── documents/                    # 検証用ドキュメント + .metadata.json（SID情報）

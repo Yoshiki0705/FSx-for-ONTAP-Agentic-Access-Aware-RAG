@@ -47,6 +47,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   agentId?: string;
   /** Bedrock Agent Alias ID（AIStackから） */
   agentAliasId?: string;
+  /** Permission-aware search Action Group Lambda ARN（動的Agent作成時に使用） */
+  actionGroupLambdaArn?: string;
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -105,6 +107,7 @@ export class DemoWebAppStack extends cdk.Stack {
         // Bedrock Agent設定（オプション）
         ...(agentId ? { BEDROCK_AGENT_ID: agentId } : {}),
         ...(agentAliasId ? { BEDROCK_AGENT_ALIAS_ID: agentAliasId } : {}),
+        ...(props.actionGroupLambdaArn ? { PERM_SEARCH_LAMBDA_ARN: props.actionGroupLambdaArn } : {}),
       },
     });
 
@@ -162,8 +165,27 @@ export class DemoWebAppStack extends cdk.Stack {
         'bedrock:GetAgent',
         'bedrock:ListAgentAliases',
         'bedrock:GetAgentAlias',
+        // Agent management (dynamic agent-card binding)
+        'bedrock:CreateAgent',
+        'bedrock:PrepareAgent',
+        'bedrock:CreateAgentAlias',
+        'bedrock:CreateAgentActionGroup',
+        'bedrock:DeleteAgent',
+        'bedrock:DeleteAgentAlias',
+        'bedrock:UpdateAgent',
       ],
       resources: ['*'],
+    }));
+
+    // iam:PassRole for Bedrock Agent creation (agent needs a service role)
+    this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['iam:PassRole'],
+      resources: [`arn:aws:iam::${cdk.Aws.ACCOUNT_ID}:role/*bedrock*`],
+      conditions: {
+        StringEquals: {
+          'iam:PassedToService': 'bedrock.amazonaws.com',
+        },
+      },
     }));
 
     // DynamoDB権限（権限キャッシュ + ユーザーアクセス）

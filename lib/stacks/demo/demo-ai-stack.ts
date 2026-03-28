@@ -39,6 +39,8 @@ export class DemoAIStack extends cdk.Stack {
   public readonly agentId?: string;
   /** Bedrock Agent Alias ID */
   public readonly agentAliasId?: string;
+  /** Permission-aware search Action Group Lambda ARN */
+  public readonly actionGroupLambdaArn?: string;
 
   constructor(scope: Construct, id: string, props: DemoAIStackProps) {
     super(scope, id, props);
@@ -410,6 +412,7 @@ permissionAwareSearchを使わずに回答しないでください。必ず検�
 
       this.agentId = agent.attrAgentId;
       this.agentAliasId = agentAlias.attrAgentAliasId;
+      this.actionGroupLambdaArn = actionGroupFn.functionArn;
 
       new cdk.CfnOutput(this, 'AgentId', {
         value: agent.attrAgentId,

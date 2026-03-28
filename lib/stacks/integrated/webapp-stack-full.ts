@@ -89,8 +89,32 @@ export class WebAppStack extends cdk.Stack {
       effect: iam.Effect.ALLOW,
       actions: [
         'bedrock:InvokeAgent',
+        // Agent management (dynamic agent-card binding)
+        'bedrock:CreateAgent',
+        'bedrock:PrepareAgent',
+        'bedrock:GetAgent',
+        'bedrock:ListAgents',
+        'bedrock:ListAgentAliases',
+        'bedrock:GetAgentAlias',
+        'bedrock:CreateAgentAlias',
+        'bedrock:DeleteAgentAlias',
+        'bedrock:CreateAgentActionGroup',
+        'bedrock:DeleteAgent',
+        'bedrock:UpdateAgent',
       ],
       resources: ['*'],
+    }));
+
+    // iam:PassRole for Bedrock Agent creation
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['iam:PassRole'],
+      resources: [`arn:aws:iam::${cdk.Aws.ACCOUNT_ID}:role/*bedrock*`],
+      conditions: {
+        StringEquals: {
+          'iam:PassedToService': 'bedrock.amazonaws.com',
+        },
+      },
     }));
 
     // DynamoDB access (if needed)

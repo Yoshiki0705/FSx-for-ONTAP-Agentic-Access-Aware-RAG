@@ -825,3 +825,145 @@ interface InfoBannerProps {
 | `docker/nextjs/src/store/useFavoritesStore.ts` | お気に入り管理Zustandストア |
 | `docker/nextjs/src/messages/{locale}.json` | 翻訳ファイル（`cards`ネームスペース） |
 | `docker/nextjs/src/app/[locale]/genai/page.tsx` | CardGrid統合・表示条件制御 |
+
+
+---
+
+## 10. サイドバーレイアウト改修
+
+### 概要
+
+Agentモードのサイドバーを再設計し、System Settings（リージョン・モデル選択等）を折りたたみ可能にし、ワークフローセクションをサイドバー上部に配置します。
+
+### レイアウト構成
+
+```
+┌─────────────────────────┐
+│ 🔧 ワークフロー         │  ← Agentモード時のみ上部に表示
+│  📊 プレゼン資料作成    │
+│  📝 稟議書作成          │
+│  📋 議事録作成          │
+│  📈 レポート作成        │
+│  📄 契約書レビュー      │
+│  🎓 オンボーディング    │
+│  🔍 文書検索            │
+│  ...                    │
+├─────────────────────────┤
+│ ▶ System Settings       │  ← CollapsiblePanel（折りたたみ可能）
+│   Bedrockリージョン     │
+│   AIモデル選択          │
+│   Agent情報             │
+│   チャット履歴          │
+└─────────────────────────┘
+```
+
+### 新規コンポーネント
+
+| コンポーネント | ファイルパス | 役割 |
+|--------------|------------|------|
+| CollapsiblePanel | `docker/nextjs/src/components/ui/CollapsiblePanel.tsx` | 折りたたみ/展開パネル。System Settingsセクションをラップ |
+| WorkflowSection | `docker/nextjs/src/components/ui/WorkflowSection.tsx` | ワークフローカード一覧。Agentモード時にサイドバー上部に表示 |
+
+### 状態管理
+
+| ストア | ファイルパス | 役割 |
+|-------|------------|------|
+| useSidebarStore | `docker/nextjs/src/store/useSidebarStore.ts` | サイドバー折りたたみ状態管理（Zustand + localStorage永続化） |
+
+### 動作仕様
+
+| 項目 | 説明 |
+|------|------|
+| デフォルト状態 | System Settings: 折りたたみ、ワークフロー: 展開 |
+| 永続化 | localStorage経由でZustand persistミドルウェア |
+| KBモード時 | ワークフローセクション非表示、System Settings展開 |
+| Agentモード時 | ワークフローセクション表示、System Settings折りたたみ |
+
+---
+
+## 11. 動的Agent-Card紐付け
+
+### 概要
+
+カードクリック時にカテゴリに対応するAgentを検索し、存在しなければ動的に作成してカードと紐付ける機能です。
+
+### フロー
+
+```
+カードクリック
+  │
+  ▼
+cardAgentBindingService
+  │ 1. AGENT_CATEGORY_MAP でカテゴリ判定
+  │ 2. 既存Agentを検索（名前マッチング）
+  │ 3. 見つからない場合 → Bedrock CreateAgent API で動的作成
+  │ 4. カード-Agent マッピングを永続化
+  ▼
+Agent InvokeAgent API で実行
+```
+
+### AGENT_CATEGORY_MAP（10カテゴリ）
+
+カードのカテゴリとAgentの対応を定義するマッピングです。各カテゴリに対してAgent名プレフィックス、システムプロンプト、推奨モデルが設定されています。
+
+| カテゴリ | Agent名プレフィックス | 用途 |
+|---------|---------------------|------|
+| financial | FinancialAnalysis | 財務レポート分析・リスク分析 |
+| project | ProjectManagement | プロジェクト進捗・マイルストーン管理 |
+| hr | HRPolicy | 人事ポリシー・コンプライアンス |
+| search | DocumentSearch | ドキュメント横断検索・データ分析 |
+| presentation | PresentationDraft | プレゼン資料作成 |
+| approval | ApprovalDocument | 稟議書作成 |
+| minutes | MeetingMinutes | 議事録作成 |
+| report | ReportGeneration | レポート作成 |
+| contract | ContractReview | 契約書レビュー |
+| onboarding | OnboardingGuide | オンボーディング |
+
+### 関連ファイル
+
+| ファイル | 役割 |
+|---------|------|
+| `docker/nextjs/src/services/cardAgentBindingService.ts` | Agent検索・動的作成・カード紐付けサービス |
+| `docker/nextjs/src/store/useCardAgentMappingStore.ts` | カード-Agentマッピング永続化（Zustand + localStorage） |
+| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | Agent CRUD API（create, list, delete, invoke） |
+
+---
+
+## 12. アウトプット指向ワークフローカード
+
+### 概要
+
+Agentモードのカードを「リサーチ系」8枚 + 「アウトプット系」6枚の計14枚構成に拡張します。アウトプット系カードは具体的な成果物（プレゼン資料、稟議書、議事録、レポート、契約書、オンボーディング資料）の生成を目的とします。
+
+### Agentモード カード一覧（14枚）
+
+#### リサーチ系（既存8枚）
+
+| ID | アイコン | カテゴリ | 用途 |
+|----|---------|---------|------|
+| `agent-financial` | 📊 | financial | 財務レポート分析 |
+| `agent-project` | 📝 | project | プロジェクト進捗確認 |
+| `agent-cross-search` | 🔍 | search | ドキュメント横断検索 |
+| `agent-hr` | 📋 | hr | 人事ポリシー確認 |
+| `agent-risk` | ⚠️ | financial | リスク分析 |
+| `agent-milestone` | 🎯 | project | マイルストーン管理 |
+| `agent-compliance` | 🔐 | hr | コンプライアンス確認 |
+| `agent-data-analysis` | 📉 | search | データ分析 |
+
+#### アウトプット系（新規6枚）
+
+| ID | アイコン | カテゴリ | 用途 |
+|----|---------|---------|------|
+| `agent-presentation` | 🎤 | presentation | プレゼン資料作成 |
+| `agent-approval` | 📑 | approval | 稟議書作成 |
+| `agent-minutes` | 🗒️ | minutes | 議事録作成 |
+| `agent-report` | 📈 | report | レポート作成 |
+| `agent-contract` | 📄 | contract | 契約書レビュー |
+| `agent-onboarding` | 🎓 | onboarding | オンボーディング資料作成 |
+
+### カードクリック時の動作
+
+1. カードのカテゴリから `AGENT_CATEGORY_MAP` を参照
+2. `cardAgentBindingService` が対応Agentを検索または動的作成
+3. `useCardAgentMappingStore` にマッピングを永続化
+4. Agent InvokeAgent API でプロンプトを実行
