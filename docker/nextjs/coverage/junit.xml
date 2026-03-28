@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="4" failures="0" errors="0" time="0.651">
+  <testsuite name="Feature: sidebar-workflow-agent-redesign, Property 3: workflow card click passes prompt" errors="0" failures="0" skipped="0" timestamp="2026-03-28T17:28:29" time="0.261" tests="4">
+    <testcase classname="Feature: sidebar-workflow-agent-redesign, Property 3: workflow card click passes prompt" name="全AGENT_CARDSカードはtitleKeyとpromptTemplateKeyが有効な非空文字列を持つ" time="0.036">
+    </testcase>
+    <testcase classname="Feature: sidebar-workflow-agent-redesign, Property 4: agent-card binding auto-selection" name="agentId有無でAgent自動選択の発生が決定される" time="0.013">
+    </testcase>
+    <testcase classname="Feature: sidebar-workflow-agent-redesign, Property 5: highlight state determined by agentId match" name="ハイライト条件は card.agentId !== undefined &amp;&amp; card.agentId === selectedAgentId" time="0.021">
+    </testcase>
+    <testcase classname="Feature: sidebar-workflow-agent-redesign, Property 5: highlight state determined by agentId match" name="selectedAgentIdがnullの場合、全カードはハイライトされない" time="0.014">
+    </testcase>
+  </testsuite>
+</testsuites>
