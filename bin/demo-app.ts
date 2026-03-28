@@ -169,4 +169,11 @@ if (enableEmbedding) {
   embeddingStack.addDependency(aiStack);
 }
 
+// App-level tags (applied to all stacks and resources)
+const creatorTag = app.node.tryGetContext('creatorTag') || '';
+if (creatorTag) {
+  cdk.Tags.of(app).add('creator', creatorTag);
+}
+cdk.Tags.of(app).add('ManagedBy', 'CDK');
+
 app.synth();
