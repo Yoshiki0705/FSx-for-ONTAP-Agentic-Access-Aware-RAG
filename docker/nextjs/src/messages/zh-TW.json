@@ -319,9 +319,16 @@
       "summary": "摘要",
       "learning": "學習",
       "analysis": "分析",
+      "output": "文件生成",
       "financial": "財務",
       "project": "專案",
-      "hr": "人事"
+      "hr": "人事",
+      "presentation": "簡報製作",
+      "approval": "簽呈申請",
+      "minutes": "會議紀錄",
+      "report": "報告",
+      "contract": "合約",
+      "onboarding": "入職引導"
     },
     "kb": {
       "docSearch": {
@@ -363,6 +370,36 @@
         "title": "趨勢分析",
         "description": "分析資料的趨勢和模式",
         "prompt": "請分析以下資料的趨勢: "
+      },
+      "presentation": {
+        "title": "簡報資料製作",
+        "description": "基於內部資料生成簡報結構方案",
+        "prompt": "請為以下主題建立簡報結構方案（標題、各投影片標題、要點）："
+      },
+      "approval": {
+        "title": "簽呈文件起草",
+        "description": "基於公司規定生成簽呈文件草稿",
+        "prompt": "請為以下內容起草簽呈文件（主題、申請理由、預算、預期效果、風險）："
+      },
+      "minutes": {
+        "title": "會議紀錄",
+        "description": "將會議內容結構化生成會議紀錄",
+        "prompt": "請根據以下會議內容建立會議紀錄（日期、與會人員、議題、決議、行動項目）："
+      },
+      "reportGen": {
+        "title": "報告自動生成",
+        "description": "從內部資料自動生成定期報告",
+        "prompt": "請為以下主題建立報告（執行摘要、關鍵指標、分析、建議措施）："
+      },
+      "contract": {
+        "title": "合約審查",
+        "description": "基於合約範本進行草稿建立和風險評估",
+        "prompt": "請審查以下合約內容，提供風險評估和修改建議："
+      },
+      "onboarding": {
+        "title": "入職指南",
+        "description": "為新進員工生成部門指南和常見問題",
+        "prompt": "請為以下部門建立新進員工入職指南（部門概況、工作流程、常見問題）："
       }
     },
     "agent": {
@@ -405,6 +442,36 @@
         "title": "資料分析",
         "description": "分析資料並提取洞察",
         "prompt": "請分析可用資料，摘要重要的洞察。"
+      },
+      "presentation": {
+        "title": "簡報資料製作",
+        "description": "基於內部資料自動產生簡報大綱",
+        "prompt": "請為以下主題建立簡報大綱。包括投影片標題、要點和講者備註: "
+      },
+      "approval": {
+        "title": "簽呈文件製作",
+        "description": "基於公司規定自動產生簽呈文件草稿",
+        "prompt": "請為以下內容建立簽呈文件草稿。包括主旨、申請理由、預算、預期效果和風險: "
+      },
+      "minutes": {
+        "title": "會議紀錄製作",
+        "description": "自動產生結構化的會議紀錄",
+        "prompt": "請根據以下會議內容建立會議紀錄。包括日期、與會者、議題、決議事項和行動項目: "
+      },
+      "report": {
+        "title": "報告自動產生",
+        "description": "基於內部資料自動產生定期報告",
+        "prompt": "請就以下主題建立報告。包括執行摘要、關鍵指標、分析、問題和建議: "
+      },
+      "contract": {
+        "title": "合約審查",
+        "description": "審查合約並提供風險評估和修改建議",
+        "prompt": "請審查以下合約內容，為每個條款提供風險評估和修改建議: "
+      },
+      "onboarding": {
+        "title": "入職引導資料",
+        "description": "自動產生面向新進員工的部門指南和FAQ資料",
+        "prompt": "請為以下部門的新進員工建立入職引導資料。包括部門概述、工作流程、工具清單和FAQ: "
       }
     },
     "infoBanner": {

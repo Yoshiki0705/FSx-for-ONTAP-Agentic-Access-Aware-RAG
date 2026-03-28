@@ -319,6 +319,7 @@
       "summary": "Zusammenfassung",
       "learning": "Lernen",
       "analysis": "Analyse",
+      "output": "Dokumentenerstellung",
       "financial": "Finanzen",
       "project": "Projekt",
       "hr": "Personal"
@@ -363,6 +364,36 @@
         "title": "Trendanalyse",
         "description": "Datentrends und -muster analysieren",
         "prompt": "Analysieren Sie die Trends in den folgenden Daten: "
+      },
+      "presentation": {
+        "title": "Präsentationserstellung",
+        "description": "Erstellt Präsentationsentwürfe basierend auf internen Daten",
+        "prompt": "Erstellen Sie einen Präsentationsentwurf (Titel, Folienüberschriften, Kernpunkte) zum folgenden Thema: "
+      },
+      "approval": {
+        "title": "Genehmigungsdokument",
+        "description": "Erstellt Entwürfe für Genehmigungsdokumente basierend auf Unternehmensrichtlinien",
+        "prompt": "Erstellen Sie einen Entwurf für ein Genehmigungsdokument (Betreff, Begründung, Budget, erwarteter Nutzen, Risiken) für: "
+      },
+      "minutes": {
+        "title": "Sitzungsprotokoll",
+        "description": "Erstellt strukturierte Sitzungsprotokolle aus Besprechungsinhalten",
+        "prompt": "Erstellen Sie ein Sitzungsprotokoll (Datum, Teilnehmer, Tagesordnung, Beschlüsse, Maßnahmen) aus: "
+      },
+      "reportGen": {
+        "title": "Berichterstellung",
+        "description": "Erstellt automatisch periodische Berichte aus internen Daten",
+        "prompt": "Erstellen Sie einen Bericht (Zusammenfassung, Kennzahlen, Analyse, Empfehlungen) über: "
+      },
+      "contract": {
+        "title": "Vertragsprüfung",
+        "description": "Entwurfserstellung und Risikobewertung basierend auf Vertragsvorlagen",
+        "prompt": "Überprüfen Sie den folgenden Vertragsinhalt und geben Sie eine Risikobewertung und Änderungsvorschläge: "
+      },
+      "onboarding": {
+        "title": "Onboarding-Leitfaden",
+        "description": "Erstellt abteilungsspezifische Leitfäden und FAQs für neue Mitarbeiter",
+        "prompt": "Erstellen Sie einen Onboarding-Leitfaden (Abteilungsübersicht, Arbeitsabläufe, FAQ) für folgende Abteilung: "
       }
     },
     "agent": {

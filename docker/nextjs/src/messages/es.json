@@ -319,6 +319,7 @@
       "summary": "Resumen",
       "learning": "Aprendizaje",
       "analysis": "Análisis",
+      "output": "Creación de documentos",
       "financial": "Finanzas",
       "project": "Proyecto",
       "hr": "RRHH"
@@ -363,6 +364,36 @@
         "title": "Análisis de tendencias",
         "description": "Analizar tendencias y patrones en los datos",
         "prompt": "Analice las tendencias en los siguientes datos: "
+      },
+      "presentation": {
+        "title": "Creación de presentación",
+        "description": "Genera esquemas de presentación basados en datos internos",
+        "prompt": "Cree un esquema de presentación (título, encabezados de diapositivas, puntos clave) para el siguiente tema: "
+      },
+      "approval": {
+        "title": "Documento de aprobación",
+        "description": "Genera borradores de documentos de aprobación según las políticas internas",
+        "prompt": "Redacte un borrador de documento de aprobación (asunto, motivo, presupuesto, beneficios esperados, riesgos) para: "
+      },
+      "minutes": {
+        "title": "Acta de reunión",
+        "description": "Genera actas estructuradas a partir del contenido de reuniones",
+        "prompt": "Cree un acta de reunión (fecha, asistentes, agenda, decisiones, acciones) a partir de: "
+      },
+      "reportGen": {
+        "title": "Generación de informes",
+        "description": "Genera automáticamente informes periódicos a partir de datos internos",
+        "prompt": "Cree un informe (resumen ejecutivo, indicadores clave, análisis, recomendaciones) sobre: "
+      },
+      "contract": {
+        "title": "Revisión de contrato",
+        "description": "Creación de borradores y evaluación de riesgos basados en plantillas de contratos",
+        "prompt": "Revise el siguiente contenido del contrato y proporcione una evaluación de riesgos y sugerencias de revisión: "
+      },
+      "onboarding": {
+        "title": "Guía de incorporación",
+        "description": "Genera guías departamentales y FAQ para nuevos empleados",
+        "prompt": "Cree una guía de incorporación (descripción del departamento, flujo de trabajo, FAQ) para el siguiente departamento: "
       }
     },
     "agent": {

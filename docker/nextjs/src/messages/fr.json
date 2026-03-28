@@ -319,6 +319,7 @@
       "summary": "Résumé",
       "learning": "Apprentissage",
       "analysis": "Analyse",
+      "output": "Création de documents",
       "financial": "Finance",
       "project": "Projet",
       "hr": "RH"
@@ -363,6 +364,36 @@
         "title": "Analyse de tendances",
         "description": "Analyser les tendances et les modèles des données",
         "prompt": "Analysez les tendances des données suivantes : "
+      },
+      "presentation": {
+        "title": "Création de présentation",
+        "description": "Génère des plans de présentation à partir des données internes",
+        "prompt": "Créez un plan de présentation (titre, titres des diapositives, points clés) pour le sujet suivant : "
+      },
+      "approval": {
+        "title": "Rédaction de demande d'approbation",
+        "description": "Génère des brouillons de demandes d'approbation selon les politiques internes",
+        "prompt": "Rédigez un brouillon de demande d'approbation (objet, motif, budget, bénéfices attendus, risques) pour : "
+      },
+      "minutes": {
+        "title": "Compte-rendu de réunion",
+        "description": "Génère des comptes-rendus structurés à partir du contenu de réunion",
+        "prompt": "Créez un compte-rendu de réunion (date, participants, ordre du jour, décisions, actions) à partir de : "
+      },
+      "reportGen": {
+        "title": "Génération de rapport",
+        "description": "Génère automatiquement des rapports périodiques à partir des données internes",
+        "prompt": "Créez un rapport (résumé exécutif, indicateurs clés, analyse, recommandations) sur : "
+      },
+      "contract": {
+        "title": "Revue de contrat",
+        "description": "Rédaction et évaluation des risques basées sur les modèles de contrats",
+        "prompt": "Examinez le contenu du contrat suivant et fournissez une évaluation des risques et des suggestions de révision : "
+      },
+      "onboarding": {
+        "title": "Guide d'intégration",
+        "description": "Génère des guides départementaux et FAQ pour les nouveaux employés",
+        "prompt": "Créez un guide d'intégration (présentation du département, flux de travail, FAQ) pour le département suivant : "
       }
     },
     "agent": {

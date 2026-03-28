@@ -395,9 +395,16 @@
       "summary": "摘要",
       "learning": "学习",
       "analysis": "分析",
+      "output": "文档生成",
       "financial": "财务",
       "project": "项目",
-      "hr": "人事"
+      "hr": "人事",
+      "presentation": "演示文稿",
+      "approval": "审批申请",
+      "minutes": "会议纪要",
+      "report": "报告",
+      "contract": "合同",
+      "onboarding": "入职引导"
     },
     "kb": {
       "docSearch": {
@@ -439,6 +446,36 @@
         "title": "趋势分析",
         "description": "分析数据的趋势和模式",
         "prompt": "请分析以下数据的趋势: "
+      },
+      "presentation": {
+        "title": "演示文稿制作",
+        "description": "基于内部数据生成演示文稿结构方案",
+        "prompt": "请为以下主题创建演示文稿结构方案（标题、各幻灯片标题、要点）："
+      },
+      "approval": {
+        "title": "审批文件起草",
+        "description": "基于公司规定生成审批文件草稿",
+        "prompt": "请为以下内容起草审批文件（主题、申请理由、预算、预期效果、风险）："
+      },
+      "minutes": {
+        "title": "会议纪要",
+        "description": "将会议内容结构化生成会议纪要",
+        "prompt": "请根据以下会议内容创建会议纪要（日期、参会人员、议题、决议、行动项）："
+      },
+      "reportGen": {
+        "title": "报告自动生成",
+        "description": "从内部数据自动生成定期报告",
+        "prompt": "请为以下主题创建报告（执行摘要、关键指标、分析、建议措施）："
+      },
+      "contract": {
+        "title": "合同审查",
+        "description": "基于合同模板进行草稿创建和风险评估",
+        "prompt": "请审查以下合同内容，提供风险评估和修改建议："
+      },
+      "onboarding": {
+        "title": "入职指南",
+        "description": "为新员工生成部门指南和常见问题",
+        "prompt": "请为以下部门创建新员工入职指南（部门概况、工作流程、常见问题）："
       }
     },
     "agent": {
@@ -481,6 +518,36 @@
         "title": "数据分析",
         "description": "分析数据并提取洞察",
         "prompt": "请分析可用数据，总结重要的洞察。"
+      },
+      "presentation": {
+        "title": "演示文稿制作",
+        "description": "基于内部数据自动生成演示文稿大纲",
+        "prompt": "请为以下主题创建演示文稿大纲。包括幻灯片标题、要点和演讲者备注: "
+      },
+      "approval": {
+        "title": "审批文件制作",
+        "description": "基于公司规定自动生成审批文件草稿",
+        "prompt": "请为以下内容创建审批文件草稿。包括主题、申请理由、预算、预期效果和风险: "
+      },
+      "minutes": {
+        "title": "会议纪要制作",
+        "description": "自动生成结构化的会议纪要",
+        "prompt": "请根据以下会议内容创建会议纪要。包括日期、参会者、议题、决定事项和行动项: "
+      },
+      "report": {
+        "title": "报告自动生成",
+        "description": "基于内部数据自动生成定期报告",
+        "prompt": "请就以下主题创建报告。包括执行摘要、关键指标、分析、问题和建议: "
+      },
+      "contract": {
+        "title": "合同审查",
+        "description": "审查合同并提供风险评估和修改建议",
+        "prompt": "请审查以下合同内容，为每个条款提供风险评估和修改建议: "
+      },
+      "onboarding": {
+        "title": "入职引导资料",
+        "description": "自动生成面向新员工的部门指南和FAQ资料",
+        "prompt": "请为以下部门的新员工创建入职引导资料。包括部门概述、工作流程、工具列表和FAQ: "
       }
     },
     "infoBanner": {

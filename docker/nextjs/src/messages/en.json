@@ -237,9 +237,16 @@
       "summary": "Summary",
       "learning": "Learning",
       "analysis": "Analysis",
+      "output": "Document Creation",
       "financial": "Financial",
       "project": "Project",
-      "hr": "HR"
+      "hr": "HR",
+      "presentation": "Presentations",
+      "approval": "Approvals",
+      "minutes": "Minutes",
+      "report": "Reports",
+      "contract": "Contracts",
+      "onboarding": "Onboarding"
     },
     "kb": {
       "docSearch": {
@@ -281,6 +288,36 @@
         "title": "Trend Analysis",
         "description": "Analyze data trends and patterns",
         "prompt": "Analyze the trends in the following data: "
+      },
+      "presentation": {
+        "title": "Presentation Creation",
+        "description": "Generate presentation outlines based on internal data",
+        "prompt": "Create a presentation outline (title, slide headings, key points) for the following topic: "
+      },
+      "approval": {
+        "title": "Approval Document Draft",
+        "description": "Generate approval document drafts based on company policies",
+        "prompt": "Create an approval document draft (subject, reason, budget, expected benefits, risks) for: "
+      },
+      "minutes": {
+        "title": "Meeting Minutes",
+        "description": "Generate structured meeting minutes from meeting content",
+        "prompt": "Create meeting minutes (date, attendees, agenda, decisions, action items) from: "
+      },
+      "reportGen": {
+        "title": "Report Generation",
+        "description": "Auto-generate periodic reports from internal data",
+        "prompt": "Create a report (executive summary, key metrics, analysis, recommendations) about: "
+      },
+      "contract": {
+        "title": "Contract Review",
+        "description": "Draft creation and risk assessment based on contract templates",
+        "prompt": "Review the following contract content and provide risk assessment and revision suggestions: "
+      },
+      "onboarding": {
+        "title": "Onboarding Guide",
+        "description": "Generate department-specific guides and FAQs for new employees",
+        "prompt": "Create an onboarding guide (department overview, workflow, FAQ) for the following department: "
       }
     },
     "agent": {
@@ -323,6 +360,36 @@
         "title": "Data Analysis",
         "description": "Analyze data and extract insights",
         "prompt": "Analyze available data and summarize key insights."
+      },
+      "presentation": {
+        "title": "Presentation Creator",
+        "description": "Auto-generate presentation outlines from internal data",
+        "prompt": "Create a presentation outline for the following topic. Include slide titles, key points, and speaker notes: "
+      },
+      "approval": {
+        "title": "Approval Document Creator",
+        "description": "Auto-generate approval document drafts based on company policies",
+        "prompt": "Create an approval document draft for the following. Include subject, reason, budget, expected benefits, and risks: "
+      },
+      "minutes": {
+        "title": "Meeting Minutes Creator",
+        "description": "Auto-generate structured meeting minutes",
+        "prompt": "Create meeting minutes from the following. Include date, attendees, agenda, decisions, and action items: "
+      },
+      "report": {
+        "title": "Report Generator",
+        "description": "Auto-generate periodic reports from internal data",
+        "prompt": "Create a report on the following topic. Include executive summary, key metrics, analysis, issues, and recommendations: "
+      },
+      "contract": {
+        "title": "Contract Reviewer",
+        "description": "Review contracts and provide risk assessment and suggestions",
+        "prompt": "Review the following contract and provide risk assessment and revision suggestions for each clause: "
+      },
+      "onboarding": {
+        "title": "Onboarding Guide Creator",
+        "description": "Auto-generate department-specific onboarding guides for new employees",
+        "prompt": "Create an onboarding guide for new employees in the following department. Include overview, workflows, tools, and FAQ: "
       }
     },
     "infoBanner": {
