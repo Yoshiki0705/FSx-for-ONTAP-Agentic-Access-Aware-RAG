@@ -309,5 +309,122 @@
     "fsxDirectories": "Répertoires accessibles FSx",
     "ragDirectories": "Répertoires recherchables RAG",
     "embeddedDirectories": "Répertoires indexés"
+  },
+  "cards": {
+    "categories": {
+      "all": "Tout",
+      "search": "Recherche",
+      "summary": "Résumé",
+      "learning": "Apprentissage",
+      "analysis": "Analyse",
+      "financial": "Finance",
+      "project": "Projet",
+      "hr": "RH"
+    },
+    "kb": {
+      "docSearch": {
+        "title": "Recherche de documents",
+        "description": "Rechercher des documents pertinents par mot-clé ou question",
+        "prompt": "Rechercher des documents liés au sujet suivant : "
+      },
+      "docSummary": {
+        "title": "Création de résumé",
+        "description": "Résumer le contenu d'un document de manière concise",
+        "prompt": "Veuillez résumer le contenu du document suivant : "
+      },
+      "quizGen": {
+        "title": "Génération de quiz",
+        "description": "Générer des questions d'étude à partir du contenu d'un document",
+        "prompt": "Créez 5 questions d'étude sur le sujet suivant : "
+      },
+      "compare": {
+        "title": "Analyse comparative",
+        "description": "Comparer et analyser plusieurs documents ou informations",
+        "prompt": "Veuillez comparer et analyser les éléments suivants : "
+      },
+      "keywordSearch": {
+        "title": "Recherche par mots-clés",
+        "description": "Rechercher des documents contenant des mots-clés spécifiques",
+        "prompt": "Rechercher des documents contenant les mots-clés suivants : "
+      },
+      "reportSummary": {
+        "title": "Résumé de rapport",
+        "description": "Extraire et résumer les points clés des rapports",
+        "prompt": "Résumez les points clés du dernier rapport."
+      },
+      "qaGen": {
+        "title": "Génération Q&R",
+        "description": "Générer des informations au format Q&R à partir de documents",
+        "prompt": "Résumez le sujet suivant au format Q&R : "
+      },
+      "trendAnalysis": {
+        "title": "Analyse de tendances",
+        "description": "Analyser les tendances et les modèles des données",
+        "prompt": "Analysez les tendances des données suivantes : "
+      }
+    },
+    "agent": {
+      "financial": {
+        "title": "Analyse de rapport financier",
+        "description": "Analyser les dernières données financières et résumer les indicateurs clés",
+        "prompt": "Analysez le dernier rapport financier et résumez les performances commerciales et les plans d'investissement."
+      },
+      "project": {
+        "title": "Suivi de projet",
+        "description": "Vérifier l'avancement du projet et identifier les problèmes",
+        "prompt": "Vérifiez l'avancement du plan de projet et informez-moi des jalons clés et des défis techniques."
+      },
+      "crossSearch": {
+        "title": "Recherche transversale",
+        "description": "Rechercher et analyser à travers plusieurs documents",
+        "prompt": "Effectuez une recherche transversale dans les documents internes et résumez les informations clés."
+      },
+      "hr": {
+        "title": "Vérification politique RH",
+        "description": "Vérifier les politiques et programmes liés aux RH",
+        "prompt": "Vérifiez les politiques RH et informez-moi sur le télétravail et les congés."
+      },
+      "risk": {
+        "title": "Analyse de risques",
+        "description": "Identifier les risques commerciaux et proposer des mesures correctives",
+        "prompt": "Analysez les risques commerciaux actuels et proposez les principaux facteurs de risque et mesures correctives."
+      },
+      "milestone": {
+        "title": "Gestion des jalons",
+        "description": "Gérer et suivre les jalons du projet",
+        "prompt": "Vérifiez l'état d'avancement des jalons clés du projet et identifiez ceux à risque de retard."
+      },
+      "compliance": {
+        "title": "Vérification conformité",
+        "description": "Vérifier le respect des exigences de conformité",
+        "prompt": "Vérifiez le respect des exigences de conformité internes et identifiez les points nécessitant une attention particulière."
+      },
+      "dataAnalysis": {
+        "title": "Analyse de données",
+        "description": "Analyser les données et extraire des informations clés",
+        "prompt": "Analysez les données disponibles et résumez les informations clés."
+      }
+    },
+    "infoBanner": {
+      "accessInfo": "Informations d'accès",
+      "directoriesCount": "{count} répertoires accessibles",
+      "showDetails": "Afficher les détails",
+      "hideDetails": "Masquer les détails",
+      "role": "Rôle",
+      "user": "Utilisateur",
+      "sid": "SID",
+      "directories": "Répertoires",
+      "permissions": "Permissions",
+      "read": "Lecture",
+      "write": "Écriture",
+      "execute": "Exécution",
+      "available": "Disponible",
+      "unavailable": "Indisponible"
+    },
+    "favorites": {
+      "addToFavorites": "Ajouter aux favoris",
+      "removeFromFavorites": "Retirer des favoris",
+      "section": "Favoris"
+    }
   }
 }

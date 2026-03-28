@@ -227,5 +227,122 @@
   },
   "error": {
     "generic": "An error occurred"
+  },
+  "cards": {
+    "categories": {
+      "all": "All",
+      "search": "Search",
+      "summary": "Summary",
+      "learning": "Learning",
+      "analysis": "Analysis",
+      "financial": "Financial",
+      "project": "Project",
+      "hr": "HR"
+    },
+    "kb": {
+      "docSearch": {
+        "title": "Document Search",
+        "description": "Search for related documents by keyword or question",
+        "prompt": "Search for documents related to the following topic: "
+      },
+      "docSummary": {
+        "title": "Create Summary",
+        "description": "Summarize document content concisely",
+        "prompt": "Please summarize the content of the following document: "
+      },
+      "quizGen": {
+        "title": "Generate Quiz",
+        "description": "Generate study questions from document content",
+        "prompt": "Create 5 study questions about the following topic: "
+      },
+      "compare": {
+        "title": "Compare Analysis",
+        "description": "Compare and analyze multiple documents or information",
+        "prompt": "Please compare and analyze the following items: "
+      },
+      "keywordSearch": {
+        "title": "Keyword Search",
+        "description": "Search for documents containing specific keywords",
+        "prompt": "Search for documents containing the following keywords: "
+      },
+      "reportSummary": {
+        "title": "Report Summary",
+        "description": "Extract and summarize key points from reports",
+        "prompt": "Summarize the key points of the latest report."
+      },
+      "qaGen": {
+        "title": "Q&A Generation",
+        "description": "Generate Q&A format information from documents",
+        "prompt": "Summarize the following topic in Q&A format: "
+      },
+      "trendAnalysis": {
+        "title": "Trend Analysis",
+        "description": "Analyze data trends and patterns",
+        "prompt": "Analyze the trends in the following data: "
+      }
+    },
+    "agent": {
+      "financial": {
+        "title": "Financial Report Analysis",
+        "description": "Analyze the latest financial data and summarize key metrics",
+        "prompt": "Analyze the latest financial report and summarize sales performance and investment plans."
+      },
+      "project": {
+        "title": "Project Progress Check",
+        "description": "Check project progress and identify issues",
+        "prompt": "Check the project plan progress and tell me about key milestones and technical challenges."
+      },
+      "crossSearch": {
+        "title": "Cross-Document Search",
+        "description": "Search and analyze across multiple documents",
+        "prompt": "Search across internal documents and summarize key information."
+      },
+      "hr": {
+        "title": "HR Policy Check",
+        "description": "Review HR-related policies and programs",
+        "prompt": "Review HR policies and tell me about remote work and leave policies."
+      },
+      "risk": {
+        "title": "Risk Analysis",
+        "description": "Identify business risks and propose countermeasures",
+        "prompt": "Analyze current business risks and propose key risk factors and countermeasures."
+      },
+      "milestone": {
+        "title": "Milestone Management",
+        "description": "Manage and track project milestones",
+        "prompt": "Check the achievement status of key project milestones and identify those at risk of delay."
+      },
+      "compliance": {
+        "title": "Compliance Check",
+        "description": "Verify compliance requirement adherence",
+        "prompt": "Check the compliance status of internal requirements and identify items needing attention."
+      },
+      "dataAnalysis": {
+        "title": "Data Analysis",
+        "description": "Analyze data and extract insights",
+        "prompt": "Analyze available data and summarize key insights."
+      }
+    },
+    "infoBanner": {
+      "accessInfo": "Access Info",
+      "directoriesCount": "{count} directories accessible",
+      "showDetails": "Show details",
+      "hideDetails": "Hide details",
+      "role": "Role",
+      "user": "User",
+      "sid": "SID",
+      "directories": "Directories",
+      "permissions": "Permissions",
+      "read": "Read",
+      "write": "Write",
+      "execute": "Execute",
+      "available": "Available",
+      "unavailable": "Unavailable"
+    },
+    "favorites": {
+      "addToFavorites": "Add to favorites",
+      "removeFromFavorites": "Remove from favorites",
+      "section": "Favorites"
+    }
   }
 }

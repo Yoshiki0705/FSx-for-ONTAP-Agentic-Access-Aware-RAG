@@ -309,5 +309,122 @@
     "fsxDirectories": "FSx可存取目錄",
     "ragDirectories": "RAG可搜尋目錄",
     "embeddedDirectories": "嵌入對象目錄"
+  },
+  "cards": {
+    "categories": {
+      "all": "全部",
+      "search": "搜尋",
+      "summary": "摘要",
+      "learning": "學習",
+      "analysis": "分析",
+      "financial": "財務",
+      "project": "專案",
+      "hr": "人事"
+    },
+    "kb": {
+      "docSearch": {
+        "title": "文件搜尋",
+        "description": "透過關鍵字或問題搜尋相關文件",
+        "prompt": "請搜尋與以下主題相關的文件: "
+      },
+      "docSummary": {
+        "title": "建立摘要",
+        "description": "簡潔地摘要文件內容",
+        "prompt": "請摘要以下文件的內容: "
+      },
+      "quizGen": {
+        "title": "產生學習題",
+        "description": "根據文件內容產生學習題目",
+        "prompt": "請針對以下主題建立5道學習題: "
+      },
+      "compare": {
+        "title": "比較分析",
+        "description": "比較分析多個文件或資訊",
+        "prompt": "請對以下項目進行比較分析: "
+      },
+      "keywordSearch": {
+        "title": "關鍵字搜尋",
+        "description": "搜尋包含特定關鍵字的文件",
+        "prompt": "請搜尋包含以下關鍵字的文件: "
+      },
+      "reportSummary": {
+        "title": "報告摘要",
+        "description": "提取並摘要報告的重要要點",
+        "prompt": "請摘要最新報告的重要要點。"
+      },
+      "qaGen": {
+        "title": "問答產生",
+        "description": "從文件產生問答格式的資訊",
+        "prompt": "請以問答格式摘要以下主題: "
+      },
+      "trendAnalysis": {
+        "title": "趨勢分析",
+        "description": "分析資料的趨勢和模式",
+        "prompt": "請分析以下資料的趨勢: "
+      }
+    },
+    "agent": {
+      "financial": {
+        "title": "財務報告分析",
+        "description": "分析最新財務資料並摘要關鍵指標",
+        "prompt": "請分析最新的財務報告，摘要銷售狀況和投資計畫。"
+      },
+      "project": {
+        "title": "專案進度確認",
+        "description": "確認專案進度狀況和課題",
+        "prompt": "請確認專案計畫的進度狀況，告訴我主要里程碑和技術課題。"
+      },
+      "crossSearch": {
+        "title": "跨文件搜尋",
+        "description": "跨多個文件進行搜尋和分析",
+        "prompt": "請跨內部文件進行搜尋，摘要主要資訊。"
+      },
+      "hr": {
+        "title": "人事政策確認",
+        "description": "確認人事相關的政策和制度",
+        "prompt": "請確認人事政策的內容，告訴我遠端工作制度和休假制度。"
+      },
+      "risk": {
+        "title": "風險分析",
+        "description": "識別業務風險並提出對策",
+        "prompt": "請分析目前的業務風險，提出主要風險因素和對策。"
+      },
+      "milestone": {
+        "title": "里程碑管理",
+        "description": "管理和追蹤專案里程碑",
+        "prompt": "請確認專案主要里程碑的達成狀況，告訴我有延遲風險的項目。"
+      },
+      "compliance": {
+        "title": "合規確認",
+        "description": "確認合規要求的遵守狀況",
+        "prompt": "請確認內部合規要求的遵守狀況，告訴我需要注意的項目。"
+      },
+      "dataAnalysis": {
+        "title": "資料分析",
+        "description": "分析資料並提取洞察",
+        "prompt": "請分析可用資料，摘要重要的洞察。"
+      }
+    },
+    "infoBanner": {
+      "accessInfo": "存取資訊",
+      "directoriesCount": "可存取{count}個目錄",
+      "showDetails": "顯示詳情",
+      "hideDetails": "隱藏詳情",
+      "role": "角色",
+      "user": "使用者",
+      "sid": "SID",
+      "directories": "目錄",
+      "permissions": "權限",
+      "read": "讀取",
+      "write": "寫入",
+      "execute": "執行",
+      "available": "可用",
+      "unavailable": "不可用"
+    },
+    "favorites": {
+      "addToFavorites": "加入收藏",
+      "removeFromFavorites": "從收藏中移除",
+      "section": "收藏"
+    }
   }
 }

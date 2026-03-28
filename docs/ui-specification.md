@@ -486,3 +486,342 @@ KB Retrieve API → SIDフィルタリング → Converse API
 | `docker/nextjs/src/hooks/useAgentMode.ts` | モード切替ロジック |
 | `docker/nextjs/src/hooks/useAgentsList.ts` | Agent一覧取得 |
 | `docker/nextjs/src/store/useAgentStore.ts` | Agent状態管理（Zustand） |
+
+---
+
+## 9. カードベースのタスク指向UI
+
+### 概要
+
+チャットエリアの初期状態（ユーザーメッセージが存在しない時）にカードグリッドを表示する機能です。KBモードでは目的別カード（文書検索、要約作成など）、Agentモードではワークフローカード（財務分析、プロジェクト管理など）を提示し、ユーザーがワンクリックでプロンプトを入力できます。
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ≡  RAG System  [📚 KB] [🤖 Agent]  ➕  Nova Pro  🇯🇵      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─ InfoBanner ──────────────────────────────────────────┐  │
+│  │ admin@example.com | admin | 📁 3個のディレクトリ  ▼   │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                             │
+│  [すべて] [検索] [要約] [学習] [分析]  ← CategoryFilter    │
+│                                                             │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                    │
+│  │ 🔍       │ │ 📝       │ │ 📚       │                    │
+│  │ 文書検索  │ │ 要約作成  │ │ 学習問題  │  ← TaskCard     │
+│  │ キーワード│ │ 文書を要約│ │ 問題を作成│                    │
+│  └──────────┘ └──────────┘ └──────────┘                    │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                    │
+│  │ ⚖️       │ │ 🏷️       │ │ 📊       │                    │
+│  │ 比較分析  │ │ キーワード│ │ レポート  │                    │
+│  │ 文書を比較│ │ 検索     │ │ 要約     │                    │
+│  └──────────┘ └──────────┘ └──────────┘                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### コンポーネント構成
+
+| コンポーネント | ファイルパス | 役割 |
+|--------------|------------|------|
+| CardGrid | `docker/nextjs/src/components/cards/CardGrid.tsx` | メインコンテナ。InfoBanner・CategoryFilter・TaskCardを統合し、モードに応じたカード表示・フィルタリング・お気に入りソートを担当 |
+| TaskCard | `docker/nextjs/src/components/cards/TaskCard.tsx` | 個別カードコンポーネント（KB/Agent共通）。アイコン・タイトル・説明文・お気に入りトグルを表示 |
+| InfoBanner | `docker/nextjs/src/components/cards/InfoBanner.tsx` | 権限情報バナー。既存Introduction Textの情報をコンパクトに折りたたみ/展開表示 |
+| CategoryFilter | `docker/nextjs/src/components/cards/CategoryFilter.tsx` | カテゴリフィルタチップ。モード別カテゴリでカードを絞り込み |
+
+#### コンポーネント階層
+
+```
+CardGrid
+├── InfoBanner          # 権限情報バナー（折りたたみ/展開）
+├── CategoryFilter      # カテゴリフィルタチップ
+└── TaskCard × N        # 個別カード（グリッド表示）
+    └── お気に入りボタン  # ★/☆トグル
+```
+
+#### CardGrid Props
+
+```typescript
+interface CardGridProps {
+  mode: 'kb' | 'agent';
+  locale: string;
+  onCardClick: (promptTemplate: string, label: string) => void;
+  username: string;
+  role: string;
+  userDirectories: any | null;
+}
+```
+
+#### TaskCard Props
+
+```typescript
+interface TaskCardProps {
+  card: CardData;
+  isFavorite: boolean;
+  onFavoriteToggle: (cardId: string) => void;
+  onClick: (promptTemplate: string, label: string) => void;
+  locale: string;
+}
+```
+
+### カードデータ
+
+カードデータは `docker/nextjs/src/constants/card-constants.ts` で一元管理されます。
+
+#### CardData 型定義
+
+```typescript
+interface CardData {
+  id: string;                // 一意識別子 (例: 'kb-doc-search')
+  icon: string;              // emoji (例: '🔍')
+  titleKey: string;          // 翻訳キー (例: 'cards.kb.docSearch.title')
+  descriptionKey: string;    // 翻訳キー (例: 'cards.kb.docSearch.description')
+  promptTemplateKey: string; // 翻訳キー (例: 'cards.kb.docSearch.prompt')
+  category: string;          // カテゴリID (例: 'search')
+  mode: 'kb' | 'agent';     // 表示モード
+}
+```
+
+#### KBモード カード一覧（8枚）
+
+| ID | アイコン | カテゴリ | 用途 |
+|----|---------|---------|------|
+| `kb-doc-search` | 🔍 | search | 文書検索 |
+| `kb-doc-summary` | 📝 | summary | 要約作成 |
+| `kb-quiz-gen` | 📚 | learning | 学習問題作成 |
+| `kb-compare` | ⚖️ | analysis | 比較分析 |
+| `kb-keyword-search` | 🏷️ | search | キーワード検索 |
+| `kb-report-summary` | 📊 | summary | レポート要約 |
+| `kb-qa-gen` | ❓ | learning | Q&A生成 |
+| `kb-trend-analysis` | 📈 | analysis | トレンド分析 |
+
+#### Agentモード カード一覧（8枚）
+
+| ID | アイコン | カテゴリ | 用途 |
+|----|---------|---------|------|
+| `agent-financial` | 📊 | financial | 財務レポート分析 |
+| `agent-project` | 📝 | project | プロジェクト進捗確認 |
+| `agent-cross-search` | 🔍 | search | ドキュメント横断検索 |
+| `agent-hr` | 📋 | hr | 人事ポリシー確認 |
+| `agent-risk` | ⚠️ | financial | リスク分析 |
+| `agent-milestone` | 🎯 | project | マイルストーン管理 |
+| `agent-compliance` | 🔐 | hr | コンプライアンス確認 |
+| `agent-data-analysis` | 📉 | search | データ分析 |
+
+### 表示条件
+
+CardGridの表示はユーザーメッセージの有無で制御されます。
+
+| 条件 | 表示内容 |
+|------|---------|
+| ユーザーメッセージなし（`messages`に`role === 'user'`が0件） | CardGrid表示 |
+| ユーザーメッセージあり（`role === 'user'`が1件以上） | 通常メッセージリスト表示 |
+| 「新しいチャット」ボタンクリック | 新セッション作成 → CardGrid再表示 |
+
+```typescript
+// page.tsx での表示切替ロジック
+const hasUserMessages = currentSession?.messages?.some(m => m.role === 'user') ?? false;
+
+{!hasUserMessages ? (
+  <CardGrid
+    mode={agentMode ? 'agent' : 'kb'}
+    locale={memoizedLocale}
+    onCardClick={(prompt, label) => {
+      setInputText(prompt);
+      if (agentMode) {
+        window.dispatchEvent(new CustomEvent('agent-workflow-selected', {
+          detail: { prompt, label }
+        }));
+      }
+    }}
+    username={user?.email || ''}
+    role={user?.role || ''}
+    userDirectories={userDirectories}
+  />
+) : (
+  // 既存のメッセージリスト表示
+  currentSession?.messages?.map(...)
+)}
+```
+
+### お気に入り管理
+
+#### Zustandストア
+
+**ファイル**: `docker/nextjs/src/store/useFavoritesStore.ts`
+
+```typescript
+interface FavoritesStore {
+  favorites: string[];                        // お気に入りカードIDリスト
+  toggleFavorite: (cardId: string) => void;   // お気に入りトグル（追加/削除）
+  isFavorite: (cardId: string) => boolean;    // お気に入り判定
+}
+```
+
+| 項目 | 説明 |
+|------|------|
+| 永続化方式 | Zustand `persist`ミドルウェア + localStorage |
+| localStorageキー | `card-favorites-storage` |
+| フォールバック | localStorage未対応時はインメモリのみ（セッション中保持） |
+| ソート動作 | お気に入りカードはグリッド先頭に表示。各グループ内の相対順序は維持 |
+
+#### ソートロジック
+
+```typescript
+// card-constants.ts
+function sortCardsByFavorites(cards: CardData[], favorites: string[]): CardData[] {
+  const favoriteSet = new Set(favorites);
+  const favoriteCards = cards.filter((card) => favoriteSet.has(card.id));
+  const nonFavoriteCards = cards.filter((card) => !favoriteSet.has(card.id));
+  return [...favoriteCards, ...nonFavoriteCards];
+}
+```
+
+### カテゴリフィルタリング
+
+#### KBモード カテゴリ
+
+| カテゴリID | 翻訳キー | 表示名（ja） |
+|-----------|---------|------------|
+| `all` | `cards.categories.all` | すべて |
+| `search` | `cards.categories.search` | 検索 |
+| `summary` | `cards.categories.summary` | 要約 |
+| `learning` | `cards.categories.learning` | 学習 |
+| `analysis` | `cards.categories.analysis` | 分析 |
+
+#### Agentモード カテゴリ
+
+| カテゴリID | 翻訳キー | 表示名（ja） |
+|-----------|---------|------------|
+| `all` | `cards.categories.all` | すべて |
+| `financial` | `cards.categories.financial` | 財務 |
+| `project` | `cards.categories.project` | プロジェクト |
+| `hr` | `cards.categories.hr` | 人事 |
+| `search` | `cards.categories.search` | 検索 |
+
+#### フィルタリング動作
+
+| 操作 | 動作 |
+|------|------|
+| カテゴリ選択 | 選択カテゴリに一致するカードのみ表示 |
+| 「すべて」選択 | 現在モードの全カードを表示 |
+| モード切替（KB↔Agent） | カテゴリ選択を「すべて」にリセット |
+
+### InfoBanner
+
+既存のIntroduction Textの情報をコンパクトなバナーに集約します。
+
+#### 折りたたみ状態（デフォルト）
+
+1行表示: `ユーザー名 | ロール | 📁 N個のディレクトリにアクセス可能`
+
+#### 展開状態
+
+| 表示項目 | 説明 |
+|---------|------|
+| ユーザー名 | Cognito JWTのメールアドレス |
+| ロール | `admin` または `user` |
+| SID | ユーザーのセキュリティ識別子 |
+| ディレクトリ一覧 | FSx / RAG / Embedding の3種類 |
+| 権限詳細 | 読み取り ✅/❌、書き込み ✅/❌、実行 ✅/❌ |
+
+既存のIntroduction Textに含まれていた全ての情報（ユーザー名、ロール、SID、ディレクトリ一覧、権限詳細）を保持しています。
+
+#### InfoBanner Props
+
+```typescript
+interface InfoBannerProps {
+  username: string;
+  role: string;
+  userDirectories: any | null;
+  locale: string;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+}
+```
+
+### 翻訳
+
+全8言語対応です。翻訳キーは各言語の`messages/{locale}.json`内の`cards`ネームスペースに定義されています。
+
+| 言語 | ロケール | 翻訳ファイル |
+|------|---------|------------|
+| 日本語 | `ja` | `docker/nextjs/src/messages/ja.json` |
+| 英語 | `en` | `docker/nextjs/src/messages/en.json` |
+| 中国語（簡体字） | `zh-CN` | `docker/nextjs/src/messages/zh-CN.json` |
+| 中国語（繁体字） | `zh-TW` | `docker/nextjs/src/messages/zh-TW.json` |
+| 韓国語 | `ko` | `docker/nextjs/src/messages/ko.json` |
+| フランス語 | `fr` | `docker/nextjs/src/messages/fr.json` |
+| ドイツ語 | `de` | `docker/nextjs/src/messages/de.json` |
+| スペイン語 | `es` | `docker/nextjs/src/messages/es.json` |
+
+#### 翻訳キー構造
+
+```json
+{
+  "cards": {
+    "categories": {
+      "all": "すべて",
+      "search": "検索",
+      "summary": "要約",
+      "learning": "学習",
+      "analysis": "分析",
+      "financial": "財務",
+      "project": "プロジェクト",
+      "hr": "人事"
+    },
+    "kb": {
+      "docSearch": { "title": "...", "description": "...", "prompt": "..." },
+      "docSummary": { "title": "...", "description": "...", "prompt": "..." },
+      "quizGen": { "title": "...", "description": "...", "prompt": "..." },
+      "compare": { "title": "...", "description": "...", "prompt": "..." },
+      "keywordSearch": { "title": "...", "description": "...", "prompt": "..." },
+      "reportSummary": { "title": "...", "description": "...", "prompt": "..." },
+      "qaGen": { "title": "...", "description": "...", "prompt": "..." },
+      "trendAnalysis": { "title": "...", "description": "...", "prompt": "..." }
+    },
+    "agent": {
+      "financial": { "title": "...", "description": "...", "prompt": "..." },
+      "project": { "title": "...", "description": "...", "prompt": "..." },
+      "crossSearch": { "title": "...", "description": "...", "prompt": "..." },
+      "hr": { "title": "...", "description": "...", "prompt": "..." },
+      "risk": { "title": "...", "description": "...", "prompt": "..." },
+      "milestone": { "title": "...", "description": "...", "prompt": "..." },
+      "compliance": { "title": "...", "description": "...", "prompt": "..." },
+      "dataAnalysis": { "title": "...", "description": "...", "prompt": "..." }
+    },
+    "infoBanner": {
+      "directoriesCount": "{count}個のディレクトリにアクセス可能",
+      "showDetails": "詳細を表示",
+      "hideDetails": "詳細を隠す",
+      "user": "ユーザー",
+      "role": "ロール",
+      "sid": "SID",
+      "directories": "ディレクトリ",
+      "permissions": "権限",
+      "read": "読み取り",
+      "write": "書き込み",
+      "execute": "実行",
+      "available": "可能",
+      "unavailable": "不可"
+    },
+    "favorites": {
+      "addToFavorites": "お気に入りに追加",
+      "removeFromFavorites": "お気に入りから削除"
+    }
+  }
+}
+```
+
+### 関連ファイル
+
+| ファイル | 役割 |
+|---------|------|
+| `docker/nextjs/src/components/cards/CardGrid.tsx` | カードグリッドメインコンテナ |
+| `docker/nextjs/src/components/cards/TaskCard.tsx` | 個別カードコンポーネント（KB/Agent共通） |
+| `docker/nextjs/src/components/cards/InfoBanner.tsx` | 権限情報バナー（折りたたみ/展開） |
+| `docker/nextjs/src/components/cards/CategoryFilter.tsx` | カテゴリフィルタチップ |
+| `docker/nextjs/src/constants/card-constants.ts` | カードデータ定義・ヘルパー関数 |
+| `docker/nextjs/src/store/useFavoritesStore.ts` | お気に入り管理Zustandストア |
+| `docker/nextjs/src/messages/{locale}.json` | 翻訳ファイル（`cards`ネームスペース） |
+| `docker/nextjs/src/app/[locale]/genai/page.tsx` | CardGrid統合・表示条件制御 |

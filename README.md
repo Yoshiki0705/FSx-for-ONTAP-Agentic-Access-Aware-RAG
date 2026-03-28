@@ -42,7 +42,7 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 
 | # | 観点 | 概要 | 関連CDKスタック |
 |---|------|------|----------------|
-| 1 | Chatbotアプリケーション | Next.js 15 (App Router) をLambda Web Adapterでサーバーレス実行。KB/Agentモード切替対応 | WebAppStack |
+| 1 | Chatbotアプリケーション | Next.js 15 (App Router) をLambda Web Adapterでサーバーレス実行。KB/Agentモード切替対応。カードベースのタスク指向UI | WebAppStack |
 | 2 | AWS WAF | レートリミット、IP Reputation、OWASP準拠ルール、SQLi防御、IP許可リストの6ルール構成 | WafStack |
 | 3 | IAM認証 | Lambda Function URL + CloudFront OAC による多層セキュリティ | WebAppStack |
 | 4 | ベクトルDB (AOSS) | OpenSearch Serverlessベクトル検索コレクション（1024次元、HNSW/faiss/l2） | AIStack |
@@ -719,8 +719,10 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 ├── docker/nextjs/                    # Next.jsアプリケーション
 │   ├── src/app/[locale]/genai/       # メインチャットページ（KB/Agentモード切替）
 │   ├── src/components/bedrock/       # AgentModeSidebar, AgentInfoSection, ModelSelector等
+│   ├── src/components/cards/         # CardGrid, TaskCard, InfoBanner, CategoryFilter
+│   ├── src/constants/                # card-constants.ts（カードデータ定義）
 │   ├── src/hooks/                    # useAgentMode, useAgentsList, useAgentInfo等
-│   ├── src/store/                    # useAgentStore (Zustand)
+│   ├── src/store/                    # useAgentStore, useFavoritesStore (Zustand)
 │   └── src/app/api/bedrock/          # KB/Agent APIルート
 ├── demo-data/
 │   ├── documents/                    # 検証用ドキュメント + .metadata.json（SID情報）

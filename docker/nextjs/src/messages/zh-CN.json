@@ -385,5 +385,122 @@
     "fsxDirectories": "FSx可访问目录",
     "ragDirectories": "RAG可搜索目录",
     "embeddedDirectories": "嵌入对象目录"
+  },
+  "cards": {
+    "categories": {
+      "all": "全部",
+      "search": "搜索",
+      "summary": "摘要",
+      "learning": "学习",
+      "analysis": "分析",
+      "financial": "财务",
+      "project": "项目",
+      "hr": "人事"
+    },
+    "kb": {
+      "docSearch": {
+        "title": "文档搜索",
+        "description": "通过关键词或问题搜索相关文档",
+        "prompt": "请搜索与以下主题相关的文档: "
+      },
+      "docSummary": {
+        "title": "创建摘要",
+        "description": "简洁地总结文档内容",
+        "prompt": "请总结以下文档的内容: "
+      },
+      "quizGen": {
+        "title": "生成学习题",
+        "description": "根据文档内容生成学习题目",
+        "prompt": "请针对以下主题创建5道学习题: "
+      },
+      "compare": {
+        "title": "比较分析",
+        "description": "比较分析多个文档或信息",
+        "prompt": "请对以下项目进行比较分析: "
+      },
+      "keywordSearch": {
+        "title": "关键词搜索",
+        "description": "搜索包含特定关键词的文档",
+        "prompt": "请搜索包含以下关键词的文档: "
+      },
+      "reportSummary": {
+        "title": "报告摘要",
+        "description": "提取并总结报告的重要要点",
+        "prompt": "请总结最新报告的重要要点。"
+      },
+      "qaGen": {
+        "title": "问答生成",
+        "description": "从文档生成问答格式的信息",
+        "prompt": "请以问答格式总结以下主题: "
+      },
+      "trendAnalysis": {
+        "title": "趋势分析",
+        "description": "分析数据的趋势和模式",
+        "prompt": "请分析以下数据的趋势: "
+      }
+    },
+    "agent": {
+      "financial": {
+        "title": "财务报告分析",
+        "description": "分析最新财务数据并总结关键指标",
+        "prompt": "请分析最新的财务报告，总结销售状况和投资计划。"
+      },
+      "project": {
+        "title": "项目进度确认",
+        "description": "确认项目进度状况和课题",
+        "prompt": "请确认项目计划的进度状况，告诉我主要里程碑和技术课题。"
+      },
+      "crossSearch": {
+        "title": "跨文档搜索",
+        "description": "跨多个文档进行搜索和分析",
+        "prompt": "请跨内部文档进行搜索，总结主要信息。"
+      },
+      "hr": {
+        "title": "人事政策确认",
+        "description": "确认人事相关的政策和制度",
+        "prompt": "请确认人事政策的内容，告诉我远程办公制度和休假制度。"
+      },
+      "risk": {
+        "title": "风险分析",
+        "description": "识别业务风险并提出对策",
+        "prompt": "请分析当前的业务风险，提出主要风险因素和对策。"
+      },
+      "milestone": {
+        "title": "里程碑管理",
+        "description": "管理和跟踪项目里程碑",
+        "prompt": "请确认项目主要里程碑的达成状况，告诉我有延迟风险的项目。"
+      },
+      "compliance": {
+        "title": "合规确认",
+        "description": "确认合规要求的遵守状况",
+        "prompt": "请确认内部合规要求的遵守状况，告诉我需要注意的项目。"
+      },
+      "dataAnalysis": {
+        "title": "数据分析",
+        "description": "分析数据并提取洞察",
+        "prompt": "请分析可用数据，总结重要的洞察。"
+      }
+    },
+    "infoBanner": {
+      "accessInfo": "访问信息",
+      "directoriesCount": "可访问{count}个目录",
+      "showDetails": "显示详情",
+      "hideDetails": "隐藏详情",
+      "role": "角色",
+      "user": "用户",
+      "sid": "SID",
+      "directories": "目录",
+      "permissions": "权限",
+      "read": "读取",
+      "write": "写入",
+      "execute": "执行",
+      "available": "可用",
+      "unavailable": "不可用"
+    },
+    "favorites": {
+      "addToFavorites": "添加到收藏",
+      "removeFromFavorites": "从收藏中移除",
+      "section": "收藏"
+    }
   }
 }

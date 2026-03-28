@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useCustomTranslations } from '@/hooks/useCustomTranslations';
 import { RegionSelector } from '../bedrock/RegionSelector';
 import { ModelSelector } from '../bedrock/ModelSelector';
@@ -10,6 +11,7 @@ import { useAgentInfo } from '../../hooks/useAgentInfo';
 import { useBedrockConfig } from '../../hooks/useBedrockConfig';
 import { useAgentInfoNormalization } from '../../hooks/useAgentInfoNormalization';
 import { useAgentStore } from '../../store/useAgentStore';
+import { AGENT_CARDS } from '@/constants/card-constants';
 
 interface AgentModeSidebarProps {
   selectedModelId: string;
@@ -25,6 +27,7 @@ export function AgentModeSidebar({
   locale
 }: AgentModeSidebarProps) {
   const t = useCustomTranslations(locale);
+  const tCards = useTranslations('cards');
   const { config, isLoading: isConfigLoading } = useBedrockConfig();
   const { selectedAgentId } = useAgentStore();
   
@@ -130,28 +133,26 @@ export function AgentModeSidebar({
           🔧 ワークフロー
         </h3>
         <div className="space-y-1">
-          {[
-            { icon: '📊', label: '財務レポート分析', prompt: '最新の財務レポートを分析して、売上状況と投資計画をまとめてください。' },
-            { icon: '📝', label: 'プロジェクト進捗確認', prompt: 'プロジェクト計画の進捗状況を確認し、主要マイルストーンと技術的課題を教えてください。' },
-            { icon: '🔍', label: 'ドキュメント横断検索', prompt: '社内ドキュメントを横断的に検索し、主要な情報をまとめてください。' },
-            { icon: '📋', label: '人事ポリシー確認', prompt: '人事ポリシーの内容を確認し、リモートワーク制度と休暇制度について教えてください。' },
-          ].map((wf, i) => (
-            <button
-              key={i}
-              onClick={() => {
-                // ワークフロー選択時にチャット入力欄にプロンプトを設定
-                const event = new CustomEvent('agent-workflow-selected', {
-                  detail: { prompt: wf.prompt, label: wf.label },
-                  bubbles: true,
-                });
-                window.dispatchEvent(event);
-              }}
-              className="w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300 transition-colors flex items-center space-x-2"
-            >
-              <span>{wf.icon}</span>
-              <span>{wf.label}</span>
-            </button>
-          ))}
+          {AGENT_CARDS.map((card) => {
+            const title = tCards(card.titleKey.replace(/^cards\./, ''));
+            const prompt = tCards(card.promptTemplateKey.replace(/^cards\./, ''));
+            return (
+              <button
+                key={card.id}
+                onClick={() => {
+                  const event = new CustomEvent('agent-workflow-selected', {
+                    detail: { prompt, label: title },
+                    bubbles: true,
+                  });
+                  window.dispatchEvent(event);
+                }}
+                className="w-full text-left px-2 py-1.5 text-xs rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300 transition-colors flex items-center space-x-2"
+              >
+                <span>{card.icon}</span>
+                <span>{title}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

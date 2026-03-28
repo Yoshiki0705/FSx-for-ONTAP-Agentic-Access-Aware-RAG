@@ -23,6 +23,7 @@ import { LanguageSwitcher } from '../../../components/ui/LanguageSwitcher';
 import { RegionConfigManager } from '../../../config/region-config-manager';
 import { AgentModeSidebar } from '../../../components/bedrock/AgentModeSidebar';
 import { useAgentStore } from '../../../store/useAgentStore';
+import { CardGrid } from '../../../components/cards/CardGrid';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -1744,11 +1745,13 @@ function ChatbotPageContent() {
           {/* メッセージリスト */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-4 bg-white dark:bg-gray-900">
             {(() => {
+              const hasUserMessages = currentSession?.messages?.some(m => m.role === 'user') ?? false;
               console.log('🎨 [ChatbotPage] Rendering messages area:', {
                 hasCurrentSession: !!currentSession,
                 currentSessionId: currentSession?.id,
                 messagesCount: currentSession?.messages?.length,
                 messagesIsArray: Array.isArray(currentSession?.messages),
+                hasUserMessages,
               });
               return null;
             })()}
@@ -1768,8 +1771,27 @@ function ChatbotPageContent() {
                 })})
               </div>
             )}
+
+            {!(currentSession?.messages?.some(m => m.role === 'user') ?? false) && user && (
+              <CardGrid
+                mode={agentMode ? 'agent' : 'kb'}
+                locale={memoizedLocale}
+                onCardClick={(prompt, label) => {
+                  setInputText(prompt);
+                  if (agentMode) {
+                    window.dispatchEvent(new CustomEvent('agent-workflow-selected', {
+                      detail: { prompt, label },
+                      bubbles: true,
+                    }));
+                  }
+                }}
+                username={user.username}
+                role={user.role || 'User'}
+                userDirectories={userDirectories}
+              />
+            )}
             
-            {currentSession?.messages?.map((message: Message, index) => {
+            {(currentSession?.messages?.some(m => m.role === 'user') ?? false) && currentSession?.messages?.map((message: Message, index) => {
               console.log(`🎨 [ChatbotPage v17] Rendering message ${index}:`, {
                 id: message.id,
                 role: message.role,

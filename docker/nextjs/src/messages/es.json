@@ -309,5 +309,122 @@
     "fsxDirectories": "Directorios accesibles FSx",
     "ragDirectories": "Directorios buscables RAG",
     "embeddedDirectories": "Directorios embebidos"
+  },
+  "cards": {
+    "categories": {
+      "all": "Todo",
+      "search": "Búsqueda",
+      "summary": "Resumen",
+      "learning": "Aprendizaje",
+      "analysis": "Análisis",
+      "financial": "Finanzas",
+      "project": "Proyecto",
+      "hr": "RRHH"
+    },
+    "kb": {
+      "docSearch": {
+        "title": "Búsqueda de documentos",
+        "description": "Buscar documentos relevantes por palabra clave o pregunta",
+        "prompt": "Buscar documentos relacionados con el siguiente tema: "
+      },
+      "docSummary": {
+        "title": "Crear resumen",
+        "description": "Resumir el contenido del documento de forma concisa",
+        "prompt": "Por favor, resuma el contenido del siguiente documento: "
+      },
+      "quizGen": {
+        "title": "Generar cuestionario",
+        "description": "Generar preguntas de estudio a partir del contenido del documento",
+        "prompt": "Cree 5 preguntas de estudio sobre el siguiente tema: "
+      },
+      "compare": {
+        "title": "Análisis comparativo",
+        "description": "Comparar y analizar múltiples documentos o información",
+        "prompt": "Por favor, compare y analice los siguientes elementos: "
+      },
+      "keywordSearch": {
+        "title": "Búsqueda por palabras clave",
+        "description": "Buscar documentos que contengan palabras clave específicas",
+        "prompt": "Buscar documentos que contengan las siguientes palabras clave: "
+      },
+      "reportSummary": {
+        "title": "Resumen de informe",
+        "description": "Extraer y resumir los puntos clave de los informes",
+        "prompt": "Resuma los puntos clave del último informe."
+      },
+      "qaGen": {
+        "title": "Generación de Q&A",
+        "description": "Generar información en formato Q&A a partir de documentos",
+        "prompt": "Resuma el siguiente tema en formato Q&A: "
+      },
+      "trendAnalysis": {
+        "title": "Análisis de tendencias",
+        "description": "Analizar tendencias y patrones en los datos",
+        "prompt": "Analice las tendencias en los siguientes datos: "
+      }
+    },
+    "agent": {
+      "financial": {
+        "title": "Análisis de informe financiero",
+        "description": "Analizar los últimos datos financieros y resumir indicadores clave",
+        "prompt": "Analice el último informe financiero y resuma el rendimiento de ventas y los planes de inversión."
+      },
+      "project": {
+        "title": "Seguimiento de proyecto",
+        "description": "Verificar el progreso del proyecto e identificar problemas",
+        "prompt": "Verifique el progreso del plan del proyecto e infórmeme sobre los hitos clave y los desafíos técnicos."
+      },
+      "crossSearch": {
+        "title": "Búsqueda transversal",
+        "description": "Buscar y analizar a través de múltiples documentos",
+        "prompt": "Realice una búsqueda transversal en los documentos internos y resuma la información clave."
+      },
+      "hr": {
+        "title": "Verificación de política RRHH",
+        "description": "Revisar políticas y programas relacionados con RRHH",
+        "prompt": "Revise las políticas de RRHH e infórmeme sobre el teletrabajo y las políticas de vacaciones."
+      },
+      "risk": {
+        "title": "Análisis de riesgos",
+        "description": "Identificar riesgos empresariales y proponer medidas correctivas",
+        "prompt": "Analice los riesgos empresariales actuales y proponga los principales factores de riesgo y medidas correctivas."
+      },
+      "milestone": {
+        "title": "Gestión de hitos",
+        "description": "Gestionar y realizar seguimiento de los hitos del proyecto",
+        "prompt": "Verifique el estado de los hitos clave del proyecto e identifique los que tienen riesgo de retraso."
+      },
+      "compliance": {
+        "title": "Verificación de cumplimiento",
+        "description": "Verificar el cumplimiento de los requisitos normativos",
+        "prompt": "Verifique el cumplimiento de los requisitos normativos internos e identifique los puntos que requieren atención."
+      },
+      "dataAnalysis": {
+        "title": "Análisis de datos",
+        "description": "Analizar datos y extraer información clave",
+        "prompt": "Analice los datos disponibles y resuma las conclusiones clave."
+      }
+    },
+    "infoBanner": {
+      "accessInfo": "Información de acceso",
+      "directoriesCount": "{count} directorios accesibles",
+      "showDetails": "Mostrar detalles",
+      "hideDetails": "Ocultar detalles",
+      "role": "Rol",
+      "user": "Usuario",
+      "sid": "SID",
+      "directories": "Directorios",
+      "permissions": "Permisos",
+      "read": "Lectura",
+      "write": "Escritura",
+      "execute": "Ejecución",
+      "available": "Disponible",
+      "unavailable": "No disponible"
+    },
+    "favorites": {
+      "addToFavorites": "Añadir a favoritos",
+      "removeFromFavorites": "Eliminar de favoritos",
+      "section": "Favoritos"
+    }
   }
 }

@@ -309,5 +309,122 @@
     "fsxDirectories": "FSx-zugängliche Verzeichnisse",
     "ragDirectories": "RAG-durchsuchbare Verzeichnisse",
     "embeddedDirectories": "Eingebettete Verzeichnisse"
+  },
+  "cards": {
+    "categories": {
+      "all": "Alle",
+      "search": "Suche",
+      "summary": "Zusammenfassung",
+      "learning": "Lernen",
+      "analysis": "Analyse",
+      "financial": "Finanzen",
+      "project": "Projekt",
+      "hr": "Personal"
+    },
+    "kb": {
+      "docSearch": {
+        "title": "Dokumentensuche",
+        "description": "Relevante Dokumente nach Stichwort oder Frage suchen",
+        "prompt": "Suchen Sie nach Dokumenten zum folgenden Thema: "
+      },
+      "docSummary": {
+        "title": "Zusammenfassung erstellen",
+        "description": "Dokumentinhalte prägnant zusammenfassen",
+        "prompt": "Bitte fassen Sie den Inhalt des folgenden Dokuments zusammen: "
+      },
+      "quizGen": {
+        "title": "Lernfragen generieren",
+        "description": "Lernfragen aus Dokumentinhalten generieren",
+        "prompt": "Erstellen Sie 5 Lernfragen zum folgenden Thema: "
+      },
+      "compare": {
+        "title": "Vergleichsanalyse",
+        "description": "Mehrere Dokumente oder Informationen vergleichen und analysieren",
+        "prompt": "Bitte vergleichen und analysieren Sie die folgenden Punkte: "
+      },
+      "keywordSearch": {
+        "title": "Stichwortsuche",
+        "description": "Dokumente mit bestimmten Stichwörtern suchen",
+        "prompt": "Suchen Sie nach Dokumenten mit den folgenden Stichwörtern: "
+      },
+      "reportSummary": {
+        "title": "Berichtszusammenfassung",
+        "description": "Wichtige Punkte aus Berichten extrahieren und zusammenfassen",
+        "prompt": "Fassen Sie die wichtigsten Punkte des neuesten Berichts zusammen."
+      },
+      "qaGen": {
+        "title": "Q&A-Generierung",
+        "description": "Q&A-Format-Informationen aus Dokumenten generieren",
+        "prompt": "Fassen Sie das folgende Thema im Q&A-Format zusammen: "
+      },
+      "trendAnalysis": {
+        "title": "Trendanalyse",
+        "description": "Datentrends und -muster analysieren",
+        "prompt": "Analysieren Sie die Trends in den folgenden Daten: "
+      }
+    },
+    "agent": {
+      "financial": {
+        "title": "Finanzbericht-Analyse",
+        "description": "Neueste Finanzdaten analysieren und Schlüsselkennzahlen zusammenfassen",
+        "prompt": "Analysieren Sie den neuesten Finanzbericht und fassen Sie Umsatzentwicklung und Investitionspläne zusammen."
+      },
+      "project": {
+        "title": "Projektfortschritt",
+        "description": "Projektfortschritt und Herausforderungen überprüfen",
+        "prompt": "Überprüfen Sie den Projektfortschritt und informieren Sie mich über wichtige Meilensteine und technische Herausforderungen."
+      },
+      "crossSearch": {
+        "title": "Dokumentenübergreifende Suche",
+        "description": "Über mehrere Dokumente hinweg suchen und analysieren",
+        "prompt": "Durchsuchen Sie interne Dokumente übergreifend und fassen Sie die wichtigsten Informationen zusammen."
+      },
+      "hr": {
+        "title": "Personalrichtlinien",
+        "description": "Personalrichtlinien und -programme überprüfen",
+        "prompt": "Überprüfen Sie die Personalrichtlinien und informieren Sie mich über Homeoffice- und Urlaubsregelungen."
+      },
+      "risk": {
+        "title": "Risikoanalyse",
+        "description": "Geschäftsrisiken identifizieren und Gegenmaßnahmen vorschlagen",
+        "prompt": "Analysieren Sie aktuelle Geschäftsrisiken und schlagen Sie wichtige Risikofaktoren und Gegenmaßnahmen vor."
+      },
+      "milestone": {
+        "title": "Meilenstein-Management",
+        "description": "Projektmeilensteine verwalten und verfolgen",
+        "prompt": "Überprüfen Sie den Erreichungsstand der wichtigsten Projektmeilensteine und identifizieren Sie verzögerungsgefährdete."
+      },
+      "compliance": {
+        "title": "Compliance-Prüfung",
+        "description": "Einhaltung der Compliance-Anforderungen überprüfen",
+        "prompt": "Überprüfen Sie die Einhaltung interner Compliance-Anforderungen und identifizieren Sie Punkte, die Aufmerksamkeit erfordern."
+      },
+      "dataAnalysis": {
+        "title": "Datenanalyse",
+        "description": "Daten analysieren und Erkenntnisse gewinnen",
+        "prompt": "Analysieren Sie die verfügbaren Daten und fassen Sie wichtige Erkenntnisse zusammen."
+      }
+    },
+    "infoBanner": {
+      "accessInfo": "Zugriffsinformationen",
+      "directoriesCount": "{count} Verzeichnisse zugänglich",
+      "showDetails": "Details anzeigen",
+      "hideDetails": "Details ausblenden",
+      "role": "Rolle",
+      "user": "Benutzer",
+      "sid": "SID",
+      "directories": "Verzeichnisse",
+      "permissions": "Berechtigungen",
+      "read": "Lesen",
+      "write": "Schreiben",
+      "execute": "Ausführen",
+      "available": "Verfügbar",
+      "unavailable": "Nicht verfügbar"
+    },
+    "favorites": {
+      "addToFavorites": "Zu Favoriten hinzufügen",
+      "removeFromFavorites": "Aus Favoriten entfernen",
+      "section": "Favoriten"
+    }
   }
 }
