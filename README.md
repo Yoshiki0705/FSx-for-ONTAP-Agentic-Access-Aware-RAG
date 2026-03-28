@@ -244,20 +244,33 @@ EOF
 | `enableCloudTrail` | `false` | CloudTrail監査ログ（S3データアクセス + Lambda呼び出し、90日保持） |
 | `enableVpcEndpoints` | `false` | VPCエンドポイント（S3, DynamoDB, Bedrock, SSM, Secrets Manager, CloudWatch Logs） |
 
-### Step 6: CDKデプロイ
+### Step 6: プリデプロイセットアップ（ECRイメージ準備）
+
+WebAppスタックはECRリポジトリのDockerイメージを参照するため、CDKデプロイ前にイメージを準備する必要があります。
 
 ```bash
-# 全スタックを一括デプロイ（30〜40分）
-# enableAgent=true でBedrock Agent + Permission-aware Action Groupも作成
+bash demo-data/scripts/pre-deploy-setup.sh
+```
+
+このスクリプトが自動的に以下を実行します:
+1. ECRリポジトリ作成（`permission-aware-rag-webapp`）
+2. Dockerイメージビルド + プッシュ（ローカルDocker or CodeBuild）
+
+> **所要時間**: ローカルDocker: 3-5分、CodeBuild: 5-10分
+
+### Step 7: CDKデプロイ
+
+```bash
 npx cdk deploy --all \
   --app "npx ts-node bin/demo-app.ts" \
   -c enableAgent=true \
+  -c creatorTag=YoshikiF \
   --require-approval never
 ```
 
-> **所要時間の目安**: FSx for ONTAPの作成に20〜30分かかるため、全体で30〜40分程度です。
+> **所要時間**: FSx for ONTAPの作成に20〜30分かかるため、全体で30〜40分程度です。
 
-### Step 7: ポストデプロイセットアップ（1コマンド）
+### Step 8: ポストデプロイセットアップ（1コマンド）
 
 CDKデプロイ完了後、以下の1コマンドで全セットアップが完了します:
 
@@ -273,32 +286,6 @@ bash demo-data/scripts/post-deploy-setup.sh
 5. Cognitoにデモユーザー作成（admin / user）
 
 > **所要時間**: 2〜5分（KB同期待ち含む）
-
-### Step 8: Dockerイメージのビルドとプッシュ（WebApp用）
-
-CDKデプロイ後、WebAppStack用のDockerイメージをビルドしてECRにプッシュします。
-
-```bash
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
-# ECRリポジトリ作成（初回のみ）
-aws ecr create-repository --repository-name permission-aware-rag-webapp --region ap-northeast-1 2>/dev/null || true
-
-# ECR認証 + ビルド + プッシュ
-aws ecr get-login-password --region ap-northeast-1 | \
-  docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com
-
-IMAGE_TAG="v$(date +%Y%m%d-%H%M%S)"
-docker build --no-cache -t permission-aware-rag-webapp:${IMAGE_TAG} -f docker/nextjs/Dockerfile docker/nextjs/
-docker tag permission-aware-rag-webapp:${IMAGE_TAG} ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:${IMAGE_TAG}
-docker push ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:${IMAGE_TAG}
-
-# Lambda関数のイメージ更新
-aws lambda update-function-code \
-  --function-name perm-rag-demo-demo-webapp \
-  --image-uri ${ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp:${IMAGE_TAG} \
-  --region ap-northeast-1
-```
 
 ### Step 9: デプロイ検証（自動テスト）
 
@@ -345,6 +332,14 @@ bash demo-data/scripts/cleanup-all.sh
 > **Note**: FSx ONTAPの削除に20-30分かかるため、全体で30-40分程度です。
 
 ## トラブルシューティング
+
+### WebAppスタック作成失敗（ECRイメージ不存在）
+
+| 症状 | 原因 | 対処 |
+|------|------|------|
+| `Source image ... does not exist` | ECRリポジトリにDockerイメージがない | `bash demo-data/scripts/pre-deploy-setup.sh`を先に実行 |
+
+> **重要**: 新規アカウントでは必ず`pre-deploy-setup.sh`をCDKデプロイ前に実行してください。WebAppスタックはECRの`permission-aware-rag-webapp:latest`イメージを参照します。
 
 ### CDK CLI バージョン不一致
 
