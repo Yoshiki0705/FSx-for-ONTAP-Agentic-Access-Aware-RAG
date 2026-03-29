@@ -30,7 +30,7 @@
     "features": "Agent 功能",
     "hint": "提示",
     "hintDesc": "Agent 模式使用多步推理为复杂问题提供最佳答案",
-    "information": "Agent 信息",
+    "information": "工作流信息",
     "lastUsed": "最后使用",
     "model": "模型",
     "multiStepReasoning": "多步推理",

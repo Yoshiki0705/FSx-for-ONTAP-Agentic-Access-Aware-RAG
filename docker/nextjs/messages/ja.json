@@ -131,7 +131,7 @@
     }
   },
   "agent": {
-    "information": "Agent情報",
+    "information": "ワークフロー情報",
     "createNew": "新しいAgentを作成",
     "agentId": "Agent ID",
     "agentName": "Agent名",

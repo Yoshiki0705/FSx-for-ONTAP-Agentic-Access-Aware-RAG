@@ -42,7 +42,7 @@
     "directories": "ディレクトリ"
   },
   "agent": {
-    "information": "Agent情報",
+    "information": "ワークフロー情報",
     "agentId": "Agent ID",
     "agentName": "Agent名",
     "status": "ステータス",

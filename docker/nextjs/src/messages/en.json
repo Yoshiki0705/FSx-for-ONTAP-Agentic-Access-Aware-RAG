@@ -42,7 +42,7 @@
     "directories": "Directories"
   },
   "agent": {
-    "information": "Agent Information",
+    "information": "Workflow Info",
     "agentId": "Agent ID",
     "agentName": "Agent Name",
     "status": "Status",

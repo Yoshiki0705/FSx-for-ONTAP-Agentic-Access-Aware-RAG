@@ -9,7 +9,7 @@
     "agentSpecificFeatures": "此 Agent 提供上述描述中列出的功能。",
     "error": {},
     "features": "Agent 功能",
-    "information": "Agent 資訊",
+    "information": "工作流程資訊",
     "multiStepReasoning": "多步推理",
     "multiStepReasoningDesc": "逐步解決複雜問題",
     "wizard": {
