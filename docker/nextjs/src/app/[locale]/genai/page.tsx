@@ -1870,6 +1870,47 @@ function ChatbotPageContent() {
 
           {/* 入力エリア */}
           <div className="border-t dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex-shrink-0">
+            {/* ワークフロー選択に戻るボタン（チャット中のみ表示） */}
+            {(currentSession?.messages?.some(m => m.role === 'user') ?? false) && (
+              <div className="max-w-4xl mx-auto mb-2">
+                <button
+                  onClick={() => {
+                    // 新しいセッションを作成してカードグリッドに戻る
+                    let initialMessageText: string;
+                    if (userDirectories) {
+                      initialMessageText = generateInitialMessageWithDirectories(
+                        user.username, user.role || 'User', userDirectories, t
+                      );
+                    } else {
+                      initialMessageText = generateInitialMessage(
+                        user.username, user.role || 'User', t
+                      );
+                    }
+                    const initialMessages: Message[] = [{
+                      id: '1',
+                      content: initialMessageText,
+                      role: 'assistant',
+                      timestamp: Date.now()
+                    }];
+                    const newSession: ChatSession = {
+                      id: Date.now().toString(),
+                      title: translations.newChat,
+                      messages: initialMessages,
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                      userId: user.username,
+                    };
+                    setCurrentSession(newSession);
+                    addChatSession(newSession);
+                    setInputText('');
+                  }}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center space-x-1"
+                >
+                  <span>🔄</span>
+                  <span>ワークフロー選択に戻る</span>
+                </button>
+              </div>
+            )}
             <form onSubmit={handleSendMessage} className="flex space-x-3 max-w-4xl mx-auto">
               <input
                 type="text"

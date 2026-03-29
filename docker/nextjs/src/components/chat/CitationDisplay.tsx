@@ -14,9 +14,24 @@ interface CitationDisplayProps {
 }
 
 /**
+ * S3 URIからFSxファイルパスを抽出する
+ * 例: s3://alias/confidential/financial-report.md → confidential/financial-report.md
+ */
+function extractFilePath(s3Uri: string, fileName: string): string {
+  if (!s3Uri) return fileName;
+  try {
+    // S3 URI: s3://bucket-or-alias/path/to/file.md
+    const withoutProtocol = s3Uri.replace(/^s3:\/\/[^/]+\//, '');
+    return withoutProtocol || fileName;
+  } catch {
+    return fileName;
+  }
+}
+
+/**
  * ソースドキュメント（Citation）表示コンポーネント
  * 
- * RAG検索結果のcitation情報（ファイル名、該当箇所）をレンダリングする。
+ * RAG検索結果のcitation情報（ファイルパス、該当箇所）をレンダリングする。
  * Requirements: 4.4
  */
 export function CitationDisplay({ citations }: CitationDisplayProps) {
@@ -55,7 +70,7 @@ export function CitationDisplay({ citations }: CitationDisplayProps) {
               <div className="flex items-center space-x-2 min-w-0">
                 <span className="text-blue-600 dark:text-blue-400 flex-shrink-0">📎</span>
                 <span className="text-gray-700 dark:text-gray-300 font-medium truncate">
-                  {cite.fileName}
+                  {extractFilePath(cite.s3Uri, cite.fileName)}
                 </span>
                 {cite.metadata?.access_level && (
                   <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-xs ${
