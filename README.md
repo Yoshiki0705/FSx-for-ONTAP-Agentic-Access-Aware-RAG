@@ -456,41 +456,20 @@ aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Networking --reg
 
 #### 推奨: 完全削除スクリプト
 
-上記の問題を回避する完全削除手順:
+上記の問題を回避する完全削除手順は `demo-data/scripts/cleanup-all.sh` に自動化されています:
 
 ```bash
-# 1. Embeddingスタック削除（存在する場合）
-aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1 2>/dev/null
-aws cloudformation wait stack-delete-complete --stack-name perm-rag-demo-demo-Embedding --region ap-northeast-1 2>/dev/null
-
-# 2. KBデータソース削除
-KB_ID=$(aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-AI --region ap-northeast-1 \
-  --query 'Stacks[0].Outputs[?OutputKey==`KnowledgeBaseId`].OutputValue' --output text 2>/dev/null)
-if [ -n "$KB_ID" ] && [ "$KB_ID" != "None" ]; then
-  for DS_ID in $(aws bedrock-agent list-data-sources --knowledge-base-id $KB_ID --region ap-northeast-1 \
-    --query 'dataSourceSummaries[].dataSourceId' --output text 2>/dev/null); do
-    aws bedrock-agent delete-data-source --knowledge-base-id $KB_ID --data-source-id $DS_ID --region ap-northeast-1
-  done
-  sleep 10
-fi
-
-# 3. S3 AP削除
-aws fsx detach-and-delete-s3-access-point --name perm-rag-demo-s3ap --region ap-northeast-1 2>/dev/null
-sleep 30
-
-# 4. CDK destroy
-npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" --force
-
-# 5. 孤立AD SG削除（必要な場合）
-VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=*perm-rag*" --region ap-northeast-1 \
-  --query 'Vpcs[0].VpcId' --output text 2>/dev/null)
-if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
-  for SG_ID in $(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" "Name=group-name,Values=d-*_controllers" \
-    --region ap-northeast-1 --query 'SecurityGroups[].GroupId' --output text 2>/dev/null); do
-    aws ec2 delete-security-group --group-id $SG_ID --region ap-northeast-1
-  done
-fi
+bash demo-data/scripts/cleanup-all.sh
 ```
+
+このスクリプトは以下を順番に実行します:
+1. 手動作成リソース削除（S3 AP、ECR、CodeBuild、CodeBuild S3バケット）
+2. Bedrock KBデータソース削除（CDK destroy前に必須）
+3. 動的作成されたBedrock Agents削除（CDK管理外のAgent）
+4. Embeddingスタック削除（存在する場合）
+5. CDK destroy（全スタック）
+6. 残留スタックの個別削除
+7. 孤立AD SGの削除
 
 ## WAF & Geo制限の設定
 

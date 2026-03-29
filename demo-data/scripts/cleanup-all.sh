@@ -37,28 +37,73 @@ for POLICY in $(aws iam list-attached-role-policies --role-name webapp-codebuild
 done
 aws iam delete-role --role-name webapp-codebuild-role 2>/dev/null && echo "  ✅ IAM: webapp-codebuild-role" || echo "  ⏭️ IAM: not found"
 
+# CodeBuild S3バケット
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+CODEBUILD_BUCKET="perm-rag-codebuild-${ACCOUNT_ID}"
+aws s3 rb "s3://${CODEBUILD_BUCKET}" --force --region $REGION 2>/dev/null && echo "  ✅ S3: ${CODEBUILD_BUCKET}" || echo "  ⏭️ S3: ${CODEBUILD_BUCKET} not found"
+
 sleep 30
 echo ""
 
 # ========================================
-# 2. Embeddingスタック削除（存在する場合）
+# 2. Bedrock KBデータソース削除（CDK destroy前に必須）
 # ========================================
-echo "🧹 Step 2: Embeddingスタック削除..."
+echo "🧹 Step 2: Bedrock KBデータソース削除..."
+KB_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`KnowledgeBaseId`].OutputValue' --output text 2>/dev/null || echo "")
+if [ -n "$KB_ID" ] && [ "$KB_ID" != "None" ] && [ "$KB_ID" != "" ]; then
+  DS_IDS=$(aws bedrock-agent list-data-sources --knowledge-base-id $KB_ID --region $REGION \
+    --query 'dataSourceSummaries[].dataSourceId' --output text 2>/dev/null || echo "")
+  for DS_ID in $DS_IDS; do
+    aws bedrock-agent delete-data-source --knowledge-base-id $KB_ID --data-source-id $DS_ID --region $REGION 2>/dev/null \
+      && echo "  ✅ KB DataSource: $DS_ID" || echo "  ⏭️ KB DataSource: $DS_ID not found"
+  done
+  [ -z "$DS_IDS" ] && echo "  ⏭️ No data sources found"
+  sleep 10
+else
+  echo "  ⏭️ KB not found"
+fi
+echo ""
+
+# ========================================
+# 3. 動的作成されたBedrock Agents削除
+# ========================================
+echo "🧹 Step 3: 動的作成Bedrock Agents削除..."
+CDK_AGENT_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`AgentId`].OutputValue' --output text 2>/dev/null || echo "")
+AGENT_IDS=$(aws bedrock-agent list-agents --region $REGION \
+  --query 'agentSummaries[].agentId' --output text 2>/dev/null || echo "")
+DELETED_COUNT=0
+for AGENT_ID in $AGENT_IDS; do
+  if [ "$AGENT_ID" = "$CDK_AGENT_ID" ]; then
+    echo "  ⏭️ CDK-managed agent: $AGENT_ID (CDK destroyで削除)"
+    continue
+  fi
+  aws bedrock-agent delete-agent --agent-id $AGENT_ID --skip-resource-in-use-check --region $REGION 2>/dev/null \
+    && echo "  ✅ Agent: $AGENT_ID" && DELETED_COUNT=$((DELETED_COUNT + 1)) || echo "  ⏭️ Agent: $AGENT_ID not found"
+done
+[ $DELETED_COUNT -eq 0 ] && echo "  ⏭️ No dynamic agents found"
+echo ""
+
+# ========================================
+# 4. Embeddingスタック削除（存在する場合）
+# ========================================
+echo "🧹 Step 4: Embeddingスタック削除..."
 aws cloudformation delete-stack --stack-name ${STACK_PREFIX}-Embedding --region $REGION 2>/dev/null
 aws cloudformation wait stack-delete-complete --stack-name ${STACK_PREFIX}-Embedding --region $REGION 2>/dev/null && echo "  ✅ Embedding deleted" || echo "  ⏭️ Embedding: not found"
 echo ""
 
 # ========================================
-# 3. CDK destroy
+# 5. CDK destroy
 # ========================================
-echo "🧹 Step 3: CDK destroy..."
+echo "🧹 Step 5: CDK destroy..."
 npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" --force 2>&1 || true
 echo ""
 
 # ========================================
-# 4. 残留スタックの個別削除
+# 6. 残留スタックの個別削除
 # ========================================
-echo "🧹 Step 4: 残留スタック確認..."
+echo "🧹 Step 6: 残留スタック確認..."
 for S in WebApp AI Storage Security Networking; do
   STATUS=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-${S} --region $REGION --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "DELETED")
   if [ "$STATUS" != "DELETED" ] && [ "$STATUS" != "DELETE_COMPLETE" ]; then
@@ -78,9 +123,9 @@ fi
 echo ""
 
 # ========================================
-# 5. 孤立AD SG削除
+# 7. 孤立AD SG削除
 # ========================================
-echo "🧹 Step 5: 孤立リソース確認..."
+echo "🧹 Step 7: 孤立リソース確認..."
 VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=*perm-rag*" --region $REGION --query 'Vpcs[0].VpcId' --output text 2>/dev/null || echo "")
 if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
   for SG_ID in $(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" "Name=group-name,Values=d-*_controllers" --region $REGION --query 'SecurityGroups[].GroupId' --output text 2>/dev/null); do
