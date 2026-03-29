@@ -218,6 +218,18 @@ FSx for ONTAP                    S3 Access Point              Bedrock KB
 
 > S3 Access PointはFSxボリュームのファイルを直接S3互換で公開するため、S3バケットへのコピーは不要です。
 
+### データ取り込みパスの選択肢
+
+本システムには3つのデータ取り込みパスが用意されています。FlexCache Cacheボリュームでは2026年3月時点でS3 Access Pointが利用できないため、フォールバック構成が必要です。
+
+| # | パス | 方式 | CDK有効化 | 用途 |
+|---|------|------|----------|------|
+| 1 | メイン | FSx ONTAP Volume → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 通常ボリューム（S3 AP対応） |
+| 2 | フォールバック | S3バケットに手動アップロード → Bedrock KB | `upload-demo-data.sh` | FlexCacheボリューム等S3 AP非対応時 |
+| 3 | 代替 | CIFSマウント → Embeddingサーバー → AOSS直接書き込み | `-c enableEmbeddingServer=true` | FlexCacheボリューム + AOSS直接制御が必要な場合 |
+
+パス2のS3バケット（`${prefix}-kb-data-${ACCOUNT_ID}`）はStorageStackで常に作成されます。S3 APが利用できない場合は、このバケットにドキュメント + `.metadata.json`をアップロードし、KBデータソースとして設定することでSIDフィルタリングが機能します。
+
 ### 2. 検索時（2段階方式: Retrieve + Converse）
 
 ```
