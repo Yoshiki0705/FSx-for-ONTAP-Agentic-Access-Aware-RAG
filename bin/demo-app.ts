@@ -139,6 +139,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   usePermissionFilterLambda,
   agentId: aiStack.agentId,
   agentAliasId: aiStack.agentAliasId,
+  actionGroupLambdaArn: aiStack.actionGroupLambdaArn,
   env: primaryEnv, crossRegionReferences: true,
   description: `[${projectName}] Lambda Web Adapter + CloudFront`,
 });
