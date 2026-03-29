@@ -11,6 +11,7 @@ import { useAgentInfo } from '../../hooks/useAgentInfo';
 import { useBedrockConfig } from '../../hooks/useBedrockConfig';
 import { useAgentInfoNormalization } from '../../hooks/useAgentInfoNormalization';
 import { useAgentStore } from '../../store/useAgentStore';
+import { useChatStore } from '../../store/useChatStore';
 
 interface AgentModeSidebarProps {
   selectedModelId: string;
@@ -29,6 +30,7 @@ export function AgentModeSidebar({
   const tSidebar = useTranslations('sidebar');
   const { config } = useBedrockConfig();
   const { selectedAgentId } = useAgentStore();
+  const { saveHistory, setSaveHistory } = useChatStore();
   const effectiveAgentId = selectedAgentId || config?.agentId || '';
 
   const { agentInfo } = useAgentInfo({
@@ -76,6 +78,30 @@ export function AgentModeSidebar({
         )}
       </div>
 
+      {/* チャット履歴設定（独立セクション） */}
+      <div className="px-4 pb-3">
+        <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t('chat.chatHistory')}</h3>
+        <button
+          onClick={() => setSaveHistory(!saveHistory)}
+          className={`w-full text-left px-3 py-2 rounded-md text-xs transition-colors ${
+            saveHistory
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700 font-medium'
+              : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <span className="text-base">{saveHistory ? '💾' : '🚫'}</span>
+            <div className="flex-1">
+              <div className="font-medium">{saveHistory ? tSidebar('historySaving') : tSidebar('historyDisabled')}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                {saveHistory ? tSidebar('autoSave') : tSidebar('sessionOnly')}
+              </div>
+            </div>
+            {saveHistory && <span className="text-green-600 dark:text-green-400">✓</span>}
+          </div>
+        </button>
+      </div>
+
       {/* System Settings (collapsible) */}
       <CollapsiblePanel
         title={tSidebar('systemSettings')}
@@ -92,20 +118,6 @@ export function AgentModeSidebar({
             <ModelSelector selectedModelId={selectedModelId} onModelChange={onModelChange} showAdvancedFilters={true} mode="agent" />
           </div>
           <AgentFeaturesSection locale={locale} />
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('chat.chatHistory')}</h3>
-            <div className="space-y-2 text-xs">
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-gray-700 dark:text-gray-300">{t('chat.saveHistory')}</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input type="checkbox" className="rounded" />
-                <span className="text-gray-700 dark:text-gray-300">{t('chat.autoTitleGeneration')}</span>
-              </label>
-              <div className="text-gray-600 dark:text-gray-400">{t('sidebar.agentMode')} {t('chat.sessionActive')}</div>
-            </div>
-          </div>
         </div>
       </CollapsiblePanel>
     </div>

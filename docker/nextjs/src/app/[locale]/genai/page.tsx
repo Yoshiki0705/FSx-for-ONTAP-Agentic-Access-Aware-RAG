@@ -6,7 +6,8 @@ import { ErrorBoundary } from '../../../components/ui/ErrorBoundary';
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { useChatStore } from '../../../store';
 import type { Message, ChatSession } from '../../../store';
@@ -25,10 +26,10 @@ import { AgentModeSidebar } from '../../../components/bedrock/AgentModeSidebar';
 import { useAgentStore } from '../../../store/useAgentStore';
 import { CardGrid } from '../../../components/cards/CardGrid';
 import { CollapsiblePanel } from '../../../components/ui/CollapsiblePanel';
-import { resolveAgentForCard } from '../../../services/cardAgentBindingService';
+import { resolveAgentForCard, findAgentByCategory } from '../../../services/cardAgentBindingService';
 import { useCardAgentMappingStore } from '../../../store/useCardAgentMappingStore';
 import type { CardData } from '../../../constants/card-constants';
-import { getCardsByMode } from '../../../constants/card-constants';
+import { getCardsByMode, AGENT_CATEGORY_MAP } from '../../../constants/card-constants';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -536,6 +537,16 @@ function ChatbotPageContent() {
     }
     return false;
   });
+  const searchParams = useSearchParams();
+  // Sync agentMode with URL search params (handles client-side navigation from Link)
+  useEffect(() => {
+    const modeParam = searchParams.get('mode');
+    const shouldBeAgent = modeParam === 'agent';
+    if (shouldBeAgent !== agentMode) {
+      console.log(`🔄 [ChatbotPage] Mode sync from URL: ${agentMode ? 'agent' : 'kb'} → ${shouldBeAgent ? 'agent' : 'kb'}`);
+      setAgentMode(shouldBeAgent);
+    }
+  }, [searchParams]);
   const { selectedAgentId } = useAgentStore();
   
   // エラーアクション関連のstate（将来の拡張用）
@@ -1521,20 +1532,7 @@ function ChatbotPageContent() {
               )}
             </div>
 
-            {/* システム管理 CollapsiblePanel */}
-            <CollapsiblePanel title={tSidebar('systemSettings')} icon="⚙️" storageKey="system-settings">
-
-            {/* Bedrockリージョン選択セクション */}
-            <div className="p-2 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t('region.bedrockRegion')}</h3>
-              <div className="text-xs text-gray-600 dark:text-gray-400">
-                <div>🌍 {RegionConfigManager.getRegionDisplayName(regionStore.selectedRegion)} ({regionStore.selectedRegion})</div>
-                <div>🤖 {availableModelCount}モデル利用可能</div>
-              </div>
-              <RegionSelector />
-            </div>
-
-            {/* チャット履歴設定セクション */}
+            {/* チャット履歴設定セクション（独立項目） */}
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{translations.chatHistorySettings}</h3>
               <button
@@ -1559,6 +1557,19 @@ function ChatbotPageContent() {
                   {saveHistory && <span className="text-green-600 dark:text-green-400">✓</span>}
                 </div>
               </button>
+            </div>
+
+            {/* システム管理 CollapsiblePanel */}
+            <CollapsiblePanel title={tSidebar('systemSettings')} icon="⚙️" storageKey="system-settings">
+
+            {/* Bedrockリージョン選択セクション */}
+            <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t('region.bedrockRegion')}</h3>
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                <div>🌍 {RegionConfigManager.getRegionDisplayName(regionStore.selectedRegion)} ({regionStore.selectedRegion})</div>
+                <div>🤖 {availableModelCount}モデル利用可能</div>
+              </div>
+              <RegionSelector />
             </div>
 
             {/* 動作モード情報セクション（読み取り専用） */}
@@ -1664,52 +1675,14 @@ function ChatbotPageContent() {
                     </button>
                   </div>
                   
-                  {/* 新しいチャットボタン */}
-                  <button
-                    onClick={() => {
-                      if (!user) return;
-                      
-                      // Knowledge Baseモード用の初期メッセージ
-                      let initialMessageText: string;
-                      if (userDirectories) {
-                        initialMessageText = generateInitialMessageWithDirectories(
-                          user.username,
-                          user.role || 'User',
-                          userDirectories,
-                          t
-                        );
-                      } else {
-                        initialMessageText = generateInitialMessage(
-                          user.username,
-                          user.role || 'User',
-                          t
-                        );
-                      }
-                      
-                      const initialMessages: Message[] = [{
-                        id: '1',
-                        content: initialMessageText,
-                        role: 'assistant',
-                        timestamp: Date.now()
-                      }];
-                      
-                      const newSession: ChatSession = {
-                        id: Date.now().toString(),
-                        title: translations.newChat,
-                        messages: initialMessages,
-                        createdAt: Date.now(),
-                        updatedAt: Date.now(),
-                        userId: user.username,
-                      };
-                      setCurrentSession(newSession);
-                      addChatSession(newSession);
-                    }}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors flex items-center space-x-1 shadow-sm"
-                    title={translations.newChatShortcut}
+                  {/* Agent Directory リンク */}
+                  <Link
+                    href={`/${memoizedLocale}/genai/agents`}
+                    className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-gray-200 dark:border-gray-600"
                   >
-                    <span>➕</span>
-                    <span>{translations.newChat}</span>
-                  </button>
+                    📋 Agent一覧
+                  </Link>
+                  
                   <div className="flex items-center space-x-2">
                     {saveHistory && (
                       <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
@@ -1797,14 +1770,46 @@ function ChatbotPageContent() {
                       const card = agentCards.find(c => c.id === cardId);
                       if (card) {
                         const mappingStore = useCardAgentMappingStore.getState();
-                        const result = await resolveAgentForCard(card, mappingStore);
-                        if (result.agentId) {
-                          useAgentStore.getState().setSelectedAgentId(result.agentId);
-                          console.log(`✅ [CardGrid] Agent resolved: ${result.agentId} (source: ${result.source})`);
+                        // First try cache and static
+                        if (card.agentId) {
+                          useAgentStore.getState().setSelectedAgentId(card.agentId);
+                          console.log(`✅ [CardGrid] Agent resolved (static): ${card.agentId}`);
+                        } else {
+                          const cached = mappingStore.getMapping(card.id);
+                          if (cached) {
+                            useAgentStore.getState().setSelectedAgentId(cached.agentId);
+                            console.log(`✅ [CardGrid] Agent resolved (cache): ${cached.agentId}`);
+                          } else {
+                            // Search by category keywords
+                            const categoryConfig = AGENT_CATEGORY_MAP[card.category];
+                            if (categoryConfig) {
+                              const found = await findAgentByCategory(card.category, categoryConfig);
+                              if (found) {
+                                mappingStore.setMapping(card.id, {
+                                  agentId: found.agentId,
+                                  agentAliasId: found.agentAliasId,
+                                  resolvedAt: Date.now(),
+                                });
+                                useAgentStore.getState().setSelectedAgentId(found.agentId);
+                                console.log(`✅ [CardGrid] Agent resolved (search): ${found.agentId}`);
+                              } else {
+                                // No agent found → redirect to Agent Directory creation form
+                                console.log(`🔄 [CardGrid] No agent found for category "${card.category}", redirecting to Agent Directory creator`);
+                                router.push(`/${memoizedLocale}/genai/agents?create=${card.category}`);
+                                return;
+                              }
+                            }
+                          }
                         }
                       }
                     } catch (err) {
-                      console.warn('⚠️ [CardGrid] Agent resolution failed, using default:', err);
+                      console.warn('⚠️ [CardGrid] Agent resolution failed, redirecting to creator:', err);
+                      const agentCards = getCardsByMode('agent');
+                      const card = agentCards.find(c => c.id === cardId);
+                      if (card?.category) {
+                        router.push(`/${memoizedLocale}/genai/agents?create=${card.category}`);
+                        return;
+                      }
                     }
                     window.dispatchEvent(new CustomEvent('agent-workflow-selected', {
                       detail: { prompt, label },
@@ -1912,6 +1917,33 @@ function ChatbotPageContent() {
               </div>
             )}
             <form onSubmit={handleSendMessage} className="flex space-x-3 max-w-4xl mx-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user) return;
+                  let initialMessageText: string;
+                  if (userDirectories) {
+                    initialMessageText = generateInitialMessageWithDirectories(user.username, user.role || 'User', userDirectories, t);
+                  } else {
+                    initialMessageText = generateInitialMessage(user.username, user.role || 'User', t);
+                  }
+                  const newSession: ChatSession = {
+                    id: Date.now().toString(),
+                    title: translations.newChat,
+                    messages: [{ id: '1', content: initialMessageText, role: 'assistant', timestamp: Date.now() }],
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                    userId: user.username,
+                  };
+                  setCurrentSession(newSession);
+                  addChatSession(newSession);
+                  setInputText('');
+                }}
+                className="px-3 py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
+                title={translations.newChatShortcut}
+              >
+                ➕
+              </button>
               <input
                 type="text"
                 value={inputText}

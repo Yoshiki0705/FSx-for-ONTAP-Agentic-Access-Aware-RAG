@@ -325,5 +325,67 @@
         "advanced": "Advanced Steps"
       }
     }
+  },
+  "agentDirectory": {
+    "title": "Agent Directory",
+    "searchPlaceholder": "Search agents by name or description...",
+    "categoryAll": "All",
+    "noAgentsFound": "No matching agents found",
+    "createFromTemplate": "Create from Template",
+    "templateSection": "Agent Templates",
+    "confirmCreate": "Create this agent?",
+    "confirmDelete": "Are you sure you want to delete {name}?",
+    "useInChat": "Use in Chat",
+    "editAgent": "Edit",
+    "deleteAgent": "Delete",
+    "agentDetail": "Agent Details",
+    "systemPrompt": "System Prompt",
+    "actionGroups": "Action Groups",
+    "createdAt": "Created",
+    "updatedAt": "Last Updated",
+    "version": "Version",
+    "model": "Model",
+    "status": "Status",
+    "saving": "Saving...",
+    "creating": "Creating...",
+    "deleting": "Deleting...",
+    "saveSuccess": "Agent updated successfully",
+    "createSuccess": "Agent created successfully",
+    "deleteSuccess": "Agent deleted successfully",
+    "saveError": "Failed to update agent",
+    "createError": "Failed to create agent",
+    "deleteError": "Failed to delete agent",
+    "loadError": "Failed to load agents",
+    "retry": "Retry",
+    "nameRequired": "Agent name is required (min 3 characters)",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "progress": {
+      "creating": "Creating agent...",
+      "preparing": "Preparing agent...",
+      "creatingAlias": "Creating alias...",
+      "completed": "Agent created successfully"
+    },
+    "nav": {
+      "cards": "Agent Mode",
+      "agents": "Agents",
+      "chat": "KB Mode"
+    },
+    "statusLabels": {
+      "PREPARED": "Ready",
+      "CREATING": "Creating",
+      "PREPARING": "Preparing",
+      "FAILED": "Failed",
+      "NOT_PREPARED": "Not Ready",
+      "DELETING": "Deleting",
+      "VERSIONING": "Versioning",
+      "UPDATING": "Updating"
+    },
+    "createAgent": "Create Agent",
+    "createAndDeploy": "Create & Deploy",
+    "agentName": "Agent Name",
+    "description": "Description",
+    "agentId": "Agent ID"
   }
 }

@@ -1,0 +1,148 @@
+'use client';
+
+import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { validateAgentName } from '@/utils/agentCategoryUtils';
+import type { AgentDetail, UpdateAgentFormData } from '@/types/agent-directory';
+
+interface AgentEditorProps {
+  agent: AgentDetail;
+  onSave: (data: UpdateAgentFormData) => Promise<void>;
+  onCancel: () => void;
+  locale: string;
+}
+
+const FOUNDATION_MODELS = [
+  'anthropic.claude-3-haiku-20240307-v1:0',
+  'anthropic.claude-3-sonnet-20240229-v1:0',
+  'anthropic.claude-3-5-sonnet-20241022-v2:0',
+  'anthropic.claude-3-5-haiku-20241022-v1:0',
+  'amazon.nova-pro-v1:0',
+  'amazon.nova-lite-v1:0',
+  'amazon.nova-micro-v1:0',
+];
+
+export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProps) {
+  const t = useTranslations('agentDirectory');
+  const [formData, setFormData] = useState<UpdateAgentFormData>({
+    agentName: agent.agentName,
+    description: agent.description || '',
+    instruction: agent.instruction || '',
+    foundationModel: agent.foundationModel || FOUNDATION_MODELS[0],
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const nameValid = validateAgentName(formData.agentName);
+
+  const handleSave = async () => {
+    if (!nameValid) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(formData);
+    } catch (err: any) {
+      setError(err?.message || t('saveError'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">{t('editAgent')}</h2>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {/* Agent Name */}
+        <div>
+          <label htmlFor="agentName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('agentName')}
+          </label>
+          <input
+            id="agentName"
+            type="text"
+            value={formData.agentName}
+            onChange={e => setFormData(prev => ({ ...prev, agentName: e.target.value }))}
+            className={`w-full px-3 py-2 rounded-lg border text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 ${
+              !nameValid && formData.agentName.length > 0
+                ? 'border-red-300 dark:border-red-600'
+                : 'border-gray-300 dark:border-gray-600'
+            }`}
+          />
+          {!nameValid && formData.agentName.length > 0 && (
+            <p className="text-xs text-red-500 mt-1">{t('nameRequired')}</p>
+          )}
+        </div>
+
+        {/* Description */}
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('description')}
+          </label>
+          <input
+            id="description"
+            type="text"
+            value={formData.description}
+            onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+          />
+        </div>
+
+        {/* Instruction */}
+        <div>
+          <label htmlFor="instruction" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('systemPrompt')}
+          </label>
+          <textarea
+            id="instruction"
+            rows={6}
+            value={formData.instruction}
+            onChange={e => setFormData(prev => ({ ...prev, instruction: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 resize-y"
+          />
+        </div>
+
+        {/* Foundation Model */}
+        <div>
+          <label htmlFor="foundationModel" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t('model')}
+          </label>
+          <select
+            id="foundationModel"
+            value={formData.foundationModel}
+            onChange={e => setFormData(prev => ({ ...prev, foundationModel: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+          >
+            {FOUNDATION_MODELS.map(model => (
+              <option key={model} value={model}>{model}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button
+          onClick={handleSave}
+          disabled={saving || !nameValid}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+        >
+          {saving ? t('saving') : t('save' as any) || 'Save'}
+        </button>
+        <button
+          onClick={onCancel}
+          disabled={saving}
+          className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium"
+        >
+          {t('cancel' as any) || 'Cancel'}
+        </button>
+      </div>
+    </div>
+  );
+}

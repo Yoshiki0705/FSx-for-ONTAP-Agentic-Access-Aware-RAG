@@ -50,7 +50,7 @@
 | 5 | Embedding Server | FSx ONTAPボリュームをCIFS/SMBマウントしたEC2でドキュメントをベクトル化しAOSSに書き込み | EmbeddingStack |
 | 6 | Titan Text Embeddings | `amazon.titan-embed-text-v2:0`（1024次元）をKB取り込みとEmbeddingサーバーの両方で使用 | AIStack |
 | 7 | SIDメタデータ + 権限フィルタリング | NTFS ACLのSID情報を`.metadata.json`で管理し、検索時にユーザーSIDと照合してフィルタリング | StorageStack |
-| 8 | KB/Agentモード切替 | KBモード（文書検索）とAgentモード（多段階推論）をトグルで切替。動的Agent作成・カード紐付け。アウトプット指向ワークフロー（プレゼン資料、稟議書、議事録、レポート、契約書、オンボーディング）。両モードでPermission-aware | WebAppStack |
+| 8 | KB/Agentモード切替 | KBモード（文書検索）とAgentモード（多段階推論）をトグルで切替。Agent Directory（`/genai/agents`）でカタログ形式のAgent管理・テンプレート作成・編集・削除。動的Agent作成・カード紐付け。アウトプット指向ワークフロー（プレゼン資料、稟議書、議事録、レポート、契約書、オンボーディング）。8言語i18n対応。両モードでPermission-aware | WebAppStack |
 
 ## UI Screenshots
 
@@ -62,13 +62,31 @@
 
 ### Agentモード — カードグリッド + サイドバー
 
-Agentモードでは14枚のワークフローカード（リサーチ系8枚 + アウトプット系6枚）が表示されます。カードクリック時にBedrock Agentが自動検索・動的作成されます。サイドバーにはAgent情報と折りたたみ可能なシステム管理セクションがあります。
+Agentモードでは14枚のワークフローカード（リサーチ系8枚 + アウトプット系6枚）が表示されます。カードクリック時にBedrock Agentが自動検索され、未作成の場合はAgent Directory作成フォームに遷移します。サイドバーにはAgent選択ドロップダウン、チャット履歴設定、折りたたみ可能なシステム管理セクションがあります。
 
 ![Agentモード カードグリッド](docs/screenshots/agent-mode-card-grid.png)
 
+### Agent Directory — Agent一覧・管理画面
+
+`/[locale]/genai/agents` でアクセスできるAgent管理専用画面です。作成済みBedrock Agentのカタログ表示、検索・カテゴリフィルタ、詳細パネル、テンプレートからの作成、インライン編集・削除が可能です。ナビゲーションバーでAgentモード / Agent一覧 / KBモードを切り替えられます。
+
+![Agent Directory](docs/screenshots/agent-directory.png)
+
+### Agent Directory — Agent作成フォーム
+
+テンプレートカードの「テンプレートから作成」をクリックすると、Agent名・説明・システムプロンプト・AIモデルを編集できる作成フォームが表示されます。Agentモードのカードクリック時にAgentが未作成の場合も同じフォームに遷移します。
+
+![Agent作成フォーム](docs/screenshots/agent-creator-form.png)
+
+### Agent Directory — Agent詳細・編集
+
+Agentカードをクリックすると詳細パネルが表示され、Agent ID、ステータス、モデル、バージョン、作成日、システムプロンプト（折りたたみ）、アクショングループを確認できます。「編集」ボタンでインライン編集、「チャットで使用」でAgentモードに遷移、「削除」で確認ダイアログ付き削除が可能です。
+
+![Agent詳細パネル](docs/screenshots/agent-detail-panel.png)
+
 ### チャット応答 — Citation表示 + アクセスレベルバッジ
 
-RAG検索結果にはFSxファイルパスとアクセスレベルバッジ（全員アクセス可/管理者のみ/特定グループ）が表示されます。チャット中は「🔄 ワークフロー選択に戻る」ボタンでカードグリッドに戻れます。
+RAG検索結果にはFSxファイルパスとアクセスレベルバッジ（全員アクセス可/管理者のみ/特定グループ）が表示されます。チャット中は「🔄 ワークフロー選択に戻る」ボタンでカードグリッドに戻れます。メッセージ入力欄の左側に「➕」ボタンで新しいチャットを開始できます。
 
 ![チャット応答 + Citation](docs/screenshots/kb-mode-chat-citation.png)
 
@@ -712,14 +730,18 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 │   └── types.ts                      # 型定義
 ├── docker/nextjs/                    # Next.jsアプリケーション
 │   ├── src/app/[locale]/genai/       # メインチャットページ（KB/Agentモード切替）
+│   ├── src/app/[locale]/genai/agents/ # Agent Directory ページ
+│   ├── src/components/agents/        # Agent Directory UI（AgentCard, AgentCreator, AgentEditor等）
 │   ├── src/components/bedrock/       # AgentModeSidebar, AgentInfoSection, ModelSelector等
 │   ├── src/components/cards/         # CardGrid, TaskCard, InfoBanner, CategoryFilter
 │   ├── src/constants/                # card-constants.ts（カードデータ定義）
 │   ├── src/hooks/                    # useAgentMode, useAgentsList, useAgentInfo等
 │   ├── src/services/cardAgentBindingService.ts  # Agent検索・動的作成サービス
-│   ├── src/store/                    # useAgentStore, useFavoritesStore (Zustand)
+│   ├── src/store/                    # useAgentStore, useAgentDirectoryStore, useFavoritesStore (Zustand)
 │   ├── src/store/useCardAgentMappingStore.ts    # カード-Agentマッピング永続化
 │   ├── src/store/useSidebarStore.ts             # サイドバー折りたたみ状態管理
+│   ├── src/types/agent-directory.ts             # Agent Directory型定義
+│   ├── src/utils/agentCategoryUtils.ts          # カテゴリ推定・フィルタリング
 │   ├── src/components/ui/CollapsiblePanel.tsx   # 折りたたみパネル
 │   ├── src/components/ui/WorkflowSection.tsx    # ワークフローセクション
 │   └── src/app/api/bedrock/          # KB/Agent APIルート
@@ -752,7 +774,7 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 | ドキュメント | 内容 |
 |-------------|------|
 | [docs/implementation-overview.md](docs/implementation-overview.md) | 実装内容の詳細説明（8つの観点） |
-| [docs/ui-specification.md](docs/ui-specification.md) | チャットボットUI仕様書（カードUI、サイドバー、Citation表示、KB/Agentモード切替） |
+| [docs/ui-specification.md](docs/ui-specification.md) | UI仕様書（KB/Agentモード切替、Agent Directory、サイドバー設計、Citation表示） |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SIDベース権限フィルタリングのアーキテクチャ詳細 |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | Embeddingサーバー設計（ONTAP ACL自動取得含む） |
 | [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md) | デモ/統合スタック アーキテクチャ比較 |

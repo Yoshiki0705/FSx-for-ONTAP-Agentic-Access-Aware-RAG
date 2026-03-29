@@ -322,5 +322,67 @@
         "advanced": "高度なステップ"
       }
     }
+  },
+  "agentDirectory": {
+    "title": "Agent Directory",
+    "searchPlaceholder": "Agent名または説明で検索...",
+    "categoryAll": "すべて",
+    "noAgentsFound": "該当するAgentが見つかりません",
+    "createFromTemplate": "テンプレートから作成",
+    "templateSection": "Agentテンプレート",
+    "confirmCreate": "このAgentを作成しますか？",
+    "confirmDelete": "{name} を削除してもよろしいですか？",
+    "useInChat": "チャットで使用",
+    "editAgent": "編集",
+    "deleteAgent": "削除",
+    "agentDetail": "Agent詳細",
+    "systemPrompt": "システムプロンプト",
+    "actionGroups": "アクショングループ",
+    "createdAt": "作成日",
+    "updatedAt": "最終更新",
+    "version": "バージョン",
+    "model": "モデル",
+    "status": "ステータス",
+    "saving": "保存中...",
+    "creating": "作成中...",
+    "deleting": "削除中...",
+    "saveSuccess": "Agentを更新しました",
+    "createSuccess": "Agentを作成しました",
+    "deleteSuccess": "Agentを削除しました",
+    "saveError": "Agentの更新に失敗しました",
+    "createError": "Agentの作成に失敗しました",
+    "deleteError": "Agentの削除に失敗しました",
+    "loadError": "Agentの読み込みに失敗しました",
+    "retry": "再試行",
+    "nameRequired": "Agent名は3文字以上必要です",
+    "close": "閉じる",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "progress": {
+      "creating": "Agent作成中...",
+      "preparing": "Agent準備中...",
+      "creatingAlias": "Alias作成中...",
+      "completed": "Agent作成完了"
+    },
+    "nav": {
+      "cards": "Agentモード",
+      "agents": "Agent一覧",
+      "chat": "KBモード"
+    },
+    "statusLabels": {
+      "PREPARED": "準備完了",
+      "CREATING": "作成中",
+      "PREPARING": "準備中",
+      "FAILED": "失敗",
+      "NOT_PREPARED": "未準備",
+      "DELETING": "削除中",
+      "VERSIONING": "バージョニング",
+      "UPDATING": "更新中"
+    },
+    "createAgent": "Agent作成",
+    "createAndDeploy": "作成してデプロイ",
+    "agentName": "Agent名",
+    "description": "説明",
+    "agentId": "Agent ID"
   }
 }

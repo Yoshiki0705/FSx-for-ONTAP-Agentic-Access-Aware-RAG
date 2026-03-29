@@ -1120,3 +1120,279 @@ function getAccessLevelLabel(accessLevel: string): string {
 
 バッジの色を変更する場合は、同ファイル内の条件分岐（`access_level === 'public'` 等）に対応するTailwind CSSクラスを編集してください。
 
+
+---
+
+## 10. Agent Directory — Agent管理画面
+
+**最終更新**: 2026-03-29
+
+### 概要
+
+Agent Directory（`/[locale]/genai/agents`）は、Bedrock Agentをカタログ形式で一覧・管理する専用画面です。Bedrock Engineerの Agent Directory UXパターンを参考に設計されています。
+
+### アクセス方法
+
+- URL: `/{locale}/genai/agents`（例: `/ja/genai/agents`, `/en/genai/agents`）
+- ヘッダーの「📋 Agent一覧」リンクからアクセス
+- ナビゲーションバーの「Agent一覧」タブからアクセス
+
+### ナビゲーションバー
+
+画面上部に3つのタブが表示されます。
+
+| タブ | 遷移先 | 説明 |
+|------|--------|------|
+| Agentモード | `/genai?mode=agent` | Agentモードのカードグリッド画面 |
+| Agent一覧 | `/genai/agents` | Agent Directory（現在の画面） |
+| KBモード | `/genai` | KBモードのカードグリッド画面 |
+
+ナビゲーションバーの右側にダークモード切替（☀️/🌙）と言語切替ドロップダウンが配置されています。
+
+### Agent一覧（グリッドビュー）
+
+#### 検索・フィルタリング
+
+| 機能 | 説明 |
+|------|------|
+| テキスト検索 | Agent名・説明に対するcase-insensitive部分一致検索 |
+| カテゴリフィルタ | 10カテゴリ（financial, project, hr, search, presentation, approval, minutes, report, contract, onboarding）+ 「すべて」 |
+
+検索とカテゴリフィルタは組み合わせ可能（AND条件）。
+
+#### Agentカード
+
+各カードに以下の情報が表示されます。
+
+| 項目 | 説明 |
+|------|------|
+| Agent名 | Bedrock Agentの名前 |
+| ステータスバッジ | 準備完了（緑）/ 作成中・準備中（青+スピナー）/ 失敗（赤）/ その他（グレー） |
+| 説明 | Agentの説明文（2行まで） |
+| カテゴリタグ | Agent名・説明からキーワードマッチで自動推定（紫色タグ） |
+
+カードクリックで詳細パネルに遷移します。
+
+#### ステータスバッジの色マッピング
+
+| ステータス | 色 | スピナー |
+|-----------|-----|---------|
+| PREPARED | 緑 | なし |
+| CREATING / PREPARING | 青 | あり |
+| FAILED | 赤 | なし |
+| NOT_PREPARED / DELETING / VERSIONING / UPDATING | グレー | なし |
+
+### Agent詳細パネル
+
+Agentカードクリックで表示される詳細画面です。
+
+#### 表示項目
+
+| 項目 | データソース |
+|------|------------|
+| Agent ID | `GetAgentCommand` |
+| Agent名 | 同上 |
+| 説明 | 同上 |
+| ステータス | 同上 |
+| モデル | `foundationModel` |
+| バージョン | `agentVersion` |
+| 作成日 | `createdAt`（ロケール対応日付表示） |
+| 最終更新 | `updatedAt`（ロケール対応日付表示） |
+| システムプロンプト | `instruction`（折りたたみ可能） |
+| アクショングループ | `actionGroups[]`（リスト表示） |
+
+#### アクションボタン
+
+| ボタン | 動作 |
+|--------|------|
+| チャットで使用 | `useAgentStore.selectedAgentId` を設定し `/genai?mode=agent` に遷移 |
+| 編集 | インライン編集フォームに切替 |
+| 削除 | Agent名を含む確認ダイアログ → Delete API実行 |
+
+### Agent編集フォーム
+
+詳細パネルの「編集」ボタンで表示されるフォームです。
+
+| フィールド | 型 | バリデーション |
+|-----------|-----|-------------|
+| Agent名 | テキスト入力 | 3文字以上必須 |
+| 説明 | テキスト入力 | 任意 |
+| システムプロンプト | テキストエリア | 任意 |
+| モデル | ドロップダウン | 7モデルから選択 |
+
+保存時に `Update API` → `PrepareAgent` が実行されます。エラー時はフォーム入力内容が保持されます。
+
+### Agent作成フォーム（テンプレートから作成）
+
+テンプレートカードの「テンプレートから作成」クリック、またはAgentモードのカードクリック時にAgentが未作成の場合に表示されます。
+
+#### テンプレート一覧（10カテゴリ）
+
+| カテゴリ | Agent名パターン | モデル |
+|---------|----------------|--------|
+| financial | financial-analysis-agent | Claude 3 Haiku |
+| project | project-management-agent | Claude 3 Haiku |
+| hr | hr-policy-agent | Claude 3 Haiku |
+| search | cross-search-agent | Claude 3 Haiku |
+| presentation | presentation-creator-agent | Claude 3 Haiku |
+| approval | approval-document-agent | Claude 3 Haiku |
+| minutes | meeting-minutes-agent | Claude 3 Haiku |
+| report | report-generator-agent | Claude 3 Haiku |
+| contract | contract-review-agent | Claude 3 Haiku |
+| onboarding | onboarding-guide-agent | Claude 3 Haiku |
+
+テンプレートの値は事前入力されますが、全フィールド（Agent名、説明、システムプロンプト、モデル）を編集してから作成できます。
+
+#### 作成フロー
+
+```
+テンプレート選択 → 作成フォーム表示（値を編集可能）
+  → 「作成してデプロイ」クリック
+  → CreateAgent → PrepareAgent → CreateAgentAlias
+  → 進捗表示（作成中 → 準備中 → 完了）
+  → Agent一覧に自動追加
+```
+
+#### Agentモードカードからの作成フロー
+
+```
+Agentモードでカードクリック
+  → キャッシュ確認 → 既存Agent検索（キーワードマッチ）
+  → 見つからない場合: /genai/agents?create={category} にリダイレクト
+  → Agent Directory作成フォームが自動的に開く
+  → 作成完了後、Agent一覧に戻る
+```
+
+### API連携
+
+Agent Directoryは既存の `/api/bedrock/agent` APIを共有し、新規エンドポイントは追加していません。
+
+| アクション | リクエスト | 用途 |
+|-----------|----------|------|
+| `list` | `POST {action: 'list'}` | Agent一覧取得 |
+| `get` | `POST {action: 'get', agentId}` | Agent詳細取得 |
+| `create` | `POST {action: 'create', agentName, instruction, foundationModel, description, attachActionGroup}` | テンプレートからAgent作成 |
+| `update` | `POST {action: 'update', agentId, agentName, description, instruction, foundationModel}` | Agent編集保存 |
+| `delete` | `POST {action: 'delete', agentId}` | Agent削除 |
+
+### 状態管理
+
+| ストア | 用途 | 永続化 |
+|--------|------|--------|
+| `useAgentDirectoryStore` | Agent一覧、選択Agent、検索クエリ、カテゴリ、ビューモード、作成進捗 | なし（API毎回取得） |
+| `useAgentStore` | `selectedAgentId`（Chat画面で使用するAgent） | localStorage |
+| `useCardAgentMappingStore` | カードID→Agent IDマッピング | localStorage |
+
+### i18n対応
+
+`agentDirectory` ネームスペースで8言語（ja, en, ko, zh-CN, zh-TW, fr, de, es）に対応。翻訳キーは `messages/{locale}.json` と `src/messages/{locale}.json` の両方に定義。
+
+### コンポーネント構成
+
+```
+AgentDirectoryPage (page.tsx)
+├── NavigationBar          # Agentモード / Agent一覧 / KBモード タブ
+├── ThemeToggle            # ダークモード切替
+├── LanguageSwitcher       # 言語切替
+└── AgentDirectory         # メインコンテナ
+    ├── SearchBar + CategoryFilter  # 検索・フィルタ
+    ├── AgentCard[]                 # Agentカードグリッド
+    ├── AgentTemplateSection        # テンプレート一覧
+    │   └── TemplateCard[]          # テンプレートカード
+    ├── AgentDetailPanel            # Agent詳細表示
+    ├── AgentEditor                 # Agent編集フォーム
+    └── AgentCreator                # Agent作成フォーム
+```
+
+### エラーハンドリング
+
+| エラーケース | 対応 |
+|-------------|------|
+| Agent一覧取得失敗 | エラーメッセージ + 再試行ボタン |
+| Agent詳細取得失敗 | エラーメッセージ、グリッドビューに戻る |
+| Agent作成失敗 | 進捗バーにエラー表示、フォーム入力保持 |
+| Agent更新失敗 | エラーメッセージ、フォーム入力保持 |
+| Agent削除失敗 | エラーメッセージ |
+| フィルタ結果0件 | 「該当するAgentが見つかりません」メッセージ |
+
+---
+
+## 11. サイドバー — チャット履歴設定
+
+**最終更新**: 2026-03-29
+
+### 概要
+
+チャット履歴の保存設定は、KBモード・Agentモード共通でサイドバーの独立セクションとして表示されます（システム管理CollapsiblePanelの上に配置）。
+
+### 表示内容
+
+| 状態 | アイコン | テキスト | 背景色 |
+|------|---------|---------|--------|
+| 保存有効 | 💾 | 「履歴を保存」+「自動保存」 | 緑（`bg-green-100`） |
+| 保存無効 | 🚫 | 「履歴無効」+「セッションのみ」 | グレー（`bg-gray-50`） |
+
+### データフロー
+
+```
+トグルボタンクリック
+  → useChatStore.setSaveHistory(!saveHistory)
+  → saveHistory === true の場合:
+    → メッセージ送信後に saveChatHistory() が自動実行
+    → DynamoDB chat-history テーブルに保存
+```
+
+### KBモードとAgentモードの違い
+
+| 項目 | KBモード | Agentモード |
+|------|---------|------------|
+| サイドバー位置 | FSxディレクトリ情報の下 | Agent情報セクションの下 |
+| ストア | `useChatStore.saveHistory` | `useChatStore.saveHistory`（共通） |
+| 保存先 | DynamoDB | DynamoDB（共通） |
+
+#### KBモード サイドバー
+
+![KBモード サイドバー](screenshots/kb-mode-sidebar.png)
+
+#### Agentモード サイドバー
+
+![Agentモード サイドバー](screenshots/agent-mode-sidebar.png)
+
+---
+
+## 12. メッセージ入力エリア
+
+**最終更新**: 2026-03-29
+
+### レイアウト
+
+```
+[➕] [テキスト入力フィールド                    ] [送信ボタン]
+```
+
+| 要素 | 説明 |
+|------|------|
+| ➕ ボタン | 新しいチャットセッションを開始。カードグリッドに戻る |
+| テキスト入力 | メッセージ入力。送信中は無効化 |
+| 送信ボタン | メッセージ送信。入力が空または送信中は無効化 |
+
+チャット中は入力エリアの上に「🔄 ワークフロー選択に戻る」リンクが表示されます。
+
+---
+
+## スクリーンショット撮影ガイド
+
+ドキュメント用のスクリーンショットを撮影する場合は、以下の手順で各画面を撮影してください。
+
+### 必要なスクリーンショット
+
+| ファイル名 | 画面 | 撮影手順 |
+|-----------|------|---------|
+| `agent-directory.png` | Agent Directory一覧 | `/ja/genai/agents` にアクセス |
+| `agent-creator-form.png` | Agent作成フォーム | テンプレートの「テンプレートから作成」をクリック |
+| `agent-detail-panel.png` | Agent詳細パネル | Agent一覧でAgentカードをクリック |
+| `agent-mode-card-grid.png` | Agentモードカードグリッド | `/ja/genai?mode=agent` にアクセス |
+| `kb-mode-cards-full.png` | KBモードカードグリッド | `/ja/genai` にアクセス |
+| `kb-mode-chat-citation.png` | チャット応答+Citation | KBモードで質問を送信 |
+
+保存先: `docs/screenshots/`
