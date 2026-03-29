@@ -51,6 +51,26 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
 | 7 | SIDメタデータ + 権限フィルタリング | NTFS ACLのSID情報を`.metadata.json`で管理し、検索時にユーザーSIDと照合してフィルタリング | StorageStack |
 | 8 | KB/Agentモード切替 | KBモード（文書検索）とAgentモード（多段階推論）をトグルで切替。動的Agent作成・カード紐付け。アウトプット指向ワークフロー（プレゼン資料、稟議書、議事録、レポート、契約書、オンボーディング）。両モードでPermission-aware | WebAppStack |
 
+## UI Screenshots
+
+### KBモード — カードグリッド（初期状態）
+
+チャットエリアの初期状態では、目的別カード14枚（調査系8枚 + アウトプット系6枚）がグリッド表示されます。カテゴリフィルタ、お気に入り機能、InfoBanner（権限情報）を備えています。
+
+![KBモード カードグリッド](docs/screenshots/kb-mode-cards-full.png)
+
+### Agentモード — カードグリッド + サイドバー
+
+Agentモードでは14枚のワークフローカード（リサーチ系8枚 + アウトプット系6枚）が表示されます。カードクリック時にBedrock Agentが自動検索・動的作成されます。サイドバーにはAgent情報と折りたたみ可能なシステム管理セクションがあります。
+
+![Agentモード カードグリッド](docs/screenshots/agent-mode-card-grid.png)
+
+### チャット応答 — Citation表示 + アクセスレベルバッジ
+
+RAG検索結果にはFSxファイルパスとアクセスレベルバッジ（全員アクセス可/管理者のみ/特定グループ）が表示されます。チャット中は「🔄 ワークフロー選択に戻る」ボタンでカードグリッドに戻れます。
+
+![チャット応答 + Citation](docs/screenshots/kb-mode-chat-citation.png)
+
 ## CDK Stack Structure
 
 | # | Stack | Region | Resources | Description |
