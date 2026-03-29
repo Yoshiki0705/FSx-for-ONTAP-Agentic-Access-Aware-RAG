@@ -1,6 +1,6 @@
 # プラットフォーム指定を動的に変更
 ARG TARGETPLATFORM
-FROM --platform=$TARGETPLATFORM public.ecr.aws/lambda/nodejs:18
+FROM --platform=$TARGETPLATFORM public.ecr.aws/lambda/nodejs:22
 
 WORKDIR ${LAMBDA_TASK_ROOT}
 

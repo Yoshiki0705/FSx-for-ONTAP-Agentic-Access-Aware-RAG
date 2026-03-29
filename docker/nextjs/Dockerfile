@@ -1,12 +1,12 @@
-FROM --platform=linux/amd64 public.ecr.aws/docker/library/node:20.9.0-slim AS builder
+FROM --platform=linux/amd64 public.ecr.aws/docker/library/node:22-slim AS builder
 WORKDIR /app
 
 COPY . .
 RUN npm install
 RUN npm run build
 
-FROM --platform=linux/amd64 public.ecr.aws/docker/library/node:20.9.0-slim AS runner
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.0-x86_64 /lambda-adapter /opt/extensions/lambda-adapter
+FROM --platform=linux/amd64 public.ecr.aws/docker/library/node:22-slim AS runner
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1-x86_64 /lambda-adapter /opt/extensions/lambda-adapter
 
 ENV PORT=3000 
 ENV NODE_ENV=production 

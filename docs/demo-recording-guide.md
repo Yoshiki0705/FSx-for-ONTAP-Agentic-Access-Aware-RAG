@@ -42,7 +42,7 @@ aws ec2 run-instances \
 sudo apt-get update -y
 sudo apt-get install -y curl git unzip docker.io jq
 
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 sudo systemctl enable docker && sudo systemctl start docker

@@ -113,7 +113,7 @@ export class DemoAIStack extends cdk.Stack {
     // --- インデックス作成用Lambda ---
     const indexCreatorFn = new lambda.Function(this, 'OssIndexCreator', {
       functionName: `${prefix}-oss-index-creator`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       timeout: cdk.Duration.minutes(10),
       memorySize: 256,
@@ -194,7 +194,7 @@ export class DemoAIStack extends cdk.Stack {
     // CDK外で追加されたデータソースをKB削除前に自動削除する
     const kbCleanupFn = new lambda.Function(this, 'KbCleanupFn', {
       functionName: `${prefix}-kb-cleanup`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       timeout: cdk.Duration.minutes(5),
       code: lambda.Code.fromInline(`
@@ -301,7 +301,7 @@ exports.handler = async (event) => {
       // Action Group Lambda: Permission-aware KB検索
       const actionGroupFn = new lambda.Function(this, 'PermSearchFn', {
         functionName: `${prefix}-perm-search`,
-        runtime: lambda.Runtime.NODEJS_20_X,
+        runtime: lambda.Runtime.NODEJS_22_X,
         handler: 'index.handler',
         timeout: cdk.Duration.seconds(30),
         memorySize: 256,

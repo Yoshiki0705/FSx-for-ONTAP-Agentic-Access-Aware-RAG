@@ -118,7 +118,7 @@ export class DemoWebAppStack extends cdk.Stack {
     if (usePermissionFilterLambda) {
       const permFilterFn = new lambda.Function(this, 'PermFilterFn', {
         functionName: `${prefix}-perm-filter`,
-        runtime: lambda.Runtime.NODEJS_20_X,
+        runtime: lambda.Runtime.NODEJS_22_X,
         handler: 'metadata-filter-handler.handler',
         code: lambda.Code.fromAsset('lambda/permissions'),
         timeout: cdk.Duration.seconds(30),

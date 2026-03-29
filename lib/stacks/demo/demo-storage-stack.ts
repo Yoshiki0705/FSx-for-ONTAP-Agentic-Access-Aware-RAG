@@ -238,7 +238,7 @@ export class DemoStorageStack extends cdk.Stack {
 
     const s3ApCreatorFn = new lambda.Function(this, 'S3ApCreatorFn', {
       functionName: `${prefix}-fsx-s3ap-creator`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       timeout: cdk.Duration.minutes(10),
       role: s3ApCreatorRole,

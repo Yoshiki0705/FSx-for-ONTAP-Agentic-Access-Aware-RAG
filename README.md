@@ -136,8 +136,8 @@ SSM Session Managerで接続後、以下を実行します。
 sudo apt-get update -y
 sudo apt-get install -y curl git unzip docker.io
 
-# Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+# Node.js 22
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 # Docker有効化

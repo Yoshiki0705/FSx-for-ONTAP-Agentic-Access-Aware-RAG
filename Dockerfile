@@ -1,5 +1,5 @@
 # Multi-stage build for Next.js Lambda deployment
-FROM --platform=linux/amd64 public.ecr.aws/docker/library/node:20.9.0-slim AS builder
+FROM --platform=linux/amd64 public.ecr.aws/docker/library/node:22-slim AS builder
 
 WORKDIR /app
 
@@ -14,10 +14,10 @@ COPY docker/nextjs/ ./
 RUN npm run build
 
 # Production stage
-FROM --platform=linux/amd64 public.ecr.aws/docker/library/node:20.9.0-slim AS runner
+FROM --platform=linux/amd64 public.ecr.aws/docker/library/node:22-slim AS runner
 
 # Install Lambda Web Adapter
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.0-x86_64 /lambda-adapter /opt/extensions/lambda-adapter
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1-x86_64 /lambda-adapter /opt/extensions/lambda-adapter
 
 # Environment variables
 ENV PORT=3000 

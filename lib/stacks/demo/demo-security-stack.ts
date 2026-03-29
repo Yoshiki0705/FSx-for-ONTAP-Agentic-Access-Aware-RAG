@@ -126,7 +126,7 @@ export class DemoSecurityStack extends cdk.Stack {
 
     this.adSyncFunction = new lambda.Function(this, 'AdSyncFn', {
       functionName: `${prefix}-ad-sync`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('lambda/agent-core-ad-sync'),
       timeout: cdk.Duration.minutes(2),
