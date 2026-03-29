@@ -29,6 +29,22 @@ function extractFilePath(s3Uri: string, fileName: string): string {
 }
 
 /**
+ * access_levelを日本語のわかりやすいラベルに変換する
+ */
+function getAccessLevelLabel(accessLevel: string): string {
+  switch (accessLevel) {
+    case 'public':
+      return '全員アクセス可';
+    case 'confidential':
+      return '管理者のみ';
+    case 'restricted':
+      return '特定グループ';
+    default:
+      return accessLevel;
+  }
+}
+
+/**
  * ソースドキュメント（Citation）表示コンポーネント
  * 
  * RAG検索結果のcitation情報（ファイルパス、該当箇所）をレンダリングする。
@@ -80,7 +96,7 @@ export function CitationDisplay({ citations }: CitationDisplayProps) {
                       ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                       : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
                   }`}>
-                    {String(cite.metadata.access_level)}
+                    {getAccessLevelLabel(String(cite.metadata.access_level))}
                   </span>
                 )}
               </div>
