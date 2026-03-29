@@ -1,53 +1,72 @@
 /**
  * サイドバー状態管理用Zustandストア
- * システム管理セクションの折りたたみ状態をlocalStorageに永続化
+ * 複数の折りたたみセクションの状態をlocalStorageに永続化
  */
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-/**
- * SidebarStore State
- */
 interface SidebarStore {
-  /** システム管理セクションの展開状態 */
+  /** セクション別の展開状態 */
+  expandedSections: Record<string, boolean>;
+
+  /** セクションの展開状態を取得 */
+  isExpanded: (key: string) => boolean;
+
+  /** セクションの展開状態を設定 */
+  setExpanded: (key: string, expanded: boolean) => void;
+
+  /** セクションの展開/折りたたみをトグル */
+  toggle: (key: string) => void;
+
+  // 後方互換性
   systemSettingsExpanded: boolean;
-
-  /** システム管理セクションの展開状態を設定 */
   setSystemSettingsExpanded: (expanded: boolean) => void;
-
-  /** システム管理セクションの展開/折りたたみをトグル */
   toggleSystemSettings: () => void;
 }
 
-/**
- * サイドバーストア
- *
- * システム管理セクションの折りたたみ状態を管理します。
- * localStorageに永続化されます。
- *
- * @example
- * ```typescript
- * const { systemSettingsExpanded, toggleSystemSettings } = useSidebarStore();
- *
- * // トグル
- * toggleSystemSettings();
- *
- * // 直接設定
- * setSystemSettingsExpanded(true);
- * ```
- */
 export const useSidebarStore = create<SidebarStore>()(
   persist(
-    (set) => ({
-      systemSettingsExpanded: false,
+    (set, get) => ({
+      expandedSections: {},
+
+      isExpanded: (key: string) => {
+        return get().expandedSections[key] ?? false;
+      },
+
+      setExpanded: (key: string, expanded: boolean) => {
+        set((state) => ({
+          expandedSections: { ...state.expandedSections, [key]: expanded },
+        }));
+      },
+
+      toggle: (key: string) => {
+        set((state) => ({
+          expandedSections: {
+            ...state.expandedSections,
+            [key]: !(state.expandedSections[key] ?? false),
+          },
+        }));
+      },
+
+      // 後方互換性
+      get systemSettingsExpanded() {
+        return get().expandedSections['system-settings'] ?? false;
+      },
 
       setSystemSettingsExpanded: (expanded: boolean) => {
-        set({ systemSettingsExpanded: expanded });
+        set((state) => ({
+          expandedSections: { ...state.expandedSections, 'system-settings': expanded },
+        }));
       },
 
       toggleSystemSettings: () => {
-        set((state) => ({ systemSettingsExpanded: !state.systemSettingsExpanded }));
+        set((state) => ({
+          expandedSections: {
+            ...state.expandedSections,
+            'system-settings': !(state.expandedSections['system-settings'] ?? false),
+          },
+        }));
       },
     }),
     {
