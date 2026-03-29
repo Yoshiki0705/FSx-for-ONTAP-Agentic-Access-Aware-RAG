@@ -22,18 +22,19 @@ Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのR
               └─────────────┘    │   Serverless     │ │ (SIDデータ)  │   │ (権限Cache)  │
                                  └────────┬─────────┘ └──────────────┘   └──────────────┘
                                           │
-                              ┌───────────┴───────────┐
-                              ▼                       ▼
-                     ┌────────────────┐     ┌──────────────────┐
-                     │ S3 Bucket      │     │ FSx for ONTAP    │
-                     │ (メタデータ同期)│     │ (SVM + Volume)   │
-                     └────────────────┘     └────────┬─────────┘
-                                                     │ CIFS/SMB
-                                                     ▼
-                                            ┌──────────────────┐
-                                            │ Embedding EC2    │
-                                            │ (Titan Embed v2) │
-                                            └──────────────────┘
+                                          ▼
+                                 ┌──────────────────┐
+                                 │ FSx for ONTAP    │
+                                 │ (SVM + Volume)   │
+                                 │ + S3 Access Point│
+                                 └────────┬─────────┘
+                                          │ CIFS/SMB (オプション)
+                                          ▼
+                                 ┌──────────────────┐
+                                 │ Embedding EC2    │
+                                 │ (Titan Embed v2) │
+                                 │ (オプション)      │
+                                 └──────────────────┘
 ```
 
 ## 実装概要（8つの観点）
@@ -767,6 +768,22 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 権限フィルタリングの動作検証手順は [demo-data/guides/demo-scenario.md](demo-data/guides/demo-scenario.md) を参照してください。
 
 2種類のユーザー（管理者・一般ユーザー）で同じ質問をすると、アクセス権に基づいて異なる検索結果が返ることを確認できます。
+
+## ドキュメント一覧
+
+| ドキュメント | 内容 |
+|-------------|------|
+| [docs/implementation-overview.md](docs/implementation-overview.md) | 実装内容の詳細説明（8つの観点） |
+| [docs/ui-specification.md](docs/ui-specification.md) | チャットボットUI仕様書（カードUI、サイドバー、Citation表示、KB/Agentモード切替） |
+| [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SIDベース権限フィルタリングのアーキテクチャ詳細 |
+| [docs/embedding-server-design.md](docs/embedding-server-design.md) | Embeddingサーバー設計（ONTAP ACL自動取得含む） |
+| [docs/stack-unification-plan.md](docs/stack-unification-plan.md) | デモ/統合スタック統一計画（Phase 1-4） |
+| [docs/verification-report.md](docs/verification-report.md) | デプロイ後の検証手順とテストケース |
+| [docs/demo-recording-guide.md](docs/demo-recording-guide.md) | 検証デモ動画撮影手順書（6つの証跡） |
+| [docs/demo-environment-guide.md](docs/demo-environment-guide.md) | 検証環境セットアップガイド |
+| [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) | ドキュメントインデックス（推奨読書順序） |
+| [demo-data/guides/demo-scenario.md](demo-data/guides/demo-scenario.md) | 検証シナリオ（管理者 vs 一般ユーザーの権限差異確認） |
+| [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD連携・CIFS共有・NTFS ACL設定 |
 
 ## FSx ONTAP + Active Directory Setup
 

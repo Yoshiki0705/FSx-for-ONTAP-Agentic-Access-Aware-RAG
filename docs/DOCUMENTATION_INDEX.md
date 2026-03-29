@@ -5,7 +5,7 @@
 | ドキュメント | 内容 |
 |-------------|------|
 | [README.md](../README.md) | システム概要、アーキテクチャ、デプロイ手順、WAF/Geo設定 |
-| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（7つの観点） |
+| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（8つの観点） |
 | [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SIDベース権限フィルタリングの詳細設計 |
 | [docs/verification-report.md](verification-report.md) | デプロイ後の検証手順とテストケース |
 | [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（開発者・運用者向け） |
@@ -44,7 +44,7 @@
 ## 推奨読書順序
 
 1. **README.md** — システム全体像とデプロイ手順
-2. **implementation-overview.md** — 7つの観点での実装内容詳細
+2. **implementation-overview.md** — 8つの観点での実装内容詳細
 3. **SID-Filtering-Architecture.md** — コア機能の技術詳細
 4. **demo-recording-guide.md** — 検証デモ動画撮影手順書
 5. **ontap-setup-guide.md** — FSx ONTAP AD連携・CIFS共有設定
