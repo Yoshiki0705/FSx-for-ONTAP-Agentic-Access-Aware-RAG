@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-本リポジトリは、Amazon FSx for NetApp ONTAP 上の企業データとアクセス権限を活用し、Amazon Bedrock によるアクセス制御対応の Agentic RAG を AWS CDK でデプロイするサンプルです。FSx for ONTAP をデータソースとして、ACL / 権限情報を考慮した検索と応答生成を実現し、ベクトルデータベースには Amazon OpenSearch Serverless または Amazon Aurora Serverless v2 を利用できます。さらに、Next.js on AWS Lambda と Streamlit on Amazon ECS の2種類のアプリケーション実装を含み、エンタープライズ向けの安全な RAG / AI アシスタント構成を検証できるようにしています。
+本リポジトリは、Amazon FSx for NetApp ONTAP 上の企業データとアクセス権限を活用し、Amazon Bedrock によるアクセス制御対応の Agentic RAG を AWS CDK でデプロイするサンプルです。FSx for ONTAP をデータソースとして、ACL / 権限情報を考慮した検索と応答生成を実現し、ベクトルデータベースには Amazon OpenSearch Serverless を利用します。Next.js 15 on AWS Lambda（Lambda Web Adapter）によるカードベースのタスク指向UIを備え、エンタープライズ向けの安全な RAG / AI アシスタント構成を検証できるようにしています。
 
 ---
 
