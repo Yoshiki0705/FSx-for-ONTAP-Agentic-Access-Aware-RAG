@@ -11,7 +11,7 @@
 | [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（開発者・運用者向け） |
 | [docs/demo-recording-guide.md](demo-recording-guide.md) | 検証デモ動画撮影手順書（6つの証跡） |
 | [docs/embedding-server-design.md](embedding-server-design.md) | Embeddingサーバー設計・実装ドキュメント |
-| [docs/stack-unification-plan.md](stack-unification-plan.md) | デモスタック・統合スタック統一計画 |
+| [docs/stack-architecture-comparison.md](stack-architecture-comparison.md) | デモ/統合スタック アーキテクチャ比較 |
 
 ## セットアップ・検証
 

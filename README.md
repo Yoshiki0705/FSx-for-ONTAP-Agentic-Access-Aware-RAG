@@ -752,7 +752,7 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 ├── docs/
 │   ├── implementation-overview.md    # 実装内容の詳細説明（8つの観点）
 │   ├── ui-specification.md           # UI仕様書（KB/Agentモード切替、サイドバー設計）
-│   ├── stack-unification-plan.md     # デモ/統合スタック統一計画（Phase 1-4）
+│   ├── stack-architecture-comparison.md # デモ/統合スタック アーキテクチャ比較
 │   ├── embedding-server-design.md    # Embeddingサーバー設計（ONTAP ACL自動取得含む）
 │   ├── SID-Filtering-Architecture.md # SIDフィルタリング アーキテクチャ詳細
 │   ├── demo-recording-guide.md       # 検証デモ動画撮影手順書（6つの証跡）
@@ -777,7 +777,7 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 | [docs/ui-specification.md](docs/ui-specification.md) | チャットボットUI仕様書（カードUI、サイドバー、Citation表示、KB/Agentモード切替） |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SIDベース権限フィルタリングのアーキテクチャ詳細 |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | Embeddingサーバー設計（ONTAP ACL自動取得含む） |
-| [docs/stack-unification-plan.md](docs/stack-unification-plan.md) | デモ/統合スタック統一計画（Phase 1-4） |
+| [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md) | デモ/統合スタック アーキテクチャ比較 |
 | [docs/verification-report.md](docs/verification-report.md) | デプロイ後の検証手順とテストケース |
 | [docs/demo-recording-guide.md](docs/demo-recording-guide.md) | 検証デモ動画撮影手順書（6つの証跡） |
 | [docs/demo-environment-guide.md](docs/demo-environment-guide.md) | 検証環境セットアップガイド |
