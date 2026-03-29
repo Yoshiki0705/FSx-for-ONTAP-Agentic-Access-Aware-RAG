@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Amazon FSx for ONTAPとAmazon Bedrockを組み合わせた、権限ベースのRAG（Retrieval-Augmented Generation）システムです。ユーザーのアクセス権限に基づいて検索結果をフィルタリングし、セキュアなドキュメント検索とAIチャット機能を提供します。
+本リポジトリは、Amazon FSx for NetApp ONTAP 上の企業データとアクセス権限を活用し、Amazon Bedrock によるアクセス制御対応の Agentic RAG を AWS CDK でデプロイするサンプルです。FSx for ONTAP をデータソースとして、ACL / 権限情報を考慮した検索と応答生成を実現し、ベクトルデータベースには Amazon OpenSearch Serverless または Amazon Aurora Serverless v2 を利用できます。さらに、Next.js on AWS Lambda と Streamlit on Amazon ECS の2種類のアプリケーション実装を含み、エンタープライズ向けの安全な RAG / AI アシスタント構成を検証できるようにしています。
 
 ---
 
@@ -179,8 +179,8 @@ npx cdk --version  # 更新後のバージョンを確認
 
 ```bash
 cd /home/ubuntu
-git clone https://github.com/<YOUR_GITHUB_USERNAME>/Permission-aware-RAG-FSxN-CDK.git
-cd Permission-aware-RAG-FSxN-CDK
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG
 npm install
 ```
 

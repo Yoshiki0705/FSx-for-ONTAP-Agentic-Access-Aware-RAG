@@ -55,8 +55,8 @@ sudo npm install -g aws-cdk typescript ts-node
 
 ```bash
 cd /home/ubuntu
-git clone https://github.com/<YOUR_GITHUB_USERNAME>/Permission-aware-RAG-FSxN-CDK.git
-cd Permission-aware-RAG-FSxN-CDK
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG
 npm install
 ```
 
