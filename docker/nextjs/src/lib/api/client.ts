@@ -6,7 +6,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://daa1ivz70pn2k.cloudfront.net',
+      baseURL: process.env.NEXT_PUBLIC_API_URL || '',
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',

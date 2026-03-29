@@ -211,7 +211,7 @@ EOF
         
         cat >> "$config_file" << EOF
             {
-                "ImageId": "ami-0c02fb55956c7d316",
+                "ImageId": "<AMI_ID>",
                 "InstanceType": "$instance_type",
                 "KeyName": "my-key-pair",
                 "SecurityGroups": [

@@ -97,7 +97,7 @@ export class SystemInfoFactory {
       lambdaFunction: process.env.AWS_LAMBDA_FUNCTION_NAME || 'RAGWebApp-WebAppFunction',
       lambdaRegion: process.env.AWS_REGION || 'ap-northeast-1',
       dynamoTable: process.env.TABLE_NAME || 'rag-sessions',
-      cognitoUserPool: process.env.USER_POOL_ID || 'ap-northeast-1_4lmHYQGAv'
+      cognitoUserPool: process.env.USER_POOL_ID || ''
     };
   }
 

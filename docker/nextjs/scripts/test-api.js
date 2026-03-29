@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const CLOUDFRONT_URL = 'https://daa1ivz70pn2k.cloudfront.net';
+const CLOUDFRONT_URL = process.env.CLOUDFRONT_URL || 'https://your-distribution.cloudfront.net';
 
 async function testAPI() {
   console.log('🧪 API統合テストを開始...');

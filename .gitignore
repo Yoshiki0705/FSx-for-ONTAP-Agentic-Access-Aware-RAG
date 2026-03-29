@@ -20,6 +20,9 @@ yarn-error.log*
 docker/nextjs/.next/
 docker/nextjs/out/
 
+# Coverage reports (contain local file paths)
+docker/nextjs/coverage/
+
 # CDK
 cdk.out/
 cdk.out.*/
@@ -73,6 +76,7 @@ cloudfront-*-invalidation.json
 # Screenshots (local verification only)
 screenshots/
 !docs/screenshots/
+badge-labels-verification.png
 
 # CDK context環境固有ファイル
 cdk.context.json.production

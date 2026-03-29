@@ -3,9 +3,10 @@ phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 178625946981.dkr.ecr.ap-northeast-1.amazonaws.com
-      - IMAGE_TAG=retrieve-fix-$(date +%Y%m%d-%H%M%S)
-      - ECR_URI=178625946981.dkr.ecr.ap-northeast-1.amazonaws.com/permission-aware-rag-webapp
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - aws ecr get-login-password --region ${AWS_DEFAULT_REGION:-ap-northeast-1} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION:-ap-northeast-1}.amazonaws.com
+      - IMAGE_TAG=build-$(date +%Y%m%d-%H%M%S)
+      - ECR_URI=${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION:-ap-northeast-1}.amazonaws.com/permission-aware-rag-webapp
   build:
     commands:
       - echo Building Docker image...

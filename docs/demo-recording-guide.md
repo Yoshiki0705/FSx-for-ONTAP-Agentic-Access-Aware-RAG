@@ -26,7 +26,7 @@
 ```bash
 aws ec2 run-instances \
   --region ap-northeast-1 \
-  --image-id ami-0e467ee8344baec9e \
+  --image-id <UBUNTU_22_04_AMI_ID> \
   --instance-type t3.large \
   --subnet-id <PUBLIC_SUBNET_ID> \
   --security-group-ids <SG_ID> \
@@ -55,7 +55,7 @@ sudo npm install -g aws-cdk typescript ts-node
 
 ```bash
 cd /home/ubuntu
-git clone https://github.com/Yoshiki0705/Permission-aware-RAG-FSxN-CDK.git
+git clone https://github.com/<YOUR_GITHUB_USERNAME>/Permission-aware-RAG-FSxN-CDK.git
 cd Permission-aware-RAG-FSxN-CDK
 npm install
 ```

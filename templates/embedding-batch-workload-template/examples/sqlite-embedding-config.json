@@ -74,7 +74,7 @@
   "windowsLoadTest": {
     "enabled": true,
     "instanceType": "t3.medium",
-    "keyPairName": "fujiwara-2025",
+    "keyPairName": "my-keypair",
     "enableDetailedMonitoring": false,
     "enableBastion": true
   },
