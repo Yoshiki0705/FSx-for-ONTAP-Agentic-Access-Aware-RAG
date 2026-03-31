@@ -214,7 +214,7 @@ AOSS構成（`vectorStoreType=opensearch-serverless`）:
 
 ### 実装内容
 
-Amazon FSx for NetApp ONTAPのボリュームをCIFS/SMBでマウントしたEC2インスタンス上で、Dockerコンテナがドキュメントを読み取り、ベクトル化してOpenSearch Serverlessにインデックスします。
+Amazon FSx for NetApp ONTAPのボリュームをCIFS/SMBでマウントしたEC2インスタンス上で、Dockerコンテナがドキュメントを読み取り、ベクトル化してOpenSearch Serverless（AOSS）にインデックスします。S3 Vectors構成では使用しません（AOSS構成時のみ）。
 
 ### データ取り込みパスの全体像
 
