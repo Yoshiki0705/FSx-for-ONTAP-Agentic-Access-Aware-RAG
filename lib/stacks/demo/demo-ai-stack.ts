@@ -1041,7 +1041,24 @@ exports.handler = async (event) => {
         IndexName: indexName,
         Dimension: 1024,
         DistanceMetric: 'cosine',
-        NonFilterableMetadataKeys: JSON.stringify(['source_uri', 'chunk_text']),
+        NonFilterableMetadataKeys: JSON.stringify([
+          // Bedrock KB自動付与メタデータ（filterableにする必要なし）
+          'x-amz-bedrock-kb-source-file-modality',
+          'x-amz-bedrock-kb-chunk-id',
+          'x-amz-bedrock-kb-data-source-id',
+          'x-amz-bedrock-kb-source-uri',
+          'x-amz-bedrock-kb-document-page-number',
+          // アプリ固有メタデータ（全てnon-filterable）
+          // 本システムではBedrock KB Retrieve API経由でアクセスし、
+          // SIDフィルタリングはアプリ側で実施するため、
+          // S3 VectorsのQueryVectors filterは使用しない。
+          // filterable metadata 2KB制限を回避するため全てnon-filterableにする。
+          'source_uri',
+          'chunk_text',
+          'access_level',
+          'doc_type',
+          'allowed_group_sids',
+        ]),
         Timestamp: Date.now().toString(),
       },
     });

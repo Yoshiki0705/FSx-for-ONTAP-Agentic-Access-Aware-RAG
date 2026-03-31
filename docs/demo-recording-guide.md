@@ -95,7 +95,7 @@ npm install
 1. **Next.js RAG Chatbot on AWS Lambda** — Lambda Web Adapterでサーバーレス実行。カードベースのタスク指向UI
 2. **AWS WAF** — レートリミット、IP Reputation、OWASP準拠ルール、SQLi防御
 3. **IAM認証** — Lambda Function URL IAM Auth + CloudFront OAC (SigV4)
-4. **OpenSearch Serverless** — ベクトル検索コレクション（1024次元、HNSW/faiss）
+4. **ベクトルストア** — S3 Vectors（デフォルト、低コスト）/ OpenSearch Serverless（高パフォーマンス、`vectorStoreType`で選択）
 5. **FSx ONTAP + S3 Access Point** — S3 AP経由でBedrock KBにドキュメントを直接提供
 6. **Titan Embed Text v2** — Amazon Bedrockのテキストベクトル化モデル（1024次元）
 7. **SIDフィルタリング** — NTFS ACLのSID情報でドキュメントレベルのアクセス制御

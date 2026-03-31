@@ -46,8 +46,8 @@
 | 1 | Chatbotアプリケーション | Next.js 15 (App Router) をLambda Web Adapterでサーバーレス実行。KB/Agentモード切替対応。カードベースのタスク指向UI | WebAppStack |
 | 2 | AWS WAF | レートリミット、IP Reputation、OWASP準拠ルール、SQLi防御、IP許可リストの6ルール構成 | WafStack |
 | 3 | IAM認証 | Lambda Function URL + CloudFront OAC による多層セキュリティ | WebAppStack |
-| 4 | ベクトルDB (AOSS) | OpenSearch Serverlessベクトル検索コレクション（1024次元、HNSW/faiss/l2） | AIStack |
-| 5 | Embedding Server | FSx ONTAPボリュームをCIFS/SMBマウントしたEC2でドキュメントをベクトル化しAOSSに書き込み | EmbeddingStack |
+| 4 | ベクトルDB (AOSS/S3 Vectors) | OpenSearch Serverlessベクトル検索コレクション（1024次元、HNSW/faiss/l2） | AIStack |
+| 5 | Embedding Server | FSx ONTAPボリュームをCIFS/SMBマウントしたEC2でドキュメントをベクトル化しAOSS/S3 Vectorsに書き込み | EmbeddingStack |
 | 6 | Titan Text Embeddings | `amazon.titan-embed-text-v2:0`（1024次元）をKB取り込みとEmbeddingサーバーの両方で使用 | AIStack |
 | 7 | SIDメタデータ + 権限フィルタリング | NTFS ACLのSID情報を`.metadata.json`で管理し、検索時にユーザーSIDと照合してフィルタリング | StorageStack |
 | 8 | KB/Agentモード切替 | KBモード（文書検索）とAgentモード（多段階推論）をトグルで切替。Agent Directory（`/genai/agents`）でカタログ形式のAgent管理・テンプレート作成・編集・削除。動的Agent作成・カード紐付け。アウトプット指向ワークフロー（プレゼン資料、稟議書、議事録、レポート、契約書、オンボーディング）。8言語i18n対応。両モードでPermission-aware | WebAppStack |
@@ -298,7 +298,32 @@ EOF
 | 構成 | コスト | レイテンシ | 推奨用途 |
 |------|--------|-----------|---------|
 | `s3vectors`（デフォルト） | 月数ドル | サブ秒〜100ms | デモ・開発・コスト最適化 |
-| `opensearch-serverless` | ~$700/月 | ~10ms | 高パフォーマンス本番環境 |
+
+#### 既存FSx for ONTAPの利用
+
+既にFSx for ONTAPファイルシステムが存在する場合、新規作成せずに既存リソースを参照できます。これによりデプロイ時間が大幅に短縮されます（FSx ONTAP作成の30-40分待ちが不要）。
+
+```bash
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c existingFileSystemId=fs-0123456789abcdef0 \
+  -c existingSvmId=svm-0123456789abcdef0 \
+  -c existingVolumeId=fsvol-0123456789abcdef0 \
+  -c vectorStoreType=s3vectors \
+  -c enableAgent=true
+```
+
+| パラメータ | 説明 |
+|-----------|------|
+| `existingFileSystemId` | 既存FSx ONTAPファイルシステムID（例: `fs-0123456789abcdef0`） |
+| `existingSvmId` | 既存SVM ID（例: `svm-0123456789abcdef0`） |
+| `existingVolumeId` | 既存ボリュームID（例: `fsvol-0123456789abcdef0`） |
+
+> **注意**: 既存FSx参照モードでは、FSx/SVM/VolumeはCDK管理外となります。`cdk destroy`で削除されません。Managed ADも作成されません（既存環境のAD設定を使用）。
+
+| 構成 | コスト | レイテンシ | 推奨用途 | メタデータ制約 |
+|------|--------|-----------|---------|--------------|
+| `s3vectors`（デフォルト） | 月数ドル | サブ秒〜100ms | デモ・開発・コスト最適化 | filterable 2KB制限あり（下記参照） |
+| `opensearch-serverless` | ~$700/月 | ~10ms | 高パフォーマンス本番環境 | 制約なし |
 
 ```bash
 # S3 Vectors構成（デフォルト）
@@ -584,6 +609,26 @@ aws s3api list-object-versions --bucket "$BUCKET" \
 aws s3api delete-bucket --bucket "$BUCKET"
 ```
 
+#### 問題5: ビルド用EC2がサブネット削除をブロック
+
+VPC内にビルド用EC2インスタンスが残っていると、Networkingスタックのサブネット削除が失敗します:
+
+```bash
+# ビルド用EC2を終了
+aws ec2 describe-instances --filters "Name=instance-state-name,Values=running" \
+  --query 'Reservations[].Instances[?Tags[?Key==`Name` && contains(Value, `build`)]].InstanceId' \
+  --output text --region ap-northeast-1
+aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
+
+# 60秒待ってからNetworkingスタック削除をリトライ
+sleep 60
+aws cloudformation delete-stack --stack-name <PREFIX>-Networking --region ap-northeast-1
+```
+
+#### 問題6: 既存FSx参照モードでのcdk destroy
+
+`existingFileSystemId`を指定してデプロイした場合、`cdk destroy`でFSx/SVM/Volumeは削除されません（CDK管理外）。S3 Vectorsベクトルバケット・インデックスは正常に削除されます。
+
 #### 推奨: 完全削除スクリプト
 
 上記の問題を回避する完全削除手順は `demo-data/scripts/cleanup-all.sh` に自動化されています:
@@ -698,10 +743,264 @@ Bedrock KBのIngestion Jobが実行する処理：
   → アプリ側SIDフィルタリング → Converse API（回答生成）
 ```
 
+### Embedding対象ドキュメントの設定
+
+Bedrock KBにEmbeddingされるドキュメントは、FSx ONTAPボリューム上のファイル構成で決まります。
+
+#### ディレクトリ構成とSIDメタデータ
+
+```
+FSx ONTAP Volume (/data)
+  ├── public/                          ← 全ユーザーアクセス可能
+  │   ├── product-catalog.md           ← ドキュメント本体
+  │   └── product-catalog.md.metadata.json  ← SIDメタデータ
+  ├── confidential/                    ← 管理者のみアクセス可能
+  │   ├── financial-report.md
+  │   └── financial-report.md.metadata.json
+  └── restricted/                      ← 特定グループのみ
+      ├── project-plan.md
+      └── project-plan.md.metadata.json
+```
+
+#### .metadata.json の書式
+
+各ドキュメントに対応する`.metadata.json`ファイルでSIDベースのアクセス制御を設定します。
+
+```json
+{
+  "metadataAttributes": {
+    "allowed_group_sids": "[\"S-1-1-0\"]",
+    "access_level": "public",
+    "doc_type": "catalog"
+  }
+}
+```
+
+| フィールド | 必須 | 説明 |
+|-----------|------|------|
+| `allowed_group_sids` | ✅ | アクセスを許可するSIDのJSON配列文字列。`S-1-1-0`はEveryone |
+| `access_level` | 任意 | UI表示用のアクセスレベル（`public`, `confidential`, `restricted`） |
+| `doc_type` | 任意 | ドキュメント種別（将来のフィルタリング用） |
+
+#### 主要なSID値
+
+| SID | 名前 | 用途 |
+|-----|------|------|
+| `S-1-1-0` | Everyone | 全ユーザーに公開するドキュメント |
+| `S-1-5-21-...-512` | Domain Admins | 管理者のみアクセス可能なドキュメント |
+| `S-1-5-21-...-1100` | Engineering | エンジニアリンググループ向けドキュメント |
+
+> **詳細**: SIDフィルタリングの仕組みは [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) を参照してください。
+
+#### S3 Vectorsメタデータの制約と考慮点
+
+S3 Vectors構成（`vectorStoreType=s3vectors`）を使用する場合、以下のメタデータ制約に注意してください。
+
+| 制約 | 値 | 影響 |
+|------|-----|------|
+| Filterable metadata | 2KB/vector | Bedrock KB内部メタデータ（~1KB）を含むため、カスタムメタデータは実質**1KB以下** |
+| Non-filterable metadata keys | 最大10キー/index | Bedrock KB自動キー（5個）+ カスタムキー（5個）で上限に達する |
+| Total metadata | 40KB/vector | 通常は問題なし |
+
+CDKコードでは以下の対処が実装済みです：
+- Bedrock KB自動付与メタデータキー（`x-amz-bedrock-kb-chunk-id`等5個）を`nonFilterableMetadataKeys`に設定
+- `allowed_group_sids`を含む全カスタムメタデータもnon-filterableに設定
+- SIDフィルタリングはBedrock KB Retrieve APIのメタデータ返却 + アプリ側照合で実現（S3 VectorsのQueryVectors filterは不使用）
+
+カスタムメタデータを追加する場合の注意：
+- `.metadata.json`のキー数は5個以下に抑える（non-filterable keys 10個制限のため）
+- 値のサイズを小さくする（SID値は短縮形を推奨。例: `S-1-5-21-...-512` → `S-1-5-21-512`）
+- PDFファイルはページ番号メタデータが自動付与されるため、カスタムメタデータとの合計が2KBを超えやすい
+- OpenSearch Serverless構成（`vectorStoreType=opensearch-serverless`）にはこの制約なし
+
+> **詳細**: S3 Vectorsメタデータ制約の検証結果は [docs/s3-vectors-sid-architecture-guide.md](docs/s3-vectors-sid-architecture-guide.md) を参照してください。
+
+### データ取り込みパスの選択
+
 | パス | 方式 | CDK有効化 | 状況 |
 |------|------|----------|------|
-| メイン | FSx ONTAP → S3 Access Point → Bedrock KB | CDKデプロイ後にスクリプトで設定 | ✅ |
-| 代替（オプション） | Embeddingサーバー（CIFSマウント）→ AOSS直接書き込み | `-c enableEmbeddingServer=true` | ✅ |
+| メイン | FSx ONTAP → S3 Access Point → Bedrock KB → ベクトルストア | CDKデプロイ後に`post-deploy-setup.sh` | ✅ |
+| フォールバック | S3バケット直接アップロード → Bedrock KB → ベクトルストア | 手動（`upload-demo-data.sh`） | ✅ |
+| 代替（オプション） | Embeddingサーバー（CIFSマウント）→ AOSS/S3 Vectors直接書き込み | `-c enableEmbeddingServer=true` | ✅ |
+
+> **フォールバックパス**: FSx ONTAP S3 APが利用できない場合（Organization SCPの制限等）、S3バケットにドキュメント+`.metadata.json`を直接アップロードしてKBデータソースとして設定できます。SIDフィルタリングはデータソースの種類に依存しません。
+
+### Embedding対象ドキュメントの手動管理
+
+CDKデプロイなしで、Embedding対象のドキュメントを追加・変更・削除できます。
+
+#### ドキュメントの追加
+
+FSx ONTAP S3 Access Point経由（メインパス）:
+
+```bash
+# VPC内のEC2またはWorkSpacesからSMBでFSx ONTAPにファイルを配置
+SVM_IP=<SVM_SMB_IP>
+smbclient //$SVM_IP/data -U 'demo.local\Admin%<PASSWORD>' \
+  -c "cd public; put new-document.md; put new-document.md.metadata.json"
+
+# KB同期を実行（ドキュメント追加後に必須）
+# S3 APデータソースの場合、Bedrock KBがS3 AP経由でFSx上のファイルを自動取得
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+S3バケット直接アップロード（フォールバックパス）:
+
+```bash
+# S3バケットにドキュメント+メタデータをアップロード
+aws s3 cp new-document.md s3://<DATA_BUCKET>/public/new-document.md
+aws s3 cp new-document.md.metadata.json s3://<DATA_BUCKET>/public/new-document.md.metadata.json
+
+# KB同期
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+#### ドキュメントの更新
+
+ドキュメントを上書きした後、KB同期を再実行します。Bedrock KBは変更されたドキュメントを自動検出して再Embeddingします。
+
+```bash
+# SMBでドキュメントを上書き
+smbclient //$SVM_IP/data -U 'demo.local\Admin%<PASSWORD>' \
+  -c "cd public; put updated-document.md product-catalog.md"
+
+# KB同期（変更検出 + 再Embedding）
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+#### ドキュメントの削除
+
+```bash
+# SMBでドキュメントを削除
+smbclient //$SVM_IP/data -U 'demo.local\Admin%<PASSWORD>' \
+  -c "cd public; del old-document.md; del old-document.md.metadata.json"
+
+# KB同期（削除検出 + ベクトルストアから削除）
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+#### SIDメタデータの変更（アクセス権限の変更）
+
+ドキュメントのアクセス権限を変更するには、`.metadata.json`を更新してKB同期を実行します。
+
+```bash
+# 例: publicドキュメントをconfidentialに変更
+cat > financial-report.md.metadata.json << 'EOF'
+{"metadataAttributes":{"allowed_group_sids":"[\"S-1-5-21-...-512\"]","access_level":"confidential","doc_type":"financial"}}
+EOF
+
+smbclient //$SVM_IP/data -U 'demo.local\Admin%<PASSWORD>' \
+  -c "cd confidential; put financial-report.md.metadata.json"
+
+# KB同期
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+### FSx for ONTAPボリュームのEmbedding対象管理
+
+既存のFSx ONTAPボリュームをBedrock KBのEmbedding対象として追加・除外する手順です。ボリューム自体の作成・削除はFSx管理者が行います。
+
+#### ボリュームをEmbedding対象に追加
+
+```bash
+# 1. 対象ボリュームにS3 Access Pointを作成
+aws fsx create-and-attach-s3-access-point \
+  --name <S3AP_NAME> \
+  --type ONTAP \
+  --ontap-configuration '{
+    "VolumeId": "<VOLUME_ID>",
+    "FileSystemIdentity": {
+      "Type": "WINDOWS",
+      "WindowsUser": {"Name": "demo.local\\Admin"}
+    }
+  }' --region ap-northeast-1
+
+# S3 APがAVAILABLEになるまで待機（約1分）
+watch -n 10 "aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \
+  --query 'S3AccessPointAttachments[?Name==\`<S3AP_NAME>\`].Lifecycle' --output text"
+
+# 2. S3 APポリシーを設定
+ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+aws s3control put-access-point-policy \
+  --account-id $ACCOUNT_ID \
+  --name <S3AP_NAME> \
+  --policy '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::'$ACCOUNT_ID':root"},"Action":"s3:*","Resource":["arn:aws:s3:ap-northeast-1:'$ACCOUNT_ID':accesspoint/<S3AP_NAME>","arn:aws:s3:ap-northeast-1:'$ACCOUNT_ID':accesspoint/<S3AP_NAME>/object/*"]}]}' \
+  --region ap-northeast-1
+
+# 3. Bedrock KBにデータソースとして登録
+S3AP_ALIAS=$(aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \
+  --query 'S3AccessPointAttachments[?Name==`<S3AP_NAME>`].S3AccessPoint.Alias' --output text)
+
+aws bedrock-agent create-data-source \
+  --knowledge-base-id <KB_ID> \
+  --name "<DATA_SOURCE_NAME>" \
+  --data-source-configuration '{"type":"S3","s3Configuration":{"bucketArn":"arn:aws:s3:::'$S3AP_ALIAS'"}}' \
+  --region ap-northeast-1
+
+# 4. KB同期を実行（ボリューム上のドキュメントをEmbedding）
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+#### ボリュームをEmbedding対象から除外
+
+```bash
+# 1. Bedrock KBからデータソースを削除（ベクトルストアからも削除される）
+aws bedrock-agent delete-data-source \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+
+# 2. S3 Access Pointを削除
+aws fsx detach-and-delete-s3-access-point \
+  --name <S3AP_NAME> --region ap-northeast-1
+```
+
+> **注意**: データソースを削除すると、そのボリュームのドキュメントに対応するベクトルもベクトルストアから削除されます。ボリューム上のファイル自体は影響を受けません。
+
+#### 現在のEmbedding対象ボリュームの確認
+
+```bash
+# 登録済みデータソース一覧
+aws bedrock-agent list-data-sources \
+  --knowledge-base-id <KB_ID> \
+  --region ap-northeast-1 \
+  --query 'dataSourceSummaries[*].{name:name,id:dataSourceId,status:status}'
+
+# S3 AP一覧（FSx ONTAPボリュームとの紐付き）
+aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \
+  --query 'S3AccessPointAttachments[*].{Name:Name,Volume:OntapConfiguration.VolumeId,Status:Lifecycle}'
+```
+
+#### KB同期状態の確認
+
+```bash
+aws bedrock-agent get-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --ingestion-job-id <JOB_ID> \
+  --region ap-northeast-1 \
+  --query 'ingestionJob.{status:status,scanned:statistics.numberOfDocumentsScanned,indexed:statistics.numberOfNewDocumentsIndexed,deleted:statistics.numberOfDocumentsDeleted,failed:statistics.numberOfDocumentsFailed}'
+```
+
+> **注意**: KB同期はドキュメントの追加・更新・削除後に必ず実行してください。同期しないとベクトルストアに反映されません。同期は通常30秒〜2分で完了します。
 
 #### S3 Access Pointデータソースのセットアップ
 

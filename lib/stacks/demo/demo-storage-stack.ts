@@ -104,8 +104,7 @@ export class DemoStorageStack extends cdk.Stack {
 
     if (useExistingFsx) {
       // 既存FSx ONTAPリソースを参照（CDK管理外）
-      // CfnFileSystem/CfnStorageVirtualMachine/CfnVolumeはCDKで管理しないが、
-      // 他のスタックが参照するプロパティを設定する
+      // 他のリソースが.refで参照できるようにダミーオブジェクトを設定
       this.fileSystem = { ref: props.existingFileSystemId! } as any;
       this.svm = { ref: props.existingSvmId! } as any;
       this.volume = { ref: props.existingVolumeId! } as any;
@@ -287,7 +286,9 @@ export class DemoStorageStack extends cdk.Stack {
         Timestamp: Date.now().toString(),
       },
     });
-    s3ApResource.node.addDependency(this.volume);
+    if (!useExistingFsx) {
+      s3ApResource.node.addDependency(this.volume);
+    }
 
     s3ApCreatorFn.addPermission('CfnInvoke', {
       principal: new iam.ServicePrincipal('cloudformation.amazonaws.com'),
@@ -333,17 +334,17 @@ export class DemoStorageStack extends cdk.Stack {
     // CloudFormation出力
     // ========================================
     new cdk.CfnOutput(this, 'FileSystemId', {
-      value: this.fileSystem.ref,
+      value: useExistingFsx ? props.existingFileSystemId! : this.fileSystem.ref,
       exportName: `${prefix}-FileSystemId`,
     });
 
     new cdk.CfnOutput(this, 'SvmId', {
-      value: this.svm.attrStorageVirtualMachineId,
+      value: useExistingFsx ? props.existingSvmId! : (this.svm as fsx.CfnStorageVirtualMachine).attrStorageVirtualMachineId,
       exportName: `${prefix}-SvmId`,
     });
 
     new cdk.CfnOutput(this, 'VolumeId', {
-      value: this.volume.ref,
+      value: useExistingFsx ? props.existingVolumeId! : this.volume.ref,
       exportName: `${prefix}-VolumeId`,
     });
 

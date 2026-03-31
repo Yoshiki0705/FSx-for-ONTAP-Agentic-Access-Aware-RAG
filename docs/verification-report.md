@@ -22,7 +22,7 @@ aws cloudformation list-stacks \
 | NetworkingStack | ap-northeast-1 | VPC、Subnets、Security Groups |
 | SecurityStack | ap-northeast-1 | Cognito User Pool、Client |
 | StorageStack | ap-northeast-1 | FSx ONTAP、S3、DynamoDB×2、AWS Managed AD |
-| AIStack | ap-northeast-1 | Bedrock KB、OpenSearch Serverless、Bedrock Agent（オプション） |
+| AIStack | ap-northeast-1 | Bedrock KB、S3 Vectors / OpenSearch Serverless（`vectorStoreType`で選択）、Bedrock Agent（オプション） |
 | WebAppStack | ap-northeast-1 | Lambda (Web Adapter)、CloudFront |
 
 ---
@@ -184,7 +184,7 @@ for d in fl.get('details', []):
 | 1 | Next.js RAG Chatbot on Lambda | ✅ | Lambda Web Adapter + CloudFront |
 | 2 | AWS WAF（IP/Geo保護） | ✅ | 6ルール + Geo制限 |
 | 3 | API IAM認証 | ⚠️ | CDKコードはIAM Auth + OAC構成。POSTリクエストのSigV4署名問題あり（後述） |
-| 4 | ベクトルDB（AOSS） | ✅ | OpenSearch Serverless |
+| 4 | ベクトルDB | ✅ | S3 Vectors（デフォルト）/ OpenSearch Serverless（`vectorStoreType`で選択） |
 | 5 | Embedding（Bedrock KB経由） | ✅ | Titan Embeddings v2 |
 | 6 | SIDベース権限フィルタリング | ✅ | DynamoDB + メタデータSID照合 |
 

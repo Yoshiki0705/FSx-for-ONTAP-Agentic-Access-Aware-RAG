@@ -10,6 +10,8 @@
 
 FSx ONTAP上のドキュメントをCIFS/SMBマウント経由で読み取り、Amazon Bedrock Titan Embed Text v2でベクトル化し、OpenSearch Serverless（AOSS）にインデックスするサーバーです。
 
+> **注意**: EmbeddingサーバーはAOSS（`vectorStoreType=opensearch-serverless`）構成時のみ使用可能です。S3 Vectors構成（デフォルト）ではBedrock KBがEmbeddingを自動管理するため、Embeddingサーバーは不要です。
+
 Bedrock KBのS3データソース（Option A）やS3 Access Point（Option C）が使えない場合の代替パス（Option B）として使用します。
 
 ---

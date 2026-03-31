@@ -12,6 +12,14 @@
   // "opensearch-serverless": OpenSearch Serverless — 高パフォーマンス、~$700/月、本番環境向け
   "vectorStoreType": "s3vectors",
 
+  // 既存FSx for ONTAP参照（オプション）
+  // 指定するとFSx/SVM/Volumeを新規作成せず、既存リソースを参照する
+  // デプロイ時間が大幅に短縮される（FSx作成の30-40分待ちが不要）
+  // 3つ全て指定するか、全て省略する（一部のみの指定は不可）
+  // "existingFileSystemId": "fs-0123456789abcdef0",
+  // "existingSvmId": "svm-0123456789abcdef0",
+  // "existingVolumeId": "fsvol-0123456789abcdef0",
+
   // エンタープライズAgent機能（オプション）
   // "enableAgent": Bedrock Agent + Permission-aware Action Group
   // "enableAgentSharing": Agent構成共有S3バケット（JSON export/import、組織内共有）

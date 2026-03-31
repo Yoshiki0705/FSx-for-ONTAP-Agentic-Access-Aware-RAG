@@ -24,7 +24,7 @@
 | KMS暗号化 | S3・DynamoDB CMK暗号化 | `enableKmsEncryption=true` | キーローテーション有効 |
 | CloudTrail | S3データアクセス + Lambda監査 | `enableCloudTrail=true` | 90日保持 |
 | VPCエンドポイント | S3, DynamoDB, Bedrock等 | `enableVpcEndpoints=true` | 6サービス対応 |
-| Embeddingサーバー | FlexCache CIFSマウント + AOSS | `enableEmbeddingServer=true` | S3 AP非対応時の代替パス |
+| Embeddingサーバー | FlexCache CIFSマウント + ベクトルストア直接書き込み | `enableEmbeddingServer=true` | S3 AP非対応時の代替パス（AOSS構成時のみ） |
 
 ---
 
@@ -34,7 +34,7 @@
 |------|------|--------|------|
 | メイン | FSx ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 通常ボリューム |
 | フォールバック | S3バケット直接アップロード → Bedrock KB | `upload-demo-data.sh` | S3 AP非対応時 |
-| 代替 | CIFSマウント → Embeddingサーバー → AOSS | `enableEmbeddingServer=true` | FlexCacheボリューム |
+| 代替 | CIFSマウント → Embeddingサーバー → ベクトルストア直接書き込み | `enableEmbeddingServer=true` | FlexCacheボリューム（AOSS構成時のみ） |
 
 ---
 
@@ -45,10 +45,18 @@
 | 1 | WafStack | 必須 | CloudFront用WAF（us-east-1） |
 | 2 | NetworkingStack | 必須 | VPC, サブネット, SG |
 | 3 | SecurityStack | 必須 | Cognito User Pool |
-| 4 | StorageStack | 必須 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2 |
-| 5 | AIStack | 必須 | Bedrock KB, OpenSearch Serverless, Agent（オプション） |
+| 4 | StorageStack | 必須 | FSx ONTAP + SVM + Volume（または既存参照）, S3, DynamoDB×2 |
+| 5 | AIStack | 必須 | Bedrock KB, S3 Vectors or OpenSearch Serverless, Agent（オプション） |
 | 6 | WebAppStack | 必須 | Lambda Web Adapter + CloudFront |
 | 7 | EmbeddingStack | 任意 | FlexCache CIFSマウント + Embeddingサーバー |
+
+### 既存FSx for ONTAP参照モード
+
+StorageStackは`existingFileSystemId`/`existingSvmId`/`existingVolumeId`パラメータで既存FSx ONTAPリソースを参照できます。この場合：
+- FSx/SVM/Volumeの新規作成をスキップ（デプロイ時間30-40分短縮）
+- Managed ADの作成もスキップ（既存環境のAD設定を使用）
+- S3バケット、DynamoDBテーブル、S3 APカスタムリソースは通常通り作成
+- `cdk destroy`でFSx/SVM/Volumeは削除されない（CDK管理外）
 
 ---
 
@@ -64,8 +72,11 @@ CDKコンテキストパラメータ`vectorStoreType`により、ベクトルス
 | **コスト** | ~$700/月（2 OCU常時稼働） | 月数ドル（小規模） | S3 Vectors + AOSS OCU（エクスポート時のみ） |
 | **レイテンシ** | ~10ms | サブ秒（コールド）、~100ms（ウォーム） | ~10ms（エクスポート後のAOSS検索） |
 | **フィルタリング** | メタデータフィルタ（`$eq`, `$ne`, `$in`等） | メタデータフィルタ（`$eq`, `$in`, `$and`, `$or`） | エクスポート後はAOSSのフィルタリング |
+| **メタデータ制約** | 制約なし | filterable 2KB/vector（カスタムは実質1KB）、non-filterable keys最大10個 | エクスポート後はAOSSの制約に従う |
 | **ユースケース** | 高パフォーマンス必須の本番環境 | コスト最適化・デモ・開発環境 | 一時的な高パフォーマンス需要 |
 | **運用手順** | CDKデプロイのみ | CDKデプロイのみ | CDKデプロイ後に`export-to-opensearch.sh`を実行。エクスポート用IAMロール自動作成 |
+
+> **S3 Vectorsメタデータ制約**: Bedrock KB + S3 Vectorsの場合、カスタムメタデータは実質1KB以下に制限されます（filterable metadata 2KBのうち~1KBをBedrock KB内部メタデータが消費）。CDKコードでは全メタデータをnon-filterableに設定して2KB制限を回避しています。SIDフィルタリングはアプリ側で実施するため、S3 VectorsのQueryVectors filterは不要です。詳細は[docs/s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md)を参照。
 
 ### エクスポートに関する注意事項
 

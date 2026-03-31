@@ -147,24 +147,41 @@ Cognito JWT検証 (アプリケーションレベル認証)
 
 ---
 
-## 4. ベクトルデータベース — Amazon OpenSearch Serverless
+## 4. ベクトルデータベース — S3 Vectors / Amazon OpenSearch Serverless
 
 ### 実装内容
 
-RAG検索で利用するベクトルデータベースとして、Amazon OpenSearch Serverless（AOSS）のベクトル検索コレクションを使用しています。
+RAG検索で利用するベクトルデータベースとして、CDKコンテキストパラメータ`vectorStoreType`で以下を選択できます:
+- **S3 Vectors**（デフォルト）: 低コスト、サブ秒レイテンシ。Bedrock KBのベクトルストアとして直接利用
+- **Amazon OpenSearch Serverless（AOSS）**: 高パフォーマンス（~10ms）、高コスト（~$700/月）
 
 ### 設計判断
 
-本システムではAOSSを選択していますが、アーキテクチャ上はAmazon Aurora Serverless v2（pgvector拡張）も選択肢として検討可能です。AOSSを選択した理由:
+S3 Vectorsをデフォルトとした理由:
+- コストが月数ドル（小規模）で、OpenSearch Serverlessの~$700/月と比較して大幅に低い
+- Bedrock KBのベクトルストアとしてネイティブ対応
+- メタデータフィルタリング（`$eq`, `$in`, `$and`, `$or`）をサポート
+- 高パフォーマンスが必要な場合はS3 VectorsからAOSSへのワンクリックエクスポートが可能
 
-| 観点 | AOSS | Aurora Serverless v2 (pgvector) |
-|------|------|------|
-| Bedrock KB統合 | ネイティブ対応 | カスタム統合が必要 |
+AOSSを選択する場合の比較:
+
+| 観点 | S3 Vectors | AOSS | Aurora Serverless v2 (pgvector) |
+|------|-----------|------|------|
+| Bedrock KB統合 | ネイティブ対応 | ネイティブ対応 | カスタム統合が必要 |
+| コスト | 月数ドル（従量課金） | ~$700/月（2 OCU最低） | インスタンスコスト依存 |
+| レイテンシ | サブ秒〜100ms | ~10ms | ~10ms |
+| メタデータ検索 | フィルタリング演算子対応 | テキストフィールドで格納 | SQLクエリで柔軟に検索可能 |
 | 運用負荷 | サーバーレス（自動スケーリング） | 容量管理が必要 |
 | コスト | 検索量に応じた従量課金 | 最小ACU課金あり |
 | メタデータ検索 | テキストフィールドで格納 | SQLクエリで柔軟に検索可能 |
 
-### AOSS構成
+### ベクトルストア構成
+
+S3 Vectors構成（デフォルト）:
+- S3 Vectorsベクトルバケット + ベクトルインデックス（1024次元、cosine）
+- カスタムリソースLambdaで作成（CloudFormation未サポート）
+
+AOSS構成（`vectorStoreType=opensearch-serverless`）:
 
 | リソース | 説明 |
 |---------|------|
@@ -186,7 +203,8 @@ RAG検索で利用するベクトルデータベースとして、Amazon OpenSea
 ### CDKスタック
 
 `DemoAIStack`（`lib/stacks/demo/demo-ai-stack.ts`）で以下を作成:
-- OpenSearch Serverless コレクション + セキュリティポリシー（暗号化・ネットワーク・データアクセス）
+- `vectorStoreType=s3vectors`: S3 Vectorsベクトルバケット + インデックス（カスタムリソースLambda）
+- `vectorStoreType=opensearch-serverless`: OpenSearch Serverless コレクション + セキュリティポリシー（暗号化・ネットワーク・データアクセス）
 - カスタムリソースLambdaによるインデックス自動作成
 - Bedrock Knowledge Base + S3データソース
 
@@ -203,7 +221,7 @@ Amazon FSx for NetApp ONTAPのボリュームをCIFS/SMBでマウントしたEC2
 | パス | 方式 | CDK有効化 | 状況 |
 |------|------|----------|------|
 | Option A（デフォルト） | S3バケット → Bedrock KB S3データソース | 常に有効 | ✅ |
-| Option B（オプション） | Embeddingサーバー（CIFSマウント）→ AOSS直接書き込み | `-c enableEmbeddingServer=true` | ✅ |
+| Option B（オプション） | Embeddingサーバー（CIFSマウント）→ ベクトルストア直接書き込み | `-c enableEmbeddingServer=true` | ✅（AOSS構成時のみ） |
 | Option C（オプション） | S3 Access Point → Bedrock KB | デプロイ後に手動設定 | ✅ SnapMirror対応、FlexCache近日対応 |
 
 > **S3 Access Pointについて**: StorageStackはFSx ONTAPボリュームにS3 Access Pointを自動作成しますが、FlexCache CacheボリュームではS3 Access Pointが利用不可（2026年3月時点）のため、Bedrock KBデータソースとしては未使用です。将来FlexCache対応が実現した際にOption Cとして活用できるよう基盤を準備しています。
@@ -239,7 +257,7 @@ Amazon FSx for NetApp ONTAPのボリュームをCIFS/SMBでマウントしたEC2
    - `.metadata.json`が存在しない場合、`ENV_AUTO_METADATA=true`であればONTAP REST API（`GET /api/protocols/file-security/permissions/{SVM_UUID}/{PATH}`）でACLを自動取得し、SIDを抽出して`.metadata.json`を自動生成
 3. テキストを1000文字チャンク（200文字オーバーラップ）に分割
 4. Amazon Bedrock Titan Embed Text v2で1024次元ベクトルを生成
-5. Bedrock KB互換フォーマット（`AMAZON_BEDROCK_TEXT_CHUNK` + `AMAZON_BEDROCK_METADATA`）でAOSSにインデックス
+5. Bedrock KB互換フォーマット（`AMAZON_BEDROCK_TEXT_CHUNK` + `AMAZON_BEDROCK_METADATA`）でAOSS（OpenSearch Serverless）にインデックス
 6. 処理済みファイルを`processed.json`に記録（差分処理対応）
 
 ### 実行モード
@@ -543,7 +561,7 @@ AgentModeSidebarにプリセットワークフローを配置:
 | 2 | NetworkingStack | ap-northeast-1 | VPC, サブネット, セキュリティグループ, VPCエンドポイント（オプション） |
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, AD Sync Lambda（オプション） |
 | 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, AD, KMS暗号化（オプション）, CloudTrail（オプション） |
-| 5 | AIStack | ap-northeast-1 | Bedrock KB, OpenSearch Serverless, Bedrock Guardrails（オプション） |
+| 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless（`vectorStoreType`で選択）, Bedrock Guardrails（オプション） |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker), CloudFront, Permission Filter Lambda（オプション） |
 | 7 | EmbeddingStack（任意） | ap-northeast-1 | EC2, ECR, ONTAP ACL自動取得（オプション） |
 

@@ -79,20 +79,33 @@ S3 Vectorsのメタデータはデフォルトで全てfilterableであるため
 
 | メタデータキー | 用途 | Filterable | 備考 |
 |--------------|------|-----------|------|
-| `allowed_group_sids` | SIDフィルタリング | ✅（デフォルト） | アプリ側で照合 |
-| `access_level` | アクセスレベル表示 | ✅（デフォルト） | UI表示用 |
-| `doc_type` | ドキュメント種別 | ✅（デフォルト） | 将来のフィルタリング用 |
-| `source_uri` | ソースファイルパス | ❌（nonFilterable指定） | 検索不要、参照のみ |
-| `chunk_text` | チャンクテキスト | ❌（nonFilterable指定） | 検索不要、大きいデータ |
+| `allowed_group_sids` | SIDフィルタリング | non-filterable推奨 | Bedrock KB Retrieve API経由でアプリ側フィルタリングするため、S3 Vectors filterは不要 |
+| `access_level` | アクセスレベル表示 | non-filterable推奨 | UI表示用 |
+| `doc_type` | ドキュメント種別 | non-filterable推奨 | 将来のフィルタリング用 |
+| `source_uri` | ソースファイルパス | non-filterable | 検索不要、参照のみ |
+| `chunk_text` | チャンクテキスト | non-filterable | 検索不要、大きいデータ |
 
-#### S3 Vectorsメタデータ制約
+#### S3 Vectorsメタデータ制約（検証で判明した実測値）
 
-| 制約 | 値 | 対応 |
-|------|-----|------|
-| Filterable metadata | 2KB/vector | `allowed_group_sids`は通常数百バイト。問題なし |
-| Non-filterable metadata | 40KB/vector | `source_uri`と`chunk_text`を含めても十分 |
-| Filterable keys数 | 最大10 | 現在3キー使用。余裕あり |
-| Non-filterable keys数 | 最大10 | 現在2キー使用。余裕あり |
+| 制約 | 公称値 | Bedrock KB使用時の実効値 | 対応 |
+|------|--------|----------------------|------|
+| Filterable metadata | 2KB/vector | **カスタムメタデータは1KBまで**（残り1KBはBedrock KB内部メタデータ） | カスタムメタデータを最小限にする |
+| Non-filterable metadata keys | 最大10キー/index | 10キー（Bedrock KB自動キー5個 + カスタムキー5個） | Bedrock KB自動キーを優先的にnon-filterableにする |
+| Total metadata keys | 最大50キー/vector | 35キー（Bedrock KB使用時） | 問題なし |
+
+#### Bedrock KBが自動付与するメタデータキー
+
+以下のキーはBedrock KBがS3 Vectorsに自動格納します。`nonFilterableMetadataKeys`に含めないとfilterable扱いになり、2KB制限を消費します。
+
+| キー | 説明 | non-filterable推奨 |
+|------|------|-------------------|
+| `x-amz-bedrock-kb-source-file-modality` | ファイル種別（TEXT等） | ✅ |
+| `x-amz-bedrock-kb-chunk-id` | チャンクID（UUID） | ✅ |
+| `x-amz-bedrock-kb-data-source-id` | データソースID | ✅ |
+| `x-amz-bedrock-kb-source-uri` | ソースURI | ✅ |
+| `x-amz-bedrock-kb-document-page-number` | PDFページ番号 | ✅ |
+
+> **重要**: PDFファイルのページ番号メタデータ等でfilterable metadataが2KBを超える場合があります。`nonFilterableMetadataKeys`にBedrock KB自動キーを全て含め、カスタムメタデータも可能な限りnon-filterableにしてください。
 
 ### 3. 権限不足の事前確認
 
@@ -191,6 +204,7 @@ Agentモードの知見：
 | 6 | FSx ONTAP S3 APはdual-layer authorizationモデル | IAM認証（S3 APポリシー + identity-based policy）とファイルシステム認証（NTFS ACL）の両方が必要。ボリュームが空の場合やCIFS共有未作成の場合もAccessDeniedになる |
 | 7 | FSx ONTAP管理パスワードはCDK ADパスワードとは別 | FSx ONTAPの`fsxadmin`パスワードはファイルシステム作成時に自動生成される。ONTAP REST API経由のCIFS共有作成にはこのパスワードが必要。CDKで`FsxAdminPassword`を設定するか、`update-file-system`で後から設定する |
 | 8 | FSx ONTAP S3 APのAccessDenied問題 | **原因特定済み: Organization SCP**。旧アカウント（Organization SCP制限なし）ではS3 APアクセス成功。新アカウント（Organization SCP制限あり）ではAccessDenied。Organization管理アカウントでSCPの修正が必要 |
+| 9 | S3 Vectorsのfilterable metadata 2KB制限 | Bedrock KB + S3 Vectorsの場合、カスタムメタデータは**1KB**まで（S3 Vectors単体の2KBではなく、Bedrock KB内部メタデータが残り1KBを消費）。さらに、Bedrock KBが自動付与するメタデータキー（`x-amz-bedrock-kb-chunk-id`、`x-amz-bedrock-kb-data-source-id`、`x-amz-bedrock-kb-source-file-modality`、`x-amz-bedrock-kb-document-page-number`等）がfilterable扱いになり、PDFファイルのページ番号メタデータ等で2KB制限を超える。`nonFilterableMetadataKeys`（最大10キー）に全メタデータキーを指定しても、Bedrock KB自動付与キーの数が多い場合は対応不可。**対処**: (1) メタデータキーを最小限にする（`sids`のみ、短い値）、(2) PDFファイルはメタデータなしで使用、(3) S3バケットフォールバックパスでは新アカウントで検証済みで問題なし（AOSS構成では2KB制限なし） |
 
 #### FSx ONTAP S3 APパスの検証状況
 
@@ -201,9 +215,11 @@ Agentモードの知見：
 | SMBでファイル配置 | ✅ 完了 | `demo.local\Admin`でpublic/confidentialにファイル配置 |
 | S3 AP作成 | ✅ AVAILABLE | WINDOWSユーザータイプ、AD参加済みSVMで作成 |
 | S3 AP経由アクセス | ❌ AccessDenied（新アカウントのみ） | **原因特定: Organization SCP**。旧アカウント（SCP制限なし）ではアクセス成功。Organization管理アカウントでSCP修正が必要 |
-| KB同期（S3 AP経由） | ❌ 未完了 | S3 APアクセス問題の解決待ち |
+| KB同期（S3 AP経由） | ⚠️ メタデータ2KB制限 | S3 AP経由のKB同期自体は成功するが、PDFファイルのメタデータが2KB制限を超える場合がある |
+| KB同期（S3バケット経由） | ✅ 完了 | S3バケットフォールバックパスでSIDメタデータ付きドキュメントのKB同期成功 |
+| cdk destroy | ✅ 完了 | S3 Vectorsカスタムリソース（バケット+インデックス）正常削除。既存FSx参照モードではFSxは残存（設計通り） |
 
-> **代替パス**: S3バケットフォールバックパスでのE2E検証（FSx ONTAP → SMB → S3バケットにコピー → KB同期 → S3 Vectors → UI）は完了済み。SIDフィルタリングはベクトルストアとデータソースの種類に依存しないため、S3バケットパスでの検証結果はS3 APパスにも適用される。
+> **代替パス**: S3バケットフォールバックパスでのE2E検証（S3バケット → KB同期 → S3 Vectors → SIDフィルタリング）は完了済み。SIDフィルタリングはベクトルストアとデータソースの種類に依存しないため、S3バケットパスでの検証結果はS3 APパスにも適用される。
 
 ### S3 Vectors → OpenSearch Serverless エクスポート検証結果
 
