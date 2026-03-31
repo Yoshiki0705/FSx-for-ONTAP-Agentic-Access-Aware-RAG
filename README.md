@@ -18,8 +18,8 @@
                        ▼                     ▼               ▼                    ▼
               ┌─────────────┐    ┌──────────────────┐ ┌──────────────┐   ┌──────────────┐
               │ Cognito     │    │ Bedrock KB       │ │ DynamoDB     │   │ DynamoDB     │
-              │ User Pool   │    │ + OpenSearch     │ │ user-access  │   │ perm-cache   │
-              └─────────────┘    │   Serverless     │ │ (SIDデータ)  │   │ (権限Cache)  │
+              │ User Pool   │    │ + S3 Vectors /   │ │ user-access  │   │ perm-cache   │
+              └─────────────┘    │   OpenSearch SL  │ │ (SIDデータ)  │   │ (権限Cache)  │
                                  └────────┬─────────┘ └──────────────┘   └──────────────┘
                                           │
                                           ▼
@@ -736,6 +736,8 @@ Bedrock KBのIngestion Jobが実行する処理：
 3. Amazon Titan Embed Text v2でベクトル化（1024次元）
 4. ベクトル + メタデータ（`allowed_group_sids`含む）をベクトルストアに格納
 
+> **Ingestion Jobのクォータと設計考慮点**: 1ジョブ100GB/50MB per file、同一KBへの並行同期不可、StartIngestionJob APIレート0.1 req/sec（10秒に1回）等の制約があります。定期同期のスケジューリング方法を含む詳細は [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md#bedrock-kb-ingestion-job--クォータと設計考慮点) を参照してください。
+
 検索時のフロー：
 ```
 アプリ → Bedrock KB Retrieve API → ベクトルストア（ベクトル検索）
@@ -1152,7 +1154,7 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 │   ├── demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
 │   └── demo-embedding-stack.ts       # (optional) Embedding Server (FlexCache CIFS)
 ├── lambda/permissions/
-│   ├── permission-filter-handler.ts  # 権限フィルタリングLambda（ACLベース、統合スタック用）
+│   ├── permission-filter-handler.ts  # 権限フィルタリングLambda（ACLベース、将来拡張用）
 │   ├── metadata-filter-handler.ts    # 権限フィルタリングLambda（メタデータベース、デモスタック用）
 │   ├── permission-calculator.ts      # SID/ACL照合ロジック
 │   └── types.ts                      # 型定義
@@ -1182,7 +1184,7 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 ├── docs/
 │   ├── implementation-overview.md    # 実装内容の詳細説明（8つの観点）
 │   ├── ui-specification.md           # UI仕様書（KB/Agentモード切替、サイドバー設計）
-│   ├── stack-architecture-comparison.md # デモ/統合スタック アーキテクチャ比較
+│   ├── stack-architecture-comparison.md # CDKスタック アーキテクチャガイド
 │   ├── embedding-server-design.md    # Embeddingサーバー設計（ONTAP ACL自動取得含む）
 │   ├── SID-Filtering-Architecture.md # SIDフィルタリング アーキテクチャ詳細
 │   ├── demo-recording-guide.md       # 検証デモ動画撮影手順書（6つの証跡）
@@ -1207,7 +1209,7 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 | [docs/ui-specification.md](docs/ui-specification.md) | UI仕様書（KB/Agentモード切替、Agent Directory、サイドバー設計、Citation表示） |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SIDベース権限フィルタリングのアーキテクチャ詳細 |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | Embeddingサーバー設計（ONTAP ACL自動取得含む） |
-| [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md) | デモ/統合スタック アーキテクチャ比較 |
+| [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md) | CDKスタック アーキテクチャガイド（ベクトルストア比較、実装知見） |
 | [docs/verification-report.md](docs/verification-report.md) | デプロイ後の検証手順とテストケース |
 | [docs/demo-recording-guide.md](docs/demo-recording-guide.md) | 検証デモ動画撮影手順書（6つの証跡） |
 | [docs/demo-environment-guide.md](docs/demo-environment-guide.md) | 検証環境セットアップガイド |

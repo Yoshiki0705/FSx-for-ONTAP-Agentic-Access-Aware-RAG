@@ -178,7 +178,7 @@ AOSSインデックスは`dynamic: false`で作成されています。これに
 | FSx権限サービス | `lambda/permissions/fsx-permission-service.ts` | SSM経由でGet-Aclを実行し、ファイル/ディレクトリのNTFS ACL（SID）を取得 |
 | AD Sync設定 | `types/agentcore-config.ts` (`AdSyncConfig`) | AD同期の有効化、キャッシュTTL、SSMタイムアウト等の設定 |
 
-これらは統合スタック構成（`lib/stacks/integrated/`）に組み込まれています。デモスタック構成（`lib/stacks/demo/`）では、検証用にサンプルの`.metadata.json`を手動配置しています。
+これらは将来の拡張オプションです。現在のデモスタック構成（`lib/stacks/demo/`）では、検証用にサンプルの`.metadata.json`を手動配置しています。
 
 #### SID自動取得の処理フロー
 

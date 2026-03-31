@@ -78,8 +78,8 @@ npm install
                        ▼                     ▼               ▼                    ▼
               ┌─────────────┐    ┌──────────────────┐ ┌──────────────┐   ┌──────────────┐
               │ Cognito     │    │ Bedrock KB       │ │ DynamoDB     │   │ DynamoDB     │
-              │ User Pool   │    │ + OpenSearch     │ │ user-access  │   │ perm-cache   │
-              └─────────────┘    │   Serverless     │ │ (SIDデータ)  │   │ (権限Cache)  │
+              │ User Pool   │    │ + S3 Vectors /   │ │ user-access  │   │ perm-cache   │
+              └─────────────┘    │   OpenSearch SL  │ │ (SIDデータ)  │   │ (権限Cache)  │
                                  └────────┬─────────┘ └──────────────┘   └──────────────┘
                                           │
                                           ▼

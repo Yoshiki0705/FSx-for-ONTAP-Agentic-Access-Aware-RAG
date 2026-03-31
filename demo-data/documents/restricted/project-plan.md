@@ -21,7 +21,7 @@
 
 ### 技術的課題
 
-- OpenSearch Serverlessのスケーリング最適化
+- ベクトルストア（S3 Vectors / OpenSearch Serverless）のスケーリング最適化
 - FSx FlexCacheのキャッシュヒット率向上
 - Lambda Cold Start時間の短縮
 

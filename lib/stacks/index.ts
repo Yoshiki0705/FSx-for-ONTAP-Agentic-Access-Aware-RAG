@@ -1,22 +1,16 @@
 /**
- * Integrated CDK Stacks Index
- * 統合CDKスタック インデックス
+ * CDK Stacks Index
  * 
- * 6つの統合CDKスタックのエクスポート
- * - NetworkingStack: ネットワーク基盤
- * - SecurityStack: セキュリティ統合
- * - DataStack: データ・ストレージ統合
- * - EmbeddingStack: Embedding・AI・コンピュート統合
- * - WebAppStack: API・フロントエンド統合
- * - OperationsStack: 監視・エンタープライズ統合
+ * デモスタック系統（lib/stacks/demo/）に一本化。
+ * 全てのデプロイは bin/demo-app.ts をエントリーポイントとして使用。
  * 
- * Note: 全てのStackはlib/stacks/integrated/から提供されます
+ * 旧integrated/ルートレベルスタックは lib/stacks/.deprecated/ に移動済み。
  */
 
-// Re-export from integrated directory
-export * from './integrated/networking-stack';
-export * from './integrated/security-stack';
-export * from './integrated/data-stack';
-export * from './integrated/embedding-stack';
-export * from './integrated/webapp-stack';
-export * from './integrated/operations-stack';
+export { DemoWafStack } from './demo/demo-waf-stack';
+export { DemoNetworkingStack } from './demo/demo-networking-stack';
+export { DemoSecurityStack } from './demo/demo-security-stack';
+export { DemoStorageStack } from './demo/demo-storage-stack';
+export { DemoAIStack } from './demo/demo-ai-stack';
+export { DemoWebAppStack } from './demo/demo-webapp-stack';
+export { DemoEmbeddingStack } from './demo/demo-embedding-stack';
