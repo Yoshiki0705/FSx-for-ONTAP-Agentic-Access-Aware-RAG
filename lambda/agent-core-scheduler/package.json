@@ -1,0 +1,19 @@
+{
+  "name": "agent-core-scheduler",
+  "version": "1.0.0",
+  "description": "EventBridge Scheduler triggered Lambda for Bedrock Agent periodic execution",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.700.0",
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}

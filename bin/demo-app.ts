@@ -17,6 +17,7 @@
  *   -c enableKmsEncryption=true  KMS暗号化
  *   -c enableCloudTrail=true     CloudTrail監査ログ
  *   -c enableVpcEndpoints=true   VPCエンドポイント
+ *   -c vectorStoreType=s3vectors    Vector store type (s3vectors or opensearch-serverless)
  */
 
 import 'source-map-support/register';
@@ -64,6 +65,14 @@ const enableAgent = ctxBool('enableAgent');
 const enableKmsEncryption = ctxBool('enableKmsEncryption');
 const enableCloudTrail = ctxBool('enableCloudTrail');
 const enableVpcEndpoints = ctxBool('enableVpcEndpoints');
+const enableAgentSharing = ctxBool('enableAgentSharing');
+const enableAgentSchedules = ctxBool('enableAgentSchedules');
+const vectorStoreType = (app.node.tryGetContext('vectorStoreType') || 's3vectors') as string;
+
+// 既存FSx ONTAP参照（指定時はFSx/SVM/Volumeを新規作成しない）
+const existingFileSystemId: string | undefined = app.node.tryGetContext('existingFileSystemId');
+const existingSvmId: string | undefined = app.node.tryGetContext('existingSvmId');
+const existingVolumeId: string | undefined = app.node.tryGetContext('existingVolumeId');
 
 const primaryEnv: cdk.Environment = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
@@ -105,8 +114,9 @@ const storageStack = new DemoStorageStack(app, `${stackPrefix}-Storage`, {
   fsxSg: networkingStack.fsxSg,
   adPassword, adDomainName,
   enableKmsEncryption, enableCloudTrail,
+  existingFileSystemId, existingSvmId, existingVolumeId,
   env: primaryEnv,
-  description: `[${projectName}] FSx ONTAP + SVM + S3 + DynamoDB`,
+  description: `[${projectName}] ${existingFileSystemId ? 'Existing FSx ONTAP + ' : 'FSx ONTAP + SVM + '}S3 + DynamoDB`,
 });
 storageStack.addDependency(networkingStack);
 
@@ -115,10 +125,13 @@ const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   projectName, environment,
   enableGuardrails,
   enableAgent,
+  enableAgentSharing,
+  enableAgentSchedules,
   userAccessTableName: storageStack.userAccessTable.tableName,
   userAccessTableArn: storageStack.userAccessTable.tableArn,
+  vectorStoreType: vectorStoreType as 's3vectors' | 'opensearch-serverless',
   env: primaryEnv,
-  description: `[${projectName}] Bedrock KB, OpenSearch Serverless${enableAgent ? ', Bedrock Agent' : ''}`,
+  description: `[${projectName}] Bedrock KB, ${vectorStoreType === 'opensearch-serverless' ? 'OpenSearch Serverless' : 'S3 Vectors'}${enableAgent ? ', Bedrock Agent' : ''}${enableAgentSharing ? ', Agent Sharing' : ''}${enableAgentSchedules ? ', Agent Schedules' : ''}`,
 });
 aiStack.addDependency(storageStack);
 
@@ -140,6 +153,10 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentId: aiStack.agentId,
   agentAliasId: aiStack.agentAliasId,
   actionGroupLambdaArn: aiStack.actionGroupLambdaArn,
+  sharedAgentBucketName: aiStack.sharedAgentBucketName,
+  agentExecutionTableName: aiStack.agentExecutionTableName,
+  agentSchedulerLambdaArn: aiStack.agentSchedulerLambdaArn,
+  agentSchedulerRoleArn: aiStack.schedulerRoleArn,
   env: primaryEnv, crossRegionReferences: true,
   description: `[${projectName}] Lambda Web Adapter + CloudFront`,
 });
@@ -149,6 +166,9 @@ webAppStack.addDependency(wafStack);
 
 // Stack 7 (Optional): EmbeddingStack
 if (enableEmbedding) {
+  if (!aiStack.ossCollection) {
+    throw new Error('EmbeddingStack requires vectorStoreType=opensearch-serverless. Current: ' + vectorStoreType);
+  }
   if (!embeddingAdSecretArn) {
     throw new Error('embeddingAdSecretArn is required when enableEmbeddingServer=true.');
   }

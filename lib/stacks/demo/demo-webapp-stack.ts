@@ -49,6 +49,14 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   agentAliasId?: string;
   /** Permission-aware search Action Group Lambda ARN（動的Agent作成時に使用） */
   actionGroupLambdaArn?: string;
+  /** Agent共有S3バケット名（enableAgentSharing時） */
+  sharedAgentBucketName?: string;
+  /** Agent実行履歴DynamoDBテーブル名（enableAgentSchedules時） */
+  agentExecutionTableName?: string;
+  /** Agentスケジューラ Lambda ARN（enableAgentSchedules時） */
+  agentSchedulerLambdaArn?: string;
+  /** Agentスケジューラ IAMロール ARN（enableAgentSchedules時） */
+  agentSchedulerRoleArn?: string;
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -108,6 +116,12 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(agentId ? { BEDROCK_AGENT_ID: agentId } : {}),
         ...(agentAliasId ? { BEDROCK_AGENT_ALIAS_ID: agentAliasId } : {}),
         ...(props.actionGroupLambdaArn ? { PERM_SEARCH_LAMBDA_ARN: props.actionGroupLambdaArn } : {}),
+        // Enterprise Agent Enhancements（オプション）
+        ...(props.sharedAgentBucketName ? { SHARED_AGENT_BUCKET: props.sharedAgentBucketName } : {}),
+        ...(props.agentExecutionTableName ? { AGENT_EXECUTION_TABLE: props.agentExecutionTableName } : {}),
+        ...(props.agentSchedulerLambdaArn ? { AGENT_SCHEDULER_LAMBDA_ARN: props.agentSchedulerLambdaArn } : {}),
+        ...(props.agentSchedulerRoleArn ? { SCHEDULER_ROLE_ARN: props.agentSchedulerRoleArn } : {}),
+        ...(props.agentSchedulerRoleArn ? { AGENT_SCHEDULER_GROUP: 'agent-schedules' } : {}),
       },
     });
 
@@ -195,6 +209,41 @@ export class DemoWebAppStack extends cdk.Stack {
     // S3権限（KBデータソースバケットの.metadata.json読み取り、オプション）
     if (dataBucket) {
       dataBucket.grantRead(this.webAppFunction);
+    }
+
+    // Enterprise Agent Enhancements — IAM権限（オプション）
+    if (props.sharedAgentBucketName) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['s3:GetObject', 's3:PutObject', 's3:ListBucket'],
+        resources: [
+          `arn:aws:s3:::${props.sharedAgentBucketName}`,
+          `arn:aws:s3:::${props.sharedAgentBucketName}/*`,
+        ],
+      }));
+    }
+    if (props.agentExecutionTableName) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['dynamodb:Query', 'dynamodb:GetItem'],
+        resources: [
+          `arn:aws:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/${props.agentExecutionTableName}`,
+          `arn:aws:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/${props.agentExecutionTableName}/index/*`,
+        ],
+      }));
+    }
+    if (props.agentSchedulerLambdaArn) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['lambda:InvokeFunction'],
+        resources: [props.agentSchedulerLambdaArn],
+      }));
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['scheduler:CreateSchedule', 'scheduler:UpdateSchedule', 'scheduler:DeleteSchedule', 'scheduler:ListSchedules', 'scheduler:GetSchedule'],
+        resources: ['*'],
+      }));
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['iam:PassRole'],
+        resources: ['*'],
+        conditions: { StringEquals: { 'iam:PassedToService': 'scheduler.amazonaws.com' } },
+      }));
     }
 
     // ========================================

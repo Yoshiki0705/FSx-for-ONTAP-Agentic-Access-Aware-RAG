@@ -5,5 +5,18 @@
   "allowedCountries": ["JP"],
   "allowedIps": [],
   "adPassword": "YourStrongP@ssw0rd123",
-  "adDomainName": "demo.local"
+  "adDomainName": "demo.local",
+
+  // ベクトルストア構成の選択
+  // "s3vectors" (デフォルト): S3 Vectors — 低コスト、サブ秒レイテンシ、デモ・開発環境向け
+  // "opensearch-serverless": OpenSearch Serverless — 高パフォーマンス、~$700/月、本番環境向け
+  "vectorStoreType": "s3vectors",
+
+  // エンタープライズAgent機能（オプション）
+  // "enableAgent": Bedrock Agent + Permission-aware Action Group
+  // "enableAgentSharing": Agent構成共有S3バケット（JSON export/import、組織内共有）
+  // "enableAgentSchedules": Agent定期実行基盤（EventBridge Scheduler + Lambda + DynamoDB実行履歴）
+  "enableAgent": true,
+  "enableAgentSharing": false,
+  "enableAgentSchedules": false
 }

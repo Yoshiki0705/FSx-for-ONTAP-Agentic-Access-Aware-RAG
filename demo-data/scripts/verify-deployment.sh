@@ -181,6 +181,70 @@ fi
 echo ""
 
 # ========================================
+# 7. エンタープライズAgent機能チェック（オプション）
+# ========================================
+echo "📋 7. エンタープライズAgent機能チェック..."
+
+# S3共有Agentバケット
+SHARED_BUCKET=$(aws lambda get-function-configuration --function-name ${STACK_PREFIX}-webapp --region $REGION \
+  --query 'Environment.Variables.SHARED_AGENT_BUCKET' --output text 2>/dev/null || echo "")
+if [ -n "$SHARED_BUCKET" ] && [ "$SHARED_BUCKET" != "None" ]; then
+  aws s3api head-bucket --bucket "$SHARED_BUCKET" --region $REGION 2>/dev/null \
+    && log_result "PASS" "Shared Agent Bucket" "$SHARED_BUCKET" \
+    || log_result "FAIL" "Shared Agent Bucket" "$SHARED_BUCKET (not accessible)"
+else
+  log_result "WARN" "Shared Agent Bucket" "Not configured (enableAgentSharing=false?)"
+fi
+
+# DynamoDB実行履歴テーブル
+EXEC_TABLE=$(aws lambda get-function-configuration --function-name ${STACK_PREFIX}-webapp --region $REGION \
+  --query 'Environment.Variables.AGENT_EXECUTION_TABLE' --output text 2>/dev/null || echo "")
+if [ -n "$EXEC_TABLE" ] && [ "$EXEC_TABLE" != "None" ]; then
+  TABLE_STATUS=$(aws dynamodb describe-table --table-name "$EXEC_TABLE" --region $REGION \
+    --query 'Table.TableStatus' --output text 2>/dev/null || echo "NOT_FOUND")
+  [ "$TABLE_STATUS" = "ACTIVE" ] \
+    && log_result "PASS" "Execution History Table" "$EXEC_TABLE ($TABLE_STATUS)" \
+    || log_result "FAIL" "Execution History Table" "$EXEC_TABLE ($TABLE_STATUS)"
+else
+  log_result "WARN" "Execution History Table" "Not configured (enableAgentSchedules=false?)"
+fi
+
+# スケジューラLambda
+SCHED_LAMBDA=$(aws lambda get-function-configuration --function-name ${STACK_PREFIX}-webapp --region $REGION \
+  --query 'Environment.Variables.AGENT_SCHEDULER_LAMBDA_ARN' --output text 2>/dev/null || echo "")
+if [ -n "$SCHED_LAMBDA" ] && [ "$SCHED_LAMBDA" != "None" ]; then
+  SCHED_FN_NAME=$(echo "$SCHED_LAMBDA" | awk -F: '{print $NF}')
+  SCHED_STATE=$(aws lambda get-function-configuration --function-name "$SCHED_FN_NAME" --region $REGION \
+    --query 'State' --output text 2>/dev/null || echo "NOT_FOUND")
+  [ "$SCHED_STATE" = "Active" ] \
+    && log_result "PASS" "Scheduler Lambda" "$SCHED_FN_NAME ($SCHED_STATE)" \
+    || log_result "FAIL" "Scheduler Lambda" "$SCHED_FN_NAME ($SCHED_STATE)"
+else
+  log_result "WARN" "Scheduler Lambda" "Not configured (enableAgentSchedules=false?)"
+fi
+
+# Agent Sharing API応答
+if [ -n "$LAMBDA_URL" ] && [ -n "$SHARED_BUCKET" ] && [ "$SHARED_BUCKET" != "None" ]; then
+  SHARING_RESP=$(curl -s --max-time 10 -X POST "${LAMBDA_URL}api/bedrock/agent-sharing" \
+    -H "Content-Type: application/json" -d '{"action":"listSharedConfigs"}' 2>/dev/null || echo "{}")
+  SHARING_OK=$(echo "$SHARING_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('success',False))" 2>/dev/null || echo "False")
+  [ "$SHARING_OK" = "True" ] \
+    && log_result "PASS" "Agent Sharing API" "listSharedConfigs OK" \
+    || log_result "FAIL" "Agent Sharing API" "Response: $SHARING_RESP"
+fi
+
+# Agent Schedules API応答
+if [ -n "$LAMBDA_URL" ] && [ -n "$EXEC_TABLE" ] && [ "$EXEC_TABLE" != "None" ]; then
+  SCHED_RESP=$(curl -s --max-time 10 -X POST "${LAMBDA_URL}api/bedrock/agent-schedules" \
+    -H "Content-Type: application/json" -d '{"action":"listSchedules"}' 2>/dev/null || echo "{}")
+  SCHED_OK=$(echo "$SCHED_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('success',False))" 2>/dev/null || echo "False")
+  [ "$SCHED_OK" = "True" ] \
+    && log_result "PASS" "Agent Schedules API" "listSchedules OK" \
+    || log_result "FAIL" "Agent Schedules API" "Response: $SCHED_RESP"
+fi
+echo ""
+
+# ========================================
 # レポート生成
 # ========================================
 TOTAL=$((PASS + FAIL + WARN))

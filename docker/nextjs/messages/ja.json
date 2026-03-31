@@ -383,6 +383,67 @@
     "createAndDeploy": "作成してデプロイ",
     "agentName": "Agent名",
     "description": "説明",
-    "agentId": "Agent ID"
+    "agentId": "Agent ID",
+    "toolSelection": {
+      "title": "ツール選択",
+      "selectTools": "Agentに使用するツールを選択",
+      "permissionAwareSearch": "権限認識型検索",
+      "browser": "ブラウザ",
+      "codeInterpreter": "コードインタープリター",
+      "noToolsAvailable": "利用可能なツールがありません",
+      "loadError": "ツール一覧の取得に失敗しました"
+    },
+    "guardrails": {
+      "title": "ガードレール設定",
+      "enable": "ガードレールを有効化",
+      "selectGuardrail": "ガードレールを選択",
+      "noGuardrails": "利用可能なガードレールがありません",
+      "loadError": "ガードレール一覧の取得に失敗しました"
+    },
+    "inferenceProfile": {
+      "title": "推論プロファイル",
+      "selectProfile": "推論プロファイルを選択",
+      "costTags": "コストタグ",
+      "department": "部門",
+      "project": "プロジェクト",
+      "noProfiles": "利用可能なプロファイルがありません",
+      "loadError": "プロファイル一覧の取得に失敗しました"
+    },
+    "sharing": {
+      "title": "共有",
+      "export": "エクスポート",
+      "import": "インポート",
+      "uploadToS3": "共有バケットにアップロード",
+      "sharedAgents": "共有Agent",
+      "preview": "プレビュー",
+      "importConfirm": "このAgent構成をインポートしますか？",
+      "invalidJson": "無効なJSON形式です",
+      "incompatibleVersion": "互換性のないスキーマバージョンです",
+      "uploadSuccess": "アップロードが完了しました",
+      "uploadError": "アップロードに失敗しました",
+      "noSharedConfigs": "共有Agent構成がありません"
+    },
+    "schedule": {
+      "title": "スケジュール設定",
+      "cronExpression": "Cron式",
+      "description": "説明",
+      "inputPrompt": "入力プロンプト",
+      "nextExecution": "次回実行",
+      "createSchedule": "スケジュール作成",
+      "deleteSchedule": "スケジュール削除",
+      "manualTrigger": "手動実行",
+      "executionHistory": "実行履歴",
+      "invalidCron": "無効なCron式です",
+      "scheduledTasks": "スケジュールタスク",
+      "noSchedules": "スケジュールがありません",
+      "running": "実行中",
+      "success": "成功",
+      "failed": "失敗"
+    },
+    "tabs": {
+      "agents": "Agent一覧",
+      "shared": "共有Agent",
+      "schedules": "スケジュールタスク"
+    }
   }
 }

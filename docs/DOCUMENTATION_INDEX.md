@@ -8,7 +8,7 @@
 | [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（8つの観点） |
 | [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SIDベース権限フィルタリングの詳細設計 |
 | [docs/verification-report.md](verification-report.md) | デプロイ後の検証手順とテストケース |
-| [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（KB/Agentモード、Agent Directory、サイドバー設計） |
+| [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（KB/Agentモード、Agent Directory、エンタープライズAgent機能、サイドバー設計） |
 | [docs/demo-recording-guide.md](demo-recording-guide.md) | 検証デモ動画撮影手順書（6つの証跡） |
 | [docs/embedding-server-design.md](embedding-server-design.md) | Embeddingサーバー設計・実装ドキュメント |
 | [docs/stack-architecture-comparison.md](stack-architecture-comparison.md) | デモ/統合スタック アーキテクチャ比較 |

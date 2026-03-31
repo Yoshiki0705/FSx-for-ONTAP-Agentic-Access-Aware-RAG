@@ -640,6 +640,67 @@
     "createAndDeploy": "创建并部署",
     "agentName": "Agent名称",
     "description": "描述",
-    "agentId": "Agent ID"
+    "agentId": "Agent ID",
+    "toolSelection": {
+      "title": "工具选择",
+      "selectTools": "选择Agent使用的工具",
+      "permissionAwareSearch": "权限感知搜索",
+      "browser": "浏览器",
+      "codeInterpreter": "代码解释器",
+      "noToolsAvailable": "没有可用的工具",
+      "loadError": "加载工具列表失败"
+    },
+    "guardrails": {
+      "title": "护栏设置",
+      "enable": "启用护栏",
+      "selectGuardrail": "选择护栏",
+      "noGuardrails": "没有可用的护栏",
+      "loadError": "加载护栏列表失败"
+    },
+    "inferenceProfile": {
+      "title": "推理配置",
+      "selectProfile": "选择推理配置",
+      "costTags": "成本标签",
+      "department": "部门",
+      "project": "项目",
+      "noProfiles": "没有可用的配置",
+      "loadError": "加载配置列表失败"
+    },
+    "sharing": {
+      "title": "共享",
+      "export": "导出",
+      "import": "导入",
+      "uploadToS3": "上传到共享存储桶",
+      "sharedAgents": "共享Agent",
+      "preview": "预览",
+      "importConfirm": "导入此Agent配置？",
+      "invalidJson": "无效的JSON格式",
+      "incompatibleVersion": "不兼容的架构版本",
+      "uploadSuccess": "上传完成",
+      "uploadError": "上传失败",
+      "noSharedConfigs": "没有共享Agent配置"
+    },
+    "schedule": {
+      "title": "调度设置",
+      "cronExpression": "Cron表达式",
+      "description": "描述",
+      "inputPrompt": "输入提示",
+      "nextExecution": "下次执行",
+      "createSchedule": "创建调度",
+      "deleteSchedule": "删除调度",
+      "manualTrigger": "手动触发",
+      "executionHistory": "执行历史",
+      "invalidCron": "无效的Cron表达式",
+      "scheduledTasks": "调度任务",
+      "noSchedules": "没有调度",
+      "running": "运行中",
+      "success": "成功",
+      "failed": "失败"
+    },
+    "tabs": {
+      "agents": "Agent列表",
+      "shared": "共享Agent",
+      "schedules": "调度任务"
+    }
   }
 }

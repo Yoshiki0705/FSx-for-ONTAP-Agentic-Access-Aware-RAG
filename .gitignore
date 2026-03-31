@@ -15,6 +15,11 @@ yarn-error.log*
 !jest.config.js
 !docker/nextjs/**/*.js
 !docker/nextjs/**/*.mjs
+!docker/embed/**/*.js
+
+# bin/ compiled JS (use .ts sources only)
+bin/*.js
+bin/*.d.ts
 
 # Next.js
 docker/nextjs/.next/

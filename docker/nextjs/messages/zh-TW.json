@@ -327,6 +327,67 @@
     "createAndDeploy": "建立並部署",
     "agentName": "Agent名稱",
     "description": "描述",
-    "agentId": "Agent ID"
+    "agentId": "Agent ID",
+    "toolSelection": {
+      "title": "工具選擇",
+      "selectTools": "選擇Agent使用的工具",
+      "permissionAwareSearch": "權限感知搜尋",
+      "browser": "瀏覽器",
+      "codeInterpreter": "程式碼解譯器",
+      "noToolsAvailable": "沒有可用的工具",
+      "loadError": "載入工具列表失敗"
+    },
+    "guardrails": {
+      "title": "護欄設定",
+      "enable": "啟用護欄",
+      "selectGuardrail": "選擇護欄",
+      "noGuardrails": "沒有可用的護欄",
+      "loadError": "載入護欄列表失敗"
+    },
+    "inferenceProfile": {
+      "title": "推論設定",
+      "selectProfile": "選擇推論設定",
+      "costTags": "成本標籤",
+      "department": "部門",
+      "project": "專案",
+      "noProfiles": "沒有可用的設定",
+      "loadError": "載入設定列表失敗"
+    },
+    "sharing": {
+      "title": "共享",
+      "export": "匯出",
+      "import": "匯入",
+      "uploadToS3": "上傳到共享儲存桶",
+      "sharedAgents": "共享Agent",
+      "preview": "預覽",
+      "importConfirm": "匯入此Agent設定？",
+      "invalidJson": "無效的JSON格式",
+      "incompatibleVersion": "不相容的架構版本",
+      "uploadSuccess": "上傳完成",
+      "uploadError": "上傳失敗",
+      "noSharedConfigs": "沒有共享Agent設定"
+    },
+    "schedule": {
+      "title": "排程設定",
+      "cronExpression": "Cron運算式",
+      "description": "描述",
+      "inputPrompt": "輸入提示",
+      "nextExecution": "下次執行",
+      "createSchedule": "建立排程",
+      "deleteSchedule": "刪除排程",
+      "manualTrigger": "手動觸發",
+      "executionHistory": "執行歷史",
+      "invalidCron": "無效的Cron運算式",
+      "scheduledTasks": "排程任務",
+      "noSchedules": "沒有排程",
+      "running": "執行中",
+      "success": "成功",
+      "failed": "失敗"
+    },
+    "tabs": {
+      "agents": "Agent列表",
+      "shared": "共享Agent",
+      "schedules": "排程任務"
+    }
   }
 }

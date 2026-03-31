@@ -34,6 +34,12 @@ export interface DemoStorageStackProps extends cdk.StackProps {
   enableKmsEncryption?: boolean;
   /** CloudTrail監査ログを有効化するか（デフォルト: false） */
   enableCloudTrail?: boolean;
+  /** 既存FSx ONTAPファイルシステムID（指定時は新規作成しない） */
+  existingFileSystemId?: string;
+  /** 既存SVM ID（existingFileSystemId指定時に必須） */
+  existingSvmId?: string;
+  /** 既存ボリュームID（existingFileSystemId指定時に必須） */
+  existingVolumeId?: string;
 }
 
 export class DemoStorageStack extends cdk.Stack {
@@ -60,6 +66,7 @@ export class DemoStorageStack extends cdk.Stack {
     const { projectName, environment, vpc, privateSubnets, fsxSg, adPassword, adDomainName, enableKmsEncryption, enableCloudTrail } = props;
     const prefix = `${projectName}-${environment}`;
     const domainName = adDomainName || 'demo.local';
+    const useExistingFsx = !!props.existingFileSystemId;
 
     // ========================================
     // KMS暗号化キー（オプション）
@@ -78,10 +85,7 @@ export class DemoStorageStack extends cdk.Stack {
     // ========================================
     // AWS Managed Microsoft AD
     // ========================================
-    // SVM をADに参加させるために必要。
-    // Standard Edition（Small）で十分（検証用途）。
-    // ADパスワードが設定されている場合のみ作成。
-    if (adPassword) {
+    if (adPassword && !useExistingFsx) {
       this.managedAd = new directoryservice.CfnMicrosoftAD(this, 'ManagedAd', {
         name: domainName,
         password: adPassword,
@@ -95,58 +99,67 @@ export class DemoStorageStack extends cdk.Stack {
     }
 
     // ========================================
-    // FSx for ONTAP
+    // FSx for ONTAP（新規作成 or 既存参照）
     // ========================================
 
-    // FSx for ONTAP ファイルシステム（SINGLE_AZ_1）
-    this.fileSystem = new fsx.CfnFileSystem(this, 'OntapFs', {
-      fileSystemType: 'ONTAP',
-      storageCapacity: 1024,
-      subnetIds: [privateSubnets[0].subnetId],
-      securityGroupIds: [fsxSg.securityGroupId],
-      ontapConfiguration: {
-        deploymentType: 'SINGLE_AZ_1',
-        throughputCapacity: 128,
-        automaticBackupRetentionDays: 0,
-      },
-      tags: [
-        { key: 'Name', value: `${prefix}-ontap` },
-        { key: 'Project', value: projectName },
-        { key: 'Environment', value: environment },
-      ],
-    });
+    if (useExistingFsx) {
+      // 既存FSx ONTAPリソースを参照（CDK管理外）
+      // CfnFileSystem/CfnStorageVirtualMachine/CfnVolumeはCDKで管理しないが、
+      // 他のスタックが参照するプロパティを設定する
+      this.fileSystem = { ref: props.existingFileSystemId! } as any;
+      this.svm = { ref: props.existingSvmId! } as any;
+      this.volume = { ref: props.existingVolumeId! } as any;
 
-    // Storage Virtual Machine（SVM）
-    // AD参加はCDKデプロイ後にCLIで実行する（SVM更新のタイミング制御のため）。
-    // 手順: aws fsx update-storage-virtual-machine --storage-virtual-machine-id <SVM_ID> \
-    //       --active-directory-configuration '{...}'
-    const svmConfig: Record<string, any> = {
-      fileSystemId: this.fileSystem.ref,
-      name: `${prefix.replace(/[^a-zA-Z0-9]/g, '')}svm`,
-      rootVolumeSecurityStyle: 'NTFS',
-    };
-
-    this.svm = new fsx.CfnStorageVirtualMachine(this, 'Svm', svmConfig as fsx.CfnStorageVirtualMachineProps);
-    if (this.managedAd) {
-      this.svm.addDependency(this.managedAd);
-    }
-
-    // データボリューム
-    this.volume = new fsx.CfnVolume(this, 'DataVolume', {
-      name: `${prefix.replace(/[^a-zA-Z0-9]/g, '')}data`,
-      volumeType: 'ONTAP',
-      ontapConfiguration: {
-        junctionPath: '/data',
-        sizeInMegabytes: '102400', // 100GB
-        storageVirtualMachineId: this.svm.ref,
-        storageEfficiencyEnabled: 'true',
-        securityStyle: 'NTFS',
-        tieringPolicy: {
-          coolingPeriod: 31,
-          name: 'AUTO',
+      new cdk.CfnOutput(this, 'ExistingFsxMode', {
+        value: 'true',
+        description: 'Using existing FSx ONTAP resources (not CDK-managed)',
+      });
+    } else {
+      // 新規FSx ONTAP作成
+      this.fileSystem = new fsx.CfnFileSystem(this, 'OntapFs', {
+        fileSystemType: 'ONTAP',
+        storageCapacity: 1024,
+        subnetIds: [privateSubnets[0].subnetId],
+        securityGroupIds: [fsxSg.securityGroupId],
+        ontapConfiguration: {
+          deploymentType: 'SINGLE_AZ_1',
+          throughputCapacity: 128,
+          automaticBackupRetentionDays: 0,
         },
-      },
-    });
+        tags: [
+          { key: 'Name', value: `${prefix}-ontap` },
+          { key: 'Project', value: projectName },
+          { key: 'Environment', value: environment },
+        ],
+      });
+
+      const svmConfig: Record<string, any> = {
+        fileSystemId: this.fileSystem.ref,
+        name: `${prefix.replace(/[^a-zA-Z0-9]/g, '')}svm`,
+        rootVolumeSecurityStyle: 'NTFS',
+      };
+
+      this.svm = new fsx.CfnStorageVirtualMachine(this, 'Svm', svmConfig as fsx.CfnStorageVirtualMachineProps);
+      if (this.managedAd) {
+        this.svm.addDependency(this.managedAd);
+      }
+
+      this.volume = new fsx.CfnVolume(this, 'DataVolume', {
+        name: `${prefix.replace(/[^a-zA-Z0-9]/g, '')}data`,
+        volumeType: 'ONTAP',
+        ontapConfiguration: {
+          junctionPath: '/data',
+          sizeInMegabytes: '102400',
+          storageVirtualMachineId: this.svm.ref,
+          storageEfficiencyEnabled: 'true',
+          securityStyle: 'NTFS',
+          tieringPolicy: {
+            coolingPeriod: 31,
+            name: 'AUTO',
+          },
+        },
+      });
+    }
 
     // ========================================
     // S3バケット（Bedrock KBデータソース / FSx S3 AP経由のフォールバック）

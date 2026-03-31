@@ -364,6 +364,67 @@
     "createAndDeploy": "Créer et déployer",
     "agentName": "Nom de l'Agent",
     "description": "Description",
-    "agentId": "Agent ID"
+    "agentId": "Agent ID",
+    "toolSelection": {
+      "title": "Sélection des outils",
+      "selectTools": "Sélectionner les outils pour l'Agent",
+      "permissionAwareSearch": "Recherche sensible aux permissions",
+      "browser": "Navigateur",
+      "codeInterpreter": "Interpréteur de code",
+      "noToolsAvailable": "Aucun outil disponible",
+      "loadError": "Échec du chargement des outils"
+    },
+    "guardrails": {
+      "title": "Paramètres de garde-fou",
+      "enable": "Activer le garde-fou",
+      "selectGuardrail": "Sélectionner un garde-fou",
+      "noGuardrails": "Aucun garde-fou disponible",
+      "loadError": "Échec du chargement des garde-fous"
+    },
+    "inferenceProfile": {
+      "title": "Profil d'inférence",
+      "selectProfile": "Sélectionner un profil",
+      "costTags": "Tags de coût",
+      "department": "Département",
+      "project": "Projet",
+      "noProfiles": "Aucun profil disponible",
+      "loadError": "Échec du chargement des profils"
+    },
+    "sharing": {
+      "title": "Partage",
+      "export": "Exporter",
+      "import": "Importer",
+      "uploadToS3": "Télécharger vers le bucket partagé",
+      "sharedAgents": "Agents partagés",
+      "preview": "Aperçu",
+      "importConfirm": "Importer cette configuration ?",
+      "invalidJson": "Format JSON invalide",
+      "incompatibleVersion": "Version de schéma incompatible",
+      "uploadSuccess": "Téléchargement terminé",
+      "uploadError": "Échec du téléchargement",
+      "noSharedConfigs": "Aucune configuration partagée"
+    },
+    "schedule": {
+      "title": "Paramètres de planification",
+      "cronExpression": "Expression Cron",
+      "description": "Description",
+      "inputPrompt": "Prompt d'entrée",
+      "nextExecution": "Prochaine exécution",
+      "createSchedule": "Créer une planification",
+      "deleteSchedule": "Supprimer la planification",
+      "manualTrigger": "Déclenchement manuel",
+      "executionHistory": "Historique d'exécution",
+      "invalidCron": "Expression Cron invalide",
+      "scheduledTasks": "Tâches planifiées",
+      "noSchedules": "Aucune planification",
+      "running": "En cours",
+      "success": "Succès",
+      "failed": "Échec"
+    },
+    "tabs": {
+      "agents": "Agents",
+      "shared": "Agents partagés",
+      "schedules": "Tâches planifiées"
+    }
   }
 }

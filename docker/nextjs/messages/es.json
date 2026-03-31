@@ -340,6 +340,67 @@
     "createAndDeploy": "Crear y desplegar",
     "agentName": "Nombre del Agent",
     "description": "Descripción",
-    "agentId": "Agent ID"
+    "agentId": "Agent ID",
+    "toolSelection": {
+      "title": "Selección de herramientas",
+      "selectTools": "Seleccionar herramientas para el Agent",
+      "permissionAwareSearch": "Búsqueda con permisos",
+      "browser": "Navegador",
+      "codeInterpreter": "Intérprete de código",
+      "noToolsAvailable": "No hay herramientas disponibles",
+      "loadError": "Error al cargar herramientas"
+    },
+    "guardrails": {
+      "title": "Configuración de barandillas",
+      "enable": "Activar barandilla",
+      "selectGuardrail": "Seleccionar barandilla",
+      "noGuardrails": "No hay barandillas disponibles",
+      "loadError": "Error al cargar barandillas"
+    },
+    "inferenceProfile": {
+      "title": "Perfil de inferencia",
+      "selectProfile": "Seleccionar perfil",
+      "costTags": "Etiquetas de costo",
+      "department": "Departamento",
+      "project": "Proyecto",
+      "noProfiles": "No hay perfiles disponibles",
+      "loadError": "Error al cargar perfiles"
+    },
+    "sharing": {
+      "title": "Compartir",
+      "export": "Exportar",
+      "import": "Importar",
+      "uploadToS3": "Subir al bucket compartido",
+      "sharedAgents": "Agents compartidos",
+      "preview": "Vista previa",
+      "importConfirm": "¿Importar esta configuración?",
+      "invalidJson": "Formato JSON inválido",
+      "incompatibleVersion": "Versión de esquema incompatible",
+      "uploadSuccess": "Carga completada",
+      "uploadError": "Error en la carga",
+      "noSharedConfigs": "No hay configuraciones compartidas"
+    },
+    "schedule": {
+      "title": "Configuración de programación",
+      "cronExpression": "Expresión Cron",
+      "description": "Descripción",
+      "inputPrompt": "Prompt de entrada",
+      "nextExecution": "Próxima ejecución",
+      "createSchedule": "Crear programación",
+      "deleteSchedule": "Eliminar programación",
+      "manualTrigger": "Ejecución manual",
+      "executionHistory": "Historial de ejecución",
+      "invalidCron": "Expresión Cron inválida",
+      "scheduledTasks": "Tareas programadas",
+      "noSchedules": "Sin programaciones",
+      "running": "En ejecución",
+      "success": "Éxito",
+      "failed": "Fallido"
+    },
+    "tabs": {
+      "agents": "Agentes",
+      "shared": "Agents compartidos",
+      "schedules": "Tareas programadas"
+    }
   }
 }

@@ -16,6 +16,7 @@ import {
   DeleteAgentCommand,
   GetAgentCommand,
   ListAgentsCommand,
+  ListAgentActionGroupsCommand,
   UpdateAgentCommand,
   PrepareAgentCommand,
   CreateAgentAliasCommand,
@@ -189,6 +190,14 @@ export async function POST(request: NextRequest) {
         return await handleListAgents();
       case 'get':
         return await handleGetAgent(body);
+      case 'listActionGroups':
+        return await handleListActionGroups(body);
+      case 'listAvailableActionGroups':
+        return await handleListAvailableActionGroups();
+      case 'listGuardrails':
+        return await handleListGuardrails();
+      case 'listInferenceProfiles':
+        return await handleListInferenceProfiles();
       default:
         // デフォルトはinvokeアクション（後方互換性）
         return await handleInvokeAgent(message, userId, sessionId, selectedAgentId);
@@ -327,6 +336,12 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
     foundationModel,
     attachActionGroup,
     actionGroupLambdaArn,
+    // Enterprise enhancement parameters (optional)
+    actionGroups,        // string[] — selected action group names
+    guardrailId,         // string — guardrail ID to associate
+    guardrailVersion,    // string — guardrail version
+    inferenceProfileArn, // string — inference profile ARN
+    costTags,            // { department, project } — cost allocation tags
   } = body;
 
   if (!agentName) {
@@ -354,6 +369,11 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
       `arn:aws:iam::${accountId}:role/TokyoRegion-permission-aware-rag-prod-bedrock-agent-role`;
 
     // Agent作成
+    // Build tags from costTags if provided
+    const agentTags: Record<string, string> = {};
+    if (costTags?.department) agentTags['department'] = costTags.department;
+    if (costTags?.project) agentTags['project'] = costTags.project;
+
     const createCommand = new CreateAgentCommand({
       agentName,
       description: description || `${agentName} - Created via UI`,
@@ -361,6 +381,13 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
       foundationModel: foundationModel || 'anthropic.claude-3-sonnet-20240229-v1:0',
       agentResourceRoleArn: agentRoleArn,
       idleSessionTTLInSeconds: 1800,
+      ...(guardrailId ? {
+        guardrailConfiguration: {
+          guardrailIdentifier: guardrailId,
+          guardrailVersion: guardrailVersion || 'DRAFT',
+        },
+      } : {}),
+      ...(Object.keys(agentTags).length > 0 ? { tags: agentTags } : {}),
     });
 
     const createResponse = await agentClient.send(createCommand);
@@ -601,7 +628,11 @@ async function handleDeleteAgent(body: any): Promise<NextResponse> {
  * Agent更新処理（SSMパラメータ自動同期）
  */
 async function handleUpdateAgent(body: any): Promise<NextResponse> {
-  const { agentId, agentName, description, instruction, foundationModel } = body;
+  const {
+    agentId, agentName, description, instruction, foundationModel,
+    // Enterprise enhancement parameters (optional)
+    guardrailId, guardrailVersion, inferenceProfileArn, costTags,
+  } = body;
 
   if (!agentId) {
     return NextResponse.json(
@@ -628,7 +659,13 @@ async function handleUpdateAgent(body: any): Promise<NextResponse> {
       description,
       instruction,
       foundationModel,
-      agentResourceRoleArn: existingAgent.agent.agentResourceRoleArn, // 既存のroleArnを使用
+      agentResourceRoleArn: existingAgent.agent.agentResourceRoleArn,
+      ...(guardrailId ? {
+        guardrailConfiguration: {
+          guardrailIdentifier: guardrailId,
+          guardrailVersion: guardrailVersion || 'DRAFT',
+        },
+      } : {}),
     });
 
     const updateResponse = await agentClient.send(updateCommand);
@@ -750,6 +787,146 @@ async function handleGetAgent(body: any): Promise<NextResponse> {
         success: false,
         error: error instanceof Error ? error.message : 'Agent詳細取得に失敗しました',
       },
+      { status: 500 }
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Enterprise Agent Enhancement Handlers
+// ---------------------------------------------------------------------------
+
+/**
+ * List action groups attached to a specific agent
+ */
+async function handleListActionGroups(body: any): Promise<NextResponse> {
+  const { agentId, agentVersion } = body;
+
+  if (!agentId) {
+    return NextResponse.json(
+      { success: false, error: 'Agent IDが必要です' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const command = new ListAgentActionGroupsCommand({
+      agentId,
+      agentVersion: agentVersion || 'DRAFT',
+    });
+    const response = await agentClient.send(command);
+
+    const actionGroups = (response.actionGroupSummaries || []).map((ag: any) => ({
+      actionGroupId: ag.actionGroupId,
+      actionGroupName: ag.actionGroupName,
+      actionGroupState: ag.actionGroupState,
+      description: ag.description || '',
+      updatedAt: ag.updatedAt,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      actionGroups,
+      message: 'Action Group一覧取得完了',
+    });
+  } catch (error) {
+    console.error('[Bedrock Agent] ListActionGroups error:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Action Group一覧取得に失敗しました' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * List available action group templates (static list)
+ */
+async function handleListAvailableActionGroups(): Promise<NextResponse> {
+  const availableGroups = [
+    {
+      name: 'PermissionAwareSearch',
+      description: 'SIDベースの権限フィルタリング付き文書検索。Bedrock KB Retrieve APIで検索し、ユーザーのNTFS ACL SIDに基づいてアクセス制御を行います。',
+      isDefault: true,
+    },
+    {
+      name: 'Browser',
+      description: 'Web検索・ブラウジング機能。外部Webサイトの情報を検索・取得します。',
+      isDefault: false,
+    },
+    {
+      name: 'CodeInterpreter',
+      description: 'Python コード実行環境。データ分析、可視化、計算処理を実行します。',
+      isDefault: false,
+    },
+  ];
+
+  return NextResponse.json({
+    success: true,
+    actionGroups: availableGroups,
+    message: '利用可能なAction Groupテンプレート一覧',
+  });
+}
+
+/**
+ * List available Bedrock Guardrails
+ */
+async function handleListGuardrails(): Promise<NextResponse> {
+  try {
+    const { BedrockClient, ListGuardrailsCommand } = await import('@aws-sdk/client-bedrock');
+    const bedrockClient = new BedrockClient({ region: BEDROCK_REGION });
+
+    const command = new ListGuardrailsCommand({});
+    const response = await bedrockClient.send(command);
+
+    const guardrails = (response.guardrails || []).map((g: any) => ({
+      guardrailId: g.id,
+      name: g.name,
+      description: g.description || '',
+      status: g.status,
+      version: g.version || 'DRAFT',
+    }));
+
+    return NextResponse.json({
+      success: true,
+      guardrails,
+      message: 'ガードレール一覧取得完了',
+    });
+  } catch (error) {
+    console.error('[Bedrock Agent] ListGuardrails error:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'ガードレール一覧取得に失敗しました' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * List available Bedrock Inference Profiles
+ */
+async function handleListInferenceProfiles(): Promise<NextResponse> {
+  try {
+    const { BedrockClient, ListInferenceProfilesCommand } = await import('@aws-sdk/client-bedrock');
+    const bedrockClient = new BedrockClient({ region: BEDROCK_REGION });
+
+    const command = new ListInferenceProfilesCommand({});
+    const response = await bedrockClient.send(command);
+
+    const profiles = (response.inferenceProfileSummaries || []).map((p: any) => ({
+      inferenceProfileArn: p.inferenceProfileArn,
+      inferenceProfileName: p.inferenceProfileName,
+      modelId: p.models?.[0]?.modelArn || '',
+      status: p.status,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      inferenceProfiles: profiles,
+      message: '推論プロファイル一覧取得完了',
+    });
+  } catch (error) {
+    console.error('[Bedrock Agent] ListInferenceProfiles error:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : '推論プロファイル一覧取得に失敗しました' },
       { status: 500 }
     );
   }

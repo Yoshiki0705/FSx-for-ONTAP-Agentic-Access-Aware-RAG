@@ -68,9 +68,15 @@ Agentモードでは14枚のワークフローカード（リサーチ系8枚 + 
 
 ### Agent Directory — Agent一覧・管理画面
 
-`/[locale]/genai/agents` でアクセスできるAgent管理専用画面です。作成済みBedrock Agentのカタログ表示、検索・カテゴリフィルタ、詳細パネル、テンプレートからの作成、インライン編集・削除が可能です。ナビゲーションバーでAgentモード / Agent一覧 / KBモードを切り替えられます。
+`/[locale]/genai/agents` でアクセスできるAgent管理専用画面です。作成済みBedrock Agentのカタログ表示、検索・カテゴリフィルタ、詳細パネル、テンプレートからの作成、インライン編集・削除が可能です。ナビゲーションバーでAgentモード / Agent一覧 / KBモードを切り替えられます。エンタープライズ機能有効時は「共有Agent」「スケジュールタスク」タブが追加されます。
 
-![Agent Directory](docs/screenshots/agent-directory.png)
+![Agent Directory](docs/screenshots/agent-directory-enterprise.png)
+
+#### Agent Directory — 共有Agentタブ
+
+`enableAgentSharing=true` で有効化。S3共有バケット内のAgent構成を一覧・プレビュー・インポートできます。
+
+![共有Agentタブ](docs/screenshots/agent-directory-shared-tab.png)
 
 ### Agent Directory — Agent作成フォーム
 
@@ -80,7 +86,7 @@ Agentモードでは14枚のワークフローカード（リサーチ系8枚 + 
 
 ### Agent Directory — Agent詳細・編集
 
-Agentカードをクリックすると詳細パネルが表示され、Agent ID、ステータス、モデル、バージョン、作成日、システムプロンプト（折りたたみ）、アクショングループを確認できます。「編集」ボタンでインライン編集、「チャットで使用」でAgentモードに遷移、「削除」で確認ダイアログ付き削除が可能です。
+Agentカードをクリックすると詳細パネルが表示され、Agent ID、ステータス、モデル、バージョン、作成日、システムプロンプト（折りたたみ）、アクショングループを確認できます。「編集」ボタンでインライン編集、「チャットで使用」でAgentモードに遷移、「エクスポート」でJSON構成ダウンロード、「共有バケットにアップロード」でS3共有、「スケジュール作成」で定期実行設定、「削除」で確認ダイアログ付き削除が可能です。
 
 ![Agent詳細パネル](docs/screenshots/agent-detail-panel.png)
 
@@ -279,9 +285,30 @@ EOF
 | `usePermissionFilterLambda` | `false` | SIDフィルタリングを専用Lambda経由で実行（インラインフィルタリングのフォールバック付き） |
 | `enableGuardrails` | `false` | Bedrock Guardrails（有害コンテンツフィルタ + PII保護） |
 | `enableAgent` | `false` | Bedrock Agent + Permission-aware Action Group（KB検索 + SIDフィルタリング）。動的Agent作成（カードクリック時にカテゴリ別Agentを自動作成・紐付け） |
+| `enableAgentSharing` | `false` | Agent構成共有S3バケット。Agent構成のJSON export/import、S3経由の組織内共有機能 |
+| `enableAgentSchedules` | `false` | Agent定期実行基盤（EventBridge Scheduler + Lambda + DynamoDB実行履歴テーブル） |
 | `enableKmsEncryption` | `false` | KMS CMKによるS3・DynamoDB暗号化（キーローテーション有効） |
 | `enableCloudTrail` | `false` | CloudTrail監査ログ（S3データアクセス + Lambda呼び出し、90日保持） |
 | `enableVpcEndpoints` | `false` | VPCエンドポイント（S3, DynamoDB, Bedrock, SSM, Secrets Manager, CloudWatch Logs） |
+
+#### ベクトルストア構成の選択
+
+`vectorStoreType`パラメータでベクトルストアを切り替えられます。デフォルトはS3 Vectors（低コスト）です。
+
+| 構成 | コスト | レイテンシ | 推奨用途 |
+|------|--------|-----------|---------|
+| `s3vectors`（デフォルト） | 月数ドル | サブ秒〜100ms | デモ・開発・コスト最適化 |
+| `opensearch-serverless` | ~$700/月 | ~10ms | 高パフォーマンス本番環境 |
+
+```bash
+# S3 Vectors構成（デフォルト）
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" -c vectorStoreType=s3vectors
+
+# OpenSearch Serverless構成
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" -c vectorStoreType=opensearch-serverless
+```
+
+S3 Vectors構成で運用中に高パフォーマンスが必要になった場合は、`demo-data/scripts/export-to-opensearch.sh`でOpenSearch Serverlessにオンデマンドエクスポートできます。詳細は[docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md)を参照してください。
 
 ### Step 6: プリデプロイセットアップ（ECRイメージ準備）
 
@@ -303,6 +330,17 @@ bash demo-data/scripts/pre-deploy-setup.sh
 npx cdk deploy --all \
   --app "npx ts-node bin/demo-app.ts" \
   -c enableAgent=true \
+  --require-approval never
+```
+
+エンタープライズ機能を有効化する場合：
+
+```bash
+npx cdk deploy --all \
+  --app "npx ts-node bin/demo-app.ts" \
+  -c enableAgent=true \
+  -c enableAgentSharing=true \
+  -c enableAgentSchedules=true \
   --require-approval never
 ```
 
@@ -340,6 +378,7 @@ bash demo-data/scripts/verify-deployment.sh
 - KBモード Permission-aware（admin: 全ドキュメント許可、user: 公開のみ）
 - Agentモード Permission-aware（Action Group SIDフィルタリング）
 - S3 Access Point（AVAILABLE）
+- エンタープライズAgent機能（S3共有バケット、DynamoDB実行履歴テーブル、スケジューラLambda、Sharing/Schedules API応答）※`enableAgentSharing`/`enableAgentSchedules`有効時のみ
 
 ### Step 10: ブラウザでのアクセス
 
@@ -362,10 +401,14 @@ bash demo-data/scripts/cleanup-all.sh
 
 このスクリプトが自動的に以下を実行します:
 1. 手動作成リソース削除（S3 AP、ECR、CodeBuild）
-2. Embeddingスタック削除（存在する場合）
-3. CDK destroy（全スタック）
-4. 残留スタックの個別削除
-5. 孤立AD SGの削除
+2. Bedrock KBデータソース削除（CDK destroy前に必須）
+3. 動的作成されたBedrock Agents削除（CDK管理外のAgent）
+4. エンタープライズAgent機能リソース削除（EventBridge Schedulerスケジュール・グループ、S3共有バケット）
+5. Embeddingスタック削除（存在する場合）
+6. CDK destroy（全スタック）
+7. 残留スタックの個別削除 + 孤立AD SG削除
+8. VPC内のCDK管理外EC2インスタンス・SG削除 + Networkingスタック再削除
+9. CDKToolkit + CDK staging S3バケット削除（両リージョン、バージョニング対応）
 
 > **Note**: FSx ONTAPの削除に20-30分かかるため、全体で30-40分程度です。
 
@@ -384,6 +427,22 @@ bash demo-data/scripts/cleanup-all.sh
 | 症状 | 原因 | 対処 |
 |------|------|------|
 | `Cloud assembly schema version mismatch` | グローバルCDK CLIが古い | `npm install aws-cdk@latest` でプロジェクトローカルを更新し `npx cdk` を使用 |
+
+### CloudFormation Hook によるデプロイ失敗
+
+| 症状 | 原因 | 対処 |
+|------|------|------|
+| `The following hook(s)/validation failed: [AWS::EarlyValidation::ResourceExistenceCheck]` | Organization-levelのCloudFormation HookがChangeSetをブロック | `--method=direct`オプションを追加してChangeSetをバイパス |
+
+```bash
+# CloudFormation Hookが有効な環境でのデプロイ
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" --method=direct --require-approval never
+
+# ブートストラップも同様にcreate-stackで直接作成
+aws cloudformation create-stack --stack-name CDKToolkit \
+  --template-body file://cdk-bootstrap-template.yaml \
+  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
+```
 
 ### Docker権限エラー
 
@@ -472,6 +531,59 @@ aws ec2 delete-security-group --group-id <SG_ID> --region ap-northeast-1
 aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Networking --region ap-northeast-1
 ```
 
+#### 問題5: VPCサブネットにEC2インスタンスが残っているとNetworkingスタック削除失敗
+
+CDK管理外のEC2インスタンス（Dockerビルド用EC2等）がVPCサブネットに残っていると、`cdk destroy`でNetworkingスタックが`DELETE_FAILED`になります。
+
+| 症状 | 原因 | 対処 |
+|------|------|------|
+| `The subnet 'subnet-xxx' has dependencies and cannot be deleted` | CDK管理外のEC2がサブネットに存在 | EC2を終了→SG削除→キーペア削除→スタック再削除 |
+
+```bash
+# VPC内のEC2を特定
+VPC_ID="vpc-xxx"
+aws ec2 describe-instances --filters "Name=vpc-id,Values=$VPC_ID" "Name=instance-state-name,Values=running,stopped" \
+  --query 'Reservations[].Instances[].{Id:InstanceId,Name:Tags[?Key==`Name`].Value|[0]}' --output table
+
+# EC2を終了
+aws ec2 terminate-instances --instance-ids <INSTANCE_ID>
+aws ec2 wait instance-terminated --instance-ids <INSTANCE_ID>
+
+# 残留SGを削除
+aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" \
+  --query 'SecurityGroups[?GroupName!=`default`].{Id:GroupId,Name:GroupName}' --output table
+aws ec2 delete-security-group --group-id <SG_ID>
+
+# キーペアを削除（不要な場合）
+aws ec2 delete-key-pair --key-name <KEY_NAME>
+
+# Networkingスタック削除を再試行
+aws cloudformation delete-stack --stack-name perm-rag-demo-demo-Networking
+aws cloudformation wait stack-delete-complete --stack-name perm-rag-demo-demo-Networking
+```
+
+#### 問題6: CDK staging S3バケットのバージョニングで削除失敗
+
+CDK Bootstrapで作成されるS3 stagingバケット（`cdk-hnb659fds-assets-*`）はバージョニングが有効です。`aws s3 rb --force`ではオブジェクトバージョンとDeleteMarkerが残り、バケット削除が失敗します。
+
+```bash
+# バージョンとDeleteMarkerを全削除してからバケット削除
+BUCKET="cdk-hnb659fds-assets-ACCOUNT_ID-REGION"
+
+# オブジェクトバージョン削除
+aws s3api list-object-versions --bucket "$BUCKET" \
+  --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output json | \
+  aws s3api delete-objects --bucket "$BUCKET" --delete file:///dev/stdin
+
+# DeleteMarker削除
+aws s3api list-object-versions --bucket "$BUCKET" \
+  --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' --output json | \
+  aws s3api delete-objects --bucket "$BUCKET" --delete file:///dev/stdin
+
+# バケット削除
+aws s3api delete-bucket --bucket "$BUCKET"
+```
+
 #### 推奨: 完全削除スクリプト
 
 上記の問題を回避する完全削除手順は `demo-data/scripts/cleanup-all.sh` に自動化されています:
@@ -484,10 +596,12 @@ bash demo-data/scripts/cleanup-all.sh
 1. 手動作成リソース削除（S3 AP、ECR、CodeBuild、CodeBuild S3バケット）
 2. Bedrock KBデータソース削除（CDK destroy前に必須）
 3. 動的作成されたBedrock Agents削除（CDK管理外のAgent）
-4. Embeddingスタック削除（存在する場合）
-5. CDK destroy（全スタック）
-6. 残留スタックの個別削除
-7. 孤立AD SGの削除
+4. エンタープライズAgent機能リソース削除（EventBridge Schedulerスケジュール・グループ、S3共有バケット）
+5. Embeddingスタック削除（存在する場合）
+6. CDK destroy（全スタック）
+7. 残留スタックの個別削除 + 孤立AD SG削除
+8. VPC内のCDK管理外EC2インスタンス・SG削除 + Networkingスタック再削除
+9. CDKToolkit + CDK staging S3バケット削除（両リージョン、バージョニング対応）
 
 ## WAF & Geo制限の設定
 
@@ -552,7 +666,7 @@ FlexCache CacheボリュームをCIFSマウントしてEmbeddingを実行するE
 
 ### データ取り込みパス
 
-本システムはFSx ONTAP → S3 Access Point → Bedrock KBの一本道アーキテクチャです。
+本システムはFSx ONTAP → S3 Access Point → Bedrock KBの一本道アーキテクチャです。Bedrock KBがドキュメントの取得・チャンク分割・ベクトル化・格納を全て管理します。
 
 ```
 FSx ONTAP Volume (/data)
@@ -564,9 +678,24 @@ FSx ONTAP Volume (/data)
       │ S3 Access Point
       ▼
   Bedrock KB データソース（S3 APエイリアス）
-      │ Ingestion Job
+      │ Ingestion Job（チャンク分割 + Titan Embed v2でベクトル化）
       ▼
-  OpenSearch Serverless（ベクトルストア）
+  ベクトルストア（vectorStoreTypeで選択）
+    ├── S3 Vectors（デフォルト: 低コスト、サブ秒レイテンシ）
+    └── OpenSearch Serverless（高パフォーマンス、~$700/月）
+```
+
+Bedrock KBのIngestion Jobが実行する処理：
+1. S3 Access Point経由でFSx ONTAP上のドキュメントと`.metadata.json`を読み取り
+2. ドキュメントをチャンク分割
+3. Amazon Titan Embed Text v2でベクトル化（1024次元）
+4. ベクトル + メタデータ（`allowed_group_sids`含む）をベクトルストアに格納
+
+検索時のフロー：
+```
+アプリ → Bedrock KB Retrieve API → ベクトルストア（ベクトル検索）
+  → 検索結果 + メタデータ（allowed_group_sids）返却
+  → アプリ側SIDフィルタリング → Converse API（回答生成）
 ```
 
 | パス | 方式 | CDK有効化 | 状況 |
@@ -728,6 +857,8 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 │   ├── metadata-filter-handler.ts    # 権限フィルタリングLambda（メタデータベース、デモスタック用）
 │   ├── permission-calculator.ts      # SID/ACL照合ロジック
 │   └── types.ts                      # 型定義
+├── lambda/agent-core-scheduler/      # Agent定期実行Lambda（EventBridge Scheduler用）
+│   └── index.ts                      # InvokeAgent + DynamoDB実行履歴記録
 ├── docker/nextjs/                    # Next.jsアプリケーション
 │   ├── src/app/[locale]/genai/       # メインチャットページ（KB/Agentモード切替）
 │   ├── src/app/[locale]/genai/agents/ # Agent Directory ページ
@@ -797,6 +928,7 @@ AD_DNS_IPS=$(aws ds describe-directories --region ap-northeast-1 \
   --query 'DirectoryDescriptions[?Name==`demo.local`].DnsIpAddrs' --output json)
 
 # SVM AD参加
+# 注意: AWS Managed ADの場合、OrganizationalUnitDistinguishedNameの指定が必要
 aws fsx update-storage-virtual-machine \
   --storage-virtual-machine-id <SVM_ID> \
   --active-directory-configuration '{
@@ -806,10 +938,13 @@ aws fsx update-storage-virtual-machine \
       "UserName": "Admin",
       "Password": "<AD_PASSWORD>",
       "DnsIps": <AD_DNS_IPS>,
-      "FileSystemAdministratorsGroup": "Domain Admins"
+      "FileSystemAdministratorsGroup": "Domain Admins",
+      "OrganizationalUnitDistinguishedName": "OU=Computers,OU=demo,DC=demo,DC=local"
     }
   }' --region ap-northeast-1
 ```
+
+> **重要**: AWS Managed ADの場合、`OrganizationalUnitDistinguishedName`を指定しないとSVM AD参加が`MISCONFIGURED`になります。OUパスは`OU=Computers,OU=<AD ShortName>,DC=<domain>,DC=<tld>`の形式です。
 
 S3 Access Pointの設計判断（WINDOWSユーザータイプ、Internetアクセス）の詳細もガイドに記載しています。
 

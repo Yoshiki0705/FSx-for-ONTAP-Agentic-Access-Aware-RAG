@@ -132,6 +132,46 @@ export class DemoNetworkingStack extends cdk.Stack {
       'LDAP UDP from VPC',
     );
 
+    // LDAPS (636) - AD連携に必要（セキュアLDAP）
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(636),
+      'LDAPS from VPC',
+    );
+
+    // RPC (135) - AD連携に必要（エンドポイントマッパー）
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(135),
+      'RPC Endpoint Mapper from VPC',
+    );
+
+    // Kerberos password change (464 TCP/UDP) - AD連携に必要
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcp(464),
+      'Kerberos password change TCP from VPC',
+    );
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.udp(464),
+      'Kerberos password change UDP from VPC',
+    );
+
+    // Global Catalog (3268-3269) - AD連携に必要
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcpRange(3268, 3269),
+      'Global Catalog from VPC',
+    );
+
+    // Ephemeral/RPC dynamic ports (1024-65535) - AD連携に必要
+    this.fsxSg.addIngressRule(
+      ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+      ec2.Port.tcpRange(1024, 65535),
+      'Ephemeral/RPC dynamic ports from VPC',
+    );
+
     // Lambda → FSx 通信許可
     this.fsxSg.addIngressRule(
       this.lambdaSg,

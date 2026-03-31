@@ -482,6 +482,67 @@
     "createAndDeploy": "Create & Deploy",
     "agentName": "Agent Name",
     "description": "Description",
-    "agentId": "Agent ID"
+    "agentId": "Agent ID",
+    "toolSelection": {
+      "title": "Tool Selection",
+      "selectTools": "Select tools for the Agent",
+      "permissionAwareSearch": "Permission-Aware Search",
+      "browser": "Browser",
+      "codeInterpreter": "Code Interpreter",
+      "noToolsAvailable": "No tools available",
+      "loadError": "Failed to load tools"
+    },
+    "guardrails": {
+      "title": "Guardrail Settings",
+      "enable": "Enable Guardrail",
+      "selectGuardrail": "Select Guardrail",
+      "noGuardrails": "No guardrails available",
+      "loadError": "Failed to load guardrails"
+    },
+    "inferenceProfile": {
+      "title": "Inference Profile",
+      "selectProfile": "Select Inference Profile",
+      "costTags": "Cost Tags",
+      "department": "Department",
+      "project": "Project",
+      "noProfiles": "No profiles available",
+      "loadError": "Failed to load profiles"
+    },
+    "sharing": {
+      "title": "Sharing",
+      "export": "Export",
+      "import": "Import",
+      "uploadToS3": "Upload to Shared Bucket",
+      "sharedAgents": "Shared Agents",
+      "preview": "Preview",
+      "importConfirm": "Import this agent configuration?",
+      "invalidJson": "Invalid JSON format",
+      "incompatibleVersion": "Incompatible schema version",
+      "uploadSuccess": "Upload completed",
+      "uploadError": "Upload failed",
+      "noSharedConfigs": "No shared agent configurations"
+    },
+    "schedule": {
+      "title": "Schedule Settings",
+      "cronExpression": "Cron Expression",
+      "description": "Description",
+      "inputPrompt": "Input Prompt",
+      "nextExecution": "Next Execution",
+      "createSchedule": "Create Schedule",
+      "deleteSchedule": "Delete Schedule",
+      "manualTrigger": "Manual Trigger",
+      "executionHistory": "Execution History",
+      "invalidCron": "Invalid cron expression",
+      "scheduledTasks": "Scheduled Tasks",
+      "noSchedules": "No schedules",
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed"
+    },
+    "tabs": {
+      "agents": "Agents",
+      "shared": "Shared Agents",
+      "schedules": "Scheduled Tasks"
+    }
   }
 }

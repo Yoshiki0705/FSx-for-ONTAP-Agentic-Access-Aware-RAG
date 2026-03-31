@@ -86,6 +86,28 @@ done
 echo ""
 
 # ========================================
+# 3.5. エンタープライズAgent機能リソース削除
+# ========================================
+echo "🧹 Step 3.5: エンタープライズAgent機能リソース削除..."
+
+# EventBridge Schedulerグループ内のスケジュール削除
+SCHEDULES=$(aws scheduler list-schedules --group-name agent-schedules --region $REGION --query 'Schedules[].Name' --output text 2>/dev/null || echo "")
+for SCHED in $SCHEDULES; do
+  aws scheduler delete-schedule --name "$SCHED" --group-name agent-schedules --region $REGION 2>/dev/null \
+    && echo "  ✅ Schedule: $SCHED" || echo "  ⏭️ Schedule: $SCHED not found"
+done
+# EventBridge Schedulerグループ削除
+aws scheduler delete-schedule-group --name agent-schedules --region $REGION 2>/dev/null \
+  && echo "  ✅ Scheduler Group: agent-schedules" || echo "  ⏭️ Scheduler Group: not found"
+
+# S3共有Agentバケット（CDK AutoDeleteObjectsで自動削除されるが念のため）
+SHARED_BUCKET="${STACK_PREFIX}-shared-agents"
+aws s3 rb "s3://${SHARED_BUCKET}" --force --region $REGION 2>/dev/null \
+  && echo "  ✅ S3: ${SHARED_BUCKET}" || echo "  ⏭️ S3: ${SHARED_BUCKET} not found"
+
+echo ""
+
+# ========================================
 # 4. Embeddingスタック削除（存在する場合）
 # ========================================
 echo "🧹 Step 4: Embeddingスタック削除..."
@@ -138,6 +160,60 @@ fi
 echo ""
 
 # ========================================
+# 7.5. VPC内のCDK管理外EC2インスタンス削除
+# ========================================
+echo "🧹 Step 7.5: VPC内EC2確認..."
+if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
+  EC2_IDS=$(aws ec2 describe-instances --filters "Name=vpc-id,Values=$VPC_ID" "Name=instance-state-name,Values=running,stopped" \
+    --region $REGION --query 'Reservations[].Instances[].InstanceId' --output text 2>/dev/null || echo "")
+  for EC2_ID in $EC2_IDS; do
+    echo "  Terminating: $EC2_ID"
+    aws ec2 terminate-instances --instance-ids $EC2_ID --region $REGION 2>/dev/null
+    aws ec2 wait instance-terminated --instance-ids $EC2_ID --region $REGION 2>/dev/null && echo "  ✅ $EC2_ID terminated"
+  done
+  # 残留SG削除（default以外）
+  for SG_ID in $(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" --region $REGION \
+    --query 'SecurityGroups[?GroupName!=`default`].GroupId' --output text 2>/dev/null); do
+    aws ec2 delete-security-group --group-id $SG_ID --region $REGION 2>/dev/null && echo "  ✅ SG: $SG_ID deleted"
+  done
+  # Networkingスタック再削除（EC2/SG削除後）
+  NET_STATUS=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Networking --region $REGION --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "DELETED")
+  if [ "$NET_STATUS" = "DELETE_FAILED" ]; then
+    echo "  Retrying Networking stack deletion..."
+    aws cloudformation delete-stack --stack-name ${STACK_PREFIX}-Networking --region $REGION 2>/dev/null
+    aws cloudformation wait stack-delete-complete --stack-name ${STACK_PREFIX}-Networking --region $REGION 2>/dev/null && echo "  ✅ Networking deleted"
+  fi
+fi
+echo ""
+
+# ========================================
+# 8. CDKToolkit + staging S3バケット削除
+# ========================================
+echo "🧹 Step 8: CDKToolkit削除..."
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
+for CDK_REGION in $REGION us-east-1; do
+  CDK_STATUS=$(aws cloudformation describe-stacks --stack-name CDKToolkit --region $CDK_REGION --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "DELETED")
+  if [ "$CDK_STATUS" != "DELETED" ] && [ "$CDK_STATUS" != "DELETE_COMPLETE" ]; then
+    # ECRリポジトリ削除
+    aws ecr delete-repository --repository-name "cdk-hnb659fds-container-assets-${ACCOUNT_ID}-${CDK_REGION}" --force --region $CDK_REGION 2>/dev/null && echo "  ✅ CDK ECR ($CDK_REGION) deleted" || true
+    # CDKToolkitスタック削除
+    aws cloudformation delete-stack --stack-name CDKToolkit --region $CDK_REGION 2>/dev/null
+    aws cloudformation wait stack-delete-complete --stack-name CDKToolkit --region $CDK_REGION 2>/dev/null && echo "  ✅ CDKToolkit ($CDK_REGION) deleted" || echo "  ⏭️ CDKToolkit ($CDK_REGION) not found"
+    # S3 stagingバケット削除（バージョニング対応）
+    CDK_BUCKET="cdk-hnb659fds-assets-${ACCOUNT_ID}-${CDK_REGION}"
+    if aws s3api head-bucket --bucket "$CDK_BUCKET" 2>/dev/null; then
+      aws s3api list-object-versions --bucket "$CDK_BUCKET" --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output json 2>/dev/null | aws s3api delete-objects --bucket "$CDK_BUCKET" --delete file:///dev/stdin 2>/dev/null
+      aws s3api list-object-versions --bucket "$CDK_BUCKET" --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' --output json 2>/dev/null | aws s3api delete-objects --bucket "$CDK_BUCKET" --delete file:///dev/stdin 2>/dev/null
+      aws s3api delete-bucket --bucket "$CDK_BUCKET" 2>/dev/null && echo "  ✅ CDK S3 ($CDK_REGION) deleted"
+    fi
+  else
+    echo "  ⏭️ CDKToolkit ($CDK_REGION): already deleted"
+  fi
+done
+echo ""
+
+# ========================================
 # 最終確認
 # ========================================
 echo "============================================"
@@ -167,3 +243,13 @@ if [ "$ALL_CLEAN" = true ]; then
 else
   echo "⚠️ 一部リソースが残っています。手動確認が必要です。"
 fi
+
+# CDKToolkit確認
+for CDK_REGION in $REGION us-east-1; do
+  CDK_STATUS=$(aws cloudformation describe-stacks --stack-name CDKToolkit --region $CDK_REGION --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "DELETED")
+  if [ "$CDK_STATUS" = "DELETED" ] || [ "$CDK_STATUS" = "DELETE_COMPLETE" ]; then
+    echo "  ✅ CDKToolkit ($CDK_REGION): DELETED"
+  else
+    echo "  ⚠️ CDKToolkit ($CDK_REGION): $CDK_STATUS"
+  fi
+done

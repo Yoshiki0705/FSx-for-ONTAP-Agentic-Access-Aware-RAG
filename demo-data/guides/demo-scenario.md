@@ -130,6 +130,6 @@ bash demo-data/scripts/sync-kb-datasource.sh
 ## トラブルシューティング
 
 - **検索結果が返らない**: Bedrock KBデータソースの同期が完了しているか確認
-- **全ドキュメントが拒否される**: DynamoDB user-accessテーブルにユーザーのSIDデータが登録されているか確認
+- **全ドキュメントが拒否される**: DynamoDB user-accessテーブルにユーザーのSIDデータが登録されているか確認。**注意**: アプリはCognitoの`sub`ではなくメールアドレスを`userId`として送信するため、DynamoDBの`userId`キーにはメールアドレスを使用すること
 - **SIDフィルタリングが効かない**: `.metadata.json` の `allowed_group_sids` が正しく設定されているか確認
 - **サインインできない**: Cognito User Poolのユーザーステータスを確認

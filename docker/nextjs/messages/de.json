@@ -340,6 +340,67 @@
     "createAndDeploy": "Erstellen und bereitstellen",
     "agentName": "Agent-Name",
     "description": "Beschreibung",
-    "agentId": "Agent-ID"
+    "agentId": "Agent-ID",
+    "toolSelection": {
+      "title": "Werkzeugauswahl",
+      "selectTools": "Werkzeuge für den Agent auswählen",
+      "permissionAwareSearch": "Berechtigungsbewusste Suche",
+      "browser": "Browser",
+      "codeInterpreter": "Code-Interpreter",
+      "noToolsAvailable": "Keine Werkzeuge verfügbar",
+      "loadError": "Werkzeugliste konnte nicht geladen werden"
+    },
+    "guardrails": {
+      "title": "Leitplanken-Einstellungen",
+      "enable": "Leitplanke aktivieren",
+      "selectGuardrail": "Leitplanke auswählen",
+      "noGuardrails": "Keine Leitplanken verfügbar",
+      "loadError": "Leitplankenliste konnte nicht geladen werden"
+    },
+    "inferenceProfile": {
+      "title": "Inferenzprofil",
+      "selectProfile": "Inferenzprofil auswählen",
+      "costTags": "Kosten-Tags",
+      "department": "Abteilung",
+      "project": "Projekt",
+      "noProfiles": "Keine Profile verfügbar",
+      "loadError": "Profilliste konnte nicht geladen werden"
+    },
+    "sharing": {
+      "title": "Freigabe",
+      "export": "Exportieren",
+      "import": "Importieren",
+      "uploadToS3": "In freigegebenen Bucket hochladen",
+      "sharedAgents": "Freigegebene Agents",
+      "preview": "Vorschau",
+      "importConfirm": "Diese Agent-Konfiguration importieren?",
+      "invalidJson": "Ungültiges JSON-Format",
+      "incompatibleVersion": "Inkompatible Schema-Version",
+      "uploadSuccess": "Upload abgeschlossen",
+      "uploadError": "Upload fehlgeschlagen",
+      "noSharedConfigs": "Keine freigegebenen Agent-Konfigurationen"
+    },
+    "schedule": {
+      "title": "Zeitplan-Einstellungen",
+      "cronExpression": "Cron-Ausdruck",
+      "description": "Beschreibung",
+      "inputPrompt": "Eingabe-Prompt",
+      "nextExecution": "Nächste Ausführung",
+      "createSchedule": "Zeitplan erstellen",
+      "deleteSchedule": "Zeitplan löschen",
+      "manualTrigger": "Manuell auslösen",
+      "executionHistory": "Ausführungsverlauf",
+      "invalidCron": "Ungültiger Cron-Ausdruck",
+      "scheduledTasks": "Geplante Aufgaben",
+      "noSchedules": "Keine Zeitpläne",
+      "running": "Läuft",
+      "success": "Erfolg",
+      "failed": "Fehlgeschlagen"
+    },
+    "tabs": {
+      "agents": "Agents",
+      "shared": "Freigegebene Agents",
+      "schedules": "Geplante Aufgaben"
+    }
   }
 }

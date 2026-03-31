@@ -1,6 +1,13 @@
 {
   "projectName": "permission-aware-rag",
   "environment": "prod",
+  "enableAgent": true,
+  "enableAgentSharing": true,
+  "enableAgentSchedules": true,
+  "enableGuardrails": true,
+  "enableKmsEncryption": true,
+  "enableCloudTrail": true,
+  "enableVpcEndpoints": true,
   "agentCore": {
     "enabled": true,
     "runtime": {
