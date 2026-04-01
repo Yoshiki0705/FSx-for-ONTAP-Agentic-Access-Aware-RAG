@@ -10,6 +10,7 @@ import {
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { createMetricsLogger } from '@/lib/monitoring/metrics';
 
 interface RetrieveRequest {
   query: string;
@@ -21,6 +22,9 @@ interface RetrieveRequest {
   agentId?: string;
   imageData?: string;        // Base64エンコード画像データ
   imageMimeType?: string;    // image/jpeg, image/png, image/gif, image/webp
+  // Smart Routing メトリクス用（フロントエンドから送信）
+  isAutoRouted?: boolean;    // Smart Routingによる自動選択かどうか
+  routingClassification?: 'simple' | 'complex'; // クエリ複雑度分類結果
 }
 
 interface UserAccessRecord { userId: string; userSID: string; groupSIDs: string[]; }
@@ -113,6 +117,10 @@ async function callVisionConverse(
   imageMimeType: string,
   query: string,
 ): Promise<string | null> {
+  const metrics = createMetricsLogger(process.env.ENABLE_MONITORING === 'true');
+  metrics.setDimension('Operation', 'vision');
+  metrics.putMetric('VisionApiInvocations', 1, 'Count');
+  const startTime = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), VISION_TIMEOUT_MS);
 
@@ -138,8 +146,17 @@ async function callVisionConverse(
     const outputContent = resp.output?.message?.content?.[0];
     const text = (outputContent && 'text' in outputContent) ? (outputContent.text || '') : '';
     console.log('[Vision] Analysis complete, result length:', text.length);
+    metrics.putMetric('VisionApiLatency', Date.now() - startTime, 'Milliseconds');
+    metrics.flush();
     return text;
   } catch (err: unknown) {
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+    if (isTimeout) {
+      metrics.putMetric('VisionApiTimeouts', 1, 'Count');
+    }
+    metrics.putMetric('VisionApiFallbacks', 1, 'Count');
+    metrics.putMetric('VisionApiLatency', Date.now() - startTime, 'Milliseconds');
+    metrics.flush();
     console.error('[Vision] Failed:', err instanceof Error ? err.message : String(err));
     return null;
   } finally {
@@ -195,6 +212,24 @@ export async function POST(request: NextRequest) {
     if (!userId) return NextResponse.json({ success: false, error: 'no userId' }, { status: 400 });
 
     console.log('[KB] Start:', { query: query.substring(0, 80), knowledgeBaseId, userId, rawModelId });
+
+    // Smart Routing メトリクス出力
+    const monitoringEnabled = process.env.ENABLE_MONITORING === 'true';
+    if (monitoringEnabled && body.isAutoRouted !== undefined) {
+      const routingMetrics = createMetricsLogger(true);
+      routingMetrics.setDimension('Operation', 'routing');
+      if (body.isAutoRouted) {
+        routingMetrics.putMetric('SmartRoutingAutoSelect', 1, 'Count');
+        if (body.routingClassification === 'simple') {
+          routingMetrics.putMetric('SmartRoutingSimple', 1, 'Count');
+        } else if (body.routingClassification === 'complex') {
+          routingMetrics.putMetric('SmartRoutingComplex', 1, 'Count');
+        }
+      } else {
+        routingMetrics.putMetric('SmartRoutingManualOverride', 1, 'Count');
+      }
+      routingMetrics.flush();
+    }
 
     // Step 0: Image analysis (when imageData is present)
     let imageAnalysisResult: string | null = null;

@@ -1024,7 +1024,7 @@ function ChatbotPageContent() {
   //   // 実装は将来の拡張時に追加
   // };
 
-  const generateRAGResponse = async (query: string, imageData?: string, imageMimeType?: string): Promise<{ answer: string; citations: CitationItem[] }> => {
+  const generateRAGResponse = async (query: string, imageData?: string, imageMimeType?: string, routing?: { isAutoRouted: boolean; classification?: { classification: 'simple' | 'complex' } | null }): Promise<{ answer: string; citations: CitationItem[] }> => {
     try {
       console.log('📚 [KB] Sending request to Bedrock KB API:', { query: query.substring(0, 100), user: user.username, modelId: selectedModelId });
       
@@ -1050,6 +1050,11 @@ function ChatbotPageContent() {
             userId: user.username,
             region: currentRegion,
             ...(imageData ? { imageData, imageMimeType } : {}),
+            // Smart Routing メトリクス用
+            ...(routing ? {
+              isAutoRouted: routing.isAutoRouted,
+              ...(routing.classification ? { routingClassification: routing.classification.classification } : {}),
+            } : {}),
             // Note: sessionIdはBedrock KB APIが返すUUID形式でなければならないため、
             // アプリ内部のセッションIDは送らない（各リクエストを独立したKB検索として扱う）
           }),
@@ -1274,7 +1279,7 @@ function ChatbotPageContent() {
       // モードに応じてRAG処理またはAgent処理を実行
       const { answer: responseText, citations } = agentMode
         ? await generateAgentResponse(currentInput)
-        : await generateRAGResponse(currentInput, currentImageData, currentImageMimeType);
+        : await generateRAGResponse(currentInput, currentImageData, currentImageMimeType, routingDecision);
 
       const botMessageId = `bot-${Date.now()}`;
       const botResponse: Message = {

@@ -28,6 +28,7 @@ import {
   ListAgentKnowledgeBasesCommand,
 } from '@aws-sdk/client-bedrock-agent';
 import { SSMAgentManagerFactory } from '@/services/ssm-agent-manager';
+import { createMetricsLogger } from '@/lib/monitoring/metrics';
 
 // Bedrock Agent設定
 // SSMパラメータから動的に取得、フォールバックとして環境変数を使用
@@ -951,6 +952,9 @@ async function handleListInferenceProfiles(): Promise<NextResponse> {
  */
 async function handleAssociateKB(body: any): Promise<NextResponse> {
   const { agentId, agentVersion, knowledgeBaseId, description } = body;
+  const metrics = createMetricsLogger(process.env.ENABLE_MONITORING === 'true');
+  metrics.setDimension('Operation', 'kb-mgmt');
+  metrics.putMetric('KbAssociateInvocations', 1, 'Count');
 
   if (!agentId || !knowledgeBaseId) {
     return NextResponse.json(
@@ -978,6 +982,7 @@ async function handleAssociateKB(body: any): Promise<NextResponse> {
     await agentClient.send(prepareCommand);
     console.log(`✅ PrepareAgent完了: ${agentId}`);
 
+    metrics.flush();
     return NextResponse.json({
       success: true,
       agentKnowledgeBase: response.agentKnowledgeBase,
@@ -985,6 +990,8 @@ async function handleAssociateKB(body: any): Promise<NextResponse> {
     });
   } catch (error) {
     console.error('[Bedrock Agent] AssociateKB error:', error);
+    metrics.putMetric('KbMgmtErrors', 1, 'Count');
+    metrics.flush();
     return NextResponse.json(
       {
         success: false,
@@ -1001,6 +1008,9 @@ async function handleAssociateKB(body: any): Promise<NextResponse> {
  */
 async function handleDisassociateKB(body: any): Promise<NextResponse> {
   const { agentId, agentVersion, knowledgeBaseId } = body;
+  const metrics = createMetricsLogger(process.env.ENABLE_MONITORING === 'true');
+  metrics.setDimension('Operation', 'kb-mgmt');
+  metrics.putMetric('KbDisassociateInvocations', 1, 'Count');
 
   if (!agentId || !knowledgeBaseId) {
     return NextResponse.json(
@@ -1026,12 +1036,15 @@ async function handleDisassociateKB(body: any): Promise<NextResponse> {
     await agentClient.send(prepareCommand);
     console.log(`✅ PrepareAgent完了: ${agentId}`);
 
+    metrics.flush();
     return NextResponse.json({
       success: true,
       message: 'Knowledge Base解除とAgent再準備が完了しました',
     });
   } catch (error) {
     console.error('[Bedrock Agent] DisassociateKB error:', error);
+    metrics.putMetric('KbMgmtErrors', 1, 'Count');
+    metrics.flush();
     return NextResponse.json(
       {
         success: false,

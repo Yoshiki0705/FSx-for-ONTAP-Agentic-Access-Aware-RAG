@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-04
+
+### Added
+- **監視・アラート機能（Monitoring & Alerting）**: `enableMonitoring=true` で有効化されるオプション機能。CloudWatchダッシュボード（Lambda/CloudFront/DynamoDB/Bedrock/WAF/Advanced RAG統合）、SNSアラート（エラー率・レイテンシ閾値超過通知）、EventBridge KB Ingestion Job失敗通知、EMFカスタムメトリクス。`enableAgentCoreObservability=true` でAgentCore Runtimeメトリクスも統合可能。コスト: 約$4/月
+- `lib/constructs/monitoring-construct.ts`: MonitoringConstruct（DemoWebAppStack内に条件付き作成）
+- `docker/nextjs/src/lib/monitoring/metrics.ts`: EMFメトリクスヘルパー（enabled/no-op切り替え）
+- 17テストケース追加（Property 7 + Unit 10）— `tests/unit/monitoring-construct.property.test.ts`
+- CDKコンテキストパラメータ: `enableMonitoring`, `monitoringEmail`, `enableAgentCoreObservability`, `alarmEvaluationPeriods`, `dashboardRefreshInterval`
+
+### Changed
+- `bin/demo-app.ts`: 監視関連コンテキストパラメータの読み取りとWebAppStackへの受け渡し追加
+- `lib/stacks/demo/demo-webapp-stack.ts`: DemoWebAppStackPropsに監視プロパティ追加、MonitoringConstruct統合
+- `cdk.context.json.example`: 監視パラメータサンプル追加
+- `README.md`: 実装概要テーブルに監視・アラート追加、CDKパラメータテーブル更新、デプロイ例追加
+- `docs/implementation-overview.md`: セクション12「監視・アラート」追加
+
+### Security
+- `development/` フォルダをgit追跡から除外（機密情報を含むレポート・スクリプトの保護）
+- `cdk.context.json.production` / `.staging` / `.minimal` をgit追跡から除外
+- `.gitignore` の `config/environments/` パターンに `.example` ファイルの除外ルール追加
+
 ## [3.1.0] - 2026-04
 
 ### Added

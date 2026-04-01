@@ -46,5 +46,14 @@
   // EC2上のAD + Entra Connect連携の場合:
   // "adEc2InstanceId": "i-0123456789abcdef0",
   // "samlMetadataUrl": "https://login.microsoftonline.com/{tenant-id}/federationmetadata/2007-06/federationmetadata.xml"
-  "enableAdFederation": false
+  "enableAdFederation": false,
+
+  // 監視・アラート機能（オプション）
+  // CloudWatchダッシュボード、SNSアラート、EventBridge連携
+  // "enableMonitoring": true,
+  // "monitoringEmail": "ops@example.com",
+  // "enableAgentCoreObservability": false,
+  // "alarmEvaluationPeriods": 1,
+  // "dashboardRefreshInterval": 300
+  "enableMonitoring": false
 }

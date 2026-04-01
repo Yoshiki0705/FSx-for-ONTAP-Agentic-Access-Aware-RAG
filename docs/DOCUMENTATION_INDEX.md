@@ -5,7 +5,7 @@
 | ドキュメント | 内容 |
 |-------------|------|
 | [README.md](../README.md) | システム概要、アーキテクチャ、デプロイ手順、WAF/Geo設定 |
-| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（11の観点: 画像分析RAG、KB接続UI、Smart Routing含む） |
+| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（12の観点: 画像分析RAG、KB接続UI、Smart Routing、監視・アラート含む） |
 | [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SIDベース権限フィルタリングの詳細設計 |
 | [docs/verification-report.md](verification-report.md) | デプロイ後の検証手順とテストケース |
 | [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（KB/Agentモード、Agent Directory、エンタープライズAgent機能、サイドバー設計） |

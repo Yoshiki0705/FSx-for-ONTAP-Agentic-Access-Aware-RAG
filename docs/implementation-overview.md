@@ -722,7 +722,7 @@ Agent Directory（`/genai/agents`）のAgent作成・編集時に、Bedrock Know
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + Cognito Domain（AD Federation有効時）, AD Sync Lambda（オプション） |
 | 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, AD, KMS暗号化（オプション）, CloudTrail（オプション） |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless（`vectorStoreType`で選択）, Bedrock Guardrails（オプション） |
-| 6 | WebAppStack | ap-northeast-1 | Lambda (Docker), CloudFront, Permission Filter Lambda（オプション） |
+| 6 | WebAppStack | ap-northeast-1 | Lambda (Docker), CloudFront, Permission Filter Lambda（オプション）, MonitoringConstruct（オプション） |
 | 7 | EmbeddingStack（任意） | ap-northeast-1 | EC2, ECR, ONTAP ACL自動取得（オプション） |
 
 ### CDKコンテキストパラメータ一覧
@@ -738,3 +738,87 @@ Agent Directory（`/genai/agents`）のAgent作成・編集時に、Bedrock Know
 | `enableKmsEncryption` | 4 | `false` | KMS暗号化（S3, DynamoDB） |
 | `enableCloudTrail` | 4 | `false` | CloudTrail監査ログ |
 | `enableVpcEndpoints` | 4 | `false` | VPCエンドポイント（Bedrock, SSM等） |
+| `enableMonitoring` | - | `false` | CloudWatchダッシュボード + SNSアラート + EventBridge監視 |
+| `monitoringEmail` | - | (なし) | アラート通知先メールアドレス |
+| `enableAgentCoreObservability` | - | `false` | AgentCore Runtimeメトリクスをダッシュボードに統合 |
+
+---
+
+## 12. 監視・アラート — CloudWatch Dashboard + SNS Alerts + EventBridge
+
+### 実装内容
+
+`enableMonitoring=true` で有効化されるオプション機能として、CloudWatchダッシュボード、SNSアラート、EventBridge連携を提供します。システム全体の稼働状況を1つのダッシュボードで確認でき、異常時にはメール通知を受け取れます。
+
+### アーキテクチャ
+
+```
+MonitoringConstruct (WebAppStack内)
+├── CloudWatch Dashboard（統合ダッシュボード）
+│   ├── Lambda Overview（WebApp / PermFilter / AgentScheduler / AD Sync）
+│   ├── CloudFront（リクエスト数、エラー率、キャッシュヒット率）
+│   ├── DynamoDB（キャパシティ、スロットリング）
+│   ├── Bedrock（API呼び出し、レイテンシ）
+│   ├── WAF（ブロックリクエスト数）
+│   ├── Advanced RAG（Vision API、Smart Routing、KB接続管理）
+│   ├── AgentCore（条件付き: enableAgentCoreObservability=true）
+│   └── KB Ingestion Jobs（実行履歴）
+├── CloudWatch Alarms → SNS Topic → Email
+│   ├── WebApp Lambda エラー率 > 5%
+│   ├── WebApp Lambda P99 Duration > 25秒
+│   ├── CloudFront 5xx エラー率 > 1%
+│   ├── DynamoDB スロットリング ≥ 1
+│   ├── Permission Filter Lambda エラー率 > 10%（条件付き）
+│   ├── Vision API タイムアウト率 > 20%
+│   └── Agent 実行エラー率 > 10%（条件付き）
+└── EventBridge Rule → SNS Topic
+    └── Bedrock KB Ingestion Job FAILED
+```
+
+### 技術スタック
+
+| レイヤー | 技術 |
+|---------|------|
+| ダッシュボード | CloudWatch Dashboard（自動リフレッシュ5分） |
+| アラーム | CloudWatch Alarms（OK↔ALARM両方向通知） |
+| 通知 | SNS Topic + Email Subscription |
+| イベント監視 | EventBridge Rule（KB Ingestion Job失敗検知） |
+| カスタムメトリクス | CloudWatch Embedded Metric Format (EMF) |
+| CDKコンストラクト | `lib/constructs/monitoring-construct.ts` |
+
+### カスタムメトリクス（EMF）
+
+Lambda関数内で `PermissionAwareRAG/AdvancedFeatures` 名前空間にカスタムメトリクスを出力します。`enableMonitoring=false` 時はno-op実装でパフォーマンス影響なし。
+
+| メトリクス | ディメンション | 出力元 |
+|-----------|---------------|--------|
+| VisionApiInvocations / Timeouts / Fallbacks / Latency | Operation=vision | Vision API呼び出し時 |
+| SmartRoutingSimple / Complex / AutoSelect / ManualOverride | Operation=routing | Smart Router選択時 |
+| KbAssociateInvocations / KbDisassociateInvocations / KbMgmtErrors | Operation=kb-mgmt | KB接続管理API呼び出し時 |
+
+### コスト
+
+| リソース | 月額コスト |
+|---------|-----------|
+| CloudWatch Dashboard | $3.00 |
+| CloudWatch Alarms（7個） | $0.70 |
+| SNS Email通知 | 無料枠内 |
+| EventBridge Rule | 無料枠内 |
+| **合計** | **約 $4/月** |
+
+### CDKスタック
+
+`DemoWebAppStack` 内の `MonitoringConstruct` として実装。`enableMonitoring=true` 時のみリソースが作成されます。
+
+```bash
+# 監視機能を有効化してデプロイ
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c enableMonitoring=true \
+  -c monitoringEmail=ops@example.com
+
+# AgentCore Observabilityも有効化
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c enableMonitoring=true \
+  -c monitoringEmail=ops@example.com \
+  -c enableAgentCoreObservability=true
+```

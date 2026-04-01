@@ -21,6 +21,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
+import { MonitoringConstruct } from '../../constructs/monitoring-construct';
 
 export interface DemoWebAppStackProps extends cdk.StackProps {
   projectName: string;
@@ -57,6 +58,21 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   agentSchedulerLambdaArn?: string;
   /** Agentスケジューラ IAMロール ARN（enableAgentSchedules時） */
   agentSchedulerRoleArn?: string;
+  // --- 監視・アラート機能（オプション） ---
+  /** 監視機能全体の有効化（デフォルト: false） */
+  enableMonitoring?: boolean;
+  /** アラート通知先メールアドレス */
+  monitoringEmail?: string;
+  /** AgentCore Observability連携（デフォルト: false） */
+  enableAgentCoreObservability?: boolean;
+  /** アラーム評価期間数（デフォルト: 1） */
+  alarmEvaluationPeriods?: number;
+  /** ダッシュボード自動リフレッシュ間隔（秒、デフォルト: 300） */
+  dashboardRefreshInterval?: number;
+  /** AD Sync Lambda関数（enableAdFederation時、SecurityStackから） */
+  adSyncFunction?: lambda.IFunction;
+  /** Agent Scheduler Lambda関数（enableAgentSchedules時、AIStackから） */
+  agentSchedulerFunction?: lambda.IFunction;
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -351,5 +367,29 @@ export class DemoWebAppStack extends cdk.Stack {
 
     cdk.Tags.of(this).add('Project', projectName);
     cdk.Tags.of(this).add('Environment', environment);
+
+    // ========================================
+    // 監視・アラート機能（オプション）
+    // ========================================
+    if (props.enableMonitoring) {
+      // WebApp LambdaにEMFメトリクス出力フラグを設定
+      this.webAppFunction.addEnvironment('ENABLE_MONITORING', 'true');
+
+      new MonitoringConstruct(this, 'Monitoring', {
+        projectName,
+        environment,
+        webAppFunction: this.webAppFunction,
+        distribution: this.distribution,
+        userAccessTable,
+        permissionCacheTable,
+        permissionFilterFunction: (this as any).permissionFilterFunction,
+        agentSchedulerFunction: props.agentSchedulerFunction,
+        adSyncFunction: props.adSyncFunction,
+        monitoringEmail: props.monitoringEmail,
+        enableAgentCoreObservability: props.enableAgentCoreObservability,
+        alarmEvaluationPeriods: props.alarmEvaluationPeriods,
+        dashboardRefreshInterval: props.dashboardRefreshInterval,
+      });
+    }
   }
 }

@@ -90,6 +90,7 @@ cdk.context.json.minimal
 
 # 環境固有設定
 config/environments/
+!config/environments/*.example
 
 # Docker一時ファイル
 docker/nextjs/lambda-deployment.zip

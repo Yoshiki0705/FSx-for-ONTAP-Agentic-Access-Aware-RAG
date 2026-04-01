@@ -18,6 +18,9 @@
  *   -c enableCloudTrail=true     CloudTrail監査ログ
  *   -c enableVpcEndpoints=true   VPCエンドポイント
  *   -c vectorStoreType=s3vectors    Vector store type (s3vectors or opensearch-serverless)
+ *   -c enableMonitoring=true        CloudWatch Dashboard + SNS Alerts + EventBridge
+ *   -c monitoringEmail=xxx          Alert notification email address
+ *   -c enableAgentCoreObservability=true  AgentCore metrics on dashboard
  */
 
 import 'source-map-support/register';
@@ -74,6 +77,13 @@ const enableVpcEndpoints = ctxBool('enableVpcEndpoints');
 const enableAgentSharing = ctxBool('enableAgentSharing');
 const enableAgentSchedules = ctxBool('enableAgentSchedules');
 const vectorStoreType = (app.node.tryGetContext('vectorStoreType') || 's3vectors') as string;
+
+// 監視・アラート機能（オプション）
+const enableMonitoring = ctxBool('enableMonitoring');
+const monitoringEmail: string | undefined = app.node.tryGetContext('monitoringEmail');
+const enableAgentCoreObservability = ctxBool('enableAgentCoreObservability');
+const alarmEvaluationPeriods: number = parseInt(app.node.tryGetContext('alarmEvaluationPeriods'), 10) || 1;
+const dashboardRefreshInterval: number = parseInt(app.node.tryGetContext('dashboardRefreshInterval'), 10) || 300;
 
 // 既存FSx ONTAP参照（指定時はFSx/SVM/Volumeを新規作成しない）
 const existingFileSystemId: string | undefined = app.node.tryGetContext('existingFileSystemId');
@@ -182,6 +192,14 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentExecutionTableName: aiStack.agentExecutionTableName,
   agentSchedulerLambdaArn: aiStack.agentSchedulerLambdaArn,
   agentSchedulerRoleArn: aiStack.schedulerRoleArn,
+  // 監視・アラート機能（オプション）
+  enableMonitoring,
+  monitoringEmail,
+  enableAgentCoreObservability,
+  alarmEvaluationPeriods,
+  dashboardRefreshInterval,
+  adSyncFunction: securityStack.adSyncFunction,
+  agentSchedulerFunction: aiStack.agentSchedulerFunction,
   env: primaryEnv, crossRegionReferences: true,
   description: `[${projectName}] Lambda Web Adapter + CloudFront`,
 });
