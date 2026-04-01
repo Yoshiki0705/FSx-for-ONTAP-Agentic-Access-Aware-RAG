@@ -1,7 +1,7 @@
 # Permission Aware 型 RAGシステム 実装内容について
 
 **作成日**: 2026-03-25  
-**バージョン**: 3.0.0
+**バージョン**: 3.1.0
 
 ---
 
@@ -523,6 +523,166 @@ AgentModeSidebarにプリセットワークフローを配置:
 
 ---
 
+## 9. 画像分析RAG — Bedrock Vision API統合
+
+### 実装内容
+
+チャット入力に画像アップロード機能を追加し、Bedrock Converse APIのマルチモーダル機能（Vision API）で画像を分析、その結果をKB検索コンテキストに統合します。
+
+### 処理フロー
+
+```
+ユーザー → 画像ドラッグ＆ドロップ or ファイルピッカー
+  → バリデーション（形式: JPEG/PNG/GIF/WebP、サイズ: ≤3MB）
+  → Base64エンコード → API送信
+  → Vision API（Claude 3 Haiku）で画像分析
+  → 分析結果 + ユーザークエリ → KB Retrieve API
+  → SIDフィルタリング → 回答生成
+```
+
+### 主要コンポーネント
+
+| ファイル | 役割 |
+|---------|------|
+| `docker/nextjs/src/hooks/useImageUpload.ts` | 画像バリデーション・Base64変換フック |
+| `docker/nextjs/src/components/chat/ImageUploadZone.tsx` | ドラッグ＆ドロップ領域 + ファイルピッカー |
+| `docker/nextjs/src/components/chat/ImagePreview.tsx` | 添付画像プレビュー + 削除ボタン |
+| `docker/nextjs/src/components/chat/ImageThumbnail.tsx` | メッセージ内サムネイル（max 200×200px） |
+| `docker/nextjs/src/components/chat/ImageModal.tsx` | フルサイズ画像モーダル |
+| `docker/nextjs/src/app/api/bedrock/kb/retrieve/route.ts` | Vision API呼び出し（30秒タイムアウト、テキストのみフォールバック） |
+
+### エラーハンドリング
+
+- 非対応形式 → エラーメッセージ表示（i18n対応）
+- 5MB超過 → エラーメッセージ表示
+- Vision API失敗 → テキストのみクエリにフォールバック（ユーザー体験を中断しない）
+- Vision API 15秒タイムアウト → AbortControllerで中断、フォールバック
+
+### 現在の画像データライフサイクル
+
+現在の実装では、画像データはどこにも永続的に保管されない完全ステートレスなフローです。
+
+```
+ブラウザ（FileReader → Base64 → useState）
+  → APIリクエストJSONボディに含めてPOST
+  → Lambda（Buffer.from → Bedrock Converse API送信 → テキスト結果取得）
+  → レスポンス返却後、画像データはGCで破棄
+```
+
+- S3やDynamoDB等への画像保存は一切なし
+- 画像データはリクエスト処理中のLambdaメモリ上にのみ存在
+- Bedrock側もトレーニングに使用しない
+- チャット履歴にも画像データは保存されない（テキストメッセージのみ）
+- ページリロード後に「どの画像について質問したか」は復元不可
+
+### 将来の実装検討 — 画像データの永続化とAgentCore Memory統合
+
+#### 検討背景
+
+現在のステートレス設計はプライバシー・コスト面で適切だが、チャット履歴に画像が残らないため「前回アップロードした画像について」という文脈の継続ができない。将来的に画像の永続化と会話文脈への統合を検討する。
+
+#### 方式比較
+
+| 方式 | コスト | 実装難易度 | 適合度 | 備考 |
+|------|--------|-----------|--------|------|
+| S3 + DynamoDB | 月数セント | 低 | 最適 | S3に画像保存、DynamoDBにメッセージIDとS3キーの紐付け。既存インフラで完結 |
+| AgentCore Memory (blob) | 不明（高い可能性） | 中 | 過剰 | `create_blob_event`でBase64画像を格納可能だが、会話文脈管理が主目的で画像保管には不向き |
+| AgentCore Memory (テキストのみ) | 低 | 中 | 適切 | Vision分析結果のテキストだけをSemantic Strategyで長期記憶として保持 |
+| ハイブリッド（推奨） | 低〜中 | 中 | 最適 | S3に画像保存 + AgentCore MemoryにVision分析結果テキストを保持 |
+
+#### AgentCore Memoryの考慮点
+
+- AgentCore Memoryのイベントペイロードは `conversational`（テキスト）と `blob`（バイナリ）の2種類
+- Semantic Memory Strategy / Summary Strategyは会話テキストからファクトや要約を抽出する仕組みで、画像バイナリに対しては意味のある抽出ができない
+- イベント保持期間（デフォルト90日）とストレージ量に基づく課金が想定され、5MBの画像を毎回保存するとコストが膨らむリスクがある
+- AgentCore Memory SDKはPython（`bedrock-agentcore`パッケージ）が主で、TypeScript/Node.jsからはAWS SDK for JavaScript v3の低レベルAPIを直接使用する必要がある
+- AgentCore Memoryは2025年7月にGA、ap-northeast-1リージョンでの利用可否は要確認
+
+#### 推奨アーキテクチャ（将来実装時）
+
+```
+画像アップロード時:
+  ブラウザ → S3 presigned URL → S3バケット（画像保存、TTL付き）
+  → DynamoDB（messageId → s3Key マッピング）
+
+Vision分析後:
+  分析結果テキスト → AgentCore Memory create_event（conversational payload）
+  → Semantic Strategy → 長期記憶として自動抽出
+
+チャット履歴表示時:
+  DynamoDB → s3Key取得 → S3 presigned URL生成 → ImageThumbnail表示
+
+文脈継続時:
+  AgentCore Memory retrieve_memories → 過去のVision分析結果テキストを取得
+  → LLMコンテキストに含めて回答生成
+```
+
+この方式により、画像自体はS3で低コスト保管し、Vision分析結果のテキストはAgentCore Memoryのセマンティック検索で文脈復元に活用できる。
+
+---
+
+## 10. Knowledge Base接続UI — Agent × KB管理
+
+### 実装内容
+
+Agent Directory（`/genai/agents`）のAgent作成・編集時に、Bedrock Knowledge Baseの選択・接続・解除を行うUIを提供します。
+
+### 主要コンポーネント
+
+| ファイル | 役割 |
+|---------|------|
+| `docker/nextjs/src/components/agents/KBSelector.tsx` | KB一覧表示・複数選択（ACTIVEのみ選択可） |
+| `docker/nextjs/src/components/agents/ConnectedKBList.tsx` | Agent詳細パネル内の接続済みKB表示 |
+| `docker/nextjs/src/hooks/useKnowledgeBases.ts` | KB一覧取得・接続KB取得フック |
+| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | 3アクション追加（associate/disassociate/listAgentKBs） |
+
+### API拡張
+
+既存の `/api/bedrock/agent` に3つのアクションを追加（既存アクション変更なし）:
+
+| アクション | 説明 |
+|-----------|------|
+| `associateKnowledgeBase` | AgentにKBを接続 → PrepareAgent |
+| `disassociateKnowledgeBase` | AgentからKBを解除 → PrepareAgent |
+| `listAgentKnowledgeBases` | Agentに接続済みのKB一覧取得 |
+
+---
+
+## 11. Smart Routing — コスト最適化モデル選択
+
+### 実装内容
+
+クエリの複雑度に基づいて自動的にモデルを振り分けます。短い事実確認クエリは軽量モデル（Haiku）へ、長い分析的クエリは高性能モデル（Sonnet）へルーティングします。
+
+### 分類アルゴリズム（ComplexityClassifier）
+
+| 特徴量 | simple寄り | complex寄り |
+|--------|-----------|------------|
+| 文字数 | ≤100文字 (+0.3) | >100文字 (+0.3) |
+| 文の数 | 1文 (+0.2) | 複数文 (+0.2) |
+| 分析的キーワード | なし | あり (+0.3)（比較/分析/要約/explain/compare/analyze/summarize） |
+| 複数質問 | なし | 2+疑問符 (+0.2) |
+
+スコア < 0.5 → simple、≥ 0.5 → complex。信頼度 = |score - 0.5| × 2。
+
+### 主要コンポーネント
+
+| ファイル | 役割 |
+|---------|------|
+| `docker/nextjs/src/lib/complexity-classifier.ts` | クエリ複雑度分類（純粋関数） |
+| `docker/nextjs/src/lib/smart-router.ts` | モデルルーティング判断 |
+| `docker/nextjs/src/store/useSmartRoutingStore.ts` | Zustandストア（localStorage永続化） |
+| `docker/nextjs/src/components/sidebar/RoutingToggle.tsx` | ON/OFFトグル + モデルペア表示 |
+| `docker/nextjs/src/components/chat/ResponseMetadata.tsx` | 使用モデル名 + Auto/Manualバッジ |
+
+### デフォルト設定
+
+- Smart Routing: デフォルトOFF（既存動作に影響なし）
+- 軽量モデル: `anthropic.claude-haiku-4-5-20251001-v1:0`
+- 高性能モデル: `anthropic.claude-3-5-sonnet-20241022-v2:0`
+
+---
+
 ## システム全体アーキテクチャ
 
 ```
@@ -559,7 +719,7 @@ AgentModeSidebarにプリセットワークフローを配置:
 |---|---------|-----------|-------------|
 | 1 | WafStack | us-east-1 | WAF WebACL, IPセット |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, サブネット, セキュリティグループ, VPCエンドポイント（オプション） |
-| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, AD Sync Lambda（オプション） |
+| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + Cognito Domain（AD Federation有効時）, AD Sync Lambda（オプション） |
 | 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, AD, KMS暗号化（オプション）, CloudTrail（オプション） |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless（`vectorStoreType`で選択）, Bedrock Guardrails（オプション） |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker), CloudFront, Permission Filter Lambda（オプション） |

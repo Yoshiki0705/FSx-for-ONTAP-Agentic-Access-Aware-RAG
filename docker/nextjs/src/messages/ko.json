@@ -596,5 +596,47 @@
       "shared": "공유 Agent",
       "schedules": "스케줄 작업"
     }
+  },
+  "signin": {
+    "adSignIn": "AD로 로그인",
+    "adSignInDesc": "Active Directory 인증을 사용하여 로그인합니다",
+    "orDivider": "또는",
+    "emailSignIn": "이메일/비밀번호로 로그인"
+  },
+  "imageUpload": {
+    "dropzone": "이미지를 드래그 앤 드롭",
+    "selectFile": "파일 선택",
+    "preview": "미리보기",
+    "remove": "삭제",
+    "uploadedImage": "사용자가 업로드한 이미지",
+    "invalidFormat": "지원 형식: JPEG, PNG, GIF, WebP",
+    "fileTooLarge": "파일 크기는 3MB 이하여야 합니다",
+    "analyzing": "이미지 분석 중...",
+    "analysisUsed": "이미지 분석 사용"
+  },
+  "kbSelector": {
+    "title": "Knowledge Base",
+    "selectKB": "Knowledge Base 선택",
+    "connected": "연결됨",
+    "noKBConnected": "연결된 Knowledge Base가 없습니다",
+    "dataSources": "데이터 소스",
+    "status": { "ACTIVE": "활성", "CREATING": "생성 중", "FAILED": "실패" },
+    "loadError": "KB 목록을 불러오지 못했습니다",
+    "retry": "재시도"
+  },
+  "smartRouting": {
+    "title": "Smart Routing",
+    "enabled": "ON",
+    "disabled": "OFF",
+    "auto": "자동",
+    "manual": "수동",
+    "lightweight": "경량 모델",
+    "powerful": "고성능 모델",
+    "simple": "단순",
+    "complex": "복잡",
+    "confidence": "신뢰도",
+    "modelUsed": "사용 모델",
+    "autoRouted": "Auto",
+    "manualOverride": "Manual"
   }
 }

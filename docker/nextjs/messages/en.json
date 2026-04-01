@@ -448,5 +448,41 @@
       "shared": "Shared Agents",
       "schedules": "Scheduled Tasks"
     }
+  },
+  "imageUpload": {
+    "dropzone": "Drag and drop an image",
+    "selectFile": "Select file",
+    "preview": "Preview",
+    "remove": "Remove",
+    "uploadedImage": "User uploaded image",
+    "invalidFormat": "Supported formats: JPEG, PNG, GIF, WebP",
+    "fileTooLarge": "File size must be 3MB or less",
+    "analyzing": "Analyzing image...",
+    "analysisUsed": "Image analysis used"
+  },
+  "kbSelector": {
+    "title": "Knowledge Base",
+    "selectKB": "Select Knowledge Base",
+    "connected": "Connected",
+    "noKBConnected": "No Knowledge Base connected",
+    "dataSources": "Data Sources",
+    "status": { "ACTIVE": "Active", "CREATING": "Creating", "FAILED": "Failed" },
+    "loadError": "Failed to load KB list",
+    "retry": "Retry"
+  },
+  "smartRouting": {
+    "title": "Smart Routing",
+    "enabled": "ON",
+    "disabled": "OFF",
+    "auto": "Auto",
+    "manual": "Manual",
+    "lightweight": "Lightweight Model",
+    "powerful": "Powerful Model",
+    "simple": "Simple",
+    "complex": "Complex",
+    "confidence": "Confidence",
+    "modelUsed": "Model Used",
+    "autoRouted": "Auto",
+    "manualOverride": "Manual"
   }
 }

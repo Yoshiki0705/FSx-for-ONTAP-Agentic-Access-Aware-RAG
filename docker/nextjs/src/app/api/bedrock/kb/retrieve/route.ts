@@ -19,6 +19,8 @@ interface RetrieveRequest {
   region?: string;
   agentMode?: boolean;
   agentId?: string;
+  imageData?: string;        // Base64エンコード画像データ
+  imageMimeType?: string;    // image/jpeg, image/png, image/gif, image/webp
 }
 
 interface UserAccessRecord { userId: string; userSID: string; groupSIDs: string[]; }
@@ -97,6 +99,54 @@ async function callConverse(
   throw new Error('All Converse models failed');
 }
 
+// Vision-capable model for image analysis
+const VISION_MODEL_ID = 'anthropic.claude-haiku-4-5-20251001-v1:0';
+const VISION_TIMEOUT_MS = 15_000;
+
+/**
+ * Vision対応Converse API呼び出し — 画像+テキストのマルチモーダルメッセージを送信
+ * 30秒タイムアウト付き。失敗時はnullを返す（呼び出し元でフォールバック処理）。
+ */
+async function callVisionConverse(
+  client: BedrockRuntimeClient,
+  imageBase64: string,
+  imageMimeType: string,
+  query: string,
+): Promise<string | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), VISION_TIMEOUT_MS);
+
+  try {
+    const format = imageMimeType.split('/')[1] as 'jpeg' | 'png' | 'gif' | 'webp';
+    console.log('[Vision] Calling Converse API with image, model:', VISION_MODEL_ID, 'format:', format);
+
+    const resp = await client.send(
+      new ConverseCommand({
+        modelId: VISION_MODEL_ID,
+        messages: [{
+          role: 'user',
+          content: [
+            { image: { format, source: { bytes: Buffer.from(imageBase64, 'base64') } } },
+            { text: `画像を分析してください。ユーザーの質問: ${query}` },
+          ],
+        }],
+        inferenceConfig: { maxTokens: 2000, temperature: 0.1 },
+      }),
+      { abortSignal: controller.signal },
+    );
+
+    const outputContent = resp.output?.message?.content?.[0];
+    const text = (outputContent && 'text' in outputContent) ? (outputContent.text || '') : '';
+    console.log('[Vision] Analysis complete, result length:', text.length);
+    return text;
+  } catch (err: unknown) {
+    console.error('[Vision] Failed:', err instanceof Error ? err.message : String(err));
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /** Permission Filter Lambdaを呼び出してSIDフィルタリングを実行 */
 async function invokePermissionFilterLambda(
   userId: string,
@@ -146,11 +196,34 @@ export async function POST(request: NextRequest) {
 
     console.log('[KB] Start:', { query: query.substring(0, 80), knowledgeBaseId, userId, rawModelId });
 
+    // Step 0: Image analysis (when imageData is present)
+    let imageAnalysisResult: string | null = null;
+    let imageAnalysisUsed = false;
+    const imageData = body.imageData;
+    const imageMimeType = body.imageMimeType;
+
+    if (imageData && imageMimeType) {
+      console.log('[KB] Image data detected, running Vision analysis...');
+      const visionClient = new BedrockRuntimeClient({ region });
+      imageAnalysisResult = await callVisionConverse(visionClient, imageData, imageMimeType, query);
+      if (imageAnalysisResult) {
+        imageAnalysisUsed = true;
+        console.log('[KB] Vision analysis succeeded, combining with query');
+      } else {
+        console.warn('[KB] Vision analysis failed, falling back to text-only query');
+      }
+    }
+
+    // Build the retrieval query — combine with image analysis if available
+    const retrievalQuery = imageAnalysisUsed && imageAnalysisResult
+      ? `${query}\n\n画像分析結果: ${imageAnalysisResult}`
+      : query;
+
     // Step 1: Bedrock KB Retrieve API
     const kbClient = new BedrockAgentRuntimeClient({ region });
     const retrieveResponse = await kbClient.send(new RetrieveCommand({
       knowledgeBaseId,
-      retrievalQuery: { text: query },
+      retrievalQuery: { text: retrievalQuery },
       retrievalConfiguration: { vectorSearchConfiguration: { numberOfResults: 10 } },
     }));
     const results = retrieveResponse.retrievalResults || [];
@@ -218,20 +291,26 @@ export async function POST(request: NextRequest) {
     const systemPrompt = isAgentMode
       ? '以下のドキュメントを参照して質問に日本語で回答してください。あなたはAIエージェントとして、多段階推論と文書検索を活用して回答します。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。'
       : '以下のドキュメントを参照して質問に日本語で回答してください。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。';
-      const prompt = `${systemPrompt}\n\n${ctx}\n\n質問: ${query}`;
+      const prompt = `${systemPrompt}\n\n${ctx}\n\n${imageAnalysisUsed && imageAnalysisResult ? `画像分析結果:\n${imageAnalysisResult}\n\n` : ''}質問: ${query}`;
       const result = await callConverse(converseClient, converseModelId, prompt);
       return NextResponse.json({
         success: true, answer: result.text,
         citations: allowed.map(r => ({ fileName: r.fileName, s3Uri: r.s3Uri, content: r.content.substring(0, 500), metadata: r.metadata })),
         filterLog,
-        metadata: { knowledgeBaseId, modelId: result.usedModel, region, timestamp: new Date().toISOString() },
+        metadata: {
+          knowledgeBaseId, modelId: result.usedModel, region, timestamp: new Date().toISOString(),
+          ...(imageAnalysisUsed ? { imageAnalysis: true } : {}),
+        },
       });
     } else {
       return NextResponse.json({
         success: true,
         answer: 'アクセス権限のあるドキュメントが見つかりませんでした。この情報へのアクセス権限がない可能性があります。',
         citations: [], filterLog,
-        metadata: { knowledgeBaseId, modelId: converseModelId, region, timestamp: new Date().toISOString() },
+        metadata: {
+          knowledgeBaseId, modelId: converseModelId, region, timestamp: new Date().toISOString(),
+          ...(imageAnalysisUsed ? { imageAnalysis: true } : {}),
+        },
       });
     }
   } catch (error) {

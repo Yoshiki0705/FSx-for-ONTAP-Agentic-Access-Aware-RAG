@@ -3,6 +3,29 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
+/**
+ * Build the SAML redirect URL for AD sign-in via Cognito Hosted UI.
+ */
+function buildAdSignInUrl(
+  cognitoDomain: string,
+  cognitoRegion: string,
+  cognitoClientId: string,
+  callbackUrl: string,
+  idpName: string,
+): string {
+  return (
+    `https://${cognitoDomain}.auth.${cognitoRegion}.amazoncognito.com/oauth2/authorize` +
+    `?identity_provider=${encodeURIComponent(idpName)}` +
+    `&response_type=code` +
+    `&client_id=${encodeURIComponent(cognitoClientId)}` +
+    `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
+    `&scope=openid+email+profile`
+  );
+}
+
+// Exported for testing
+export { buildAdSignInUrl };
+
 export function LoginForm({
   className,
   ...props
@@ -12,6 +35,21 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const router = useRouter();
+
+  // AD Federation environment variables
+  const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "";
+  const cognitoRegion = process.env.NEXT_PUBLIC_COGNITO_REGION || "";
+  const cognitoClientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
+  const callbackUrl = process.env.NEXT_PUBLIC_CALLBACK_URL || "";
+  const idpName = process.env.NEXT_PUBLIC_IDP_NAME || "ActiveDirectory";
+
+  const adFederationEnabled = !!(cognitoDomain && cognitoRegion && cognitoClientId && callbackUrl);
+
+  const handleAdSignIn = () => {
+    if (!adFederationEnabled) return;
+    const url = buildAdSignInUrl(cognitoDomain, cognitoRegion, cognitoClientId, callbackUrl, idpName);
+    window.location.href = url;
+  };
 
   const onSubmit = async (event: React.SyntheticEvent) => {
     event.preventDefault();
@@ -59,6 +97,27 @@ export function LoginForm({
         </h1>
       </div>
       <div className="grid gap-6">
+        {adFederationEnabled && (
+          <>
+            <button
+              type="button"
+              onClick={handleAdSignIn}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2 w-full"
+            >
+              <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+              Sign in with AD
+            </button>
+            <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
+              <span className="relative z-10 bg-background px-2 text-muted-foreground">
+                or
+              </span>
+            </div>
+          </>
+        )}
         <div className="grid gap-2">
           <label htmlFor="username" className="text-sm font-medium">Username</label>
           <input

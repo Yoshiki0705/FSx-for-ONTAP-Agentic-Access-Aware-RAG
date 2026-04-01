@@ -6,6 +6,7 @@ import { validateAgentName } from '@/utils/agentCategoryUtils';
 import { ActionGroupSelector } from './ActionGroupSelector';
 import { GuardrailSettings } from './GuardrailSettings';
 import { InferenceProfileSelector } from './InferenceProfileSelector';
+import { KBSelector } from './KBSelector';
 import type { UpdateAgentFormData } from '@/types/agent-directory';
 import type { CostTags } from '@/types/enterprise-agent';
 
@@ -14,6 +15,7 @@ interface AgentCreatorProps {
   categoryKey: string;
   onCreate: (data: UpdateAgentFormData & {
     selectedActionGroups?: string[];
+    selectedKBIds?: string[];
     guardrailId?: string | null;
     guardrailVersion?: string | null;
     inferenceProfileArn?: string | null;
@@ -35,13 +37,14 @@ const FOUNDATION_MODELS = [
   'amazon.nova-micro-v1:0',
 ];
 
-export function AgentCreator({ initialData, categoryKey, onCreate, onCancel, isCreating, progressMessage }: AgentCreatorProps) {
+export function AgentCreator({ initialData, categoryKey, onCreate, onCancel, isCreating, progressMessage, locale }: AgentCreatorProps) {
   const t = useTranslations('agentDirectory');
   const [formData, setFormData] = useState<UpdateAgentFormData>(initialData);
   const [error, setError] = useState<string | null>(null);
 
   // Enterprise feature state
   const [selectedActionGroups, setSelectedActionGroups] = useState<string[]>([]);
+  const [selectedKBIds, setSelectedKBIds] = useState<string[]>([]);
   const [guardrailEnabled, setGuardrailEnabled] = useState(false);
   const [guardrailId, setGuardrailId] = useState<string | null>(null);
   const [guardrailVersion, setGuardrailVersion] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export function AgentCreator({ initialData, categoryKey, onCreate, onCancel, isC
       await onCreate({
         ...formData,
         selectedActionGroups,
+        selectedKBIds,
         guardrailId: guardrailEnabled ? guardrailId : null,
         guardrailVersion: guardrailEnabled ? guardrailVersion : null,
         inferenceProfileArn,
@@ -156,6 +160,16 @@ export function AgentCreator({ initialData, categoryKey, onCreate, onCancel, isC
             onProfileChange={setInferenceProfileArn}
             onCostTagsChange={setCostTags}
             disabled={isCreating}
+          />
+        </div>
+
+        {/* Knowledge Base Selector */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <KBSelector
+            selectedKBIds={selectedKBIds}
+            onChange={setSelectedKBIds}
+            disabled={isCreating}
+            locale={locale}
           />
         </div>
       </div>

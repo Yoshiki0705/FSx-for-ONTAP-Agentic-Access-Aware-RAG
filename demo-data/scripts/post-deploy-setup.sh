@@ -255,6 +255,8 @@ echo ""
 # 4. ユーザーSIDデータ登録
 # ========================================
 echo "🔑 Step 4/5: ユーザーSIDデータ登録..."
+echo "  💡 AD Federation + Post-Auth Trigger有効時は、サインイン時にSIDデータが自動登録されます。"
+echo "     初回サインイン前のデモ用に事前登録も可能です。"
 
 DOMAIN_SID="S-1-5-21-0000000000-0000000000-0000000000"
 
@@ -277,6 +279,8 @@ echo ""
 # 5. Cognitoデモユーザー作成
 # ========================================
 echo "👤 Step 5/5: Cognitoデモユーザー作成..."
+echo "  💡 AD Federation有効時は、ADユーザーがSAML経由で自動作成されるため、"
+echo "     手動ユーザー作成はデモ用途（メール/パスワード認証テスト）のみ必要です。"
 
 for EMAIL in admin@example.com user@example.com; do
   aws cognito-idp admin-create-user --user-pool-id "$USER_POOL_ID" --username "$EMAIL" \

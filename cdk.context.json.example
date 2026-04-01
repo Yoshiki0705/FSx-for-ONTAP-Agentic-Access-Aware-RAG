@@ -26,5 +26,25 @@
   // "enableAgentSchedules": Agent定期実行基盤（EventBridge Scheduler + Lambda + DynamoDB実行履歴）
   "enableAgent": true,
   "enableAgentSharing": false,
-  "enableAgentSchedules": false
+  "enableAgentSchedules": false,
+
+  // AD SAMLフェデレーション（オプション）
+  // ADユーザーがCloudFront UIから直接サインインし、Cognitoユーザーが自動作成される
+  // "enableAdFederation": true,
+  // "cloudFrontUrl": "https://d123456abcdef.cloudfront.net",
+  //
+  // --- Managed ADパターン（adPassword設定時に自動でmanaged） ---
+  // adPassword + adDomainName を設定すると AWS Managed Microsoft AD が作成される
+  // 注意: SAML IdPメタデータURLの取得には AWS IAM Identity Center の設定が必要:
+  //   1. IAM Identity Centerを有効化し、Managed ADをIDソースとして設定
+  //   2. SAMLアプリケーションを作成してメタデータURLを取得
+  //   3. Managed ADを作成しただけではSAMLメタデータエンドポイントは提供されない
+  // IAM Identity Center以外のIdP（AD FS等）を使用する場合は samlMetadataUrl を指定:
+  // "samlMetadataUrl": "https://your-adfs-server/federationmetadata/2007-06/federationmetadata.xml",
+  //
+  // --- Self-managed ADパターン ---
+  // EC2上のAD + Entra Connect連携の場合:
+  // "adEc2InstanceId": "i-0123456789abcdef0",
+  // "samlMetadataUrl": "https://login.microsoftonline.com/{tenant-id}/federationmetadata/2007-06/federationmetadata.xml"
+  "enableAdFederation": false
 }

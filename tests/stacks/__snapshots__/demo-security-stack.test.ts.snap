@@ -1,0 +1,1024 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Federation disabled - snapshot (backward compatibility) テンプレートスナップショットが一致する（SAML IdP/Cognito Domain/OAuthなし） 1`] = `
+{
+  "Outputs": {
+    "AdSyncMode": {
+      "Description": "AD Sync mode: managed | self-managed | none",
+      "Value": "none",
+    },
+    "UserPoolClientId": {
+      "Export": {
+        "Name": "testproj-dev-UserPoolClientId",
+      },
+      "Value": {
+        "Ref": "UserPoolWebAppClientCD2D5CB1",
+      },
+    },
+    "UserPoolId": {
+      "Export": {
+        "Name": "testproj-dev-UserPoolId",
+      },
+      "Value": {
+        "Ref": "UserPool6BA7E5F2",
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "UserPool6BA7E5F2": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccountRecoverySetting": {
+          "RecoveryMechanisms": [
+            {
+              "Name": "verified_email",
+              "Priority": 1,
+            },
+          ],
+        },
+        "AdminCreateUserConfig": {
+          "AllowAdminCreateUserOnly": true,
+        },
+        "AutoVerifiedAttributes": [
+          "email",
+        ],
+        "EmailVerificationMessage": "The verification code to your new account is {####}",
+        "EmailVerificationSubject": "Verify your new account",
+        "Policies": {
+          "PasswordPolicy": {
+            "MinimumLength": 8,
+            "RequireLowercase": true,
+            "RequireNumbers": true,
+            "RequireSymbols": false,
+            "RequireUppercase": true,
+          },
+        },
+        "Schema": [
+          {
+            "Mutable": false,
+            "Name": "email",
+            "Required": true,
+          },
+        ],
+        "SmsVerificationMessage": "The verification code to your new account is {####}",
+        "UserPoolName": "testproj-dev-user-pool",
+        "UserPoolTags": {
+          "Environment": "dev",
+          "Project": "testproj",
+        },
+        "UsernameAttributes": [
+          "email",
+        ],
+        "VerificationMessageTemplate": {
+          "DefaultEmailOption": "CONFIRM_WITH_CODE",
+          "EmailMessage": "The verification code to your new account is {####}",
+          "EmailSubject": "Verify your new account",
+          "SmsMessage": "The verification code to your new account is {####}",
+        },
+      },
+      "Type": "AWS::Cognito::UserPool",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "UserPoolWebAppClientCD2D5CB1": {
+      "Properties": {
+        "AllowedOAuthFlows": [
+          "implicit",
+          "code",
+        ],
+        "AllowedOAuthFlowsUserPoolClient": true,
+        "AllowedOAuthScopes": [
+          "profile",
+          "phone",
+          "email",
+          "openid",
+          "aws.cognito.signin.user.admin",
+        ],
+        "CallbackURLs": [
+          "https://example.com",
+        ],
+        "ClientName": "testproj-dev-webapp-client",
+        "ExplicitAuthFlows": [
+          "ALLOW_USER_PASSWORD_AUTH",
+          "ALLOW_USER_SRP_AUTH",
+          "ALLOW_REFRESH_TOKEN_AUTH",
+        ],
+        "GenerateSecret": false,
+        "PreventUserExistenceErrors": "ENABLED",
+        "SupportedIdentityProviders": [
+          "COGNITO",
+        ],
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolClient",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`Managed AD federation enabled - snapshot テンプレートスナップショットが一致する 1`] = `
+{
+  "Outputs": {
+    "AdSyncFunctionName": {
+      "Description": "AD Sync Lambda (managed mode)",
+      "Value": {
+        "Ref": "AdSyncFn08742CC1",
+      },
+    },
+    "AdSyncMode": {
+      "Description": "AD Sync mode: managed | self-managed | none",
+      "Value": "managed",
+    },
+    "UserPoolClientId": {
+      "Export": {
+        "Name": "testproj-dev-UserPoolClientId",
+      },
+      "Value": {
+        "Ref": "UserPoolWebAppClientCD2D5CB1",
+      },
+    },
+    "UserPoolId": {
+      "Export": {
+        "Name": "testproj-dev-UserPoolId",
+      },
+      "Value": {
+        "Ref": "UserPool6BA7E5F2",
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "AdSamlIdPF02568B7": {
+      "Properties": {
+        "AttributeMapping": {
+          "custom:ad_groups": "http://schemas.xmlsoap.org/claims/Group",
+          "email": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+        },
+        "ProviderDetails": {
+          "IDPSignout": false,
+          "MetadataURL": {
+            "Fn::Join": [
+              "",
+              [
+                "https://portal.sso.",
+                {
+                  "Ref": "AWS::Region",
+                },
+                ".amazonaws.com/saml/metadata/d-1234567890",
+              ],
+            ],
+          },
+        },
+        "ProviderName": "ActiveDirectory",
+        "ProviderType": "SAML",
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolIdentityProvider",
+    },
+    "AdSyncFn08742CC1": {
+      "DependsOn": [
+        "AdSyncFnServiceRoleDefaultPolicy23E22593",
+        "AdSyncFnServiceRoleA2D5DF4C",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
+          "S3Key": "78b8c98a594a366657dfc212b3d4094c9f9a969ecbd1877b44375bcd140b358f.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "AD_DIRECTORY_ID": "d-1234567890",
+            "AD_DOMAIN_NAME": "corp.example.com",
+            "AD_TYPE": "managed",
+            "SID_CACHE_TTL": "86400",
+            "SSM_TIMEOUT": "60",
+            "USER_ACCESS_TABLE_NAME": "testproj-dev-user-access",
+          },
+        },
+        "FunctionName": "testproj-dev-ad-sync",
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "AdSyncFnServiceRoleA2D5DF4C",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "dev",
+          },
+          {
+            "Key": "Project",
+            "Value": "testproj",
+          },
+        ],
+        "Timeout": 120,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "AdSyncFnSecurityGroup60069B0D",
+                "GroupId",
+              ],
+            },
+          ],
+          "SubnetIds": [
+            {
+              "Fn::ImportValue": "VpcStack:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940",
+            },
+            {
+              "Fn::ImportValue": "VpcStack:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3",
+            },
+            {
+              "Fn::ImportValue": "VpcStack:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD",
+            },
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "AdSyncFnSecurityGroup60069B0D": {
+      "Properties": {
+        "GroupDescription": "Automatic security group for Lambda Function TestSecurityAdSyncFn45F09960",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "dev",
+          },
+          {
+            "Key": "Project",
+            "Value": "testproj",
+          },
+        ],
+        "VpcId": {
+          "Fn::ImportValue": "VpcStack:ExportsOutputRefVpc8378EB38272D6E3A",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "AdSyncFnServiceRoleA2D5DF4C": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "dev",
+          },
+          {
+            "Key": "Project",
+            "Value": "testproj",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "AdSyncFnServiceRoleDefaultPolicy23E22593": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "ds:DescribeDirectories",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": [
+                "dynamodb:PutItem",
+                "dynamodb:GetItem",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:dynamodb:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":table/testproj-dev-user-access",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "AdSyncFnServiceRoleDefaultPolicy23E22593",
+        "Roles": [
+          {
+            "Ref": "AdSyncFnServiceRoleA2D5DF4C",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "UserPool6BA7E5F2": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccountRecoverySetting": {
+          "RecoveryMechanisms": [
+            {
+              "Name": "verified_email",
+              "Priority": 1,
+            },
+          ],
+        },
+        "AdminCreateUserConfig": {
+          "AllowAdminCreateUserOnly": true,
+        },
+        "AutoVerifiedAttributes": [
+          "email",
+        ],
+        "EmailVerificationMessage": "The verification code to your new account is {####}",
+        "EmailVerificationSubject": "Verify your new account",
+        "LambdaConfig": {
+          "PostAuthentication": {
+            "Fn::GetAtt": [
+              "AdSyncFn08742CC1",
+              "Arn",
+            ],
+          },
+        },
+        "Policies": {
+          "PasswordPolicy": {
+            "MinimumLength": 8,
+            "RequireLowercase": true,
+            "RequireNumbers": true,
+            "RequireSymbols": false,
+            "RequireUppercase": true,
+          },
+        },
+        "Schema": [
+          {
+            "Mutable": false,
+            "Name": "email",
+            "Required": true,
+          },
+          {
+            "AttributeDataType": "String",
+            "Mutable": true,
+            "Name": "ad_groups",
+          },
+          {
+            "AttributeDataType": "String",
+            "Mutable": true,
+            "Name": "role",
+          },
+        ],
+        "SmsVerificationMessage": "The verification code to your new account is {####}",
+        "UserPoolName": "testproj-dev-user-pool",
+        "UserPoolTags": {
+          "Environment": "dev",
+          "Project": "testproj",
+        },
+        "UsernameAttributes": [
+          "email",
+        ],
+        "VerificationMessageTemplate": {
+          "DefaultEmailOption": "CONFIRM_WITH_CODE",
+          "EmailMessage": "The verification code to your new account is {####}",
+          "EmailSubject": "Verify your new account",
+          "SmsMessage": "The verification code to your new account is {####}",
+        },
+      },
+      "Type": "AWS::Cognito::UserPool",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "UserPoolCognitoDomainD6C7F9FA": {
+      "Properties": {
+        "Domain": "testproj-dev-auth",
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolDomain",
+    },
+    "UserPoolPostAuthenticationCognito62FAB912": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AdSyncFn08742CC1",
+            "Arn",
+          ],
+        },
+        "Principal": "cognito-idp.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "UserPool6BA7E5F2",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "UserPoolWebAppClientCD2D5CB1": {
+      "DependsOn": [
+        "AdSamlIdPF02568B7",
+      ],
+      "Properties": {
+        "AllowedOAuthFlows": [
+          "code",
+        ],
+        "AllowedOAuthFlowsUserPoolClient": true,
+        "AllowedOAuthScopes": [
+          "openid",
+          "email",
+          "profile",
+        ],
+        "CallbackURLs": [
+          "https://d111111abcdef8.cloudfront.net/api/auth/callback",
+        ],
+        "ClientName": "testproj-dev-webapp-client",
+        "ExplicitAuthFlows": [
+          "ALLOW_USER_PASSWORD_AUTH",
+          "ALLOW_USER_SRP_AUTH",
+          "ALLOW_REFRESH_TOKEN_AUTH",
+        ],
+        "GenerateSecret": true,
+        "LogoutURLs": [
+          "https://d111111abcdef8.cloudfront.net/signin",
+        ],
+        "PreventUserExistenceErrors": "ENABLED",
+        "SupportedIdentityProviders": [
+          "COGNITO",
+          {
+            "Ref": "AdSamlIdPF02568B7",
+          },
+        ],
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolClient",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`Self-managed AD federation enabled - snapshot テンプレートスナップショットが一致する 1`] = `
+{
+  "Outputs": {
+    "AdSyncFunctionName": {
+      "Description": "AD Sync Lambda (self-managed mode)",
+      "Value": {
+        "Ref": "AdSyncFn08742CC1",
+      },
+    },
+    "AdSyncMode": {
+      "Description": "AD Sync mode: managed | self-managed | none",
+      "Value": "self-managed",
+    },
+    "UserPoolClientId": {
+      "Export": {
+        "Name": "testproj-dev-UserPoolClientId",
+      },
+      "Value": {
+        "Ref": "UserPoolWebAppClientCD2D5CB1",
+      },
+    },
+    "UserPoolId": {
+      "Export": {
+        "Name": "testproj-dev-UserPoolId",
+      },
+      "Value": {
+        "Ref": "UserPool6BA7E5F2",
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "AdSamlIdPF02568B7": {
+      "Properties": {
+        "AttributeMapping": {
+          "custom:ad_groups": "http://schemas.xmlsoap.org/claims/Group",
+          "email": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+        },
+        "ProviderDetails": {
+          "IDPSignout": false,
+          "MetadataURL": "https://login.microsoftonline.com/tenant-id/federationmetadata/2007-06/federationmetadata.xml",
+        },
+        "ProviderName": "EntraID",
+        "ProviderType": "SAML",
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolIdentityProvider",
+    },
+    "AdSyncFn08742CC1": {
+      "DependsOn": [
+        "AdSyncFnServiceRoleDefaultPolicy23E22593",
+        "AdSyncFnServiceRoleA2D5DF4C",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
+          "S3Key": "78b8c98a594a366657dfc212b3d4094c9f9a969ecbd1877b44375bcd140b358f.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "AD_EC2_INSTANCE_ID": "i-0123456789abcdef0",
+            "AD_TYPE": "self-managed",
+            "SID_CACHE_TTL": "86400",
+            "SSM_TIMEOUT": "60",
+            "USER_ACCESS_TABLE_NAME": "testproj-dev-user-access",
+          },
+        },
+        "FunctionName": "testproj-dev-ad-sync",
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": {
+          "Fn::GetAtt": [
+            "AdSyncFnServiceRoleA2D5DF4C",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs22.x",
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "dev",
+          },
+          {
+            "Key": "Project",
+            "Value": "testproj",
+          },
+        ],
+        "Timeout": 120,
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            {
+              "Fn::GetAtt": [
+                "AdSyncFnSecurityGroup60069B0D",
+                "GroupId",
+              ],
+            },
+          ],
+          "SubnetIds": [
+            {
+              "Fn::ImportValue": "VpcStack:ExportsOutputRefVpcPrivateSubnet1Subnet536B997AFD4CC940",
+            },
+            {
+              "Fn::ImportValue": "VpcStack:ExportsOutputRefVpcPrivateSubnet2Subnet3788AAA1380949A3",
+            },
+            {
+              "Fn::ImportValue": "VpcStack:ExportsOutputRefVpcPrivateSubnet3SubnetF258B56EC7CF32DD",
+            },
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "AdSyncFnSecurityGroup60069B0D": {
+      "Properties": {
+        "GroupDescription": "Automatic security group for Lambda Function TestSecurityAdSyncFn45F09960",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "dev",
+          },
+          {
+            "Key": "Project",
+            "Value": "testproj",
+          },
+        ],
+        "VpcId": {
+          "Fn::ImportValue": "VpcStack:ExportsOutputRefVpc8378EB38272D6E3A",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "AdSyncFnServiceRoleA2D5DF4C": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "dev",
+          },
+          {
+            "Key": "Project",
+            "Value": "testproj",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "AdSyncFnServiceRoleDefaultPolicy23E22593": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ssm:SendCommand",
+                "ssm:GetCommandInvocation",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:ec2:",
+                      {
+                        "Ref": "AWS::Region",
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId",
+                      },
+                      ":instance/i-0123456789abcdef0",
+                    ],
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:ssm:",
+                      {
+                        "Ref": "AWS::Region",
+                      },
+                      "::document/AWS-RunPowerShellScript",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": [
+                "dynamodb:PutItem",
+                "dynamodb:GetItem",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:dynamodb:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":table/testproj-dev-user-access",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "AdSyncFnServiceRoleDefaultPolicy23E22593",
+        "Roles": [
+          {
+            "Ref": "AdSyncFnServiceRoleA2D5DF4C",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "UserPool6BA7E5F2": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "AccountRecoverySetting": {
+          "RecoveryMechanisms": [
+            {
+              "Name": "verified_email",
+              "Priority": 1,
+            },
+          ],
+        },
+        "AdminCreateUserConfig": {
+          "AllowAdminCreateUserOnly": true,
+        },
+        "AutoVerifiedAttributes": [
+          "email",
+        ],
+        "EmailVerificationMessage": "The verification code to your new account is {####}",
+        "EmailVerificationSubject": "Verify your new account",
+        "LambdaConfig": {
+          "PostAuthentication": {
+            "Fn::GetAtt": [
+              "AdSyncFn08742CC1",
+              "Arn",
+            ],
+          },
+        },
+        "Policies": {
+          "PasswordPolicy": {
+            "MinimumLength": 8,
+            "RequireLowercase": true,
+            "RequireNumbers": true,
+            "RequireSymbols": false,
+            "RequireUppercase": true,
+          },
+        },
+        "Schema": [
+          {
+            "Mutable": false,
+            "Name": "email",
+            "Required": true,
+          },
+          {
+            "AttributeDataType": "String",
+            "Mutable": true,
+            "Name": "ad_groups",
+          },
+          {
+            "AttributeDataType": "String",
+            "Mutable": true,
+            "Name": "role",
+          },
+        ],
+        "SmsVerificationMessage": "The verification code to your new account is {####}",
+        "UserPoolName": "testproj-dev-user-pool",
+        "UserPoolTags": {
+          "Environment": "dev",
+          "Project": "testproj",
+        },
+        "UsernameAttributes": [
+          "email",
+        ],
+        "VerificationMessageTemplate": {
+          "DefaultEmailOption": "CONFIRM_WITH_CODE",
+          "EmailMessage": "The verification code to your new account is {####}",
+          "EmailSubject": "Verify your new account",
+          "SmsMessage": "The verification code to your new account is {####}",
+        },
+      },
+      "Type": "AWS::Cognito::UserPool",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "UserPoolCognitoDomainD6C7F9FA": {
+      "Properties": {
+        "Domain": "testproj-dev-auth",
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolDomain",
+    },
+    "UserPoolPostAuthenticationCognito62FAB912": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AdSyncFn08742CC1",
+            "Arn",
+          ],
+        },
+        "Principal": "cognito-idp.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "UserPool6BA7E5F2",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "UserPoolWebAppClientCD2D5CB1": {
+      "DependsOn": [
+        "AdSamlIdPF02568B7",
+      ],
+      "Properties": {
+        "AllowedOAuthFlows": [
+          "code",
+        ],
+        "AllowedOAuthFlowsUserPoolClient": true,
+        "AllowedOAuthScopes": [
+          "openid",
+          "email",
+          "profile",
+        ],
+        "CallbackURLs": [
+          "https://d222222abcdef8.cloudfront.net/api/auth/callback",
+        ],
+        "ClientName": "testproj-dev-webapp-client",
+        "ExplicitAuthFlows": [
+          "ALLOW_USER_PASSWORD_AUTH",
+          "ALLOW_USER_SRP_AUTH",
+          "ALLOW_REFRESH_TOKEN_AUTH",
+        ],
+        "GenerateSecret": true,
+        "LogoutURLs": [
+          "https://d222222abcdef8.cloudfront.net/signin",
+        ],
+        "PreventUserExistenceErrors": "ENABLED",
+        "SupportedIdentityProviders": [
+          "COGNITO",
+          {
+            "Ref": "AdSamlIdPF02568B7",
+          },
+        ],
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolClient",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;

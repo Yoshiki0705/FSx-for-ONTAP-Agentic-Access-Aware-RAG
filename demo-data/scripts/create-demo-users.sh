@@ -3,6 +3,10 @@ set -euo pipefail
 
 # テストユーザー作成スクリプト
 # Cognito User Poolにadminユーザーとrestrictedユーザーを作成する
+#
+# 注意: AD Federation（enableAdFederation=true）有効時は、ADユーザーが
+# SAML経由でCognito User Poolに自動作成されるため、本スクリプトの実行は不要です。
+# メール/パスワード認証のデモ・テスト用途でのみ使用してください。
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/common.sh" 2>/dev/null || true

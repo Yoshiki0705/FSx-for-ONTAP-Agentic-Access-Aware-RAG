@@ -45,6 +45,12 @@ const allowedCountries: string[] = app.node.tryGetContext('allowedCountries') ||
 const adPassword: string | undefined = app.node.tryGetContext('adPassword');
 const adDomainName: string | undefined = app.node.tryGetContext('adDomainName');
 
+// AD Federation
+const enableAdFederation = ctxBool('enableAdFederation');
+const cloudFrontUrl: string | undefined = app.node.tryGetContext('cloudFrontUrl');
+const samlMetadataUrl: string | undefined = app.node.tryGetContext('samlMetadataUrl');
+const adEc2InstanceId: string | undefined = app.node.tryGetContext('adEc2InstanceId');
+
 // Embeddingサーバー
 const enableEmbedding = ctxBool('enableEmbeddingServer');
 const cifsdataVolName: string = app.node.tryGetContext('cifsdataVolName') || process.env.CIFSDATA_VOL_NAME || 'smb_share';
@@ -98,15 +104,7 @@ const networkingStack = new DemoNetworkingStack(app, `${stackPrefix}-Networking`
   description: `[${projectName}] VPC, Subnets, Security Groups`,
 });
 
-// Stack 3: SecurityStack
-const securityStack = new DemoSecurityStack(app, `${stackPrefix}-Security`, {
-  projectName, environment,
-  env: primaryEnv,
-  description: `[${projectName}] Cognito User Pool, Authentication`,
-});
-securityStack.addDependency(networkingStack);
-
-// Stack 4: StorageStack
+// Stack 3: StorageStack (before SecurityStack for AD Federation dependency)
 const storageStack = new DemoStorageStack(app, `${stackPrefix}-Storage`, {
   projectName, environment,
   vpc: networkingStack.vpc,
@@ -119,6 +117,33 @@ const storageStack = new DemoStorageStack(app, `${stackPrefix}-Storage`, {
   description: `[${projectName}] ${existingFileSystemId ? 'Existing FSx ONTAP + ' : 'FSx ONTAP + SVM + '}S3 + DynamoDB`,
 });
 storageStack.addDependency(networkingStack);
+
+// Stack 4: SecurityStack
+// adType決定ロジック: enableAdFederation=true の場合のみAD Sync Lambdaを作成
+const adType = !enableAdFederation ? 'none'
+  : adPassword ? 'managed'
+  : adEc2InstanceId ? 'self-managed'
+  : 'none';
+
+const securityStack = new DemoSecurityStack(app, `${stackPrefix}-Security`, {
+  projectName, environment,
+  // AD Federation設定（条件付き）
+  enableAdFederation,
+  adType: adType as 'managed' | 'self-managed' | 'none',
+  adDirectoryId: enableAdFederation && adType === 'managed' ? storageStack.managedAd?.ref : undefined,
+  adDomainName: enableAdFederation ? adDomainName : undefined,
+  adEc2InstanceId: enableAdFederation && adType === 'self-managed' ? adEc2InstanceId : undefined,
+  samlMetadataUrl: enableAdFederation ? samlMetadataUrl : undefined,
+  cloudFrontUrl: enableAdFederation ? cloudFrontUrl : undefined,
+  // AD Sync Lambda用
+  vpc: networkingStack.vpc,
+  lambdaSg: networkingStack.lambdaSg,
+  userAccessTable: storageStack.userAccessTable,
+  env: primaryEnv,
+  description: `[${projectName}] Cognito User Pool, Authentication${enableAdFederation ? ', SAML Federation' : ''}`,
+});
+securityStack.addDependency(networkingStack);
+securityStack.addDependency(storageStack);
 
 // Stack 5: AIStack
 const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {

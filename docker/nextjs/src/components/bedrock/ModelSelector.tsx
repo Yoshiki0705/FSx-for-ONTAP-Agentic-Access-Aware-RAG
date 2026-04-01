@@ -14,6 +14,7 @@ import {
   type ProcessedModel 
 } from './modelUtils';
 import { MODEL_DISPLAY_LIMITS } from './constants';
+import { useSmartRoutingStore } from '@/store/useSmartRoutingStore';
 
 interface ModelSelectorProps {
   selectedModelId: string;
@@ -94,10 +95,14 @@ export function ModelSelector({
   mode = 'kb',
 }: ModelSelectorProps) {
   const t = useTranslations('model.selector');
+  const tSR = useTranslations('smartRouting');
   const locale = useLocale(); // ロケールを取得
   const [isExpanded, setIsExpanded] = useState(false);
   const [showRegionInfo, setShowRegionInfo] = useState(false);
   const { regionInfo, isLoadingRegionInfo } = useBedrockRegionInfo(mode);
+
+  // Smart Routing store
+  const { isEnabled: isSmartRoutingEnabled, isAutoMode, setAutoMode } = useSmartRoutingStore();
 
   // デバッグ用ログ
   console.log('🔍 ModelSelector rendered with:', { 
@@ -130,6 +135,11 @@ export function ModelSelector({
   const handleModelChange = useCallback((modelId: string) => {
     const targetModel = allModels.find(m => m.id === modelId);
     handleModelSelection(targetModel, onModelChange, modelId);
+
+    // Smart Routing ON時に手動でモデルを選択した場合、isAutoModeをfalseに設定
+    if (isSmartRoutingEnabled) {
+      setAutoMode(false);
+    }
     
     // ✅ Phase 2.1: Dispatch modelChanged event for Introduction Text updates
     console.log('📢 [ModelSelector] Dispatching modelChanged event:', {
@@ -150,7 +160,7 @@ export function ModelSelector({
       bubbles: true,
       cancelable: true
     }));
-  }, [allModels, onModelChange]);
+  }, [allModels, onModelChange, isSmartRoutingEnabled, setAutoMode]);
 
   return (
     <div className="space-y-4" data-component="ModelSelector" data-testid="model-selector">
@@ -197,6 +207,33 @@ export function ModelSelector({
         showRecommendations={true}
       />
       
+      {/* Smart Routing ON時: 「自動」オプションを表示 */}
+      {isSmartRoutingEnabled && (
+        <button
+          onClick={() => {
+            setAutoMode(true);
+          }}
+          className={`w-full text-left p-3 rounded-md border transition-colors ${
+            isAutoMode
+              ? 'bg-blue-50 border-blue-400 ring-1 ring-blue-400'
+              : 'bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-300'
+          }`}
+          data-testid="auto-model-option"
+        >
+          <div className="flex items-center space-x-2">
+            <span>⚡</span>
+            <span className={`text-sm font-medium ${isAutoMode ? 'text-blue-700' : 'text-gray-900'}`}>
+              {tSR('auto')}
+            </span>
+            {isAutoMode && (
+              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
+                {tSR('enabled')}
+              </span>
+            )}
+          </div>
+        </button>
+      )}
+
       {/* 利用可能なモデル一覧（選択中のモデルを除外してカテゴリ別グループ化） */}
       <AvailableModelsList 
         models={allModels}

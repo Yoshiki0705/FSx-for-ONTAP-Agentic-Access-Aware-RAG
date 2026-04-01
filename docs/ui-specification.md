@@ -1518,3 +1518,207 @@ CDKリソース:
 | `/api/bedrock/agent-sharing` | `uploadSharedConfig` / `listSharedConfigs` / `downloadSharedConfig` | S3共有バケット操作 |
 | `/api/bedrock/agent-schedules` | `createSchedule` / `updateSchedule` / `deleteSchedule` / `listSchedules` | EventBridge Scheduler CRUD |
 | `/api/bedrock/agent-schedules` | `getExecutionHistory` / `manualTrigger` | 実行履歴取得・手動実行 |
+
+---
+
+## 14. ADサインインUI — SAMLフェデレーション対応
+
+### 概要
+
+AD SAMLフェデレーション有効時（`enableAdFederation=true`）に、サインインページに「ADでサインイン」ボタンを追加し、Cognito Hosted UI経由のSAMLフローをサポートします。
+
+### 表示条件
+
+| 条件 | 表示内容 |
+|------|---------|
+| `COGNITO_DOMAIN`環境変数が設定されている | 「ADでサインイン」ボタン + 既存メール/パスワードフォーム |
+| `COGNITO_DOMAIN`環境変数が未設定 | 既存メール/パスワードフォームのみ（後方互換性） |
+
+### ボタン仕様
+
+| 項目 | 説明 |
+|------|------|
+| ラベル | `signin.adSignIn`翻訳キー（日本語: 「ADでサインイン」、英語: 「Sign in with AD」） |
+| 説明テキスト | `signin.adSignInDesc`翻訳キー（日本語: 「Active Directory認証を使用」） |
+| 配置 | メール/パスワードフォームの上部、区切り線（`signin.orDivider`: 「または」）で分離 |
+| スタイル | プライマリボタン（既存サインインボタンと同等のスタイル） |
+
+### SAMLリダイレクトURL構築
+
+「ADでサインイン」ボタンクリック時に以下のURLにリダイレクトします:
+
+```
+https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authorize
+  ?identity_provider={IDP_NAME}
+  &response_type=code
+  &client_id={COGNITO_CLIENT_ID}
+  &redirect_uri={encodeURIComponent(CALLBACK_URL + '/api/auth/callback')}
+  &scope=openid+email+profile
+```
+
+| パラメータ | 環境変数 | 説明 |
+|-----------|---------|------|
+| `COGNITO_DOMAIN` | `COGNITO_DOMAIN` | Cognito Hosted UIドメインプレフィックス |
+| `COGNITO_REGION` | `COGNITO_REGION` | Cognitoリージョン |
+| `COGNITO_CLIENT_ID` | `COGNITO_CLIENT_ID` | User Pool Client ID |
+| `CALLBACK_URL` | `CALLBACK_URL` | OAuthコールバックURL |
+| `IDP_NAME` | `IDP_NAME` | SAML IdP名（デフォルト: `ActiveDirectory`） |
+
+### OAuthコールバックフロー
+
+`/api/auth/callback` ルートが認可コードを受け取り、以下を実行します:
+
+1. 認可コードをCognito Token Endpointでトークンに交換
+2. IDトークンからユーザー属性（email, custom:role, custom:ad_groups）を取得
+3. IDトークンベースのロール判定（`custom:role === 'admin'` or `custom:ad_groups`にadminグループ → `administrator`）
+4. セッションCookieを設定
+5. チャット画面（`/[locale]/genai`）にリダイレクト
+
+### IDトークンベースのロール判定
+
+| 条件 | 判定結果 |
+|------|---------|
+| `custom:role === 'admin'` | `administrator` |
+| `custom:ad_groups`にadminグループが含まれる | `administrator` |
+| 上記以外 | `user` |
+
+### 多言語対応（8言語）
+
+| 翻訳キー | ja | en |
+|---------|----|----|
+| `signin.adSignIn` | ADでサインイン | Sign in with AD |
+| `signin.adSignInDesc` | Active Directory認証を使用 | Use Active Directory authentication |
+| `signin.orDivider` | または | or |
+| `signin.emailSignIn` | メール/パスワードでサインイン | Sign in with email/password |
+
+### 関連ファイル
+
+| ファイル | 役割 |
+|---------|------|
+| `docker/nextjs/components/login-form.tsx` | サインインフォーム（ADボタン追加） |
+| `docker/nextjs/src/app/api/auth/callback/route.ts` | OAuthコールバックAPI |
+| `docker/nextjs/src/messages/{locale}.json` | 翻訳ファイル（`signin`ネームスペース） |
+
+
+---
+
+## 画像アップロードUI（Advanced RAG Features）
+
+### ImageUploadZone
+
+チャット入力エリア内に配置されるドラッグ＆ドロップ領域とファイルピッカーボタン。
+
+| 項目 | 仕様 |
+|------|------|
+| 配置 | チャット入力フォーム内、テキスト入力の左側 |
+| 対応形式 | JPEG, PNG, GIF, WebP |
+| サイズ上限 | 3MB |
+| ドラッグ中 | ドロップ領域をハイライト（`border-blue-500 bg-blue-50`） |
+| エラー表示 | 非対応形式 → `imageUpload.invalidFormat`、3MB超過 → `imageUpload.fileTooLarge` |
+| i18nキー | `imageUpload.dropzone`, `imageUpload.selectFile` |
+
+### ImagePreview
+
+添付画像のプレビュー表示。入力エリア上部に配置。
+
+| 項目 | 仕様 |
+|------|------|
+| サイズ | 80×80px、`object-cover` |
+| 削除ボタン | 右上に「×」ボタン |
+
+### ImageThumbnail
+
+チャットメッセージバブル内の画像サムネイル。
+
+| 項目 | 仕様 |
+|------|------|
+| 最大サイズ | 200×200px、`object-contain` |
+| alt属性 | `imageUpload.uploadedImage`（i18n翻訳値） |
+| ローディング | スケルトンローダー（`animate-pulse`） |
+| クリック | ImageModalでフルサイズ表示 |
+
+### ImageModal
+
+画像フルサイズ表示モーダル。
+
+| 項目 | 仕様 |
+|------|------|
+| 最大サイズ | 90vw × 90vh |
+| 閉じる | 「×」ボタン + 背景クリック |
+
+---
+
+## Knowledge Base接続UI（Advanced RAG Features）
+
+### KBSelector
+
+Agent作成・編集フォーム内のKnowledge Base選択コンポーネント。
+
+| 項目 | 仕様 |
+|------|------|
+| 表示項目 | KB名、説明、ステータスバッジ、データソース数 |
+| ステータスバッジ色 | ACTIVE→緑、CREATING→青、FAILED→赤 |
+| 選択制限 | ACTIVEのみチェックボックス有効 |
+| 複数選択 | 対応（選択時にハイライト） |
+| ローディング | スケルトンローダー（3行） |
+| エラー | エラーメッセージ + 再試行ボタン |
+| i18nキー | `kbSelector.*` |
+
+### ConnectedKBList
+
+Agent詳細パネル内の接続済みKB一覧表示。
+
+| 項目 | 仕様 |
+|------|------|
+| 表示項目 | KB名、説明、ステータスバッジ |
+| 0件時 | `kbSelector.noKBConnected` メッセージ表示 |
+
+---
+
+## Smart Routing UI（Advanced RAG Features）
+
+### RoutingToggle
+
+サイドバーの設定セクションに配置するSmart Routing ON/OFFトグル。
+
+| 項目 | 仕様 |
+|------|------|
+| 配置 | KBモードサイドバー、ModelSelectorの下 |
+| トグル | `role="switch"`, `aria-checked` |
+| ON時 | 軽量モデル名 / 高性能モデル名のペア表示（青背景） |
+| OFF時 | モデルペア非表示 |
+| 永続化 | localStorage（`smart-routing-enabled`キー） |
+| デフォルト | OFF |
+| i18nキー | `smartRouting.*` |
+
+### ResponseMetadata
+
+アシスタントメッセージ下部の使用モデル情報表示。
+
+| 項目 | 仕様 |
+|------|------|
+| モデル名 | クリック可能（ポップオーバーで詳細表示） |
+| Autoバッジ | 青（`bg-blue-100`）、Smart Routing ON + 自動選択時 |
+| Manualバッジ | グレー（`bg-gray-100`）、手動オーバーライド時 |
+| カメラアイコン | 📷、画像分析使用時 |
+| ツールチップ | 分類結果（simple/complex）+ 信頼度 |
+
+### ModelSelector拡張
+
+Smart Routing ON時にモデルリスト先頭に「自動」オプションを追加。
+
+| 項目 | 仕様 |
+|------|------|
+| 自動オプション | ⚡アイコン + `smartRouting.auto`ラベル |
+| 選択時 | `isAutoMode = true`（Zustandストア） |
+| 手動選択時 | `isAutoMode = false`（手動オーバーライド） |
+| Smart Routing OFF時 | 自動オプション非表示（既存動作変更なし） |
+
+### 関連ファイル
+
+| ファイル | 役割 |
+|---------|------|
+| `docker/nextjs/src/types/image-upload.ts` | 画像アップロード型定義 |
+| `docker/nextjs/src/types/kb-selector.ts` | KB接続UI型定義 |
+| `docker/nextjs/src/types/smart-routing.ts` | Smart Routing型定義 |
+| `docker/nextjs/src/messages/{locale}.json` | 翻訳ファイル（`imageUpload`, `kbSelector`, `smartRouting`ネームスペース） |

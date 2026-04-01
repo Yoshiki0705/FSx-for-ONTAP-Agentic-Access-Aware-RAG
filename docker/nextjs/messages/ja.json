@@ -445,5 +445,41 @@
       "shared": "共有Agent",
       "schedules": "スケジュールタスク"
     }
+  },
+  "imageUpload": {
+    "dropzone": "画像をドラッグ＆ドロップ",
+    "selectFile": "ファイルを選択",
+    "preview": "プレビュー",
+    "remove": "削除",
+    "uploadedImage": "ユーザーがアップロードした画像",
+    "invalidFormat": "対応形式: JPEG, PNG, GIF, WebP",
+    "fileTooLarge": "ファイルサイズは3MB以下にしてください",
+    "analyzing": "画像を分析中...",
+    "analysisUsed": "画像分析を使用"
+  },
+  "kbSelector": {
+    "title": "Knowledge Base",
+    "selectKB": "Knowledge Baseを選択",
+    "connected": "接続済み",
+    "noKBConnected": "Knowledge Baseが接続されていません",
+    "dataSources": "データソース",
+    "status": { "ACTIVE": "アクティブ", "CREATING": "作成中", "FAILED": "失敗" },
+    "loadError": "KB一覧の取得に失敗しました",
+    "retry": "再試行"
+  },
+  "smartRouting": {
+    "title": "Smart Routing",
+    "enabled": "ON",
+    "disabled": "OFF",
+    "auto": "自動",
+    "manual": "手動",
+    "lightweight": "軽量モデル",
+    "powerful": "高性能モデル",
+    "simple": "シンプル",
+    "complex": "複雑",
+    "confidence": "信頼度",
+    "modelUsed": "使用モデル",
+    "autoRouted": "Auto",
+    "manualOverride": "Manual"
   }
 }

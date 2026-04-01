@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { validateAgentName } from '@/utils/agentCategoryUtils';
 import { ActionGroupSelector } from './ActionGroupSelector';
 import { GuardrailSettings } from './GuardrailSettings';
 import { InferenceProfileSelector } from './InferenceProfileSelector';
+import { KBSelector } from './KBSelector';
+import { useKnowledgeBases } from '@/hooks/useKnowledgeBases';
 import type { AgentDetail, UpdateAgentFormData } from '@/types/agent-directory';
 import type { CostTags } from '@/types/enterprise-agent';
 
@@ -53,6 +55,26 @@ export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProp
   const [inferenceProfileArn, setInferenceProfileArn] = useState<string | null>(null);
   const [costTags, setCostTags] = useState<CostTags>({ department: '', project: '' });
 
+  // KB Selector state
+  const [selectedKBIds, setSelectedKBIds] = useState<string[]>([]);
+  const originalConnectedKBIds = useRef<string[]>([]);
+  const { fetchConnectedKBs, connectedKBIds } = useKnowledgeBases();
+
+  // On mount: fetch currently connected KBs for this agent
+  useEffect(() => {
+    fetchConnectedKBs(agent.agentId).then(() => {
+      // connectedKBIds will be updated by the hook
+    });
+  }, [agent.agentId, fetchConnectedKBs]);
+
+  // When connectedKBIds are loaded, set them as initial selection
+  useEffect(() => {
+    if (connectedKBIds.length > 0 || originalConnectedKBIds.current.length === 0) {
+      setSelectedKBIds(connectedKBIds);
+      originalConnectedKBIds.current = connectedKBIds;
+    }
+  }, [connectedKBIds]);
+
   const nameValid = validateAgentName(formData.agentName);
 
   const handleSave = async () => {
@@ -60,6 +82,7 @@ export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProp
     setSaving(true);
     setError(null);
     try {
+      // Save agent form data first
       await onSave({
         ...formData,
         selectedActionGroups,
@@ -68,6 +91,50 @@ export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProp
         inferenceProfileArn,
         costTags,
       });
+
+      // Compute KB diff: added and removed
+      const original = originalConnectedKBIds.current;
+      const addedKBs = selectedKBIds.filter((id) => !original.includes(id));
+      const removedKBs = original.filter((id) => !selectedKBIds.includes(id));
+
+      // Associate added KBs
+      for (const kbId of addedKBs) {
+        const res = await fetch('/api/bedrock/agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'associateKnowledgeBase',
+            agentId: agent.agentId,
+            agentVersion: 'DRAFT',
+            knowledgeBaseId: kbId,
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || `Failed to associate KB ${kbId}`);
+        }
+      }
+
+      // Disassociate removed KBs
+      for (const kbId of removedKBs) {
+        const res = await fetch('/api/bedrock/agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'disassociateKnowledgeBase',
+            agentId: agent.agentId,
+            agentVersion: 'DRAFT',
+            knowledgeBaseId: kbId,
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error || `Failed to disassociate KB ${kbId}`);
+        }
+      }
+
+      // Update the original ref after successful save
+      originalConnectedKBIds.current = [...selectedKBIds];
     } catch (err: any) {
       setError(err?.message || t('saveError'));
     } finally {
@@ -149,6 +216,17 @@ export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProp
             onProfileChange={setInferenceProfileArn}
             onCostTagsChange={setCostTags}
             disabled={saving}
+          />
+        </div>
+
+        {/* Knowledge Base Selector */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <KBSelector
+            selectedKBIds={selectedKBIds}
+            connectedKBIds={originalConnectedKBIds.current}
+            onChange={setSelectedKBIds}
+            disabled={saving}
+            locale={locale}
           />
         </div>
       </div>

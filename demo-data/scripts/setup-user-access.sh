@@ -8,6 +8,11 @@ set -euo pipefail
 # SIDはNTFS ACLにおけるセキュリティ識別子で、
 # ファイルアクセス権限の判定に使用される。
 #
+# 注意: AD Federation + Post-Auth Trigger（enableAdFederation=true）有効時は、
+# ADユーザーのサインイン時にPost-Authentication TriggerがAD Sync Lambdaを呼び出し、
+# SIDデータがDynamoDBに自動登録されるため、本スクリプトの実行は不要です。
+# 初回サインイン前のデモデータ事前登録用途でのみ使用してください。
+#
 # SID構造:
 #   S-1-5-21-{ドメインID}-{RID}
 #   - S-1-1-0: Everyone（全ユーザー共通）

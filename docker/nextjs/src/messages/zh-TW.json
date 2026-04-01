@@ -626,5 +626,47 @@
       "shared": "共享Agent",
       "schedules": "排程任務"
     }
+  },
+  "signin": {
+    "adSignIn": "使用AD登入",
+    "adSignInDesc": "使用Active Directory驗證登入",
+    "orDivider": "或",
+    "emailSignIn": "使用電子郵件/密碼登入"
+  },
+  "imageUpload": {
+    "dropzone": "拖放圖片",
+    "selectFile": "選擇檔案",
+    "preview": "預覽",
+    "remove": "刪除",
+    "uploadedImage": "使用者上傳的圖片",
+    "invalidFormat": "支援格式: JPEG, PNG, GIF, WebP",
+    "fileTooLarge": "檔案大小不能超過3MB",
+    "analyzing": "正在分析圖片...",
+    "analysisUsed": "已使用圖片分析"
+  },
+  "kbSelector": {
+    "title": "知識庫",
+    "selectKB": "選擇知識庫",
+    "connected": "已連接",
+    "noKBConnected": "未連接知識庫",
+    "dataSources": "資料來源",
+    "status": { "ACTIVE": "活躍", "CREATING": "建立中", "FAILED": "失敗" },
+    "loadError": "取得知識庫清單失敗",
+    "retry": "重試"
+  },
+  "smartRouting": {
+    "title": "智慧路由",
+    "enabled": "開啟",
+    "disabled": "關閉",
+    "auto": "自動",
+    "manual": "手動",
+    "lightweight": "輕量模型",
+    "powerful": "高效能模型",
+    "simple": "簡單",
+    "complex": "複雜",
+    "confidence": "信賴度",
+    "modelUsed": "使用模型",
+    "autoRouted": "Auto",
+    "manualOverride": "Manual"
   }
 }

@@ -590,5 +590,47 @@
       "shared": "Agents compartidos",
       "schedules": "Tareas programadas"
     }
+  },
+  "signin": {
+    "adSignIn": "Iniciar sesión con AD",
+    "adSignInDesc": "Iniciar sesión con autenticación de Active Directory",
+    "orDivider": "o",
+    "emailSignIn": "Iniciar sesión con email/contraseña"
+  },
+  "imageUpload": {
+    "dropzone": "Arrastra y suelta una imagen",
+    "selectFile": "Seleccionar archivo",
+    "preview": "Vista previa",
+    "remove": "Eliminar",
+    "uploadedImage": "Imagen subida por el usuario",
+    "invalidFormat": "Formatos compatibles: JPEG, PNG, GIF, WebP",
+    "fileTooLarge": "El tamaño del archivo debe ser de 3 MB o menos",
+    "analyzing": "Analizando imagen...",
+    "analysisUsed": "Análisis de imagen utilizado"
+  },
+  "kbSelector": {
+    "title": "Base de conocimiento",
+    "selectKB": "Seleccionar base de conocimiento",
+    "connected": "Conectada",
+    "noKBConnected": "No hay base de conocimiento conectada",
+    "dataSources": "Fuentes de datos",
+    "status": { "ACTIVE": "Activa", "CREATING": "Creando", "FAILED": "Fallida" },
+    "loadError": "Error al cargar la lista de KB",
+    "retry": "Reintentar"
+  },
+  "smartRouting": {
+    "title": "Enrutamiento inteligente",
+    "enabled": "Activado",
+    "disabled": "Desactivado",
+    "auto": "Auto",
+    "manual": "Manual",
+    "lightweight": "Modelo ligero",
+    "powerful": "Modelo potente",
+    "simple": "Simple",
+    "complex": "Complejo",
+    "confidence": "Confianza",
+    "modelUsed": "Modelo utilizado",
+    "autoRouted": "Auto",
+    "manualOverride": "Manual"
   }
 }

@@ -426,5 +426,41 @@
       "shared": "Agents partagés",
       "schedules": "Tâches planifiées"
     }
+  },
+  "imageUpload": {
+    "dropzone": "Glisser-déposer une image",
+    "selectFile": "Sélectionner un fichier",
+    "preview": "Aperçu",
+    "remove": "Supprimer",
+    "uploadedImage": "Image téléchargée par l'utilisateur",
+    "invalidFormat": "Formats pris en charge : JPEG, PNG, GIF, WebP",
+    "fileTooLarge": "La taille du fichier doit être de 3 Mo ou moins",
+    "analyzing": "Analyse de l'image...",
+    "analysisUsed": "Analyse d'image utilisée"
+  },
+  "kbSelector": {
+    "title": "Base de connaissances",
+    "selectKB": "Sélectionner une base de connaissances",
+    "connected": "Connectée",
+    "noKBConnected": "Aucune base de connaissances connectée",
+    "dataSources": "Sources de données",
+    "status": { "ACTIVE": "Active", "CREATING": "En création", "FAILED": "Échouée" },
+    "loadError": "Échec du chargement de la liste KB",
+    "retry": "Réessayer"
+  },
+  "smartRouting": {
+    "title": "Routage intelligent",
+    "enabled": "Activé",
+    "disabled": "Désactivé",
+    "auto": "Auto",
+    "manual": "Manuel",
+    "lightweight": "Modèle léger",
+    "powerful": "Modèle puissant",
+    "simple": "Simple",
+    "complex": "Complexe",
+    "confidence": "Confiance",
+    "modelUsed": "Modèle utilisé",
+    "autoRouted": "Auto",
+    "manualOverride": "Manuel"
   }
 }

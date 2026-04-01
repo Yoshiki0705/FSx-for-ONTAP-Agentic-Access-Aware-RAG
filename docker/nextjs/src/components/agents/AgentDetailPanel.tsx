@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { exportAgentConfig } from '@/utils/agentConfigUtils';
 import { ScheduleForm } from './ScheduleForm';
 import { ExecutionHistoryList } from './ExecutionHistoryList';
+import { ConnectedKBList } from './ConnectedKBList';
 import type { AgentDetail } from '@/types/agent-directory';
 import type { CreateScheduleParams, ScheduleTask, ExecutionRecord } from '@/types/enterprise-agent';
 
@@ -19,6 +20,7 @@ interface AgentDetailPanelProps {
 
 export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat, locale }: AgentDetailPanelProps) {
   const t = useTranslations('agentDirectory');
+  const tKb = useTranslations('kbSelector');
   const [instructionExpanded, setInstructionExpanded] = useState(false);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [schedules, setSchedules] = useState<ScheduleTask[]>([]);
@@ -218,6 +220,12 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
             {manualRunning ? '...' : t('schedule.manualTrigger')}
           </button>
         )}
+      </div>
+
+      {/* Connected Knowledge Bases */}
+      <div className="mb-6 border-t border-gray-200 dark:border-gray-700 pt-4">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{tKb('connected')}</h3>
+        <ConnectedKBList agentId={agent.agentId} locale={locale} />
       </div>
 
       {/* Action Buttons */}

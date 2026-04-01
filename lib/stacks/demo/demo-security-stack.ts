@@ -38,12 +38,20 @@ export interface DemoSecurityStackProps extends cdk.StackProps {
   lambdaSg?: ec2.ISecurityGroup;
   /** ユーザーアクセスDynamoDBテーブル */
   userAccessTable?: dynamodb.ITable;
+  /** SAMLフェデレーション有効化フラグ（デフォルト: false） */
+  enableAdFederation?: boolean;
+  /** CloudFront Distribution URL（コールバックURL用） */
+  cloudFrontUrl?: string;
+  /** セルフマネージドAD用: Entra IDフェデレーションメタデータURL */
+  samlMetadataUrl?: string;
 }
 
 export class DemoSecurityStack extends cdk.Stack {
   public readonly userPool: cognito.UserPool;
   public readonly userPoolClient: cognito.UserPoolClient;
   public adSyncFunction?: lambda.Function;
+  public samlProvider?: cognito.UserPoolIdentityProviderSaml;
+  public cognitoDomainUrl?: string;
 
   constructor(scope: Construct, id: string, props: DemoSecurityStackProps) {
     super(scope, id, props);
@@ -51,6 +59,32 @@ export class DemoSecurityStack extends cdk.Stack {
     const { projectName, environment } = props;
     const prefix = `${projectName}-${environment}`;
     const adType = props.adType || 'none';
+
+    // ========================================
+    // CDKバリデーション（enableAdFederation=true の場合）
+    // ========================================
+    if (props.enableAdFederation) {
+      if (adType === 'managed' && !props.adDirectoryId) {
+        throw new Error(
+          'enableAdFederation=true with adType=managed requires adDirectoryId. ' +
+          'Please provide the AWS Managed AD Directory ID.',
+        );
+      }
+      if (adType === 'self-managed') {
+        if (!props.adEc2InstanceId) {
+          throw new Error(
+            'enableAdFederation=true with adType=self-managed requires adEc2InstanceId. ' +
+            'Please provide the EC2 instance ID running Active Directory.',
+          );
+        }
+        if (!props.samlMetadataUrl) {
+          throw new Error(
+            'enableAdFederation=true with adType=self-managed requires samlMetadataUrl. ' +
+            'Please provide the Entra ID federation metadata URL.',
+          );
+        }
+      }
+    }
 
     // ========================================
     // Cognito User Pool
@@ -61,6 +95,11 @@ export class DemoSecurityStack extends cdk.Stack {
       signInAliases: { email: true },
       autoVerify: { email: true },
       standardAttributes: { email: { required: true, mutable: false } },
+      // AD Federation用カスタム属性
+      customAttributes: props.enableAdFederation ? {
+        'ad_groups': new cognito.StringAttribute({ mutable: true }),
+        'role': new cognito.StringAttribute({ mutable: true }),
+      } : undefined,
       passwordPolicy: {
         minLength: 8, requireLowercase: true, requireUppercase: true,
         requireDigits: true, requireSymbols: false,
@@ -69,18 +108,108 @@ export class DemoSecurityStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    this.userPoolClient = this.userPool.addClient('WebAppClient', {
-      userPoolClientName: `${prefix}-webapp-client`,
-      authFlows: { userPassword: true, userSrp: true },
-      generateSecret: false,
-      preventUserExistenceErrors: true,
-    });
+    // ========================================
+    // SAML IdP（enableAdFederation=true の場合）
+    // ========================================
+    if (props.enableAdFederation) {
+      const attributeMapping: cognito.AttributeMapping = {
+        email: cognito.ProviderAttribute.other(
+          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'
+        ),
+        custom: {
+          'custom:ad_groups': cognito.ProviderAttribute.other(
+            'http://schemas.xmlsoap.org/claims/Group'
+          ),
+        },
+      };
+
+      if (adType === 'managed' && props.adDirectoryId) {
+        // Managed AD: samlMetadataUrl指定時はそれを使用、未指定時はIAM Identity Center URL
+        // 注意: IAM Identity Center URLを使用する場合は、事前にIAM Identity Centerで
+        // Managed ADをIDソースとして設定し、SAMLアプリケーションを作成する必要がある
+        const managedAdMetadataUrl = props.samlMetadataUrl
+          || `https://portal.sso.${cdk.Aws.REGION}.amazonaws.com/saml/metadata/${props.adDirectoryId}`;
+        this.samlProvider = new cognito.UserPoolIdentityProviderSaml(this, 'AdSamlIdP', {
+          userPool: this.userPool,
+          name: 'ActiveDirectory',
+          metadata: cognito.UserPoolIdentityProviderSamlMetadata.url(managedAdMetadataUrl),
+          attributeMapping,
+        });
+      } else if (adType === 'self-managed' && props.samlMetadataUrl) {
+        // Self-managed AD: Entra IDフェデレーションメタデータURL
+        const idpName = props.samlMetadataUrl ? 'EntraID' : 'ActiveDirectory';
+        this.samlProvider = new cognito.UserPoolIdentityProviderSaml(this, 'AdSamlIdP', {
+          userPool: this.userPool,
+          name: idpName,
+          metadata: cognito.UserPoolIdentityProviderSamlMetadata.url(props.samlMetadataUrl),
+          attributeMapping,
+        });
+      }
+
+      // ========================================
+      // Cognito Domain（enableAdFederation=true の場合）
+      // ========================================
+      const domain = this.userPool.addDomain('CognitoDomain', {
+        cognitoDomain: {
+          domainPrefix: `${prefix}-auth`,
+        },
+      });
+      this.cognitoDomainUrl = `${domain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com`;
+    }
+
+    // ========================================
+    // Cognito User Pool Client
+    // ========================================
+    if (props.enableAdFederation && this.samlProvider && props.cloudFrontUrl) {
+      // フェデレーション有効時: OAuth設定付きクライアント
+      const samlProviderName = this.samlProvider.providerName;
+      this.userPoolClient = this.userPool.addClient('WebAppClient', {
+        userPoolClientName: `${prefix}-webapp-client`,
+        authFlows: { userPassword: true, userSrp: true },
+        generateSecret: true,
+        oAuth: {
+          flows: { authorizationCodeGrant: true },
+          scopes: [
+            cognito.OAuthScope.OPENID,
+            cognito.OAuthScope.EMAIL,
+            cognito.OAuthScope.PROFILE,
+          ],
+          callbackUrls: [`${props.cloudFrontUrl}/api/auth/callback`],
+          logoutUrls: [`${props.cloudFrontUrl}/signin`],
+        },
+        supportedIdentityProviders: [
+          cognito.UserPoolClientIdentityProvider.COGNITO,
+          cognito.UserPoolClientIdentityProvider.custom(samlProviderName),
+        ],
+        preventUserExistenceErrors: true,
+      });
+      // SAML IdPが先に作成されることを保証
+      this.userPoolClient.node.addDependency(this.samlProvider);
+    } else {
+      // フェデレーション無効時: 既存のUSER_PASSWORD_AUTH設定を維持
+      this.userPoolClient = this.userPool.addClient('WebAppClient', {
+        userPoolClientName: `${prefix}-webapp-client`,
+        authFlows: { userPassword: true, userSrp: true },
+        generateSecret: false,
+        preventUserExistenceErrors: true,
+      });
+    }
 
     // ========================================
     // AD Sync Lambda（adType != 'none' の場合）
     // ========================================
     if (adType !== 'none') {
       this.createAdSyncLambda(prefix, adType, props);
+    }
+
+    // ========================================
+    // Post-Authentication Trigger（enableAdFederation=true の場合）
+    // ========================================
+    if (props.enableAdFederation && this.adSyncFunction) {
+      this.userPool.addTrigger(
+        cognito.UserPoolOperation.POST_AUTHENTICATION,
+        this.adSyncFunction,
+      );
     }
 
     // ========================================

@@ -389,5 +389,41 @@
       "shared": "共享Agent",
       "schedules": "调度任务"
     }
+  },
+  "imageUpload": {
+    "dropzone": "拖放图片",
+    "selectFile": "选择文件",
+    "preview": "预览",
+    "remove": "删除",
+    "uploadedImage": "用户上传的图片",
+    "invalidFormat": "支持格式: JPEG, PNG, GIF, WebP",
+    "fileTooLarge": "文件大小不能超过3MB",
+    "analyzing": "正在分析图片...",
+    "analysisUsed": "已使用图片分析"
+  },
+  "kbSelector": {
+    "title": "知识库",
+    "selectKB": "选择知识库",
+    "connected": "已连接",
+    "noKBConnected": "未连接知识库",
+    "dataSources": "数据源",
+    "status": { "ACTIVE": "活跃", "CREATING": "创建中", "FAILED": "失败" },
+    "loadError": "获取知识库列表失败",
+    "retry": "重试"
+  },
+  "smartRouting": {
+    "title": "智能路由",
+    "enabled": "开启",
+    "disabled": "关闭",
+    "auto": "自动",
+    "manual": "手动",
+    "lightweight": "轻量模型",
+    "powerful": "高性能模型",
+    "simple": "简单",
+    "complex": "复杂",
+    "confidence": "置信度",
+    "modelUsed": "使用模型",
+    "autoRouted": "Auto",
+    "manualOverride": "Manual"
   }
 }

@@ -245,6 +245,52 @@ fi
 echo ""
 
 # ========================================
+# 8. AD Federation チェック（オプション）
+# ========================================
+echo "📋 8. AD Federation チェック..."
+
+# フェデレーション有効かどうかをCognito User Pool IdPで判定
+USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Security --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`UserPoolId`].OutputValue' --output text 2>/dev/null || echo "")
+
+if [ -n "$USER_POOL_ID" ] && [ "$USER_POOL_ID" != "None" ]; then
+  # SAML IdP存在チェック
+  SAML_PROVIDERS=$(aws cognito-idp list-identity-providers --user-pool-id "$USER_POOL_ID" --region $REGION \
+    --query 'Providers[?ProviderType==`SAML`].ProviderName' --output text 2>/dev/null || echo "")
+
+  if [ -n "$SAML_PROVIDERS" ] && [ "$SAML_PROVIDERS" != "None" ] && [ "$SAML_PROVIDERS" != "" ]; then
+    log_result "PASS" "SAML IdP" "Provider: $SAML_PROVIDERS"
+
+    # Post-Authentication Trigger接続チェック
+    POST_AUTH_TRIGGER=$(aws cognito-idp describe-user-pool --user-pool-id "$USER_POOL_ID" --region $REGION \
+      --query 'UserPool.LambdaConfig.PostAuthentication' --output text 2>/dev/null || echo "")
+    if [ -n "$POST_AUTH_TRIGGER" ] && [ "$POST_AUTH_TRIGGER" != "None" ] && [ "$POST_AUTH_TRIGGER" != "" ]; then
+      TRIGGER_FN=$(echo "$POST_AUTH_TRIGGER" | awk -F: '{print $NF}')
+      log_result "PASS" "Post-Auth Trigger" "$TRIGGER_FN"
+    else
+      log_result "FAIL" "Post-Auth Trigger" "Not connected"
+    fi
+
+    # SAML IdPメタデータURL形式チェック
+    for PROVIDER in $SAML_PROVIDERS; do
+      PROVIDER_DETAIL=$(aws cognito-idp describe-identity-provider --user-pool-id "$USER_POOL_ID" \
+        --provider-name "$PROVIDER" --region $REGION \
+        --query 'IdentityProvider.ProviderDetails.MetadataURL' --output text 2>/dev/null || echo "")
+      if echo "$PROVIDER_DETAIL" | grep -q "portal.sso"; then
+        log_result "PASS" "SAML Metadata (Managed AD)" "URL: portal.sso形式"
+      elif [ -n "$PROVIDER_DETAIL" ] && [ "$PROVIDER_DETAIL" != "None" ]; then
+        log_result "PASS" "SAML Metadata (Self-managed)" "URL: カスタムメタデータ"
+      else
+        log_result "WARN" "SAML Metadata" "メタデータURL取得不可"
+      fi
+    done
+  else
+    log_result "WARN" "AD Federation" "SAML IdP未設定（enableAdFederation=false?）"
+  fi
+fi
+echo ""
+
+# ========================================
 # レポート生成
 # ========================================
 TOTAL=$((PASS + FAIL + WARN))

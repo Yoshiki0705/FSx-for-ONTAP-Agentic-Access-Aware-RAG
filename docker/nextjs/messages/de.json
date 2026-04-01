@@ -402,5 +402,41 @@
       "shared": "Freigegebene Agents",
       "schedules": "Geplante Aufgaben"
     }
+  },
+  "imageUpload": {
+    "dropzone": "Bild hierher ziehen",
+    "selectFile": "Datei auswählen",
+    "preview": "Vorschau",
+    "remove": "Entfernen",
+    "uploadedImage": "Vom Benutzer hochgeladenes Bild",
+    "invalidFormat": "Unterstützte Formate: JPEG, PNG, GIF, WebP",
+    "fileTooLarge": "Dateigröße darf 3 MB nicht überschreiten",
+    "analyzing": "Bild wird analysiert...",
+    "analysisUsed": "Bildanalyse verwendet"
+  },
+  "kbSelector": {
+    "title": "Wissensdatenbank",
+    "selectKB": "Wissensdatenbank auswählen",
+    "connected": "Verbunden",
+    "noKBConnected": "Keine Wissensdatenbank verbunden",
+    "dataSources": "Datenquellen",
+    "status": { "ACTIVE": "Aktiv", "CREATING": "Wird erstellt", "FAILED": "Fehlgeschlagen" },
+    "loadError": "KB-Liste konnte nicht geladen werden",
+    "retry": "Erneut versuchen"
+  },
+  "smartRouting": {
+    "title": "Intelligentes Routing",
+    "enabled": "Ein",
+    "disabled": "Aus",
+    "auto": "Auto",
+    "manual": "Manuell",
+    "lightweight": "Leichtgewichtiges Modell",
+    "powerful": "Leistungsstarkes Modell",
+    "simple": "Einfach",
+    "complex": "Komplex",
+    "confidence": "Konfidenz",
+    "modelUsed": "Verwendetes Modell",
+    "autoRouted": "Auto",
+    "manualOverride": "Manuell"
   }
 }

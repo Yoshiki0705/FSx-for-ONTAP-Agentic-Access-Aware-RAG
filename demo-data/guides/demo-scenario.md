@@ -129,6 +129,40 @@ bash demo-data/scripts/sync-kb-datasource.sh
 
 ## トラブルシューティング
 
+### シナリオ3: AD SSOでのサインイン
+
+> **前提条件**: `enableAdFederation=true` でCDKデプロイ済み。SAML IdPとCognito Domainが設定済みであること。
+
+#### 3-1. AD SSOサインインフロー
+
+1. CloudFront URLにアクセス
+2. サインインページで「ADでサインイン」ボタンをクリック
+3. Cognito Hosted UI経由でSAML IdP（AD）の認証画面にリダイレクト
+4. AD資格情報（ドメインユーザー名/パスワード）を入力
+5. 認証成功後、Cognito User Poolにユーザーが自動作成される
+6. Post-Authentication TriggerによりAD Sync LambdaがDynamoDB user-accessテーブルにSIDデータを自動登録
+7. OAuthコールバック経由でセッションCookieが設定され、チャット画面に遷移
+
+#### 3-2. 確認ポイント
+
+| 確認項目 | 期待結果 |
+|---------|---------|
+| 「ADでサインイン」ボタン表示 | `COGNITO_DOMAIN`環境変数設定時のみ表示 |
+| SAML認証リダイレクト | Cognito Hosted UI → AD認証画面 |
+| Cognitoユーザー自動作成 | Cognito User Poolにフェデレーションユーザーが作成される |
+| SIDデータ自動登録 | DynamoDB user-accessテーブルにSIDデータが登録される |
+| チャット画面遷移 | 認証成功後、チャット画面に正常遷移 |
+| SIDフィルタリング | ADユーザーのSIDに基づいた権限フィルタリングが動作 |
+
+#### 3-3. フェデレーション無効時のフォールバック
+
+`enableAdFederation=false`（デフォルト）の場合:
+- 「ADでサインイン」ボタンは非表示
+- 既存のメール/パスワード認証フォームのみ表示
+- シナリオ1・2の手順で検証可能
+
+## トラブルシューティング
+
 - **検索結果が返らない**: Bedrock KBデータソースの同期が完了しているか確認
 - **全ドキュメントが拒否される**: DynamoDB user-accessテーブルにユーザーのSIDデータが登録されているか確認。**注意**: アプリはCognitoの`sub`ではなくメールアドレスを`userId`として送信するため、DynamoDBの`userId`キーにはメールアドレスを使用すること
 - **SIDフィルタリングが効かない**: `.metadata.json` の `allowed_group_sids` が正しく設定されているか確認

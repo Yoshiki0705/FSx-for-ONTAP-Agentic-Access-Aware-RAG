@@ -5,19 +5,20 @@
 | ドキュメント | 内容 |
 |-------------|------|
 | [README.md](../README.md) | システム概要、アーキテクチャ、デプロイ手順、WAF/Geo設定 |
-| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（8つの観点） |
+| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（11の観点: 画像分析RAG、KB接続UI、Smart Routing含む） |
 | [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SIDベース権限フィルタリングの詳細設計 |
 | [docs/verification-report.md](verification-report.md) | デプロイ後の検証手順とテストケース |
 | [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（KB/Agentモード、Agent Directory、エンタープライズAgent機能、サイドバー設計） |
 | [docs/demo-recording-guide.md](demo-recording-guide.md) | 検証デモ動画撮影手順書（6つの証跡） |
 | [docs/embedding-server-design.md](embedding-server-design.md) | Embeddingサーバー設計・実装ドキュメント |
 | [docs/stack-architecture-comparison.md](stack-architecture-comparison.md) | CDKスタック アーキテクチャガイド（ベクトルストア比較、実装知見） |
+| [README.md#AD SAMLフェデレーション](../README.md#ad-samlフェデレーションオプション) | AD SAMLフェデレーション セットアップ手順（Managed AD / Self-managed AD） |
 
 ## セットアップ・検証
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [demo-data/guides/demo-scenario.md](../demo-data/guides/demo-scenario.md) | 検証シナリオ（管理者 vs 一般ユーザーの権限差異確認） |
+| [demo-data/guides/demo-scenario.md](../demo-data/guides/demo-scenario.md) | 検証シナリオ（管理者 vs 一般ユーザーの権限差異確認、AD SSOサインイン） |
 | [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD連携・CIFS共有・NTFS ACL設定（検証済み手順） |
 | [docs/demo-environment-guide.md](demo-environment-guide.md) | 検証環境のリソースID・アクセス情報・Embeddingサーバー手順 |
 
@@ -48,6 +49,7 @@
 3. **SID-Filtering-Architecture.md** — コア機能の技術詳細
 4. **demo-recording-guide.md** — 検証デモ動画撮影手順書
 5. **ontap-setup-guide.md** — FSx ONTAP AD連携・CIFS共有設定
-6. **demo-environment-guide.md** — 検証環境セットアップ（Embeddingサーバー含む）
-7. **demo-scenario.md** — 検証シナリオの実行
-8. **verification-report.md** — API レベルの検証手順
+6. **README.md#AD SAMLフェデレーション** — AD SAMLフェデレーション セットアップ（オプション）
+7. **demo-environment-guide.md** — 検証環境セットアップ（Embeddingサーバー含む）
+8. **demo-scenario.md** — 検証シナリオの実行（AD SSOサインイン含む）
+9. **verification-report.md** — API レベルの検証手順

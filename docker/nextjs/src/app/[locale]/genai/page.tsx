@@ -30,6 +30,15 @@ import { resolveAgentForCard, findAgentByCategory } from '../../../services/card
 import { useCardAgentMappingStore } from '../../../store/useCardAgentMappingStore';
 import type { CardData } from '../../../constants/card-constants';
 import { getCardsByMode, AGENT_CATEGORY_MAP } from '../../../constants/card-constants';
+import { ImageUploadZone } from '@/components/chat/ImageUploadZone';
+import { ImagePreview } from '@/components/chat/ImagePreview';
+import { ImageThumbnail } from '@/components/chat/ImageThumbnail';
+import { ImageModal } from '@/components/chat/ImageModal';
+import type { ImageAttachment } from '@/types/image-upload';
+import { routeQuery, DEFAULT_SMART_ROUTER_CONFIG } from '@/lib/smart-router';
+import { useSmartRoutingStore } from '@/store/useSmartRoutingStore';
+import { ResponseMetadata } from '@/components/chat/ResponseMetadata';
+import { RoutingToggle } from '@/components/sidebar/RoutingToggle';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -469,6 +478,17 @@ function ChatbotPageContent() {
   const [user, setUser] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
   const [messageCitations, setMessageCitations] = useState<Record<string, CitationItem[]>>({});
+  
+  // Image upload state (Task 11.1)
+  const [attachedImage, setAttachedImage] = useState<ImageAttachment | null>(null);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageModalData, setImageModalData] = useState<{base64Data: string; mimeType: string} | null>(null);
+  
+  // Per-message routing decisions (Task 11.4)
+  const [messageRoutingDecisions, setMessageRoutingDecisions] = useState<Record<string, { modelName: string; isAutoRouted: boolean; isManualOverride: boolean; classification?: 'simple' | 'complex'; confidence?: number; hasImageAnalysis?: boolean }>>({});
+  
+  // Smart Routing store (Task 11.2)
+  const { isEnabled: smartRoutingEnabled, isAutoMode, setLastClassification } = useSmartRoutingStore();
   
   // エラーメッセージは直接文字列で定義（翻訳キーが存在しないため）
   const errorMessages = useMemo(() => ({
@@ -1004,7 +1024,7 @@ function ChatbotPageContent() {
   //   // 実装は将来の拡張時に追加
   // };
 
-  const generateRAGResponse = async (query: string): Promise<{ answer: string; citations: CitationItem[] }> => {
+  const generateRAGResponse = async (query: string, imageData?: string, imageMimeType?: string): Promise<{ answer: string; citations: CitationItem[] }> => {
     try {
       console.log('📚 [KB] Sending request to Bedrock KB API:', { query: query.substring(0, 100), user: user.username, modelId: selectedModelId });
       
@@ -1029,6 +1049,7 @@ function ChatbotPageContent() {
             modelId: selectedModelId,
             userId: user.username,
             region: currentRegion,
+            ...(imageData ? { imageData, imageMimeType } : {}),
             // Note: sessionIdはBedrock KB APIが返すUUID形式でなければならないため、
             // アプリ内部のセッションIDは送らない（各リクエストを独立したKB検索として扱う）
           }),
@@ -1231,11 +1252,29 @@ function ChatbotPageContent() {
     setInputText('');
     setIsLoading(true);
 
+    // Smart Routing (Task 11.2)
+    const routingDecision = routeQuery(
+      currentInput,
+      smartRoutingEnabled,
+      isAutoMode,
+      selectedModelId,
+      DEFAULT_SMART_ROUTER_CONFIG
+    );
+    if (routingDecision.classification) {
+      setLastClassification(routingDecision.classification);
+    }
+
+    // Capture image data before clearing (Task 11.1)
+    const currentImageData = attachedImage?.base64Data;
+    const currentImageMimeType = attachedImage?.mimeType;
+    const hadImage = !!attachedImage;
+    setAttachedImage(null);
+
     try {
       // モードに応じてRAG処理またはAgent処理を実行
       const { answer: responseText, citations } = agentMode
         ? await generateAgentResponse(currentInput)
-        : await generateRAGResponse(currentInput);
+        : await generateRAGResponse(currentInput, currentImageData, currentImageMimeType);
 
       const botMessageId = `bot-${Date.now()}`;
       const botResponse: Message = {
@@ -1247,6 +1286,20 @@ function ChatbotPageContent() {
       };
 
       addMessage(botResponse);
+
+      // Store routing decision for this bot message (Task 11.4)
+      const routedModelName = getModelById(routingDecision.modelId)?.name || routingDecision.modelId;
+      setMessageRoutingDecisions(prev => ({
+        ...prev,
+        [botMessageId]: {
+          modelName: routedModelName,
+          isAutoRouted: routingDecision.isAutoRouted,
+          isManualOverride: smartRoutingEnabled && !routingDecision.isAutoRouted,
+          classification: routingDecision.classification?.classification,
+          confidence: routingDecision.classification?.confidence,
+          hasImageAnalysis: hadImage,
+        },
+      }));
 
       // Citation情報をボットメッセージIDと紐付けて保存
       if (citations.length > 0) {
@@ -1598,6 +1651,9 @@ function ChatbotPageContent() {
               />
             </div>
 
+            {/* Smart Routing Toggle (Task 11.3) */}
+            <RoutingToggle locale={memoizedLocale} />
+
             {/* 権限制御状態セクション */}
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{translations.permissionControl}</h3>
@@ -1850,6 +1906,18 @@ function ChatbotPageContent() {
                     {message.role === 'assistant' && messageCitations[message.id] && (
                       <CitationDisplay citations={messageCitations[message.id]} />
                     )}
+                    {/* ResponseMetadata (Task 11.4) */}
+                    {message.role === 'assistant' && messageRoutingDecisions[message.id] && (
+                      <ResponseMetadata
+                        modelName={messageRoutingDecisions[message.id].modelName}
+                        isAutoRouted={messageRoutingDecisions[message.id].isAutoRouted}
+                        isManualOverride={messageRoutingDecisions[message.id].isManualOverride}
+                        classification={messageRoutingDecisions[message.id].classification}
+                        confidence={messageRoutingDecisions[message.id].confidence}
+                        hasImageAnalysis={messageRoutingDecisions[message.id].hasImageAnalysis}
+                        locale={memoizedLocale}
+                      />
+                    )}
                     <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                       }`}>
                       {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('ja-JP') : ''}
@@ -1916,7 +1984,18 @@ function ChatbotPageContent() {
                 </button>
               </div>
             )}
+            {attachedImage && (
+              <div className="mb-2 max-w-4xl mx-auto">
+                <ImagePreview image={attachedImage} onRemove={() => setAttachedImage(null)} />
+              </div>
+            )}
             <form onSubmit={handleSendMessage} className="flex space-x-3 max-w-4xl mx-auto">
+              <ImageUploadZone
+                onImageSelected={(img) => setAttachedImage(img)}
+                onError={(err) => console.warn('[ImageUpload]', err)}
+                disabled={isLoading}
+                locale={memoizedLocale}
+              />
               <button
                 type="button"
                 onClick={() => {
@@ -1963,6 +2042,15 @@ function ChatbotPageContent() {
           </div>
         </div>
       </div>
+      {/* ImageModal (Task 11.1) */}
+      {imageModalOpen && imageModalData && (
+        <ImageModal
+          base64Data={imageModalData.base64Data}
+          mimeType={imageModalData.mimeType}
+          isOpen={imageModalOpen}
+          onClose={() => { setImageModalOpen(false); setImageModalData(null); }}
+        />
+      )}
     </div>
   );
 }

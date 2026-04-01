@@ -23,6 +23,9 @@ import {
   DeleteAgentAliasCommand,
   GetAgentAliasCommand,
   ListAgentAliasesCommand,
+  AssociateAgentKnowledgeBaseCommand,
+  DisassociateAgentKnowledgeBaseCommand,
+  ListAgentKnowledgeBasesCommand,
 } from '@aws-sdk/client-bedrock-agent';
 import { SSMAgentManagerFactory } from '@/services/ssm-agent-manager';
 
@@ -198,6 +201,12 @@ export async function POST(request: NextRequest) {
         return await handleListGuardrails();
       case 'listInferenceProfiles':
         return await handleListInferenceProfiles();
+      case 'associateKnowledgeBase':
+        return await handleAssociateKB(body);
+      case 'disassociateKnowledgeBase':
+        return await handleDisassociateKB(body);
+      case 'listAgentKnowledgeBases':
+        return await handleListAgentKBs(body);
       default:
         // デフォルトはinvokeアクション（後方互換性）
         return await handleInvokeAgent(message, userId, sessionId, selectedAgentId);
@@ -927,6 +936,154 @@ async function handleListInferenceProfiles(): Promise<NextResponse> {
     console.error('[Bedrock Agent] ListInferenceProfiles error:', error);
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : '推論プロファイル一覧取得に失敗しました' },
+      { status: 500 }
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// KB Connection Management Handlers (Advanced RAG Features)
+// ---------------------------------------------------------------------------
+
+/**
+ * AgentにKnowledge Baseを接続する
+ * 接続成功後、PrepareAgentを呼び出してAgentを再準備する
+ */
+async function handleAssociateKB(body: any): Promise<NextResponse> {
+  const { agentId, agentVersion, knowledgeBaseId, description } = body;
+
+  if (!agentId || !knowledgeBaseId) {
+    return NextResponse.json(
+      { success: false, error: 'Agent IDとKnowledge Base IDが必要です' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    console.log('[Bedrock Agent] Associating KB:', { agentId, knowledgeBaseId });
+
+    const associateCommand = new AssociateAgentKnowledgeBaseCommand({
+      agentId,
+      agentVersion: agentVersion || 'DRAFT',
+      knowledgeBaseId,
+      description: description || `Knowledge Base ${knowledgeBaseId}`,
+      knowledgeBaseState: 'ENABLED',
+    });
+
+    const response = await agentClient.send(associateCommand);
+    console.log(`✅ KB接続成功: ${knowledgeBaseId} → Agent ${agentId}`);
+
+    // PrepareAgentを呼び出してAgentを再準備
+    const prepareCommand = new PrepareAgentCommand({ agentId });
+    await agentClient.send(prepareCommand);
+    console.log(`✅ PrepareAgent完了: ${agentId}`);
+
+    return NextResponse.json({
+      success: true,
+      agentKnowledgeBase: response.agentKnowledgeBase,
+      message: 'Knowledge Base接続とAgent再準備が完了しました',
+    });
+  } catch (error) {
+    console.error('[Bedrock Agent] AssociateKB error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Knowledge Base接続に失敗しました',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * AgentからKnowledge Baseを解除する
+ * 解除成功後、PrepareAgentを呼び出してAgentを再準備する
+ */
+async function handleDisassociateKB(body: any): Promise<NextResponse> {
+  const { agentId, agentVersion, knowledgeBaseId } = body;
+
+  if (!agentId || !knowledgeBaseId) {
+    return NextResponse.json(
+      { success: false, error: 'Agent IDとKnowledge Base IDが必要です' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    console.log('[Bedrock Agent] Disassociating KB:', { agentId, knowledgeBaseId });
+
+    const disassociateCommand = new DisassociateAgentKnowledgeBaseCommand({
+      agentId,
+      agentVersion: agentVersion || 'DRAFT',
+      knowledgeBaseId,
+    });
+
+    await agentClient.send(disassociateCommand);
+    console.log(`✅ KB解除成功: ${knowledgeBaseId} ← Agent ${agentId}`);
+
+    // PrepareAgentを呼び出してAgentを再準備
+    const prepareCommand = new PrepareAgentCommand({ agentId });
+    await agentClient.send(prepareCommand);
+    console.log(`✅ PrepareAgent完了: ${agentId}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Knowledge Base解除とAgent再準備が完了しました',
+    });
+  } catch (error) {
+    console.error('[Bedrock Agent] DisassociateKB error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Knowledge Base解除に失敗しました',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Agentに接続されたKnowledge Base一覧を取得する
+ */
+async function handleListAgentKBs(body: any): Promise<NextResponse> {
+  const { agentId, agentVersion } = body;
+
+  if (!agentId) {
+    return NextResponse.json(
+      { success: false, error: 'Agent IDが必要です' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    console.log('[Bedrock Agent] Listing agent KBs:', { agentId });
+
+    const listCommand = new ListAgentKnowledgeBasesCommand({
+      agentId,
+      agentVersion: agentVersion || 'DRAFT',
+    });
+
+    const response = await agentClient.send(listCommand);
+
+    const knowledgeBases = (response.agentKnowledgeBaseSummaries || []).map((kb: any) => ({
+      knowledgeBaseId: kb.knowledgeBaseId,
+      knowledgeBaseState: kb.knowledgeBaseState,
+      description: kb.description || '',
+      updatedAt: kb.updatedAt,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      knowledgeBases,
+      message: '接続済みKnowledge Base一覧取得完了',
+    });
+  } catch (error) {
+    console.error('[Bedrock Agent] ListAgentKBs error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : '接続済みKB一覧取得に失敗しました',
+      },
       { status: 500 }
     );
   }

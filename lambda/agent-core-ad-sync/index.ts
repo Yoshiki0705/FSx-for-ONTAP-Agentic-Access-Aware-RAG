@@ -66,9 +66,118 @@ interface AdSyncResponse {
 }
 
 // ========================================
+// Cognito Post-Authentication Trigger イベント型
+// ========================================
+interface CognitoPostAuthEvent {
+  version: string;
+  triggerSource: 'PostAuthentication_Authentication';
+  region: string;
+  userPoolId: string;
+  userName: string;
+  callerContext: {
+    awsSdkVersion: string;
+    clientId: string;
+  };
+  request: {
+    userAttributes: {
+      email: string;
+      sub: string;
+      'custom:ad_groups'?: string;
+      [key: string]: string | undefined;
+    };
+  };
+  response: Record<string, unknown>;
+}
+
+// ========================================
 // Lambda Handler
 // ========================================
-export async function handler(event: AdSyncEvent): Promise<AdSyncResponse> {
+export async function handler(event: AdSyncEvent | CognitoPostAuthEvent): Promise<AdSyncResponse | CognitoPostAuthEvent> {
+  // Cognito Post-Authentication Triggerイベント判定
+  if ('triggerSource' in event && event.triggerSource === 'PostAuthentication_Authentication') {
+    return handleCognitoTrigger(event as CognitoPostAuthEvent);
+  }
+
+  // 既存のAdSyncEventハンドラー
+  return handleAdSync(event as AdSyncEvent);
+}
+
+// ========================================
+// Cognito Post-Authentication Trigger ハンドラー
+// ========================================
+async function handleCognitoTrigger(event: CognitoPostAuthEvent): Promise<CognitoPostAuthEvent> {
+  try {
+    const email = event.request.userAttributes.email;
+    if (!email) {
+      console.warn('PostAuthTrigger: email attribute missing, skipping SID sync');
+      return event;
+    }
+
+    const username = email.split('@')[0];
+    const userId = event.userName;
+
+    console.log(JSON.stringify({
+      level: 'INFO',
+      source: 'PostAuthTrigger',
+      userId,
+      username,
+      email,
+      adType: AD_TYPE,
+      timestamp: new Date().toISOString(),
+    }));
+
+    // キャッシュTTLチェック（24時間）
+    const cached = await getCachedWithTtlCheck(userId);
+    if (cached) {
+      console.log(`PostAuthTrigger: Cache valid for ${userId}, skipping SID sync`);
+      return event;
+    }
+
+    // AD方式に応じてSID取得
+    let userSID: string;
+    let groupSIDs: string[];
+
+    if (AD_TYPE === 'managed') {
+      const result = await getManagedAdSid(username);
+      userSID = result.userSID;
+      groupSIDs = result.groupSIDs;
+    } else {
+      const result = await getSelfManagedAdSid(username);
+      userSID = result.userSID;
+      groupSIDs = result.groupSIDs;
+    }
+
+    await saveToDb(userId, username, userSID, groupSIDs);
+
+    console.log(JSON.stringify({
+      level: 'INFO',
+      source: 'PostAuthTrigger',
+      message: 'SID sync completed',
+      userId,
+      username,
+      timestamp: new Date().toISOString(),
+    }));
+  } catch (error: unknown) {
+    // サインインをブロックしない — エラーログのみ
+    const err = error as Error;
+    console.error(JSON.stringify({
+      level: 'ERROR',
+      source: 'PostAuthTrigger',
+      userId: event.userName,
+      error: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+    }));
+  }
+
+  // Cognito Triggerは必ず元のeventを返す
+  return event;
+}
+
+// ========================================
+// 既存 AdSync ハンドラー
+// ========================================
+async function handleAdSync(event: AdSyncEvent): Promise<AdSyncResponse> {
   console.log('AD Sync started:', JSON.stringify({ ...event, adType: AD_TYPE }));
 
   try {
@@ -174,7 +283,8 @@ async function ldapSearch(
   // 代替案: SSM経由でManaged ADに参加済みのEC2からPowerShellで取得
   if (process.env.AD_EC2_INSTANCE_ID) {
     console.log('Using SSM fallback for Managed AD SID retrieval');
-    return getSelfManagedAdSid(process.env.AD_EC2_INSTANCE_ID.includes('i-') ? '' : '');
+    const result = await getSelfManagedAdSid(process.env.AD_EC2_INSTANCE_ID.includes('i-') ? '' : '');
+    return { objectSid: result.userSID, groupSIDs: result.groupSIDs };
   }
 
   // EC2もない場合はエラー
@@ -275,6 +385,30 @@ function parsePowerShellOutput(output: string): { userSID: string; groupSIDs: st
 // ========================================
 // DynamoDB キャッシュ
 // ========================================
+
+/** キャッシュTTLチェック（24時間）— Cognito Trigger用 */
+async function getCachedWithTtlCheck(userId: string): Promise<boolean> {
+  try {
+    const result = await dynamoClient.send(new GetItemCommand({
+      TableName: USER_ACCESS_TABLE_NAME,
+      Key: { userId: { S: userId } },
+    }));
+    if (!result.Item || !result.Item.userSID?.S) return false;
+
+    // retrievedAtベースのTTLチェック（SID_CACHE_TTL秒、デフォルト86400=24時間）
+    const retrievedAt = parseInt(result.Item.retrievedAt?.N || '0', 10);
+    if (retrievedAt === 0) return false;
+
+    const nowMs = Date.now();
+    const ageMs = nowMs - retrievedAt;
+    const ttlMs = SID_CACHE_TTL * 1000;
+
+    return ageMs < ttlMs;
+  } catch {
+    return false;
+  }
+}
+
 async function getCached(userId: string): Promise<AdSyncResponse['data'] | null> {
   try {
     const result = await dynamoClient.send(new GetItemCommand({
@@ -298,7 +432,8 @@ async function getCached(userId: string): Promise<AdSyncResponse['data'] | null>
 
 async function saveToDb(userId: string, username: string, userSID: string, groupSIDs: string[]): Promise<void> {
   const now = new Date().toISOString();
-  const ttl = Math.floor(Date.now() / 1000) + SID_CACHE_TTL;
+  const nowMs = Date.now();
+  const ttl = Math.floor(nowMs / 1000) + SID_CACHE_TTL;
 
   await dynamoClient.send(new PutItemCommand({
     TableName: USER_ACCESS_TABLE_NAME,
@@ -311,6 +446,7 @@ async function saveToDb(userId: string, username: string, userSID: string, group
       source: { S: `AD-Sync-${AD_TYPE}` },
       createdAt: { S: now },
       updatedAt: { S: now },
+      retrievedAt: { N: nowMs.toString() },
       ttl: { N: ttl.toString() },
     },
   }));
