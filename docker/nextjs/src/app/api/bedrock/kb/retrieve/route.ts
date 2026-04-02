@@ -459,7 +459,7 @@ export async function POST(request: NextRequest) {
     // KBモードでAgentCore Memoryが有効な場合、直近の会話履歴を取得してConverse APIに渡す
     let conversationHistory: ConversationMessage[] = [];
     if (ENABLE_AGENTCORE_MEMORY && body.memorySessionId) {
-      conversationHistory = await retrieveConversationHistory(body.memorySessionId, userId);
+      conversationHistory = await retrieveConversationHistory(body.memorySessionId, userId.replace(/@/g, '_at_').replace(/\./g, '_dot_'));
     }
 
     // Step 3: Converse APIで回答生成

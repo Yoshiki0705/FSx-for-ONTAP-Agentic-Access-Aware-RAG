@@ -111,6 +111,23 @@
     "showSessionAttributes": "显示会话属性",
     "showTrace": "显示跟踪",
     "traceCount": "{count}个跟踪",
+    "noHistory": "暂无对话记录",
+    "agent": {
+      "information": "🤖 Agent 信息",
+      "agentId": "Agent ID",
+      "agentName": "Agent 名称",
+      "version": "版本",
+      "status": "状态",
+      "model": "模型",
+      "lastUpdated": "最后更新",
+      "features": "🧠 功能",
+      "multiStepReasoning": "多步推理",
+      "multiStepReasoningDesc": "逐步分析和解决复杂问题",
+      "automaticDocumentSearch": "自动文档搜索",
+      "automaticDocumentSearchDesc": "自动搜索和引用相关文档",
+      "contextOptimization": "上下文优化",
+      "contextOptimizationDesc": "根据上下文生成最佳回答"
+    },
     "introduction": {
       "welcome": "你好，{username}！",
       "title": "欢迎使用权限感知 RAG 聊天机器人 🎉",
@@ -203,6 +220,9 @@
   "error": {
     "generic": "发生错误"
   },
+  "search": {
+    "placeholder": "搜索..."
+  },
   "language": {
     "current": "当前语言",
     "english": "English",
@@ -224,7 +244,17 @@
     "selectModel": "选择模型",
     "selectedModel": "已选择的模型",
     "selector": {
-      "title": "AI 模型选择"
+      "title": "AI 模型选择",
+      "details": "显示详情",
+      "simple": "简洁视图",
+      "currentlySelected": "当前选择",
+      "available": "可用",
+      "category": "类别",
+      "modelId": "模型 ID",
+      "availableModels": "可用模型",
+      "count": "个",
+      "noModelSelected": "未选择模型",
+      "select": "选择"
     },
     "unavailable": "不可用"
   },
@@ -240,11 +270,18 @@
     "unavailableOnly": "仅不可用"
   },
   "permissions": {
+    "fsxEnvironment": "FSx for ONTAP 生产环境",
+    "testEnvironment": "测试环境",
+    "simulation": "模拟",
+    "fsxUnavailable": "FSx 不可用",
+    "read": "读取",
+    "write": "写入",
     "available": "可用",
     "denied": "已拒绝",
     "granted": "已授权",
     "restricted": "受限",
-    "unavailable": "不可用"
+    "unavailable": "不可用",
+    "directories": "目录"
   },
   "region": {
     "availableModels": "可用模型",
@@ -263,6 +300,25 @@
     "recommendedRegion": "推荐区域",
     "region": "区域",
     "regionInfo": "区域信息",
+    "close": "关闭",
+    "new": "新",
+    "supportedRegion": "支持的区域",
+    "newRegion": "新区域",
+    "newRegionInUse": "新区域使用中",
+    "currentlyUnsupported": "当前不支持",
+    "preparing": "准备中",
+    "futureSupport": "计划未来支持",
+    "status": "状态",
+    "bedrockSupport": "Bedrock 支持",
+    "loadingRegionInfo": "正在加载区域信息",
+    "changeConfirm": "更改为 {regionName} ({region})？\n可用模型: {modelCount}个",
+    "changeSuccess": "已更改为 {regionName}",
+    "changeError": "区域更改错误: {error}",
+    "changeApiError": "API 错误 (状态: {status})",
+    "changeUnexpectedError": "意外错误: {error}",
+    "reloadError": "页面重新加载错误",
+    "validationWarning": "区域验证警告: {message}\n回退: {fallbackRegion}",
+    "unsupportedWarning": "{regionName} 不受支持。\n{warningMessage}",
     "supportedRegions": "支持的区域 (Bedrock Agents)",
     "title": "区域选择",
     "unsupportedRegions": "不支持的区域 (Bedrock Agents)"
@@ -330,6 +386,11 @@
     "permissionControl": "权限控制状态",
     "permissionsChecking": "权限确认中...",
     "readPermission": "读取",
+    "noHistorySaving": "历史已禁用",
+    "deleteOnSessionEnd": "会话结束时删除",
+    "createAgent": "🤖 创建Agent",
+    "newSession": "新会话",
+    "kbFeatures": "KB功能",
     "regionSelection": "区域选择",
     "restrictedModelsNote": "受限模型可向管理员申请",
     "saveHistory": "保存历史",

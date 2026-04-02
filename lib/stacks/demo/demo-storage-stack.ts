@@ -654,7 +654,14 @@ exports.handler = async (event) => {
 
     // S3 Access Point作成
     const fsUserType = props.FileSystemUserType || 'UNIX';
-    const fsUserName = props.FileSystemUserName || 'root';
+    // 安全策: ドメインプレフィクス（例: DEMO\Admin）が含まれている場合は除去
+    // CLIではドメインプレフィクス付きが受け入れられるが、データプレーンAPIがAccessDeniedになる
+    let fsUserName = props.FileSystemUserName || 'root';
+    if (fsUserType === 'WINDOWS' && fsUserName.includes('\\\\')) {
+      const parts = fsUserName.split('\\\\');
+      fsUserName = parts[parts.length - 1];
+      console.log('WindowsUser domain prefix stripped:', props.FileSystemUserName, '->', fsUserName);
+    }
     const s3ApConfig = {
       Name: apName,
     };

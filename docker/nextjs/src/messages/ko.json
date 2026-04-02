@@ -40,7 +40,12 @@
     "status": "상태",
     "switchAgent": "에이전트 전환",
     "switchToKnowledgeBase": "지식 베이스 모드로 전환하는 것이 좋습니다",
-    "version": "버전"
+    "version": "버전",
+    "alias": "별칭",
+    "active": "활성",
+    "lastUsed": "마지막 사용",
+    "hint": "힌트",
+    "hintDesc": "워크플로우를 선택하거나 자유롭게 채팅하세요"
   },
   "auth": {
     "brandSubtitle": "엔터프라이즈 AI를 위한 지능형 데이터 인프라",
@@ -81,6 +86,27 @@
     "showSessionAttributes": "세션 속성 표시",
     "showTrace": "추적 표시",
     "traceCount": "{count}개 추적",
+    "knowledgeBaseMode": "Knowledge Base",
+    "noHistory": "대화 기록이 없습니다",
+    "agent": {
+      "information": "🤖 Agent 정보",
+      "agentId": "Agent ID",
+      "agentName": "Agent 이름",
+      "version": "버전",
+      "status": "상태",
+      "model": "모델",
+      "lastUpdated": "마지막 업데이트",
+      "features": "🧠 기능",
+      "multiStepReasoning": "다단계 추론",
+      "multiStepReasoningDesc": "복잡한 문제를 단계별로 분석 및 해결",
+      "automaticDocumentSearch": "자동 문서 검색",
+      "automaticDocumentSearchDesc": "관련 문서를 자동으로 검색 및 참조",
+      "contextOptimization": "컨텍스트 최적화",
+      "contextOptimizationDesc": "컨텍스트에 따라 최적의 답변 생성"
+    },
+    "saveHistory": "기록 저장",
+    "autoTitleGeneration": "자동 제목 생성",
+    "sessionActive": "세션 활성",
     "introduction": {
       "welcome": "안녕하세요, {username}님!",
       "title": "권한 인식 RAG 챗봇에 오신 것을 환영합니다 🎉",
@@ -162,6 +188,9 @@
   "error": {
     "generic": "오류가 발생했습니다"
   },
+  "search": {
+    "placeholder": "검색..."
+  },
   "language": {
     "current": "현재 언어",
     "switch": "언어 변경"
@@ -177,7 +206,17 @@
     "selectModel": "모델 선택",
     "selectedModel": "선택된 모델",
     "selector": {
-      "title": "AI 모델 선택"
+      "title": "AI 모델 선택",
+      "details": "상세 보기",
+      "simple": "간단 보기",
+      "currentlySelected": "현재 선택됨",
+      "available": "사용 가능",
+      "category": "카테고리",
+      "modelId": "모델 ID",
+      "availableModels": "사용 가능한 모델",
+      "count": "개",
+      "noModelSelected": "모델이 선택되지 않았습니다",
+      "select": "선택"
     }
   },
   "modelSelector": {
@@ -192,8 +231,15 @@
     "unavailableOnly": "사용 불가만"
   },
   "permissions": {
+    "fsxEnvironment": "FSx for ONTAP 프로덕션",
+    "testEnvironment": "테스트 환경",
+    "simulation": "시뮬레이션",
+    "fsxUnavailable": "FSx 사용 불가",
+    "read": "읽기",
+    "write": "쓰기",
     "available": "사용 가능",
-    "unavailable": "사용 불가"
+    "unavailable": "사용 불가",
+    "directories": "디렉토리"
   },
   "region": {
     "availableModels": "사용 가능한 모델",
@@ -211,6 +257,26 @@
     "recommended": "권장",
     "recommendedRegion": "권장 지역",
     "region": "지역",
+    "close": "닫기",
+    "new": "신규",
+    "supportedRegion": "지원되는 리전",
+    "newRegion": "신규 리전",
+    "newRegionInUse": "신규 리전 사용 중",
+    "currentlyUnsupported": "현재 지원되지 않음",
+    "preparing": "준비 중",
+    "futureSupport": "향후 지원 예정",
+    "status": "상태",
+    "bedrockSupport": "Bedrock 지원",
+    "loadingRegionInfo": "리전 정보 로드 중",
+    "changeConfirm": "{regionName} ({region})으로 변경하시겠습니까?\n사용 가능한 모델: {modelCount}개",
+    "changeSuccess": "{regionName}으로 변경되었습니다",
+    "changeError": "리전 변경 오류: {error}",
+    "changeApiError": "API 오류 (상태: {status})",
+    "changeUnexpectedError": "예기치 않은 오류: {error}",
+    "reloadError": "페이지 새로고침 오류",
+    "validationWarning": "리전 검증 경고: {message}\n대체: {fallbackRegion}",
+    "unsupportedWarning": "{regionName}은(는) 지원되지 않습니다.\n{warningMessage}",
+    "title": "리전 설정",
     "supportedRegions": "지원되는 지역 (Bedrock Agents)",
     "unsupportedRegions": "지원되지 않는 지역 (Bedrock Agents)"
   },
@@ -261,6 +327,11 @@
     "permissionControl": "권한 제어 상태",
     "permissionsChecking": "권한 확인 중...",
     "readPermission": "읽기",
+    "noHistorySaving": "기록 비활성화",
+    "deleteOnSessionEnd": "세션 종료 시 삭제",
+    "createAgent": "🤖 Agent 생성",
+    "newSession": "새 세션",
+    "kbFeatures": "KB 기능",
     "regionSelection": "리전 선택",
     "restrictedModelsNote": "제한된 모델은 관리자에게 요청 가능",
     "saveHistory": "기록 저장",
@@ -442,6 +513,36 @@
         "title": "데이터 분석",
         "description": "데이터를 분석하고 인사이트를 추출합니다",
         "prompt": "이용 가능한 데이터를 분석하고 중요한 인사이트를 정리해 주세요."
+      },
+      "presentation": {
+        "title": "프레젠테이션 작성",
+        "description": "내부 데이터를 기반으로 프레젠테이션 구성안을 자동 생성합니다",
+        "prompt": "다음 주제에 대한 프레젠테이션 구성안을 작성해 주세요. 슬라이드 제목, 핵심 포인트, 발표자 노트를 포함해 주세요: "
+      },
+      "approval": {
+        "title": "품의서 작성",
+        "description": "사내 규정에 기반한 품의서 초안을 자동 생성합니다",
+        "prompt": "다음 내용으로 품의서 초안을 작성해 주세요. 제목, 신청 사유, 예산, 기대 효과, 리스크를 포함해 주세요: "
+      },
+      "minutes": {
+        "title": "회의록 작성",
+        "description": "회의 내용을 구조화하여 회의록을 자동 생성합니다",
+        "prompt": "다음 회의 내용으로 회의록을 작성해 주세요. 일시, 참석자, 안건, 결정 사항, 액션 아이템을 포함해 주세요: "
+      },
+      "report": {
+        "title": "보고서 자동 생성",
+        "description": "내부 데이터에서 정기 보고서를 자동 생성합니다",
+        "prompt": "다음 주제에 대한 보고서를 작성해 주세요. 요약, 주요 지표, 분석, 과제, 권장 조치를 포함해 주세요: "
+      },
+      "contract": {
+        "title": "계약서 검토",
+        "description": "계약서를 검토하고 리스크 평가 및 수정 제안을 제공합니다",
+        "prompt": "다음 계약 내용을 검토하고 각 조항의 리스크 평가 및 수정 제안을 해 주세요: "
+      },
+      "onboarding": {
+        "title": "온보딩 가이드",
+        "description": "신입사원을 위한 부서별 가이드 및 FAQ를 자동 생성합니다",
+        "prompt": "다음 부서의 신입사원 온보딩 자료를 작성해 주세요. 부서 개요, 업무 흐름, 도구 목록, FAQ를 포함해 주세요: "
       }
     },
     "infoBanner": {

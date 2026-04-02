@@ -40,7 +40,12 @@
     "status": "Status",
     "model": "Modell",
     "version": "Version",
-    "createNew": "Neu erstellen"
+    "createNew": "Neu erstellen",
+    "alias": "Alias",
+    "active": "Aktiv",
+    "lastUsed": "Zuletzt verwendet",
+    "hint": "Hinweis",
+    "hintDesc": "Wählen Sie einen Workflow oder chatten Sie frei"
   },
   "auth": {
     "brandSubtitle": "Intelligente Dateninfrastruktur für Unternehmens-KI",
@@ -81,6 +86,27 @@
     "showSessionAttributes": "Sitzungsattribute anzeigen",
     "showTrace": "Trace anzeigen",
     "traceCount": "{count} Traces",
+    "knowledgeBaseMode": "Knowledge Base",
+    "noHistory": "Noch kein Chat-Verlauf",
+    "agent": {
+      "information": "🤖 Agent-Informationen",
+      "agentId": "Agent-ID",
+      "agentName": "Agent-Name",
+      "version": "Version",
+      "status": "Status",
+      "model": "Modell",
+      "lastUpdated": "Zuletzt aktualisiert",
+      "features": "🧠 Funktionen",
+      "multiStepReasoning": "Mehrstufiges Denken",
+      "multiStepReasoningDesc": "Komplexe Probleme Schritt für Schritt analysieren und lösen",
+      "automaticDocumentSearch": "Automatische Dokumentensuche",
+      "automaticDocumentSearchDesc": "Automatisch verwandte Dokumente suchen und referenzieren",
+      "contextOptimization": "Kontextoptimierung",
+      "contextOptimizationDesc": "Optimale Antworten basierend auf dem Kontext generieren"
+    },
+    "saveHistory": "Verlauf speichern",
+    "autoTitleGeneration": "Automatische Titelgenerierung",
+    "sessionActive": "Sitzung aktiv",
     "introduction": {
       "welcome": "Hallo, {username}!",
       "title": "Willkommen beim berechtigungsbewussten RAG-Chatbot 🎉",
@@ -162,6 +188,9 @@
   "error": {
     "generic": "Ein Fehler ist aufgetreten"
   },
+  "search": {
+    "placeholder": "Suchen..."
+  },
   "language": {
     "current": "Aktuelle Sprache",
     "switch": "Sprache wechseln"
@@ -177,7 +206,17 @@
     "selectModel": "Modell auswählen",
     "selectedModel": "Ausgewähltes Modell",
     "selector": {
-      "title": "KI-Modellauswahl"
+      "title": "KI-Modellauswahl",
+      "details": "Details anzeigen",
+      "simple": "Einfache Ansicht",
+      "currentlySelected": "Aktuell ausgewählt",
+      "available": "Verfügbar",
+      "category": "Kategorie",
+      "modelId": "Modell-ID",
+      "availableModels": "Verfügbare Modelle",
+      "count": " Modelle",
+      "noModelSelected": "Kein Modell ausgewählt",
+      "select": "Auswählen"
     }
   },
   "modelSelector": {
@@ -192,8 +231,15 @@
     "unavailableOnly": "Nur nicht verfügbar"
   },
   "permissions": {
+    "fsxEnvironment": "FSx for ONTAP Produktion",
+    "testEnvironment": "Testumgebung",
+    "simulation": "Simulation",
+    "fsxUnavailable": "FSx nicht verfügbar",
+    "read": "Lesen",
+    "write": "Schreiben",
     "available": "Verfügbar",
-    "unavailable": "Nicht verfügbar"
+    "unavailable": "Nicht verfügbar",
+    "directories": "Verzeichnisse"
   },
   "region": {
     "availableModels": "Verfügbare Modelle",
@@ -209,6 +255,26 @@
     "recommended": "Empfohlen",
     "recommendedRegion": "Empfohlene Region",
     "region": "Region",
+    "close": "Schließen",
+    "new": "Neu",
+    "supportedRegion": "Unterstützte Region",
+    "newRegion": "Neue Region",
+    "newRegionInUse": "Neue Region in Verwendung",
+    "currentlyUnsupported": "Derzeit nicht unterstützt",
+    "preparing": "Vorbereitung",
+    "futureSupport": "Zukünftige Unterstützung geplant",
+    "status": "Status",
+    "bedrockSupport": "Bedrock-Unterstützung",
+    "loadingRegionInfo": "Regionsinformationen werden geladen",
+    "changeConfirm": "Zu {regionName} ({region}) wechseln?\nVerfügbare Modelle: {modelCount}",
+    "changeSuccess": "Zu {regionName} gewechselt",
+    "changeError": "Regionswechsel-Fehler: {error}",
+    "changeApiError": "API-Fehler (Status: {status})",
+    "changeUnexpectedError": "Unerwarteter Fehler: {error}",
+    "reloadError": "Fehler beim Neuladen der Seite",
+    "validationWarning": "Regionsvalidierungswarnung: {message}\nFallback: {fallbackRegion}",
+    "unsupportedWarning": "{regionName} wird nicht unterstützt.\n{warningMessage}",
+    "title": "Regionseinstellungen",
     "supportedRegions": "Unterstützte Regionen (Bedrock Agents)",
     "unsupportedRegions": "Nicht unterstützte Regionen (Bedrock Agents)",
     "modelCount": "{count} Modelle verfügbar",
@@ -270,6 +336,11 @@
     "systemInfo": "System",
     "userInfo": "Benutzerinformationen",
     "writePermission": "Schreiben",
+    "noHistorySaving": "Verlauf deaktiviert",
+    "deleteOnSessionEnd": "Bei Sitzungsende löschen",
+    "createAgent": "🤖 Agent erstellen",
+    "newSession": "Neue Sitzung",
+    "kbFeatures": "KB-Funktionen",
     "regionSelection": "Regionsauswahl"
   },
   "theme": {
@@ -322,7 +393,13 @@
       "output": "Dokumentenerstellung",
       "financial": "Finanzen",
       "project": "Projekt",
-      "hr": "Personal"
+      "hr": "Personal",
+      "presentation": "Präsentationen",
+      "approval": "Genehmigungen",
+      "minutes": "Protokolle",
+      "report": "Berichte",
+      "contract": "Verträge",
+      "onboarding": "Onboarding"
     },
     "kb": {
       "docSearch": {
@@ -436,6 +513,36 @@
         "title": "Datenanalyse",
         "description": "Daten analysieren und Erkenntnisse gewinnen",
         "prompt": "Analysieren Sie die verfügbaren Daten und fassen Sie wichtige Erkenntnisse zusammen."
+      },
+      "presentation": {
+        "title": "Präsentationserstellung",
+        "description": "Erstellt automatisch Präsentationsentwürfe basierend auf internen Daten",
+        "prompt": "Erstellen Sie einen Präsentationsentwurf zum folgenden Thema. Einschließlich Folientitel, Kernpunkte und Sprechernotizen: "
+      },
+      "approval": {
+        "title": "Genehmigungsdokument erstellen",
+        "description": "Erstellt automatisch Entwürfe für Genehmigungsdokumente basierend auf Unternehmensrichtlinien",
+        "prompt": "Erstellen Sie einen Entwurf für ein Genehmigungsdokument. Einschließlich Betreff, Begründung, Budget, erwarteter Nutzen und Risiken: "
+      },
+      "minutes": {
+        "title": "Protokollerstellung",
+        "description": "Erstellt automatisch strukturierte Sitzungsprotokolle",
+        "prompt": "Erstellen Sie ein Sitzungsprotokoll aus folgendem Inhalt. Einschließlich Datum, Teilnehmer, Tagesordnung, Beschlüsse und Maßnahmen: "
+      },
+      "report": {
+        "title": "Berichterstellung",
+        "description": "Erstellt automatisch periodische Berichte aus internen Daten",
+        "prompt": "Erstellen Sie einen Bericht zum folgenden Thema. Einschließlich Zusammenfassung, Kennzahlen, Analyse, Probleme und Empfehlungen: "
+      },
+      "contract": {
+        "title": "Vertragsprüfung",
+        "description": "Prüft Verträge und liefert Risikobewertung und Änderungsvorschläge",
+        "prompt": "Überprüfen Sie den folgenden Vertrag und geben Sie für jede Klausel eine Risikobewertung und Änderungsvorschläge: "
+      },
+      "onboarding": {
+        "title": "Onboarding-Leitfaden",
+        "description": "Erstellt automatisch abteilungsspezifische Leitfäden für neue Mitarbeiter",
+        "prompt": "Erstellen Sie einen Onboarding-Leitfaden für neue Mitarbeiter der folgenden Abteilung. Einschließlich Übersicht, Arbeitsabläufe, Tools und FAQ: "
       }
     },
     "infoBanner": {

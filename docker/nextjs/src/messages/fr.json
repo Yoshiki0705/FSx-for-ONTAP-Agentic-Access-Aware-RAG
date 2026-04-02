@@ -40,7 +40,12 @@
     "status": "Statut",
     "model": "Modèle",
     "version": "Version",
-    "createNew": "Créer nouveau"
+    "createNew": "Créer nouveau",
+    "alias": "Alias",
+    "active": "Actif",
+    "lastUsed": "Dernière utilisation",
+    "hint": "Conseil",
+    "hintDesc": "Sélectionnez un flux de travail ou discutez librement"
   },
   "auth": {
     "brandSubtitle": "Infrastructure de données intelligente pour l'IA d'entreprise",
@@ -81,6 +86,27 @@
     "showSessionAttributes": "Afficher les attributs de session",
     "showTrace": "Afficher la trace",
     "traceCount": "{count} traces",
+    "knowledgeBaseMode": "Knowledge Base",
+    "noHistory": "Aucun historique de conversation",
+    "agent": {
+      "information": "🤖 Informations Agent",
+      "agentId": "ID de l'Agent",
+      "agentName": "Nom de l'Agent",
+      "version": "Version",
+      "status": "Statut",
+      "model": "Modèle",
+      "lastUpdated": "Dernière mise à jour",
+      "features": "🧠 Fonctionnalités",
+      "multiStepReasoning": "Raisonnement multi-étapes",
+      "multiStepReasoningDesc": "Analyser et résoudre des problèmes complexes étape par étape",
+      "automaticDocumentSearch": "Recherche automatique de documents",
+      "automaticDocumentSearchDesc": "Rechercher et référencer automatiquement les documents associés",
+      "contextOptimization": "Optimisation du contexte",
+      "contextOptimizationDesc": "Générer des réponses optimales en fonction du contexte"
+    },
+    "saveHistory": "Enregistrer l'historique",
+    "autoTitleGeneration": "Génération automatique de titre",
+    "sessionActive": "Session active",
     "introduction": {
       "welcome": "Bonjour, {username} !",
       "title": "Bienvenue sur le Chatbot RAG avec gestion des permissions 🎉",
@@ -162,6 +188,9 @@
   "error": {
     "generic": "Une erreur s'est produite"
   },
+  "search": {
+    "placeholder": "Rechercher..."
+  },
   "language": {
     "current": "Langue actuelle",
     "switch": "Changer de langue"
@@ -177,7 +206,17 @@
     "selectModel": "Sélectionner un modèle",
     "selectedModel": "Modèle sélectionné",
     "selector": {
-      "title": "Sélection du modèle IA"
+      "title": "Sélection du modèle IA",
+      "details": "Afficher les détails",
+      "simple": "Vue simple",
+      "currentlySelected": "Actuellement sélectionné",
+      "available": "Disponible",
+      "category": "Catégorie",
+      "modelId": "ID du modèle",
+      "availableModels": "Modèles disponibles",
+      "count": " modèles",
+      "noModelSelected": "Aucun modèle sélectionné",
+      "select": "Sélectionner"
     }
   },
   "modelSelector": {
@@ -192,8 +231,15 @@
     "unavailableOnly": "Indisponibles uniquement"
   },
   "permissions": {
+    "fsxEnvironment": "FSx for ONTAP Production",
+    "testEnvironment": "Environnement de test",
+    "simulation": "Simulation",
+    "fsxUnavailable": "FSx indisponible",
+    "read": "Lecture",
+    "write": "Écriture",
     "available": "Disponible",
-    "unavailable": "Indisponible"
+    "unavailable": "Indisponible",
+    "directories": "Répertoires"
   },
   "region": {
     "availableModels": "Modèles disponibles",
@@ -209,6 +255,26 @@
     "recommended": "Recommandé",
     "recommendedRegion": "Région recommandée",
     "region": "Région",
+    "close": "Fermer",
+    "new": "Nouveau",
+    "supportedRegion": "Région prise en charge",
+    "newRegion": "Nouvelle région",
+    "newRegionInUse": "Nouvelle région en cours d'utilisation",
+    "currentlyUnsupported": "Actuellement non pris en charge",
+    "preparing": "Préparation",
+    "futureSupport": "Support futur prévu",
+    "status": "Statut",
+    "bedrockSupport": "Support Bedrock",
+    "loadingRegionInfo": "Chargement des informations de région",
+    "changeConfirm": "Changer pour {regionName} ({region}) ?\nModèles disponibles : {modelCount}",
+    "changeSuccess": "Changé pour {regionName}",
+    "changeError": "Erreur de changement de région : {error}",
+    "changeApiError": "Erreur API (Statut : {status})",
+    "changeUnexpectedError": "Erreur inattendue : {error}",
+    "reloadError": "Erreur de rechargement de page",
+    "validationWarning": "Avertissement de validation de région : {message}\nRepli : {fallbackRegion}",
+    "unsupportedWarning": "{regionName} n'est pas pris en charge.\n{warningMessage}",
+    "title": "Paramètres de région",
     "supportedRegions": "Régions prises en charge (Bedrock Agents)",
     "unsupportedRegions": "Régions non prises en charge (Bedrock Agents)",
     "modelCount": "{count} modèles disponibles",
@@ -270,6 +336,11 @@
     "systemInfo": "Système",
     "userInfo": "Informations utilisateur",
     "writePermission": "Écriture",
+    "noHistorySaving": "Historique désactivé",
+    "deleteOnSessionEnd": "Supprimer à la fin de la session",
+    "createAgent": "🤖 Créer un Agent",
+    "newSession": "Nouvelle session",
+    "kbFeatures": "Fonctionnalités KB",
     "regionSelection": "Sélection de région"
   },
   "theme": {
@@ -322,7 +393,13 @@
       "output": "Création de documents",
       "financial": "Finance",
       "project": "Projet",
-      "hr": "RH"
+      "hr": "RH",
+      "presentation": "Présentations",
+      "approval": "Approbations",
+      "minutes": "Comptes-rendus",
+      "report": "Rapports",
+      "contract": "Contrats",
+      "onboarding": "Intégration"
     },
     "kb": {
       "docSearch": {
@@ -436,6 +513,36 @@
         "title": "Analyse de données",
         "description": "Analyser les données et extraire des informations clés",
         "prompt": "Analysez les données disponibles et résumez les informations clés."
+      },
+      "presentation": {
+        "title": "Création de présentation",
+        "description": "Génère automatiquement des plans de présentation à partir des données internes",
+        "prompt": "Créez un plan de présentation pour le sujet suivant. Incluez les titres des diapositives, les points clés et les notes du présentateur : "
+      },
+      "approval": {
+        "title": "Rédaction de demande d'approbation",
+        "description": "Génère automatiquement des brouillons de demandes d'approbation selon les politiques internes",
+        "prompt": "Rédigez un brouillon de demande d'approbation pour le sujet suivant. Incluez l'objet, le motif, le budget, les bénéfices attendus et les risques : "
+      },
+      "minutes": {
+        "title": "Rédaction de compte-rendu",
+        "description": "Génère automatiquement des comptes-rendus structurés",
+        "prompt": "Créez un compte-rendu à partir du contenu de réunion suivant. Incluez la date, les participants, l'ordre du jour, les décisions et les actions : "
+      },
+      "report": {
+        "title": "Génération de rapport",
+        "description": "Génère automatiquement des rapports périodiques à partir des données internes",
+        "prompt": "Créez un rapport sur le sujet suivant. Incluez le résumé exécutif, les indicateurs clés, l'analyse, les problèmes et les recommandations : "
+      },
+      "contract": {
+        "title": "Revue de contrat",
+        "description": "Examine les contrats et fournit une évaluation des risques et des suggestions",
+        "prompt": "Examinez le contrat suivant et fournissez une évaluation des risques et des suggestions de révision pour chaque clause : "
+      },
+      "onboarding": {
+        "title": "Guide d'intégration",
+        "description": "Génère automatiquement des guides départementaux pour les nouveaux employés",
+        "prompt": "Créez un guide d'intégration pour les nouveaux employés du département suivant. Incluez la présentation, les flux de travail, les outils et la FAQ : "
       }
     },
     "infoBanner": {

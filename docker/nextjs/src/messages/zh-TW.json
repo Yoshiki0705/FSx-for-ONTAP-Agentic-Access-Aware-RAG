@@ -40,7 +40,12 @@
     "status": "狀態",
     "model": "模型",
     "version": "版本",
-    "createNew": "新建"
+    "createNew": "新建",
+    "alias": "別名",
+    "active": "活躍",
+    "lastUsed": "最後使用",
+    "hint": "提示",
+    "hintDesc": "選擇工作流程或自由聊天"
   },
   "auth": {
     "brandSubtitle": "企業 AI 的智慧資料基礎架構",
@@ -81,6 +86,27 @@
     "showSessionAttributes": "顯示會話屬性",
     "showTrace": "顯示追蹤",
     "traceCount": "{count}個追蹤",
+    "knowledgeBaseMode": "Knowledge Base",
+    "noHistory": "暫無對話記錄",
+    "agent": {
+      "information": "🤖 Agent 資訊",
+      "agentId": "Agent ID",
+      "agentName": "Agent 名稱",
+      "version": "版本",
+      "status": "狀態",
+      "model": "模型",
+      "lastUpdated": "最後更新",
+      "features": "🧠 功能",
+      "multiStepReasoning": "多步推理",
+      "multiStepReasoningDesc": "逐步分析和解決複雜問題",
+      "automaticDocumentSearch": "自動文件搜尋",
+      "automaticDocumentSearchDesc": "自動搜尋和引用相關文件",
+      "contextOptimization": "情境最佳化",
+      "contextOptimizationDesc": "根據上下文生成最佳答案"
+    },
+    "saveHistory": "儲存歷史",
+    "autoTitleGeneration": "自動標題生成",
+    "sessionActive": "工作階段活躍",
     "introduction": {
       "welcome": "你好，{username}！",
       "title": "歡迎使用權限感知 RAG 聊天機器人 🎉",
@@ -162,6 +188,9 @@
   "error": {
     "generic": "發生錯誤"
   },
+  "search": {
+    "placeholder": "搜尋..."
+  },
   "language": {
     "current": "目前語言",
     "switch": "切換語言"
@@ -177,7 +206,17 @@
     "selectModel": "選擇模型",
     "selectedModel": "已選擇的模型",
     "selector": {
-      "title": "AI 模型選擇"
+      "title": "AI 模型選擇",
+      "details": "顯示詳情",
+      "simple": "簡潔檢視",
+      "currentlySelected": "目前選擇",
+      "available": "可用",
+      "category": "類別",
+      "modelId": "模型 ID",
+      "availableModels": "可用模型",
+      "count": "個",
+      "noModelSelected": "未選擇模型",
+      "select": "選擇"
     }
   },
   "modelSelector": {
@@ -192,8 +231,15 @@
     "unavailableOnly": "僅不可用"
   },
   "permissions": {
+    "fsxEnvironment": "FSx for ONTAP 生產環境",
+    "testEnvironment": "測試環境",
+    "simulation": "模擬",
+    "fsxUnavailable": "FSx 不可用",
+    "read": "讀取",
+    "write": "寫入",
     "available": "可用",
-    "unavailable": "不可用"
+    "unavailable": "不可用",
+    "directories": "目錄"
   },
   "region": {
     "availableModels": "可用模型",
@@ -209,6 +255,26 @@
     "recommended": "推薦",
     "recommendedRegion": "推薦區域",
     "region": "區域",
+    "close": "關閉",
+    "new": "新",
+    "supportedRegion": "支援的區域",
+    "newRegion": "新區域",
+    "newRegionInUse": "新區域使用中",
+    "currentlyUnsupported": "目前不支援",
+    "preparing": "準備中",
+    "futureSupport": "計劃未來支援",
+    "status": "狀態",
+    "bedrockSupport": "Bedrock 支援",
+    "loadingRegionInfo": "正在載入區域資訊",
+    "changeConfirm": "更改為 {regionName} ({region})？\n可用模型: {modelCount}個",
+    "changeSuccess": "已更改為 {regionName}",
+    "changeError": "區域更改錯誤: {error}",
+    "changeApiError": "API 錯誤 (狀態: {status})",
+    "changeUnexpectedError": "意外錯誤: {error}",
+    "reloadError": "頁面重新載入錯誤",
+    "validationWarning": "區域驗證警告: {message}\n回退: {fallbackRegion}",
+    "unsupportedWarning": "{regionName} 不受支援。\n{warningMessage}",
+    "title": "區域設定",
     "supportedRegions": "支援的區域 (Bedrock Agents)",
     "unsupportedRegions": "不支援的區域 (Bedrock Agents)",
     "modelCount": "{count}個模型可用",
@@ -270,6 +336,11 @@
     "systemInfo": "系統",
     "userInfo": "用戶信息",
     "writePermission": "寫入",
+    "noHistorySaving": "歷史已停用",
+    "deleteOnSessionEnd": "工作階段結束時刪除",
+    "createAgent": "🤖 建立Agent",
+    "newSession": "新工作階段",
+    "kbFeatures": "KB功能",
     "regionSelection": "區域選擇"
   },
   "theme": {

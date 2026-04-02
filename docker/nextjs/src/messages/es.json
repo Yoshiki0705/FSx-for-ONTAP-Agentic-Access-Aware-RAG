@@ -40,7 +40,12 @@
     "status": "Estado",
     "switchAgent": "Cambiar agente",
     "switchToKnowledgeBase": "Recomendamos cambiar al modo Base de conocimientos",
-    "version": "Versión"
+    "version": "Versión",
+    "alias": "Alias",
+    "active": "Activo",
+    "lastUsed": "Último uso",
+    "hint": "Consejo",
+    "hintDesc": "Seleccione un flujo de trabajo o chatee libremente"
   },
   "auth": {
     "brandSubtitle": "Infraestructura de datos inteligente para IA empresarial",
@@ -81,6 +86,27 @@
     "showSessionAttributes": "Mostrar atributos de sesión",
     "showTrace": "Mostrar seguimiento",
     "traceCount": "{count} seguimientos",
+    "knowledgeBaseMode": "Knowledge Base",
+    "noHistory": "Sin historial de conversaciones",
+    "agent": {
+      "information": "🤖 Información del Agent",
+      "agentId": "ID del Agent",
+      "agentName": "Nombre del Agent",
+      "version": "Versión",
+      "status": "Estado",
+      "model": "Modelo",
+      "lastUpdated": "Última actualización",
+      "features": "🧠 Funciones",
+      "multiStepReasoning": "Razonamiento multi-paso",
+      "multiStepReasoningDesc": "Analizar y resolver problemas complejos paso a paso",
+      "automaticDocumentSearch": "Búsqueda automática de documentos",
+      "automaticDocumentSearchDesc": "Buscar y referenciar automáticamente documentos relacionados",
+      "contextOptimization": "Optimización del contexto",
+      "contextOptimizationDesc": "Generar respuestas óptimas basadas en el contexto"
+    },
+    "saveHistory": "Guardar historial",
+    "autoTitleGeneration": "Generación automática de título",
+    "sessionActive": "Sesión activa",
     "introduction": {
       "welcome": "¡Hola, {username}!",
       "title": "Bienvenido al Chatbot RAG con gestión de permisos 🎉",
@@ -162,6 +188,9 @@
   "error": {
     "generic": "Ha ocurrido un error"
   },
+  "search": {
+    "placeholder": "Buscar..."
+  },
   "language": {
     "current": "Idioma actual",
     "switch": "Cambiar idioma"
@@ -177,7 +206,17 @@
     "selectModel": "Seleccionar un modelo",
     "selectedModel": "Modelo seleccionado",
     "selector": {
-      "title": "Selección de modelo de IA"
+      "title": "Selección de modelo de IA",
+      "details": "Mostrar detalles",
+      "simple": "Vista simple",
+      "currentlySelected": "Seleccionado actualmente",
+      "available": "Disponible",
+      "category": "Categoría",
+      "modelId": "ID del modelo",
+      "availableModels": "Modelos disponibles",
+      "count": " modelos",
+      "noModelSelected": "Ningún modelo seleccionado",
+      "select": "Seleccionar"
     }
   },
   "modelSelector": {
@@ -192,8 +231,15 @@
     "unavailableOnly": "Solo no disponibles"
   },
   "permissions": {
+    "fsxEnvironment": "FSx for ONTAP Producción",
+    "testEnvironment": "Entorno de prueba",
+    "simulation": "Simulación",
+    "fsxUnavailable": "FSx no disponible",
+    "read": "Lectura",
+    "write": "Escritura",
     "available": "Disponible",
-    "unavailable": "No disponible"
+    "unavailable": "No disponible",
+    "directories": "Directorios"
   },
   "region": {
     "availableModels": "Modelos disponibles",
@@ -211,6 +257,26 @@
     "recommended": "Recomendado",
     "recommendedRegion": "Región recomendada",
     "region": "Región",
+    "close": "Cerrar",
+    "new": "Nuevo",
+    "supportedRegion": "Región compatible",
+    "newRegion": "Nueva región",
+    "newRegionInUse": "Nueva región en uso",
+    "currentlyUnsupported": "Actualmente no compatible",
+    "preparing": "Preparando",
+    "futureSupport": "Soporte futuro planificado",
+    "status": "Estado",
+    "bedrockSupport": "Soporte Bedrock",
+    "loadingRegionInfo": "Cargando información de región",
+    "changeConfirm": "¿Cambiar a {regionName} ({region})?\nModelos disponibles: {modelCount}",
+    "changeSuccess": "Cambiado a {regionName}",
+    "changeError": "Error al cambiar región: {error}",
+    "changeApiError": "Error de API (Estado: {status})",
+    "changeUnexpectedError": "Error inesperado: {error}",
+    "reloadError": "Error al recargar la página",
+    "validationWarning": "Advertencia de validación de región: {message}\nAlternativa: {fallbackRegion}",
+    "unsupportedWarning": "{regionName} no es compatible.\n{warningMessage}",
+    "title": "Configuración de región",
     "supportedRegions": "Regiones compatibles (Bedrock Agents)",
     "unsupportedRegions": "Regiones no compatibles (Bedrock Agents)"
   },
@@ -261,6 +327,11 @@
     "permissionControl": "Estado del control de permisos",
     "permissionsChecking": "Verificando permisos...",
     "readPermission": "Lectura",
+    "noHistorySaving": "Historial desactivado",
+    "deleteOnSessionEnd": "Eliminar al finalizar sesión",
+    "createAgent": "🤖 Crear Agent",
+    "newSession": "Nueva sesión",
+    "kbFeatures": "Funciones KB",
     "regionSelection": "Selección de región",
     "restrictedModelsNote": "Los modelos restringidos pueden solicitarse al administrador",
     "saveHistory": "Guardar historial",
@@ -322,7 +393,13 @@
       "output": "Creación de documentos",
       "financial": "Finanzas",
       "project": "Proyecto",
-      "hr": "RRHH"
+      "hr": "RRHH",
+      "presentation": "Presentaciones",
+      "approval": "Aprobaciones",
+      "minutes": "Actas",
+      "report": "Informes",
+      "contract": "Contratos",
+      "onboarding": "Incorporación"
     },
     "kb": {
       "docSearch": {
@@ -436,6 +513,36 @@
         "title": "Análisis de datos",
         "description": "Analizar datos y extraer información clave",
         "prompt": "Analice los datos disponibles y resuma las conclusiones clave."
+      },
+      "presentation": {
+        "title": "Creación de presentación",
+        "description": "Genera automáticamente esquemas de presentación a partir de datos internos",
+        "prompt": "Cree un esquema de presentación para el siguiente tema. Incluya títulos de diapositivas, puntos clave y notas del presentador: "
+      },
+      "approval": {
+        "title": "Documento de aprobación",
+        "description": "Genera automáticamente borradores de documentos de aprobación según las políticas internas",
+        "prompt": "Redacte un borrador de documento de aprobación para lo siguiente. Incluya asunto, motivo, presupuesto, beneficios esperados y riesgos: "
+      },
+      "minutes": {
+        "title": "Acta de reunión",
+        "description": "Genera automáticamente actas de reunión estructuradas",
+        "prompt": "Cree un acta de reunión a partir de lo siguiente. Incluya fecha, asistentes, agenda, decisiones y acciones: "
+      },
+      "report": {
+        "title": "Generación de informes",
+        "description": "Genera automáticamente informes periódicos a partir de datos internos",
+        "prompt": "Cree un informe sobre el siguiente tema. Incluya resumen ejecutivo, indicadores clave, análisis, problemas y recomendaciones: "
+      },
+      "contract": {
+        "title": "Revisión de contrato",
+        "description": "Revisa contratos y proporciona evaluación de riesgos y sugerencias",
+        "prompt": "Revise el siguiente contrato y proporcione una evaluación de riesgos y sugerencias de revisión para cada cláusula: "
+      },
+      "onboarding": {
+        "title": "Guía de incorporación",
+        "description": "Genera automáticamente guías departamentales para nuevos empleados",
+        "prompt": "Cree una guía de incorporación para nuevos empleados del siguiente departamento. Incluya descripción, flujos de trabajo, herramientas y FAQ: "
       }
     },
     "infoBanner": {
