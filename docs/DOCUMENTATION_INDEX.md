@@ -7,6 +7,7 @@
 | ドキュメント | 内容 |
 |-------------|------|
 | [README.md](../README.md) | システム概要、アーキテクチャ、デプロイ手順、WAF/Geo設定 |
+| [docs/auth-and-user-management.md](auth-and-user-management.md) | 認証・ユーザー管理ガイド（認証モード選択、AD Federation、SID自動登録、トラブルシューティング） |
 | [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（12の観点: 画像分析RAG、KB接続UI、Smart Routing、監視・アラート含む） |
 | [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SIDベース権限フィルタリングの詳細設計 |
 | [docs/verification-report.md](verification-report.md) | デプロイ後の検証手順とテストケース |
@@ -47,8 +48,9 @@
 ## 推奨読書順序
 
 1. **README.md** — システム全体像とデプロイ手順
-2. **implementation-overview.md** — 8つの観点での実装内容詳細
-3. **SID-Filtering-Architecture.md** — コア機能の技術詳細
+2. **auth-and-user-management.md** — 認証モード選択とユーザー管理
+3. **implementation-overview.md** — 13の観点での実装内容詳細
+4. **SID-Filtering-Architecture.md** — コア機能の技術詳細
 4. **demo-recording-guide.md** — 検証デモ動画撮影手順書
 5. **ontap-setup-guide.md** — FSx ONTAP AD連携・CIFS共有設定
 6. **README.md#AD SAMLフェデレーション** — AD SAMLフェデレーション セットアップ（オプション）

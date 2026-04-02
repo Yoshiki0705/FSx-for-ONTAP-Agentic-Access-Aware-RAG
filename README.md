@@ -304,7 +304,7 @@ EOF
 
 #### AD SAMLフェデレーション（オプション）
 
-ADユーザーがCloudFront UIから直接サインインし、Cognitoユーザー自動作成 + DynamoDB SIDデータ自動登録を行うSAMLフェデレーションを有効化できます。
+ADユーザーがCloudFront UIから直接サインインし、Cognitoユーザー自動作成 + DynamoDB SIDデータ自動登録を行うSAMLフェデレーションを有効化できます。認証モードの選択やSID自動登録の仕組みの詳細は [認証・ユーザー管理ガイド](docs/auth-and-user-management.md) を参照してください。
 
 **アーキテクチャ概要:**
 
@@ -1362,6 +1362,7 @@ Regular user: SID = [...-1001, S-1-1-0 (Everyone)]
 |   +-- scripts/                      # Setup scripts (user creation, SID data, etc.)
 |   +-- guides/                       # Demo scenarios, ONTAP setup guide
 +-- docs/
+|   +-- auth-and-user-management.md   # Auth & user management guide
 |   +-- implementation-overview.md    # Detailed implementation (13 perspectives)
 |   +-- ui-specification.md           # UI spec (KB/Agent mode toggle, sidebar design)
 |   +-- stack-architecture-comparison.md # CDK stack architecture guide
@@ -1385,6 +1386,7 @@ Regular user: SID = [...-1001, S-1-1-0 (Everyone)]
 
 | ドキュメント | 内容 |
 |-------------|------|
+| [docs/auth-and-user-management.md](docs/auth-and-user-management.md) | 認証・ユーザー管理ガイド（認証モード選択、AD Federation、SID自動登録） |
 | [docs/implementation-overview.md](docs/implementation-overview.md) | 実装内容の詳細説明（13の観点） |
 | [docs/ui-specification.md](docs/ui-specification.md) | UI仕様書（KB/Agentモード切替、Agent Directory、サイドバー設計、Citation表示） |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SIDベース権限フィルタリングのアーキテクチャ詳細 |
