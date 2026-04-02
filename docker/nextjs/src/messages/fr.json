@@ -533,8 +533,11 @@
       "title": "Sélection des outils",
       "selectTools": "Sélectionner les outils pour l'Agent",
       "permissionAwareSearch": "Recherche sensible aux permissions",
+      "permissionAwareSearchDesc": "Recherche de documents avec filtrage par permissions SID. Recherche via Bedrock KB Retrieve API avec contrôle d'accès basé sur les SID NTFS ACL.",
       "browser": "Navigateur",
+      "browserDesc": "Recherche et navigation Web. Recherche et récupération d'informations depuis des sites Web externes.",
       "codeInterpreter": "Interpréteur de code",
+      "codeInterpreterDesc": "Environnement d'exécution de code Python. Exécution d'analyses de données, de visualisations et de calculs.",
       "noToolsAvailable": "Aucun outil disponible",
       "loadError": "Échec du chargement des outils"
     },
@@ -566,7 +569,8 @@
       "incompatibleVersion": "Version de schéma incompatible",
       "uploadSuccess": "Téléchargement terminé",
       "uploadError": "Échec du téléchargement",
-      "noSharedConfigs": "Aucune configuration partagée"
+      "noSharedConfigs": "Aucune configuration partagée",
+      "selectJsonFile": "Sélectionner un fichier JSON"
     },
     "schedule": {
       "title": "Paramètres de planification",
@@ -617,6 +621,25 @@
     "status": { "ACTIVE": "Active", "CREATING": "En création", "FAILED": "Échouée" },
     "loadError": "Échec du chargement de la liste KB",
     "retry": "Réessayer"
+  },
+  "agentcore": {
+    "memory": {
+      "title": "Mémoire",
+      "enabled": "AgentCore Memory : Activé",
+      "disabled": "AgentCore Memory : Désactivé",
+      "semantic": "Connaissances",
+      "summary": "Résumé",
+      "userPreference": "Préférence",
+      "deleteConfirm": "Supprimer cet enregistrement de mémoire ?",
+      "noMemories": "Aucun enregistrement de mémoire"
+    },
+    "session": {
+      "title": "Liste des sessions",
+      "newSession": "Nouvelle session",
+      "noSessions": "Aucune session",
+      "lastUpdated": "Dernière mise à jour",
+      "messageCount": "Nombre de messages"
+    }
   },
   "smartRouting": {
     "title": "Routage intelligent",

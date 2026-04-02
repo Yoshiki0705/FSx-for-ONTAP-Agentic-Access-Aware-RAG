@@ -388,8 +388,11 @@
       "title": "ツール選択",
       "selectTools": "Agentに使用するツールを選択",
       "permissionAwareSearch": "権限認識型検索",
+      "permissionAwareSearchDesc": "SIDベースの権限フィルタリング付き文書検索。Bedrock KB Retrieve APIで検索し、ユーザーのNTFS ACL SIDに基づいてアクセス制御を行います。",
       "browser": "ブラウザ",
+      "browserDesc": "Web検索・ブラウジング機能。外部Webサイトの情報を検索・取得します。",
       "codeInterpreter": "コードインタープリター",
+      "codeInterpreterDesc": "Python コード実行環境。データ分析、可視化、計算処理を実行します。",
       "noToolsAvailable": "利用可能なツールがありません",
       "loadError": "ツール一覧の取得に失敗しました"
     },
@@ -421,7 +424,8 @@
       "incompatibleVersion": "互換性のないスキーマバージョンです",
       "uploadSuccess": "アップロードが完了しました",
       "uploadError": "アップロードに失敗しました",
-      "noSharedConfigs": "共有Agent構成がありません"
+      "noSharedConfigs": "共有Agent構成がありません",
+      "selectJsonFile": "JSONファイルを選択"
     },
     "schedule": {
       "title": "スケジュール設定",

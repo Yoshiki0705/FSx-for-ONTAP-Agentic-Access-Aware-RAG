@@ -539,8 +539,11 @@
       "title": "도구 선택",
       "selectTools": "Agent에 사용할 도구 선택",
       "permissionAwareSearch": "권한 인식 검색",
+      "permissionAwareSearchDesc": "SID 기반 권한 인식 문서 검색. Bedrock KB Retrieve API로 검색하고 사용자의 NTFS ACL SID에 따라 접근을 제어합니다.",
       "browser": "브라우저",
+      "browserDesc": "웹 검색 및 브라우징 기능. 외부 웹사이트의 정보를 검색하고 가져옵니다.",
       "codeInterpreter": "코드 인터프리터",
+      "codeInterpreterDesc": "Python 코드 실행 환경. 데이터 분석, 시각화, 계산 처리를 실행합니다.",
       "noToolsAvailable": "사용 가능한 도구가 없습니다",
       "loadError": "도구 목록을 불러오지 못했습니다"
     },
@@ -572,7 +575,8 @@
       "incompatibleVersion": "호환되지 않는 스키마 버전입니다",
       "uploadSuccess": "업로드가 완료되었습니다",
       "uploadError": "업로드에 실패했습니다",
-      "noSharedConfigs": "공유 Agent 구성이 없습니다"
+      "noSharedConfigs": "공유 Agent 구성이 없습니다",
+      "selectJsonFile": "JSON 파일 선택"
     },
     "schedule": {
       "title": "스케줄 설정",
@@ -623,6 +627,25 @@
     "status": { "ACTIVE": "활성", "CREATING": "생성 중", "FAILED": "실패" },
     "loadError": "KB 목록을 불러오지 못했습니다",
     "retry": "재시도"
+  },
+  "agentcore": {
+    "memory": {
+      "title": "메모리",
+      "enabled": "AgentCore Memory: 활성",
+      "disabled": "AgentCore Memory: 비활성",
+      "semantic": "지식",
+      "summary": "요약",
+      "userPreference": "선호",
+      "deleteConfirm": "이 메모리 레코드를 삭제하시겠습니까?",
+      "noMemories": "메모리 레코드가 없습니다"
+    },
+    "session": {
+      "title": "세션 목록",
+      "newSession": "새 세션",
+      "noSessions": "세션이 없습니다",
+      "lastUpdated": "최종 업데이트",
+      "messageCount": "메시지 수"
+    }
   },
   "smartRouting": {
     "title": "Smart Routing",

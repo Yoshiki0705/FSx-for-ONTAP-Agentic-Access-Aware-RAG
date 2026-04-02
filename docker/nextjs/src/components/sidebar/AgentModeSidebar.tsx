@@ -9,6 +9,8 @@ import { AgentInfoSection } from '@/components/bedrock/AgentInfoSection';
 import { RegionSelector } from '@/components/bedrock/RegionSelector';
 import { AgentModelSelector } from '@/components/bedrock/AgentModelSelector';
 import { useAgentInfo } from '@/hooks/useAgentInfo';
+import { SessionList } from './SessionList';
+import { MemorySection } from './MemorySection';
 
 interface AgentModeSidebarProps {
   locale: string;
@@ -30,7 +32,9 @@ export function AgentModeSidebar({
   locale,
   isOpen,
   onClose,
+  currentSessionId,
   onNewChat,
+  onSessionSwitch,
   userName = 'ユーザー',
   userEmail,
   selectedModelId,
@@ -38,6 +42,38 @@ export function AgentModeSidebar({
 }: AgentModeSidebarProps) {
   const t = useTranslations();
   const tModel = useTranslations('model.selector');  // ✅ モデル選択用の翻訳フック追加
+  
+  // AgentCore Memory 有効判定（APIが501以外を返すかで判定）
+  const [memoryEnabled, setMemoryEnabled] = React.useState<boolean | null>(null);
+  const [activeSessionId, setActiveSessionId] = React.useState<string | undefined>(currentSessionId);
+
+  React.useEffect(() => {
+    // AgentCore Memory の有効状態を確認
+    fetch('/api/agentcore/memory/session', { method: 'GET' })
+      .then((res) => {
+        setMemoryEnabled(res.status !== 501);
+      })
+      .catch(() => {
+        setMemoryEnabled(false);
+      });
+  }, []);
+
+  // 親から渡されるcurrentSessionIdが変わったら同期
+  React.useEffect(() => {
+    if (currentSessionId) {
+      setActiveSessionId(currentSessionId);
+    }
+  }, [currentSessionId]);
+
+  const handleSessionSelect = React.useCallback(
+    (sessionId: string) => {
+      setActiveSessionId(sessionId);
+      if (onSessionSwitch) {
+        onSessionSwitch(sessionId);
+      }
+    },
+    [onSessionSwitch]
+  );
   
   // 環境変数からAgent IDを取得
   const agentId = typeof window !== 'undefined' 
@@ -169,28 +205,62 @@ export function AgentModeSidebar({
 
         <div className="border-t border-gray-200 dark:border-gray-700" />
 
+        {/* AgentCore Memory Session List — Memory有効時のみ表示 */}
+        {memoryEnabled && (
+          <>
+            <div className="space-y-3">
+              <SessionList
+                activeSessionId={activeSessionId}
+                onSessionSelect={handleSessionSelect}
+                onNewChat={onNewChat}
+                locale={locale}
+              />
+            </div>
+            <div className="border-t border-gray-200 dark:border-gray-700" />
+          </>
+        )}
+
+        {/* AgentCore Memory Section — Memory有効時のみ表示（MemorySection内部で判定） */}
+        <MemorySection locale={locale} />
+        {memoryEnabled && (
+          <div className="border-t border-gray-200 dark:border-gray-700" />
+        )}
+
         {/* Chat History Settings Section */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
             {t('sidebar.chatHistorySettings')}
           </h3>
           <div className="space-y-2">
-            <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-              <input
-                type="checkbox"
-                defaultChecked
-                className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
-              />
-              <span>{t('sidebar.saveHistory')}</span>
-            </label>
-            <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-              <input
-                type="checkbox"
-                defaultChecked
-                className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
-              />
-              <span>{t('sidebar.autoTitleGeneration')}</span>
-            </label>
+            {memoryEnabled ? (
+              /* Memory有効時: 「AgentCore Memory: 有効」表示 */
+              <div className="flex items-center space-x-2 text-sm px-3 py-2 rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                <span className="text-green-700 dark:text-green-300 font-medium">
+                  {t('agentcore.memory.enabled')}
+                </span>
+              </div>
+            ) : (
+              /* Memory無効時: 従来のチェックボックス */
+              <>
+                <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                  <input
+                    type="checkbox"
+                    defaultChecked
+                    className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span>{t('sidebar.saveHistory')}</span>
+                </label>
+                <label className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                  <input
+                    type="checkbox"
+                    defaultChecked
+                    className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span>{t('sidebar.autoTitleGeneration')}</span>
+                </label>
+              </>
+            )}
           </div>
         </div>
       </div>

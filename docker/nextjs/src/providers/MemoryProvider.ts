@@ -187,11 +187,29 @@ export class AgentCoreMemoryProvider implements MemoryProvider {
   }
 
   async listSessions(userId: string): Promise<ChatSession[]> {
-    // AgentCore Memoryはセッション一覧取得APIを提供していないため、
-    // DynamoDBまたは別のストレージでセッションメタデータを管理する必要がある
-    // 現在は空配列を返す
-    console.warn('[AgentCore Memory] listSessions not implemented yet');
-    return [];
+    try {
+      const response = await fetch('/api/agentcore/memory/session');
+      if (!response.ok) {
+        console.warn('[AgentCore Memory] listSessions failed:', response.status);
+        return [];
+      }
+      const data = await response.json();
+      if (!data.success || !Array.isArray(data.sessions)) {
+        return [];
+      }
+      return data.sessions.map((s: any) => ({
+        id: s.sessionId,
+        title: s.title || `Session ${s.sessionId.substring(0, 8)}`,
+        messages: [],
+        createdAt: new Date(s.createdAt || Date.now()).getTime(),
+        updatedAt: new Date(s.updatedAt || s.createdAt || Date.now()).getTime(),
+        userId,
+        mode: s.mode || 'agent',
+      }));
+    } catch (err) {
+      console.error('[AgentCore Memory] listSessions error:', err);
+      return [];
+    }
   }
 
   async deleteSession(sessionId: string): Promise<void> {

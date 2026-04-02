@@ -39,6 +39,8 @@ import { routeQuery, DEFAULT_SMART_ROUTER_CONFIG } from '@/lib/smart-router';
 import { useSmartRoutingStore } from '@/store/useSmartRoutingStore';
 import { ResponseMetadata } from '@/components/chat/ResponseMetadata';
 import { RoutingToggle } from '@/components/sidebar/RoutingToggle';
+import { useMemory } from '@/hooks/useMemory';
+import type { Message as MemoryMessage } from '@/providers/MemoryProvider';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -568,6 +570,42 @@ function ChatbotPageContent() {
     }
   }, [searchParams]);
   const { selectedAgentId } = useAgentStore();
+
+  // === AgentCore Memory統合 (Task 10) ===
+  // ENABLE_AGENTCORE_MEMORY はサーバーサイド環境変数のため、APIプローブで検出
+  const [agentCoreMemoryEnabled, setAgentCoreMemoryEnabled] = useState(false);
+  const [memorySessionId, setMemorySessionId] = useState<string | null>(null);
+
+  // AgentCore Memory有効性をAPIプローブで検出
+  useEffect(() => {
+    const checkAgentCoreMemory = async () => {
+      try {
+        const res = await fetch('/api/agentcore/memory/session', { method: 'GET' });
+        // 501 = not enabled, 401 = enabled but not authenticated, 200/400 = enabled
+        if (res.status !== 501) {
+          console.log('[AgentCore Memory] 有効を検出');
+          setAgentCoreMemoryEnabled(true);
+        } else {
+          console.log('[AgentCore Memory] 無効（501）');
+          setAgentCoreMemoryEnabled(false);
+        }
+      } catch (err) {
+        console.warn('[AgentCore Memory] 検出失敗（無効として扱う）:', err);
+        setAgentCoreMemoryEnabled(false);
+      }
+    };
+    checkAgentCoreMemory();
+  }, []);
+
+  // useAgentCoreForKB を ENABLE_AGENTCORE_MEMORY 環境変数に連動 (Sub-task 10.4)
+  const useAgentCoreForKB = agentCoreMemoryEnabled;
+
+  // useMemory フック — モードと環境変数に応じてProvider自動選択
+  const memory = useMemory({
+    mode: agentMode ? 'agent' : 'kb',
+    useAgentCoreForKB,
+  });
+  // === AgentCore Memory統合 ここまで ===
   
   // エラーアクション関連のstate（将来の拡張用）
   // const [errorActions, setErrorActions] = useState<any[]>([]);
@@ -840,6 +878,33 @@ function ChatbotPageContent() {
     scrollToBottom();
   }, [currentSession?.messages]);
 
+  // === AgentCore Memory セッション作成 (Task 10) ===
+  // ユーザー認証完了 + AgentCore Memory有効時にメモリセッションを作成
+  useEffect(() => {
+    if (!user || !agentCoreMemoryEnabled || memorySessionId) return;
+
+    const createMemorySession = async () => {
+      try {
+        const mode = agentMode ? 'agent' : 'kb';
+        const sessionId = await memory.createSession(mode, user.username || user.userId);
+        setMemorySessionId(sessionId);
+        console.log('[AgentCore Memory] セッション作成成功:', sessionId);
+      } catch (err) {
+        // セッション作成失敗は非致命的 — メモリなしで動作継続
+        console.warn('[AgentCore Memory] セッション作成失敗（非致命的）:', err);
+      }
+    };
+    createMemorySession();
+  }, [user, agentCoreMemoryEnabled, agentMode]);
+
+  // モード切替時にメモリセッションをリセット（独立管理: Req 6.4）
+  useEffect(() => {
+    if (agentCoreMemoryEnabled && user) {
+      setMemorySessionId(null); // 次のuseEffectで新セッション作成
+    }
+  }, [agentMode]);
+  // === AgentCore Memory セッション作成 ここまで ===
+
   // モデル変更イベントリスナー（Phase 2.1: Enhanced with Introduction Text update)
   // モデル変更イベントリスナー
   useEffect(() => {
@@ -1055,8 +1120,8 @@ function ChatbotPageContent() {
               isAutoRouted: routing.isAutoRouted,
               ...(routing.classification ? { routingClassification: routing.classification.classification } : {}),
             } : {}),
-            // Note: sessionIdはBedrock KB APIが返すUUID形式でなければならないため、
-            // アプリ内部のセッションIDは送らない（各リクエストを独立したKB検索として扱う）
+            // AgentCore Memory: KBモード会話コンテキスト用セッションID (Task 11)
+            ...(agentCoreMemoryEnabled && memorySessionId ? { memorySessionId } : {}),
           }),
         });
 
@@ -1257,6 +1322,42 @@ function ChatbotPageContent() {
     setInputText('');
     setIsLoading(true);
 
+    // === AgentCore Memory: ユーザーメッセージ記録 (Sub-task 10.2) ===
+    // Fire-and-forget: メモリ記録失敗は既存フローをブロックしない
+    if (agentCoreMemoryEnabled && memorySessionId) {
+      const memMsg: MemoryMessage = {
+        id: userMessage.id,
+        content: userMessage.content,
+        role: 'user',
+        timestamp: userMessage.timestamp || Date.now(),
+        sessionId: memorySessionId,
+      };
+      memory.addMessage(memorySessionId, memMsg).catch((err) => {
+        console.warn('[AgentCore Memory] ユーザーメッセージ記録失敗（非致命的）:', err);
+      });
+    }
+
+    // === AgentCore Memory: 会話コンテキスト取得 (Sub-task 10.3) ===
+    // Agent/KB呼び出し前に短期メモリから直近の会話を取得
+    // 失敗してもAPI呼び出しはブロックしない
+    let conversationContext: string | undefined;
+    if (agentCoreMemoryEnabled && memorySessionId) {
+      try {
+        const recentMessages = await memory.getMessages(memorySessionId, 10);
+        if (recentMessages.length > 0) {
+          conversationContext = recentMessages
+            .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+            .join('\n');
+          console.log('[AgentCore Memory] 会話コンテキスト取得成功:', {
+            messageCount: recentMessages.length,
+            contextLength: conversationContext.length,
+          });
+        }
+      } catch (err) {
+        console.warn('[AgentCore Memory] コンテキスト取得失敗（コンテキストなしで続行）:', err);
+      }
+    }
+
     // Smart Routing (Task 11.2)
     const routingDecision = routeQuery(
       currentInput,
@@ -1291,6 +1392,21 @@ function ChatbotPageContent() {
       };
 
       addMessage(botResponse);
+
+      // === AgentCore Memory: アシスタントメッセージ記録 (Sub-task 10.2) ===
+      // Fire-and-forget: メモリ記録失敗は既存フローをブロックしない
+      if (agentCoreMemoryEnabled && memorySessionId) {
+        const memBotMsg: MemoryMessage = {
+          id: botResponse.id,
+          content: botResponse.content,
+          role: 'assistant',
+          timestamp: botResponse.timestamp || Date.now(),
+          sessionId: memorySessionId,
+        };
+        memory.addMessage(memorySessionId, memBotMsg).catch((err) => {
+          console.warn('[AgentCore Memory] アシスタントメッセージ記録失敗（非致命的）:', err);
+        });
+      }
 
       // Store routing decision for this bot message (Task 11.4)
       const routedModelName = getModelById(routingDecision.modelId)?.name || routingDecision.modelId;

@@ -18,6 +18,7 @@
  *   -c enableCloudTrail=true     CloudTrail監査ログ
  *   -c enableVpcEndpoints=true   VPCエンドポイント
  *   -c vectorStoreType=s3vectors    Vector store type (s3vectors or opensearch-serverless)
+ *   -c enableAgentCoreMemory=true    AgentCore Memory (短期・長期メモリ)
  *   -c enableMonitoring=true        CloudWatch Dashboard + SNS Alerts + EventBridge
  *   -c monitoringEmail=xxx          Alert notification email address
  *   -c enableAgentCoreObservability=true  AgentCore metrics on dashboard
@@ -77,6 +78,9 @@ const enableVpcEndpoints = ctxBool('enableVpcEndpoints');
 const enableAgentSharing = ctxBool('enableAgentSharing');
 const enableAgentSchedules = ctxBool('enableAgentSchedules');
 const vectorStoreType = (app.node.tryGetContext('vectorStoreType') || 's3vectors') as string;
+
+// AgentCore機能（オプション）
+const enableAgentCoreMemory = ctxBool('enableAgentCoreMemory');
 
 // 監視・アラート機能（オプション）
 const enableMonitoring = ctxBool('enableMonitoring');
@@ -162,6 +166,7 @@ const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   enableAgent,
   enableAgentSharing,
   enableAgentSchedules,
+  enableAgentCoreMemory,
   userAccessTableName: storageStack.userAccessTable.tableName,
   userAccessTableArn: storageStack.userAccessTable.tableArn,
   vectorStoreType: vectorStoreType as 's3vectors' | 'opensearch-serverless',
@@ -192,6 +197,8 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentExecutionTableName: aiStack.agentExecutionTableName,
   agentSchedulerLambdaArn: aiStack.agentSchedulerLambdaArn,
   agentSchedulerRoleArn: aiStack.schedulerRoleArn,
+  // AgentCore Memory（オプション）
+  memoryId: aiStack.memoryId,
   // 監視・アラート機能（オプション）
   enableMonitoring,
   monitoringEmail,

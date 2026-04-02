@@ -1,5 +1,7 @@
 # Embeddingサーバー 設計・実装ドキュメント
 
+**🌐 Language:** **日本語** | [English](en/embedding-server-design.md) | [한국어](ko/embedding-server-design.md) | [简体中文](zh-CN/embedding-server-design.md) | [繁體中文](zh-TW/embedding-server-design.md) | [Français](fr/embedding-server-design.md) | [Deutsch](de/embedding-server-design.md) | [Español](es/embedding-server-design.md)
+
 **作成日**: 2026-03-26  
 **対象**: 開発者・運用者  
 **ソースコード**: `docker/embed/`

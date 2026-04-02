@@ -11,6 +11,7 @@
   "dependencies": {
     "@aws-sdk/client-bedrock": "^3.930.0",
     "@aws-sdk/client-bedrock-agent": "^3.930.0",
+    "@aws-sdk/client-bedrock-agentcore": "^3.930.0",
     "@aws-sdk/client-bedrock-agent-runtime": "^3.930.0",
     "@aws-sdk/client-bedrock-runtime": "^3.930.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.930.0",

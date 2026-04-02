@@ -25,9 +25,80 @@ interface RetrieveRequest {
   // Smart Routing メトリクス用（フロントエンドから送信）
   isAutoRouted?: boolean;    // Smart Routingによる自動選択かどうか
   routingClassification?: 'simple' | 'complex'; // クエリ複雑度分類結果
+  // AgentCore Memory統合 (Task 11)
+  memorySessionId?: string;  // AgentCore MemoryセッションID（KBモード会話コンテキスト用）
+}
+
+// Converse API用の会話メッセージ型
+interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 interface UserAccessRecord { userId: string; userSID: string; groupSIDs: string[]; }
+
+// === AgentCore Memory統合 (Task 11) ===
+const ENABLE_AGENTCORE_MEMORY = process.env.ENABLE_AGENTCORE_MEMORY === 'true';
+const AGENTCORE_MEMORY_ID = process.env.AGENTCORE_MEMORY_ID || '';
+
+/**
+ * AgentCore Memoryから直近の会話履歴を取得する。
+ * 失敗時は空配列を返す（KB検索をブロックしない）。
+ *
+ * Requirements: 6.1, 6.2
+ */
+async function retrieveConversationHistory(
+  sessionId: string,
+  actorId: string,
+): Promise<ConversationMessage[]> {
+  if (!ENABLE_AGENTCORE_MEMORY || !AGENTCORE_MEMORY_ID || !sessionId) {
+    return [];
+  }
+
+  try {
+    // 動的インポートで AgentCore SDK を遅延ロード（Memory無効時のオーバーヘッド回避）
+    const { BedrockAgentCoreClient, ListEventsCommand } = await import(
+      '@aws-sdk/client-bedrock-agentcore'
+    );
+
+    const client = new BedrockAgentCoreClient({
+      region: process.env.AWS_REGION || 'ap-northeast-1',
+    });
+
+    const command = new ListEventsCommand({
+      memoryId: AGENTCORE_MEMORY_ID,
+      sessionId,
+      actorId,
+      includePayloads: true,
+      maxResults: 10, // 直近10件の会話を取得
+    });
+
+    const response = await client.send(command);
+    const events = response.events || [];
+
+    const messages: ConversationMessage[] = events
+      .map((event) => {
+        const conversational = event.payload?.[0]?.conversational;
+        if (!conversational?.content?.text || !conversational?.role) return null;
+        return {
+          role: (conversational.role === 'USER' ? 'user' : 'assistant') as 'user' | 'assistant',
+          content: conversational.content.text,
+        };
+      })
+      .filter((m): m is ConversationMessage => m !== null);
+
+    console.log('[KB Memory] 会話履歴取得成功:', {
+      sessionId,
+      messageCount: messages.length,
+    });
+
+    return messages;
+  } catch (error) {
+    // メモリ取得失敗は非致命的 — コンテキストなしでKB検索を続行
+    console.warn('[KB Memory] 会話履歴取得失敗（非致命的）:', error instanceof Error ? error.message : error);
+    return [];
+  }
+}
 
 const PERMISSION_FILTER_LAMBDA_ARN = process.env.PERMISSION_FILTER_LAMBDA_ARN || '';
 
@@ -77,14 +148,27 @@ async function callConverse(
   client: BedrockRuntimeClient,
   modelId: string,
   prompt: string,
+  conversationHistory?: ConversationMessage[],
 ): Promise<{ text: string; usedModel: string }> {
+  // 会話履歴がある場合、Converse APIのmessages配列に過去の会話を追加 (Task 11.2)
+  const historyMessages = (conversationHistory || []).map((m) => ({
+    role: m.role as 'user' | 'assistant',
+    content: [{ text: m.content }],
+  }));
+  const currentMessage = { role: 'user' as const, content: [{ text: prompt }] };
+  const messages = [...historyMessages, currentMessage];
+
+  if (historyMessages.length > 0) {
+    console.log('[Converse] 会話履歴付きリクエスト:', { historyCount: historyMessages.length });
+  }
+
   const modelsToTry = [modelId, ...CONVERSE_FALLBACK_MODELS.filter(m => m !== modelId)];
   for (const mid of modelsToTry) {
     try {
       console.log('[Converse] Trying:', mid);
       const resp = await client.send(new ConverseCommand({
         modelId: mid,
-        messages: [{ role: 'user', content: [{ text: prompt }] }],
+        messages,
         inferenceConfig: { maxTokens: 2000, temperature: 0.1 },
       }));
       const outputContent = resp.output?.message?.content?.[0];
@@ -314,6 +398,13 @@ export async function POST(request: NextRequest) {
 
     console.log('[SID] Done:', (filterLog as Record<string, unknown>).allowedDocuments, '/', (filterLog as Record<string, unknown>).totalDocuments);
 
+    // === AgentCore Memory: 会話履歴取得 (Task 11.1) ===
+    // KBモードでAgentCore Memoryが有効な場合、直近の会話履歴を取得してConverse APIに渡す
+    let conversationHistory: ConversationMessage[] = [];
+    if (ENABLE_AGENTCORE_MEMORY && body.memorySessionId) {
+      conversationHistory = await retrieveConversationHistory(body.memorySessionId, userId);
+    }
+
     // Step 3: Converse APIで回答生成
     const converseModelId = resolveConverseModelId(rawModelId);
 
@@ -327,7 +418,7 @@ export async function POST(request: NextRequest) {
       ? '以下のドキュメントを参照して質問に日本語で回答してください。あなたはAIエージェントとして、多段階推論と文書検索を活用して回答します。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。'
       : '以下のドキュメントを参照して質問に日本語で回答してください。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。';
       const prompt = `${systemPrompt}\n\n${ctx}\n\n${imageAnalysisUsed && imageAnalysisResult ? `画像分析結果:\n${imageAnalysisResult}\n\n` : ''}質問: ${query}`;
-      const result = await callConverse(converseClient, converseModelId, prompt);
+      const result = await callConverse(converseClient, converseModelId, prompt, conversationHistory);
       return NextResponse.json({
         success: true, answer: result.text,
         citations: allowed.map(r => ({ fileName: r.fileName, s3Uri: r.s3Uri, content: r.content.substring(0, 500), metadata: r.metadata })),
@@ -335,6 +426,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           knowledgeBaseId, modelId: result.usedModel, region, timestamp: new Date().toISOString(),
           ...(imageAnalysisUsed ? { imageAnalysis: true } : {}),
+          ...(conversationHistory.length > 0 ? { memoryContextUsed: true, memoryMessageCount: conversationHistory.length } : {}),
         },
       });
     } else {

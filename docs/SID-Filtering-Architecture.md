@@ -1,5 +1,7 @@
 # SIDベース権限フィルタリング アーキテクチャ
 
+**🌐 Language:** **日本語** | [English](en/SID-Filtering-Architecture.md) | [한국어](ko/SID-Filtering-Architecture.md) | [简体中文](zh-CN/SID-Filtering-Architecture.md) | [繁體中文](zh-TW/SID-Filtering-Architecture.md) | [Français](fr/SID-Filtering-Architecture.md) | [Deutsch](de/SID-Filtering-Architecture.md) | [Español](es/SID-Filtering-Architecture.md)
+
 ## 概要
 
 本システムは、NTFS ACLのSID（Security Identifier）を活用して、RAG検索結果をユーザーごとにフィルタリングします。FSx for NetApp ONTAPのファイルシステム上のアクセス権限情報を、ベクトルデータベースのメタデータとして保持し、検索時にリアルタイムで権限チェックを行います。

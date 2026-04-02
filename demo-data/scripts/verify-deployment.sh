@@ -245,9 +245,67 @@ fi
 echo ""
 
 # ========================================
-# 8. AD Federation チェック（オプション）
+# 8. AgentCore Memory チェック（オプション）
 # ========================================
-echo "📋 8. AD Federation チェック..."
+echo "📋 8. AgentCore Memory チェック..."
+
+MEMORY_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
+  --query 'Stacks[0].Outputs[?OutputKey==`MemoryId`].OutputValue' --output text 2>/dev/null || echo "")
+ENABLE_MEMORY=$(aws lambda get-function-configuration --function-name ${STACK_PREFIX}-webapp --region $REGION \
+  --query 'Environment.Variables.ENABLE_AGENTCORE_MEMORY' --output text 2>/dev/null || echo "")
+
+if [ -n "$MEMORY_ID" ] && [ "$MEMORY_ID" != "None" ]; then
+  log_result "PASS" "AgentCore Memory resource" "$MEMORY_ID"
+
+  # Lambda環境変数チェック
+  LAMBDA_MEMORY_ID=$(aws lambda get-function-configuration --function-name ${STACK_PREFIX}-webapp --region $REGION \
+    --query 'Environment.Variables.AGENTCORE_MEMORY_ID' --output text 2>/dev/null || echo "")
+  [ "$LAMBDA_MEMORY_ID" = "$MEMORY_ID" ] \
+    && log_result "PASS" "Lambda AGENTCORE_MEMORY_ID" "$LAMBDA_MEMORY_ID" \
+    || log_result "FAIL" "Lambda AGENTCORE_MEMORY_ID" "Expected: $MEMORY_ID, Got: $LAMBDA_MEMORY_ID"
+  [ "$ENABLE_MEMORY" = "true" ] \
+    && log_result "PASS" "Lambda ENABLE_AGENTCORE_MEMORY" "$ENABLE_MEMORY" \
+    || log_result "FAIL" "Lambda ENABLE_AGENTCORE_MEMORY" "Expected: true, Got: $ENABLE_MEMORY"
+
+  # Lambda IAM権限チェック（bedrock-agentcore:* ポリシーが含まれているか）
+  ROLE_NAME=$(aws lambda get-function-configuration --function-name ${STACK_PREFIX}-webapp --region $REGION \
+    --query 'Role' --output text 2>/dev/null | awk -F/ '{print $NF}')
+  if [ -n "$ROLE_NAME" ]; then
+    HAS_AGENTCORE_POLICY=$(aws iam list-role-policies --role-name "$ROLE_NAME" --region $REGION \
+      --query 'PolicyNames' --output text 2>/dev/null || echo "")
+    # インラインポリシーの内容を確認
+    POLICY_HAS_AGENTCORE=false
+    for POLICY in $HAS_AGENTCORE_POLICY; do
+      POLICY_DOC=$(aws iam get-role-policy --role-name "$ROLE_NAME" --policy-name "$POLICY" --region $REGION \
+        --query 'PolicyDocument' --output json 2>/dev/null || echo "{}")
+      if echo "$POLICY_DOC" | grep -q "bedrock-agentcore"; then
+        POLICY_HAS_AGENTCORE=true
+        break
+      fi
+    done
+    [ "$POLICY_HAS_AGENTCORE" = "true" ] \
+      && log_result "PASS" "Lambda IAM bedrock-agentcore policy" "Found in role $ROLE_NAME" \
+      || log_result "FAIL" "Lambda IAM bedrock-agentcore policy" "Missing in role $ROLE_NAME"
+  fi
+
+  # API応答チェック（501でないことを確認）
+  if [ -n "$LAMBDA_URL" ]; then
+    MEMORY_API_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${LAMBDA_URL}api/agentcore/memory/session" 2>/dev/null || echo "000")
+    if [ "$MEMORY_API_CODE" != "501" ] && [ "$MEMORY_API_CODE" != "000" ]; then
+      log_result "PASS" "AgentCore Memory API" "HTTP $MEMORY_API_CODE (enabled)"
+    else
+      log_result "FAIL" "AgentCore Memory API" "HTTP $MEMORY_API_CODE (expected non-501)"
+    fi
+  fi
+else
+  log_result "WARN" "AgentCore Memory" "Not deployed (enableAgentCoreMemory=false?)"
+fi
+echo ""
+
+# ========================================
+# 9. AD Federation チェック（オプション）
+# ========================================
+echo "📋 9. AD Federation チェック..."
 
 # フェデレーション有効かどうかをCognito User Pool IdPで判定
 USER_POOL_ID=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Security --region $REGION \

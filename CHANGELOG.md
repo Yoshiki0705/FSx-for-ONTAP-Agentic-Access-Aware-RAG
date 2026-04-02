@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-04
+
+### Added
+- **AgentCore Memory統合**: `enableAgentCoreMemory=true` で有効化。Bedrock AgentCore Memoryによる短期メモリ（セッション内会話履歴、TTL 3日間）+ 長期メモリ（semantic戦略: 事実・知識自動抽出、summary戦略: セッション要約自動生成）
+- `CfnMemory` CDKリソース（AIStack内、`enableAgent=true` AND `enableAgentCoreMemory=true` 時のみ作成）
+- バックエンドAPI: `/api/agentcore/memory/session`（CRUD）、`/api/agentcore/memory/event`（記録・取得）、`/api/agentcore/memory/search`（セマンティック検索）
+- サイドバーUI: セッション一覧（`SessionList.tsx`）、長期メモリ表示・削除（`MemorySection.tsx`）
+- KBモード会話コンテキスト統合（AgentCore Memoryから直近の会話履歴をConverse APIに追加）
+- i18n: `agentcore.memory.*` / `agentcore.session.*` 翻訳キー（8言語対応）
+- プロパティベーステスト + ユニットテスト追加
+
+### Changed
+- `bin/demo-app.ts`: `enableAgentCoreMemory` コンテキストパラメータ追加
+- `lib/stacks/demo/demo-ai-stack.ts`: CfnMemory リソース作成、Memory IAMロール（`bedrock-agentcore.amazonaws.com`）追加、Tags マップ形式上書き
+- `lib/stacks/demo/demo-webapp-stack.ts`: `AGENTCORE_MEMORY_ID` / `ENABLE_AGENTCORE_MEMORY` 環境変数追加、`bedrock-agentcore:*` IAMポリシー条件付き追加、Lambda x86_64アーキテクチャ設計コメント追加
+- `lib/agentcore/auth.ts`: 新規 — Cookie JWT検証共通モジュール（DynamoDBアクセスなし、actorIdサニタイズ）
+- `docker/nextjs/Dockerfile`: x86_64固定ビルド、アーキテクチャ設計コメント追加
+- `docker/nextjs/Dockerfile.prebuilt`: 新規 — Apple Silicon向けプリビルドモード
+- `docker/nextjs/.dockerignore`: 新規 — ビルドコンテキスト最適化
+- `demo-data/scripts/pre-deploy-setup.sh`: ホストアーキテクチャ自動検出、Apple Silicon対応
+- `README.md`: デプロイ手順をローカル/EC2両対応に更新、スクリーンショット追加
+- `docs/implementation-overview.md`: セクション13「AgentCore Memory」追加、デプロイ注意事項テーブル追加
+
+### Fixed (デプロイ検証で発見)
+- CfnMemory `EventExpiryDuration`: 86400（秒）→ 3（日数）に修正。CloudFormationスキーマは日数を期待（min: 3, max: 365）
+- CfnMemory `Name`: ハイフン不可パターン `^[a-zA-Z][a-zA-Z0-9_]{0,47}$` に対応。`prefix.replace(/-/g, '_')` で変換
+- Memory IAMロール: サービスプリンシパル `bedrock.amazonaws.com` → `bedrock-agentcore.amazonaws.com` に修正
+- CfnMemory Tags: CDKデフォルトの配列形式 → マップ形式に `addPropertyOverride` で上書き
+- API認証: `sessionManager.getSessionFromCookies()`（DynamoDB依存）→ Cookie JWT直接検証に変更
+- actorId: メールアドレスの `@` `.` を `_at_` `_dot_` に置換（AgentCore APIバリデーション対応）
+- Lambda IAM: `bedrock-agentcore:*` ポリシーをWebApp Lambda実行ロールに条件付き追加
+
 ## [3.2.0] - 2026-04
 
 ### Added
@@ -73,4 +105,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-**最新バージョン**: 3.1.0
+**最新バージョン**: 3.3.0

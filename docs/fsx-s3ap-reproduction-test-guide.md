@@ -1,5 +1,7 @@
 # FSx ONTAP S3 Access Point 再現試験ガイド
 
+**🌐 Language:** **日本語** | [English](en/fsx-s3ap-reproduction-test-guide.md) | [한국어](ko/fsx-s3ap-reproduction-test-guide.md) | [简体中文](zh-CN/fsx-s3ap-reproduction-test-guide.md) | [繁體中文](zh-TW/fsx-s3ap-reproduction-test-guide.md) | [Français](fr/fsx-s3ap-reproduction-test-guide.md) | [Deutsch](de/fsx-s3ap-reproduction-test-guide.md) | [Español](es/fsx-s3ap-reproduction-test-guide.md)
+
 **目的**: FSx ONTAP S3 APのAccessDenied問題がOrganization SCP固有の問題か、FSx ONTAP S3 APの仕様上の問題かを切り分ける
 
 ---

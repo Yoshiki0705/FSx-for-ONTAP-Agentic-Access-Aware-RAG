@@ -98,8 +98,12 @@ export function ActionGroupSelector({ agentId, selectedGroups, onSelectionChange
                 className="mt-0.5 rounded border-gray-300"
               />
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{group.name}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">{group.description}</div>
+                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {t(`toolSelection.${group.descriptionKey || group.name.toLowerCase()}`)}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {t(`toolSelection.${group.descriptionKey || group.name.toLowerCase()}Desc`)}
+                </div>
               </div>
               {group.isDefault && (
                 <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded">default</span>

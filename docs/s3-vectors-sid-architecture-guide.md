@@ -1,5 +1,7 @@
 # S3 Vectors + SIDフィルタリング アーキテクチャガイド
 
+**🌐 Language:** **日本語** | [English](en/s3-vectors-sid-architecture-guide.md) | [한국어](ko/s3-vectors-sid-architecture-guide.md) | [简体中文](zh-CN/s3-vectors-sid-architecture-guide.md) | [繁體中文](zh-TW/s3-vectors-sid-architecture-guide.md) | [Français](fr/s3-vectors-sid-architecture-guide.md) | [Deutsch](de/s3-vectors-sid-architecture-guide.md) | [Español](es/s3-vectors-sid-architecture-guide.md)
+
 **作成日**: 2026-03-29
 **検証環境**: ap-northeast-1 (東京)
 **ステータス**: CDKデプロイ検証済み、SIDフィルタリング検証済み

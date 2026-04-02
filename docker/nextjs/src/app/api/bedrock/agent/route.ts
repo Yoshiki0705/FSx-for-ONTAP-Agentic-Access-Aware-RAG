@@ -78,13 +78,13 @@ const PERMISSION_AWARE_SEARCH_SCHEMA = JSON.stringify({
   info: {
     title: 'Permission-aware Document Search API',
     version: '2.0.0',
-    description: 'SIDベースの権限フィルタリング付き文書検索API。Bedrock KB Retrieve APIで検索し、ユーザーのNTFS ACL SIDに基づいてアクセス制御を行います。',
+    description: 'SID-based permission-aware document search API. Searches via Bedrock KB Retrieve API and filters by user NTFS ACL SIDs.',
   },
   paths: {
     '/search': {
       post: {
-        summary: '権限認識型文書検索',
-        description: 'ユーザーの質問に関連する文書をBedrock Knowledge Baseから検索し、ユーザーのSID情報に基づいてアクセス権限のある文書のみを返します。',
+        summary: 'Permission-aware document search',
+        description: 'Search documents from Bedrock Knowledge Base filtered by user SID permissions. Returns only documents the user has access to.',
         operationId: 'permissionAwareSearch',
         requestBody: {
           required: true,
@@ -434,7 +434,7 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
             agentId: newAgentId,
             agentVersion: 'DRAFT',
             actionGroupName: 'PermissionAwareSearch',
-            description: 'SIDベースの権限フィルタリング付き文書検索',
+            description: 'SID-based permission-aware document search',
             actionGroupExecutor: { lambda: lambdaArn },
             apiSchema: {
               payload: PERMISSION_AWARE_SEARCH_SCHEMA,
@@ -855,17 +855,20 @@ async function handleListAvailableActionGroups(): Promise<NextResponse> {
   const availableGroups = [
     {
       name: 'PermissionAwareSearch',
-      description: 'SIDベースの権限フィルタリング付き文書検索。Bedrock KB Retrieve APIで検索し、ユーザーのNTFS ACL SIDに基づいてアクセス制御を行います。',
+      descriptionKey: 'permissionAwareSearch',
+      description: 'SID-based permission-aware document search using Bedrock KB Retrieve API with NTFS ACL filtering.',
       isDefault: true,
     },
     {
       name: 'Browser',
-      description: 'Web検索・ブラウジング機能。外部Webサイトの情報を検索・取得します。',
+      descriptionKey: 'browser',
+      description: 'Web search and browsing. Search and retrieve information from external websites.',
       isDefault: false,
     },
     {
       name: 'CodeInterpreter',
-      description: 'Python コード実行環境。データ分析、可視化、計算処理を実行します。',
+      descriptionKey: 'codeInterpreter',
+      description: 'Python code execution environment for data analysis, visualization, and computation.',
       isDefault: false,
     },
   ];

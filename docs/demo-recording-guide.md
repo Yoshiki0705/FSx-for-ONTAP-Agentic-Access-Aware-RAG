@@ -1,5 +1,7 @@
 # 検証デモ動画 撮影手順書
 
+**🌐 Language:** **日本語** | [English](en/demo-recording-guide.md) | [한국어](ko/demo-recording-guide.md) | [简体中文](zh-CN/demo-recording-guide.md) | [繁體中文](zh-TW/demo-recording-guide.md) | [Français](fr/demo-recording-guide.md) | [Deutsch](de/demo-recording-guide.md) | [Español](es/demo-recording-guide.md)
+
 **最終更新**: 2026-03-29  
 **目的**: Permission Aware型RAGシステムの検証デモ動画を撮影するための手順書  
 **前提**: AWSアカウント（AdministratorAccess相当）、EC2インスタンス（Ubuntu 22.04, t3.large以上, 50GB EBS）

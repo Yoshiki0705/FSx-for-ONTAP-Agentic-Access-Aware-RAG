@@ -345,8 +345,11 @@
       "title": "Selección de herramientas",
       "selectTools": "Seleccionar herramientas para el Agent",
       "permissionAwareSearch": "Búsqueda con permisos",
+      "permissionAwareSearchDesc": "Búsqueda de documentos con filtrado de permisos basado en SID. Busca mediante Bedrock KB Retrieve API y filtra según los SID NTFS ACL del usuario.",
       "browser": "Navegador",
+      "browserDesc": "Búsqueda y navegación web. Busca y recupera información de sitios web externos.",
       "codeInterpreter": "Intérprete de código",
+      "codeInterpreterDesc": "Entorno de ejecución de código Python. Ejecuta análisis de datos, visualización y procesamiento de cálculos.",
       "noToolsAvailable": "No hay herramientas disponibles",
       "loadError": "Error al cargar herramientas"
     },
@@ -378,7 +381,8 @@
       "incompatibleVersion": "Versión de esquema incompatible",
       "uploadSuccess": "Carga completada",
       "uploadError": "Error en la carga",
-      "noSharedConfigs": "No hay configuraciones compartidas"
+      "noSharedConfigs": "No hay configuraciones compartidas",
+      "selectJsonFile": "Seleccionar archivo JSON"
     },
     "schedule": {
       "title": "Configuración de programación",

@@ -487,8 +487,11 @@
       "title": "Tool Selection",
       "selectTools": "Select tools for the Agent",
       "permissionAwareSearch": "Permission-Aware Search",
+      "permissionAwareSearchDesc": "SID-based permission-aware document search. Searches via Bedrock KB Retrieve API and filters by user NTFS ACL SIDs.",
       "browser": "Browser",
+      "browserDesc": "Web search and browsing. Search and retrieve information from external websites.",
       "codeInterpreter": "Code Interpreter",
+      "codeInterpreterDesc": "Python code execution environment. Run data analysis, visualization, and computation.",
       "noToolsAvailable": "No tools available",
       "loadError": "Failed to load tools"
     },
@@ -520,7 +523,8 @@
       "incompatibleVersion": "Incompatible schema version",
       "uploadSuccess": "Upload completed",
       "uploadError": "Upload failed",
-      "noSharedConfigs": "No shared agent configurations"
+      "noSharedConfigs": "No shared agent configurations",
+      "selectJsonFile": "Select JSON file"
     },
     "schedule": {
       "title": "Schedule Settings",
@@ -571,6 +575,25 @@
     "status": { "ACTIVE": "Active", "CREATING": "Creating", "FAILED": "Failed" },
     "loadError": "Failed to load KB list",
     "retry": "Retry"
+  },
+  "agentcore": {
+    "memory": {
+      "title": "Memory",
+      "enabled": "AgentCore Memory: Enabled",
+      "disabled": "AgentCore Memory: Disabled",
+      "semantic": "Knowledge",
+      "summary": "Summary",
+      "userPreference": "Preference",
+      "deleteConfirm": "Delete this memory record?",
+      "noMemories": "No memory records"
+    },
+    "session": {
+      "title": "Sessions",
+      "newSession": "New Session",
+      "noSessions": "No sessions",
+      "lastUpdated": "Last updated",
+      "messageCount": "Messages"
+    }
   },
   "smartRouting": {
     "title": "Smart Routing",

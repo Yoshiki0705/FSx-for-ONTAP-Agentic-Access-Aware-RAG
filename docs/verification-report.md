@@ -1,5 +1,7 @@
 # 検証ガイド
 
+**🌐 Language:** **日本語** | [English](en/verification-report.md) | [한국어](ko/verification-report.md) | [简体中文](zh-CN/verification-report.md) | [繁體中文](zh-TW/verification-report.md) | [Français](fr/verification-report.md) | [Deutsch](de/verification-report.md) | [Español](es/verification-report.md)
+
 本ドキュメントは、CDKデプロイ後にシステムが正しく動作していることを確認するための手順です。
 
 ---

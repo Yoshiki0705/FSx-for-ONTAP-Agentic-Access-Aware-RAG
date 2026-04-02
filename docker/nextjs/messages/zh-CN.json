@@ -332,8 +332,11 @@
       "title": "工具选择",
       "selectTools": "选择Agent使用的工具",
       "permissionAwareSearch": "权限感知搜索",
+      "permissionAwareSearchDesc": "基于SID的权限感知文档搜索。通过Bedrock KB Retrieve API搜索，并根据用户的NTFS ACL SID进行访问控制。",
       "browser": "浏览器",
+      "browserDesc": "Web搜索和浏览功能。搜索和获取外部网站的信息。",
       "codeInterpreter": "代码解释器",
+      "codeInterpreterDesc": "Python代码执行环境。执行数据分析、可视化和计算处理。",
       "noToolsAvailable": "没有可用的工具",
       "loadError": "加载工具列表失败"
     },
@@ -365,7 +368,8 @@
       "incompatibleVersion": "不兼容的架构版本",
       "uploadSuccess": "上传完成",
       "uploadError": "上传失败",
-      "noSharedConfigs": "没有共享Agent配置"
+      "noSharedConfigs": "没有共享Agent配置",
+      "selectJsonFile": "选择JSON文件"
     },
     "schedule": {
       "title": "调度设置",

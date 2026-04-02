@@ -1,5 +1,7 @@
 # チャットボットUI仕様書
 
+**🌐 Language:** **日本語** | [English](en/ui-specification.md) | [한국어](ko/ui-specification.md) | [简体中文](zh-CN/ui-specification.md) | [繁體中文](zh-TW/ui-specification.md) | [Français](fr/ui-specification.md) | [Deutsch](de/ui-specification.md) | [Español](es/ui-specification.md)
+
 **作成日**: 2026-03-26  
 **対象**: 開発者・運用者  
 **アプリケーション**: Permission-aware RAG Chatbot

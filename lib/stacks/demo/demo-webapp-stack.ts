@@ -58,6 +58,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   agentSchedulerLambdaArn?: string;
   /** Agentスケジューラ IAMロール ARN（enableAgentSchedules時） */
   agentSchedulerRoleArn?: string;
+  /** AgentCore Memory ID（enableAgentCoreMemory時、AIStackから） */
+  memoryId?: string;
   // --- 監視・アラート機能（オプション） ---
   /** 監視機能全体の有効化（デフォルト: false） */
   enableMonitoring?: boolean;
@@ -99,6 +101,13 @@ export class DemoWebAppStack extends cdk.Stack {
     // ========================================
     // Lambda Web Adapter（Next.jsコンテナ）
     // ========================================
+    // 【アーキテクチャ設計方針】
+    // Lambda関数は x86_64 (デフォルト) で動作する。
+    // architecture プロパティは指定しない（= x86_64）。
+    // ⚠️ architecture: lambda.Architecture.ARM_64 に変更しないこと。
+    //    EC2 (Amazon Linux 2, x86_64) でビルドした Docker イメージとの
+    //    互換性が失われ、"exec format error" が発生する。
+    //    Apple Silicon でのローカルビルドには Dockerfile.prebuilt を使用する。
     this.webAppFunction = new lambda.DockerImageFunction(this, 'WebAppFn', {
       functionName: `${prefix}-webapp`,
       code: lambda.DockerImageCode.fromEcr(
@@ -138,6 +147,9 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(props.agentSchedulerLambdaArn ? { AGENT_SCHEDULER_LAMBDA_ARN: props.agentSchedulerLambdaArn } : {}),
         ...(props.agentSchedulerRoleArn ? { SCHEDULER_ROLE_ARN: props.agentSchedulerRoleArn } : {}),
         ...(props.agentSchedulerRoleArn ? { AGENT_SCHEDULER_GROUP: 'agent-schedules' } : {}),
+        // AgentCore Memory設定（オプション）
+        ...(props.memoryId ? { AGENTCORE_MEMORY_ID: props.memoryId } : {}),
+        ...(props.memoryId ? { ENABLE_AGENTCORE_MEMORY: 'true' } : {}),
       },
     });
 
@@ -206,6 +218,22 @@ export class DemoWebAppStack extends cdk.Stack {
       ],
       resources: ['*'],
     }));
+
+    // AgentCore Memory API 権限（enableAgentCoreMemory=true 時のみ必要）
+    // Lambda から AgentCore Memory API を呼び出すために必要。
+    // memoryId が渡されている場合のみ追加（CDK条件付き）。
+    if (props.memoryId) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'bedrock-agentcore:CreateEvent',
+          'bedrock-agentcore:ListEvents',
+          'bedrock-agentcore:DeleteEvent',
+          'bedrock-agentcore:ListSessions',
+          'bedrock-agentcore:RetrieveMemoryRecords',
+        ],
+        resources: [`arn:aws:bedrock-agentcore:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:memory/*`],
+      }));
+    }
 
     // iam:PassRole for Bedrock Agent creation (agent needs a service role)
     this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({

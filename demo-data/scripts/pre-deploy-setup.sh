@@ -48,7 +48,56 @@ if command -v docker &> /dev/null && docker info &> /dev/null; then
   echo "  Docker detected, building locally..."
   aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
   IMAGE_TAG="initial-$(date +%Y%m%d-%H%M%S)"
-  docker build --no-cache -t ${ECR_URI}:${IMAGE_TAG} -f ${PROJECT_ROOT}/docker/nextjs/Dockerfile ${PROJECT_ROOT}/docker/nextjs/
+
+  # ========================================
+  # アーキテクチャ検出と分岐
+  # ========================================
+  # 【設計方針】
+  #   生成するDockerイメージは常に x86_64 (amd64)。
+  #   Lambda関数が x86_64 で動作するため、ビルドホストに関わらず
+  #   x86_64 イメージを生成する必要がある。
+  #
+  #   EC2 (x86_64):
+  #     → Dockerfile でフルビルド（ネイティブ、高速）
+  #   Apple Silicon (arm64):
+  #     → Dockerfile.prebuilt でプリビルドモード
+  #       1. ローカルで npm run build（ネイティブ、高速）
+  #       2. x86_64 Lambda Adapter バイナリを取得
+  #       3. x86_64 ベースイメージにパッケージング
+  #       ※ Next.js standalone は純粋 Node.js でアーキテクチャ非依存
+  #
+  #   ⚠️ arm64 イメージを生成しないこと。
+  #      Lambda が x86_64 のため "exec format error" になる。
+  # ========================================
+  HOST_ARCH=$(uname -m)
+  if [ "$HOST_ARCH" = "arm64" ] || [ "$HOST_ARCH" = "aarch64" ]; then
+    echo "  🍎 Apple Silicon detected — using prebuilt mode (local Next.js build + Docker package)"
+    echo "  📦 Building Next.js locally..."
+    (cd ${PROJECT_ROOT}/docker/nextjs && npm install && NODE_ENV=production npm run build)
+
+    echo "  📥 Fetching x86_64 Lambda Adapter..."
+    # ⚠️ --platform linux/amd64 を必ず指定すること。
+    #    省略すると arm64 バイナリが取得され Lambda で動作しない。
+    docker pull --platform linux/amd64 public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 || true
+    LWA_ID=$(docker create --platform linux/amd64 public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 /bin/true 2>/dev/null) || true
+    if [ -n "$LWA_ID" ]; then
+      docker cp $LWA_ID:/lambda-adapter ${PROJECT_ROOT}/docker/nextjs/lambda-adapter
+      docker rm $LWA_ID > /dev/null 2>&1
+    fi
+
+    echo "  🐳 Building Docker image (prebuilt mode, x86_64 target)..."
+    docker build --no-cache \
+      -t ${ECR_URI}:${IMAGE_TAG} \
+      -f ${PROJECT_ROOT}/docker/nextjs/Dockerfile.prebuilt \
+      ${PROJECT_ROOT}/docker/nextjs/
+  else
+    echo "  🖥️ x86_64 detected — using full Docker build"
+    docker build --no-cache \
+      -t ${ECR_URI}:${IMAGE_TAG} \
+      -f ${PROJECT_ROOT}/docker/nextjs/Dockerfile \
+      ${PROJECT_ROOT}/docker/nextjs/
+  fi
+
   docker tag ${ECR_URI}:${IMAGE_TAG} ${ECR_URI}:latest
   docker push ${ECR_URI}:${IMAGE_TAG}
   docker push ${ECR_URI}:latest

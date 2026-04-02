@@ -345,8 +345,11 @@
       "title": "Werkzeugauswahl",
       "selectTools": "Werkzeuge für den Agent auswählen",
       "permissionAwareSearch": "Berechtigungsbewusste Suche",
+      "permissionAwareSearchDesc": "SID-basierte berechtigungsbewusste Dokumentensuche. Suche über Bedrock KB Retrieve API mit Zugriffskontrolle basierend auf NTFS ACL SIDs.",
       "browser": "Browser",
+      "browserDesc": "Web-Suche und Browsing. Suche und Abruf von Informationen von externen Websites.",
       "codeInterpreter": "Code-Interpreter",
+      "codeInterpreterDesc": "Python-Code-Ausführungsumgebung. Datenanalyse, Visualisierung und Berechnungen ausführen.",
       "noToolsAvailable": "Keine Werkzeuge verfügbar",
       "loadError": "Werkzeugliste konnte nicht geladen werden"
     },
@@ -378,7 +381,8 @@
       "incompatibleVersion": "Inkompatible Schema-Version",
       "uploadSuccess": "Upload abgeschlossen",
       "uploadError": "Upload fehlgeschlagen",
-      "noSharedConfigs": "Keine freigegebenen Agent-Konfigurationen"
+      "noSharedConfigs": "Keine freigegebenen Agent-Konfigurationen",
+      "selectJsonFile": "JSON-Datei auswählen"
     },
     "schedule": {
       "title": "Zeitplan-Einstellungen",

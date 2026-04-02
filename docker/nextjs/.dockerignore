@@ -1,0 +1,12 @@
+node_modules
+.next/cache
+coverage
+.swc
+*.md
+.git
+.gitignore
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+jest.config.*

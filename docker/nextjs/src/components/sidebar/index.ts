@@ -8,3 +8,5 @@ export { ChatHistoryItem } from './ChatHistoryItem';
 export { VirtualChatHistory } from './VirtualChatHistory';
 export { SidebarSections } from './SidebarSections';
 export { RoutingToggle } from './RoutingToggle';
+export { SessionList } from './SessionList';
+export { MemorySection } from './MemorySection';

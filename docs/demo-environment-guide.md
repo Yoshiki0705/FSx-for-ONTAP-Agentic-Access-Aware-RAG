@@ -1,5 +1,7 @@
 # Permission-aware RAG 検証環境ガイド
 
+**🌐 Language:** **日本語** | [English](en/demo-environment-guide.md) | [한국어](ko/demo-environment-guide.md) | [简体中文](zh-CN/demo-environment-guide.md) | [繁體中文](zh-TW/demo-environment-guide.md) | [Français](fr/demo-environment-guide.md) | [Deutsch](de/demo-environment-guide.md) | [Español](es/demo-environment-guide.md)
+
 **最終更新**: 2026-03-25  
 **リージョン**: ap-northeast-1 (東京)
 

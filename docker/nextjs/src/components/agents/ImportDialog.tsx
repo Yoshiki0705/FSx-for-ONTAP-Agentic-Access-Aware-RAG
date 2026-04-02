@@ -51,7 +51,7 @@ export function ImportDialog({ onImport, onCancel, isImporting }: ImportDialogPr
               disabled={isImporting}
               className="w-full p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
             >
-              <span className="text-gray-500 dark:text-gray-400 text-sm">JSON ファイルを選択</span>
+              <span className="text-gray-500 dark:text-gray-400 text-sm">{t('sharing.selectJsonFile') || 'Select JSON file'}</span>
             </button>
             {error && <p className="text-sm text-red-500 mt-3">{error}</p>}
             <div className="flex justify-end mt-4">

@@ -1,5 +1,7 @@
 # CDKスタック アーキテクチャガイド
 
+**🌐 Language:** **日本語** | [English](en/stack-architecture-comparison.md) | [한국어](ko/stack-architecture-comparison.md) | [简体中文](zh-CN/stack-architecture-comparison.md) | [繁體中文](zh-TW/stack-architecture-comparison.md) | [Français](fr/stack-architecture-comparison.md) | [Deutsch](de/stack-architecture-comparison.md) | [Español](es/stack-architecture-comparison.md)
+
 **最終更新**: 2026-03-31  
 **ステータス**: デモスタック系統に一本化完了、S3 Vectors統合検証済み
 

@@ -1,5 +1,7 @@
 # ドキュメントインデックス
 
+**🌐 Language:** **日本語** | [English](en/DOCUMENTATION_INDEX.md) | [한국어](ko/DOCUMENTATION_INDEX.md) | [简体中文](zh-CN/DOCUMENTATION_INDEX.md) | [繁體中文](zh-TW/DOCUMENTATION_INDEX.md) | [Français](fr/DOCUMENTATION_INDEX.md) | [Deutsch](de/DOCUMENTATION_INDEX.md) | [Español](es/DOCUMENTATION_INDEX.md)
+
 ## はじめに読むべきドキュメント
 
 | ドキュメント | 内容 |

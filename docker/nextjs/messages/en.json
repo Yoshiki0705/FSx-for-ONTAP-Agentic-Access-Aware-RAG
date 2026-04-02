@@ -391,8 +391,11 @@
       "title": "Tool Selection",
       "selectTools": "Select tools for the Agent",
       "permissionAwareSearch": "Permission-Aware Search",
+      "permissionAwareSearchDesc": "SID-based permission-aware document search. Searches via Bedrock KB Retrieve API and filters by user NTFS ACL SIDs.",
       "browser": "Browser",
+      "browserDesc": "Web search and browsing. Search and retrieve information from external websites.",
       "codeInterpreter": "Code Interpreter",
+      "codeInterpreterDesc": "Python code execution environment. Run data analysis, visualization, and computation.",
       "noToolsAvailable": "No tools available",
       "loadError": "Failed to load tools"
     },
@@ -424,7 +427,8 @@
       "incompatibleVersion": "Incompatible schema version",
       "uploadSuccess": "Upload completed",
       "uploadError": "Upload failed",
-      "noSharedConfigs": "No shared agent configurations"
+      "noSharedConfigs": "No shared agent configurations",
+      "selectJsonFile": "Select JSON file"
     },
     "schedule": {
       "title": "Schedule Settings",

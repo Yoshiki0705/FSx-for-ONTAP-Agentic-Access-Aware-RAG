@@ -332,8 +332,11 @@
       "title": "工具選擇",
       "selectTools": "選擇Agent使用的工具",
       "permissionAwareSearch": "權限感知搜尋",
+      "permissionAwareSearchDesc": "基於SID的權限感知文件搜尋。透過Bedrock KB Retrieve API搜尋，並根據使用者的NTFS ACL SID進行存取控制。",
       "browser": "瀏覽器",
+      "browserDesc": "Web搜尋和瀏覽功能。搜尋和取得外部網站的資訊。",
       "codeInterpreter": "程式碼解譯器",
+      "codeInterpreterDesc": "Python程式碼執行環境。執行資料分析、視覺化和計算處理。",
       "noToolsAvailable": "沒有可用的工具",
       "loadError": "載入工具列表失敗"
     },
@@ -365,7 +368,8 @@
       "incompatibleVersion": "不相容的架構版本",
       "uploadSuccess": "上傳完成",
       "uploadError": "上傳失敗",
-      "noSharedConfigs": "沒有共享Agent設定"
+      "noSharedConfigs": "沒有共享Agent設定",
+      "selectJsonFile": "選擇JSON檔案"
     },
     "schedule": {
       "title": "排程設定",

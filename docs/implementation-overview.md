@@ -1,7 +1,9 @@
 # Permission Aware 型 RAGシステム 実装内容について
 
+**🌐 Language:** **日本語** | [English](en/implementation-overview.md) | [한국어](ko/implementation-overview.md) | [简体中文](zh-CN/implementation-overview.md) | [繁體中文](zh-TW/implementation-overview.md) | [Français](fr/implementation-overview.md) | [Deutsch](de/implementation-overview.md) | [Español](es/implementation-overview.md)
+
 **作成日**: 2026-03-25  
-**バージョン**: 3.1.0
+**バージョン**: 3.3.0
 
 ---
 
@@ -683,6 +685,72 @@ Agent Directory（`/genai/agents`）のAgent作成・編集時に、Bedrock Know
 
 ---
 
+## 13. AgentCore Memory — 会話コンテキスト維持
+
+### 実装内容
+
+`enableAgentCoreMemory=true` で有効化されるオプション機能として、Bedrock AgentCore Memoryによる短期メモリ（セッション内会話履歴）と長期メモリ（セッション横断のユーザー嗜好・要約・セマンティック知識）を提供します。
+
+### アーキテクチャ
+
+```
+AIStack (CfnMemory)
+├── Event Store（短期メモリ: セッション内会話履歴、TTL 3日間）
+├── Semantic Strategy（長期メモリ: 会話から事実・知識を自動抽出）
+└── Summary Strategy（長期メモリ: セッション会話要約を自動生成）
+
+Next.js API Routes
+├── POST/GET/DELETE /api/agentcore/memory/session — セッション管理
+├── POST/GET /api/agentcore/memory/event — イベント記録・取得
+└── POST /api/agentcore/memory/search — セマンティック検索
+
+認証フロー
+├── lib/agentcore/auth.ts — Cookie JWT検証（DynamoDBアクセスなし）
+└── actorId = userId（@ → _at_, . → _dot_ に置換）
+```
+
+### CDKリソース
+
+| リソース | 説明 |
+|---------|------|
+| `CfnMemory` | AgentCore Memoryリソース（`enableAgent=true` AND `enableAgentCoreMemory=true` 時のみ作成） |
+| Memory IAMロール | `bedrock-agentcore.amazonaws.com` サービスプリンシパル |
+| Lambda IAMポリシー | `bedrock-agentcore:CreateEvent/ListEvents/DeleteEvent/ListSessions/RetrieveMemoryRecords`（memoryId設定時のみ追加） |
+
+### 主要機能
+
+- セッション内会話履歴の自動保持（短期メモリ、TTL 3日間、最小値）
+- セッション横断のユーザー嗜好・知識の自動抽出（semantic戦略）
+- セッション会話要約の自動生成（summary戦略）
+- サイドバーにセッション一覧・メモリセクション表示
+- KBモード・Agentモード両方で会話コンテキスト維持
+- 8言語i18n対応（`agentcore.memory.*`, `agentcore.session.*`）
+
+### デプロイ時の注意事項
+
+| 項目 | 制約 | 対応 |
+|------|------|------|
+| Memory Name | `^[a-zA-Z][a-zA-Z0-9_]{0,47}$`（ハイフン不可） | `prefix.replace(/-/g, '_')` で変換 |
+| EventExpiryDuration | 日数（min: 3, max: 365） | 3日間（最小値） |
+| サービスプリンシパル | `bedrock-agentcore.amazonaws.com` | `bedrock.amazonaws.com` ではない |
+| Tags形式 | マップ `{ key: value }` | CDKデフォルトの配列形式を `addPropertyOverride` で上書き |
+| actorId | `[a-zA-Z0-9][a-zA-Z0-9-_/]*` | メールアドレスの `@` `.` を置換 |
+
+### CDKコンテキストパラメータ
+
+| パラメータ | デフォルト | 説明 |
+|-----------|----------|------|
+| `enableAgentCoreMemory` | `false` | AgentCore Memory有効化（`enableAgent=true` が前提条件） |
+
+### 環境変数
+
+| 変数名 | 説明 |
+|--------|------|
+| `AGENTCORE_MEMORY_ID` | AgentCore Memory ID（CDK出力） |
+| `ENABLE_AGENTCORE_MEMORY` | Memory機能有効フラグ |
+
+---
+
 ## システム全体アーキテクチャ
 
 ```
@@ -740,6 +808,7 @@ Agent Directory（`/genai/agents`）のAgent作成・編集時に、Bedrock Know
 | `enableVpcEndpoints` | 4 | `false` | VPCエンドポイント（Bedrock, SSM等） |
 | `enableMonitoring` | - | `false` | CloudWatchダッシュボード + SNSアラート + EventBridge監視 |
 | `monitoringEmail` | - | (なし) | アラート通知先メールアドレス |
+| `enableAgentCoreMemory` | - | `false` | AgentCore Memory（短期・長期メモリ）を有効化（`enableAgent=true` が前提条件） |
 | `enableAgentCoreObservability` | - | `false` | AgentCore Runtimeメトリクスをダッシュボードに統合 |
 
 ---

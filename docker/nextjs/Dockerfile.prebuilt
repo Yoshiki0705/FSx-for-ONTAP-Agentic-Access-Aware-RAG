@@ -1,0 +1,65 @@
+# ============================================================
+# Prebuilt Dockerfile — Apple Silicon 高速ビルド用
+#
+# 【アーキテクチャ設計方針】
+#   Lambda関数は x86_64 (amd64) で動作します。
+#   このDockerfileも常に linux/amd64 イメージを生成します。
+#
+#   Apple Silicon でフルDockerビルド (Dockerfile) が遅い場合の
+#   代替手段です。Next.js standalone ビルドはアーキテクチャ非依存
+#   （純粋 Node.js）なので、ローカルでビルドした成果物を
+#   x86_64 コンテナにパッケージングしても Lambda 上で動作します。
+#
+#   ⚠️ FROM の --platform=linux/amd64 を削除しないでください。
+#   削除すると arm64 イメージが生成され、x86_64 Lambda で
+#   "exec format error" が発生します。
+#
+#   ⚠️ lambda-adapter は必ず x86_64 バイナリを使用してください。
+#   arm64 バイナリ (0.9.1-aarch64) を使うと Lambda で起動しません。
+#
+# 使用方法:
+#   1. npm install && npm run build  (ローカルでNext.jsビルド)
+#   2. Lambda Adapter 取得 (x86_64):
+#      docker pull --platform linux/amd64 public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1
+#      id=$(docker create --platform linux/amd64 public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 /bin/true)
+#      docker cp $id:/lambda-adapter ./lambda-adapter && docker rm $id
+#      file ./lambda-adapter  # "ELF 64-bit LSB executable, x86-64" を確認
+#   3. docker build -f Dockerfile.prebuilt -t webapp .
+# ============================================================
+
+# --platform=linux/amd64: Lambda x86_64 と一致させるため固定。
+# Apple Silicon の Colima/Docker Desktop では qemu で透過的にエミュレーションされる。
+# ⚠️ この指定を外すと arm64 イメージが生成され Lambda で動作しない。
+FROM --platform=linux/amd64 public.ecr.aws/docker/library/node:22-slim
+
+# Lambda Web Adapter（x86_64 バイナリ、事前取得済み）
+# ⚠️ このバイナリは x86_64 ELF であること。
+#     file コマンドで "ELF 64-bit LSB executable, x86-64" を確認すること。
+#     arm64 バイナリを入れると Lambda 起動時に "exec format error" になる。
+COPY lambda-adapter /opt/extensions/lambda-adapter
+RUN chmod +x /opt/extensions/lambda-adapter
+
+ENV PORT=3000
+ENV NODE_ENV=production
+ENV AWS_LWA_ENABLE_COMPRESSION=true
+ENV HOSTNAME=0.0.0.0
+
+WORKDIR /app
+
+# Next.js standalone ビルド成果物（アーキテクチャ非依存、純粋 Node.js）
+# ローカル (arm64) でビルドしても x86_64 Lambda 上で問題なく動作する。
+COPY .next/standalone ./
+COPY .next/static ./.next/static
+COPY public ./public
+COPY package.json ./package.json
+COPY next.config.js ./next.config.js
+COPY i18n.ts ./i18n.ts
+COPY messages ./messages
+COPY src/i18n ./src/i18n
+COPY run.sh ./run.sh
+
+RUN ln -s /tmp/cache ./.next/cache
+RUN chmod +x ./run.sh
+
+EXPOSE 3000
+CMD exec ./run.sh
