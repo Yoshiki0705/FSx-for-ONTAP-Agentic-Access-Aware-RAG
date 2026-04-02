@@ -1,6 +1,6 @@
 # 認証・ユーザー管理ガイド
 
-**🌐 Language:** **日本語** | [English](en/auth-and-user-management.md)
+**🌐 Language:** **日本語** | [English](en/auth-and-user-management.md) | [한국어](ko/auth-and-user-management.md) | [简体中文](zh-CN/auth-and-user-management.md) | [繁體中文](zh-TW/auth-and-user-management.md) | [Français](fr/auth-and-user-management.md) | [Deutsch](de/auth-and-user-management.md) | [Español](es/auth-and-user-management.md)
 
 **作成日**: 2026-04-02
 **バージョン**: 3.3.0
