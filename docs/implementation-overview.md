@@ -226,7 +226,18 @@ Amazon FSx for NetApp ONTAPのボリュームをCIFS/SMBでマウントしたEC2
 | Option B（オプション） | Embeddingサーバー（CIFSマウント）→ ベクトルストア直接書き込み | `-c enableEmbeddingServer=true` | ✅（AOSS構成時のみ） |
 | Option C（オプション） | S3 Access Point → Bedrock KB | デプロイ後に手動設定 | ✅ SnapMirror対応、FlexCache近日対応 |
 
-> **S3 Access Pointについて**: StorageStackはFSx ONTAPボリュームにS3 Access Pointを自動作成しますが、FlexCache CacheボリュームではS3 Access Pointが利用不可（2026年3月時点）のため、Bedrock KBデータソースとしては未使用です。将来FlexCache対応が実現した際にOption Cとして活用できるよう基盤を準備しています。
+> **S3 Access Pointについて**: StorageStackはFSx ONTAPボリュームにS3 Access Pointを自動作成します。ボリュームのセキュリティスタイル（NTFS/UNIX）とAD参加状況に応じて、WINDOWSまたはUNIXユーザータイプのS3 APが作成されます。CDKコンテキストパラメータ `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` で明示的に制御可能です。
+
+#### S3 Access Point ユーザータイプ設計
+
+| パターン | ユーザータイプ | ユーザーソース | ボリュームStyle | 条件 |
+|---------|-------------|-------------|--------------|------|
+| A | WINDOWS | 既存ADユーザー（Admin） | NTFS/UNIX | AD参加済みSVM（推奨: NTFS環境） |
+| B | WINDOWS | 新規専用ADユーザー | NTFS/UNIX | AD参加済みSVM + 最小権限 |
+| C | UNIX | 既存UNIXユーザー（root） | UNIX | AD非参加（推奨: UNIX環境） |
+| D | UNIX | 新規専用UNIXユーザー | UNIX | AD非参加 + 最小権限 |
+
+SIDフィルタリングは全パターンで同一ロジック（`.metadata.json`のメタデータベース）で動作し、ボリュームのセキュリティスタイルやS3 APユーザータイプに依存しません。
 
 ### アーキテクチャ
 

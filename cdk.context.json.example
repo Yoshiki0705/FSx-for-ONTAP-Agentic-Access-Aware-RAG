@@ -32,6 +32,11 @@
   // "enableAdvancedPermissions": 時間ベースアクセス制御 + 権限判定監査ログ
   "enableAdvancedPermissions": false,
 
+  // ボリューム・S3 Access Point設定
+  // "volumeSecurityStyle": "NTFS" or "UNIX"（デフォルト: NTFS）
+  // "s3apUserType": "WINDOWS" or "UNIX"（デフォルト: AD設定あり→WINDOWS、なし→UNIX）
+  // "s3apUserName": S3 APユーザー名（デフォルト: WINDOWS→Admin、UNIX→root）
+
   // AD SAMLフェデレーション（オプション）
   // ADユーザーがCloudFront UIから直接サインインし、Cognitoユーザーが自動作成される
   // "enableAdFederation": true,

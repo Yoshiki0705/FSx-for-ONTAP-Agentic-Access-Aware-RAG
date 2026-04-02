@@ -99,6 +99,11 @@ const existingFileSystemId: string | undefined = app.node.tryGetContext('existin
 const existingSvmId: string | undefined = app.node.tryGetContext('existingSvmId');
 const existingVolumeId: string | undefined = app.node.tryGetContext('existingVolumeId');
 
+// ボリューム・S3 APユーザー設定
+const volumeSecurityStyle = (app.node.tryGetContext('volumeSecurityStyle') || 'NTFS') as 'NTFS' | 'UNIX';
+const s3apUserType = app.node.tryGetContext('s3apUserType') as 'WINDOWS' | 'UNIX' | undefined;
+const s3apUserName: string | undefined = app.node.tryGetContext('s3apUserName');
+
 const primaryEnv: cdk.Environment = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
   region: process.env.CDK_DEFAULT_REGION || 'ap-northeast-1',
@@ -133,6 +138,7 @@ const storageStack = new DemoStorageStack(app, `${stackPrefix}-Storage`, {
   enableKmsEncryption, enableCloudTrail,
   enableAdvancedPermissions,
   existingFileSystemId, existingSvmId, existingVolumeId,
+  volumeSecurityStyle, s3apUserType, s3apUserName,
   env: primaryEnv,
   description: `[${projectName}] ${existingFileSystemId ? 'Existing FSx ONTAP + ' : 'FSx ONTAP + SVM + '}S3 + DynamoDB`,
 });

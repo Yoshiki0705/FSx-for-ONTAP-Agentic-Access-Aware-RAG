@@ -42,6 +42,22 @@ export interface DemoStorageStackProps extends cdk.StackProps {
   existingVolumeId?: string;
   /** 高度権限制御を有効化するか（デフォルト: false） */
   enableAdvancedPermissions?: boolean;
+  /** ボリュームのセキュリティスタイル（デフォルト: NTFS） */
+  volumeSecurityStyle?: 'NTFS' | 'UNIX';
+  /**
+   * S3 Access Pointのユーザータイプ（デフォルト: 自動判定）
+   * - WINDOWS: NTFS ACLベースのアクセス制御（AD参加必須）
+   * - UNIX: POSIXベースのアクセス制御
+   * 未指定時: AD設定あり→WINDOWS、なし→UNIX
+   */
+  s3apUserType?: 'WINDOWS' | 'UNIX';
+  /**
+   * S3 Access Pointのユーザー名（デフォルト: 自動判定）
+   * - WINDOWS: 'Admin'（ドメインプレフィクスなし）
+   * - UNIX: 'root'
+   * 新規ユーザーを作成する場合はそのユーザー名を指定
+   */
+  s3apUserName?: string;
 }
 
 export class DemoStorageStack extends cdk.Stack {
@@ -71,6 +87,7 @@ export class DemoStorageStack extends cdk.Stack {
     const prefix = `${projectName}-${environment}`;
     const domainName = adDomainName || 'demo.local';
     const useExistingFsx = !!props.existingFileSystemId;
+    const volumeSecurityStyle = props.volumeSecurityStyle || 'NTFS';
 
     // ========================================
     // KMS暗号化キー（オプション）
@@ -155,7 +172,7 @@ export class DemoStorageStack extends cdk.Stack {
           sizeInMegabytes: '102400',
           storageVirtualMachineId: this.svm.ref,
           storageEfficiencyEnabled: 'true',
-          securityStyle: 'NTFS',
+          securityStyle: volumeSecurityStyle,
           tieringPolicy: {
             coolingPeriod: 31,
             name: 'AUTO',
@@ -289,19 +306,30 @@ export class DemoStorageStack extends cdk.Stack {
       code: lambda.Code.fromInline(this.getS3ApCreatorCode()),
     });
 
-    // S3 APのユーザータイプはボリュームのセキュリティスタイルに合わせる:
-    // - NTFS + AD → WINDOWS（NTFS ACLが自動適用、SMBユーザーのアクセス制御が有効）
-    // - NTFS + AD なし → UNIX root（AD参加前でもS3 AP作成可能、全ファイルアクセス）
-    // - UNIX → UNIX
+    // ========================================
+    // S3 Access Point ユーザータイプ判定（4パターン対応）
+    // ========================================
+    //
+    // | パターン | UserType | UserSource | 条件 |
+    // |---------|----------|------------|------|
+    // | A | WINDOWS | 既存ADユーザー | AD設定あり + NTFS/UNIXボリューム |
+    // | B | WINDOWS | 新規専用ユーザー | AD設定あり + s3apUserName指定 |
+    // | C | UNIX | 既存UNIXユーザー | AD設定なし or 明示的にUNIX指定 |
+    // | D | UNIX | 新規専用ユーザー | AD設定なし + s3apUserName指定 |
+    //
+    // 重要: WINDOWSユーザーにはドメインプレフィクスを付けない（例: 'Admin'）
+    // ドメインプレフィクス付き（例: 'DEMO\Admin'）はCLIでは受け入れられるが、
+    // データプレーンAPI（ListObjects, GetObject等）がAccessDeniedになる
     //
     // AD設定がある場合、S3 APはSVM AD参加後にポストデプロイスクリプトで作成する。
     // AD設定がない場合、CDKカスタムリソースで即座に作成する。
     const hasAd = !!adPassword;
-    const s3ApUserType = hasAd ? 'WINDOWS' : 'UNIX';
-    // 重要: WindowsUserにはドメインプレフィクスを付けない（例: 'Admin'）
-    // ドメインプレフィクス付き（例: 'DEMO\Admin'）はCLIでは受け入れられるが、
-    // データプレーンAPI（ListObjects, GetObject等）がAccessDeniedになる
-    const s3ApUserName = hasAd ? 'Admin' : 'root';
+
+    // ユーザータイプ: 明示的指定 > 自動判定（AD設定あり→WINDOWS、なし→UNIX）
+    const s3ApUserType = props.s3apUserType || (hasAd ? 'WINDOWS' : 'UNIX');
+
+    // ユーザー名: 明示的指定 > デフォルト（WINDOWS→Admin、UNIX→root）
+    const s3ApUserName = props.s3apUserName || (s3ApUserType === 'WINDOWS' ? 'Admin' : 'root');
 
     const s3ApResource = new cdk.CustomResource(this, 'FsxS3AccessPoint', {
       serviceToken: s3ApCreatorFn.functionArn,

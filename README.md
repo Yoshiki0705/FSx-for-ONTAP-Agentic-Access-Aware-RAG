@@ -413,6 +413,9 @@ EC2上のADとEntra ID（旧Azure AD）を連携し、Entra IDのフェデレー
 | `ontapSvmUuid` | (なし) | SVM UUID（`ontapMgmtIp`と併用） |
 | `ontapAdminSecretArn` | (なし) | ONTAP管理者パスワードのSecrets Manager ARN |
 | `useS3AccessPoint` | `false` | S3 Access PointをBedrock KBデータソースとして使用 |
+| `volumeSecurityStyle` | `NTFS` | FSx ONTAPボリュームのセキュリティスタイル（`NTFS` or `UNIX`） |
+| `s3apUserType` | (自動) | S3 APユーザータイプ（`WINDOWS` or `UNIX`）。未指定時: AD設定あり→WINDOWS、なし→UNIX |
+| `s3apUserName` | (自動) | S3 APユーザー名。未指定時: WINDOWS→`Admin`、UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | SIDフィルタリングを専用Lambda経由で実行（インラインフィルタリングのフォールバック付き） |
 | `enableGuardrails` | `false` | Bedrock Guardrails（有害コンテンツフィルタ + PII保護） |
 | `enableAgent` | `false` | Bedrock Agent + Permission-aware Action Group（KB検索 + SIDフィルタリング）。動的Agent作成（カードクリック時にカテゴリ別Agentを自動作成・紐付け） |
@@ -1421,6 +1424,97 @@ aws fsx update-storage-virtual-machine \
 > **重要**: AWS Managed ADの場合、`OrganizationalUnitDistinguishedName`を指定しないとSVM AD参加が`MISCONFIGURED`になります。OUパスは`OU=Computers,OU=<AD ShortName>,DC=<domain>,DC=<tld>`の形式です。
 
 S3 Access Pointの設計判断（WINDOWSユーザータイプ、Internetアクセス）の詳細もガイドに記載しています。
+
+### S3 Access Point ユーザー設計ガイド
+
+S3 Access Pointの作成時に指定するユーザータイプとユーザー名の組み合わせは、ボリュームのセキュリティスタイルとAD参加状況に応じて4パターンあります。
+
+#### 4パターン決定マトリックス
+
+| パターン | ユーザータイプ | ユーザーソース | 条件 | CDKパラメータ例 |
+|---------|-------------|-------------|------|---------------|
+| A | WINDOWS | 既存ADユーザー | AD参加済みSVM + NTFS/UNIXボリューム | `s3apUserType=WINDOWS` (デフォルト) |
+| B | WINDOWS | 新規専用ユーザー | AD参加済みSVM + 専用サービスアカウント | `s3apUserType=WINDOWS s3apUserName=s3ap-service` |
+| C | UNIX | 既存UNIXユーザー | AD非参加 or UNIXボリューム | `s3apUserType=UNIX` (デフォルト) |
+| D | UNIX | 新規専用ユーザー | AD非参加 + 専用ユーザー | `s3apUserType=UNIX s3apUserName=s3ap-user` |
+
+#### パターン選択フローチャート
+
+```
+SVMがADに参加している？
+  ├── はい → NTFSボリューム？
+  │           ├── はい → パターンA（WINDOWS + 既存ADユーザー）推奨
+  │           └── いいえ → パターンA or C（どちらも動作）
+  └── いいえ → パターンC（UNIX + root）推奨
+```
+
+#### 各パターンの詳細
+
+**パターンA: WINDOWS + 既存ADユーザー（推奨: NTFS環境）**
+
+```bash
+# CDKデプロイ
+npx cdk deploy --all -c adPassword=<PASSWORD> -c volumeSecurityStyle=NTFS
+# → S3 AP: WINDOWS, Admin（自動設定）
+```
+
+- NTFS ACLに基づくファイルレベルのアクセス制御が有効
+- ADの`Admin`ユーザーでS3 AP経由のファイルアクセスが行われる
+- 重要: ドメインプレフィクス（`DEMO\Admin`）は付けない。`Admin`のみ指定
+
+**パターンB: WINDOWS + 新規専用ユーザー**
+
+```bash
+# 1. ADに専用サービスアカウントを作成（PowerShell）
+New-ADUser -Name "s3ap-service" -AccountPassword (ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force) -Enabled $true
+
+# 2. CDKデプロイ
+npx cdk deploy --all -c adPassword=<PASSWORD> -c s3apUserName=s3ap-service
+```
+
+- 最小権限の原則に基づく専用アカウント
+- 監査ログでS3 APアクセスを明確に識別可能
+
+**パターンC: UNIX + 既存UNIXユーザー（推奨: UNIX環境）**
+
+```bash
+# CDKデプロイ（AD設定なし）
+npx cdk deploy --all -c volumeSecurityStyle=UNIX
+# → S3 AP: UNIX, root（自動設定）
+```
+
+- POSIX権限（uid/gid）に基づくアクセス制御
+- `root`ユーザーで全ファイルにアクセス可能
+- SIDフィルタリングは`.metadata.json`のメタデータベースで動作（ファイルシステムACLに依存しない）
+
+**パターンD: UNIX + 新規専用ユーザー**
+
+```bash
+# 1. ONTAP CLIで専用UNIXユーザーを作成
+vserver services unix-user create -vserver <SVM_NAME> -user s3ap-user -id 1100 -primary-gid 0
+
+# 2. CDKデプロイ
+npx cdk deploy --all -c volumeSecurityStyle=UNIX -c s3apUserType=UNIX -c s3apUserName=s3ap-user
+```
+
+- 最小権限の原則に基づく専用アカウント
+- `root`以外のユーザーでアクセスする場合、ボリュームのPOSIX権限設定が必要
+
+#### SIDフィルタリングとの関係
+
+SIDフィルタリングはS3 APのユーザータイプに依存しません。全パターンで同じロジックが動作します:
+
+```
+.metadata.json の allowed_group_sids
+  ↓
+Bedrock KB Retrieve API でメタデータとして返却
+  ↓
+route.ts でユーザーSID（DynamoDB user-access）と照合
+  ↓
+マッチ → ALLOW、不一致 → DENY
+```
+
+NTFSボリュームでもUNIXボリュームでも、`.metadata.json`にSID情報を記載すれば同じSIDフィルタリングが適用されます。
 
 ## License
 
