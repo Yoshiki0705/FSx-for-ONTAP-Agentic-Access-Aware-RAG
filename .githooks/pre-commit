@@ -1,0 +1,14 @@
+#!/bin/bash
+# Pre-commit hook: prevent commits with wrong author email
+# Only allow commits from the verified GitHub noreply address
+
+ALLOWED_EMAIL="40357845+Yoshiki0705@users.noreply.github.com"
+CURRENT_EMAIL=$(git config user.email)
+
+if [ "$CURRENT_EMAIL" != "$ALLOWED_EMAIL" ]; then
+  echo "ERROR: Git user.email is '$CURRENT_EMAIL'"
+  echo "Expected: '$ALLOWED_EMAIL'"
+  echo ""
+  echo "Fix with: git config user.email '$ALLOWED_EMAIL'"
+  exit 1
+fi
