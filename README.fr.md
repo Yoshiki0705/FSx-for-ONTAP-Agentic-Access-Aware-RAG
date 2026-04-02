@@ -854,30 +854,34 @@ aws bedrock-agent start-ingestion-job \
 ### Flux de traitement (Méthode en 2 étapes : Retrieve + Converse)
 
 ```
-User              Next.js API           DynamoDB          Bedrock KB       Converse API
-  │                  │                    │                  │                │
-  │ 1.Envoyer question│                   │                  │                │
-  │─────────────────▶│                    │                  │                │
-  │                  │ 2.Obtenir SID user │                  │                │
-  │                  │───────────────────▶│                  │                │
-  │                  │◀───────────────────│                  │                │
-  │                  │ userSID + groupSIDs│                  │                │
-  │                  │                    │                  │                │
-  │                  │ 3.Retrieve API (recherche vectorielle + métadonnées)   │
-  │                  │─────────────────────────────────────▶│                │
-  │                  │◀─────────────────────────────────────│                │
-  │                  │ Résultats + métadonnées (SID)        │                │
-  │                  │                    │                  │                │
-  │                  │ 4.Correspondance SID│                 │                │
-  │                  │ SID utilisateur ∩  │                  │                │
-  │                  │ SID document       │                  │                │
-  │                  │                    │                  │                │
-  │                  │ 5.Générer réponse avec documents autorisés uniquement  │
-  │                  │──────────────────────────────────────────────────────▶│
-  │                  │◀──────────────────────────────────────────────────────│
-  │                  │                    │                  │                │
-  │ 6.Résultat filtré│                    │                  │                │
-  │◀─────────────────│                    │                  │                │
+User              Next.js API             DynamoDB            Bedrock KB         Converse API
+  |                    |                      |                    |                  |
+  | 1. Send query      |                      |                    |                  |
+  |------------------->|                      |                    |                  |
+  |                    | 2. Get user SIDs     |                    |                  |
+  |                    |--------------------->|                    |                  |
+  |                    |<---------------------|                    |                  |
+  |                    | userSID + groupSIDs  |                    |                  |
+  |                    |                      |                    |                  |
+  |                    | 3. Retrieve API      |                    |                  |
+  |                    |  (vector search)     |                    |                  |
+  |                    |--------------------->|------------------->|                  |
+  |                    |<---------------------|                    |                  |
+  |                    | Results + metadata   |                    |                  |
+  |                    |  (allowed_group_sids)|                    |                  |
+  |                    |                      |                    |                  |
+  |                    | 4. SID matching      |                    |                  |
+  |                    | userSIDs n docSIDs   |                    |                  |
+  |                    | -> Match: ALLOW      |                    |                  |
+  |                    | -> No match: DENY    |                    |                  |
+  |                    |                      |                    |                  |
+  |                    | 5. Generate answer   |                    |                  |
+  |                    |  (allowed docs only) |                    |                  |
+  |                    |--------------------->|------------------->|----------------->|
+  |                    |<---------------------|                    |                  |
+  |                    |                      |                    |                  |
+  | 6. Filtered result |                      |                    |                  |
+  |<-------------------|                      |                    |                  |
 ```
 
 1. L'utilisateur envoie une question via le chat

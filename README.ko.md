@@ -1251,30 +1251,34 @@ EC2 인스턴스(m5.large)는 시작 시 다음을 수행합니다:
 ### 처리 흐름 (2단계 방식: Retrieve + Converse)
 
 ```
-User              Next.js API           DynamoDB          Bedrock KB       Converse API
-  │                  │                    │                  │                │
-  │ 1.Send question  │                    │                  │                │
-  │─────────────────▶│                    │                  │                │
-  │                  │ 2.Get user SIDs    │                  │                │
-  │                  │───────────────────▶│                  │                │
-  │                  │◀───────────────────│                  │                │
-  │                  │ userSID + groupSIDs│                  │                │
-  │                  │                    │                  │                │
-  │                  │ 3.Retrieve API (vector search + metadata)              │
-  │                  │─────────────────────────────────────▶│                │
-  │                  │◀─────────────────────────────────────│                │
-  │                  │ Search results + metadata (SID)      │                │
-  │                  │                    │                  │                │
-  │                  │ 4.SID matching     │                  │                │
-  │                  │ User SID ∩         │                  │                │
-  │                  │ Document SID       │                  │                │
-  │                  │                    │                  │                │
-  │                  │ 5.Generate response with permitted documents only      │
-  │                  │──────────────────────────────────────────────────────▶│
-  │                  │◀──────────────────────────────────────────────────────│
-  │                  │                    │                  │                │
-  │ 6.Filtered result│                    │                  │                │
-  │◀─────────────────│                    │                  │                │
+User              Next.js API             DynamoDB            Bedrock KB         Converse API
+  |                    |                      |                    |                  |
+  | 1. Send query      |                      |                    |                  |
+  |------------------->|                      |                    |                  |
+  |                    | 2. Get user SIDs     |                    |                  |
+  |                    |--------------------->|                    |                  |
+  |                    |<---------------------|                    |                  |
+  |                    | userSID + groupSIDs  |                    |                  |
+  |                    |                      |                    |                  |
+  |                    | 3. Retrieve API      |                    |                  |
+  |                    |  (vector search)     |                    |                  |
+  |                    |--------------------->|------------------->|                  |
+  |                    |<---------------------|                    |                  |
+  |                    | Results + metadata   |                    |                  |
+  |                    |  (allowed_group_sids)|                    |                  |
+  |                    |                      |                    |                  |
+  |                    | 4. SID matching      |                    |                  |
+  |                    | userSIDs n docSIDs   |                    |                  |
+  |                    | -> Match: ALLOW      |                    |                  |
+  |                    | -> No match: DENY    |                    |                  |
+  |                    |                      |                    |                  |
+  |                    | 5. Generate answer   |                    |                  |
+  |                    |  (allowed docs only) |                    |                  |
+  |                    |--------------------->|------------------->|----------------->|
+  |                    |<---------------------|                    |                  |
+  |                    |                      |                    |                  |
+  | 6. Filtered result |                      |                    |                  |
+  |<-------------------|                      |                    |                  |
 ```
 
 1. 사용자가 채팅으로 질문 전송

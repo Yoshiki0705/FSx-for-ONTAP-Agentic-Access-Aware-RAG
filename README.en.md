@@ -1251,30 +1251,34 @@ The EC2 instance (m5.large) performs the following at startup:
 ### Processing Flow (2-Stage Method: Retrieve + Converse)
 
 ```
-User              Next.js API           DynamoDB          Bedrock KB       Converse API
-  │                  │                    │                  │                │
-  │ 1.Send question  │                    │                  │                │
-  │─────────────────▶│                    │                  │                │
-  │                  │ 2.Get user SIDs    │                  │                │
-  │                  │───────────────────▶│                  │                │
-  │                  │◀───────────────────│                  │                │
-  │                  │ userSID + groupSIDs│                  │                │
-  │                  │                    │                  │                │
-  │                  │ 3.Retrieve API (vector search + metadata)              │
-  │                  │─────────────────────────────────────▶│                │
-  │                  │◀─────────────────────────────────────│                │
-  │                  │ Search results + metadata (SID)      │                │
-  │                  │                    │                  │                │
-  │                  │ 4.SID matching     │                  │                │
-  │                  │ User SID ∩         │                  │                │
-  │                  │ Document SID       │                  │                │
-  │                  │                    │                  │                │
-  │                  │ 5.Generate response with permitted documents only      │
-  │                  │──────────────────────────────────────────────────────▶│
-  │                  │◀──────────────────────────────────────────────────────│
-  │                  │                    │                  │                │
-  │ 6.Filtered result│                    │                  │                │
-  │◀─────────────────│                    │                  │                │
+User              Next.js API             DynamoDB            Bedrock KB         Converse API
+  |                    |                      |                    |                  |
+  | 1. Send query      |                      |                    |                  |
+  |------------------->|                      |                    |                  |
+  |                    | 2. Get user SIDs     |                    |                  |
+  |                    |--------------------->|                    |                  |
+  |                    |<---------------------|                    |                  |
+  |                    | userSID + groupSIDs  |                    |                  |
+  |                    |                      |                    |                  |
+  |                    | 3. Retrieve API      |                    |                  |
+  |                    |  (vector search)     |                    |                  |
+  |                    |--------------------->|------------------->|                  |
+  |                    |<---------------------|                    |                  |
+  |                    | Results + metadata   |                    |                  |
+  |                    |  (allowed_group_sids)|                    |                  |
+  |                    |                      |                    |                  |
+  |                    | 4. SID matching      |                    |                  |
+  |                    | userSIDs n docSIDs   |                    |                  |
+  |                    | -> Match: ALLOW      |                    |                  |
+  |                    | -> No match: DENY    |                    |                  |
+  |                    |                      |                    |                  |
+  |                    | 5. Generate answer   |                    |                  |
+  |                    |  (allowed docs only) |                    |                  |
+  |                    |--------------------->|------------------->|----------------->|
+  |                    |<---------------------|                    |                  |
+  |                    |                      |                    |                  |
+  | 6. Filtered result |                      |                    |                  |
+  |<-------------------|                      |                    |                  |
 ```
 
 1. User sends a question via chat

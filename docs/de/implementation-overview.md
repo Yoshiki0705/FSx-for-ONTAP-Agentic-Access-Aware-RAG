@@ -413,32 +413,37 @@ DynamoDB user-access Table
 ### Filtering Processing Flow (Two-Stage Method)
 
 ```
-User              Next.js API Route        DynamoDB          Bedrock KB        Bedrock Converse
-  │                  │                       │                  │                  │
-  │ 1. Submit query  │                       │                  │                  │
-  │─────────────────▶│                       │                  │                  │
-  │                  │ 2. Get user SIDs      │                  │                  │
-  │                  │──────────────────────▶│                  │                  │
-  │                  │◀──────────────────────│                  │                  │
-  │                  │ userSID + groupSIDs   │                  │                  │
-  │                  │                       │                  │                  │
-  │                  │ 3. Retrieve API (vector search)          │                  │
-  │                  │─────────────────────────────────────────▶│                  │
-  │                  │◀─────────────────────────────────────────│                  │
-  │                  │ Search results + metadata(allowed_group_sids)               │
-  │                  │                       │                  │                  │
-  │                  │ 4. SID matching        │                  │                  │
-  │                  │ User SIDs ∩ Document SIDs                │                  │
-  │                  │ → Match: ALLOW                           │                  │
-  │                  │ → No match: DENY                         │                  │
-  │                  │                       │                  │                  │
-  │                  │ 5. Converse API (generate answer using only allowed docs)   │
-  │                  │────────────────────────────────────────────────────────────▶│
-  │                  │◀────────────────────────────────────────────────────────────│
-  │                  │                       │                  │                  │
-  │ 6. Filtered      │                       │                  │                  │
-  │    answer+Citation│                      │                  │                  │
-  │◀─────────────────│                       │                  │                  │
+User            Next.js API         DynamoDB        Bedrock KB      Converse API
+  |                  |                  |                |                |
+  | 1. Send query    |                  |                |                |
+  |----------------->|                  |                |                |
+  |                  | 2. Get user SIDs |                |                |
+  |                  |----------------->|                |                |
+  |                  |<-----------------|                |                |
+  |                  | userSID+groupSIDs|                |                |
+  |                  |                  |                |                |
+  |                  | 3. Retrieve API  |                |                |
+  |                  |  (vector search) |                |                |
+  |                  |----------------->|--------------->|                |
+  |                  |<-----------------|                |                |
+  |                  | Results+metadata |                |                |
+  |                  | (allowed_group   |                |                |
+  |                  |  _sids)          |                |                |
+  |                  |                  |                |                |
+  |                  | 4. SID matching  |                |                |
+  |                  |  userSIDs n      |                |                |
+  |                  |  documentSIDs    |                |                |
+  |                  |  Match->ALLOW    |                |                |
+  |                  |  No match->DENY  |                |                |
+  |                  |                  |                |                |
+  |                  | 5. Converse API  |                |                |
+  |                  |  (allowed docs)  |                |                |
+  |                  |----------------->|--------------->|--------------->|
+  |                  |<-----------------|                |                |
+  |                  |                  |                |                |
+  | 6. Filtered      |                  |                |                |
+  |    result        |                  |                |                |
+  |<-----------------|                  |                |                |
 ```
 
 Reason for using the Retrieve API: The RetrieveAndGenerate API does not return citation metadata (`allowed_group_sids`), so SID filtering does not work. The Retrieve API correctly returns metadata, so the two-stage method (Retrieve → SID Filter → Converse) is adopted.
