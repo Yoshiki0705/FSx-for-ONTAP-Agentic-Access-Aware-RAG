@@ -12,7 +12,7 @@
 
 ```
 ┌──────────┐     ┌──────────┐     ┌────────────┐     ┌─────────────────────┐
-│ ブラウザ  │────▶│ AWS WAF  │────▶│ CloudFront │────▶│ Lambda Web Adapter  │
+│ Browser  │────▶│ AWS WAF  │────▶│ CloudFront │────▶│ Lambda Web Adapter  │
 └──────────┘     └──────────┘     │ (OAC+Geo)  │     │ (Next.js, IAM Auth) │
                                    └────────────┘     └──────┬──────────────┘
                                                              │
@@ -21,7 +21,7 @@
               ┌─────────────┐    ┌──────────────────┐ ┌──────────────┐   ┌──────────────┐
               │ Cognito     │    │ Bedrock KB       │ │ DynamoDB     │   │ DynamoDB     │
               │ User Pool   │    │ + S3 Vectors /   │ │ user-access  │   │ perm-cache   │
-              └─────────────┘    │   OpenSearch SL  │ │ (SIDデータ)  │   │ (権限Cache)  │
+              └─────────────┘    │   OpenSearch SL  │ │ (SID Data)   │   │ (Perm Cache) │
                                  └────────┬─────────┘ └──────────────┘   └──────────────┘
                                           │
                                           ▼
@@ -30,12 +30,12 @@
                                  │ (SVM + Volume)   │
                                  │ + S3 Access Point│
                                  └────────┬─────────┘
-                                          │ CIFS/SMB (オプション)
+                                          │ CIFS/SMB (optional)
                                           ▼
                                  ┌──────────────────┐
                                  │ Embedding EC2    │
                                  │ (Titan Embed v2) │
-                                 │ (オプション)      │
+                                 │ (optional)       │
                                  └──────────────────┘
 ```
 
@@ -1251,30 +1251,31 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 ### 処理フロー（2段階方式: Retrieve + Converse）
 
 ```
-ユーザー          Next.js API           DynamoDB          Bedrock KB       Converse API
-  │                  │                    │                  │                │
-  │ 1.質問送信       │                    │                  │                │
-  │─────────────────▶│                    │                  │                │
-  │                  │ 2.ユーザーSID取得   │                  │                │
-  │                  │───────────────────▶│                  │                │
-  │                  │◀───────────────────│                  │                │
-  │                  │ userSID + groupSIDs│                  │                │
-  │                  │                    │                  │                │
-  │                  │ 3.Retrieve API（ベクトル検索+メタデータ）│                │
-  │                  │─────────────────────────────────────▶│                │
-  │                  │◀─────────────────────────────────────│                │
-  │                  │ 検索結果 + メタデータ(SID)            │                │
-  │                  │                    │                  │                │
-  │                  │ 4.SIDマッチング    │                  │                │
-  │                  │ ユーザーSID ∩      │                  │                │
-  │                  │ ドキュメントSID    │                  │                │
-  │                  │                    │                  │                │
-  │                  │ 5.許可ドキュメントのみで回答生成                       │
-  │                  │──────────────────────────────────────────────────────▶│
-  │                  │◀──────────────────────────────────────────────────────│
-  │                  │                    │                  │                │
-  │ 6.フィルタ済み結果│                    │                  │                │
-  │◀─────────────────│                    │                  │                │
+User            Next.js API           DynamoDB          Bedrock KB       Converse API
+  |                  |                    |                  |                |
+  | 1. Send query    |                    |                  |                |
+  |----------------->|                    |                  |                |
+  |                  | 2. Get user SIDs   |                  |                |
+  |                  |------------------>|                  |                |
+  |                  |<------------------|                  |                |
+  |                  | userSID + groupSIDs|                  |                |
+  |                  |                    |                  |                |
+  |                  | 3. Retrieve API (vector search + metadata)             |
+  |                  |------------------------------------->|                |
+  |                  |<-------------------------------------|                |
+  |                  | Results + metadata (SID)             |                |
+  |                  |                    |                  |                |
+  |                  | 4. SID matching    |                  |                |
+  |                  | userSIDs ∩         |                  |                |
+  |                  | documentSIDs       |                  |                |
+  |                  |                    |                  |                |
+  |                  | 5. Generate answer with allowed docs only             |
+  |                  |------------------------------------------------------>|
+  |                  |<------------------------------------------------------|
+  |                  |                    |                  |                |
+  | 6. Filtered      |                    |                  |                |
+  |    result        |                    |                  |                |
+  |<-----------------|                    |                  |                |
 ```
 
 1. ユーザーがチャットで質問を送信
@@ -1289,15 +1290,15 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 各ドキュメントには `.metadata.json` でNTFS ACLのSID情報が付与されています。検索時にユーザーのSIDとドキュメントのSIDを照合し、マッチした場合のみアクセスを許可します。
 
 ```
-■ 管理者ユーザー: SID = [...-512 (Domain Admins), S-1-1-0 (Everyone)]
-  public/     (Everyone)      → S-1-1-0 マッチ → ✅ 許可
-  confidential/ (Domain Admins) → ...-512 マッチ → ✅ 許可
-  restricted/ (Engineering+DA) → ...-512 マッチ → ✅ 許可
+Admin user: SID = [...-512 (Domain Admins), S-1-1-0 (Everyone)]
+  public/       (Everyone)       -> S-1-1-0 match  -> Allowed
+  confidential/ (Domain Admins)  -> ...-512 match  -> Allowed
+  restricted/   (Engineering+DA) -> ...-512 match  -> Allowed
 
-■ 一般ユーザー: SID = [...-1001, S-1-1-0 (Everyone)]
-  public/     (Everyone)      → S-1-1-0 マッチ → ✅ 許可
-  confidential/ (Domain Admins) → マッチなし   → ❌ 拒否
-  restricted/ (Engineering+DA) → マッチなし   → ❌ 拒否
+Regular user: SID = [...-1001, S-1-1-0 (Everyone)]
+  public/       (Everyone)       -> S-1-1-0 match  -> Allowed
+  confidential/ (Domain Admins)  -> No match       -> Denied
+  restricted/   (Engineering+DA) -> No match       -> Denied
 ```
 
 詳細は [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) を参照してください。
