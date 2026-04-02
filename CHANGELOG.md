@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - KBモード会話コンテキスト統合（AgentCore Memoryから直近の会話履歴をConverse APIに追加）
 - i18n: `agentcore.memory.*` / `agentcore.session.*` 翻訳キー（8言語対応）
 - プロパティベーステスト + ユニットテスト追加
+- **Advanced Permission Control**: `enableAdvancedPermissions=true` で有効化。時間ベースアクセス制御（`accessSchedule`フィールド）+ 権限判定監査ログ（`permission-audit` DynamoDBテーブル、GSI、TTL 90日）
+- `ScheduleEvaluator`: タイムゾーン・曜日・時刻範囲によるアクセス制御（フェイルオープン設計）
+- `AuditLogger`: 非ブロッキング監査ログ記録（リトライ3回、指数バックオフ）
+- プロパティベーステスト6件（Property 1-6: ラウンドトリップ、スケジュール正当性、後方互換性、監査完全性、TTL正当性、SID不変性）
+- **多言語ドキュメント**: `docs/` 配下の全11ドキュメントを8言語に翻訳（`docs/{en,ko,zh-CN,zh-TW,fr,de,es}/`）
+- **S3 Access Point データソース**: FSx ONTAP S3 AP経由のBedrock KBデータソース設定・検証完了
+- Steeringファイル: `.kiro/steering/multilingual-docs.md`（ドキュメント更新時の多言語自動反映ルール）
 
 ### Changed
 - `bin/demo-app.ts`: `enableAgentCoreMemory` コンテキストパラメータ追加
@@ -36,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API認証: `sessionManager.getSessionFromCookies()`（DynamoDB依存）→ Cookie JWT直接検証に変更
 - actorId: メールアドレスの `@` `.` を `_at_` `_dot_` に置換（AgentCore APIバリデーション対応）
 - Lambda IAM: `bedrock-agentcore:*` ポリシーをWebApp Lambda実行ロールに条件付き追加
+
+### Fixed
+- **S3 Access Point WindowsUser**: ドメインプレフィクス付き（`DEMO\Admin`）でCLI作成するとデータプレーンAPIがAccessDenied。`Admin`（プレフィクスなし）に修正。CDKカスタムリソースにドメインプレフィクス自動除去の安全策追加
+- **SIDメタデータ ダブルクォート**: S3 Vectors経由でインジェストされた `allowed_group_sids` 配列要素に余分なダブルクォートが付加される問題。route.tsとadvanced-permission-filter.tsのSIDパース処理に `.replace(/^"|"$/g, '')` を追加
+- **schedule-evaluator importパス**: Next.js standaloneビルドで `lambda/permissions/` パスが解決できない問題。モジュールを `docker/nextjs/src/lib/permissions/` にコピーして `@/lib/permissions/` パスに変更
+- **actorIdバリデーション**: route.tsでAgentCore Memory呼び出し時にuserIdのメールアドレスをサニタイズせず渡していた問題。`@` → `_at_`、`.` → `_dot_` 置換を追加
+- **i18n翻訳キー不足**: 6言語（ko/zh-CN/zh-TW/fr/de/es）で60-91キーが不足。permissions.*, model.selector.*, sidebar.*, chat.*等を全言語に追加。`messages/` と `src/messages/` の二重管理を同期
 
 ## [3.2.0] - 2026-04
 
