@@ -107,20 +107,20 @@ Lambda Function URLにIAM認証（`AWS_IAM`）を設定し、CloudFront Origin A
 ### 認証フロー
 
 ```
-ブラウザ
-  │
-  ▼
-CloudFront (OAC: SigV4署名を自動付与)
-  │
-  ▼
+Browser
+  |
+  v
+CloudFront (OAC: auto SigV4 signing)
+  |
+  v
 Lambda Function URL (AuthType: AWS_IAM)
-  │ → SigV4署名を検証
-  │ → CloudFrontからのリクエストのみ許可
-  ▼
-Next.js アプリケーション
-  │
-  ▼
-Cognito JWT検証 (アプリケーションレベル認証)
+  | -> Validate SigV4 signature
+  | -> Allow only requests from CloudFront
+  v
+Next.js Application
+  |
+  v
+Cognito JWT Validation (Application-level auth)
 ```
 
 ### セキュリティレイヤー
@@ -295,10 +295,10 @@ SIDフィルタリングは全パターンで同一ロジック（`.metadata.jso
 
 ```
 docker/embed/
-├── src/index.ts      # メイン処理（スキャン→チャンク→Embedding→インデックス）
-├── src/oss-client.ts  # AOSS SigV4署名クライアント（IMDS認証対応）
+├── src/index.ts       # Main processing (Scan -> Chunk -> Embedding -> Index)
+├── src/oss-client.ts  # AOSS SigV4 signing client (IMDS auth support)
 ├── Dockerfile         # node:22-slim + cifs-utils
-├── buildspec.yml      # CodeBuild用ビルド定義
+├── buildspec.yml      # CodeBuild build definition
 └── package.json       # AWS SDK v3, chokidar, dotenv
 ```
 
@@ -363,7 +363,7 @@ embeddingModelArn: `arn:aws:bedrock:${region}::foundation-model/amazon.titan-emb
 SID（Security Identifier）は、Windows/NTFSにおけるセキュリティプリンシパル（ユーザー、グループ）の一意識別子です。
 
 ```
-S-1-5-21-{ドメインID1}-{ドメインID2}-{ドメインID3}-{RID}
+S-1-5-21-{DomainID1}-{DomainID2}-{DomainID3}-{RID}
 ```
 
 | SID | 名前 | 説明 |
@@ -576,10 +576,10 @@ User -> Drag & drop image or file picker
 現在の実装では、画像データはどこにも永続的に保管されない完全ステートレスなフローです。
 
 ```
-ブラウザ（FileReader → Base64 → useState）
-  → APIリクエストJSONボディに含めてPOST
-  → Lambda（Buffer.from → Bedrock Converse API送信 → テキスト結果取得）
-  → レスポンス返却後、画像データはGCで破棄
+Browser (FileReader -> Base64 -> useState)
+  -> Include in API request JSON body via POST
+  -> Lambda (Buffer.from -> Bedrock Converse API -> Get text result)
+  -> After response, image data is discarded by GC
 ```
 
 - S3やDynamoDB等への画像保存は一切なし
@@ -614,20 +614,20 @@ User -> Drag & drop image or file picker
 #### 推奨アーキテクチャ（将来実装時）
 
 ```
-画像アップロード時:
-  ブラウザ → S3 presigned URL → S3バケット（画像保存、TTL付き）
-  → DynamoDB（messageId → s3Key マッピング）
+On image upload:
+  Browser -> S3 presigned URL -> S3 bucket (image storage, with TTL)
+  -> DynamoDB (messageId -> s3Key mapping)
 
-Vision分析後:
-  分析結果テキスト → AgentCore Memory create_event（conversational payload）
-  → Semantic Strategy → 長期記憶として自動抽出
+After Vision analysis:
+  Analysis result text -> AgentCore Memory create_event (conversational payload)
+  -> Semantic Strategy -> Auto-extracted as long-term memory
 
-チャット履歴表示時:
-  DynamoDB → s3Key取得 → S3 presigned URL生成 → ImageThumbnail表示
+Chat history display:
+  DynamoDB -> Get s3Key -> Generate S3 presigned URL -> ImageThumbnail display
 
-文脈継続時:
-  AgentCore Memory retrieve_memories → 過去のVision分析結果テキストを取得
-  → LLMコンテキストに含めて回答生成
+Context continuation:
+  AgentCore Memory retrieve_memories -> Get past Vision analysis result text
+  -> Include in LLM context for answer generation
 ```
 
 この方式により、画像自体はS3で低コスト保管し、Vision分析結果のテキストはAgentCore Memoryのセマンティック検索で文脈復元に活用できる。
@@ -705,26 +705,26 @@ Agent Directory（`/genai/agents`）のAgent作成・編集時に、Bedrock Know
 ### アーキテクチャ
 
 ```
-MonitoringConstruct (WebAppStack内)
-├── CloudWatch Dashboard（統合ダッシュボード）
-│   ├── Lambda Overview（WebApp / PermFilter / AgentScheduler / AD Sync）
-│   ├── CloudFront（リクエスト数、エラー率、キャッシュヒット率）
-│   ├── DynamoDB（キャパシティ、スロットリング）
-│   ├── Bedrock（API呼び出し、レイテンシ）
-│   ├── WAF（ブロックリクエスト数）
-│   ├── Advanced RAG（Vision API、Smart Routing、KB接続管理）
-│   ├── AgentCore（条件付き: enableAgentCoreObservability=true）
-│   └── KB Ingestion Jobs（実行履歴）
-├── CloudWatch Alarms → SNS Topic → Email
-│   ├── WebApp Lambda エラー率 > 5%
-│   ├── WebApp Lambda P99 Duration > 25秒
-│   ├── CloudFront 5xx エラー率 > 1%
-│   ├── DynamoDB スロットリング ≥ 1
-│   ├── Permission Filter Lambda エラー率 > 10%（条件付き）
-│   ├── Vision API タイムアウト率 > 20%
-│   └── Agent 実行エラー率 > 10%（条件付き）
-└── EventBridge Rule → SNS Topic
-    └── Bedrock KB Ingestion Job FAILED
+MonitoringConstruct (in WebAppStack)
++-- CloudWatch Dashboard (unified)
+|   +-- Lambda Overview (WebApp / PermFilter / AgentScheduler / AD Sync)
+|   +-- CloudFront (requests, error rate, cache hit rate)
+|   +-- DynamoDB (capacity, throttling)
+|   +-- Bedrock (API calls, latency)
+|   +-- WAF (blocked requests)
+|   +-- Advanced RAG (Vision API, Smart Routing, KB connection mgmt)
+|   +-- AgentCore (conditional: enableAgentCoreObservability=true)
+|   +-- KB Ingestion Jobs (execution history)
++-- CloudWatch Alarms -> SNS Topic -> Email
+|   +-- WebApp Lambda error rate > 5%
+|   +-- WebApp Lambda P99 Duration > 25s
+|   +-- CloudFront 5xx error rate > 1%
+|   +-- DynamoDB throttling >= 1
+|   +-- Permission Filter Lambda error rate > 10% (conditional)
+|   +-- Vision API timeout rate > 20%
+|   +-- Agent execution error rate > 10% (conditional)
++-- EventBridge Rule -> SNS Topic
+    +-- Bedrock KB Ingestion Job FAILED
 ```
 
 ### 技術スタック
@@ -787,18 +787,18 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 
 ```
 AIStack (CfnMemory)
-├── Event Store（短期メモリ: セッション内会話履歴、TTL 3日間）
-├── Semantic Strategy（長期メモリ: 会話から事実・知識を自動抽出）
-└── Summary Strategy（長期メモリ: セッション会話要約を自動生成）
++-- Event Store (short-term: in-session conversation history, TTL 3 days)
++-- Semantic Strategy (long-term: auto-extract facts/knowledge from conversations)
++-- Summary Strategy (long-term: auto-generate session conversation summaries)
 
 Next.js API Routes
-├── POST/GET/DELETE /api/agentcore/memory/session — セッション管理
-├── POST/GET /api/agentcore/memory/event — イベント記録・取得
-└── POST /api/agentcore/memory/search — セマンティック検索
++-- POST/GET/DELETE /api/agentcore/memory/session -- Session management
++-- POST/GET /api/agentcore/memory/event -- Event recording/retrieval
++-- POST /api/agentcore/memory/search -- Semantic search
 
-認証フロー
-├── lib/agentcore/auth.ts — Cookie JWT検証（DynamoDBアクセスなし）
-└── actorId = userId（@ → _at_, . → _dot_ に置換）
+Authentication Flow
++-- lib/agentcore/auth.ts -- Cookie JWT validation (no DynamoDB access)
++-- actorId = userId (@ -> _at_, . -> _dot_ replacement)
 ```
 
 ### CDKリソース
