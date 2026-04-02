@@ -226,7 +226,18 @@ On an EC2 instance with an Amazon FSx for NetApp ONTAP volume mounted via CIFS/S
 | Option B (optional) | Embedding server (CIFS mount) → Direct vector store write | `-c enableEmbeddingServer=true` | ✅ (AOSS configuration only) |
 | Option C (optional) | S3 Access Point → Bedrock KB | Manual setup after deployment | ✅ SnapMirror supported, FlexCache coming soon |
 
-> **About S3 Access Point**: StorageStack automatically creates an S3 Access Point for the FSx ONTAP volume, but since S3 Access Point is not available for FlexCache Cache volumes (as of March 2026), it is not used as a Bedrock KB data source. The foundation is prepared so it can be utilized as Option C when FlexCache support becomes available in the future.
+> **Acerca de S3 Access Point**: StorageStack crea automáticamente un S3 Access Point para el volumen FSx ONTAP. Según el estilo de seguridad del volumen (NTFS/UNIX) y el estado de unión a AD, se crea un S3 AP con tipo de usuario WINDOWS o UNIX. Esto se puede controlar explícitamente mediante los parámetros de contexto CDK `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`.
+
+#### Diseño del tipo de usuario de S3 Access Point
+
+| Patrón | Tipo de usuario | Origen del usuario | Estilo del volumen | Condición |
+|--------|----------------|-------------------|-------------------|-----------|
+| A | WINDOWS | Usuario AD existente (Admin) | NTFS/UNIX | SVM unido a AD (recomendado: entornos NTFS) |
+| B | WINDOWS | Nuevo usuario AD dedicado | NTFS/UNIX | SVM unido a AD + privilegio mínimo |
+| C | UNIX | Usuario UNIX existente (root) | UNIX | Sin unión a AD (recomendado: entornos UNIX) |
+| D | UNIX | Nuevo usuario UNIX dedicado | UNIX | Sin unión a AD + privilegio mínimo |
+
+El filtrado SID opera con la misma lógica (basada en metadatos `.metadata.json`) en todos los patrones y no depende del estilo de seguridad del volumen ni del tipo de usuario S3 AP.
 
 ### Architecture
 
@@ -685,6 +696,87 @@ Score < 0.5 → simple, ≥ 0.5 → complex. Confidence = |score - 0.5| × 2.
 
 ---
 
+## 12. Monitoring & Alerts — CloudWatch Dashboard + SNS Alerts + EventBridge
+
+### Implementation Details
+
+An optional feature enabled with `enableMonitoring=true` that provides a CloudWatch dashboard, SNS alerts, and EventBridge integration. The overall system status can be checked from a single dashboard, and email notifications are sent when anomalies occur.
+
+### Architecture
+
+```
+MonitoringConstruct (within WebAppStack)
+├── CloudWatch Dashboard (unified dashboard)
+│   ├── Lambda Overview (WebApp / PermFilter / AgentScheduler / AD Sync)
+│   ├── CloudFront (request count, error rate, cache hit rate)
+│   ├── DynamoDB (capacity, throttling)
+│   ├── Bedrock (API calls, latency)
+│   ├── WAF (blocked request count)
+│   ├── Advanced RAG (Vision API, Smart Routing, KB connection management)
+│   ├── AgentCore (conditional: enableAgentCoreObservability=true)
+│   └── KB Ingestion Jobs (execution history)
+├── CloudWatch Alarms → SNS Topic → Email
+│   ├── WebApp Lambda error rate > 5%
+│   ├── WebApp Lambda P99 Duration > 25 seconds
+│   ├── CloudFront 5xx error rate > 1%
+│   ├── DynamoDB throttling ≥ 1
+│   ├── Permission Filter Lambda error rate > 10% (conditional)
+│   ├── Vision API timeout rate > 20%
+│   └── Agent execution error rate > 10% (conditional)
+└── EventBridge Rule → SNS Topic
+    └── Bedrock KB Ingestion Job FAILED
+```
+
+### Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Dashboard | CloudWatch Dashboard (auto-refresh 5 minutes) |
+| Alarms | CloudWatch Alarms (notifications in both OK↔ALARM directions) |
+| Notifications | SNS Topic + Email Subscription |
+| Event Monitoring | EventBridge Rule (KB Ingestion Job failure detection) |
+| Custom Metrics | CloudWatch Embedded Metric Format (EMF) |
+| CDK Construct | `lib/constructs/monitoring-construct.ts` |
+
+### Custom Metrics (EMF)
+
+Custom metrics are emitted within Lambda functions under the `PermissionAwareRAG/AdvancedFeatures` namespace. When `enableMonitoring=false`, a no-op implementation is used with no performance impact.
+
+| Metric | Dimension | Source |
+|--------|-----------|--------|
+| VisionApiInvocations / Timeouts / Fallbacks / Latency | Operation=vision | On Vision API invocation |
+| SmartRoutingSimple / Complex / AutoSelect / ManualOverride | Operation=routing | On Smart Router selection |
+| KbAssociateInvocations / KbDisassociateInvocations / KbMgmtErrors | Operation=kb-mgmt | On KB connection management API invocation |
+
+### Cost
+
+| Resource | Monthly Cost |
+|----------|-------------|
+| CloudWatch Dashboard | $3.00 |
+| CloudWatch Alarms (7) | $0.70 |
+| SNS Email Notifications | Within free tier |
+| EventBridge Rule | Within free tier |
+| **Total** | **Approx. $4/month** |
+
+### CDK Stack
+
+Implemented as `MonitoringConstruct` within `DemoWebAppStack`. Resources are created only when `enableMonitoring=true`.
+
+```bash
+# Deploy with monitoring enabled
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c enableMonitoring=true \
+  -c monitoringEmail=ops@example.com
+
+# Also enable AgentCore Observability
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c enableMonitoring=true \
+  -c monitoringEmail=ops@example.com \
+  -c enableAgentCoreObservability=true
+```
+
+---
+
 ## 13. AgentCore Memory — Conversation Context Maintenance
 
 ### Implementation Details
@@ -813,82 +905,3 @@ Authentication Flow
 | `enableAdvancedPermissions` | - | `false` | Control de acceso basado en tiempo + registro de auditoría de decisiones de permisos |
 
 ---
-
-## 12. Monitoring & Alerts — CloudWatch Dashboard + SNS Alerts + EventBridge
-
-### Implementation Details
-
-An optional feature enabled with `enableMonitoring=true` that provides a CloudWatch dashboard, SNS alerts, and EventBridge integration. The overall system status can be checked from a single dashboard, and email notifications are sent when anomalies occur.
-
-### Architecture
-
-```
-MonitoringConstruct (within WebAppStack)
-├── CloudWatch Dashboard (unified dashboard)
-│   ├── Lambda Overview (WebApp / PermFilter / AgentScheduler / AD Sync)
-│   ├── CloudFront (request count, error rate, cache hit rate)
-│   ├── DynamoDB (capacity, throttling)
-│   ├── Bedrock (API calls, latency)
-│   ├── WAF (blocked request count)
-│   ├── Advanced RAG (Vision API, Smart Routing, KB connection management)
-│   ├── AgentCore (conditional: enableAgentCoreObservability=true)
-│   └── KB Ingestion Jobs (execution history)
-├── CloudWatch Alarms → SNS Topic → Email
-│   ├── WebApp Lambda error rate > 5%
-│   ├── WebApp Lambda P99 Duration > 25 seconds
-│   ├── CloudFront 5xx error rate > 1%
-│   ├── DynamoDB throttling ≥ 1
-│   ├── Permission Filter Lambda error rate > 10% (conditional)
-│   ├── Vision API timeout rate > 20%
-│   └── Agent execution error rate > 10% (conditional)
-└── EventBridge Rule → SNS Topic
-    └── Bedrock KB Ingestion Job FAILED
-```
-
-### Technology Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Dashboard | CloudWatch Dashboard (auto-refresh 5 minutes) |
-| Alarms | CloudWatch Alarms (notifications in both OK↔ALARM directions) |
-| Notifications | SNS Topic + Email Subscription |
-| Event Monitoring | EventBridge Rule (KB Ingestion Job failure detection) |
-| Custom Metrics | CloudWatch Embedded Metric Format (EMF) |
-| CDK Construct | `lib/constructs/monitoring-construct.ts` |
-
-### Custom Metrics (EMF)
-
-Custom metrics are emitted within Lambda functions under the `PermissionAwareRAG/AdvancedFeatures` namespace. When `enableMonitoring=false`, a no-op implementation is used with no performance impact.
-
-| Metric | Dimension | Source |
-|--------|-----------|--------|
-| VisionApiInvocations / Timeouts / Fallbacks / Latency | Operation=vision | On Vision API invocation |
-| SmartRoutingSimple / Complex / AutoSelect / ManualOverride | Operation=routing | On Smart Router selection |
-| KbAssociateInvocations / KbDisassociateInvocations / KbMgmtErrors | Operation=kb-mgmt | On KB connection management API invocation |
-
-### Cost
-
-| Resource | Monthly Cost |
-|----------|-------------|
-| CloudWatch Dashboard | $3.00 |
-| CloudWatch Alarms (7) | $0.70 |
-| SNS Email Notifications | Within free tier |
-| EventBridge Rule | Within free tier |
-| **Total** | **Approx. $4/month** |
-
-### CDK Stack
-
-Implemented as `MonitoringConstruct` within `DemoWebAppStack`. Resources are created only when `enableMonitoring=true`.
-
-```bash
-# Deploy with monitoring enabled
-npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
-  -c enableMonitoring=true \
-  -c monitoringEmail=ops@example.com
-
-# Also enable AgentCore Observability
-npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
-  -c enableMonitoring=true \
-  -c monitoringEmail=ops@example.com \
-  -c enableAgentCoreObservability=true
-```

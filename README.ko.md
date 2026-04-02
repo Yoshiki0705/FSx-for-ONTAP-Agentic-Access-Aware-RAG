@@ -39,9 +39,9 @@
                                  └──────────────────┘
 ```
 
-## 구현 개요 (8가지 관점)
+## 구현 개요 (13가지 관점)
 
-이 시스템의 구현은 8가지 관점으로 구성되어 있습니다. 각 항목의 상세 내용은 [docs/implementation-overview.md](docs/implementation-overview.md)를 참조하세요.
+이 시스템의 구현은 13가지 관점으로 구성되어 있습니다. 각 항목의 상세 내용은 [docs/implementation-overview.md](docs/implementation-overview.md)를 참조하세요.
 
 | # | 관점 | 개요 | 관련 CDK 스택 |
 |---|------|------|---------------|
@@ -413,6 +413,9 @@ EC2의 AD를 Entra ID(구 Azure AD)와 통합하고 Entra ID 페더레이션 메
 | `ontapSvmUuid` | (없음) | SVM UUID (`ontapMgmtIp`와 함께 사용) |
 | `ontapAdminSecretArn` | (없음) | ONTAP 관리자 비밀번호용 Secrets Manager ARN |
 | `useS3AccessPoint` | `false` | S3 Access Point를 Bedrock KB 데이터 소스로 사용 |
+| `volumeSecurityStyle` | `NTFS` | FSx ONTAP 볼륨 보안 스타일 (`NTFS` or `UNIX`) |
+| `s3apUserType` | (자동) | S3 AP 사용자 유형 (`WINDOWS` or `UNIX`). 기본값: AD 설정 있음→WINDOWS, 없음→UNIX |
+| `s3apUserName` | (자동) | S3 AP 사용자 이름. 기본값: WINDOWS→`Admin`, UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | 전용 Lambda를 통한 SID 필터링 실행 (인라인 필터링 폴백 포함) |
 | `enableGuardrails` | `false` | Bedrock Guardrails (유해 콘텐츠 필터 + PII 보호) |
 | `enableAgent` | `false` | Bedrock Agent + 권한 인식 Action Group (KB 검색 + SID 필터링). 동적 Agent 생성 (카드 클릭 시 카테고리별 Agent 자동 생성 및 바인딩) |
@@ -1355,7 +1358,7 @@ User              Next.js API           DynamoDB          Bedrock KB       Conve
 │   ├── scripts/                      # 설정 스크립트 (사용자 생성, SID 데이터 등록 등)
 │   └── guides/                       # 검증 시나리오 & ONTAP 설정 가이드
 ├── docs/
-│   ├── implementation-overview.md    # 상세 구현 설명 (8가지 관점)
+│   ├── implementation-overview.md    # 상세 구현 설명 (13가지 관점)
 │   ├── ui-specification.md           # UI 사양 (KB/Agent 모드 전환, 사이드바 설계)
 │   ├── stack-architecture-comparison.md # CDK 스택 아키텍처 가이드
 │   ├── embedding-server-design.md    # 임베딩 서버 설계 (ONTAP ACL 자동 검색 포함)
@@ -1378,7 +1381,7 @@ User              Next.js API           DynamoDB          Bedrock KB       Conve
 
 | 문서 | 내용 |
 |------|------|
-| [docs/implementation-overview.md](docs/implementation-overview.md) | 상세 구현 설명 (8가지 관점) |
+| [docs/implementation-overview.md](docs/implementation-overview.md) | 상세 구현 설명 (13가지 관점) |
 | [docs/ui-specification.md](docs/ui-specification.md) | UI 사양 (KB/Agent 모드 전환, Agent Directory, 사이드바 설계, Citation 표시) |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SID 기반 권한 필터링 아키텍처 상세 |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | 임베딩 서버 설계 (ONTAP ACL 자동 검색 포함) |
@@ -1421,6 +1424,97 @@ aws fsx update-storage-virtual-machine \
 > **중요**: AWS Managed AD의 경우 `OrganizationalUnitDistinguishedName`을 지정하지 않으면 SVM AD 가입이 `MISCONFIGURED` 상태가 됩니다. OU 경로 형식은 `OU=Computers,OU=<AD ShortName>,DC=<domain>,DC=<tld>`입니다.
 
 S3 Access Point(WINDOWS 사용자 유형, 인터넷 접근)에 대한 설계 결정도 가이드에 문서화되어 있습니다.
+
+### S3 Access Point 사용자 설계 가이드
+
+S3 Access Point 생성 시 지정하는 사용자 유형과 사용자 이름의 조합은 볼륨의 보안 스타일과 AD 참가 상태에 따라 4가지 패턴이 있습니다.
+
+#### 4패턴 결정 매트릭스
+
+| 패턴 | 사용자 유형 | 사용자 소스 | 조건 | CDK 파라미터 예 |
+|------|-----------|-----------|------|---------------|
+| A | WINDOWS | 기존 AD 사용자 | AD 참가 SVM + NTFS/UNIX 볼륨 | `s3apUserType=WINDOWS` (기본값) |
+| B | WINDOWS | 신규 전용 사용자 | AD 참가 SVM + 전용 서비스 계정 | `s3apUserType=WINDOWS s3apUserName=s3ap-service` |
+| C | UNIX | 기존 UNIX 사용자 | AD 미참가 또는 UNIX 볼륨 | `s3apUserType=UNIX` (기본값) |
+| D | UNIX | 신규 전용 사용자 | AD 미참가 + 전용 사용자 | `s3apUserType=UNIX s3apUserName=s3ap-user` |
+
+#### 패턴 선택 플로차트
+
+```
+SVM이 AD에 참가되어 있는가?
+  ├── 예 → NTFS 볼륨인가?
+  │           ├── 예 → 패턴 A (WINDOWS + 기존 AD 사용자) 권장
+  │           └── 아니오 → 패턴 A 또는 C (둘 다 동작)
+  └── 아니오 → 패턴 C (UNIX + root) 권장
+```
+
+#### 각 패턴의 상세
+
+**패턴 A: WINDOWS + 기존 AD 사용자 (권장: NTFS 환경)**
+
+```bash
+# CDK 배포
+npx cdk deploy --all -c adPassword=<PASSWORD> -c volumeSecurityStyle=NTFS
+# → S3 AP: WINDOWS, Admin (자동 설정)
+```
+
+- NTFS ACL 기반의 파일 수준 접근 제어가 활성화됨
+- AD의 `Admin` 사용자로 S3 AP를 통한 파일 접근이 수행됨
+- 중요: 도메인 접두사(`DEMO\Admin`)를 붙이지 않음. `Admin`만 지정
+
+**패턴 B: WINDOWS + 신규 전용 사용자**
+
+```bash
+# 1. AD에 전용 서비스 계정 생성 (PowerShell)
+New-ADUser -Name "s3ap-service" -AccountPassword (ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force) -Enabled $true
+
+# 2. CDK 배포
+npx cdk deploy --all -c adPassword=<PASSWORD> -c s3apUserName=s3ap-service
+```
+
+- 최소 권한 원칙에 기반한 전용 계정
+- 감사 로그에서 S3 AP 접근을 명확하게 식별 가능
+
+**패턴 C: UNIX + 기존 UNIX 사용자 (권장: UNIX 환경)**
+
+```bash
+# CDK 배포 (AD 설정 없음)
+npx cdk deploy --all -c volumeSecurityStyle=UNIX
+# → S3 AP: UNIX, root (자동 설정)
+```
+
+- POSIX 권한(uid/gid) 기반의 접근 제어
+- `root` 사용자로 모든 파일에 접근 가능
+- SID 필터링은 `.metadata.json`의 메타데이터 기반으로 동작 (파일 시스템 ACL에 의존하지 않음)
+
+**패턴 D: UNIX + 신규 전용 사용자**
+
+```bash
+# 1. ONTAP CLI로 전용 UNIX 사용자 생성
+vserver services unix-user create -vserver <SVM_NAME> -user s3ap-user -id 1100 -primary-gid 0
+
+# 2. CDK 배포
+npx cdk deploy --all -c volumeSecurityStyle=UNIX -c s3apUserType=UNIX -c s3apUserName=s3ap-user
+```
+
+- 최소 권한 원칙에 기반한 전용 계정
+- `root` 이외의 사용자로 접근하는 경우 볼륨의 POSIX 권한 설정이 필요
+
+#### SID 필터링과의 관계
+
+SID 필터링은 S3 AP의 사용자 유형에 의존하지 않습니다. 모든 패턴에서 동일한 로직이 동작합니다:
+
+```
+.metadata.json의 allowed_group_sids
+  ↓
+Bedrock KB Retrieve API에서 메타데이터로 반환
+  ↓
+route.ts에서 사용자 SID(DynamoDB user-access)와 대조
+  ↓
+일치 → ALLOW, 불일치 → DENY
+```
+
+NTFS 볼륨이든 UNIX 볼륨이든 `.metadata.json`에 SID 정보를 기재하면 동일한 SID 필터링이 적용됩니다.
 
 ## 라이선스
 

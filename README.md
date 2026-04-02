@@ -39,9 +39,9 @@
                                  └──────────────────┘
 ```
 
-## 実装概要（8つの観点）
+## 実装概要（13の観点）
 
-本システムの実装内容を8つの観点で整理しています。各項目の詳細は [docs/implementation-overview.md](docs/implementation-overview.md) を参照してください。
+本システムの実装内容を13の観点で整理しています。各項目の詳細は [docs/implementation-overview.md](docs/implementation-overview.md) を参照してください。
 
 | # | 観点 | 概要 | 関連CDKスタック |
 |---|------|------|----------------|
@@ -1358,7 +1358,7 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 │   ├── scripts/                      # セットアップスクリプト（ユーザー作成、SIDデータ登録等）
 │   └── guides/                       # 検証シナリオ・ONTAP設定ガイド
 ├── docs/
-│   ├── implementation-overview.md    # 実装内容の詳細説明（8つの観点）
+│   ├── implementation-overview.md    # 実装内容の詳細説明（13の観点）
 │   ├── ui-specification.md           # UI仕様書（KB/Agentモード切替、サイドバー設計）
 │   ├── stack-architecture-comparison.md # CDKスタック アーキテクチャガイド
 │   ├── embedding-server-design.md    # Embeddingサーバー設計（ONTAP ACL自動取得含む）
@@ -1381,7 +1381,7 @@ EC2インスタンス（m5.large）が起動時に以下を実行します:
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [docs/implementation-overview.md](docs/implementation-overview.md) | 実装内容の詳細説明（8つの観点） |
+| [docs/implementation-overview.md](docs/implementation-overview.md) | 実装内容の詳細説明（13の観点） |
 | [docs/ui-specification.md](docs/ui-specification.md) | UI仕様書（KB/Agentモード切替、Agent Directory、サイドバー設計、Citation表示） |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SIDベース権限フィルタリングのアーキテクチャ詳細 |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | Embeddingサーバー設計（ONTAP ACL自動取得含む） |

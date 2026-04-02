@@ -189,7 +189,18 @@ Sur une instance EC2 avec un volume Amazon FSx for NetApp ONTAP monté via CIFS/
 | Option B (optionnel) | Serveur d'Embedding (montage CIFS) → Écriture directe dans le vector store | `-c enableEmbeddingServer=true` | ✅ (configuration AOSS uniquement) |
 | Option C (optionnel) | S3 Access Point → Bedrock KB | Configuration manuelle après déploiement | ✅ SnapMirror supporté, FlexCache bientôt |
 
-> **À propos du S3 Access Point** : StorageStack crée automatiquement un S3 Access Point pour le volume FSx ONTAP, mais comme le S3 Access Point n'est pas disponible pour les volumes FlexCache Cache (en mars 2026), il n'est pas utilisé comme source de données Bedrock KB. La fondation est préparée pour qu'il puisse être utilisé comme Option C lorsque le support FlexCache sera disponible à l'avenir.
+> **À propos du S3 Access Point** : StorageStack crée automatiquement un S3 Access Point pour le volume FSx ONTAP. Selon le style de sécurité du volume (NTFS/UNIX) et l'état d'adhésion AD, un S3 AP de type utilisateur WINDOWS ou UNIX est créé. Cela peut être contrôlé explicitement via les paramètres de contexte CDK `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`.
+
+#### Conception du type d'utilisateur S3 Access Point
+
+| Modèle | Type d'utilisateur | Source utilisateur | Style du volume | Condition |
+|--------|-------------------|-------------------|----------------|-----------|
+| A | WINDOWS | Utilisateur AD existant (Admin) | NTFS/UNIX | SVM joint à AD (recommandé : environnements NTFS) |
+| B | WINDOWS | Nouvel utilisateur AD dédié | NTFS/UNIX | SVM joint à AD + moindre privilège |
+| C | UNIX | Utilisateur UNIX existant (root) | UNIX | Non joint à AD (recommandé : environnements UNIX) |
+| D | UNIX | Nouvel utilisateur UNIX dédié | UNIX | Non joint à AD + moindre privilège |
+
+Le filtrage SID fonctionne avec la même logique (basée sur les métadonnées `.metadata.json`) pour tous les modèles et ne dépend pas du style de sécurité du volume ni du type d'utilisateur S3 AP.
 
 Pour plus de détails sur le serveur d'Embedding, voir [embedding-server-design.md](embedding-server-design.md).
 
@@ -418,6 +429,179 @@ Trois actions ajoutées à l'existant `/api/bedrock/agent` (pas de changements a
 
 ### Détails d'implémentation
 
-Route automatiquement les requêtes en fonction de leur complexité vers un modèle léger (Nova Lite) ou un modèle haute performance (Claude 3.5 Sonnet), optimisant les coûts tout en maintenant la qualité des réponses.
+Route automatiquement les requêtes en fonction de leur complexité. Les requêtes factuelles courtes sont dirigées vers un modèle léger (Haiku), tandis que les requêtes analytiques longues sont dirigées vers un modèle haute performance (Sonnet).
 
-Pour les détails complets des sections 11 à 14 (routage intelligent, analyse d'images avancée, considérations futures sur AgentCore Memory, et fonctionnalités d'entreprise Agent), consultez la [documentation en anglais](../en/implementation-overview.md).
+### Algorithme de classification (ComplexityClassifier)
+
+| Caractéristique | Tend vers Simple | Tend vers Complexe |
+|-----------------|-----------------|-------------------|
+| Nombre de caractères | ≤100 caractères (+0.3) | >100 caractères (+0.3) |
+| Nombre de phrases | 1 phrase (+0.2) | Plusieurs phrases (+0.2) |
+| Mots-clés analytiques | Aucun | Présents (+0.3) (比較/分析/要約/explain/compare/analyze/summarize) |
+| Questions multiples | Aucune | 2+ points d'interrogation (+0.2) |
+
+Score < 0.5 → simple, ≥ 0.5 → complexe. Confiance = |score - 0.5| × 2.
+
+### Composants clés
+
+| Fichier | Rôle |
+|---------|------|
+| `docker/nextjs/src/lib/complexity-classifier.ts` | Classification de la complexité des requêtes (fonction pure) |
+| `docker/nextjs/src/lib/smart-router.ts` | Décision de routage du modèle |
+| `docker/nextjs/src/store/useSmartRoutingStore.ts` | Store Zustand (persistance localStorage) |
+| `docker/nextjs/src/components/sidebar/RoutingToggle.tsx` | Toggle ON/OFF + affichage de la paire de modèles |
+| `docker/nextjs/src/components/chat/ResponseMetadata.tsx` | Nom du modèle utilisé + badge Auto/Manual |
+
+### Paramètres par défaut
+
+- Smart Routing : OFF par défaut (aucun impact sur le comportement existant)
+- Modèle léger : `anthropic.claude-haiku-4-5-20251001-v1:0`
+- Modèle haute performance : `anthropic.claude-3-5-sonnet-20241022-v2:0`
+
+---
+
+## 12. Monitoring et alertes — CloudWatch Dashboard + SNS Alerts + EventBridge
+
+### Détails d'implémentation
+
+Une fonctionnalité optionnelle activée avec `enableMonitoring=true` qui fournit un tableau de bord CloudWatch, des alertes SNS et une intégration EventBridge. L'état global du système peut être vérifié depuis un seul tableau de bord, et des notifications par e-mail sont envoyées lorsque des anomalies surviennent.
+
+### Architecture
+
+```
+MonitoringConstruct (dans WebAppStack)
+├── CloudWatch Dashboard (tableau de bord unifié)
+│   ├── Lambda Overview (WebApp / PermFilter / AgentScheduler / AD Sync)
+│   ├── CloudFront (nombre de requêtes, taux d'erreur, taux de cache hit)
+│   ├── DynamoDB (capacité, throttling)
+│   ├── Bedrock (appels API, latence)
+│   ├── WAF (nombre de requêtes bloquées)
+│   ├── Advanced RAG (Vision API, Smart Routing, gestion des connexions KB)
+│   ├── AgentCore (conditionnel : enableAgentCoreObservability=true)
+│   └── KB Ingestion Jobs (historique d'exécution)
+├── CloudWatch Alarms → SNS Topic → Email
+│   ├── WebApp Lambda taux d'erreur > 5%
+│   ├── WebApp Lambda P99 Duration > 25 secondes
+│   ├── CloudFront taux d'erreur 5xx > 1%
+│   ├── DynamoDB throttling ≥ 1
+│   ├── Permission Filter Lambda taux d'erreur > 10% (conditionnel)
+│   ├── Vision API taux de timeout > 20%
+│   └── Agent taux d'erreur d'exécution > 10% (conditionnel)
+└── EventBridge Rule → SNS Topic
+    └── Bedrock KB Ingestion Job FAILED
+```
+
+### Stack technologique
+
+| Couche | Technologie |
+|--------|-----------|
+| Tableau de bord | CloudWatch Dashboard (rafraîchissement automatique 5 minutes) |
+| Alarmes | CloudWatch Alarms (notifications dans les deux directions OK↔ALARM) |
+| Notifications | SNS Topic + Email Subscription |
+| Surveillance des événements | EventBridge Rule (détection d'échec KB Ingestion Job) |
+| Métriques personnalisées | CloudWatch Embedded Metric Format (EMF) |
+| Construct CDK | `lib/constructs/monitoring-construct.ts` |
+
+### Métriques personnalisées (EMF)
+
+Des métriques personnalisées sont émises dans les fonctions Lambda sous le namespace `PermissionAwareRAG/AdvancedFeatures`. Lorsque `enableMonitoring=false`, une implémentation no-op est utilisée sans impact sur les performances.
+
+| Métrique | Dimension | Source |
+|----------|-----------|--------|
+| VisionApiInvocations / Timeouts / Fallbacks / Latency | Operation=vision | Lors de l'invocation de l'API Vision |
+| SmartRoutingSimple / Complex / AutoSelect / ManualOverride | Operation=routing | Lors de la sélection du Smart Router |
+| KbAssociateInvocations / KbDisassociateInvocations / KbMgmtErrors | Operation=kb-mgmt | Lors de l'invocation de l'API de gestion des connexions KB |
+
+### Coût
+
+| Ressource | Coût mensuel |
+|-----------|-------------|
+| CloudWatch Dashboard | $3.00 |
+| CloudWatch Alarms (7) | $0.70 |
+| SNS Email Notifications | Dans le niveau gratuit |
+| EventBridge Rule | Dans le niveau gratuit |
+| **Total** | **Environ $4/mois** |
+
+### Stack CDK
+
+Implémenté en tant que `MonitoringConstruct` dans `DemoWebAppStack`. Les ressources sont créées uniquement lorsque `enableMonitoring=true`.
+
+```bash
+# Déployer avec le monitoring activé
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c enableMonitoring=true \
+  -c monitoringEmail=ops@example.com
+
+# Activer également AgentCore Observability
+npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
+  -c enableMonitoring=true \
+  -c monitoringEmail=ops@example.com \
+  -c enableAgentCoreObservability=true
+```
+
+---
+
+## 13. AgentCore Memory — Maintien du contexte de conversation
+
+### Détails d'implémentation
+
+Une fonctionnalité optionnelle activée avec `enableAgentCoreMemory=true` qui fournit une mémoire à court terme (historique de conversation en session) et une mémoire à long terme (préférences utilisateur inter-sessions, résumés et connaissances sémantiques) via Bedrock AgentCore Memory.
+
+### Architecture
+
+```
+AIStack (CfnMemory)
+├── Event Store (mémoire à court terme : historique de conversation en session, TTL 3 jours)
+├── Semantic Strategy (mémoire à long terme : extraction automatique de faits/connaissances des conversations)
+└── Summary Strategy (mémoire à long terme : génération automatique de résumés de conversation de session)
+
+Next.js API Routes
+├── POST/GET/DELETE /api/agentcore/memory/session — Gestion des sessions
+├── POST/GET /api/agentcore/memory/event — Enregistrement/récupération d'événements
+└── POST /api/agentcore/memory/search — Recherche sémantique
+
+Flux d'authentification
+├── lib/agentcore/auth.ts — Validation JWT par Cookie (pas d'accès DynamoDB)
+└── actorId = userId (@ → _at_, . → _dot_ remplacement)
+```
+
+### Ressources CDK
+
+| Ressource | Description |
+|-----------|-------------|
+| `CfnMemory` | Ressource AgentCore Memory (créée uniquement lorsque `enableAgent=true` ET `enableAgentCoreMemory=true`) |
+| Rôle IAM Memory | Service principal `bedrock-agentcore.amazonaws.com` |
+| Politique IAM Lambda | `bedrock-agentcore:CreateEvent/ListEvents/DeleteEvent/ListSessions/RetrieveMemoryRecords` (ajoutée uniquement lorsque memoryId est défini) |
+
+### Fonctionnalités clés
+
+- Conservation automatique de l'historique de conversation en session (mémoire à court terme, TTL 3 jours, valeur minimale)
+- Extraction automatique des préférences et connaissances utilisateur inter-sessions (stratégie sémantique)
+- Génération automatique de résumés de conversation de session (stratégie de résumé)
+- Affichage de la liste des sessions et de la section mémoire dans la barre latérale
+- Maintien du contexte de conversation en mode KB et en mode Agent
+- Support i18n 8 langues (`agentcore.memory.*`, `agentcore.session.*`)
+
+### Notes de déploiement
+
+| Élément | Contrainte | Résolution |
+|---------|-----------|------------|
+| Memory Name | `^[a-zA-Z][a-zA-Z0-9_]{0,47}` (tirets non autorisés) | `prefix.replace(/-/g, '_')` pour la conversion |
+| EventExpiryDuration | Jours (min : 3, max : 365) | 3 jours (valeur minimale) |
+| Service Principal | `bedrock-agentcore.amazonaws.com` | Pas `bedrock.amazonaws.com` |
+| Format des Tags | Map `{ key: value }` | Remplacer le format tableau par défaut de CDK avec `addPropertyOverride` |
+| actorId | `[a-zA-Z0-9][a-zA-Z0-9-_/]*` | Remplacer `@` et `.` dans les adresses e-mail |
+
+### Paramètres de contexte CDK
+
+| Paramètre | Défaut | Description |
+|-----------|--------|-------------|
+| `enableAgentCoreMemory` | `false` | Activer AgentCore Memory (nécessite `enableAgent=true` comme prérequis) |
+
+### Variables d'environnement
+
+| Variable | Description |
+|----------|-------------|
+| `AGENTCORE_MEMORY_ID` | AgentCore Memory ID (sortie CDK) |
+| `ENABLE_AGENTCORE_MEMORY` | Indicateur d'activation de la fonctionnalité Memory |
+

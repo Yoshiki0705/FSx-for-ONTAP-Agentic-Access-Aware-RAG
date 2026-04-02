@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **多言語ドキュメント**: `docs/` 配下の全11ドキュメントを8言語に翻訳（`docs/{en,ko,zh-CN,zh-TW,fr,de,es}/`）
 - **S3 Access Point データソース**: FSx ONTAP S3 AP経由のBedrock KBデータソース設定・検証完了
 - Steeringファイル: `.kiro/steering/multilingual-docs.md`（ドキュメント更新時の多言語自動反映ルール）
+- **S3 Access Point ユーザータイプ設計ガイド**: NTFS×WINDOWS / NTFS×新規WINDOWS / UNIX×既存UNIX / UNIX×新規UNIX の4パターン決定マトリクス。CDKコンテキストパラメータ `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` による明示的制御
+- **README 8言語版**: `README.{en,ko,zh-CN,zh-TW,fr,de,es}.md` — 言語セレクター付き、S3 AP 4パターンガイド含む
 
 ### Changed
 - `bin/demo-app.ts`: `enableAgentCoreMemory` コンテキストパラメータ追加
@@ -33,7 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docker/nextjs/.dockerignore`: 新規 — ビルドコンテキスト最適化
 - `demo-data/scripts/pre-deploy-setup.sh`: ホストアーキテクチャ自動検出、Apple Silicon対応
 - `README.md`: デプロイ手順をローカル/EC2両対応に更新、スクリーンショット追加
-- `docs/implementation-overview.md`: セクション13「AgentCore Memory」追加、デプロイ注意事項テーブル追加
+- `docs/implementation-overview.md`: セクション13「AgentCore Memory」追加、デプロイ注意事項テーブル追加、S3 AP ユーザータイプ設計セクション追加
+- `cdk.context.json.example`: `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` パラメータ追加
+- 実装概要の観点数を8→13に修正（全8言語README + docs）
 
 ### Fixed (デプロイ検証で発見)
 - CfnMemory `EventExpiryDuration`: 86400（秒）→ 3（日数）に修正。CloudFormationスキーマは日数を期待（min: 3, max: 365）

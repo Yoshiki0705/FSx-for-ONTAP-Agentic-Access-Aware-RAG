@@ -39,9 +39,9 @@
                                  └──────────────────┘
 ```
 
-## 实现概览（8 个视角）
+## 实现概览（13 个视角）
 
-本系统的实现从 8 个视角进行组织。各项详情请参阅 [docs/implementation-overview.md](docs/implementation-overview.md)。
+本系统的实现从 13 个视角进行组织。各项详情请参阅 [docs/implementation-overview.md](docs/implementation-overview.md)。
 
 | # | 视角 | 概述 | 相关 CDK Stack |
 |---|------|------|---------------|
@@ -413,6 +413,9 @@ AD User → CloudFront UI → "Sign in with AD" button
 | `ontapSvmUuid` | （无） | SVM UUID（与 `ontapMgmtIp` 配合使用） |
 | `ontapAdminSecretArn` | （无） | ONTAP 管理员密码的 Secrets Manager ARN |
 | `useS3AccessPoint` | `false` | 使用 S3 Access Point 作为 Bedrock KB 数据源 |
+| `volumeSecurityStyle` | `NTFS` | FSx ONTAP 卷安全样式（`NTFS` or `UNIX`） |
+| `s3apUserType` | （自动） | S3 AP 用户类型（`WINDOWS` or `UNIX`）。默认：已配置 AD→WINDOWS，未配置 AD→UNIX |
+| `s3apUserName` | （自动） | S3 AP 用户名。默认：WINDOWS→`Admin`，UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | 通过专用 Lambda 执行 SID 过滤（带内联过滤回退） |
 | `enableGuardrails` | `false` | Bedrock Guardrails（有害内容过滤 + PII 保护） |
 | `enableAgent` | `false` | Bedrock Agent + 权限感知 Action Group（KB 搜索 + SID 过滤）。动态 Agent 创建（点击卡片时自动创建并绑定特定类别的 Agent） |
@@ -1355,7 +1358,7 @@ User              Next.js API           DynamoDB          Bedrock KB       Conve
 │   ├── scripts/                      # Setup scripts (user creation, SID data registration, etc.)
 │   └── guides/                       # Verification scenarios & ONTAP setup guide
 ├── docs/
-│   ├── implementation-overview.md    # Detailed implementation description (8 perspectives)
+│   ├── implementation-overview.md    # Detailed implementation description (13 perspectives)
 │   ├── ui-specification.md           # UI specification (KB/Agent mode switching, sidebar design)
 │   ├── stack-architecture-comparison.md # CDK stack architecture guide
 │   ├── embedding-server-design.md    # Embedding server design (including ONTAP ACL auto-retrieval)
@@ -1378,7 +1381,7 @@ User              Next.js API           DynamoDB          Bedrock KB       Conve
 
 | 文档 | 内容 |
 |------|------|
-| [docs/implementation-overview.md](docs/implementation-overview.md) | 详细实现说明（8 个视角） |
+| [docs/implementation-overview.md](docs/implementation-overview.md) | 详细实现说明（13 个视角） |
 | [docs/ui-specification.md](docs/ui-specification.md) | UI 规格（KB/Agent 模式切换、Agent Directory、侧边栏设计、引用显示） |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | 基于 SID 的权限过滤架构详情 |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | Embedding 服务器设计（包括 ONTAP ACL 自动获取） |
@@ -1421,6 +1424,97 @@ aws fsx update-storage-virtual-machine \
 > **重要**：对于 AWS Managed AD，如果未指定 `OrganizationalUnitDistinguishedName`，SVM AD 加入将变为 `MISCONFIGURED` 状态。OU 路径格式为 `OU=Computers,OU=<AD ShortName>,DC=<domain>,DC=<tld>`。
 
 S3 Access Point 的设计决策（WINDOWS 用户类型、Internet 访问）也记录在该指南中。
+
+### S3 Access Point 用户设计指南
+
+创建 S3 Access Point 时指定的用户类型和用户名的组合，根据卷的安全样式和 AD 加入状态有 4 种模式。
+
+#### 4 种模式决策矩阵
+
+| 模式 | 用户类型 | 用户来源 | 条件 | CDK 参数示例 |
+|------|---------|---------|------|-------------|
+| A | WINDOWS | 现有 AD 用户 | 已加入 AD 的 SVM + NTFS/UNIX 卷 | `s3apUserType=WINDOWS`（默认） |
+| B | WINDOWS | 新建专用用户 | 已加入 AD 的 SVM + 专用服务账户 | `s3apUserType=WINDOWS s3apUserName=s3ap-service` |
+| C | UNIX | 现有 UNIX 用户 | 未加入 AD 或 UNIX 卷 | `s3apUserType=UNIX`（默认） |
+| D | UNIX | 新建专用用户 | 未加入 AD + 专用用户 | `s3apUserType=UNIX s3apUserName=s3ap-user` |
+
+#### 模式选择流程图
+
+```
+SVM 是否已加入 AD？
+  ├── 是 → NTFS 卷？
+  │           ├── 是 → 模式 A（WINDOWS + 现有 AD 用户）推荐
+  │           └── 否 → 模式 A 或 C（两者均可）
+  └── 否 → 模式 C（UNIX + root）推荐
+```
+
+#### 各模式详细说明
+
+**模式 A：WINDOWS + 现有 AD 用户（推荐：NTFS 环境）**
+
+```bash
+# CDK 部署
+npx cdk deploy --all -c adPassword=<PASSWORD> -c volumeSecurityStyle=NTFS
+# → S3 AP: WINDOWS, Admin（自动配置）
+```
+
+- 基于 NTFS ACL 的文件级访问控制已启用
+- 通过 AD 的 `Admin` 用户进行 S3 AP 文件访问
+- 重要：不要添加域前缀（`DEMO\Admin`）。仅指定 `Admin`
+
+**模式 B：WINDOWS + 新建专用用户**
+
+```bash
+# 1. 在 AD 中创建专用服务账户（PowerShell）
+New-ADUser -Name "s3ap-service" -AccountPassword (ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force) -Enabled $true
+
+# 2. CDK 部署
+npx cdk deploy --all -c adPassword=<PASSWORD> -c s3apUserName=s3ap-service
+```
+
+- 基于最小权限原则的专用账户
+- 可在审计日志中明确识别 S3 AP 访问
+
+**模式 C：UNIX + 现有 UNIX 用户（推荐：UNIX 环境）**
+
+```bash
+# CDK 部署（无 AD 配置）
+npx cdk deploy --all -c volumeSecurityStyle=UNIX
+# → S3 AP: UNIX, root（自动配置）
+```
+
+- 基于 POSIX 权限（uid/gid）的访问控制
+- 使用 `root` 用户可访问所有文件
+- SID 过滤基于 `.metadata.json` 的元数据运行（不依赖文件系统 ACL）
+
+**模式 D：UNIX + 新建专用用户**
+
+```bash
+# 1. 通过 ONTAP CLI 创建专用 UNIX 用户
+vserver services unix-user create -vserver <SVM_NAME> -user s3ap-user -id 1100 -primary-gid 0
+
+# 2. CDK 部署
+npx cdk deploy --all -c volumeSecurityStyle=UNIX -c s3apUserType=UNIX -c s3apUserName=s3ap-user
+```
+
+- 基于最小权限原则的专用账户
+- 使用 `root` 以外的用户访问时，需要设置卷的 POSIX 权限
+
+#### 与 SID 过滤的关系
+
+SID 过滤不依赖于 S3 AP 的用户类型。所有模式中运行相同的逻辑：
+
+```
+.metadata.json 中的 allowed_group_sids
+  ↓
+通过 Bedrock KB Retrieve API 作为元数据返回
+  ↓
+在 route.ts 中与用户 SID（DynamoDB user-access）进行匹配
+  ↓
+匹配 → ALLOW，不匹配 → DENY
+```
+
+无论是 NTFS 卷还是 UNIX 卷，只要在 `.metadata.json` 中记录了 SID 信息，就会应用相同的 SID 过滤。
 
 ## 许可证
 

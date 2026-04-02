@@ -39,9 +39,9 @@
                                  └──────────────────┘
 ```
 
-## 實作概覽（8 個面向）
+## 實作概覽（13 個面向）
 
-本系統的實作分為 8 個面向。各項目的詳細資訊請參閱 [docs/implementation-overview.md](docs/implementation-overview.md)。
+本系統的實作分為 13 個面向。各項目的詳細資訊請參閱 [docs/implementation-overview.md](docs/implementation-overview.md)。
 
 | # | 面向 | 概覽 | 相關 CDK Stack |
 |---|------|------|----------------|
@@ -413,6 +413,9 @@ AD User → CloudFront UI → "Sign in with AD" button
 | `ontapSvmUuid` | （無） | SVM UUID（與 `ontapMgmtIp` 搭配使用） |
 | `ontapAdminSecretArn` | （無） | ONTAP 管理員密碼的 Secrets Manager ARN |
 | `useS3AccessPoint` | `false` | 使用 S3 Access Point 作為 Bedrock KB 資料來源 |
+| `volumeSecurityStyle` | `NTFS` | FSx ONTAP 磁碟區安全樣式（`NTFS` or `UNIX`） |
+| `s3apUserType` | （自動） | S3 AP 使用者類型（`WINDOWS` or `UNIX`）。預設：已設定 AD→WINDOWS，未設定 AD→UNIX |
+| `s3apUserName` | （自動） | S3 AP 使用者名稱。預設：WINDOWS→`Admin`，UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | 透過專用 Lambda 執行 SID 過濾（具有內聯過濾回退） |
 | `enableGuardrails` | `false` | Bedrock Guardrails（有害內容過濾 + PII 保護） |
 | `enableAgent` | `false` | Bedrock Agent + 權限感知 Action Group（KB 搜尋 + SID 過濾）。動態 Agent 建立（點擊卡片時自動建立並綁定分類特定的 Agent） |
@@ -1164,7 +1167,7 @@ User              Next.js API           DynamoDB          Bedrock KB       Conve
 
 | 文件 | 內容 |
 |------|------|
-| [docs/implementation-overview.md](docs/implementation-overview.md) | 詳細實作說明（8 個面向） |
+| [docs/implementation-overview.md](docs/implementation-overview.md) | 詳細實作說明（13 個面向） |
 | [docs/ui-specification.md](docs/ui-specification.md) | UI 規格（KB/Agent 模式切換、Agent 目錄、側邊欄設計、引用顯示） |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | 基於 SID 的權限過濾架構詳情 |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | 嵌入伺服器設計（包含 ONTAP ACL 自動擷取） |
@@ -1207,6 +1210,97 @@ aws fsx update-storage-virtual-machine \
 > **重要**：對於 AWS Managed AD，如果未指定 `OrganizationalUnitDistinguishedName`，SVM AD 加入將變為 `MISCONFIGURED`。OU 路徑格式為 `OU=Computers,OU=<AD ShortName>,DC=<domain>,DC=<tld>`。
 
 S3 Access Point 的設計決策（WINDOWS 使用者類型、Internet 存取）也記錄在指南中。
+
+### S3 Access Point 使用者設計指南
+
+建立 S3 Access Point 時指定的使用者類型和使用者名稱的組合，根據磁碟區的安全樣式和 AD 加入狀態有 4 種模式。
+
+#### 4 種模式決策矩陣
+
+| 模式 | 使用者類型 | 使用者來源 | 條件 | CDK 參數範例 |
+|------|-----------|-----------|------|-------------|
+| A | WINDOWS | 現有 AD 使用者 | 已加入 AD 的 SVM + NTFS/UNIX 磁碟區 | `s3apUserType=WINDOWS`（預設） |
+| B | WINDOWS | 新建專用使用者 | 已加入 AD 的 SVM + 專用服務帳戶 | `s3apUserType=WINDOWS s3apUserName=s3ap-service` |
+| C | UNIX | 現有 UNIX 使用者 | 未加入 AD 或 UNIX 磁碟區 | `s3apUserType=UNIX`（預設） |
+| D | UNIX | 新建專用使用者 | 未加入 AD + 專用使用者 | `s3apUserType=UNIX s3apUserName=s3ap-user` |
+
+#### 模式選擇流程圖
+
+```
+SVM 是否已加入 AD？
+  ├── 是 → NTFS 磁碟區？
+  │           ├── 是 → 模式 A（WINDOWS + 現有 AD 使用者）推薦
+  │           └── 否 → 模式 A 或 C（兩者皆可）
+  └── 否 → 模式 C（UNIX + root）推薦
+```
+
+#### 各模式詳細說明
+
+**模式 A：WINDOWS + 現有 AD 使用者（推薦：NTFS 環境）**
+
+```bash
+# CDK 部署
+npx cdk deploy --all -c adPassword=<PASSWORD> -c volumeSecurityStyle=NTFS
+# → S3 AP: WINDOWS, Admin（自動設定）
+```
+
+- 基於 NTFS ACL 的檔案層級存取控制已啟用
+- 透過 AD 的 `Admin` 使用者進行 S3 AP 檔案存取
+- 重要：不要加上網域前綴（`DEMO\Admin`）。僅指定 `Admin`
+
+**模式 B：WINDOWS + 新建專用使用者**
+
+```bash
+# 1. 在 AD 中建立專用服務帳戶（PowerShell）
+New-ADUser -Name "s3ap-service" -AccountPassword (ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force) -Enabled $true
+
+# 2. CDK 部署
+npx cdk deploy --all -c adPassword=<PASSWORD> -c s3apUserName=s3ap-service
+```
+
+- 基於最小權限原則的專用帳戶
+- 可在稽核日誌中明確識別 S3 AP 存取
+
+**模式 C：UNIX + 現有 UNIX 使用者（推薦：UNIX 環境）**
+
+```bash
+# CDK 部署（無 AD 設定）
+npx cdk deploy --all -c volumeSecurityStyle=UNIX
+# → S3 AP: UNIX, root（自動設定）
+```
+
+- 基於 POSIX 權限（uid/gid）的存取控制
+- 使用 `root` 使用者可存取所有檔案
+- SID 過濾基於 `.metadata.json` 的中繼資料運作（不依賴檔案系統 ACL）
+
+**模式 D：UNIX + 新建專用使用者**
+
+```bash
+# 1. 透過 ONTAP CLI 建立專用 UNIX 使用者
+vserver services unix-user create -vserver <SVM_NAME> -user s3ap-user -id 1100 -primary-gid 0
+
+# 2. CDK 部署
+npx cdk deploy --all -c volumeSecurityStyle=UNIX -c s3apUserType=UNIX -c s3apUserName=s3ap-user
+```
+
+- 基於最小權限原則的專用帳戶
+- 使用 `root` 以外的使用者存取時，需要設定磁碟區的 POSIX 權限
+
+#### 與 SID 過濾的關係
+
+SID 過濾不依賴於 S3 AP 的使用者類型。所有模式中運作相同的邏輯：
+
+```
+.metadata.json 中的 allowed_group_sids
+  ↓
+透過 Bedrock KB Retrieve API 作為中繼資料回傳
+  ↓
+在 route.ts 中與使用者 SID（DynamoDB user-access）進行比對
+  ↓
+比對成功 → ALLOW，不符 → DENY
+```
+
+無論是 NTFS 磁碟區還是 UNIX 磁碟區，只要在 `.metadata.json` 中記錄了 SID 資訊，就會套用相同的 SID 過濾。
 
 ## 授權
 

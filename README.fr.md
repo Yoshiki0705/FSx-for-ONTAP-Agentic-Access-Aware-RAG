@@ -39,9 +39,9 @@ Ce dépôt est un exemple qui déploie un RAG Agentique avec contrôle d'accès 
                                  └──────────────────┘
 ```
 
-## Vue d'ensemble de l'implémentation (8 perspectives)
+## Vue d'ensemble de l'implémentation (13 perspectives)
 
-L'implémentation de ce système est organisée en 8 perspectives. Pour les détails de chaque élément, consultez [docs/implementation-overview.md](docs/implementation-overview.md).
+L'implémentation de ce système est organisée en 13 perspectives. Pour les détails de chaque élément, consultez [docs/implementation-overview.md](docs/implementation-overview.md).
 
 | # | Perspective | Vue d'ensemble | Stack CDK associé |
 |---|-------------|----------------|-------------------|
@@ -413,6 +413,9 @@ Les paramètres de contexte CDK suivants activent les fonctionnalités d'amélio
 | `ontapSvmUuid` | (aucun) | UUID SVM (utilisé avec `ontapMgmtIp`) |
 | `ontapAdminSecretArn` | (aucun) | ARN Secrets Manager pour le mot de passe admin ONTAP |
 | `useS3AccessPoint` | `false` | Utiliser S3 Access Point comme source de données Bedrock KB |
+| `volumeSecurityStyle` | `NTFS` | Style de sécurité du volume FSx ONTAP (`NTFS` or `UNIX`) |
+| `s3apUserType` | (auto) | Type d'utilisateur S3 AP (`WINDOWS` or `UNIX`). Par défaut : AD configuré→WINDOWS, pas d'AD→UNIX |
+| `s3apUserName` | (auto) | Nom d'utilisateur S3 AP. Par défaut : WINDOWS→`Admin`, UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | Exécuter le filtrage SID via un Lambda dédié (avec repli sur le filtrage en ligne) |
 | `enableGuardrails` | `false` | Bedrock Guardrails (filtre de contenu nuisible + protection PII) |
 | `enableAgent` | `false` | Bedrock Agent + Action Group avec gestion des permissions (recherche KB + filtrage SID). Création dynamique d'Agent (crée et lie automatiquement des Agents spécifiques à la catégorie au clic sur la carte) |
@@ -926,7 +929,7 @@ Lorsque deux types d'utilisateurs (administrateur et utilisateur standard) posen
 
 | Document | Contenu |
 |----------|---------|
-| [docs/implementation-overview.md](docs/implementation-overview.md) | Description détaillée de l'implémentation (8 perspectives) |
+| [docs/implementation-overview.md](docs/implementation-overview.md) | Description détaillée de l'implémentation (13 perspectives) |
 | [docs/ui-specification.md](docs/ui-specification.md) | Spécification UI (basculement KB/Agent, répertoire Agent, design barre latérale, affichage citations) |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | Détails de l'architecture de filtrage basé sur SID |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | Conception du serveur d'embedding (incluant la récupération automatique ACL ONTAP) |
@@ -969,6 +972,97 @@ aws fsx update-storage-virtual-machine \
 > **Important** : Pour AWS Managed AD, si `OrganizationalUnitDistinguishedName` n'est pas spécifié, la jonction SVM AD deviendra `MISCONFIGURED`. Le format du chemin OU est `OU=Computers,OU=<AD ShortName>,DC=<domain>,DC=<tld>`.
 
 Les décisions de conception pour S3 Access Point (type d'utilisateur WINDOWS, accès Internet) sont également documentées dans le guide.
+
+### Guide de conception des utilisateurs S3 Access Point
+
+La combinaison du type d'utilisateur et du nom d'utilisateur spécifiés lors de la création d'un S3 Access Point varie selon le style de sécurité du volume et l'état de jonction AD. Il existe 4 modèles.
+
+#### Matrice de décision à 4 modèles
+
+| Modèle | Type d'utilisateur | Source utilisateur | Condition | Exemple de paramètre CDK |
+|--------|-------------------|-------------------|-----------|-------------------------|
+| A | WINDOWS | Utilisateur AD existant | SVM joint à AD + volume NTFS/UNIX | `s3apUserType=WINDOWS` (par défaut) |
+| B | WINDOWS | Nouvel utilisateur dédié | SVM joint à AD + compte de service dédié | `s3apUserType=WINDOWS s3apUserName=s3ap-service` |
+| C | UNIX | Utilisateur UNIX existant | Pas de jonction AD ou volume UNIX | `s3apUserType=UNIX` (par défaut) |
+| D | UNIX | Nouvel utilisateur dédié | Pas de jonction AD + utilisateur dédié | `s3apUserType=UNIX s3apUserName=s3ap-user` |
+
+#### Organigramme de sélection de modèle
+
+```
+Le SVM est-il joint à AD ?
+  ├── Oui → Volume NTFS ?
+  │           ├── Oui → Modèle A (WINDOWS + utilisateur AD existant) recommandé
+  │           └── Non → Modèle A ou C (les deux fonctionnent)
+  └── Non → Modèle C (UNIX + root) recommandé
+```
+
+#### Détails de chaque modèle
+
+**Modèle A : WINDOWS + Utilisateur AD existant (Recommandé : environnement NTFS)**
+
+```bash
+# Déploiement CDK
+npx cdk deploy --all -c adPassword=<PASSWORD> -c volumeSecurityStyle=NTFS
+# → S3 AP: WINDOWS, Admin (configuré automatiquement)
+```
+
+- Le contrôle d'accès au niveau des fichiers basé sur les ACL NTFS est activé
+- L'accès aux fichiers via S3 AP est effectué avec l'utilisateur AD `Admin`
+- Important : Ne pas inclure le préfixe de domaine (`DEMO\Admin`). Spécifier uniquement `Admin`
+
+**Modèle B : WINDOWS + Nouvel utilisateur dédié**
+
+```bash
+# 1. Créer un compte de service dédié dans AD (PowerShell)
+New-ADUser -Name "s3ap-service" -AccountPassword (ConvertTo-SecureString "P@ssw0rd" -AsPlainText -Force) -Enabled $true
+
+# 2. Déploiement CDK
+npx cdk deploy --all -c adPassword=<PASSWORD> -c s3apUserName=s3ap-service
+```
+
+- Compte dédié basé sur le principe du moindre privilège
+- L'accès S3 AP peut être clairement identifié dans les journaux d'audit
+
+**Modèle C : UNIX + Utilisateur UNIX existant (Recommandé : environnement UNIX)**
+
+```bash
+# Déploiement CDK (sans configuration AD)
+npx cdk deploy --all -c volumeSecurityStyle=UNIX
+# → S3 AP: UNIX, root (configuré automatiquement)
+```
+
+- Contrôle d'accès basé sur les permissions POSIX (uid/gid)
+- Tous les fichiers accessibles avec l'utilisateur `root`
+- Le filtrage SID fonctionne sur la base des métadonnées `.metadata.json` (ne dépend pas des ACL du système de fichiers)
+
+**Modèle D : UNIX + Nouvel utilisateur dédié**
+
+```bash
+# 1. Créer un utilisateur UNIX dédié via ONTAP CLI
+vserver services unix-user create -vserver <SVM_NAME> -user s3ap-user -id 1100 -primary-gid 0
+
+# 2. Déploiement CDK
+npx cdk deploy --all -c volumeSecurityStyle=UNIX -c s3apUserType=UNIX -c s3apUserName=s3ap-user
+```
+
+- Compte dédié basé sur le principe du moindre privilège
+- Lors de l'accès avec un utilisateur autre que `root`, la configuration des permissions POSIX du volume est nécessaire
+
+#### Relation avec le filtrage SID
+
+Le filtrage SID ne dépend pas du type d'utilisateur S3 AP. La même logique fonctionne dans tous les modèles :
+
+```
+allowed_group_sids dans .metadata.json
+  ↓
+Retourné comme métadonnées via Bedrock KB Retrieve API
+  ↓
+Comparé avec les SID utilisateur (DynamoDB user-access) dans route.ts
+  ↓
+Correspondance → ALLOW, Pas de correspondance → DENY
+```
+
+Que ce soit un volume NTFS ou UNIX, le même filtrage SID est appliqué tant que les informations SID sont incluses dans `.metadata.json`.
 
 ## Licence
 

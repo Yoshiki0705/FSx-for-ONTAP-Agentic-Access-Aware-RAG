@@ -226,7 +226,18 @@ AOSS 設定（`vectorStoreType=opensearch-serverless`）：
 | 选项 B（可选） | Embedding 服务器（CIFS 掛載）→ 直接向量儲存写入 | `-c enableEmbeddingServer=true` | ✅（僅 AOSS 設定） |
 | 选项 C（可选） | S3 Access Point → Bedrock KB | 部署後手動設定 | ✅ SnapMirror 支援，FlexCache 即將支援 |
 
-> **關於 S3 Access Point**：StorageStack 自動為 FSx ONTAP 卷建建 S3 Access Point，但由於截至 2026 年 3 月 S3 Access Point 不適用於 FlexCache Cache 卷，因此不用作 Bedrock KB 資料源。基礎已準备好，以便在 FlexCache 支援可用時作為选项 C 使用。
+> **關於 S3 Access Point**：StorageStack 自動為 FSx ONTAP 卷建立 S3 Access Point。根據卷的安全樣式（NTFS/UNIX）和 AD 加入狀態，將建立 WINDOWS 或 UNIX 使用者類型的 S3 AP。可透過 CDK 上下文參數 `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` 進行明確控制。
+
+#### S3 Access Point 使用者類型設計
+
+| 模式 | 使用者類型 | 使用者來源 | 卷 Style | 條件 |
+|------|----------|----------|---------|------|
+| A | WINDOWS | 現有 AD 使用者（Admin） | NTFS/UNIX | 已加入 AD 的 SVM（推薦：NTFS 環境） |
+| B | WINDOWS | 新建專用 AD 使用者 | NTFS/UNIX | 已加入 AD 的 SVM + 最小權限 |
+| C | UNIX | 現有 UNIX 使用者（root） | UNIX | 未加入 AD（推薦：UNIX 環境） |
+| D | UNIX | 新建專用 UNIX 使用者 | UNIX | 未加入 AD + 最小權限 |
+
+SID 過濾在所有模式中使用相同邏輯（基於 `.metadata.json` 中繼資料），不依賴於卷的安全樣式或 S3 AP 使用者類型。
 
 ### 處理流程
 
