@@ -424,6 +424,7 @@ The following CDK context parameters enable security enhancement and architectur
 | `monitoringEmail` | *(none)* | Alert notification email address (effective when `enableMonitoring=true`) |
 | `enableAgentCoreMemory` | `false` | Enable AgentCore Memory (short-term & long-term memory). Requires `enableAgent=true` |
 | `enableAgentCoreObservability` | `false` | Integrate AgentCore Runtime metrics into dashboard (effective when `enableMonitoring=true`) |
+| `enableAdvancedPermissions` | `false` | Time-based access control + permission decision audit log. Creates `permission-audit` DynamoDB table |
 | `alarmEvaluationPeriods` | `1` | Number of alarm evaluation periods (alarm fires after N consecutive threshold breaches) |
 | `dashboardRefreshInterval` | `300` | Dashboard auto-refresh interval (seconds) |
 

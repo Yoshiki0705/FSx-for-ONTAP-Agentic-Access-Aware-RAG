@@ -424,6 +424,7 @@ EC2上のADとEntra ID（旧Azure AD）を連携し、Entra IDのフェデレー
 | `monitoringEmail` | *(なし)* | アラート通知先メールアドレス（`enableMonitoring=true`時に有効） |
 | `enableAgentCoreMemory` | `false` | AgentCore Memory（短期・長期メモリ）を有効化。`enableAgent=true` が前提条件 |
 | `enableAgentCoreObservability` | `false` | AgentCore Runtimeメトリクスをダッシュボードに統合（`enableMonitoring=true`時に有効） |
+| `enableAdvancedPermissions` | `false` | 時間ベースアクセス制御 + 権限判定監査ログ。`permission-audit` DynamoDBテーブルを作成 |
 | `alarmEvaluationPeriods` | `1` | アラーム評価期間数（連続N回閾値超過でアラーム発火） |
 | `dashboardRefreshInterval` | `300` | ダッシュボード自動リフレッシュ間隔（秒） |
 

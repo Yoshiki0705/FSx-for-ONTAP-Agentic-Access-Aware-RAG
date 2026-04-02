@@ -810,6 +810,7 @@ Next.js API Routes
 | `monitoringEmail` | - | (なし) | アラート通知先メールアドレス |
 | `enableAgentCoreMemory` | - | `false` | AgentCore Memory（短期・長期メモリ）を有効化（`enableAgent=true` が前提条件） |
 | `enableAgentCoreObservability` | - | `false` | AgentCore Runtimeメトリクスをダッシュボードに統合 |
+| `enableAdvancedPermissions` | - | `false` | 時間ベースアクセス制御 + 権限判定監査ログ |
 
 ---
 

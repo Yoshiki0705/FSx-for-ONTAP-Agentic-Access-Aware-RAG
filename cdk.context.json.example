@@ -29,6 +29,8 @@
   "enableAgentSchedules": false,
   // "enableAgentCoreMemory": AgentCore Memory（短期・長期メモリ）。enableAgent=true が前提条件
   "enableAgentCoreMemory": false,
+  // "enableAdvancedPermissions": 時間ベースアクセス制御 + 権限判定監査ログ
+  "enableAdvancedPermissions": false,
 
   // AD SAMLフェデレーション（オプション）
   // ADユーザーがCloudFront UIから直接サインインし、Cognitoユーザーが自動作成される

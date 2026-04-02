@@ -424,6 +424,7 @@ AD User → CloudFront UI → "Sign in with AD" button
 | `monitoringEmail` | *（無）* | 警報通知電子郵件地址（`enableMonitoring=true` 時有效） |
 | `enableAgentCoreMemory` | `false` | 啟用 AgentCore Memory（短期和長期記憶）。需要 `enableAgent=true` |
 | `enableAgentCoreObservability` | `false` | 將 AgentCore Runtime 指標整合到儀表板（`enableMonitoring=true` 時有效） |
+| `enableAdvancedPermissions` | `false` | 時間基礎存取控制 + 權限判定稽核日誌。建立 `permission-audit` DynamoDB 資料表 |
 | `alarmEvaluationPeriods` | `1` | 警報評估期間數（連續 N 次超過閾值後觸發警報） |
 | `dashboardRefreshInterval` | `300` | 儀表板自動重新整理間隔（秒） |
 

@@ -424,6 +424,7 @@ Die folgenden CDK-Kontextparameter aktivieren Sicherheitsverbesserungs- und Arch
 | `monitoringEmail` | *(keiner)* | E-Mail-Adresse für Alarmbenachrichtigungen (wirksam bei `enableMonitoring=true`) |
 | `enableAgentCoreMemory` | `false` | AgentCore Memory aktivieren (Kurzzeit- und Langzeitgedächtnis). Erfordert `enableAgent=true` |
 | `enableAgentCoreObservability` | `false` | AgentCore Runtime-Metriken in Dashboard integrieren (wirksam bei `enableMonitoring=true`) |
+| `enableAdvancedPermissions` | `false` | Zeitbasierte Zugriffskontrolle + Berechtigungsentscheidungs-Auditprotokoll. Erstellt die DynamoDB-Tabelle `permission-audit` |
 | `alarmEvaluationPeriods` | `1` | Anzahl der Alarm-Auswertungsperioden (Alarm wird nach N aufeinanderfolgenden Schwellenwertüberschreitungen ausgelöst) |
 | `dashboardRefreshInterval` | `300` | Dashboard-Auto-Aktualisierungsintervall (Sekunden) |
 

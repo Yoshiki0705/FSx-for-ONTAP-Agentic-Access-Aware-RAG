@@ -60,6 +60,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   agentSchedulerRoleArn?: string;
   /** AgentCore Memory ID（enableAgentCoreMemory時、AIStackから） */
   memoryId?: string;
+  /** 権限監査テーブル名（enableAdvancedPermissions時、StorageStackから） */
+  permissionAuditTableName?: string;
   // --- 監視・アラート機能（オプション） ---
   /** 監視機能全体の有効化（デフォルト: false） */
   enableMonitoring?: boolean;
@@ -150,6 +152,9 @@ export class DemoWebAppStack extends cdk.Stack {
         // AgentCore Memory設定（オプション）
         ...(props.memoryId ? { AGENTCORE_MEMORY_ID: props.memoryId } : {}),
         ...(props.memoryId ? { ENABLE_AGENTCORE_MEMORY: 'true' } : {}),
+        // 高度権限制御設定（オプション）
+        ...(props.permissionAuditTableName ? { ENABLE_ADVANCED_PERMISSIONS: 'true' } : {}),
+        ...(props.permissionAuditTableName ? { PERMISSION_AUDIT_TABLE_NAME: props.permissionAuditTableName } : {}),
       },
     });
 
@@ -232,6 +237,21 @@ export class DemoWebAppStack extends cdk.Stack {
           'bedrock-agentcore:RetrieveMemoryRecords',
         ],
         resources: [`arn:aws:bedrock-agentcore:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:memory/*`],
+      }));
+    }
+
+    // Lambda から permission-audit テーブルに書き込むために必要。
+    // permissionAuditTableName が渡されている場合のみ追加（CDK条件付き）。
+    if (props.permissionAuditTableName) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'dynamodb:PutItem',
+          'dynamodb:Query',
+        ],
+        resources: [
+          `arn:aws:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/${props.permissionAuditTableName}`,
+          `arn:aws:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/${props.permissionAuditTableName}/index/*`,
+        ],
       }));
     }
 

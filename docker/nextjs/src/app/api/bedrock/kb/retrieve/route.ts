@@ -35,11 +35,15 @@ interface ConversationMessage {
   content: string;
 }
 
-interface UserAccessRecord { userId: string; userSID: string; groupSIDs: string[]; }
+interface UserAccessRecord { userId: string; userSID: string; groupSIDs: string[]; accessSchedule?: import('../../../../../../lambda/permissions/schedule-evaluator').AccessSchedule; }
 
 // === AgentCore Memory統合 (Task 11) ===
 const ENABLE_AGENTCORE_MEMORY = process.env.ENABLE_AGENTCORE_MEMORY === 'true';
 const AGENTCORE_MEMORY_ID = process.env.AGENTCORE_MEMORY_ID || '';
+
+// === 高度権限制御 (Advanced Permission Control) ===
+const ENABLE_ADVANCED_PERMISSIONS = process.env.ENABLE_ADVANCED_PERMISSIONS === 'true';
+const PERMISSION_AUDIT_TABLE_NAME = process.env.PERMISSION_AUDIT_TABLE_NAME || '';
 
 /**
  * AgentCore Memoryから直近の会話履歴を取得する。
@@ -119,7 +123,13 @@ async function getUserSIDs(userId: string): Promise<UserAccessRecord | null> {
     }));
     if (!result.Item) return null;
     const item = unmarshall(result.Item);
-    return { userId: item.userId, userSID: item.userSID || '', groupSIDs: item.groupSIDs || [] };
+    return {
+      userId: item.userId,
+      userSID: item.userSID || '',
+      groupSIDs: item.groupSIDs || [],
+      // 高度権限制御: accessSchedule フィールド（オプション）
+      ...(item.accessSchedule ? { accessSchedule: item.accessSchedule } : {}),
+    };
   } catch { return null; }
 }
 
@@ -397,6 +407,53 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[SID] Done:', (filterLog as Record<string, unknown>).allowedDocuments, '/', (filterLog as Record<string, unknown>).totalDocuments);
+
+    // === 高度権限制御: 時間ベースアクセス制御 + 監査ログ ===
+    if (ENABLE_ADVANCED_PERMISSIONS && !lambdaResult) {
+      const { evaluateSchedule } = await import('../../../../../../lambda/permissions/schedule-evaluator');
+      const { createAuditRecord, writeAuditLog } = await import('../../../../../../lambda/permissions/audit-logger');
+
+      // 時間ベース制御
+      const userAccess = await getUserSIDs(userId);
+      const accessSchedule = (userAccess as UserAccessRecord | null)?.accessSchedule;
+      if (accessSchedule) {
+        const scheduleResult = evaluateSchedule(accessSchedule);
+        if (!scheduleResult.allowed) {
+          // スケジュール外: カテゴリ指定がある場合は対象カテゴリのみ拒否
+          const beforeCount = allowed.length;
+          if (accessSchedule.documentCategories?.length) {
+            allowed = allowed.filter(doc => {
+              const category = (doc.metadata?.access_level as string) || '';
+              return !accessSchedule.documentCategories!.includes(category);
+            });
+          } else {
+            allowed = [];
+          }
+          (filterLog as Record<string, unknown>).scheduleEvaluation = scheduleResult;
+          (filterLog as Record<string, unknown>).allowedDocuments = allowed.length;
+          (filterLog as Record<string, unknown>).deniedDocuments = parsedResults.length - allowed.length;
+          (filterLog as Record<string, unknown>).filterMethod = 'ADVANCED_SID_SCHEDULE';
+          console.log(`[AdvancedPerm] Schedule denied: ${beforeCount} → ${allowed.length} allowed`);
+        }
+      }
+
+      // 監査ログ記録
+      if (PERMISSION_AUDIT_TABLE_NAME) {
+        const auditDocs = parsedResults.map(r => {
+          const fileName = r.s3Uri.split('/').pop() || r.s3Uri;
+          const isAllowed = allowed.some(a => a.s3Uri === r.s3Uri);
+          return {
+            fileName,
+            s3Uri: r.s3Uri,
+            decision: (isAllowed ? 'allow' : 'deny') as 'allow' | 'deny',
+            reason: isAllowed ? 'sid_match' : 'sid_no_match',
+          };
+        });
+        const record = createAuditRecord(userId, auditDocs, query, knowledgeBaseId, region);
+        (filterLog as Record<string, unknown>).auditId = record.auditId;
+        writeAuditLog(record).catch(err => console.error('[AuditLog] Write failed:', err));
+      }
+    }
 
     // === AgentCore Memory: 会話履歴取得 (Task 11.1) ===
     // KBモードでAgentCore Memoryが有効な場合、直近の会話履歴を取得してConverse APIに渡す

@@ -40,6 +40,8 @@ export interface DemoStorageStackProps extends cdk.StackProps {
   existingSvmId?: string;
   /** 既存ボリュームID（existingFileSystemId指定時に必須） */
   existingVolumeId?: string;
+  /** 高度権限制御を有効化するか（デフォルト: false） */
+  enableAdvancedPermissions?: boolean;
 }
 
 export class DemoStorageStack extends cdk.Stack {
@@ -59,6 +61,8 @@ export class DemoStorageStack extends cdk.Stack {
   public readonly managedAd?: directoryservice.CfnMicrosoftAD;
   /** KMS暗号化キー（enableKmsEncryption=trueの場合） */
   public readonly encryptionKey?: kms.Key;
+  /** 権限監査テーブル（enableAdvancedPermissions=trueの場合のみ） */
+  public readonly permissionAuditTable?: dynamodb.Table;
 
   constructor(scope: Construct, id: string, props: DemoStorageStackProps) {
     super(scope, id, props);
@@ -195,6 +199,34 @@ export class DemoStorageStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       ...(kmsKey ? { encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED, encryptionKey: kmsKey } : {}),
     });
+
+    // ========================================
+    // 権限監査テーブル（enableAdvancedPermissions=trueの場合のみ）
+    // ========================================
+    if (props.enableAdvancedPermissions) {
+      this.permissionAuditTable = new dynamodb.Table(this, 'PermissionAuditTable', {
+        tableName: `${prefix}-permission-audit`,
+        partitionKey: { name: 'auditId', type: dynamodb.AttributeType.STRING },
+        billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+        timeToLiveAttribute: 'ttl',
+        ...(kmsKey ? { encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED, encryptionKey: kmsKey } : {}),
+      });
+
+      // GSI: ユーザー別監査ログ検索用
+      this.permissionAuditTable.addGlobalSecondaryIndex({
+        indexName: 'userId-timestamp-index',
+        partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+        sortKey: { name: 'timestamp', type: dynamodb.AttributeType.STRING },
+        projectionType: dynamodb.ProjectionType.ALL,
+      });
+
+      new cdk.CfnOutput(this, 'PermissionAuditTableName', {
+        value: this.permissionAuditTable.tableName,
+        description: 'Permission audit DynamoDB table name (enableAdvancedPermissions=true)',
+        exportName: `${prefix}-PermissionAuditTableName`,
+      });
+    }
 
     // ========================================
     // FSx ONTAP S3 Access Point（カスタムリソース）

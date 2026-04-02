@@ -424,6 +424,7 @@ EC2의 AD를 Entra ID(구 Azure AD)와 통합하고 Entra ID 페더레이션 메
 | `monitoringEmail` | *(없음)* | 알림 통지 이메일 주소 (`enableMonitoring=true` 시 유효) |
 | `enableAgentCoreMemory` | `false` | AgentCore Memory 활성화 (단기 & 장기 메모리). `enableAgent=true` 필요 |
 | `enableAgentCoreObservability` | `false` | AgentCore Runtime 메트릭을 대시보드에 통합 (`enableMonitoring=true` 시 유효) |
+| `enableAdvancedPermissions` | `false` | 시간 기반 접근 제어 + 권한 판정 감사 로그. `permission-audit` DynamoDB 테이블 생성 |
 | `alarmEvaluationPeriods` | `1` | 알람 평가 기간 수 (N회 연속 임계값 초과 시 알람 발생) |
 | `dashboardRefreshInterval` | `300` | 대시보드 자동 새로고침 간격 (초) |
 

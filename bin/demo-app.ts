@@ -13,12 +13,14 @@
  *
  * オプション（CDKコンテキストパラメータ）:
  *   -c enableAgent=true          Bedrock Agent + Action Group
+ *   -c enableAdFederation=true   AD SAML Federation (Cognito + SAML IdP + Post-Auth Trigger)
  *   -c enableGuardrails=true     Bedrock Guardrails
  *   -c enableKmsEncryption=true  KMS暗号化
  *   -c enableCloudTrail=true     CloudTrail監査ログ
  *   -c enableVpcEndpoints=true   VPCエンドポイント
  *   -c vectorStoreType=s3vectors    Vector store type (s3vectors or opensearch-serverless)
  *   -c enableAgentCoreMemory=true    AgentCore Memory (短期・長期メモリ)
+ *   -c enableAdvancedPermissions=true 時間ベースアクセス制御 + 権限判定監査ログ
  *   -c enableMonitoring=true        CloudWatch Dashboard + SNS Alerts + EventBridge
  *   -c monitoringEmail=xxx          Alert notification email address
  *   -c enableAgentCoreObservability=true  AgentCore metrics on dashboard
@@ -82,6 +84,9 @@ const vectorStoreType = (app.node.tryGetContext('vectorStoreType') || 's3vectors
 // AgentCore機能（オプション）
 const enableAgentCoreMemory = ctxBool('enableAgentCoreMemory');
 
+// 高度権限制御（オプション）
+const enableAdvancedPermissions = ctxBool('enableAdvancedPermissions');
+
 // 監視・アラート機能（オプション）
 const enableMonitoring = ctxBool('enableMonitoring');
 const monitoringEmail: string | undefined = app.node.tryGetContext('monitoringEmail');
@@ -126,6 +131,7 @@ const storageStack = new DemoStorageStack(app, `${stackPrefix}-Storage`, {
   fsxSg: networkingStack.fsxSg,
   adPassword, adDomainName,
   enableKmsEncryption, enableCloudTrail,
+  enableAdvancedPermissions,
   existingFileSystemId, existingSvmId, existingVolumeId,
   env: primaryEnv,
   description: `[${projectName}] ${existingFileSystemId ? 'Existing FSx ONTAP + ' : 'FSx ONTAP + SVM + '}S3 + DynamoDB`,
@@ -199,6 +205,8 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentSchedulerRoleArn: aiStack.schedulerRoleArn,
   // AgentCore Memory（オプション）
   memoryId: aiStack.memoryId,
+  // 高度権限制御（オプション）
+  permissionAuditTableName: storageStack.permissionAuditTable?.tableName,
   // 監視・アラート機能（オプション）
   enableMonitoring,
   monitoringEmail,

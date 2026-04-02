@@ -27,6 +27,7 @@
 | CloudTrail | S3データアクセス + Lambda監査 | `enableCloudTrail=true` | 90日保持 |
 | VPCエンドポイント | S3, DynamoDB, Bedrock等 | `enableVpcEndpoints=true` | 6サービス対応 |
 | Embeddingサーバー | FlexCache CIFSマウント + ベクトルストア直接書き込み | `enableEmbeddingServer=true` | S3 AP非対応時の代替パス（AOSS構成時のみ） |
+| 高度権限制御 | 時間ベースアクセス制御 + 権限判定監査ログ | `enableAdvancedPermissions=true` | `permission-audit` DynamoDBテーブル + GSI |
 
 ---
 

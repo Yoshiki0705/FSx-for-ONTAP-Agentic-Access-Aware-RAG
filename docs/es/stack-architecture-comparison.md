@@ -27,6 +27,7 @@ Todos los CDK stacks están consolidados bajo `lib/stacks/demo/`. El único punt
 | CloudTrail | Acceso a datos S3 + auditoría Lambda | `enableCloudTrail=true` | Retención de 90 días |
 | VPC Endpoints | S3, DynamoDB, Bedrock, etc. | `enableVpcEndpoints=true` | Soporta 6 servicios |
 | Servidor de Embedding | Montaje CIFS FlexCache + escritura directa al almacén vectorial | `enableEmbeddingServer=true` | Ruta de respaldo cuando S3 AP no está disponible (solo configuración AOSS) |
+| Control avanzado de permisos | Control de acceso basado en tiempo + registro de auditoría de decisiones de permisos | `enableAdvancedPermissions=true` | Tabla DynamoDB `permission-audit` + GSI |
 
 ---
 

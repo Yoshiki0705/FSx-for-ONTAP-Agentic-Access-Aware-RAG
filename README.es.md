@@ -424,6 +424,7 @@ Los siguientes parámetros de contexto CDK habilitan funciones de mejora de segu
 | `monitoringEmail` | *(ninguno)* | Dirección de correo electrónico para notificaciones de alerta (efectivo cuando `enableMonitoring=true`) |
 | `enableAgentCoreMemory` | `false` | Habilitar AgentCore Memory (memoria a corto y largo plazo). Requiere `enableAgent=true` |
 | `enableAgentCoreObservability` | `false` | Integrar métricas de AgentCore Runtime en el panel (efectivo cuando `enableMonitoring=true`) |
+| `enableAdvancedPermissions` | `false` | Control de acceso basado en tiempo + registro de auditoría de decisiones de permisos. Crea la tabla DynamoDB `permission-audit` |
 | `alarmEvaluationPeriods` | `1` | Número de períodos de evaluación de alarma (la alarma se activa después de N violaciones consecutivas del umbral) |
 | `dashboardRefreshInterval` | `300` | Intervalo de actualización automática del panel (segundos) |
 

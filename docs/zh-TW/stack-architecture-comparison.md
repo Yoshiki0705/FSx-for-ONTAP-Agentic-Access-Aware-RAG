@@ -27,6 +27,7 @@
 | CloudTrail | S3 資料存取 + Lambda 稽核 | `enableCloudTrail=true` | 90 天保留 |
 | VPC Endpoints | S3、DynamoDB、Bedrock 等 | `enableVpcEndpoints=true` | 支援 6 項服務 |
 | Embedding 伺服器 | FlexCache CIFS 掛載 + 直接向量儲存寫入 | `enableEmbeddingServer=true` | S3 AP 不可用時的備援路徑（僅限 AOSS 設定） |
+| 進階權限控制 | 時間基礎存取控制 + 權限判定稽核日誌 | `enableAdvancedPermissions=true` | `permission-audit` DynamoDB 資料表 + GSI |
 
 ---
 

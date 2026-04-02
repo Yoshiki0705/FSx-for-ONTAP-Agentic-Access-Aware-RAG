@@ -810,6 +810,7 @@ Authentication Flow
 | `monitoringEmail` | - | (none) | Alert notification email address |
 | `enableAgentCoreMemory` | - | `false` | Enable AgentCore Memory (short-term/long-term memory) (requires `enableAgent=true` as prerequisite) |
 | `enableAgentCoreObservability` | - | `false` | Integrate AgentCore Runtime metrics into dashboard |
+| `enableAdvancedPermissions` | - | `false` | Control de acceso basado en tiempo + registro de auditoría de decisiones de permisos |
 
 ---
 

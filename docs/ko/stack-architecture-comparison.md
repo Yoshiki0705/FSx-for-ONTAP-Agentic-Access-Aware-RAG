@@ -27,6 +27,7 @@
 | CloudTrail | S3 데이터 접근 + Lambda 감사 | `enableCloudTrail=true` | 90일 보존 |
 | VPC Endpoints | S3, DynamoDB, Bedrock 등 | `enableVpcEndpoints=true` | 6개 서비스 지원 |
 | Embedding 서버 | FlexCache CIFS 마운트 + 벡터 스토어 직접 쓰기 | `enableEmbeddingServer=true` | S3 AP 사용 불가 시 대체 경로 (AOSS 구성만 해당) |
+| 고급 권한 제어 | 시간 기반 접근 제어 + 권한 판정 감사 로그 | `enableAdvancedPermissions=true` | `permission-audit` DynamoDB 테이블 + GSI |
 
 ---
 

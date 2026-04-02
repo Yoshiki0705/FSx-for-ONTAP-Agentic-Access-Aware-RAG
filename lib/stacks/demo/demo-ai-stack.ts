@@ -96,11 +96,20 @@ export class DemoAIStack extends cdk.Stack {
       }),
       // FSx ONTAP S3 Access Point経由のアクセス権限
       // S3 APエイリアスをBedrock KBデータソースとして使用
+      // 注意: 一部のAWSサービスはバケットARN形式（arn:aws:s3:::alias）でアクセスするため、
+      // アクセスポイントARN形式とバケットARN形式の両方を許可する
       new iam.PolicyStatement({
         actions: ['s3:GetObject', 's3:ListBucket', 's3:GetBucketLocation'],
         resources: [
+          // アクセスポイントARN形式
           `arn:aws:s3:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:accesspoint/*`,
           `arn:aws:s3:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:accesspoint/*/object/*`,
+          // バケットARN形式（S3 APエイリアス経由のアクセス用）
+          `arn:aws:s3:::${prefix}-*-ext-s3alias`,
+          `arn:aws:s3:::${prefix}-*-ext-s3alias/*`,
+          // S3データバケットへの直接アクセス（フォールバック用）
+          `arn:aws:s3:::${prefix}-kb-data-${cdk.Aws.ACCOUNT_ID}`,
+          `arn:aws:s3:::${prefix}-kb-data-${cdk.Aws.ACCOUNT_ID}/*`,
         ],
       }),
     ];

@@ -810,6 +810,7 @@ Next.js API Routes
 | `monitoringEmail` | - | (없음) | 알림 통지 이메일 주소 |
 | `enableAgentCoreMemory` | - | `false` | AgentCore Memory 활성화 (단기/장기 기억) (`enableAgent=true` 전제 조건) |
 | `enableAgentCoreObservability` | - | `false` | AgentCore Runtime 메트릭을 대시보드에 통합 |
+| `enableAdvancedPermissions` | - | `false` | 시간 기반 접근 제어 + 권한 판정 감사 로그 |
 
 ---
 
