@@ -116,9 +116,12 @@ aws fsx create-and-attach-s3-access-point \
     "VolumeId": "'$VOL_ID'",
     "FileSystemIdentity": {
       "Type": "WINDOWS",
-      "WindowsUser": {"Name": "demo.local\\Admin"}
+      "WindowsUser": {"Name": "Admin"}
     }
   }' --region ap-northeast-1
+# ⚠️ IMPORTANTE: WindowsUser NO debe incluir prefijo de dominio (ej: DEMO\Admin o demo.local\Admin).
+# El prefijo de dominio causa AccessDenied en las API del plano de datos (ListObjects, GetObject).
+# Especifique solo el nombre de usuario (ej: "Admin").
 
 watch -n 10 "aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \
   --query 'S3AccessPointAttachments[*].{Name:Name,Status:Lifecycle}'"

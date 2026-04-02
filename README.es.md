@@ -389,6 +389,7 @@ Pasos de configuración:
 | Error de callback OAuth | `cloudFrontUrl` no establecido o no coincide | Verificar que `cloudFrontUrl` en el contexto CDK coincida con la URL de distribución de CloudFront |
 | Fallo del Post-Auth Trigger | Permisos insuficientes del Lambda AD Sync | Verificar los detalles del error en CloudWatch Logs. El inicio de sesión en sí no se bloquea |
 | Error de acceso S3 en búsqueda KB | El rol IAM de KB carece de permisos de acceso directo al bucket S3 | El rol IAM de KB solo tiene permisos a través de S3 Access Point. Al usar el bucket S3 directamente como fuente de datos, se necesitan agregar permisos `s3:GetObject` y `s3:ListBucket` (no específico de AD Federation) |
+| S3 AP data plane API AccessDenied | WindowsUser incluye prefijo de dominio | El WindowsUser del S3 AP NO debe incluir prefijo de dominio (ej: `DEMO\Admin`). Especifique solo el nombre de usuario (ej: `Admin`). CLI acepta el prefijo pero las API del plano de datos fallan |
 | Fallo en la creación del dominio Cognito | Conflicto de prefijo de dominio | Verificar si el prefijo `{projectName}-{environment}-auth` está en conflicto con otras cuentas |
 
 #### Funciones empresariales (opcional)

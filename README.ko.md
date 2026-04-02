@@ -389,6 +389,7 @@ EC2의 AD를 Entra ID(구 Azure AD)와 통합하고 Entra ID 페더레이션 메
 | OAuth 콜백 오류 | `cloudFrontUrl` 미설정 또는 불일치 | CDK 컨텍스트의 `cloudFrontUrl`이 CloudFront Distribution URL과 일치하는지 확인 |
 | Post-Auth Trigger 실패 | AD Sync Lambda 권한 부족 | CloudWatch Logs에서 오류 상세 확인. 로그인 자체는 차단되지 않음 |
 | KB 검색 시 S3 접근 오류 | KB IAM 역할에 직접 S3 버킷 접근 권한 부족 | KB IAM 역할은 S3 Access Point를 통한 권한만 보유. S3 버킷을 직접 데이터 소스로 사용하는 경우 `s3:GetObject` 및 `s3:ListBucket` 권한 추가 필요 (AD Federation에 한정되지 않음) |
+| S3 AP 데이터 플레인 API AccessDenied | WindowsUser에 도메인 접두사 포함 | S3 AP의 WindowsUser에 도메인 접두사를 포함하면 안 됩니다 (예: `DEMO\Admin`). 사용자 이름만 지정하세요 (예: `Admin`). CLI는 도메인 접두사를 허용하지만 데이터 플레인 API가 실패합니다 |
 | Cognito Domain 생성 실패 | 도메인 접두사 충돌 | `{projectName}-{environment}-auth` 접두사가 다른 계정과 충돌하는지 확인 |
 
 #### 엔터프라이즈 기능 (선택 사항)
@@ -1097,9 +1098,12 @@ aws fsx create-and-attach-s3-access-point \
     "VolumeId": "<VOLUME_ID>",
     "FileSystemIdentity": {
       "Type": "WINDOWS",
-      "WindowsUser": {"Name": "demo.local\\Admin"}
+      "WindowsUser": {"Name": "Admin"}
     }
   }' --region ap-northeast-1
+# ⚠️ 중요: WindowsUser에 도메인 접두사를 포함하면 안 됩니다 (예: DEMO\Admin 또는 demo.local\Admin).
+# 도메인 접두사를 사용하면 데이터 플레인 API (ListObjects, GetObject)에서 AccessDenied가 발생합니다.
+# 사용자 이름만 지정하세요 (예: "Admin").
 
 # S3 AP가 AVAILABLE이 될 때까지 대기 (약 1분)
 watch -n 10 "aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \

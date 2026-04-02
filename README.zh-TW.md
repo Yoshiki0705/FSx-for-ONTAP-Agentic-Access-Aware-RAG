@@ -389,6 +389,7 @@ AD User → CloudFront UI → "Sign in with AD" button
 | OAuth 回呼錯誤 | `cloudFrontUrl` 未設定或不匹配 | 驗證 CDK context 中的 `cloudFrontUrl` 是否與 CloudFront Distribution URL 匹配 |
 | Post-Auth Trigger 失敗 | AD Sync Lambda 權限不足 | 檢查 CloudWatch Logs 中的錯誤詳情。登入本身不會被阻擋 |
 | KB 搜尋中的 S3 存取錯誤 | KB IAM 角色缺少直接 S3 儲存桶存取權限 | KB IAM 角色僅透過 S3 Access Point 擁有權限。直接使用 S3 儲存桶作為資料來源時，需要新增 `s3:GetObject` 和 `s3:ListBucket` 權限（非 AD Federation 特有） |
+| S3 AP 資料平面 API AccessDenied | WindowsUser 包含網域前綴 | S3 AP 的 WindowsUser 不得包含網域前綴（例如 `DEMO\Admin`）。僅指定使用者名稱（例如 `Admin`）。CLI 接受網域前綴但資料平面 API 會失敗 |
 | Cognito Domain 建立失敗 | 網域前綴衝突 | 檢查 `{projectName}-{environment}-auth` 前綴是否與其他帳戶衝突 |
 
 #### 企業功能（可選）

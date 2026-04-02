@@ -119,9 +119,12 @@ aws fsx create-and-attach-s3-access-point \
     "VolumeId": "'$VOL_ID'",
     "FileSystemIdentity": {
       "Type": "WINDOWS",
-      "WindowsUser": {"Name": "demo.local\\Admin"}
+      "WindowsUser": {"Name": "Admin"}
     }
   }' --region ap-northeast-1
+# ⚠️ 重要：WindowsUser 不得包含域前缀（例如 DEMO\Admin 或 demo.local\Admin）。
+# 域前缀会导致数据平面 API（ListObjects、GetObject）返回 AccessDenied。
+# 只需指定用户名（例如 "Admin"）。
 
 # Wait for AVAILABLE status (approximately 1 minute)
 watch -n 10 "aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \

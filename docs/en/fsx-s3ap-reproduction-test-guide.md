@@ -119,9 +119,12 @@ aws fsx create-and-attach-s3-access-point \
     "VolumeId": "'$VOL_ID'",
     "FileSystemIdentity": {
       "Type": "WINDOWS",
-      "WindowsUser": {"Name": "demo.local\\Admin"}
+      "WindowsUser": {"Name": "Admin"}
     }
   }' --region ap-northeast-1
+# ⚠️ IMPORTANT: WindowsUser must NOT include domain prefix (e.g., DEMO\Admin or demo.local\Admin).
+# Domain prefix causes AccessDenied on data plane APIs (ListObjects, GetObject).
+# Only specify the username (e.g., "Admin").
 
 # Wait for AVAILABLE status (approximately 1 minute)
 watch -n 10 "aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \

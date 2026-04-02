@@ -35,7 +35,7 @@ interface ConversationMessage {
   content: string;
 }
 
-interface UserAccessRecord { userId: string; userSID: string; groupSIDs: string[]; accessSchedule?: import('../../../../../../lambda/permissions/schedule-evaluator').AccessSchedule; }
+interface UserAccessRecord { userId: string; userSID: string; groupSIDs: string[]; accessSchedule?: import('@/lib/permissions/schedule-evaluator').AccessSchedule; }
 
 // === AgentCore Memory統合 (Task 11) ===
 const ENABLE_AGENTCORE_MEMORY = process.env.ENABLE_AGENTCORE_MEMORY === 'true';
@@ -390,8 +390,8 @@ export async function POST(request: NextRequest) {
         const fileName = r.s3Uri.split('/').pop() || r.s3Uri;
         let docSIDs: string[] = [];
         const raw = r.metadata?.allowed_group_sids ?? (r.metadata?.metadataAttributes as Record<string, unknown>)?.allowed_group_sids;
-        if (Array.isArray(raw)) docSIDs = raw as string[];
-        else if (typeof raw === 'string') { try { docSIDs = JSON.parse(raw); } catch { docSIDs = [raw]; } }
+        if (Array.isArray(raw)) docSIDs = (raw as string[]).map(s => typeof s === 'string' ? s.replace(/^"|"$/g, '') : s);
+        else if (typeof raw === 'string') { try { docSIDs = (JSON.parse(raw) as string[]).map(s => typeof s === 'string' ? s.replace(/^"|"$/g, '') : s); } catch { docSIDs = [raw.replace(/^"|"$/g, '')]; } }
         const ok = allUserSIDs.length > 0 && checkSIDAccess(allUserSIDs, docSIDs);
         const matchedSID = ok ? allUserSIDs.find(s => docSIDs.includes(s)) : undefined;
         details.push({ fileName, documentSIDs: docSIDs, matched: ok, matchedSID });
@@ -410,8 +410,8 @@ export async function POST(request: NextRequest) {
 
     // === 高度権限制御: 時間ベースアクセス制御 + 監査ログ ===
     if (ENABLE_ADVANCED_PERMISSIONS && !lambdaResult) {
-      const { evaluateSchedule } = await import('../../../../../../lambda/permissions/schedule-evaluator');
-      const { createAuditRecord, writeAuditLog } = await import('../../../../../../lambda/permissions/audit-logger');
+      const { evaluateSchedule } = await import('@/lib/permissions/schedule-evaluator');
+      const { createAuditRecord, writeAuditLog } = await import('@/lib/permissions/audit-logger');
 
       // 時間ベース制御
       const userAccess = await getUserSIDs(userId);

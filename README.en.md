@@ -389,6 +389,7 @@ Setup steps:
 | OAuth callback error | `cloudFrontUrl` not set or mismatch | Verify that `cloudFrontUrl` in CDK context matches the CloudFront Distribution URL |
 | Post-Auth Trigger failure | AD Sync Lambda insufficient permissions | Check CloudWatch Logs for error details. Sign-in itself is not blocked |
 | S3 access error in KB search | KB IAM role lacks direct S3 bucket access permissions | KB IAM role only has permissions via S3 Access Point. When using S3 bucket directly as data source, `s3:GetObject` and `s3:ListBucket` permissions need to be added (not specific to AD Federation) |
+| S3 AP data plane API AccessDenied | WindowsUser includes domain prefix | S3 AP WindowsUser must NOT include domain prefix (e.g., `DEMO\Admin`). Specify only the username (e.g., `Admin`). CLI accepts domain prefix but data plane APIs fail |
 | Cognito Domain creation failure | Domain prefix conflict | Check if `{projectName}-{environment}-auth` prefix conflicts with other accounts |
 
 #### Enterprise Features (Optional)
@@ -1097,9 +1098,12 @@ aws fsx create-and-attach-s3-access-point \
     "VolumeId": "<VOLUME_ID>",
     "FileSystemIdentity": {
       "Type": "WINDOWS",
-      "WindowsUser": {"Name": "demo.local\\Admin"}
+      "WindowsUser": {"Name": "Admin"}
     }
   }' --region ap-northeast-1
+# ⚠️ IMPORTANT: WindowsUser must NOT include domain prefix (e.g., DEMO\Admin or demo.local\Admin).
+# Domain prefix causes AccessDenied on data plane APIs (ListObjects, GetObject).
+# Only specify the username (e.g., "Admin").
 
 # Wait until S3 AP becomes AVAILABLE (approximately 1 minute)
 watch -n 10 "aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \

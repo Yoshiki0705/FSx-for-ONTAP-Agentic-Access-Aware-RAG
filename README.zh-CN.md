@@ -389,6 +389,7 @@ AD User → CloudFront UI → "Sign in with AD" button
 | OAuth 回调错误 | `cloudFrontUrl` 未设置或不匹配 | 验证 CDK context 中的 `cloudFrontUrl` 与 CloudFront Distribution URL 是否一致 |
 | Post-Auth Trigger 失败 | AD Sync Lambda 权限不足 | 检查 CloudWatch Logs 获取错误详情。登录本身不会被阻止 |
 | KB 搜索中的 S3 访问错误 | KB IAM 角色缺少直接 S3 存储桶访问权限 | KB IAM 角色仅通过 S3 Access Point 拥有权限。直接使用 S3 存储桶作为数据源时，需要添加 `s3:GetObject` 和 `s3:ListBucket` 权限（非 AD Federation 特有问题） |
+| S3 AP 数据平面 API AccessDenied | WindowsUser 包含域前缀 | S3 AP 的 WindowsUser 不得包含域前缀（例如 `DEMO\Admin`）。仅指定用户名（例如 `Admin`）。CLI 接受域前缀但数据平面 API 会失败 |
 | Cognito Domain 创建失败 | 域前缀冲突 | 检查 `{projectName}-{environment}-auth` 前缀是否与其他账户冲突 |
 
 #### 企业功能（可选）
@@ -1097,9 +1098,12 @@ aws fsx create-and-attach-s3-access-point \
     "VolumeId": "<VOLUME_ID>",
     "FileSystemIdentity": {
       "Type": "WINDOWS",
-      "WindowsUser": {"Name": "demo.local\\Admin"}
+      "WindowsUser": {"Name": "Admin"}
     }
   }' --region ap-northeast-1
+# ⚠️ 重要：WindowsUser 不得包含域前缀（例如 DEMO\Admin 或 demo.local\Admin）。
+# 域前缀会导致数据平面 API（ListObjects、GetObject）返回 AccessDenied。
+# 只需指定用户名（例如 "Admin"）。
 
 # Wait until S3 AP becomes AVAILABLE (approximately 1 minute)
 watch -n 10 "aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \

@@ -119,9 +119,12 @@ aws fsx create-and-attach-s3-access-point \
     "VolumeId": "'$VOL_ID'",
     "FileSystemIdentity": {
       "Type": "WINDOWS",
-      "WindowsUser": {"Name": "demo.local\\Admin"}
+      "WindowsUser": {"Name": "Admin"}
     }
   }' --region ap-northeast-1
+# ⚠️ 重要: WindowsUserにドメインプレフィクスを含めてはいけません（例: DEMO\Admin, demo.local\Admin）。
+# ドメインプレフィクスを指定するとデータプレーンAPI（ListObjects, GetObject）でAccessDeniedが発生します。
+# ユーザー名のみを指定してください（例: "Admin"）。
 
 # AVAILABLE待ち（約1分）
 watch -n 10 "aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \

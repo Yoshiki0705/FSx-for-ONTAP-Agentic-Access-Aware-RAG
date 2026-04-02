@@ -389,6 +389,7 @@ Intègre l'AD sur EC2 avec Entra ID (anciennement Azure AD) et utilise l'URL de 
 | Erreur de callback OAuth | `cloudFrontUrl` non défini ou non concordant | Vérifier que `cloudFrontUrl` dans le contexte CDK correspond à l'URL de la distribution CloudFront |
 | Échec du Post-Auth Trigger | Permissions insuffisantes du Lambda AD Sync | Vérifier les détails d'erreur dans CloudWatch Logs. La connexion elle-même n'est pas bloquée |
 | Erreur d'accès S3 dans la recherche KB | Le rôle IAM KB manque de permissions d'accès direct au bucket S3 | Le rôle IAM KB n'a des permissions que via S3 Access Point. Lors de l'utilisation directe du bucket S3 comme source de données, les permissions `s3:GetObject` et `s3:ListBucket` doivent être ajoutées (non spécifique à AD Federation) |
+| S3 AP data plane API AccessDenied | WindowsUser inclut le préfixe de domaine | Le WindowsUser du S3 AP ne doit PAS inclure le préfixe de domaine (ex: `DEMO\Admin`). Spécifiez uniquement le nom d'utilisateur (ex: `Admin`). Le CLI accepte le préfixe mais les API data plane échouent |
 | Échec de création du domaine Cognito | Conflit de préfixe de domaine | Vérifier si le préfixe `{projectName}-{environment}-auth` est en conflit avec d'autres comptes |
 
 #### Fonctionnalités entreprise (optionnel)

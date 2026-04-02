@@ -146,8 +146,11 @@ if [ -z "$S3AP_ALIAS" ] || [ "$S3AP_ALIAS" = "None" ] || [ "$S3AP_ALIAS" = "" ];
     # ADドメイン名を取得
     AD_DOMAIN=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-Storage --region $REGION \
       --query 'Stacks[0].Outputs[?OutputKey==`AdDomainName`].OutputValue' --output text 2>/dev/null || echo "demo.local")
-    FS_IDENTITY="{\"Type\":\"WINDOWS\",\"WindowsUser\":{\"Name\":\"${AD_DOMAIN}\\\\Admin\"}}"
-    echo "  WINDOWS identity: ${AD_DOMAIN}\\Admin"
+    # 重要: WindowsUserにはドメインプレフィクスを付けない
+    # ドメインプレフィクス付き（例: DEMO\Admin）はCLIで受け入れられるが、
+    # データプレーンAPI（ListObjects, GetObject等）がAccessDeniedになる
+    FS_IDENTITY="{\"Type\":\"WINDOWS\",\"WindowsUser\":{\"Name\":\"Admin\"}}"
+    echo "  WINDOWS identity: Admin (domain prefix omitted - required for data plane access)"
     echo "  ⚠️ SVMがADドメインに参加済みであることを確認してください"
   else
     # UNIX: AD不要

@@ -132,9 +132,9 @@ export async function advancedPermissionFilter(
 
 function extractSIDs(metadata: Record<string, unknown>): string[] {
   const sids = metadata.allowed_group_sids;
-  if (Array.isArray(sids)) return sids as string[];
+  if (Array.isArray(sids)) return (sids as string[]).map(s => typeof s === 'string' ? s.replace(/^"|"$/g, '') : s);
   if (typeof sids === 'string') {
-    try { return JSON.parse(sids); } catch { return []; }
+    try { return (JSON.parse(sids) as string[]).map(s => typeof s === 'string' ? s.replace(/^"|"$/g, '') : s); } catch { return [sids.replace(/^"|"$/g, '')]; }
   }
   return [];
 }

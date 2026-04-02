@@ -389,6 +389,7 @@ EC2上のADとEntra ID（旧Azure AD）を連携し、Entra IDのフェデレー
 | OAuthコールバックエラー | `cloudFrontUrl`未設定 or 不一致 | CDKコンテキストの`cloudFrontUrl`がCloudFront Distribution URLと一致することを確認 |
 | Post-Auth Trigger失敗 | AD Sync Lambda権限不足 | CloudWatch Logsでエラー詳細を確認。サインイン自体はブロックされない |
 | KB検索でS3アクセスエラー | KB IAMロールにS3バケット直接アクセス権限がない | KB IAMロールはS3 Access Point経由の権限のみ保持。S3バケットを直接データソースとして使用する場合は `s3:GetObject`, `s3:ListBucket` 権限の追加が必要（AD Federation固有の問題ではない） |
+| S3 APデータプレーンAPI AccessDenied | WindowsUserにドメインプレフィクスが含まれている | S3 APのWindowsUserにドメインプレフィクス（例: `DEMO\Admin`）を含めてはいけない。ユーザー名のみ（例: `Admin`）を指定する。CLIではドメインプレフィクス付きが受け入れられるがデータプレーンAPIが失敗する |
 | Cognito Domain作成失敗 | ドメインプレフィックス重複 | `{projectName}-{environment}-auth` プレフィックスが他アカウントと重複していないか確認 |
 
 #### エンタープライズ機能（オプション）
@@ -1097,9 +1098,12 @@ aws fsx create-and-attach-s3-access-point \
     "VolumeId": "<VOLUME_ID>",
     "FileSystemIdentity": {
       "Type": "WINDOWS",
-      "WindowsUser": {"Name": "demo.local\\Admin"}
+      "WindowsUser": {"Name": "Admin"}
     }
   }' --region ap-northeast-1
+# ⚠️ 重要: WindowsUserにはドメインプレフィクスを付けないでください（例: DEMO\Admin や demo.local\Admin は不可）。
+# ドメインプレフィクス付きの場合、データプレーンAPI（ListObjects, GetObject）がAccessDeniedになります。
+# ユーザー名のみを指定してください（例: "Admin"）。
 
 # S3 APがAVAILABLEになるまで待機（約1分）
 watch -n 10 "aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \

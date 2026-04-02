@@ -389,6 +389,7 @@ Einrichtungsschritte:
 | OAuth-Callback-Fehler | `cloudFrontUrl` nicht gesetzt oder nicht übereinstimmend | Überprüfen, ob `cloudFrontUrl` im CDK-Kontext mit der CloudFront Distribution-URL übereinstimmt |
 | Post-Auth Trigger-Fehler | AD Sync Lambda unzureichende Berechtigungen | Fehlerdetails in CloudWatch Logs prüfen. Die Anmeldung selbst wird nicht blockiert |
 | S3-Zugriffsfehler bei KB-Suche | KB IAM-Rolle fehlen direkte S3-Bucket-Zugriffsberechtigungen | KB IAM-Rolle hat nur Berechtigungen über S3 Access Point. Bei direkter Verwendung des S3-Buckets als Datenquelle müssen `s3:GetObject`- und `s3:ListBucket`-Berechtigungen hinzugefügt werden (nicht spezifisch für AD Federation) |
+| S3 AP Datenebene API AccessDenied | WindowsUser enthält Domänenpräfix | Der WindowsUser des S3 AP darf KEIN Domänenpräfix enthalten (z.B. `DEMO\Admin`). Nur den Benutzernamen angeben (z.B. `Admin`). CLI akzeptiert das Präfix, aber Datenebene-APIs schlagen fehl |
 | Cognito Domain-Erstellungsfehler | Domänenpräfix-Konflikt | Prüfen, ob das Präfix `{projectName}-{environment}-auth` mit anderen Konten in Konflikt steht |
 
 #### Enterprise-Funktionen (optional)

@@ -298,7 +298,10 @@ export class DemoStorageStack extends cdk.Stack {
     // AD設定がない場合、CDKカスタムリソースで即座に作成する。
     const hasAd = !!adPassword;
     const s3ApUserType = hasAd ? 'WINDOWS' : 'UNIX';
-    const s3ApUserName = hasAd ? `${domainName}\\Admin` : 'root';
+    // 重要: WindowsUserにはドメインプレフィクスを付けない（例: 'Admin'）
+    // ドメインプレフィクス付き（例: 'DEMO\Admin'）はCLIでは受け入れられるが、
+    // データプレーンAPI（ListObjects, GetObject等）がAccessDeniedになる
+    const s3ApUserName = hasAd ? 'Admin' : 'root';
 
     const s3ApResource = new cdk.CustomResource(this, 'FsxS3AccessPoint', {
       serviceToken: s3ApCreatorFn.functionArn,
