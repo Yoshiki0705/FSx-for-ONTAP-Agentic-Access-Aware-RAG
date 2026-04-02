@@ -851,31 +851,31 @@ Authentication Flow
 ## Overall System Architecture
 
 ```
-┌──────────┐     ┌──────────┐     ┌────────────┐     ┌─────────────────────┐
-│ Browser  │────▶│ AWS WAF  │────▶│ CloudFront │────▶│ Lambda Web Adapter  │
-└──────────┘     └──────────┘     │ (OAC+Geo)  │     │ (Next.js, IAM Auth) │
-                                   └────────────┘     └──────┬──────────────┘
-                                                             │
-                       ┌─────────────────────┬───────────────┼────────────────────┐
-                       ▼                     ▼               ▼                    ▼
-              ┌─────────────┐    ┌──────────────────┐ ┌──────────────┐   ┌──────────────┐
-              │ Cognito     │    │ Bedrock KB       │ │ DynamoDB     │   │ DynamoDB     │
-              │ User Pool   │    │ + S3 Vectors /   │ │ user-access  │   │ perm-cache   │
-              └─────────────┘    │   OpenSearch SL  │ │ (SID data)   │   │ (Perm Cache) │
-                                 └────────┬─────────┘ └──────────────┘   └──────────────┘
-                                          │
-                              ┌───────────┴───────────┐
-                              ▼                       ▼
-                     ┌────────────────┐     ┌──────────────────┐
-                     │ S3 Bucket      │     │ FSx for ONTAP    │
-                     │ (Metadata Sync)│     │ (SVM + Volume)   │
-                     └────────────────┘     └────────┬─────────┘
-                                                     │ CIFS/SMB
-                                                     ▼
-                                            ┌──────────────────┐
-                                            │ Embedding EC2    │
-                                            │ (Titan Embed v2) │
-                                            └──────────────────┘
++----------+     +----------+     +------------+     +---------------------+
+| Browser  |---->| AWS WAF  |---->| CloudFront |---->| Lambda Web Adapter  |
++----------+     +----------+     | (OAC+Geo)  |     | (Next.js, IAM Auth) |
+                                  +------------+     +------+--------------+
+                                                            |
+                      +---------------------+---------------+--------------------+
+                      v                     v               v                    v
+             +-------------+    +------------------+ +--------------+   +--------------+
+             | Cognito     |    | Bedrock KB       | | DynamoDB     |   | DynamoDB     |
+             | User Pool   |    | + S3 Vectors /   | | user-access  |   | perm-cache   |
+             +-------------+    |   OpenSearch SL  | | (SID Data)   |   | (Perm Cache) |
+                                +--------+---------+ +--------------+   +--------------+
+                                         |
+                             +-----------+-----------+
+                             v                       v
+                    +----------------+     +------------------+
+                    | S3 Bucket      |     | FSx for ONTAP    |
+                    | (Metadata Sync)|     | (SVM + Volume)   |
+                    +----------------+     +--------+---------+
+                                                    | CIFS/SMB
+                                                    v
+                                           +------------------+
+                                           | Embedding EC2    |
+                                           | (Titan Embed v2) |
+                                           +------------------+
 ```
 
 ### CDK Stack Configuration (7 Stacks)

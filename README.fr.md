@@ -11,32 +11,32 @@ Ce dépôt est un exemple qui déploie un RAG Agentique avec contrôle d'accès 
 ## Architecture
 
 ```
-┌──────────┐     ┌──────────┐     ┌────────────┐     ┌─────────────────────┐
-│ Browser   │────▶│ AWS WAF  │────▶│ CloudFront │────▶│ Lambda Web Adapter  │
-└──────────┘     └──────────┘     │ (OAC+Geo)  │     │ (Next.js, IAM Auth) │
-                                   └────────────┘     └──────┬──────────────┘
-                                                             │
-                       ┌─────────────────────┬───────────────┼────────────────────┐
-                       ▼                     ▼               ▼                    ▼
-              ┌─────────────┐    ┌──────────────────┐ ┌──────────────┐   ┌──────────────┐
-              │ Cognito     │    │ Bedrock KB       │ │ DynamoDB     │   │ DynamoDB     │
-              │ User Pool   │    │ + S3 Vectors /   │ │ user-access  │   │ perm-cache   │
-              └─────────────┘    │   OpenSearch SL  │ │ (SID data)   │   │ (Perm Cache) │
-                                 └────────┬─────────┘ └──────────────┘   └──────────────┘
-                                          │
-                                          ▼
-                                 ┌──────────────────┐
-                                 │ FSx for ONTAP    │
-                                 │ (SVM + Volume)   │
-                                 │ + S3 Access Point│
-                                 └────────┬─────────┘
-                                          │ CIFS/SMB (Optional)
-                                          ▼
-                                 ┌──────────────────┐
-                                 │ Embedding EC2    │
-                                 │ (Titan Embed v2) │
-                                 │ (Optional)       │
-                                 └──────────────────┘
++----------+     +----------+     +------------+     +---------------------+
+| Browser  |---->| AWS WAF  |---->| CloudFront |---->| Lambda Web Adapter  |
++----------+     +----------+     | (OAC+Geo)  |     | (Next.js, IAM Auth) |
+                                  +------------+     +------+--------------+
+                                                            |
+                      +---------------------+---------------+--------------------+
+                      v                     v               v                    v
+             +-------------+    +------------------+ +--------------+   +--------------+
+             | Cognito     |    | Bedrock KB       | | DynamoDB     |   | DynamoDB     |
+             | User Pool   |    | + S3 Vectors /   | | user-access  |   | perm-cache   |
+             +-------------+    |   OpenSearch SL  | | (SID Data)   |   | (Perm Cache) |
+                                +--------+---------+ +--------------+   +--------------+
+                                         |
+                                         v
+                                +------------------+
+                                | FSx for ONTAP    |
+                                | (SVM + Volume)   |
+                                | + S3 Access Point|
+                                +--------+---------+
+                                         | CIFS/SMB (optional)
+                                         v
+                                +------------------+
+                                | Embedding EC2    |
+                                | (Titan Embed v2) |
+                                | (optional)       |
+                                +------------------+
 ```
 
 ## Vue d'ensemble de l'implémentation (13 perspectives)

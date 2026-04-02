@@ -314,6 +314,40 @@ S-1-5-21-{DomainID1}-{DomainID2}-{DomainID3}-{RID}
 
 ### 過濾處理流程（两阶段方法）
 
+```
+User            Next.js API         DynamoDB        Bedrock KB      Converse API
+  |                  |                  |                |                |
+  | 1. Send query    |                  |                |                |
+  |----------------->|                  |                |                |
+  |                  | 2. Get user SIDs |                |                |
+  |                  |----------------->|                |                |
+  |                  |<-----------------|                |                |
+  |                  | userSID+groupSIDs|                |                |
+  |                  |                  |                |                |
+  |                  | 3. Retrieve API  |                |                |
+  |                  |  (vector search) |                |                |
+  |                  |----------------->|--------------->|                |
+  |                  |<-----------------|                |                |
+  |                  | Results+metadata |                |                |
+  |                  | (allowed_group   |                |                |
+  |                  |  _sids)          |                |                |
+  |                  |                  |                |                |
+  |                  | 4. SID matching  |                |                |
+  |                  |  userSIDs n      |                |                |
+  |                  |  documentSIDs    |                |                |
+  |                  |  Match->ALLOW    |                |                |
+  |                  |  No match->DENY  |                |                |
+  |                  |                  |                |                |
+  |                  | 5. Converse API  |                |                |
+  |                  |  (allowed docs)  |                |                |
+  |                  |----------------->|--------------->|--------------->|
+  |                  |<-----------------|                |                |
+  |                  |                  |                |                |
+  | 6. Filtered      |                  |                |                |
+  |    result        |                  |                |                |
+  |<-----------------|                  |                |                |
+```
+
 使用 Retrieve API 的原因：RetrieveAndGenerate API 不回傳 Citation 元資料（`allowed_group_sids`），因此 SID 過濾無法工作。Retrieve API 正确回傳元資料，因此采用两阶段方法（Retrieve → SID 過濾 → Converse）。
 
 ### Fail-Closed 退回
@@ -466,31 +500,31 @@ S-1-5-21-{DomainID1}-{DomainID2}-{DomainID3}-{RID}
 ## 整體系統架構
 
 ```
-┌──────────┐     ┌──────────┐     ┌────────────┐     ┌─────────────────────┐
-│ Browser  │────▶│ AWS WAF  │────▶│ CloudFront │────▶│ Lambda Web Adapter  │
-└──────────┘     └──────────┘     │ (OAC+Geo)  │     │ (Next.js, IAM Auth) │
-                                   └────────────┘     └──────┬──────────────┘
-                                                             │
-                       ┌─────────────────────┬───────────────┼────────────────────┐
-                       ▼                     ▼               ▼                    ▼
-              ┌─────────────┐    ┌──────────────────┐ ┌──────────────┐   ┌──────────────┐
-              │ Cognito     │    │ Bedrock KB       │ │ DynamoDB     │   │ DynamoDB     │
-              │ User Pool   │    │ + S3 Vectors /   │ │ user-access  │   │ perm-cache   │
-              └─────────────┘    │   OpenSearch SL  │ │ (SID data)   │   │ (Perm Cache) │
-                                 └────────┬─────────┘ └──────────────┘   └──────────────┘
-                                          │
-                              ┌───────────┴───────────┐
-                              ▼                       ▼
-                     ┌────────────────┐     ┌──────────────────┐
-                     │ S3 Bucket      │     │ FSx for ONTAP    │
-                     │ (Metadata Sync)│     │ (SVM + Volume)   │
-                     └────────────────┘     └────────┬─────────┘
-                                                     │ CIFS/SMB
-                                                     ▼
-                                            ┌──────────────────┐
-                                            │ Embedding EC2    │
-                                            │ (Titan Embed v2) │
-                                            └──────────────────┘
++----------+     +----------+     +------------+     +---------------------+
+| Browser  |---->| AWS WAF  |---->| CloudFront |---->| Lambda Web Adapter  |
++----------+     +----------+     | (OAC+Geo)  |     | (Next.js, IAM Auth) |
+                                  +------------+     +------+--------------+
+                                                            |
+                      +---------------------+---------------+--------------------+
+                      v                     v               v                    v
+             +-------------+    +------------------+ +--------------+   +--------------+
+             | Cognito     |    | Bedrock KB       | | DynamoDB     |   | DynamoDB     |
+             | User Pool   |    | + S3 Vectors /   | | user-access  |   | perm-cache   |
+             +-------------+    |   OpenSearch SL  | | (SID Data)   |   | (Perm Cache) |
+                                +--------+---------+ +--------------+   +--------------+
+                                         |
+                             +-----------+-----------+
+                             v                       v
+                    +----------------+     +------------------+
+                    | S3 Bucket      |     | FSx for ONTAP    |
+                    | (Metadata Sync)|     | (SVM + Volume)   |
+                    +----------------+     +--------+---------+
+                                                    | CIFS/SMB
+                                                    v
+                                           +------------------+
+                                           | Embedding EC2    |
+                                           | (Titan Embed v2) |
+                                           +------------------+
 ```
 
 ### CDK 堆積堆積疊结構（7 個堆積堆積疊）
