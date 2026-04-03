@@ -310,12 +310,18 @@ export class DemoSecurityStack extends cdk.Stack {
     }
 
     // ========================================
-    // Post-Authentication Trigger（フェデレーション有効時: SAML or OIDC）
+    // Post-Authentication + Post-Confirmation Trigger（フェデレーション有効時: SAML or OIDC）
+    // PostAuthentication: 2回目以降のサインインで発火
+    // PostConfirmation: 外部IdP経由の初回サインイン時に発火（OIDC/SAML）
     // ========================================
     const hasFederationTrigger = (props.enableAdFederation || !!props.oidcProviderConfig) && this.adSyncFunction;
     if (hasFederationTrigger) {
       this.userPool.addTrigger(
         cognito.UserPoolOperation.POST_AUTHENTICATION,
+        this.adSyncFunction!,
+      );
+      this.userPool.addTrigger(
+        cognito.UserPoolOperation.POST_CONFIRMATION,
         this.adSyncFunction!,
       );
     }

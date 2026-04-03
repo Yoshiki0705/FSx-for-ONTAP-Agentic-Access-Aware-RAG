@@ -439,6 +439,10 @@ AD User → CloudFront UI → "Sign in with AD" button
 | `permissionMappingStrategy` | string | 權限對應策略：`sid-only`（預設）、`uid-gid`、`hybrid` |
 | `ontapNameMappingEnabled` | boolean | ONTAP name-mapping 整合（UNIX 使用者→Windows 使用者對應） |
 
+SAML + OIDC 混合配置的登入頁面（AD 登入 + Auth0 登入 + 電子郵件/密碼）：
+
+![登入頁面（SAML + OIDC 混合）](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
 #### 企業功能（可選）
 
 以下 CDK context 參數可啟用安全增強和架構統一功能。

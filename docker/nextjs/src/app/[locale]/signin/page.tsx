@@ -14,6 +14,7 @@ function AdSignInSection({ locale }: { locale: string }) {
     cognitoClientId?: string;
     callbackUrl?: string;
     idpName?: string;
+    oidcProviderName?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -27,28 +28,50 @@ function AdSignInSection({ locale }: { locale: string }) {
 
   if (!adConfig?.cognitoDomain) return null;
 
-  const adSignInUrl =
+  const buildSignInUrl = (providerName: string) =>
     `https://${adConfig.cognitoDomain}.auth.${adConfig.cognitoRegion}.amazoncognito.com/oauth2/authorize` +
-    `?identity_provider=${encodeURIComponent(adConfig.idpName || 'ActiveDirectory')}` +
+    `?identity_provider=${encodeURIComponent(providerName)}` +
     `&response_type=code` +
     `&client_id=${encodeURIComponent(adConfig.cognitoClientId || '')}` +
     `&redirect_uri=${encodeURIComponent(adConfig.callbackUrl || '')}` +
     `&scope=openid+email+profile`;
 
+  const hasAd = !!adConfig.idpName;
+  const hasOidc = !!adConfig.oidcProviderName;
+
   return (
     <div className="mt-6 space-y-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-        <button
-          type="button"
-          onClick={() => { window.location.href = adSignInUrl; }}
-          className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <Shield className="h-4 w-4 mr-2" />
-          ADでサインイン
-        </button>
-        <p className="mt-2 text-xs text-center text-gray-500 dark:text-gray-400">
-          Active Directory認証を使用してサインインします
-        </p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 space-y-3">
+        {hasAd && (
+          <>
+            <button
+              type="button"
+              onClick={() => { window.location.href = buildSignInUrl(adConfig.idpName || 'ActiveDirectory'); }}
+              className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              ADでサインイン
+            </button>
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+              Active Directory認証を使用してサインインします
+            </p>
+          </>
+        )}
+        {hasOidc && (
+          <>
+            <button
+              type="button"
+              onClick={() => { window.location.href = buildSignInUrl(adConfig.oidcProviderName!); }}
+              className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              {adConfig.oidcProviderName}でサインイン
+            </button>
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+              {adConfig.oidcProviderName} OIDC認証を使用してサインインします
+            </p>
+          </>
+        )}
       </div>
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

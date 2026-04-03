@@ -441,6 +441,10 @@ See [Authentication & User Management Guide](docs/en/auth-and-user-management.md
 | `permissionMappingStrategy` | string | Permission mapping strategy: `sid-only` (default), `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | ONTAP name-mapping integration (UNIX→Windows user mapping) |
 
+SAML + OIDC hybrid sign-in page (Sign in with AD + Sign in with Auth0 + Email/Password):
+
+![Sign-in page (SAML + OIDC Hybrid)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
 #### Enterprise Features (Optional)
 
 The following CDK context parameters enable security enhancement and architecture unification features.

@@ -226,7 +226,7 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
-          "S3Key": "3d2c4a0e352fa8124de30c4e7bbba90dfb72910f91794790e9be8a42791689b3.zip",
+          "S3Key": "304cd8f374e0b75f1d6316383630f13b08d3d7f54ed9c8afef403007050a7291.zip",
         },
         "Environment": {
           "Variables": {
@@ -434,6 +434,12 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
               "Arn",
             ],
           },
+          "PostConfirmation": {
+            "Fn::GetAtt": [
+              "AdSyncFn08742CC1",
+              "Arn",
+            ],
+          },
         },
         "Policies": {
           "PasswordPolicy": {
@@ -490,6 +496,25 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
       "Type": "AWS::Cognito::UserPoolDomain",
     },
     "UserPoolPostAuthenticationCognito62FAB912": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AdSyncFn08742CC1",
+            "Arn",
+          ],
+        },
+        "Principal": "cognito-idp.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "UserPool6BA7E5F2",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "UserPoolPostConfirmationCognito0E6001F8": {
       "Properties": {
         "Action": "lambda:InvokeFunction",
         "FunctionName": {
@@ -643,7 +668,7 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
-          "S3Key": "3d2c4a0e352fa8124de30c4e7bbba90dfb72910f91794790e9be8a42791689b3.zip",
+          "S3Key": "304cd8f374e0b75f1d6316383630f13b08d3d7f54ed9c8afef403007050a7291.zip",
         },
         "Environment": {
           "Variables": {
@@ -882,6 +907,12 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
               "Arn",
             ],
           },
+          "PostConfirmation": {
+            "Fn::GetAtt": [
+              "AdSyncFn08742CC1",
+              "Arn",
+            ],
+          },
         },
         "Policies": {
           "PasswordPolicy": {
@@ -938,6 +969,25 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
       "Type": "AWS::Cognito::UserPoolDomain",
     },
     "UserPoolPostAuthenticationCognito62FAB912": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AdSyncFn08742CC1",
+            "Arn",
+          ],
+        },
+        "Principal": "cognito-idp.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "UserPool6BA7E5F2",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "UserPoolPostConfirmationCognito0E6001F8": {
       "Properties": {
         "Action": "lambda:InvokeFunction",
         "FunctionName": {

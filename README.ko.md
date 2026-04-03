@@ -439,6 +439,10 @@ SAML AD Federation 외에도 OIDC IdP(Keycloak, Okta, Entra ID 등) 및 LDAP 직
 | `permissionMappingStrategy` | string | 권한 매핑 전략: `sid-only` (기본값), `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | ONTAP name-mapping 연동 (UNIX 사용자→Windows 사용자 매핑) |
 
+SAML + OIDC 하이브리드 구성의 로그인 화면 (AD로 로그인 + Auth0로 로그인 + 이메일/비밀번호):
+
+![로그인 화면 (SAML + OIDC 하이브리드)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
 #### 엔터프라이즈 기능 (선택 사항)
 
 다음 CDK 컨텍스트 파라미터로 보안 강화 및 아키텍처 통합 기능을 활성화할 수 있습니다.

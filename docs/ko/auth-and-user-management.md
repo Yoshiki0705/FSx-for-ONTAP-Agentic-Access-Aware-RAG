@@ -348,6 +348,27 @@ Match -> ALLOW, No match -> DENY
 
 ---
 
+## 검증 결과
+
+### CDK Synth + 배포 검증 (v3.4.0)
+
+- CDK synth/deploy: ✅ 성공
+- Cognito OIDC IdP 등록: ✅ Auth0
+- 로그인 화면: ✅ SAML + OIDC 하이브리드
+- OIDC 인증 플로우: ✅ 엔드투엔드 성공
+- Post-Auth Trigger: ✅ PostConfirmation
+- DynamoDB 자동 저장: ✅ OIDC-Claims
+- 유닛 테스트: ✅ 130 패스
+- 프로퍼티 테스트: ✅ 52 패스
+
+![로그인 화면 (SAML + OIDC 하이브리드)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
+![Auth0 OIDC 로그인 페이지](../docs/screenshots/oidc-auth0-login-page.png)
+
+![OIDC 로그인 성공 후 채팅 화면](../docs/screenshots/oidc-auth0-signin-success.png)
+
+---
+
 ## 관련 문서
 
 - [README.md — AD SAML 페더레이션](../../README.ko.md#ad-saml-페더레이션-옵션) — CDK 배포 절차

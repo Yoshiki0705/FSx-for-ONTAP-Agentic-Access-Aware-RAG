@@ -439,6 +439,10 @@ Chaque méthode d'authentification utilise l'« activation automatique pilotée 
 | `permissionMappingStrategy` | string | Stratégie de mappage des permissions : `sid-only` (par défaut), `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | Intégration ONTAP name-mapping (mappage utilisateur UNIX→Windows) |
 
+Page de connexion hybride SAML + OIDC (Connexion AD + Connexion Auth0 + E-mail/Mot de passe) :
+
+![Page de connexion (SAML + OIDC Hybride)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
 #### Fonctionnalités entreprise (optionnel)
 
 Les paramètres de contexte CDK suivants activent les fonctionnalités d'amélioration de la sécurité et d'unification de l'architecture.

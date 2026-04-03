@@ -348,6 +348,27 @@ Match -> ALLOW, No match -> DENY
 
 ---
 
+## Resultados de verificación
+
+### Verificación CDK Synth + Despliegue (v3.4.0)
+
+- CDK synth/deploy: ✅ Éxito
+- Registro de Cognito OIDC IdP: ✅ Auth0
+- Página de inicio de sesión: ✅ Híbrido SAML + OIDC
+- Flujo de autenticación OIDC: ✅ Éxito de extremo a extremo
+- Post-Auth Trigger: ✅ PostConfirmation
+- Guardado automático en DynamoDB: ✅ OIDC-Claims
+- Pruebas unitarias: ✅ 130 aprobadas
+- Pruebas de propiedades: ✅ 52 aprobadas
+
+![Página de inicio de sesión (Híbrido SAML + OIDC)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
+![Página de inicio de sesión Auth0 OIDC](../docs/screenshots/oidc-auth0-login-page.png)
+
+![Página de chat después del inicio de sesión OIDC exitoso](../docs/screenshots/oidc-auth0-signin-success.png)
+
+---
+
 ## Documentos relacionados
 
 - [README.md — Federación AD SAML](../../README.es.md#federación-ad-saml-opción) — Instrucciones de despliegue CDK

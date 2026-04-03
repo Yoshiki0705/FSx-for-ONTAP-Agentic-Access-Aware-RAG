@@ -439,6 +439,10 @@ Cada método de autenticación utiliza la "activación automática basada en con
 | `permissionMappingStrategy` | string | Estrategia de mapeo de permisos: `sid-only` (predeterminado), `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | Integración ONTAP name-mapping (mapeo de usuario UNIX→Windows) |
 
+Página de inicio de sesión híbrida SAML + OIDC (Iniciar sesión con AD + Iniciar sesión con Auth0 + Correo/Contraseña):
+
+![Página de inicio de sesión (SAML + OIDC Híbrido)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
 #### Funciones empresariales (opcional)
 
 Los siguientes parámetros de contexto CDK habilitan funciones de mejora de seguridad y unificación de arquitectura.

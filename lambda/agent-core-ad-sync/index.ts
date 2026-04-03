@@ -96,7 +96,7 @@ interface ExtendedSaveOptions {
 // ========================================
 interface CognitoPostAuthEvent {
   version: string;
-  triggerSource: 'PostAuthentication_Authentication';
+  triggerSource: 'PostAuthentication_Authentication' | 'PostConfirmation_ConfirmSignUp';
   region: string;
   userPoolId: string;
   userName: string;
@@ -180,8 +180,11 @@ export function parseOidcClaims(
 // Lambda Handler
 // ========================================
 export async function handler(event: AdSyncEvent | CognitoPostAuthEvent): Promise<AdSyncResponse | CognitoPostAuthEvent> {
-  // Cognito Post-Authentication Triggerイベント判定
-  if ('triggerSource' in event && event.triggerSource === 'PostAuthentication_Authentication') {
+  // Cognito Post-Authentication / Post-Confirmation Triggerイベント判定
+  if ('triggerSource' in event && (
+    event.triggerSource === 'PostAuthentication_Authentication' ||
+    event.triggerSource === 'PostConfirmation_ConfirmSignUp'
+  )) {
     return handleCognitoTrigger(event as CognitoPostAuthEvent);
   }
 

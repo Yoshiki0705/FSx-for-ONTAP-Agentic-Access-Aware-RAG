@@ -439,6 +439,10 @@ Jede Authentifizierungsmethode verwendet die „konfigurationsgesteuerte automat
 | `permissionMappingStrategy` | string | Berechtigungszuordnungsstrategie: `sid-only` (Standard), `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | ONTAP Name-Mapping-Integration (UNIX→Windows-Benutzerzuordnung) |
 
+SAML + OIDC Hybrid-Anmeldeseite (AD-Anmeldung + Auth0-Anmeldung + E-Mail/Passwort):
+
+![Anmeldeseite (SAML + OIDC Hybrid)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
 #### Enterprise-Funktionen (optional)
 
 Die folgenden CDK-Kontextparameter aktivieren Sicherheitsverbesserungs- und Architekturvereinheitlichungsfunktionen.

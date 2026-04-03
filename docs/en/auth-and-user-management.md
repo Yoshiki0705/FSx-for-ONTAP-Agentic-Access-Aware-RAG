@@ -371,6 +371,36 @@ Match -> ALLOW, No match -> DENY
 
 ---
 
+## Verification Results
+
+### CDK Synth + Deploy Verification (v3.4.0)
+
+- CDK synth: ✅ Success
+- CDK deploy: ✅ SecurityStack + WebAppStack UPDATE_COMPLETE
+- Cognito OIDC IdP registration: ✅ Auth0 (`UserPoolIdentityProviderOidc`)
+- Sign-in page: ✅ "Sign in with AD" + "Sign in with Auth0" both displayed (SAML + OIDC hybrid)
+- OIDC auth flow: ✅ Auth0 auth → Cognito OAuth callback → Chat page (end-to-end success)
+- Cognito auto user creation: ✅ `Auth0_auth0|...` (Status: EXTERNAL_PROVIDER)
+- Post-Auth Trigger: ✅ PostConfirmation trigger fires Identity Sync Lambda on first OIDC sign-in
+- DynamoDB auto-save: ✅ `source: "OIDC-Claims"`, `authSource: "oidc"` record created
+- Backward compatibility: ✅ Existing SAML AD Federation works normally
+- Unit tests: ✅ 130 tests pass
+- Property tests: ✅ 52 tests pass (17 properties, numRuns=20)
+
+SAML + OIDC hybrid sign-in page:
+
+![Sign-in page (SAML + OIDC Hybrid)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
+Auth0 OIDC login page:
+
+![Auth0 OIDC Login Page](../docs/screenshots/oidc-auth0-login-page.png)
+
+Chat page after Auth0 OIDC sign-in:
+
+![Chat page after OIDC sign-in](../docs/screenshots/oidc-auth0-signin-success.png)
+
+---
+
 ## Related Documents
 
 - [README.md — AD SAML Federation](../../README.en.md#ad-saml-federation-option) — CDK deployment instructions

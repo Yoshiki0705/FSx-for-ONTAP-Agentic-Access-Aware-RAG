@@ -348,6 +348,27 @@ Match -> ALLOW, No match -> DENY
 
 ---
 
+## Verifizierungsergebnisse
+
+### CDK Synth + Deployment-Verifizierung (v3.4.0)
+
+- CDK synth/deploy: ✅ Erfolgreich
+- Cognito OIDC IdP-Registrierung: ✅ Auth0
+- Anmeldeseite: ✅ SAML + OIDC Hybrid
+- OIDC-Authentifizierungsfluss: ✅ End-to-End erfolgreich
+- Post-Auth Trigger: ✅ PostConfirmation
+- DynamoDB automatische Speicherung: ✅ OIDC-Claims
+- Unit-Tests: ✅ 130 bestanden
+- Property-Tests: ✅ 52 bestanden
+
+![Anmeldeseite (SAML + OIDC Hybrid)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
+![Auth0 OIDC-Anmeldeseite](../docs/screenshots/oidc-auth0-login-page.png)
+
+![Chat-Seite nach erfolgreicher OIDC-Anmeldung](../docs/screenshots/oidc-auth0-signin-success.png)
+
+---
+
 ## Verwandte Dokumente
 
 - [README.md — AD SAML-Föderation](../../README.de.md#ad-saml-föderation-option) — CDK-Deployment-Anleitung

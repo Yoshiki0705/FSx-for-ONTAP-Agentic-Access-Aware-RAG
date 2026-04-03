@@ -348,6 +348,27 @@ Match -> ALLOW, No match -> DENY
 
 ---
 
+## 验证结果
+
+### CDK Synth + 部署验证（v3.4.0）
+
+- CDK synth/deploy: ✅ 成功
+- Cognito OIDC IdP 注册: ✅ Auth0
+- 登录界面: ✅ SAML + OIDC 混合
+- OIDC 认证流程: ✅ 端到端成功
+- Post-Auth Trigger: ✅ PostConfirmation
+- DynamoDB 自动保存: ✅ OIDC-Claims
+- 单元测试: ✅ 130 通过
+- 属性测试: ✅ 52 通过
+
+![登录界面（SAML + OIDC 混合）](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
+
+![Auth0 OIDC 登录页面](../docs/screenshots/oidc-auth0-login-page.png)
+
+![OIDC 登录成功后的聊天界面](../docs/screenshots/oidc-auth0-signin-success.png)
+
+---
+
 ## 相关文档
 
 - [README.md — AD SAML 联合认证](../../README.zh-CN.md#ad-saml-联合认证选项) — CDK 部署步骤
