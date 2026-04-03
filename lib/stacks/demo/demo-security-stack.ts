@@ -136,9 +136,10 @@ export class DemoSecurityStack extends cdk.Stack {
       autoVerify: { email: true },
       standardAttributes: { email: { required: true, mutable: false } },
       // AD Federation用カスタム属性
-      customAttributes: props.enableAdFederation ? {
+      customAttributes: (props.enableAdFederation || props.oidcProviderConfig) ? {
         'ad_groups': new cognito.StringAttribute({ mutable: true }),
         'role': new cognito.StringAttribute({ mutable: true }),
+        'oidc_groups': new cognito.StringAttribute({ mutable: true }),
       } : undefined,
       passwordPolicy: {
         minLength: 8, requireLowercase: true, requireUppercase: true,
@@ -211,6 +212,11 @@ export class DemoSecurityStack extends cdk.Stack {
         scopes: ['openid', 'email', 'profile'],
         attributeMapping: {
           email: cognito.ProviderAttribute.other('email'),
+          custom: {
+            'custom:oidc_groups': cognito.ProviderAttribute.other(
+              props.oidcProviderConfig.groupClaimName || 'groups'
+            ),
+          },
         },
       });
 

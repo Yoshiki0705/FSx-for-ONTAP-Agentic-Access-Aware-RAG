@@ -156,7 +156,8 @@ export function parseOidcClaims(
   groupClaimName: string = OIDC_GROUP_CLAIM_NAME,
 ): OidcClaimsInfo {
   const claims = event.request.userAttributes;
-  const groupsRaw = claims[`custom:${groupClaimName}`] || claims[groupClaimName] || '[]';
+  // Cognito属性マッピング: custom:oidc_groups, custom:{claimName}, {claimName} の順で検索
+  const groupsRaw = claims['custom:oidc_groups'] || claims[`custom:${groupClaimName}`] || claims[groupClaimName] || '[]';
 
   let groups: string[];
   if (Array.isArray(groupsRaw)) {

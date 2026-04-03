@@ -6,9 +6,9 @@ import { LogIn, User, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCSRFToken } from '@/hooks/useCSRFToken';
 
-/** ADサインインセクション — ランタイムでAPI経由で設定を取得 */
-function AdSignInSection({ locale }: { locale: string }) {
-  const [adConfig, setAdConfig] = useState<{
+/** 認証オプションセクション — ランタイムでAPI経由で設定を取得 */
+function AuthOptionsSection({ locale }: { locale: string }) {
+  const [authConfig, setAuthConfig] = useState<{
     cognitoDomain?: string;
     cognitoRegion?: string;
     cognitoClientId?: string;
@@ -16,28 +16,54 @@ function AdSignInSection({ locale }: { locale: string }) {
     idpName?: string;
     oidcProviderName?: string;
   } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/auth/ad-config')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data?.enabled) setAdConfig(data);
+        if (data?.enabled) setAuthConfig(data);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
   }, []);
 
-  if (!adConfig?.cognitoDomain) return null;
+  // ローディング中はスケルトンUIを表示
+  if (isLoading) {
+    return (
+      <div className="mt-6 space-y-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 space-y-3">
+          <div className="w-full h-10 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
+          <div className="w-full h-10 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
+        </div>
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 text-gray-500 dark:text-gray-400">
+              または
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authConfig?.cognitoDomain) return null;
 
   const buildSignInUrl = (providerName: string) =>
-    `https://${adConfig.cognitoDomain}.auth.${adConfig.cognitoRegion}.amazoncognito.com/oauth2/authorize` +
+    `https://${authConfig.cognitoDomain}.auth.${authConfig.cognitoRegion}.amazoncognito.com/oauth2/authorize` +
     `?identity_provider=${encodeURIComponent(providerName)}` +
     `&response_type=code` +
-    `&client_id=${encodeURIComponent(adConfig.cognitoClientId || '')}` +
-    `&redirect_uri=${encodeURIComponent(adConfig.callbackUrl || '')}` +
+    `&client_id=${encodeURIComponent(authConfig.cognitoClientId || '')}` +
+    `&redirect_uri=${encodeURIComponent(authConfig.callbackUrl || '')}` +
     `&scope=openid+email+profile`;
 
-  const hasAd = !!adConfig.idpName;
-  const hasOidc = !!adConfig.oidcProviderName;
+  const hasAd = !!authConfig.idpName;
+  const hasOidc = !!authConfig.oidcProviderName;
+
+  if (!hasAd && !hasOidc) return null;
 
   return (
     <div className="mt-6 space-y-4">
@@ -46,7 +72,7 @@ function AdSignInSection({ locale }: { locale: string }) {
           <>
             <button
               type="button"
-              onClick={() => { window.location.href = buildSignInUrl(adConfig.idpName || 'ActiveDirectory'); }}
+              onClick={() => { window.location.href = buildSignInUrl(authConfig.idpName || 'ActiveDirectory'); }}
               className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <Shield className="h-4 w-4 mr-2" />
@@ -61,14 +87,14 @@ function AdSignInSection({ locale }: { locale: string }) {
           <>
             <button
               type="button"
-              onClick={() => { window.location.href = buildSignInUrl(adConfig.oidcProviderName!); }}
+              onClick={() => { window.location.href = buildSignInUrl(authConfig.oidcProviderName!); }}
               className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
             >
               <LogIn className="h-4 w-4 mr-2" />
-              {adConfig.oidcProviderName}でサインイン
+              {authConfig.oidcProviderName}でサインイン
             </button>
             <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-              {adConfig.oidcProviderName} OIDC認証を使用してサインインします
+              {authConfig.oidcProviderName} OIDC認証を使用してサインインします
             </p>
           </>
         )}
@@ -171,7 +197,7 @@ export default function SignInPage({ params }: SignInPageProps) {
 
           {/* ADサインインボタン（COGNITO_DOMAIN環境変数設定時のみ表示） */}
           {typeof window !== 'undefined' && (
-            <AdSignInSection locale={locale} />
+            <AuthOptionsSection locale={locale} />
           )}
 
           {/* サインインフォーム */}
