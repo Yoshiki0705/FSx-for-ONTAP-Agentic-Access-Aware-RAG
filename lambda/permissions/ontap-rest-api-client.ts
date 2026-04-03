@@ -24,6 +24,71 @@ import {
   ParseError 
 } from './errors';
 
+// ========================================
+// Name-Mapping インターフェース (Task 7.1)
+// ========================================
+
+/**
+ * ONTAP Name-Mappingルール
+ * 
+ * UNIXユーザー名とWindowsユーザー名の対応付けルールを表します。
+ * 
+ * @property direction - マッピング方向（unix-win: UNIX→Windows, win-unix: Windows→UNIX）
+ * @property pattern - マッチングパターン（正規表現）
+ * @property replacement - 置換文字列
+ */
+export interface NameMappingRule {
+  direction: 'unix-win' | 'win-unix';
+  pattern: string;
+  replacement: string;
+}
+
+/**
+ * ONTAP Name-Mapping APIレスポンス
+ */
+interface NameMappingResponse {
+  records: Array<{
+    direction: string;
+    pattern: string;
+    replacement: string;
+  }>;
+  num_records: number;
+}
+
+// ========================================
+// Name-Mapping ユーティリティ関数 (Task 7.2)
+// ========================================
+
+/**
+ * UNIXユーザー名からWindowsユーザー名へのマッピングを解決する
+ * 
+ * UNIX→Windowsマッピングルールを順番に適用し、最初にマッチしたルールの
+ * 置換結果を返す。マッチするルールがない場合はnullを返す。
+ * 
+ * @param unixUsername - UNIXユーザー名
+ * @param rules - Name-Mappingルール配列
+ * @returns マッピングされたWindowsユーザー名、またはnull
+ */
+export function resolveWindowsUser(unixUsername: string, rules: NameMappingRule[]): string | null {
+  // UNIX→Windowsルールのみフィルタ
+  const unixToWinRules = rules.filter(r => r.direction === 'unix-win');
+
+  for (const rule of unixToWinRules) {
+    try {
+      const regex = new RegExp(`^${rule.pattern}$`);
+      if (regex.test(unixUsername)) {
+        const result = unixUsername.replace(regex, rule.replacement);
+        return result;
+      }
+    } catch {
+      // 不正な正規表現パターンはスキップ
+      console.warn(`[NameMapping] Invalid regex pattern: ${rule.pattern}`);
+    }
+  }
+
+  return null;
+}
+
 // Secrets Manager クライアント
 const secretsManager = new SecretsManagerClient({
   region: process.env.AWS_REGION || 'ap-northeast-1',
@@ -466,6 +531,52 @@ export class OntapRestApiClient {
     } catch (error) {
       console.error('Failed to get user accessible directories:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Name-Mappingルールを取得 (Task 7.1)
+   * 
+   * 指定されたSVMのname-mappingルールを取得します。
+   * ONTAP REST API接続失敗時はリトライ1回を実行し、それでも失敗した場合は
+   * 空配列を返してエラーをログに記録します。
+   * 
+   * @param svmUuid - SVM UUID
+   * @returns Name-Mappingルール配列
+   * 
+   * Validates: Requirements 7.1
+   */
+  async getNameMappingRules(svmUuid: string): Promise<NameMappingRule[]> {
+    const path = `/api/name-services/name-mappings?svm.uuid=${encodeURIComponent(svmUuid)}`;
+
+    const attempt = async (): Promise<NameMappingRule[]> => {
+      const response = await this.request<NameMappingResponse>('GET', path);
+
+      if (!response.records || !Array.isArray(response.records)) {
+        throw new ParseError(
+          'Invalid name-mapping response format',
+          { svmUuid, response: JSON.stringify(response) }
+        );
+      }
+
+      return response.records.map(r => ({
+        direction: r.direction === 'win_to_unix' ? 'win-unix' as const : 'unix-win' as const,
+        pattern: r.pattern,
+        replacement: r.replacement,
+      }));
+    };
+
+    try {
+      return await attempt();
+    } catch (firstError) {
+      // リトライ1回
+      console.warn(`[ONTAP] getNameMappingRules first attempt failed, retrying:`, (firstError as Error).message);
+      try {
+        return await attempt();
+      } catch (retryError) {
+        console.error(`[ONTAP] getNameMappingRules retry failed:`, (retryError as Error).message);
+        return [];
+      }
     }
   }
 

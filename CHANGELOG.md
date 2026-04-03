@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-04
+
+### Added
+- **OIDC/LDAP Federation — ゼロタッチユーザープロビジョニング**: OIDC IdP（Keycloak、Okta、Entra ID等）およびLDAP直接クエリによる権限自動マッピング。ファイルサーバーの既存ユーザー権限がRAGシステムのUIユーザーに自動マッピングされ、管理者やユーザー自身による手動登録は不要
+- `cognito.UserPoolIdentityProviderOidc` CDKリソース（`oidcProviderConfig` 指定時に自動作成）
+- SAML + OIDC ハイブリッド構成サポート（サインイン画面に両方のボタンを動的表示）
+- Identity Sync Lambda: 認証ソース判別（`detectAuthSource`）、OIDCクレームパーサー（`parseOidcClaims`）、OIDC/LDAP権限取得パス
+- LDAP Connector モジュール（`lambda/agent-core-ad-sync/ldap-connector.ts`）: LDAP/LDAPS接続、バインド認証、ユーザー検索、グループメンバーシップ取得、LDAPインジェクション防止（`escapeFilter`）、Secrets Managerパスワード取得（リトライ1回）
+- Permission Resolver拡張: UID/GIDベースフィルタリング（`resolvePermissionStrategy`、`checkUidGidAccess`）、SID/UID-GID/Hybrid/Deny All戦略自動選択
+- ONTAP name-mapping連携: `getNameMappingRules`、`resolveWindowsUser`（UNIX→Windowsユーザー対応付け）
+- DynamoDB `user-access` テーブル拡張スキーマ: `uid`、`gid`、`unixGroups`、`oidcGroups`、`authSource` フィールド追加（後方互換性維持）
+- サインインUI: OIDCサインインボタン（`buildOidcSignInUrl`）、設定駆動の動的表示
+- CDKコンテキストパラメータ: `oidcProviderConfig`、`ldapConfig`、`ontapNameMappingEnabled`、`permissionMappingStrategy`
+- 構造化ログ出力（JSON形式、シークレット自動除外）
+- プロパティベーステスト17件（Property 1-17: CDKバリデーション、認証ソース判別、LDAP属性抽出、インジェクション防止、エラー非ブロッキング、DynamoDB保存フォーマット、キャッシュTTL、Permission Resolver戦略、UID/GIDマッチング、IdP登録組み合わせ、OIDCクレーム解析、ONTAP name-mappingフォールバック、ログシークレット除外等）
+- ユニットテスト: CDK Stack OIDC拡張34件、Identity Sync Lambda OIDC拡張23件、LDAP Connector 35件、Permission Resolver 18件、ONTAP name-mapping 12件
+- `cdk.context.json.example`: OIDC + LDAP構成例、SAML + OIDCハイブリッド構成例追加
+
+### Changed
+- `lib/stacks/demo/demo-security-stack.ts`: `DemoSecurityStackProps` にOIDC/LDAP設定インターフェース追加、OIDC IdP登録ロジック、LDAP Lambda VPC配置・IAM権限、環境変数設定
+- `lambda/agent-core-ad-sync/index.ts`: 認証ソース判別、OIDCパスハンドラー、DynamoDB保存ロジック拡張、LDAP Connector統合
+- `lambda/permissions/metadata-filter-handler.ts`: Permission Resolver戦略選択、UID/GIDフィルタリング、ONTAP name-mapping統合
+- `lambda/permissions/ontap-rest-api-client.ts`: name-mapping取得メソッド、`resolveWindowsUser` 関数追加
+- `docker/nextjs/components/login-form.tsx`: OIDCサインインボタン、`buildOidcSignInUrl` 関数追加
+- `lib/stacks/demo/demo-webapp-stack.ts`: `oidcProviderName`、`cognitoDomainUrl` props追加
+- `bin/demo-app.ts`: OIDC/LDAP設定のCDKコンテキスト読み込み、スタック間連携
+- `docs/auth-and-user-management.md` + 全7言語版: モード3（OIDC/LDAP Federation）セクション追加、権限フィルタリング戦略テーブル、トラブルシューティング拡張
+- `README.md` + 全7言語版: OIDC/LDAP Federationセクション追加、SecurityStack説明更新、セキュリティ層テーブル更新
+
 ## [3.3.0] - 2026-04
 
 ### Added

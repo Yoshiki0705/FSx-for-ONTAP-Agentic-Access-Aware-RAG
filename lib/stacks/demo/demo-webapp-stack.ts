@@ -77,6 +77,20 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   adSyncFunction?: lambda.IFunction;
   /** Agent Scheduler Lambda関数（enableAgentSchedules時、AIStackから） */
   agentSchedulerFunction?: lambda.IFunction;
+  // --- OIDC Federation UI設定（オプション） ---
+  /** OIDC IdPプロバイダー名（例: "Keycloak", "Okta"）。設定時にNext.jsサインイン画面にOIDCボタンを表示 */
+  oidcProviderName?: string;
+  /** Cognito Hosted UIドメイン（例: "myapp-demo.auth.ap-northeast-1.amazoncognito.com"） */
+  cognitoDomainUrl?: string;
+  // --- AD Federation設定（オプション） ---
+  /** Cognito Hosted UIドメインプレフィックス（例: "perm-rag-demo-demo-auth"） */
+  cognitoDomainPrefix?: string;
+  /** Cognito User Pool Client Secret（OAuth認可コードフロー用） */
+  cognitoClientSecret?: string;
+  /** OAuthコールバックURL（例: "https://d3xxxxx.cloudfront.net/api/auth/callback"） */
+  callbackUrl?: string;
+  /** SAML IdP名（デフォルト: "ActiveDirectory"） */
+  idpName?: string;
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -155,6 +169,15 @@ export class DemoWebAppStack extends cdk.Stack {
         // 高度権限制御設定（オプション）
         ...(props.permissionAuditTableName ? { ENABLE_ADVANCED_PERMISSIONS: 'true' } : {}),
         ...(props.permissionAuditTableName ? { PERMISSION_AUDIT_TABLE_NAME: props.permissionAuditTableName } : {}),
+        // OIDC Federation UI設定（オプション）
+        ...(props.oidcProviderName ? { NEXT_PUBLIC_OIDC_PROVIDER_NAME: props.oidcProviderName } : {}),
+        ...(props.cognitoDomainUrl ? { NEXT_PUBLIC_COGNITO_DOMAIN: props.cognitoDomainUrl } : {}),
+        NEXT_PUBLIC_COGNITO_REGION: cdk.Aws.REGION,
+        // AD Federation設定（オプション）
+        ...(props.cognitoDomainPrefix ? { COGNITO_DOMAIN: props.cognitoDomainPrefix } : {}),
+        ...(props.cognitoClientSecret ? { COGNITO_CLIENT_SECRET: props.cognitoClientSecret } : {}),
+        ...(props.callbackUrl ? { CALLBACK_URL: props.callbackUrl } : {}),
+        ...(props.idpName ? { IDP_NAME: props.idpName } : {}),
       },
     });
 

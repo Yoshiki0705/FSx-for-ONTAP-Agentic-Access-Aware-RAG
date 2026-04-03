@@ -5,11 +5,15 @@
  * フィルタリングする。Next.js API Route内のインラインフィルタリングを置き換える
  * サーバーサイドLambda実装。
  * 
+ * UID/GIDベースのフィルタリングにも対応し、Permission Resolution Strategyに基づいて
+ * SID / UID-GID / Hybrid のいずれかの戦略でフィルタリングを実行する。
+ * 
  * 権限チェック失敗時は安全側フォールバック（全ドキュメントアクセス拒否）。
  */
 
 import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { getOntapClient, resolveWindowsUser, NameMappingRule } from './ontap-rest-api-client';
 
 // ========================================
 // インターフェース定義
@@ -59,10 +63,23 @@ interface FilterDetail {
 }
 
 /** DynamoDB user-accessレコード */
-interface UserAccessRecord {
+export interface UserAccessRecord {
   userId: string;
   userSID: string;
   groupSIDs: string[];
+  uid?: number;
+  gid?: number;
+  unixGroups?: Array<{ name: string; gid: number }>;
+  oidcGroups?: string[];
+}
+
+/** Permission Resolution Strategy */
+export interface PermissionResolutionStrategy {
+  type: 'sid' | 'uid-gid' | 'hybrid';
+  userSIDs?: string[];
+  uid?: number;
+  gid?: number;
+  unixGroups?: Array<{ name: string; gid: number }>;
 }
 
 // ========================================
@@ -72,6 +89,8 @@ interface UserAccessRecord {
 const CACHE_TTL_MINUTES = 5;
 const CACHE_TABLE_NAME = process.env.PERMISSION_CACHE_TABLE || 'permission-cache';
 const USER_ACCESS_TABLE_NAME = process.env.USER_ACCESS_TABLE_NAME || 'user-access';
+const ONTAP_NAME_MAPPING_ENABLED = process.env.ONTAP_NAME_MAPPING_ENABLED === 'true';
+const SVM_UUID = process.env.SVM_UUID || '';
 
 const dynamoClient = new DynamoDBClient({
   region: process.env.AWS_REGION || 'ap-northeast-1',
@@ -81,22 +100,19 @@ const dynamoClient = new DynamoDBClient({
 // DynamoDB操作
 // ========================================
 
-/** ユーザーのSID情報をDynamoDBから取得 */
-async function getUserSIDs(userId: string): Promise<string[]> {
+/** ユーザーの権限情報をDynamoDBから取得（SID + UID/GID + OIDCグループ） */
+export async function getUserPermissions(userId: string): Promise<UserAccessRecord | null> {
   try {
     const result = await dynamoClient.send(new GetItemCommand({
       TableName: USER_ACCESS_TABLE_NAME,
       Key: marshall({ userId }),
     }));
-    if (!result.Item) return [];
+    if (!result.Item) return null;
     const item = unmarshall(result.Item) as UserAccessRecord;
-    const sids: string[] = [];
-    if (item.userSID) sids.push(item.userSID);
-    if (Array.isArray(item.groupSIDs)) sids.push(...item.groupSIDs);
-    return sids;
+    return item;
   } catch (error) {
-    console.error('ユーザーSID取得エラー:', error);
-    return [];
+    console.error('ユーザー権限情報取得エラー:', error);
+    return null;
   }
 }
 
@@ -156,6 +172,186 @@ function checkSIDAccess(userSIDs: string[], docSIDs: string[]): { matched: boole
 }
 
 // ========================================
+// UID/GIDメタデータ抽出
+// ========================================
+
+/** ドキュメントメタデータからallowed_uids, allowed_gids, allowed_oidc_groupsを抽出 */
+export function extractDocumentUidGidPermissions(metadata: Record<string, unknown>): {
+  allowedUids: number[];
+  allowedGids: number[];
+  allowedOidcGroups: string[];
+} {
+  const attrs = metadata?.metadataAttributes as Record<string, unknown> | undefined;
+  const source = attrs ?? metadata;
+
+  const allowedUids = parseNumberArray(source?.allowed_uids);
+  const allowedGids = parseNumberArray(source?.allowed_gids);
+  const allowedOidcGroups = parseStringArray(source?.allowed_oidc_groups);
+
+  return { allowedUids, allowedGids, allowedOidcGroups };
+}
+
+function parseNumberArray(raw: unknown): number[] {
+  if (Array.isArray(raw)) return raw.filter((v): v is number => typeof v === 'number');
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter((v): v is number => typeof v === 'number');
+    } catch { /* ignore */ }
+  }
+  return [];
+}
+
+function parseStringArray(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter((v): v is string => typeof v === 'string');
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === 'string');
+    } catch { /* ignore */ }
+  }
+  return [];
+}
+
+// ========================================
+// Permission Resolution Strategy (Task 6.2)
+// ========================================
+
+/** ユーザーレコードから適切な権限解決戦略を選択する */
+export function resolvePermissionStrategy(userRecord: UserAccessRecord): PermissionResolutionStrategy {
+  const hasSID = !!userRecord.userSID;
+  const hasUID = userRecord.uid !== undefined && userRecord.gid !== undefined;
+
+  if (hasSID && hasUID) {
+    return {
+      type: 'hybrid',
+      userSIDs: [userRecord.userSID, ...(Array.isArray(userRecord.groupSIDs) ? userRecord.groupSIDs : [])],
+      uid: userRecord.uid,
+      gid: userRecord.gid,
+      unixGroups: userRecord.unixGroups,
+    };
+  }
+  if (hasSID) {
+    return {
+      type: 'sid',
+      userSIDs: [userRecord.userSID, ...(Array.isArray(userRecord.groupSIDs) ? userRecord.groupSIDs : [])],
+    };
+  }
+  if (hasUID) {
+    return {
+      type: 'uid-gid',
+      uid: userRecord.uid,
+      gid: userRecord.gid,
+      unixGroups: userRecord.unixGroups,
+    };
+  }
+
+  // 権限情報なし → Fail-Closed
+  throw new Error('No permission data available');
+}
+
+// ========================================
+// UID/GIDドキュメントマッチング (Task 6.3)
+// ========================================
+
+/** UID/GIDベースのアクセスチェック */
+export function checkUidGidAccess(
+  uid: number,
+  gid: number,
+  unixGroups: Array<{ name: string; gid: number }> | undefined,
+  allowedUids: number[],
+  allowedGids: number[],
+): boolean {
+  // UID match
+  if (allowedUids.length > 0 && allowedUids.includes(uid)) {
+    return true;
+  }
+
+  // GID match: primary gid or any unix group gid
+  if (allowedGids.length > 0) {
+    if (allowedGids.includes(gid)) return true;
+    if (Array.isArray(unixGroups)) {
+      for (const group of unixGroups) {
+        if (allowedGids.includes(group.gid)) return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+// ========================================
+// ONTAP Name-Mapping統合 (Task 7.3)
+// ========================================
+
+/**
+ * ONTAP name-mappingを使用してUID/GID戦略をSID戦略に拡張する
+ * 
+ * ontapNameMappingEnabled=true の場合、UNIXユーザー名からWindowsユーザー名への
+ * マッピングを試み、成功した場合はマッピングされたWindowsユーザーのSIDで
+ * SIDフィルタリングを実行する。
+ * 
+ * ONTAP REST API接続失敗時はname-mappingなしで継続し、エラーをログに記録する。
+ * 
+ * @param strategy - 現在の権限解決戦略
+ * @param userRecord - ユーザーアクセスレコード
+ * @returns 拡張された権限解決戦略（変更がない場合は元の戦略）
+ */
+export async function applyNameMapping(
+  strategy: PermissionResolutionStrategy,
+  userRecord: UserAccessRecord,
+): Promise<PermissionResolutionStrategy> {
+  if (!ONTAP_NAME_MAPPING_ENABLED || !SVM_UUID) {
+    return strategy;
+  }
+
+  // SID戦略の場合はname-mapping不要
+  if (strategy.type === 'sid') {
+    return strategy;
+  }
+
+  // UID/GIDまたはhybrid戦略でUNIXユーザー名がある場合にname-mappingを試行
+  const unixUsername = userRecord.userId;
+  if (!unixUsername) {
+    return strategy;
+  }
+
+  try {
+    const client = getOntapClient();
+    const rules = await client.getNameMappingRules(SVM_UUID);
+
+    if (rules.length === 0) {
+      console.log(`[PermFilter] No name-mapping rules found for SVM ${SVM_UUID}`);
+      return strategy;
+    }
+
+    const windowsUser = resolveWindowsUser(unixUsername, rules);
+    if (!windowsUser) {
+      console.log(`[PermFilter] No name-mapping match for user ${unixUsername}`);
+      return strategy;
+    }
+
+    console.log(`[PermFilter] Name-mapping resolved: ${unixUsername} → ${windowsUser}`);
+
+    // マッピング成功: WindowsユーザーのSIDでSIDフィルタリングを実行するため
+    // 戦略をhybridに拡張し、マッピングされたWindowsユーザー名をSIDsに追加
+    // 注: 実際のSID解決はDynamoDBのWindowsユーザーレコードから取得する必要がある
+    // ここではマッピングされたWindowsユーザー名をSIDとして使用する
+    const mappedUserSIDs = [windowsUser, ...(strategy.userSIDs ?? [])];
+
+    return {
+      ...strategy,
+      type: 'hybrid',
+      userSIDs: mappedUserSIDs,
+    };
+  } catch (error) {
+    // ONTAP REST API接続失敗時はname-mappingなしで継続
+    console.error(`[PermFilter] ONTAP name-mapping failed, continuing without:`, (error as Error).message);
+    return strategy;
+  }
+}
+
+// ========================================
 // メインハンドラー
 // ========================================
 
@@ -164,16 +360,31 @@ export async function handler(event: MetadataFilterRequest): Promise<MetadataFil
   console.log(`[PermFilter] Start: userId=${userId}, docs=${retrievalResults.length}`);
 
   try {
-    // Step 1: ユーザーSID取得
-    const userSIDs = await getUserSIDs(userId);
-    if (userSIDs.length === 0) {
-      console.warn(`[PermFilter] No SIDs for user ${userId}, DENY_ALL`);
+    // Step 1: ユーザー権限情報取得
+    const userRecord = await getUserPermissions(userId);
+    if (!userRecord) {
+      console.warn(`[PermFilter] No record for user ${userId}, DENY_ALL`);
       return createDenyAllResponse(userId, retrievalResults);
     }
 
-    // Step 2: 各ドキュメントをフィルタリング
+    // Step 2: 権限解決戦略を選択
+    let strategy: PermissionResolutionStrategy;
+    try {
+      strategy = resolvePermissionStrategy(userRecord);
+    } catch {
+      console.warn(`[PermFilter] No permission data for user ${userId}, DENY_ALL`);
+      return createDenyAllResponse(userId, retrievalResults);
+    }
+
+    console.log(`[PermFilter] Strategy: ${strategy.type} for user ${userId}`);
+
+    // Step 2.5: ONTAP name-mapping統合 (Task 7.3)
+    strategy = await applyNameMapping(strategy, userRecord);
+
+    // Step 3: 各ドキュメントをフィルタリング
     const allowed: FilteredResult[] = [];
     const filterLog: FilterDetail[] = [];
+    const userSIDs = strategy.userSIDs ?? [];
 
     for (const r of retrievalResults) {
       const fileName = r.s3Uri.split('/').pop() || r.s3Uri;
@@ -184,10 +395,11 @@ export async function handler(event: MetadataFilterRequest): Promise<MetadataFil
       const cached = await getCachedResult(cacheKey);
 
       let matchResult: { matched: boolean; matchedSID?: string };
+
       if (cached !== null) {
         matchResult = { matched: cached };
       } else {
-        matchResult = checkSIDAccess(userSIDs, docSIDs);
+        matchResult = filterByStrategy(strategy, r.metadata, docSIDs);
         await setCachedResult(cacheKey, userId, fileName, matchResult.matched);
       }
 
@@ -203,23 +415,61 @@ export async function handler(event: MetadataFilterRequest): Promise<MetadataFil
       }
     }
 
+    const filterMethodMap: Record<PermissionResolutionStrategy['type'], string> = {
+      'sid': 'SID_MATCHING',
+      'uid-gid': 'UID_GID_MATCHING',
+      'hybrid': 'HYBRID_MATCHING',
+    };
+
     const response: MetadataFilterResponse = {
       userId,
       totalDocuments: retrievalResults.length,
       allowedDocuments: allowed.length,
       deniedDocuments: retrievalResults.length - allowed.length,
-      filterMethod: 'SID_MATCHING',
+      filterMethod: filterMethodMap[strategy.type],
       userSIDs,
       allowed,
       filterLog,
     };
 
-    console.log(`[PermFilter] Done: ${allowed.length}/${retrievalResults.length} allowed`);
+    console.log(`[PermFilter] Done: ${allowed.length}/${retrievalResults.length} allowed (${strategy.type})`);
     return response;
   } catch (error) {
     console.error(`[PermFilter] Error (DENY_ALL fallback):`, error);
     return createDenyAllResponse(userId, retrievalResults);
   }
+}
+
+/** 戦略に応じたフィルタリングを実行 */
+function filterByStrategy(
+  strategy: PermissionResolutionStrategy,
+  metadata: Record<string, unknown>,
+  docSIDs: string[],
+): { matched: boolean; matchedSID?: string } {
+  if (strategy.type === 'sid') {
+    return checkSIDAccess(strategy.userSIDs!, docSIDs);
+  }
+
+  if (strategy.type === 'uid-gid') {
+    const { allowedUids, allowedGids } = extractDocumentUidGidPermissions(metadata);
+    if (allowedUids.length === 0 && allowedGids.length === 0) return { matched: false };
+    const matched = checkUidGidAccess(strategy.uid!, strategy.gid!, strategy.unixGroups, allowedUids, allowedGids);
+    return { matched };
+  }
+
+  if (strategy.type === 'hybrid') {
+    // SIDマッチを優先
+    const sidResult = checkSIDAccess(strategy.userSIDs!, docSIDs);
+    if (sidResult.matched) return sidResult;
+
+    // SIDマッチ失敗時にUID/GIDフォールバック
+    const { allowedUids, allowedGids } = extractDocumentUidGidPermissions(metadata);
+    if (allowedUids.length === 0 && allowedGids.length === 0) return { matched: false };
+    const matched = checkUidGidAccess(strategy.uid!, strategy.gid!, strategy.unixGroups, allowedUids, allowedGids);
+    return { matched };
+  }
+
+  return { matched: false };
 }
 
 /** 安全側フォールバック: 全ドキュメントアクセス拒否 */

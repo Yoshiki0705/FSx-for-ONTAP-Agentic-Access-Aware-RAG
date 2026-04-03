@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../implementation-overview.md) | [English](../en/implementation-overview.md) | [한국어](../ko/implementation-overview.md) | [简体中文](../zh-CN/implementation-overview.md) | [繁體中文](../zh-TW/implementation-overview.md) | [Français](../fr/implementation-overview.md) | **Deutsch** | [Español](../es/implementation-overview.md)
 
 **Created**: 2026-03-25  
-**Version**: 3.3.0
+**Version**: 3.4.0
 
 ---
 
@@ -131,8 +131,22 @@ Cognito JWT Validation (Application-level authentication)
 | L2: WAF | AWS WAF | Attack pattern detection and blocking |
 | L3: Origin Auth | OAC (SigV4) | Prevents direct access bypassing CloudFront |
 | L4: API Auth | Lambda Function URL IAM Auth | Access control via IAM authentication |
-| L5: User Auth | Cognito JWT | User-level authentication and authorization |
-| L6: Data Authz | SID Filtering | Document-level access control |
+| L5: User Auth | Cognito JWT / SAML / OIDC | User-level authentication and authorization |
+| L6: Data Authz | SID / UID+GID Filtering | Document-level access control |
+
+### Authentifizierungsmodi
+
+Das System bietet drei Authentifizierungsmodi, die konfigurationsgesteuert aktiviert werden:
+
+| Modus | Aktivierungsbedingung | Benutzererstellung | Berechtigungszuordnung |
+|-------|----------------------|-------------------|----------------------|
+| E-Mail/Passwort | Standard | Admin erstellt manuell | Manuelle SID-Registrierung |
+| SAML AD Federation | `enableAdFederation=true` | Auto bei erster Anmeldung | AD Sync Lambda (automatische SID-Abfrage) |
+| OIDC/LDAP Federation | `oidcProviderConfig` angegeben | Auto bei erster Anmeldung | Identity Sync Lambda (automatische SID/UID/GID-Abfrage) |
+
+Die Modi AD Federation und OIDC/LDAP Federation realisieren „Zero-Touch User Provisioning" — bestehende Dateiserverberechtigungen werden automatisch auf RAG-Systembenutzer abgebildet.
+
+> Für Details zur Auswahl des Authentifizierungsmodus, zur automatischen SID/UID/GID-Registrierung und zu den AD/OIDC/LDAP-Integrationseinstellungen siehe den [Leitfaden für Authentifizierung und Benutzerverwaltung](../de/auth-and-user-management.md).
 
 ### CDK Implementation
 

@@ -127,7 +127,7 @@ Habilitado con `enableAgentCoreMemory=true`. Agrega una lista de sesiones (Sessi
 |---|-------|--------|----------|-------------|
 | 1 | WafStack | us-east-1 | WAF WebACL, IP Set | WAF para CloudFront (limitación de velocidad, reglas administradas) |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups, VPC Endpoints (opcional) | Infraestructura de red |
-| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + Cognito Domain (cuando AD Federation está habilitado), AD Sync Lambda (opcional) | Autenticación y autorización |
+| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + OIDC IdP + Cognito Domain (cuando Federation está habilitado), Identity Sync Lambda (opcional) | Autenticación y autorización (SAML/OIDC/Email) |
 | 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), cifrado KMS (opcional), CloudTrail (opcional) | Almacenamiento, datos SID, caché de permisos |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless (seleccionado mediante `vectorStoreType`), Bedrock Guardrails (opcional) | Infraestructura de búsqueda RAG (Titan Embed v2) |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda (opcional), MonitoringConstruct (opcional) | Aplicación web, gestión de Agents, monitoreo y alertas |
@@ -141,8 +141,8 @@ Habilitado con `enableAgentCoreMemory=true`. Agrega una lista de sesiones (Sessi
 | L2: WAF | AWS WAF (6 reglas) | Detección y bloqueo de patrones de ataque |
 | L3: Autenticación de origen | CloudFront OAC (SigV4) | Prevenir acceso directo eludiendo CloudFront |
 | L4: Autenticación API | Lambda Function URL IAM Auth | Control de acceso mediante autenticación IAM |
-| L5: Autenticación de usuario | Cognito JWT / SAML Federation | Autenticación y autorización a nivel de usuario |
-| L6: Autorización de datos | SID Filtering | Control de acceso a nivel de documento |
+| L5: Autenticación de usuario | Cognito JWT / SAML / OIDC Federation | Autenticación y autorización a nivel de usuario |
+| L6: Autorización de datos | SID / UID+GID Filtering | Control de acceso a nivel de documento |
 
 ## Requisitos previos
 
@@ -325,6 +325,8 @@ AD User → CloudFront UI → "Sign in with AD" button
 | `samlMetadataUrl` | string | No establecido | Para AD autogestionado: URL de metadatos de federación de Entra ID |
 | `adEc2InstanceId` | string | No establecido | Para AD autogestionado: ID de instancia EC2 |
 
+> **Configuración automática de variables de entorno**: Al desplegar CDK con `enableAdFederation=true` o `oidcProviderConfig`, las variables de entorno de Federation (`COGNITO_DOMAIN`, `COGNITO_CLIENT_SECRET`, `CALLBACK_URL`, `IDP_NAME`) se configuran automáticamente en la función Lambda de WebAppStack. No se requiere configuración manual de variables de entorno Lambda.
+
 **Patrón de AD administrado:**
 
 Al usar AWS Managed Microsoft AD.
@@ -347,10 +349,16 @@ Al usar AWS Managed Microsoft AD.
 
 Pasos de configuración:
 1. Establecer `adPassword` y desplegar CDK (crea AD administrado + SAML IdP + Cognito Domain)
-2. Habilitar AWS IAM Identity Center y configurar el AD administrado como fuente de identidad
-3. Crear una aplicación SAML para Cognito User Pool en IAM Identity Center (o especificar un IdP externo a través de `samlMetadataUrl`)
-4. Después del despliegue, establecer la URL de CloudFront en `cloudFrontUrl` y redesplegar
-5. Ejecutar la autenticación AD desde el botón "Sign in with AD" en la interfaz de CloudFront
+2. Habilitar AWS IAM Identity Center y cambiar la fuente de identidad a AD administrado
+3. Configurar direcciones de correo electrónico para usuarios AD (PowerShell: `Set-ADUser -Identity Admin -EmailAddress "admin@demo.local"`)
+4. En IAM Identity Center, ir a "Administrar sincronización" → "Configuración guiada" para sincronizar usuarios AD
+5. Crear una aplicación SAML "Permission-aware RAG Cognito" en IAM Identity Center:
+   - URL ACS: `https://{cognito-domain}.auth.{region}.amazoncognito.com/saml2/idpresponse`
+   - Audiencia SAML: `urn:amazon:cognito:sp:{user-pool-id}`
+   - Mapeos de atributos: Subject → `${user:email}` (emailAddress), emailaddress → `${user:email}`
+6. Asignar usuarios AD a la aplicación SAML
+7. Después del despliegue, establecer la URL de CloudFront en `cloudFrontUrl` y redesplegar
+8. Ejecutar la autenticación AD desde el botón "Iniciar sesión con AD" en la interfaz de CloudFront
 
 **Patrón de AD autogestionado (en EC2, con integración Entra Connect):**
 
@@ -391,6 +399,45 @@ Pasos de configuración:
 | Error de acceso S3 en búsqueda KB | El rol IAM de KB carece de permisos de acceso directo al bucket S3 | El rol IAM de KB solo tiene permisos a través de S3 Access Point. Al usar el bucket S3 directamente como fuente de datos, se necesitan agregar permisos `s3:GetObject` y `s3:ListBucket` (no específico de AD Federation) |
 | S3 AP data plane API AccessDenied | WindowsUser incluye prefijo de dominio | El WindowsUser del S3 AP NO debe incluir prefijo de dominio (ej: `DEMO\Admin`). Especifique solo el nombre de usuario (ej: `Admin`). CLI acepta el prefijo pero las API del plano de datos fallan |
 | Fallo en la creación del dominio Cognito | Conflicto de prefijo de dominio | Verificar si el prefijo `{projectName}-{environment}-auth` está en conflicto con otras cuentas |
+| Error USER_PASSWORD_AUTH 401 | SECRET_HASH no enviado cuando Client Secret está habilitado | Con `enableAdFederation=true`, el Client del User Pool tiene Client Secret. La API de inicio de sesión necesita calcular SECRET_HASH desde la variable de entorno `COGNITO_CLIENT_SECRET` |
+| Post-Auth Trigger `Cannot find module 'index'` | Lambda TypeScript no compilado | CDK `Code.fromAsset` tiene opción de empaquetado esbuild. `npx esbuild index.ts --bundle --platform=node --target=node22 --outfile=index.js --external:@aws-sdk/*` |
+| Redirección OAuth Callback `0.0.0.0` | Lambda Web Adapter `request.url` es `http://0.0.0.0:3000/...` | Usar la variable de entorno `CALLBACK_URL` para construir la URL base de redirección |
+
+#### OIDC/LDAP Federation (opcional) — Aprovisionamiento de usuarios sin intervención
+
+Además de SAML AD Federation, puede habilitar OIDC IdP (Keycloak, Okta, Entra ID, etc.) y consultas LDAP directas para el aprovisionamiento de usuarios sin intervención. Los permisos de usuario existentes del servidor de archivos se mapean automáticamente a los usuarios de la interfaz RAG — no se requiere registro manual por parte de administradores o usuarios.
+
+Cada método de autenticación utiliza la "activación automática basada en configuración". Simplemente agregue los valores de configuración en `cdk.context.json` para habilitarlo, con un costo de recursos AWS adicional prácticamente nulo. La activación simultánea de SAML + OIDC también es compatible.
+
+**Ejemplo de configuración OIDC + LDAP (OpenLDAP/FreeIPA + Keycloak):**
+
+```json
+{
+  "oidcProviderConfig": {
+    "providerName": "Keycloak",
+    "clientId": "rag-system",
+    "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:oidc-client-secret",
+    "issuerUrl": "https://keycloak.example.com/realms/main",
+    "groupClaimName": "groups"
+  },
+  "ldapConfig": {
+    "ldapUrl": "ldaps://ldap.example.com:636",
+    "baseDn": "dc=example,dc=com",
+    "bindDn": "cn=readonly,dc=example,dc=com",
+    "bindPasswordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ldap-bind-password"
+  },
+  "permissionMappingStrategy": "uid-gid"
+}
+```
+
+**Parámetros CDK:**
+
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `oidcProviderConfig` | object | Configuración de OIDC IdP (`providerName`, `clientId`, `clientSecret`, `issuerUrl`, `groupClaimName`) |
+| `ldapConfig` | object | Configuración de conexión LDAP (`ldapUrl`, `baseDn`, `bindDn`, `bindPasswordSecretArn`, `userSearchFilter`, `groupSearchFilter`) |
+| `permissionMappingStrategy` | string | Estrategia de mapeo de permisos: `sid-only` (predeterminado), `uid-gid`, `hybrid` |
+| `ontapNameMappingEnabled` | boolean | Integración ONTAP name-mapping (mapeo de usuario UNIX→Windows) |
 
 #### Funciones empresariales (opcional)
 

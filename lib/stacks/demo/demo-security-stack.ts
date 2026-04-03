@@ -44,6 +44,32 @@ export interface DemoSecurityStackProps extends cdk.StackProps {
   cloudFrontUrl?: string;
   /** セルフマネージドAD用: Entra IDフェデレーションメタデータURL */
   samlMetadataUrl?: string;
+
+  /** OIDC IdP設定（オプション） */
+  oidcProviderConfig?: {
+    providerName: string;
+    clientId: string;
+    clientSecret: string;
+    issuerUrl: string;
+    attributeMapping?: Record<string, string>;
+    groupClaimName?: string; // デフォルト: 'groups'
+  };
+
+  /** LDAP接続設定（オプション） */
+  ldapConfig?: {
+    ldapUrl: string;           // ldap:// or ldaps://
+    baseDn: string;
+    bindDn: string;
+    bindPasswordSecretArn: string;
+    userSearchFilter?: string;  // デフォルト: '(mail={email})'
+    groupSearchFilter?: string; // デフォルト: '(member={dn})'
+  };
+
+  /** ONTAP name-mapping有効化フラグ */
+  ontapNameMappingEnabled?: boolean;
+
+  /** 権限マッピング戦略 */
+  permissionMappingStrategy?: 'sid-only' | 'uid-gid' | 'hybrid';
 }
 
 export class DemoSecurityStack extends cdk.Stack {
@@ -51,7 +77,9 @@ export class DemoSecurityStack extends cdk.Stack {
   public readonly userPoolClient: cognito.UserPoolClient;
   public adSyncFunction?: lambda.Function;
   public samlProvider?: cognito.UserPoolIdentityProviderSaml;
+  public oidcProvider?: cognito.UserPoolIdentityProviderOidc;
   public cognitoDomainUrl?: string;
+  public cognitoDomainPrefix?: string;
 
   constructor(scope: Construct, id: string, props: DemoSecurityStackProps) {
     super(scope, id, props);
@@ -83,6 +111,18 @@ export class DemoSecurityStack extends cdk.Stack {
             'Please provide the Entra ID federation metadata URL.',
           );
         }
+      }
+    }
+
+    // ========================================
+    // CDKバリデーション（oidcProviderConfig の場合）
+    // ========================================
+    if (props.oidcProviderConfig) {
+      if (!props.oidcProviderConfig.clientId || !props.oidcProviderConfig.issuerUrl) {
+        throw new Error(
+          'oidcProviderConfig requires clientId and issuerUrl. ' +
+          'Please provide both the OIDC client ID and issuer URL.',
+        );
       }
     }
 
@@ -155,14 +195,62 @@ export class DemoSecurityStack extends cdk.Stack {
         },
       });
       this.cognitoDomainUrl = `${domain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com`;
+      this.cognitoDomainPrefix = `${prefix}-auth`;
+    }
+
+    // ========================================
+    // OIDC IdP（oidcProviderConfig 指定時）
+    // ========================================
+    if (props.oidcProviderConfig) {
+      this.oidcProvider = new cognito.UserPoolIdentityProviderOidc(this, 'OidcIdP', {
+        userPool: this.userPool,
+        name: props.oidcProviderConfig.providerName || 'OIDCProvider',
+        clientId: props.oidcProviderConfig.clientId,
+        clientSecret: props.oidcProviderConfig.clientSecret,
+        issuerUrl: props.oidcProviderConfig.issuerUrl,
+        scopes: ['openid', 'email', 'profile'],
+        attributeMapping: {
+          email: cognito.ProviderAttribute.other('email'),
+        },
+      });
+
+      // OIDC有効時にCognito Domainがまだ作成されていない場合は作成
+      if (!props.enableAdFederation) {
+        const domain = this.userPool.addDomain('CognitoDomain', {
+          cognitoDomain: {
+            domainPrefix: `${prefix}-auth`,
+          },
+        });
+        this.cognitoDomainUrl = `${domain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com`;
+        this.cognitoDomainPrefix = `${prefix}-auth`;
+      }
     }
 
     // ========================================
     // Cognito User Pool Client
     // ========================================
-    if (props.enableAdFederation && this.samlProvider && props.cloudFrontUrl) {
+    const hasSaml = !!(props.enableAdFederation && this.samlProvider);
+    const hasOidc = !!this.oidcProvider;
+    const hasFederation = hasSaml || hasOidc;
+    const callbackUrl = props.cloudFrontUrl || 'https://localhost:3000';
+
+    if (hasFederation) {
       // フェデレーション有効時: OAuth設定付きクライアント
-      const samlProviderName = this.samlProvider.providerName;
+      const supportedProviders: cognito.UserPoolClientIdentityProvider[] = [
+        cognito.UserPoolClientIdentityProvider.COGNITO,
+      ];
+
+      if (hasSaml) {
+        supportedProviders.push(
+          cognito.UserPoolClientIdentityProvider.custom(this.samlProvider!.providerName),
+        );
+      }
+      if (hasOidc) {
+        supportedProviders.push(
+          cognito.UserPoolClientIdentityProvider.custom(this.oidcProvider!.providerName),
+        );
+      }
+
       this.userPoolClient = this.userPool.addClient('WebAppClient', {
         userPoolClientName: `${prefix}-webapp-client`,
         authFlows: { userPassword: true, userSrp: true },
@@ -174,17 +262,20 @@ export class DemoSecurityStack extends cdk.Stack {
             cognito.OAuthScope.EMAIL,
             cognito.OAuthScope.PROFILE,
           ],
-          callbackUrls: [`${props.cloudFrontUrl}/api/auth/callback`],
-          logoutUrls: [`${props.cloudFrontUrl}/signin`],
+          callbackUrls: [`${callbackUrl}/api/auth/callback`],
+          logoutUrls: [`${callbackUrl}/signin`],
         },
-        supportedIdentityProviders: [
-          cognito.UserPoolClientIdentityProvider.COGNITO,
-          cognito.UserPoolClientIdentityProvider.custom(samlProviderName),
-        ],
+        supportedIdentityProviders: supportedProviders,
         preventUserExistenceErrors: true,
       });
-      // SAML IdPが先に作成されることを保証
-      this.userPoolClient.node.addDependency(this.samlProvider);
+
+      // IdPが先に作成されることを保証
+      if (hasSaml) {
+        this.userPoolClient.node.addDependency(this.samlProvider!);
+      }
+      if (hasOidc) {
+        this.userPoolClient.node.addDependency(this.oidcProvider!);
+      }
     } else {
       // フェデレーション無効時: 既存のUSER_PASSWORD_AUTH設定を維持
       this.userPoolClient = this.userPool.addClient('WebAppClient', {
@@ -203,12 +294,29 @@ export class DemoSecurityStack extends cdk.Stack {
     }
 
     // ========================================
-    // Post-Authentication Trigger（enableAdFederation=true の場合）
+    // Identity Sync Lambda（ldapConfig指定 or OIDC単独構成 + adType='none' の場合）
+    // adType != 'none' の場合は createAdSyncLambda で既に作成済み
+    // OIDC単独構成（ldapConfigなし）でもOIDCクレームベースのゼロタッチプロビジョニングに必要
     // ========================================
-    if (props.enableAdFederation && this.adSyncFunction) {
+    if ((props.ldapConfig || props.oidcProviderConfig) && !this.adSyncFunction) {
+      this.createIdentitySyncLambda(prefix, props);
+    }
+
+    // ========================================
+    // LDAP設定時の追加権限・ネットワーク設定
+    // ========================================
+    if (props.ldapConfig && this.adSyncFunction) {
+      this.configureLdapPermissions(props);
+    }
+
+    // ========================================
+    // Post-Authentication Trigger（フェデレーション有効時: SAML or OIDC）
+    // ========================================
+    const hasFederationTrigger = (props.enableAdFederation || !!props.oidcProviderConfig) && this.adSyncFunction;
+    if (hasFederationTrigger) {
       this.userPool.addTrigger(
         cognito.UserPoolOperation.POST_AUTHENTICATION,
-        this.adSyncFunction,
+        this.adSyncFunction!,
       );
     }
 
@@ -253,11 +361,40 @@ export class DemoSecurityStack extends cdk.Stack {
     if (props.adDomainName) env.AD_DOMAIN_NAME = props.adDomainName;
     if (props.adDnsIps) env.AD_DNS_IPS = props.adDnsIps;
 
+    // OIDC/LDAP設定の環境変数
+    if (props.oidcProviderConfig) {
+      env.OIDC_GROUP_CLAIM_NAME = props.oidcProviderConfig.groupClaimName || 'groups';
+    }
+    env.PERMISSION_MAPPING_STRATEGY = props.permissionMappingStrategy || 'sid-only';
+    env.ONTAP_NAME_MAPPING_ENABLED = String(props.ontapNameMappingEnabled || false);
+
     this.adSyncFunction = new lambda.Function(this, 'AdSyncFn', {
       functionName: `${prefix}-ad-sync`,
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/agent-core-ad-sync'),
+      code: lambda.Code.fromAsset('lambda/agent-core-ad-sync', {
+        bundling: {
+          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
+          command: [
+            'bash', '-c',
+            'npx esbuild index.ts --bundle --platform=node --target=node22 --outfile=/asset-output/index.js --external:@aws-sdk/*',
+          ],
+          local: {
+            tryBundle(outputDir: string) {
+              try {
+                const { execSync } = require('child_process');
+                execSync(
+                  `npx esbuild lambda/agent-core-ad-sync/index.ts --bundle --platform=node --target=node22 --outfile=${outputDir}/index.js --external:@aws-sdk/*`,
+                  { stdio: 'inherit' },
+                );
+                return true;
+              } catch {
+                return false;
+              }
+            },
+          },
+        },
+      }),
       timeout: cdk.Duration.minutes(2),
       memorySize: 256,
       ...(props.vpc ? {
@@ -301,5 +438,139 @@ export class DemoSecurityStack extends cdk.Stack {
       value: this.adSyncFunction.functionName,
       description: `AD Sync Lambda (${adType} mode)`,
     });
+  }
+
+  /**
+   * LDAP設定時にIdentity Sync Lambdaを作成（adType='none' の場合）
+   * VPC内に配置し、DynamoDB権限を付与する。
+   */
+  private createIdentitySyncLambda(prefix: string, props: DemoSecurityStackProps): void {
+    const hasLdapConfig = !!props.ldapConfig;
+
+    // LDAP設定時はVPC必須
+    if (hasLdapConfig && !props.vpc) {
+      throw new Error(
+        'ldapConfig requires vpc to be specified for Lambda VPC placement. ' +
+        'Please provide a VPC for LDAP connectivity.',
+      );
+    }
+
+    // VPC/セキュリティグループ設定（LDAP設定時のみ）
+    let securityGroups: ec2.ISecurityGroup[] | undefined;
+    if (hasLdapConfig && props.vpc) {
+      const ldapSg = new ec2.SecurityGroup(this, 'LdapLambdaSg', {
+        vpc: props.vpc,
+        description: 'Security group for Identity Sync Lambda (LDAP connectivity)',
+        allowAllOutbound: false,
+      });
+
+      ldapSg.addEgressRule(
+        ec2.Peer.anyIpv4(),
+        ec2.Port.tcp(389),
+        'Allow LDAP outbound (port 389)',
+      );
+
+      ldapSg.addEgressRule(
+        ec2.Peer.anyIpv4(),
+        ec2.Port.tcp(636),
+        'Allow LDAPS outbound (port 636)',
+      );
+
+      ldapSg.addEgressRule(
+        ec2.Peer.anyIpv4(),
+        ec2.Port.tcp(443),
+        'Allow HTTPS outbound (Secrets Manager, DynamoDB)',
+      );
+
+      securityGroups = props.lambdaSg ? [props.lambdaSg, ldapSg] : [ldapSg];
+    }
+
+    const env: Record<string, string> = {
+      AD_TYPE: 'none',
+      USER_ACCESS_TABLE_NAME: props.userAccessTable?.tableName || `${prefix}-user-access`,
+      SID_CACHE_TTL: '86400',
+    };
+
+    // OIDC/LDAP設定の環境変数
+    if (props.oidcProviderConfig) {
+      env.OIDC_GROUP_CLAIM_NAME = props.oidcProviderConfig.groupClaimName || 'groups';
+    }
+    env.PERMISSION_MAPPING_STRATEGY = props.permissionMappingStrategy || 'sid-only';
+    env.ONTAP_NAME_MAPPING_ENABLED = String(props.ontapNameMappingEnabled || false);
+
+    this.adSyncFunction = new lambda.Function(this, 'IdentitySyncFn', {
+      functionName: `${prefix}-identity-sync`,
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('lambda/agent-core-ad-sync', {
+        bundling: {
+          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
+          command: [
+            'bash', '-c',
+            'npx esbuild index.ts --bundle --platform=node --target=node22 --outfile=/asset-output/index.js --external:@aws-sdk/*',
+          ],
+          local: {
+            tryBundle(outputDir: string) {
+              try {
+                const { execSync } = require('child_process');
+                execSync(
+                  `npx esbuild lambda/agent-core-ad-sync/index.ts --bundle --platform=node --target=node22 --outfile=${outputDir}/index.js --external:@aws-sdk/*`,
+                  { stdio: 'inherit' },
+                );
+                return true;
+              } catch {
+                return false;
+              }
+            },
+          },
+        },
+      }),
+      timeout: cdk.Duration.minutes(2),
+      memorySize: 256,
+      // VPC配置はLDAP設定時のみ（OIDC単独構成ではVPC不要）
+      ...(hasLdapConfig && props.vpc ? {
+        vpc: props.vpc,
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        securityGroups,
+      } : {}),
+      environment: env,
+    });
+
+    // DynamoDB権限
+    if (props.userAccessTable) {
+      props.userAccessTable.grantReadWriteData(this.adSyncFunction);
+    } else {
+      this.adSyncFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['dynamodb:PutItem', 'dynamodb:GetItem'],
+        resources: [`arn:aws:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/${prefix}-user-access`],
+      }));
+    }
+
+    new cdk.CfnOutput(this, 'IdentitySyncFunctionName', {
+      value: this.adSyncFunction.functionName,
+      description: `Identity Sync Lambda (${hasLdapConfig ? 'LDAP' : 'OIDC claims-only'} mode)`,
+    });
+  }
+
+  /**
+   * LDAP設定時の追加権限・ネットワーク設定
+   * Secrets Manager読み取り権限とLDAPポートのアウトバウンドルールを設定する。
+   */
+  private configureLdapPermissions(props: DemoSecurityStackProps): void {
+    if (!props.ldapConfig || !this.adSyncFunction) return;
+
+    // Secrets Manager への読み取り権限を付与
+    this.adSyncFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['secretsmanager:GetSecretValue'],
+      resources: [props.ldapConfig.bindPasswordSecretArn],
+    }));
+
+    // LDAP接続情報を環境変数に設定（パスワードはARN参照のみ）
+    this.adSyncFunction.addEnvironment('LDAP_URL', props.ldapConfig.ldapUrl);
+    this.adSyncFunction.addEnvironment('LDAP_BASE_DN', props.ldapConfig.baseDn);
+    this.adSyncFunction.addEnvironment('LDAP_BIND_DN', props.ldapConfig.bindDn);
+    this.adSyncFunction.addEnvironment('LDAP_BIND_PASSWORD_SECRET_ARN', props.ldapConfig.bindPasswordSecretArn);
+    this.adSyncFunction.addEnvironment('LDAP_USER_SEARCH_FILTER', props.ldapConfig.userSearchFilter || '(mail={email})');
+    this.adSyncFunction.addEnvironment('LDAP_GROUP_SEARCH_FILTER', props.ldapConfig.groupSearchFilter || '(member={dn})');
   }
 }

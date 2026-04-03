@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../implementation-overview.md) | [English](../en/implementation-overview.md) | [한국어](../ko/implementation-overview.md) | [简体中文](../zh-CN/implementation-overview.md) | [繁體中文](../zh-TW/implementation-overview.md) | [Français](../fr/implementation-overview.md) | [Deutsch](../de/implementation-overview.md) | **Español**
 
 **Created**: 2026-03-25  
-**Version**: 3.3.0
+**Version**: 3.4.0
 
 ---
 
@@ -131,8 +131,22 @@ Cognito JWT Validation (Application-level authentication)
 | L2: WAF | AWS WAF | Attack pattern detection and blocking |
 | L3: Origin Auth | OAC (SigV4) | Prevents direct access bypassing CloudFront |
 | L4: API Auth | Lambda Function URL IAM Auth | Access control via IAM authentication |
-| L5: User Auth | Cognito JWT | User-level authentication and authorization |
-| L6: Data Authz | SID Filtering | Document-level access control |
+| L5: User Auth | Cognito JWT / SAML / OIDC | User-level authentication and authorization |
+| L6: Data Authz | SID / UID+GID Filtering | Document-level access control |
+
+### Modos de autenticación
+
+El sistema proporciona tres modos de autenticación, activados por configuración:
+
+| Modo | Condición de activación | Creación de usuario | Mapeo de permisos |
+|------|------------------------|--------------------|--------------------|
+| Correo/Contraseña | Predeterminado | Admin crea manualmente | Registro SID manual |
+| SAML AD Federation | `enableAdFederation=true` | Auto en primer inicio de sesión | AD Sync Lambda (obtención SID automática) |
+| OIDC/LDAP Federation | `oidcProviderConfig` especificado | Auto en primer inicio de sesión | Identity Sync Lambda (obtención SID/UID/GID automática) |
+
+Los modos AD Federation y OIDC/LDAP Federation logran el "aprovisionamiento de usuarios sin intervención" — los permisos existentes del servidor de archivos se mapean automáticamente a los usuarios del sistema RAG.
+
+> Para más detalles sobre la selección del modo de autenticación, el registro automático de SID/UID/GID y la configuración de integración AD/OIDC/LDAP, consulte la [Guía de autenticación y gestión de usuarios](../es/auth-and-user-management.md).
 
 ### CDK Implementation
 

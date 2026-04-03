@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../implementation-overview.md) | [English](../en/implementation-overview.md) | **한국어** | [简体中文](../zh-CN/implementation-overview.md) | [繁體中文](../zh-TW/implementation-overview.md) | [Français](../fr/implementation-overview.md) | [Deutsch](../de/implementation-overview.md) | [Español](../es/implementation-overview.md)
 
 **작성일**: 2026-03-25  
-**버전**: 3.3.0
+**버전**: 3.4.0
 
 ---
 
@@ -131,8 +131,22 @@ Cognito JWT 검증 (애플리케이션 수준 인증)
 | L2: WAF | AWS WAF | 공격 패턴 감지 및 차단 |
 | L3: 오리진 인증 | OAC (SigV4) | CloudFront를 우회한 직접 접근 방지 |
 | L4: API 인증 | Lambda Function URL IAM Auth | IAM 인증을 통한 접근 제어 |
-| L5: 사용자 인증 | Cognito JWT | 사용자 수준 인증 및 인가 |
-| L6: 데이터 인가 | SID 필터링 | 문서 수준 접근 제어 |
+| L5: 사용자 인증 | Cognito JWT / SAML / OIDC | 사용자 수준 인증 및 인가 |
+| L6: 데이터 인가 | SID / UID+GID 필터링 | 문서 수준 접근 제어 |
+
+### 인증 모드
+
+본 시스템은 3가지 인증 모드를 제공하며, 설정에 따라 자동으로 활성화됩니다.
+
+| 모드 | 활성화 조건 | 사용자 생성 | 권한 매핑 |
+|------|-----------|-----------|----------|
+| 이메일/비밀번호 | 기본값 | 관리자가 수동 생성 | 수동 SID 등록 |
+| SAML AD Federation | `enableAdFederation=true` | 첫 로그인 시 자동 | AD Sync Lambda (SID 자동 취득) |
+| OIDC/LDAP Federation | `oidcProviderConfig` 지정 | 첫 로그인 시 자동 | Identity Sync Lambda (SID/UID/GID 자동 취득) |
+
+AD Federation 및 OIDC/LDAP Federation 모드는 "제로터치 사용자 프로비저닝"을 실현하여, 파일 서버의 기존 권한이 RAG 시스템 사용자에게 자동으로 매핑됩니다.
+
+> 인증 모드 선택, SID/UID/GID 자동 등록, AD/OIDC/LDAP 연동 설정에 대한 자세한 내용은 [인증 및 사용자 관리 가이드](../ko/auth-and-user-management.md)를 참조하세요.
 
 ### CDK 구현
 

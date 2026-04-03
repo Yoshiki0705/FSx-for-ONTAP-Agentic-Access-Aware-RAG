@@ -23,8 +23,28 @@ function buildAdSignInUrl(
   );
 }
 
+/**
+ * Build the OIDC redirect URL for OIDC IdP sign-in via Cognito Hosted UI.
+ */
+function buildOidcSignInUrl(
+  cognitoDomain: string,
+  cognitoRegion: string,
+  cognitoClientId: string,
+  callbackUrl: string,
+  oidcProviderName: string,
+): string {
+  return (
+    `https://${cognitoDomain}.auth.${cognitoRegion}.amazoncognito.com/oauth2/authorize` +
+    `?identity_provider=${encodeURIComponent(oidcProviderName)}` +
+    `&response_type=code` +
+    `&client_id=${encodeURIComponent(cognitoClientId)}` +
+    `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
+    `&scope=openid+email+profile`
+  );
+}
+
 // Exported for testing
-export { buildAdSignInUrl };
+export { buildAdSignInUrl, buildOidcSignInUrl };
 
 export function LoginForm({
   className,
@@ -48,6 +68,16 @@ export function LoginForm({
   const handleAdSignIn = () => {
     if (!adFederationEnabled) return;
     const url = buildAdSignInUrl(cognitoDomain, cognitoRegion, cognitoClientId, callbackUrl, idpName);
+    window.location.href = url;
+  };
+
+  // OIDC Federation environment variables
+  const oidcProviderName = process.env.NEXT_PUBLIC_OIDC_PROVIDER_NAME || "";
+  const oidcEnabled = !!(oidcProviderName && cognitoDomain && cognitoRegion && cognitoClientId && callbackUrl);
+
+  const handleOidcSignIn = () => {
+    if (!oidcEnabled) return;
+    const url = buildOidcSignInUrl(cognitoDomain, cognitoRegion, cognitoClientId, callbackUrl, oidcProviderName);
     window.location.href = url;
   };
 
@@ -111,12 +141,28 @@ export function LoginForm({
               </svg>
               Sign in with AD
             </button>
-            <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
-              <span className="relative z-10 bg-background px-2 text-muted-foreground">
-                or
-              </span>
-            </div>
           </>
+        )}
+        {oidcEnabled && (
+          <button
+            type="button"
+            onClick={handleOidcSignIn}
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-indigo-600 text-white hover:bg-indigo-700 h-10 px-4 py-2 w-full"
+          >
+            <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+              <path d="M2 12h20" />
+            </svg>
+            Sign in with {oidcProviderName}
+          </button>
+        )}
+        {(adFederationEnabled || oidcEnabled) && (
+          <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
+            <span className="relative z-10 bg-background px-2 text-muted-foreground">
+              or
+            </span>
+          </div>
         )}
         <div className="grid gap-2">
           <label htmlFor="username" className="text-sm font-medium">Username</label>

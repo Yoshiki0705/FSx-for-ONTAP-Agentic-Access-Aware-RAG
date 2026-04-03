@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../implementation-overview.md) | [English](../en/implementation-overview.md) | [한국어](../ko/implementation-overview.md) | [简体中文](../zh-CN/implementation-overview.md) | **繁體中文** | [Français](../fr/implementation-overview.md) | [Deutsch](../de/implementation-overview.md) | [Español](../es/implementation-overview.md)
 
 **建立日期**: 2026-03-25  
-**版本**: 3.3.0
+**版本**: 3.4.0
 
 ---
 
@@ -131,8 +131,22 @@ Cognito JWT 驗證（應用級認证）
 | L2: WAF | AWS WAF | 攻击模式检测和阻止 |
 | L3: 源認证 | OAC（SigV4） | 防止绕過 CloudFront 的直接存取 |
 | L4: API 認证 | Lambda Function URL IAM Auth | 透過 IAM 認证進行存取控制 |
-| L5: 使用者認证 | Cognito JWT | 使用者級認证和授權 |
-| L6: 資料授權 | SID 過濾 | 文件級存取控制 |
+| L5: 使用者認证 | Cognito JWT / SAML / OIDC | 使用者級認证和授權 |
+| L6: 資料授權 | SID / UID+GID 過濾 | 文件級存取控制 |
+
+### 認證模式
+
+本系統提供 3 種認證模式，透過設定驅動自動啟用。
+
+| 模式 | 啟用條件 | 使用者建立 | 權限映射 |
+|------|---------|----------|---------|
+| 電子郵件/密碼 | 預設 | 管理員手動建立 | 手動 SID 註冊 |
+| SAML AD Federation | `enableAdFederation=true` | 首次登入時自動 | AD Sync Lambda（SID 自動取得） |
+| OIDC/LDAP Federation | `oidcProviderConfig` 指定 | 首次登入時自動 | Identity Sync Lambda（SID/UID/GID 自動取得） |
+
+AD Federation 和 OIDC/LDAP Federation 模式實現了「零接觸使用者佈建」——檔案伺服器的現有權限自動映射到 RAG 系統使用者。
+
+> 有關認證模式選擇、SID/UID/GID 自動註冊以及 AD/OIDC/LDAP 整合設定的詳細資訊，請參閱[認證與使用者管理指南](../zh-TW/auth-and-user-management.md)。
 
 ### CDK 實現
 

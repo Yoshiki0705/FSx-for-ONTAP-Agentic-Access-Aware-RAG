@@ -6,6 +6,7 @@ We release patches for security vulnerabilities for the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 3.x.x   | :white_check_mark: |
 | 2.x.x   | :white_check_mark: |
 | 1.x.x   | :x:                |
 
@@ -57,6 +58,18 @@ The `diff` package has a known DoS vulnerability in parsePatch and applyPatch:
 - **Risk Level**: Low (testing environment only)
 - **Mitigation**: Only used in unit/integration tests, not in production
 - **Recommendation**: Keep jest and ts-node updated to latest versions
+
+### OIDC/LDAP Federation Security (v3.4.0)
+
+The OIDC/LDAP Federation feature introduces additional authentication paths. The following security measures are implemented:
+
+- **LDAP Injection Prevention**: All user-supplied values (email addresses, etc.) are escaped via `escapeFilter()` before insertion into LDAP search filters. Special characters (`\`, `*`, `(`, `)`, `\0`) are hex-encoded per RFC 4515. Validated by property-based tests (Property 5)
+- **Secrets Management**: LDAP bind passwords and OIDC client secrets are stored exclusively in AWS Secrets Manager. Plain-text credentials are never accepted in CDK context parameters or Lambda environment variables — only ARN references
+- **Structured Logging with Secret Exclusion**: All Identity Sync Lambda logs use JSON structured format. Fields matching `password`, `secret`, `token`, `credential`, `authorization` patterns are automatically redacted to `***REDACTED***` before output. Validated by property-based tests (Property 17)
+- **Fail-Open Authentication / Fail-Closed Authorization**: LDAP connection failures, timeouts, or bind errors do not block user sign-in (Fail-Open). However, if no permission data (SID/UID/GID) is available for a user, all document access is denied (Fail-Closed). This prevents both authentication lockouts and unauthorized data access
+- **LDAP Connection Security**: LDAPS (TLS) connections are supported. Connections are created and destroyed per-request with no connection pooling, reducing the attack surface for connection hijacking. Connection timeout is 30 seconds
+- **OIDC Token Validation**: OIDC token validation is delegated to Amazon Cognito, which verifies token signatures, expiration, and issuer claims. The application does not perform custom token validation
+- **Network Isolation**: When `ldapConfig` is specified, the Identity Sync Lambda is deployed inside a VPC with security group rules restricting outbound traffic to LDAP ports (389/636) only
 
 ## Security Best Practices
 

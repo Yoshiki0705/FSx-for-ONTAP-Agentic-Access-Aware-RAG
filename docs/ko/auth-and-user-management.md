@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../auth-and-user-management.md) | [English](../en/auth-and-user-management.md) | **한국어** | [简体中文](../zh-CN/auth-and-user-management.md) | [繁體中文](../zh-TW/auth-and-user-management.md) | [Français](../fr/auth-and-user-management.md) | [Deutsch](../de/auth-and-user-management.md) | [Español](../es/auth-and-user-management.md)
 
 **작성일**: 2026-04-02
-**버전**: 3.3.0
+**버전**: 3.4.0
 
 ---
 
@@ -15,6 +15,16 @@
 |------|------------|-----------|---------|----------|
 | 이메일/비밀번호 | `enableAdFederation=false` (기본값) | 관리자가 수동 생성 | 관리자가 수동 등록 | PoC / 데모 |
 | AD Federation | `enableAdFederation=true` | 첫 로그인 시 자동 생성 | 로그인 시 자동 등록 | 프로덕션 / 엔터프라이즈 |
+| OIDC/LDAP Federation | `oidcProviderConfig` 지정 | 첫 로그인 시 자동 생성 | 로그인 시 자동 등록 | 멀티 IdP / LDAP 환경 |
+
+### 제로터치 사용자 프로비저닝
+
+AD Federation 및 OIDC/LDAP Federation 모드에서는 "제로터치 사용자 프로비저닝"을 실현합니다. 이는 파일 서버(FSx for NetApp ONTAP)의 기존 사용자 권한을 RAG 시스템의 UI 사용자에 자동으로 매핑하는 메커니즘입니다.
+
+- 관리자가 RAG 시스템 측에서 사용자를 수동으로 생성할 필요가 없습니다
+- 사용자 자신이 셀프 등록할 필요도 없습니다
+- IdP(AD/Keycloak/Okta/Entra ID 등)에서 관리되는 사용자가 처음 로그인하면 Cognito 사용자 생성 → 권한 정보 취득 → DynamoDB 등록이 모두 자동으로 수행됩니다
+- 파일 서버 측의 권한 변경은 캐시 TTL(24시간) 경과 후 다음 로그인 시 자동 반영됩니다
 
 ---
 
@@ -150,18 +160,145 @@ npx cdk deploy --all \
 
 ---
 
-## SID 필터링과의 연동
+## 모드 3: OIDC/LDAP Federation (멀티 IdP / LDAP 환경)
 
-인증 모드에 관계없이 SID 필터링 메커니즘은 동일합니다.
+### 동작 방식
+
+```
+OIDC User -> CloudFront UI -> "OIDC로 로그인" button
+  -> Cognito Hosted UI -> OIDC IdP (Keycloak/Okta/Entra ID)
+  -> OIDC authentication
+  -> Cognito auto user creation
+  -> Post-Auth Trigger -> Identity Sync Lambda
+  -> LDAP Query or OIDC Claims -> DynamoDB auto-registration (24h cache)
+  -> OAuth Callback -> Session Cookie -> Chat UI
+```
+
+OIDC 사용자가 로그인하면 다음이 모두 자동으로 수행됩니다:
+
+1. **Cognito 사용자 자동 생성** — OIDC 어설션의 email 속성에서 Cognito 사용자를 자동 생성
+2. **권한 정보 자동 취득** — Identity Sync Lambda가 LDAP 서버 또는 OIDC 클레임에서 SID/UID/GID/그룹 정보를 취득
+3. **DynamoDB 자동 등록** — 취득한 권한 데이터를 `user-access` 테이블에 저장 (24시간 캐시)
+
+### 설정 기반 자동 활성화
+
+각 인증 방식은 설정 값이 제공되면 자동으로 활성화됩니다. 추가 AWS 리소스 비용은 거의 없습니다.
+
+| 기능 | 활성화 조건 | 추가 비용 |
+|------|-----------|----------|
+| OIDC Federation | `oidcProviderConfig` 지정 | 없음 (Cognito IdP 등록 무료) |
+| LDAP 권한 취득 | `ldapConfig` 지정 | 없음 (Lambda 실행 시 과금만) |
+| OIDC 클레임 권한 취득 | `oidcProviderConfig` 지정 + `ldapConfig` 없음 | 없음 |
+| UID/GID 권한 필터링 | `permissionMappingStrategy`가 `uid-gid` 또는 `hybrid` | 없음 |
+| ONTAP name-mapping | `ontapNameMappingEnabled=true` | 없음 |
+
+> **CDK 자동 설정**: `oidcProviderConfig`를 지정하여 CDK를 배포하면 다음이 자동으로 구성됩니다:
+> - Cognito User Pool에 OIDC IdP가 등록됩니다
+> - Cognito Domain이 생성됩니다(`enableAdFederation=true`로 미생성 시)
+> - User Pool Client에 OIDC IdP가 지원 프로바이더로 추가됩니다
+> - Identity Sync Lambda가 생성되고 Post-Authentication Trigger로 등록됩니다
+> - WebAppStack Lambda에 OAuth 환경 변수(`COGNITO_DOMAIN`, `COGNITO_CLIENT_SECRET`, `CALLBACK_URL`)가 자동 설정됩니다
+>
+> `enableAdFederation=true`와 `oidcProviderConfig`를 동시에 지정하면 SAML + OIDC 모두 지원되며 로그인 화면에 두 버튼이 모두 표시됩니다.
+
+### 패턴 C: OIDC + LDAP (OpenLDAP/FreeIPA + Keycloak)
+
+```json
+{
+  "oidcProviderConfig": {
+    "providerName": "Keycloak",
+    "clientId": "rag-system",
+    "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:oidc-client-secret",
+    "issuerUrl": "https://keycloak.example.com/realms/main",
+    "groupClaimName": "groups"
+  },
+  "ldapConfig": {
+    "ldapUrl": "ldaps://ldap.example.com:636",
+    "baseDn": "dc=example,dc=com",
+    "bindDn": "cn=readonly,dc=example,dc=com",
+    "bindPasswordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ldap-bind-password",
+    "userSearchFilter": "(mail={email})",
+    "groupSearchFilter": "(member={dn})"
+  },
+  "permissionMappingStrategy": "uid-gid"
+}
+```
+
+### 패턴 D: OIDC Claims Only (LDAP 없음)
+
+```json
+{
+  "oidcProviderConfig": {
+    "providerName": "Okta",
+    "clientId": "0oa1234567890",
+    "clientSecret": "arn:aws:secretsmanager:...",
+    "issuerUrl": "https://company.okta.com",
+    "groupClaimName": "groups"
+  }
+}
+```
+
+### 패턴 E: SAML + OIDC 하이브리드
+
+```json
+{
+  "enableAdFederation": true,
+  "adPassword": "YourStrongP@ssw0rd123",
+  "adDomainName": "demo.local",
+  "oidcProviderConfig": {
+    "providerName": "Okta",
+    "clientId": "0oa1234567890",
+    "clientSecret": "arn:aws:secretsmanager:...",
+    "issuerUrl": "https://company.okta.com"
+  },
+  "permissionMappingStrategy": "hybrid",
+  "cloudFrontUrl": "https://dxxxxxxxx.cloudfront.net"
+}
+```
+
+### CDK 파라미터 목록 (OIDC/LDAP)
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|-------|------|
+| `oidcProviderConfig.providerName` | string | `OIDCProvider` | IdP 표시 이름 (로그인 버튼에 표시) |
+| `oidcProviderConfig.clientId` | string | **필수** | OIDC 클라이언트 ID |
+| `oidcProviderConfig.clientSecret` | string | **필수** | OIDC 클라이언트 시크릿 (Secrets Manager ARN 권장) |
+| `oidcProviderConfig.issuerUrl` | string | **필수** | OIDC 이슈어 URL |
+| `oidcProviderConfig.groupClaimName` | string | `groups` | 그룹 정보 클레임 이름 |
+| `ldapConfig.ldapUrl` | string | - | LDAP/LDAPS URL (예: `ldaps://ldap.example.com:636`) |
+| `ldapConfig.baseDn` | string | - | 검색 베이스 DN (예: `dc=example,dc=com`) |
+| `ldapConfig.bindDn` | string | - | 바인드 DN (예: `cn=readonly,dc=example,dc=com`) |
+| `ldapConfig.bindPasswordSecretArn` | string | - | 바인드 비밀번호 Secrets Manager ARN |
+| `ldapConfig.userSearchFilter` | string | `(mail={email})` | 사용자 검색 필터 |
+| `ldapConfig.groupSearchFilter` | string | `(member={dn})` | 그룹 검색 필터 |
+| `permissionMappingStrategy` | string | `sid-only` | 권한 매핑 전략: `sid-only`, `uid-gid`, `hybrid` |
+| `ontapNameMappingEnabled` | boolean | `false` | ONTAP name-mapping 연동 |
+
+---
+
+## 권한 필터링과의 연동
+
+인증 모드에 관계없이 권한 필터링 메커니즘은 동일합니다. Permission Resolver가 인증 소스에 따라 적절한 필터링 전략을 자동 선택합니다.
+
+### 필터링 전략
+
+| 전략 | 조건 | 동작 |
+|------|------|------|
+| SID Matching | `userSID`만 존재 | 문서의 `allowed_group_sids`와 사용자 SID를 대조 |
+| UID/GID Matching | `uid` + `gid`만 존재 | 문서의 `allowed_uids` / `allowed_gids`와 사용자 UID/GID를 대조 |
+| Hybrid Matching | `userSID`와 `uid` 모두 존재 | SID 매칭 우선, UID/GID 폴백 |
+| Deny All (Fail-Closed) | 권한 정보 없음 | 전체 문서 접근 거부 |
 
 ```
 DynamoDB user-access Table
   |
-  | userId -> userSID + groupSIDs
+  | userId -> userSID + groupSIDs + uid + gid + unixGroups
   v
-Bedrock KB Retrieve API -> Results + metadata (allowed_group_sids)
+Permission Resolver (전략 자동 선택)
   |
-  | userSIDs n documentSIDs
+  ├─ SID Matching: userSIDs ∩ documentSIDs
+  ├─ UID/GID Matching: uid ∈ allowed_uids OR gid ∈ allowed_gids
+  └─ Hybrid: SID 우선 → UID/GID 폴백
   v
 Match -> ALLOW, No match -> DENY
 ```
@@ -173,6 +310,8 @@ Match -> ALLOW, No match -> DENY
 | 이메일/비밀번호 | `setup-user-access.sh` (수동) | `Demo` |
 | AD Federation (Managed) | AD Sync Lambda (자동) | `AD-Sync-managed` |
 | AD Federation (Self-managed) | AD Sync Lambda (자동) | `AD-Sync-self-managed` |
+| OIDC + LDAP | Identity Sync Lambda (자동) | `OIDC-LDAP` |
+| OIDC + Claims | Identity Sync Lambda (자동) | `OIDC-Claims` |
 
 ### DynamoDB user-access 테이블 스키마
 
@@ -195,11 +334,17 @@ Match -> ALLOW, No match -> DENY
 
 | 증상 | 원인 | 대처 |
 |------|------|------|
-| 로그인 후 전체 문서가 거부됨 | DynamoDB에 SID 데이터가 없음 | AD Federation: AD Sync Lambda 로그를 확인. 수동: `setup-user-access.sh` 실행 |
+| 로그인 후 전체 문서가 거부됨 | DynamoDB에 SID/UID/GID 데이터가 없음 | AD Federation: AD Sync Lambda 로그를 확인. OIDC: Identity Sync Lambda 로그를 확인. 수동: `setup-user-access.sh` 실행 |
 | "AD로 로그인" 버튼이 표시되지 않음 | `enableAdFederation=false` | CDK 파라미터를 확인하고 재배포 |
+| "OIDC로 로그인" 버튼이 표시되지 않음 | `oidcProviderConfig` 미설정 | CDK 파라미터에 `oidcProviderConfig`를 추가하고 재배포 |
 | SAML 인증 실패 | SAML 메타데이터 URL 오류 | Managed AD: IAM Identity Center 설정 확인. Self-managed: Entra ID 메타데이터 URL 확인 |
+| OIDC 인증 실패 | `clientId` / `issuerUrl` 오류 | OIDC IdP 측 클라이언트 설정과 CDK 파라미터의 일치를 확인 |
+| LDAP 권한 취득 실패 | LDAP 연결 오류 | CloudWatch Logs에서 Identity Sync Lambda 오류를 확인. 로그인 자체는 차단되지 않음 (Fail-Open) |
 | AD 그룹 변경이 반영되지 않음 | SID 캐시 (24시간) | 24시간 대기하거나 DynamoDB의 해당 레코드를 삭제하고 재로그인 |
 | AD Sync Lambda 타임아웃 | SSM 경유 PowerShell 실행이 느림 | `SSM_TIMEOUT` 환경 변수를 늘림 (기본값: 60초) |
+| OIDC 그룹이 취득되지 않음 | IdP 측에서 그룹 클레임 미설정 | IdP 측에서 토큰에 `groups` 클레임을 포함하는 설정을 확인. `groupClaimName` 파라미터의 일치를 확인 |
+| OIDC 로그인 후 DynamoDB에 권한 데이터가 등록되지 않음 | Post-Auth Trigger 또는 Identity Sync Lambda가 미생성 | `oidcProviderConfig`를 지정하여 CDK를 배포하면 Identity Sync Lambda와 Post-Auth Trigger가 자동 생성됨. CloudWatch Logs에서 Lambda 실행 로그 확인 |
+| OAuth 콜백 오류 (OIDC 구성) | `cloudFrontUrl` 미설정 | OIDC 구성에서도 `cloudFrontUrl`이 필요. `cdk.context.json`에 설정하고 재배포 |
 
 ---
 

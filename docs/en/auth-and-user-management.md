@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../auth-and-user-management.md) | **English** | [한국어](../ko/auth-and-user-management.md) | [简体中文](../zh-CN/auth-and-user-management.md) | [繁體中文](../zh-TW/auth-and-user-management.md) | [Français](../fr/auth-and-user-management.md) | [Deutsch](../de/auth-and-user-management.md) | [Español](../es/auth-and-user-management.md)
 
 **Created**: 2026-04-02
-**Version**: 3.3.0
+**Version**: 3.4.0
 
 ---
 
@@ -15,6 +15,39 @@ This system provides two authentication modes. You can switch between them using
 |------|--------------|---------------|-----------------|----------------|
 | Email/Password | `enableAdFederation=false` (default) | Admin creates manually | Admin registers manually | PoC / Demo |
 | AD Federation | `enableAdFederation=true` | Auto-created on first sign-in | Auto-registered on sign-in | Production / Enterprise |
+| OIDC/LDAP Federation | `oidcProviderConfig` specified | Auto-created on first sign-in | Auto-registered on sign-in | Multi-IdP / LDAP environments |
+
+### Zero-Touch User Provisioning
+
+AD Federation and OIDC/LDAP Federation modes achieve "Zero-Touch User Provisioning." This mechanism automatically maps existing file server (FSx for NetApp ONTAP) user permissions to RAG system UI users.
+
+- Administrators do not need to manually create users in the RAG system
+- Users do not need to self-register
+- When a user managed by an IdP (AD/Keycloak/Okta/Entra ID, etc.) signs in for the first time, Cognito user creation → permission retrieval → DynamoDB registration all happen automatically
+- File server permission changes are automatically reflected on the next sign-in after the cache TTL (24 hours) expires
+
+```
+IdP (AD/OIDC) ──Auth──> Cognito User Pool
+                              │
+                        Post-Auth Trigger
+                              │
+                              v
+                    Identity Sync Lambda
+                     ┌────────┴────────┐
+                     │                 │
+              SSM PowerShell      Direct LDAP Query
+              (Windows AD)     (OpenLDAP/FreeIPA)
+                     │                 │
+                     └────────┬────────┘
+                              │
+                     SID / UID+GID / Groups
+                              │
+                              v
+                    DynamoDB user-access Table
+                              │
+                              v
+                    Permission Filtering at RAG Search
+```
 
 ---
 
@@ -150,18 +183,145 @@ npx cdk deploy --all \
 
 ---
 
-## Integration with SID Filtering
+## Mode 3: OIDC/LDAP Federation (Multi-IdP / LDAP Environments)
 
-Regardless of the authentication mode, the SID filtering mechanism works the same way.
+### How It Works
+
+```
+OIDC User -> CloudFront UI -> "Sign in with OIDC" button
+  -> Cognito Hosted UI -> OIDC IdP (Keycloak/Okta/Entra ID)
+  -> OIDC authentication
+  -> Cognito auto user creation
+  -> Post-Auth Trigger -> Identity Sync Lambda
+  -> LDAP Query or OIDC Claims -> DynamoDB auto-registration (24h cache)
+  -> OAuth Callback -> Session Cookie -> Chat UI
+```
+
+When an OIDC user signs in, the following are all performed automatically:
+
+1. **Automatic Cognito User Creation** — A Cognito user is automatically generated from the email attribute in the OIDC assertion
+2. **Automatic Permission Retrieval** — Identity Sync Lambda retrieves SID/UID/GID/group information from the LDAP server or OIDC claims
+3. **Automatic DynamoDB Registration** — The retrieved permission data is saved to the `user-access` table (24-hour cache)
+
+### Configuration-Driven Auto-Activation
+
+Each authentication method is automatically enabled when its configuration is provided. Near-zero additional AWS resource cost.
+
+| Feature | Activation Condition | Additional Cost |
+|---------|---------------------|----------------|
+| OIDC Federation | `oidcProviderConfig` specified | None (Cognito IdP registration is free) |
+| LDAP Permission Retrieval | `ldapConfig` specified | None (Lambda pay-per-use only) |
+| OIDC Claims Permission | `oidcProviderConfig` specified + no `ldapConfig` | None |
+| UID/GID Permission Filtering | `permissionMappingStrategy` is `uid-gid` or `hybrid` | None |
+| ONTAP Name-Mapping | `ontapNameMappingEnabled=true` | None |
+
+> **CDK Auto-Configuration**: When you deploy CDK with `oidcProviderConfig` specified, the following is automatically configured:
+> - OIDC IdP is registered in the Cognito User Pool
+> - Cognito Domain is created (if not already created by `enableAdFederation=true`)
+> - OIDC IdP is added as a supported provider to the User Pool Client
+> - Identity Sync Lambda is created and registered as a Post-Authentication Trigger
+> - OAuth environment variables (`COGNITO_DOMAIN`, `COGNITO_CLIENT_SECRET`, `CALLBACK_URL`) are automatically set on the WebAppStack Lambda
+>
+> When both `enableAdFederation=true` and `oidcProviderConfig` are specified, both SAML and OIDC are supported, and both sign-in buttons are displayed.
+
+### Pattern C: OIDC + LDAP (OpenLDAP/FreeIPA + Keycloak)
+
+```json
+{
+  "oidcProviderConfig": {
+    "providerName": "Keycloak",
+    "clientId": "rag-system",
+    "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:oidc-client-secret",
+    "issuerUrl": "https://keycloak.example.com/realms/main",
+    "groupClaimName": "groups"
+  },
+  "ldapConfig": {
+    "ldapUrl": "ldaps://ldap.example.com:636",
+    "baseDn": "dc=example,dc=com",
+    "bindDn": "cn=readonly,dc=example,dc=com",
+    "bindPasswordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ldap-bind-password",
+    "userSearchFilter": "(mail={email})",
+    "groupSearchFilter": "(member={dn})"
+  },
+  "permissionMappingStrategy": "uid-gid"
+}
+```
+
+### Pattern D: OIDC Claims Only (No LDAP)
+
+```json
+{
+  "oidcProviderConfig": {
+    "providerName": "Okta",
+    "clientId": "0oa1234567890",
+    "clientSecret": "arn:aws:secretsmanager:...",
+    "issuerUrl": "https://company.okta.com",
+    "groupClaimName": "groups"
+  }
+}
+```
+
+### Pattern E: SAML + OIDC Hybrid
+
+```json
+{
+  "enableAdFederation": true,
+  "adPassword": "YourStrongP@ssw0rd123",
+  "adDomainName": "demo.local",
+  "oidcProviderConfig": {
+    "providerName": "Okta",
+    "clientId": "0oa1234567890",
+    "clientSecret": "arn:aws:secretsmanager:...",
+    "issuerUrl": "https://company.okta.com"
+  },
+  "permissionMappingStrategy": "hybrid",
+  "cloudFrontUrl": "https://dxxxxxxxx.cloudfront.net"
+}
+```
+
+### CDK Parameter List (OIDC/LDAP)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `oidcProviderConfig.providerName` | string | `OIDCProvider` | IdP display name (shown on sign-in button) |
+| `oidcProviderConfig.clientId` | string | **Required** | OIDC client ID |
+| `oidcProviderConfig.clientSecret` | string | **Required** | OIDC client secret (Secrets Manager ARN recommended) |
+| `oidcProviderConfig.issuerUrl` | string | **Required** | OIDC issuer URL |
+| `oidcProviderConfig.groupClaimName` | string | `groups` | Group information claim name |
+| `ldapConfig.ldapUrl` | string | - | LDAP/LDAPS URL (e.g., `ldaps://ldap.example.com:636`) |
+| `ldapConfig.baseDn` | string | - | Search base DN (e.g., `dc=example,dc=com`) |
+| `ldapConfig.bindDn` | string | - | Bind DN (e.g., `cn=readonly,dc=example,dc=com`) |
+| `ldapConfig.bindPasswordSecretArn` | string | - | Bind password Secrets Manager ARN |
+| `ldapConfig.userSearchFilter` | string | `(mail={email})` | User search filter |
+| `ldapConfig.groupSearchFilter` | string | `(member={dn})` | Group search filter |
+| `permissionMappingStrategy` | string | `sid-only` | Permission mapping strategy: `sid-only`, `uid-gid`, `hybrid` |
+| `ontapNameMappingEnabled` | boolean | `false` | ONTAP name-mapping integration |
+
+---
+
+## Integration with Permission Filtering
+
+Regardless of the authentication mode, the permission filtering mechanism works the same way. The Permission Resolver automatically selects the appropriate filtering strategy based on the authentication source.
+
+### Filtering Strategies
+
+| Strategy | Condition | Behavior |
+|----------|-----------|----------|
+| SID Matching | `userSID` only | Match document `allowed_group_sids` against user SIDs |
+| UID/GID Matching | `uid` + `gid` only | Match document `allowed_uids` / `allowed_gids` against user UID/GID |
+| Hybrid Matching | Both `userSID` and `uid` | SID match priority, UID/GID fallback |
+| Deny All (Fail-Closed) | No permission data | Deny all document access |
 
 ```
 DynamoDB user-access Table
   |
-  | userId -> userSID + groupSIDs
+  | userId -> userSID + groupSIDs + uid + gid + unixGroups
   v
-Bedrock KB Retrieve API -> Results + metadata (allowed_group_sids)
+Permission Resolver (auto strategy selection)
   |
-  | userSIDs n documentSIDs
+  ├─ SID Matching: userSIDs ∩ documentSIDs
+  ├─ UID/GID Matching: uid ∈ allowed_uids OR gid ∈ allowed_gids
+  └─ Hybrid: SID priority → UID/GID fallback
   v
 Match -> ALLOW, No match -> DENY
 ```
@@ -173,6 +333,8 @@ Match -> ALLOW, No match -> DENY
 | Email/Password | `setup-user-access.sh` (manual) | `Demo` |
 | AD Federation (Managed) | AD Sync Lambda (automatic) | `AD-Sync-managed` |
 | AD Federation (Self-managed) | AD Sync Lambda (automatic) | `AD-Sync-self-managed` |
+| OIDC + LDAP | Identity Sync Lambda (automatic) | `OIDC-LDAP` |
+| OIDC + Claims | Identity Sync Lambda (automatic) | `OIDC-Claims` |
 
 ### DynamoDB user-access Table Schema
 
@@ -195,11 +357,17 @@ Match -> ALLOW, No match -> DENY
 
 | Symptom | Cause | Solution |
 |---------|-------|----------|
-| All documents denied after sign-in | No SID data in DynamoDB | AD Federation: Check AD Sync Lambda logs. Manual: Run `setup-user-access.sh` |
+| All documents denied after sign-in | No SID/UID/GID data in DynamoDB | AD Federation: Check AD Sync Lambda logs. OIDC: Check Identity Sync Lambda logs. Manual: Run `setup-user-access.sh` |
 | "AD Sign-in" button not displayed | `enableAdFederation=false` | Check CDK parameters and redeploy |
+| "OIDC Sign-in" button not displayed | `oidcProviderConfig` not set | Add `oidcProviderConfig` to CDK parameters and redeploy |
 | SAML authentication failure | Invalid SAML metadata URL | Managed AD: Check IAM Identity Center settings. Self-managed: Check Entra ID metadata URL |
+| OIDC authentication failure | Invalid `clientId` / `issuerUrl` | Verify OIDC IdP client settings match CDK parameters |
+| LDAP permission retrieval failure | LDAP connection error | Check Identity Sync Lambda logs in CloudWatch. Sign-in is not blocked (Fail-Open) |
 | AD group changes not reflected | SID cache (24 hours) | Wait 24 hours, or delete the relevant DynamoDB record and sign in again |
 | AD Sync Lambda timeout | PowerShell execution via SSM is slow | Increase the `SSM_TIMEOUT` environment variable (default: 60 seconds) |
+| OIDC groups not retrieved | Group claim not configured in IdP | Verify IdP includes `groups` claim in token. Check `groupClaimName` parameter |
+| DynamoDB permission data not registered after OIDC sign-in | Post-Auth Trigger or Identity Sync Lambda not created | Deploying CDK with `oidcProviderConfig` automatically creates the Identity Sync Lambda and Post-Auth Trigger. Check Lambda execution logs in CloudWatch Logs |
+| OAuth callback error (OIDC configuration) | `cloudFrontUrl` not set | `cloudFrontUrl` is also required for OIDC configuration. Set it in `cdk.context.json` and redeploy |
 
 ---
 

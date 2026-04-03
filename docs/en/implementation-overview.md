@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../implementation-overview.md) | **English** | [한국어](../ko/implementation-overview.md) | [简体中文](../zh-CN/implementation-overview.md) | [繁體中文](../zh-TW/implementation-overview.md) | [Français](../fr/implementation-overview.md) | [Deutsch](../de/implementation-overview.md) | [Español](../es/implementation-overview.md)
 
 **Created**: 2026-03-25  
-**Version**: 3.3.0
+**Version**: 3.4.0
 
 ---
 
@@ -131,8 +131,22 @@ Cognito JWT Validation (Application-level authentication)
 | L2: WAF | AWS WAF | Attack pattern detection and blocking |
 | L3: Origin Auth | OAC (SigV4) | Prevents direct access bypassing CloudFront |
 | L4: API Auth | Lambda Function URL IAM Auth | Access control via IAM authentication |
-| L5: User Auth | Cognito JWT | User-level authentication and authorization |
-| L6: Data Authz | SID Filtering | Document-level access control |
+| L5: User Auth | Cognito JWT / SAML / OIDC | User-level authentication and authorization |
+| L6: Data Authz | SID / UID+GID Filtering | Document-level access control |
+
+### Authentication Modes
+
+The system provides three authentication modes, activated by configuration:
+
+| Mode | Activation Condition | User Creation | Permission Mapping |
+|------|---------------------|---------------|-------------------|
+| Email/Password | Default | Admin creates manually | Manual SID registration |
+| SAML AD Federation | `enableAdFederation=true` | Auto on first sign-in | AD Sync Lambda (auto SID retrieval) |
+| OIDC/LDAP Federation | `oidcProviderConfig` specified | Auto on first sign-in | Identity Sync Lambda (auto SID/UID/GID retrieval) |
+
+AD Federation and OIDC/LDAP Federation modes achieve "Zero-Touch User Provisioning" — existing file server permissions are automatically mapped to RAG system users.
+
+> For details on authentication mode selection, SID/UID/GID auto-registration, and AD/OIDC/LDAP integration settings, see the [Authentication & User Management Guide](../en/auth-and-user-management.md).
 
 ### CDK Implementation
 

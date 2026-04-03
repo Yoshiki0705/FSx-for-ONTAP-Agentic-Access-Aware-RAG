@@ -127,7 +127,7 @@ RAG 검색 결과는 FSx 파일 경로와 접근 레벨 배지(전체 접근 가
 |---|------|------|--------|------|
 | 1 | WafStack | us-east-1 | WAF WebACL, IP Set | CloudFront용 WAF (속도 제한, 관리형 규칙) |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups, VPC Endpoints (선택 사항) | 네트워크 인프라 |
-| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + Cognito Domain (AD Federation 활성화 시), AD Sync Lambda (선택 사항) | 인증 & 인가 |
+| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + OIDC IdP + Cognito Domain (Federation 활성화 시), Identity Sync Lambda (선택 사항) | 인증 & 인가 (SAML/OIDC/이메일) |
 | 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS 암호화 (선택 사항), CloudTrail (선택 사항) | 스토리지, SID 데이터, 권한 캐시 |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless (`vectorStoreType`으로 선택), Bedrock Guardrails (선택 사항) | RAG 검색 인프라 (Titan Embed v2) |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda (선택 사항), MonitoringConstruct (선택 사항) | 웹 애플리케이션, Agent 관리, 모니터링 & 알림 |
@@ -141,8 +141,8 @@ RAG 검색 결과는 FSx 파일 경로와 접근 레벨 배지(전체 접근 가
 | L2: WAF | AWS WAF (6개 규칙) | 공격 패턴 탐지 & 차단 |
 | L3: 오리진 인증 | CloudFront OAC (SigV4) | CloudFront를 우회한 직접 접근 방지 |
 | L4: API 인증 | Lambda Function URL IAM Auth | IAM 인증을 통한 접근 제어 |
-| L5: 사용자 인증 | Cognito JWT / SAML Federation | 사용자 수준 인증 & 인가 |
-| L6: 데이터 인가 | SID Filtering | 문서 수준 접근 제어 |
+| L5: 사용자 인증 | Cognito JWT / SAML / OIDC Federation | 사용자 수준 인증 & 인가 |
+| L6: 데이터 인가 | SID / UID+GID Filtering | 문서 수준 접근 제어 |
 
 ## 사전 요구 사항
 
@@ -325,6 +325,8 @@ AD User → CloudFront UI → "Sign in with AD" button
 | `samlMetadataUrl` | string | 미설정 | 자체 관리 AD용: Entra ID 페더레이션 메타데이터 URL |
 | `adEc2InstanceId` | string | 미설정 | 자체 관리 AD용: EC2 인스턴스 ID |
 
+> **환경 변수 자동 설정**: `enableAdFederation=true` 또는 `oidcProviderConfig`를 지정하여 CDK를 배포하면 WebAppStack Lambda 함수에 Federation용 환경 변수(`COGNITO_DOMAIN`, `COGNITO_CLIENT_SECRET`, `CALLBACK_URL`, `IDP_NAME`)가 자동으로 설정됩니다. 수동으로 Lambda 환경 변수를 설정할 필요가 없습니다.
+
 **Managed AD 패턴:**
 
 AWS Managed Microsoft AD를 사용하는 경우.
@@ -347,10 +349,16 @@ AWS Managed Microsoft AD를 사용하는 경우.
 
 설정 단계:
 1. `adPassword`를 설정하고 CDK 배포 (Managed AD + SAML IdP + Cognito Domain 생성)
-2. AWS IAM Identity Center를 활성화하고 Managed AD를 ID 소스로 구성
-3. IAM Identity Center에서 Cognito User Pool용 SAML 애플리케이션 생성 (또는 `samlMetadataUrl`로 외부 IdP 지정)
-4. 배포 후 `cloudFrontUrl`에 CloudFront URL을 설정하고 재배포
-5. CloudFront UI의 "Sign in with AD" 버튼에서 AD 인증 실행
+2. AWS IAM Identity Center를 활성화하고 ID 소스를 Managed AD로 변경
+3. AD 사용자에게 이메일 주소 설정 (PowerShell: `Set-ADUser -Identity Admin -EmailAddress "admin@demo.local"`)
+4. IAM Identity Center에서 "동기화 관리" → "가이드 설정"으로 AD 사용자 동기화
+5. IAM Identity Center에서 SAML 애플리케이션 "Permission-aware RAG Cognito" 생성:
+   - ACS URL: `https://{cognito-domain}.auth.{region}.amazoncognito.com/saml2/idpresponse`
+   - SAML 대상: `urn:amazon:cognito:sp:{user-pool-id}`
+   - 속성 매핑: Subject → `${user:email}` (emailAddress), emailaddress → `${user:email}`
+6. SAML 애플리케이션에 AD 사용자 할당
+7. 배포 후 `cloudFrontUrl`에 CloudFront URL을 설정하고 재배포
+8. CloudFront UI의 "AD로 로그인" 버튼에서 AD 인증 실행
 
 **자체 관리 AD 패턴 (EC2, Entra Connect 통합):**
 
@@ -391,6 +399,45 @@ EC2의 AD를 Entra ID(구 Azure AD)와 통합하고 Entra ID 페더레이션 메
 | KB 검색 시 S3 접근 오류 | KB IAM 역할에 직접 S3 버킷 접근 권한 부족 | KB IAM 역할은 S3 Access Point를 통한 권한만 보유. S3 버킷을 직접 데이터 소스로 사용하는 경우 `s3:GetObject` 및 `s3:ListBucket` 권한 추가 필요 (AD Federation에 한정되지 않음) |
 | S3 AP 데이터 플레인 API AccessDenied | WindowsUser에 도메인 접두사 포함 | S3 AP의 WindowsUser에 도메인 접두사를 포함하면 안 됩니다 (예: `DEMO\Admin`). 사용자 이름만 지정하세요 (예: `Admin`). CLI는 도메인 접두사를 허용하지만 데이터 플레인 API가 실패합니다 |
 | Cognito Domain 생성 실패 | 도메인 접두사 충돌 | `{projectName}-{environment}-auth` 접두사가 다른 계정과 충돌하는지 확인 |
+| USER_PASSWORD_AUTH 401 오류 | Client Secret 활성화 시 SECRET_HASH 미전송 | `enableAdFederation=true`에서 User Pool Client에 Client Secret이 설정됨. 로그인 API에서 `COGNITO_CLIENT_SECRET` 환경 변수로 SECRET_HASH를 계산하여 전송 필요 |
+| Post-Auth Trigger `Cannot find module 'index'` | Lambda TypeScript 미컴파일 | CDK `Code.fromAsset`에 esbuild 번들링 옵션 추가. `npx esbuild index.ts --bundle --platform=node --target=node22 --outfile=index.js --external:@aws-sdk/*` |
+| OAuth Callback `0.0.0.0` 리다이렉트 | Lambda Web Adapter `request.url`이 `http://0.0.0.0:3000/...` | `CALLBACK_URL` 환경 변수에서 리다이렉트 기본 URL을 구성 |
+
+#### OIDC/LDAP Federation (옵션) — 제로터치 사용자 프로비저닝
+
+SAML AD Federation 외에도 OIDC IdP(Keycloak, Okta, Entra ID 등) 및 LDAP 직접 쿼리를 통한 제로터치 사용자 프로비저닝을 활성화할 수 있습니다. 파일 서버의 기존 사용자 권한이 RAG 시스템 UI 사용자에 자동 매핑되어 관리자나 사용자의 수동 등록이 불필요합니다.
+
+각 인증 방식은 "설정 기반 자동 활성화"로 동작합니다. `cdk.context.json`에 설정값을 추가하기만 하면 활성화되며, 추가 AWS 리소스 비용은 거의 없습니다. SAML + OIDC 동시 활성화도 가능합니다.
+
+**OIDC + LDAP 구성 예시 (OpenLDAP/FreeIPA + Keycloak):**
+
+```json
+{
+  "oidcProviderConfig": {
+    "providerName": "Keycloak",
+    "clientId": "rag-system",
+    "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:oidc-client-secret",
+    "issuerUrl": "https://keycloak.example.com/realms/main",
+    "groupClaimName": "groups"
+  },
+  "ldapConfig": {
+    "ldapUrl": "ldaps://ldap.example.com:636",
+    "baseDn": "dc=example,dc=com",
+    "bindDn": "cn=readonly,dc=example,dc=com",
+    "bindPasswordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ldap-bind-password"
+  },
+  "permissionMappingStrategy": "uid-gid"
+}
+```
+
+**CDK 파라미터:**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `oidcProviderConfig` | object | OIDC IdP 설정 (`providerName`, `clientId`, `clientSecret`, `issuerUrl`, `groupClaimName`) |
+| `ldapConfig` | object | LDAP 연결 설정 (`ldapUrl`, `baseDn`, `bindDn`, `bindPasswordSecretArn`, `userSearchFilter`, `groupSearchFilter`) |
+| `permissionMappingStrategy` | string | 권한 매핑 전략: `sid-only` (기본값), `uid-gid`, `hybrid` |
+| `ontapNameMappingEnabled` | boolean | ONTAP name-mapping 연동 (UNIX 사용자→Windows 사용자 매핑) |
 
 #### 엔터프라이즈 기능 (선택 사항)
 

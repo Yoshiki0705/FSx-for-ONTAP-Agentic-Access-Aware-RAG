@@ -24,6 +24,10 @@
  *   -c enableMonitoring=true        CloudWatch Dashboard + SNS Alerts + EventBridge
  *   -c monitoringEmail=xxx          Alert notification email address
  *   -c enableAgentCoreObservability=true  AgentCore metrics on dashboard
+ *   -c oidcProviderConfig={}        OIDC IdP設定（Keycloak, Okta, Entra ID等）
+ *   -c ldapConfig={}                LDAP接続設定（OpenLDAP, FreeIPA等）
+ *   -c ontapNameMappingEnabled=true ONTAP name-mapping連携
+ *   -c permissionMappingStrategy=xx 権限マッピング戦略（sid-only, uid-gid, hybrid）
  */
 
 import 'source-map-support/register';
@@ -56,6 +60,27 @@ const enableAdFederation = ctxBool('enableAdFederation');
 const cloudFrontUrl: string | undefined = app.node.tryGetContext('cloudFrontUrl');
 const samlMetadataUrl: string | undefined = app.node.tryGetContext('samlMetadataUrl');
 const adEc2InstanceId: string | undefined = app.node.tryGetContext('adEc2InstanceId');
+
+// OIDC/LDAP設定（オプション）
+const oidcProviderConfig = app.node.tryGetContext('oidcProviderConfig') as {
+  providerName: string;
+  clientId: string;
+  clientSecret: string;
+  issuerUrl: string;
+  attributeMapping?: Record<string, string>;
+  groupClaimName?: string;
+} | undefined;
+const ldapConfig = app.node.tryGetContext('ldapConfig') as {
+  ldapUrl: string;
+  baseDn: string;
+  bindDn: string;
+  bindPasswordSecretArn: string;
+  userSearchFilter?: string;
+  groupSearchFilter?: string;
+} | undefined;
+const ontapNameMappingEnabled = ctxBool('ontapNameMappingEnabled');
+const permissionMappingStrategy = app.node.tryGetContext('permissionMappingStrategy') as
+  'sid-only' | 'uid-gid' | 'hybrid' | undefined;
 
 // Embeddingサーバー
 const enableEmbedding = ctxBool('enableEmbeddingServer');
@@ -160,13 +185,18 @@ const securityStack = new DemoSecurityStack(app, `${stackPrefix}-Security`, {
   adDomainName: enableAdFederation ? adDomainName : undefined,
   adEc2InstanceId: enableAdFederation && adType === 'self-managed' ? adEc2InstanceId : undefined,
   samlMetadataUrl: enableAdFederation ? samlMetadataUrl : undefined,
-  cloudFrontUrl: enableAdFederation ? cloudFrontUrl : undefined,
+  cloudFrontUrl: (enableAdFederation || oidcProviderConfig) ? cloudFrontUrl : undefined,
   // AD Sync Lambda用
   vpc: networkingStack.vpc,
   lambdaSg: networkingStack.lambdaSg,
   userAccessTable: storageStack.userAccessTable,
+  // OIDC/LDAP設定（オプション）
+  oidcProviderConfig,
+  ldapConfig,
+  ontapNameMappingEnabled,
+  permissionMappingStrategy,
   env: primaryEnv,
-  description: `[${projectName}] Cognito User Pool, Authentication${enableAdFederation ? ', SAML Federation' : ''}`,
+  description: `[${projectName}] Cognito User Pool, Authentication${enableAdFederation ? ', SAML Federation' : ''}${oidcProviderConfig ? ', OIDC Federation' : ''}`,
 });
 securityStack.addDependency(networkingStack);
 securityStack.addDependency(storageStack);
@@ -221,6 +251,14 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   dashboardRefreshInterval,
   adSyncFunction: securityStack.adSyncFunction,
   agentSchedulerFunction: aiStack.agentSchedulerFunction,
+  // OIDC Federation UI設定（オプション）
+  oidcProviderName: oidcProviderConfig?.providerName,
+  cognitoDomainUrl: securityStack.cognitoDomainUrl,
+  // Federation設定（SAML or OIDC — いずれかが有効な場合に環境変数を設定）
+  cognitoDomainPrefix: (enableAdFederation || oidcProviderConfig) ? securityStack.cognitoDomainPrefix : undefined,
+  cognitoClientSecret: (enableAdFederation || oidcProviderConfig) ? securityStack.userPoolClient.userPoolClientSecret.unsafeUnwrap() : undefined,
+  callbackUrl: (enableAdFederation || oidcProviderConfig) && cloudFrontUrl ? `${cloudFrontUrl}/api/auth/callback` : undefined,
+  idpName: enableAdFederation ? 'ActiveDirectory' : (oidcProviderConfig ? oidcProviderConfig.providerName : undefined),
   env: primaryEnv, crossRegionReferences: true,
   description: `[${projectName}] Lambda Web Adapter + CloudFront`,
 });

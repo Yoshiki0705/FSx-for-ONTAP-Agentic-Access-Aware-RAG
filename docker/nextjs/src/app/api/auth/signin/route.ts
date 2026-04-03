@@ -29,6 +29,17 @@ export async function POST(request: Request) {
 
     console.log(`[SignIn API] Cognito認証試行: ${username}`);
 
+    // Client Secretが設定されている場合、SECRET_HASHを計算
+    const clientSecret = process.env.COGNITO_CLIENT_SECRET;
+    let secretHash: string | undefined;
+    if (clientSecret) {
+      const crypto = require('crypto');
+      secretHash = crypto
+        .createHmac('sha256', clientSecret)
+        .update(username + clientId)
+        .digest('base64');
+    }
+
     // Cognito USER_PASSWORD_AUTH フロー
     const authResult = await cognitoClient.send(
       new InitiateAuthCommand({
@@ -37,6 +48,7 @@ export async function POST(request: Request) {
         AuthParameters: {
           USERNAME: username,
           PASSWORD: password,
+          ...(secretHash ? { SECRET_HASH: secretHash } : {}),
         },
       })
     );

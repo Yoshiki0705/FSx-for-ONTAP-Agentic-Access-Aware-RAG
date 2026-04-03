@@ -127,7 +127,7 @@ Aktiviert mit `enableAgentCoreMemory=true`. Fügt eine Sitzungsliste (SessionLis
 |---|-------|--------|------------|--------------|
 | 1 | WafStack | us-east-1 | WAF WebACL, IP Set | WAF für CloudFront (Ratenbegrenzung, verwaltete Regeln) |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups, VPC Endpoints (optional) | Netzwerkinfrastruktur |
-| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + Cognito Domain (bei aktivierter AD Federation), AD Sync Lambda (optional) | Authentifizierung und Autorisierung |
+| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + OIDC IdP + Cognito Domain (bei aktivierter Federation), Identity Sync Lambda (optional) | Authentifizierung und Autorisierung (SAML/OIDC/E-Mail) |
 | 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS-Verschlüsselung (optional), CloudTrail (optional) | Speicher, SID-Daten, Berechtigungscache |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless (ausgewählt über `vectorStoreType`), Bedrock Guardrails (optional) | RAG-Suchinfrastruktur (Titan Embed v2) |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda (optional), MonitoringConstruct (optional) | Webanwendung, Agent-Verwaltung, Überwachung und Alarme |
@@ -141,8 +141,8 @@ Aktiviert mit `enableAgentCoreMemory=true`. Fügt eine Sitzungsliste (SessionLis
 | L2: WAF | AWS WAF (6 Regeln) | Erkennung und Blockierung von Angriffsmustern |
 | L3: Origin-Authentifizierung | CloudFront OAC (SigV4) | Verhinderung des direkten Zugriffs unter Umgehung von CloudFront |
 | L4: API-Authentifizierung | Lambda Function URL IAM Auth | Zugriffskontrolle über IAM-Authentifizierung |
-| L5: Benutzerauthentifizierung | Cognito JWT / SAML Federation | Authentifizierung und Autorisierung auf Benutzerebene |
-| L6: Datenautorisierung | SID Filtering | Zugriffskontrolle auf Dokumentenebene |
+| L5: Benutzerauthentifizierung | Cognito JWT / SAML / OIDC Federation | Authentifizierung und Autorisierung auf Benutzerebene |
+| L6: Datenautorisierung | SID / UID+GID Filtering | Zugriffskontrolle auf Dokumentenebene |
 
 ## Voraussetzungen
 
@@ -325,6 +325,8 @@ AD User → CloudFront UI → "Sign in with AD" button
 | `samlMetadataUrl` | string | Nicht gesetzt | Für selbstverwaltetes AD: Entra ID Federation-Metadaten-URL |
 | `adEc2InstanceId` | string | Nicht gesetzt | Für selbstverwaltetes AD: EC2-Instanz-ID |
 
+> **Automatische Konfiguration der Umgebungsvariablen**: Bei der CDK-Bereitstellung mit `enableAdFederation=true` oder `oidcProviderConfig` werden die Federation-Umgebungsvariablen (`COGNITO_DOMAIN`, `COGNITO_CLIENT_SECRET`, `CALLBACK_URL`, `IDP_NAME`) automatisch auf der WebAppStack-Lambda-Funktion konfiguriert. Eine manuelle Konfiguration der Lambda-Umgebungsvariablen ist nicht erforderlich.
+
 **Verwaltetes AD-Muster:**
 
 Bei Verwendung von AWS Managed Microsoft AD.
@@ -347,10 +349,16 @@ Bei Verwendung von AWS Managed Microsoft AD.
 
 Einrichtungsschritte:
 1. `adPassword` festlegen und CDK bereitstellen (erstellt verwaltetes AD + SAML IdP + Cognito Domain)
-2. AWS IAM Identity Center aktivieren und verwaltetes AD als Identitätsquelle konfigurieren
-3. SAML-Anwendung für Cognito User Pool in IAM Identity Center erstellen (oder externen IdP über `samlMetadataUrl` angeben)
-4. Nach der Bereitstellung die CloudFront-URL in `cloudFrontUrl` festlegen und erneut bereitstellen
-5. AD-Authentifizierung über den „Sign in with AD"-Button auf der CloudFront-Oberfläche ausführen
+2. AWS IAM Identity Center aktivieren und die Identitätsquelle auf verwaltetes AD ändern
+3. E-Mail-Adressen für AD-Benutzer festlegen (PowerShell: `Set-ADUser -Identity Admin -EmailAddress "admin@demo.local"`)
+4. In IAM Identity Center „Synchronisierung verwalten" → „Geführte Einrichtung" aufrufen, um AD-Benutzer zu synchronisieren
+5. SAML-Anwendung „Permission-aware RAG Cognito" in IAM Identity Center erstellen:
+   - ACS-URL: `https://{cognito-domain}.auth.{region}.amazoncognito.com/saml2/idpresponse`
+   - SAML-Zielgruppe: `urn:amazon:cognito:sp:{user-pool-id}`
+   - Attributzuordnungen: Subject → `${user:email}` (emailAddress), emailaddress → `${user:email}`
+6. AD-Benutzer der SAML-Anwendung zuweisen
+7. Nach der Bereitstellung die CloudFront-URL in `cloudFrontUrl` festlegen und erneut bereitstellen
+8. AD-Authentifizierung über den „Sign in with AD"-Button auf der CloudFront-Oberfläche ausführen
 
 **Selbstverwaltetes AD-Muster (auf EC2, mit Entra Connect-Integration):**
 
@@ -391,6 +399,45 @@ Einrichtungsschritte:
 | S3-Zugriffsfehler bei KB-Suche | KB IAM-Rolle fehlen direkte S3-Bucket-Zugriffsberechtigungen | KB IAM-Rolle hat nur Berechtigungen über S3 Access Point. Bei direkter Verwendung des S3-Buckets als Datenquelle müssen `s3:GetObject`- und `s3:ListBucket`-Berechtigungen hinzugefügt werden (nicht spezifisch für AD Federation) |
 | S3 AP Datenebene API AccessDenied | WindowsUser enthält Domänenpräfix | Der WindowsUser des S3 AP darf KEIN Domänenpräfix enthalten (z.B. `DEMO\Admin`). Nur den Benutzernamen angeben (z.B. `Admin`). CLI akzeptiert das Präfix, aber Datenebene-APIs schlagen fehl |
 | Cognito Domain-Erstellungsfehler | Domänenpräfix-Konflikt | Prüfen, ob das Präfix `{projectName}-{environment}-auth` mit anderen Konten in Konflikt steht |
+| USER_PASSWORD_AUTH 401-Fehler | SECRET_HASH nicht gesendet bei aktiviertem Client Secret | Bei `enableAdFederation=true` hat der User Pool Client ein Client Secret. Die Anmelde-API muss SECRET_HASH aus der Umgebungsvariable `COGNITO_CLIENT_SECRET` berechnen |
+| Post-Auth Trigger `Cannot find module 'index'` | Lambda TypeScript nicht kompiliert | CDK `Code.fromAsset` hat eine esbuild-Bundling-Option. `npx esbuild index.ts --bundle --platform=node --target=node22 --outfile=index.js --external:@aws-sdk/*` |
+| OAuth Callback `0.0.0.0`-Weiterleitung | Lambda Web Adapter `request.url` ist `http://0.0.0.0:3000/...` | Umgebungsvariable `CALLBACK_URL` verwenden, um die Weiterleitungs-Basis-URL zu erstellen |
+
+#### OIDC/LDAP Federation (optional) — Zero-Touch-Benutzerbereitstellung
+
+Zusätzlich zu SAML AD Federation können Sie OIDC IdP (Keycloak, Okta, Entra ID usw.) und direkte LDAP-Abfragen für die Zero-Touch-Benutzerbereitstellung aktivieren. Bestehende Dateiserverberechtigungen werden automatisch auf RAG-System-UI-Benutzer abgebildet — keine manuelle Registrierung durch Administratoren oder Benutzer erforderlich.
+
+Jede Authentifizierungsmethode verwendet die „konfigurationsgesteuerte automatische Aktivierung". Fügen Sie einfach Konfigurationswerte in `cdk.context.json` hinzu, um sie zu aktivieren — mit nahezu null zusätzlichen AWS-Ressourcenkosten. Die gleichzeitige Aktivierung von SAML + OIDC wird ebenfalls unterstützt.
+
+**OIDC + LDAP Konfigurationsbeispiel (OpenLDAP/FreeIPA + Keycloak):**
+
+```json
+{
+  "oidcProviderConfig": {
+    "providerName": "Keycloak",
+    "clientId": "rag-system",
+    "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:oidc-client-secret",
+    "issuerUrl": "https://keycloak.example.com/realms/main",
+    "groupClaimName": "groups"
+  },
+  "ldapConfig": {
+    "ldapUrl": "ldaps://ldap.example.com:636",
+    "baseDn": "dc=example,dc=com",
+    "bindDn": "cn=readonly,dc=example,dc=com",
+    "bindPasswordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ldap-bind-password"
+  },
+  "permissionMappingStrategy": "uid-gid"
+}
+```
+
+**CDK-Parameter:**
+
+| Parameter | Typ | Beschreibung |
+|-----------|-----|--------------|
+| `oidcProviderConfig` | object | OIDC IdP-Einstellungen (`providerName`, `clientId`, `clientSecret`, `issuerUrl`, `groupClaimName`) |
+| `ldapConfig` | object | LDAP-Verbindungseinstellungen (`ldapUrl`, `baseDn`, `bindDn`, `bindPasswordSecretArn`, `userSearchFilter`, `groupSearchFilter`) |
+| `permissionMappingStrategy` | string | Berechtigungszuordnungsstrategie: `sid-only` (Standard), `uid-gid`, `hybrid` |
+| `ontapNameMappingEnabled` | boolean | ONTAP Name-Mapping-Integration (UNIX→Windows-Benutzerzuordnung) |
 
 #### Enterprise-Funktionen (optional)
 

@@ -1597,9 +1597,63 @@ https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authoriz
 
 | ファイル | 役割 |
 |---------|------|
-| `docker/nextjs/components/login-form.tsx` | サインインフォーム（ADボタン追加） |
+| `docker/nextjs/src/app/[locale]/signin/page.tsx` | サインインページ（AdSignInSection統合） |
+| `docker/nextjs/src/app/api/auth/ad-config/route.ts` | AD Federation設定API（サーバーサイド環境変数を返却） |
 | `docker/nextjs/src/app/api/auth/callback/route.ts` | OAuthコールバックAPI |
+| `docker/nextjs/src/app/api/auth/signin/route.ts` | Cognito USER_PASSWORD_AUTH サインインAPI |
 | `docker/nextjs/src/messages/{locale}.json` | 翻訳ファイル（`signin`ネームスペース） |
+
+### デプロイ検証ノート（2026-04-01検証完了）
+
+実際のAWS環境へのデプロイ検証で確認された実装上の注意点を以下にまとめる。
+
+#### AD設定のAPI経由取得
+
+ADサインインボタンの表示に必要な設定（`COGNITO_DOMAIN`, `COGNITO_CLIENT_ID`等）は、`NEXT_PUBLIC_*`環境変数ではなくサーバーサイドAPI（`/api/auth/ad-config`）経由で取得する。Lambda Web Adapter環境では`NEXT_PUBLIC_*`がクライアントバンドルに含まれないため、ランタイムでAPIから取得する方式を採用した。
+
+```typescript
+// AdSignInSection: useEffectでAPI経由で設定を取得
+useEffect(() => {
+  fetch('/api/auth/ad-config')
+    .then(res => res.ok ? res.json() : null)
+    .then(data => { if (data?.enabled) setAdConfig(data); })
+    .catch(() => {});
+}, []);
+```
+
+#### OAuth CallbackのCALLBACK_URL環境変数
+
+Lambda Web Adapter環境では`request.url`が`http://0.0.0.0:3000/...`になるため、`NextResponse.redirect(new URL("/path", request.url))`が`0.0.0.0:3000`にリダイレクトされる。`CALLBACK_URL`環境変数からベースURLを取得してリダイレクト先を構築する。
+
+```typescript
+// callback/route.ts
+const baseUrl = CALLBACK_URL
+  ? new URL(CALLBACK_URL).origin
+  : new URL(request.url).origin;
+```
+
+#### USER_PASSWORD_AUTH + SECRET_HASH
+
+`enableAdFederation=true`でUser Pool Clientに`generateSecret: true`が設定されるため、USER_PASSWORD_AUTHフローでも`SECRET_HASH`の送信が必須となる。`COGNITO_CLIENT_SECRET`環境変数からHMAC-SHA256で計算する。
+
+```typescript
+// signin/route.ts
+const clientSecret = process.env.COGNITO_CLIENT_SECRET;
+if (clientSecret) {
+  secretHash = crypto
+    .createHmac('sha256', clientSecret)
+    .update(username + clientId)
+    .digest('base64');
+}
+```
+
+#### Post-Auth Trigger Lambda のesbuildコンパイル
+
+AD Sync Lambda（TypeScript）は`lambda.Code.fromAsset`でそのままデプロイするとNode.jsランタイムが`.ts`ファイルを実行できず`Cannot find module 'index'`エラーが発生する。CDKの`Code.fromAsset`にesbuildバンドリングオプションを追加するか、以下のコマンドで事前コンパイルが必要。
+
+```bash
+npx esbuild index.ts --bundle --platform=node --target=node22 --outfile=index.js --external:@aws-sdk/*
+```
 
 
 ---

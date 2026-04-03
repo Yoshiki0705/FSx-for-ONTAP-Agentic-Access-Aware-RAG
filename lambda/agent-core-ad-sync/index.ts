@@ -24,6 +24,7 @@ import {
 } from '@aws-sdk/client-directory-service';
 import * as net from 'net';
 import * as tls from 'tls';
+import { LdapConnector, getBindPassword, structuredLog } from './ldap-connector';
 
 // ========================================
 // 環境変数
@@ -37,6 +38,11 @@ const USER_ACCESS_TABLE_NAME = process.env.USER_ACCESS_TABLE_NAME || process.env
 const REGION = process.env.AWS_REGION || 'ap-northeast-1';
 const SSM_TIMEOUT = parseInt(process.env.SSM_TIMEOUT || '60', 10);
 const SID_CACHE_TTL = parseInt(process.env.SID_CACHE_TTL || '86400', 10);
+const OIDC_GROUP_CLAIM_NAME = process.env.OIDC_GROUP_CLAIM_NAME || 'groups';
+const LDAP_URL = process.env.LDAP_URL || '';
+const LDAP_BASE_DN = process.env.LDAP_BASE_DN || '';
+const LDAP_BIND_DN = process.env.LDAP_BIND_DN || '';
+const LDAP_BIND_PASSWORD_SECRET_ARN = process.env.LDAP_BIND_PASSWORD_SECRET_ARN || '';
 
 const ssmClient = new SSMClient({ region: REGION });
 const dynamoClient = new DynamoDBClient({ region: REGION });
@@ -66,6 +72,26 @@ interface AdSyncResponse {
 }
 
 // ========================================
+// 認証ソース型定義
+// ========================================
+export type AuthSource = 'saml' | 'oidc' | 'direct';
+
+interface OidcClaimsInfo {
+  groups: string[];
+  email: string;
+}
+
+/** DynamoDB保存用の拡張フィールド */
+interface ExtendedSaveOptions {
+  uid?: number | null;
+  gid?: number | null;
+  unixGroups?: Array<{ name: string; gid: number }>;
+  oidcGroups?: string[];
+  authSource?: AuthSource;
+  source?: string;
+}
+
+// ========================================
 // Cognito Post-Authentication Trigger イベント型
 // ========================================
 interface CognitoPostAuthEvent {
@@ -87,6 +113,67 @@ interface CognitoPostAuthEvent {
     };
   };
   response: Record<string, unknown>;
+}
+
+// ========================================
+// 認証ソース判別（Task 3.1）
+// ========================================
+
+/**
+ * Cognitoイベントの identities 属性から認証ソースを判別する。
+ * - SAML IdP → 'saml'
+ * - OIDC IdP → 'oidc'
+ * - identities なし（直接認証） → 'direct'
+ */
+export function detectAuthSource(event: CognitoPostAuthEvent): AuthSource {
+  const identities = event.request.userAttributes['identities'];
+  if (!identities) return 'direct';
+
+  try {
+    const parsed = JSON.parse(identities);
+    if (!Array.isArray(parsed)) return 'direct';
+    if (parsed.some((id: any) => id.providerType === 'SAML')) return 'saml';
+    if (parsed.some((id: any) => id.providerType === 'OIDC')) return 'oidc';
+  } catch {
+    // identities のパースに失敗した場合は direct として扱う
+    return 'direct';
+  }
+  return 'direct';
+}
+
+// ========================================
+// OIDCクレームパーサー（Task 3.2）
+// ========================================
+
+/**
+ * OIDCトークンのクレームからグループ情報を抽出する。
+ * - 環境変数 OIDC_GROUP_CLAIM_NAME（デフォルト: 'groups'）で指定されたクレーム名を使用
+ * - `custom:{claimName}` と `{claimName}` の両方のパスを検索
+ * - JSON文字列・配列の両方をパース対応
+ */
+export function parseOidcClaims(
+  event: CognitoPostAuthEvent,
+  groupClaimName: string = OIDC_GROUP_CLAIM_NAME,
+): OidcClaimsInfo {
+  const claims = event.request.userAttributes;
+  const groupsRaw = claims[`custom:${groupClaimName}`] || claims[groupClaimName] || '[]';
+
+  let groups: string[];
+  if (Array.isArray(groupsRaw)) {
+    groups = groupsRaw;
+  } else if (typeof groupsRaw === 'string') {
+    try {
+      const parsed = JSON.parse(groupsRaw);
+      groups = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      // JSON パースに失敗した場合、カンマ区切りとして扱う
+      groups = groupsRaw.split(',').map(g => g.trim()).filter(Boolean);
+    }
+  } else {
+    groups = [];
+  }
+
+  return { groups, email: claims.email || '' };
 }
 
 // ========================================
@@ -116,6 +203,9 @@ async function handleCognitoTrigger(event: CognitoPostAuthEvent): Promise<Cognit
     const username = email.split('@')[0];
     const userId = event.userName;
 
+    // 認証ソース判別（Task 3.1）
+    const authSource = detectAuthSource(event);
+
     console.log(JSON.stringify({
       level: 'INFO',
       source: 'PostAuthTrigger',
@@ -123,42 +213,20 @@ async function handleCognitoTrigger(event: CognitoPostAuthEvent): Promise<Cognit
       username,
       email,
       adType: AD_TYPE,
+      authSource,
       timestamp: new Date().toISOString(),
     }));
 
-    // キャッシュTTLチェック（24時間）
-    const cached = await getCachedWithTtlCheck(userId);
-    if (cached) {
-      console.log(`PostAuthTrigger: Cache valid for ${userId}, skipping SID sync`);
-      return event;
-    }
-
-    // AD方式に応じてSID取得
-    let userSID: string;
-    let groupSIDs: string[];
-
-    if (AD_TYPE === 'managed') {
-      const result = await getManagedAdSid(username);
-      userSID = result.userSID;
-      groupSIDs = result.groupSIDs;
+    // 認証ソースに応じた処理分岐
+    if (authSource === 'oidc') {
+      // OIDC認証パス（Task 3.4）
+      await handleOidcPath(event, userId, username, email);
     } else {
-      const result = await getSelfManagedAdSid(username);
-      userSID = result.userSID;
-      groupSIDs = result.groupSIDs;
+      // SAML / Direct パス — 既存の AD Sync 処理（後方互換性維持）
+      await handleSamlDirectPath(event, userId, username);
     }
-
-    await saveToDb(userId, username, userSID, groupSIDs);
-
-    console.log(JSON.stringify({
-      level: 'INFO',
-      source: 'PostAuthTrigger',
-      message: 'SID sync completed',
-      userId,
-      username,
-      timestamp: new Date().toISOString(),
-    }));
   } catch (error: unknown) {
-    // サインインをブロックしない — エラーログのみ
+    // サインインをブロックしない — エラーログのみ（Fail-Open認証）
     const err = error as Error;
     console.error(JSON.stringify({
       level: 'ERROR',
@@ -172,6 +240,190 @@ async function handleCognitoTrigger(event: CognitoPostAuthEvent): Promise<Cognit
 
   // Cognito Triggerは必ず元のeventを返す
   return event;
+}
+
+// ========================================
+// SAML / Direct 認証パス（既存処理、後方互換性維持）
+// ========================================
+async function handleSamlDirectPath(
+  event: CognitoPostAuthEvent,
+  userId: string,
+  username: string,
+): Promise<void> {
+  // キャッシュTTLチェック（24時間）
+  const cached = await getCachedWithTtlCheck(userId);
+  if (cached) {
+    console.log(`PostAuthTrigger: Cache valid for ${userId}, skipping SID sync`);
+    return;
+  }
+
+  // AD方式に応じてSID取得
+  let userSID: string;
+  let groupSIDs: string[];
+
+  if (AD_TYPE === 'managed') {
+    const result = await getManagedAdSid(username);
+    userSID = result.userSID;
+    groupSIDs = result.groupSIDs;
+  } else {
+    const result = await getSelfManagedAdSid(username);
+    userSID = result.userSID;
+    groupSIDs = result.groupSIDs;
+  }
+
+  await saveToDb(userId, username, userSID, groupSIDs);
+
+  console.log(JSON.stringify({
+    level: 'INFO',
+    source: 'PostAuthTrigger',
+    message: 'SID sync completed (SAML/Direct path)',
+    userId,
+    username,
+    timestamp: new Date().toISOString(),
+  }));
+}
+
+// ========================================
+// OIDC認証パス（Task 3.4）
+// ========================================
+async function handleOidcPath(
+  event: CognitoPostAuthEvent,
+  userId: string,
+  username: string,
+  email: string,
+): Promise<void> {
+  // forceRefresh パラメータ対応
+  const forceRefresh = event.request.userAttributes['custom:forceRefresh'] === 'true';
+
+  // キャッシュTTLチェック（既存の getCachedWithTtlCheck を再利用）
+  if (!forceRefresh) {
+    const cached = await getCachedWithTtlCheck(userId);
+    if (cached) {
+      console.log(`PostAuthTrigger: Cache valid for ${userId}, skipping OIDC sync`);
+      return;
+    }
+  }
+
+  // OIDCクレームからグループ情報を取得
+  const oidcClaims = parseOidcClaims(event);
+
+  const hasLdapConfig = !!(LDAP_URL && LDAP_BASE_DN && LDAP_BIND_DN);
+
+  if (hasLdapConfig) {
+    // LDAP Connector 使用パス（LDAP設定あり）
+    // LDAP クエリ結果を優先し、OIDCクレームは補助情報として oidcGroups に保存
+    let ldapUserInfo: Awaited<ReturnType<LdapConnector['queryUser']>> = null;
+
+    try {
+      // Secrets Manager からバインドパスワードを取得
+      const bindPassword = await getBindPassword(LDAP_BIND_PASSWORD_SECRET_ARN);
+
+      if (bindPassword) {
+        const connector = new LdapConnector({
+          ldapUrl: LDAP_URL,
+          baseDn: LDAP_BASE_DN,
+          bindDn: LDAP_BIND_DN,
+          bindPassword,
+          userSearchFilter: process.env.LDAP_USER_SEARCH_FILTER || '(mail={email})',
+          groupSearchFilter: process.env.LDAP_GROUP_SEARCH_FILTER || '(member={dn})',
+        });
+
+        ldapUserInfo = await connector.queryUser(email);
+      } else {
+        structuredLog({
+          level: 'WARN',
+          source: 'IdentitySyncLambda',
+          operation: 'handleOidcPath',
+          userId,
+          error: 'Failed to retrieve LDAP bind password from Secrets Manager, skipping LDAP query',
+          context: { ldapUrl: LDAP_URL },
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (ldapError: unknown) {
+      // LDAP エラー時はサインインをブロックしない（Fail-Open）
+      const err = ldapError as Error;
+      structuredLog({
+        level: 'ERROR',
+        source: 'IdentitySyncLambda',
+        operation: 'handleOidcPath.ldapQuery',
+        userId,
+        error: err.message,
+        context: { ldapUrl: LDAP_URL, email },
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    if (ldapUserInfo) {
+      // LDAP結果あり — LDAP結果を優先、OIDCクレームは補助情報
+      const userSID = ldapUserInfo.objectSid || '';
+      const groupSIDs = ldapUserInfo.objectSid
+        ? (ldapUserInfo.groups?.filter(g => g.sid).map(g => g.sid!) || []).concat(['S-1-1-0'])
+        : [];
+      const unixGroups = ldapUserInfo.groups
+        ?.filter(g => g.gid !== undefined)
+        .map(g => ({ name: g.name, gid: g.gid! })) || [];
+
+      await saveToDb(userId, username, userSID, groupSIDs, {
+        uid: ldapUserInfo.uidNumber ?? null,
+        gid: ldapUserInfo.gidNumber ?? null,
+        unixGroups,
+        oidcGroups: oidcClaims.groups,
+        authSource: 'oidc',
+        source: 'OIDC-LDAP',
+      });
+    } else {
+      // LDAP結果なし（エラーまたはユーザー未発見）— OIDCクレームのみで保存
+      structuredLog({
+        level: 'INFO',
+        source: 'IdentitySyncLambda',
+        operation: 'handleOidcPath',
+        userId,
+        error: 'LDAP query returned no result, falling back to OIDC claims only',
+        context: { email, ldapUrl: LDAP_URL },
+        timestamp: new Date().toISOString(),
+      });
+
+      await saveToDb(userId, username, '', [], {
+        uid: null,
+        gid: null,
+        unixGroups: [],
+        oidcGroups: oidcClaims.groups,
+        authSource: 'oidc',
+        source: 'OIDC-LDAP',
+      });
+    }
+  } else {
+    // OIDCクレームのみ使用パス（LDAP設定なし）
+    console.log(JSON.stringify({
+      level: 'INFO',
+      source: 'PostAuthTrigger',
+      message: 'OIDC Claims-only path',
+      userId,
+      email,
+      groupCount: oidcClaims.groups.length,
+      timestamp: new Date().toISOString(),
+    }));
+
+    await saveToDb(userId, username, '', [], {
+      uid: null,
+      gid: null,
+      unixGroups: [],
+      oidcGroups: oidcClaims.groups,
+      authSource: 'oidc',
+      source: 'OIDC-Claims',
+    });
+  }
+
+  console.log(JSON.stringify({
+    level: 'INFO',
+    source: 'PostAuthTrigger',
+    message: 'OIDC sync completed',
+    userId,
+    username,
+    hasLdapConfig,
+    timestamp: new Date().toISOString(),
+  }));
 }
 
 // ========================================
@@ -393,7 +645,13 @@ async function getCachedWithTtlCheck(userId: string): Promise<boolean> {
       TableName: USER_ACCESS_TABLE_NAME,
       Key: { userId: { S: userId } },
     }));
-    if (!result.Item || !result.Item.userSID?.S) return false;
+    if (!result.Item) return false;
+
+    // OIDC レコードは userSID が空文字の場合がある。
+    // source フィールドまたは userSID の存在でレコードの有効性を判定する。
+    const hasUserSID = !!result.Item.userSID?.S;
+    const hasSource = !!result.Item.source?.S;
+    if (!hasUserSID && !hasSource) return false;
 
     // retrievedAtベースのTTLチェック（SID_CACHE_TTL秒、デフォルト86400=24時間）
     const retrievedAt = parseInt(result.Item.retrievedAt?.N || '0', 10);
@@ -430,25 +688,71 @@ async function getCached(userId: string): Promise<AdSyncResponse['data'] | null>
   } catch { return null; }
 }
 
-async function saveToDb(userId: string, username: string, userSID: string, groupSIDs: string[]): Promise<void> {
+async function saveToDb(
+  userId: string,
+  username: string,
+  userSID: string,
+  groupSIDs: string[],
+  extended?: ExtendedSaveOptions,
+): Promise<void> {
   const now = new Date().toISOString();
   const nowMs = Date.now();
   const ttl = Math.floor(nowMs / 1000) + SID_CACHE_TTL;
 
+  const sourceValue = extended?.source || `AD-Sync-${AD_TYPE}`;
+
+  // 基本フィールド（既存スキーマ互換）
+  const item: Record<string, any> = {
+    userId: { S: userId },
+    userSID: { S: userSID },
+    groupSIDs: { L: groupSIDs.map(s => ({ S: s })) },
+    email: { S: username },
+    displayName: { S: username },
+    source: { S: sourceValue },
+    createdAt: { S: now },
+    updatedAt: { S: now },
+    retrievedAt: { N: nowMs.toString() },
+    ttl: { N: ttl.toString() },
+  };
+
+  // 拡張フィールド（Task 3.3）
+  if (extended) {
+    if (extended.authSource) {
+      item.authSource = { S: extended.authSource };
+    }
+    if (extended.uid != null) {
+      item.uid = { N: extended.uid.toString() };
+    }
+    if (extended.gid != null) {
+      item.gid = { N: extended.gid.toString() };
+    }
+    if (extended.unixGroups && extended.unixGroups.length > 0) {
+      item.unixGroups = {
+        L: extended.unixGroups.map(g => ({
+          M: {
+            name: { S: g.name },
+            gid: { N: g.gid.toString() },
+          },
+        })),
+      };
+    } else if (extended.unixGroups) {
+      item.unixGroups = { L: [] };
+    }
+    if (extended.oidcGroups) {
+      item.oidcGroups = { L: extended.oidcGroups.map(g => ({ S: g })) };
+    }
+  }
+
   await dynamoClient.send(new PutItemCommand({
     TableName: USER_ACCESS_TABLE_NAME,
-    Item: {
-      userId: { S: userId },
-      userSID: { S: userSID },
-      groupSIDs: { L: groupSIDs.map(s => ({ S: s })) },
-      email: { S: username },
-      displayName: { S: username },
-      source: { S: `AD-Sync-${AD_TYPE}` },
-      createdAt: { S: now },
-      updatedAt: { S: now },
-      retrievedAt: { N: nowMs.toString() },
-      ttl: { N: ttl.toString() },
-    },
+    Item: item,
   }));
-  console.log('Saved to DynamoDB:', { userId, userSID, groupSIDs: groupSIDs.length });
+  console.log('Saved to DynamoDB:', {
+    userId,
+    userSID,
+    groupSIDs: groupSIDs.length,
+    source: sourceValue,
+    ...(extended?.authSource ? { authSource: extended.authSource } : {}),
+    ...(extended?.oidcGroups ? { oidcGroupCount: extended.oidcGroups.length } : {}),
+  });
 }

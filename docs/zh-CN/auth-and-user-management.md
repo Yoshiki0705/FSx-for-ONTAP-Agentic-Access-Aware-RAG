@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../auth-and-user-management.md) | [English](../en/auth-and-user-management.md) | [한국어](../ko/auth-and-user-management.md) | **简体中文** | [繁體中文](../zh-TW/auth-and-user-management.md) | [Français](../fr/auth-and-user-management.md) | [Deutsch](../de/auth-and-user-management.md) | [Español](../es/auth-and-user-management.md)
 
 **创建日期**: 2026-04-02
-**版本**: 3.3.0
+**版本**: 3.4.0
 
 ---
 
@@ -15,6 +15,16 @@
 |------|---------|---------|---------|---------|
 | 邮箱/密码 | `enableAdFederation=false`（默认） | 管理员手动创建 | 管理员手动注册 | PoC / 演示 |
 | AD Federation | `enableAdFederation=true` | 首次登录时自动创建 | 登录时自动注册 | 生产 / 企业 |
+| OIDC/LDAP Federation | `oidcProviderConfig` 指定 | 首次登录时自动创建 | 登录时自动注册 | 多 IdP / LDAP 环境 |
+
+### 零接触用户配置
+
+AD Federation 和 OIDC/LDAP Federation 模式实现了"零接触用户配置"。这是一种将文件服务器（FSx for NetApp ONTAP）的现有用户权限自动映射到 RAG 系统 UI 用户的机制。
+
+- 管理员无需在 RAG 系统中手动创建用户
+- 用户也无需自行注册
+- 由 IdP（AD/Keycloak/Okta/Entra ID 等）管理的用户首次登录时，Cognito 用户创建 → 权限信息获取 → DynamoDB 注册全部自动完成
+- 文件服务器端的权限变更在缓存 TTL（24 小时）过期后的下次登录时自动反映
 
 ---
 
@@ -150,18 +160,145 @@ npx cdk deploy --all \
 
 ---
 
-## 与 SID 过滤的集成
+## 模式 3：OIDC/LDAP Federation（多 IdP / LDAP 环境）
 
-无论认证模式如何，SID 过滤机制都是相同的。
+### 工作原理
+
+```
+OIDC User -> CloudFront UI -> "OIDC 登录" button
+  -> Cognito Hosted UI -> OIDC IdP (Keycloak/Okta/Entra ID)
+  -> OIDC authentication
+  -> Cognito auto user creation
+  -> Post-Auth Trigger -> Identity Sync Lambda
+  -> LDAP Query or OIDC Claims -> DynamoDB auto-registration (24h cache)
+  -> OAuth Callback -> Session Cookie -> Chat UI
+```
+
+OIDC 用户登录时，以下操作将全部自动完成：
+
+1. **Cognito 用户自动创建** — 从 OIDC 断言的 email 属性自动生成 Cognito 用户
+2. **权限信息自动获取** — Identity Sync Lambda 从 LDAP 服务器或 OIDC 声明中获取 SID/UID/GID/组信息
+3. **DynamoDB 自动注册** — 将获取的权限数据保存到 `user-access` 表（24 小时缓存）
+
+### 配置驱动的自动启用
+
+各认证方式在提供配置值时自动启用。几乎没有额外的 AWS 资源成本。
+
+| 功能 | 启用条件 | 额外成本 |
+|------|---------|---------|
+| OIDC Federation | `oidcProviderConfig` 指定 | 无（Cognito IdP 注册免费） |
+| LDAP 权限获取 | `ldapConfig` 指定 | 无（仅 Lambda 按执行计费） |
+| OIDC 声明权限获取 | `oidcProviderConfig` 指定 + 无 `ldapConfig` | 无 |
+| UID/GID 权限过滤 | `permissionMappingStrategy` 为 `uid-gid` 或 `hybrid` | 无 |
+| ONTAP name-mapping | `ontapNameMappingEnabled=true` | 无 |
+
+> **CDK 自动配置**: 指定 `oidcProviderConfig` 部署 CDK 时，以下内容会自动配置：
+> - OIDC IdP 注册到 Cognito User Pool
+> - 创建 Cognito Domain（如果 `enableAdFederation=true` 尚未创建）
+> - OIDC IdP 作为支持的提供者添加到 User Pool Client
+> - 创建 Identity Sync Lambda 并注册为 Post-Authentication Trigger
+> - WebAppStack Lambda 自动设置 OAuth 环境变量（`COGNITO_DOMAIN`、`COGNITO_CLIENT_SECRET`、`CALLBACK_URL`）
+>
+> 同时指定 `enableAdFederation=true` 和 `oidcProviderConfig` 时，SAML + OIDC 均受支持，登录界面显示两个按钮。
+
+### 模式 C：OIDC + LDAP（OpenLDAP/FreeIPA + Keycloak）
+
+```json
+{
+  "oidcProviderConfig": {
+    "providerName": "Keycloak",
+    "clientId": "rag-system",
+    "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:oidc-client-secret",
+    "issuerUrl": "https://keycloak.example.com/realms/main",
+    "groupClaimName": "groups"
+  },
+  "ldapConfig": {
+    "ldapUrl": "ldaps://ldap.example.com:636",
+    "baseDn": "dc=example,dc=com",
+    "bindDn": "cn=readonly,dc=example,dc=com",
+    "bindPasswordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ldap-bind-password",
+    "userSearchFilter": "(mail={email})",
+    "groupSearchFilter": "(member={dn})"
+  },
+  "permissionMappingStrategy": "uid-gid"
+}
+```
+
+### 模式 D：OIDC Claims Only（无 LDAP）
+
+```json
+{
+  "oidcProviderConfig": {
+    "providerName": "Okta",
+    "clientId": "0oa1234567890",
+    "clientSecret": "arn:aws:secretsmanager:...",
+    "issuerUrl": "https://company.okta.com",
+    "groupClaimName": "groups"
+  }
+}
+```
+
+### 模式 E：SAML + OIDC 混合
+
+```json
+{
+  "enableAdFederation": true,
+  "adPassword": "YourStrongP@ssw0rd123",
+  "adDomainName": "demo.local",
+  "oidcProviderConfig": {
+    "providerName": "Okta",
+    "clientId": "0oa1234567890",
+    "clientSecret": "arn:aws:secretsmanager:...",
+    "issuerUrl": "https://company.okta.com"
+  },
+  "permissionMappingStrategy": "hybrid",
+  "cloudFrontUrl": "https://dxxxxxxxx.cloudfront.net"
+}
+```
+
+### CDK 参数列表（OIDC/LDAP）
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|-------|------|
+| `oidcProviderConfig.providerName` | string | `OIDCProvider` | IdP 显示名称（显示在登录按钮上） |
+| `oidcProviderConfig.clientId` | string | **必填** | OIDC 客户端 ID |
+| `oidcProviderConfig.clientSecret` | string | **必填** | OIDC 客户端密钥（推荐使用 Secrets Manager ARN） |
+| `oidcProviderConfig.issuerUrl` | string | **必填** | OIDC 签发者 URL |
+| `oidcProviderConfig.groupClaimName` | string | `groups` | 组信息声明名称 |
+| `ldapConfig.ldapUrl` | string | - | LDAP/LDAPS URL（例：`ldaps://ldap.example.com:636`） |
+| `ldapConfig.baseDn` | string | - | 搜索基础 DN（例：`dc=example,dc=com`） |
+| `ldapConfig.bindDn` | string | - | 绑定 DN（例：`cn=readonly,dc=example,dc=com`） |
+| `ldapConfig.bindPasswordSecretArn` | string | - | 绑定密码 Secrets Manager ARN |
+| `ldapConfig.userSearchFilter` | string | `(mail={email})` | 用户搜索过滤器 |
+| `ldapConfig.groupSearchFilter` | string | `(member={dn})` | 组搜索过滤器 |
+| `permissionMappingStrategy` | string | `sid-only` | 权限映射策略：`sid-only`、`uid-gid`、`hybrid` |
+| `ontapNameMappingEnabled` | boolean | `false` | ONTAP name-mapping 集成 |
+
+---
+
+## 与权限过滤的集成
+
+无论认证模式如何，权限过滤机制都是相同的。Permission Resolver 根据认证来源自动选择适当的过滤策略。
+
+### 过滤策略
+
+| 策略 | 条件 | 行为 |
+|------|------|------|
+| SID Matching | 仅存在 `userSID` | 将文档的 `allowed_group_sids` 与用户 SID 进行匹配 |
+| UID/GID Matching | 仅存在 `uid` + `gid` | 将文档的 `allowed_uids` / `allowed_gids` 与用户 UID/GID 进行匹配 |
+| Hybrid Matching | `userSID` 和 `uid` 同时存在 | SID 匹配优先，UID/GID 回退 |
+| Deny All (Fail-Closed) | 无权限信息 | 拒绝所有文档访问 |
 
 ```
 DynamoDB user-access Table
   |
-  | userId -> userSID + groupSIDs
+  | userId -> userSID + groupSIDs + uid + gid + unixGroups
   v
-Bedrock KB Retrieve API -> Results + metadata (allowed_group_sids)
+Permission Resolver (策略自动选择)
   |
-  | userSIDs n documentSIDs
+  ├─ SID Matching: userSIDs ∩ documentSIDs
+  ├─ UID/GID Matching: uid ∈ allowed_uids OR gid ∈ allowed_gids
+  └─ Hybrid: SID 优先 → UID/GID 回退
   v
 Match -> ALLOW, No match -> DENY
 ```
@@ -173,6 +310,8 @@ Match -> ALLOW, No match -> DENY
 | 邮箱/密码 | `setup-user-access.sh`（手动） | `Demo` |
 | AD Federation (Managed) | AD Sync Lambda（自动） | `AD-Sync-managed` |
 | AD Federation (Self-managed) | AD Sync Lambda（自动） | `AD-Sync-self-managed` |
+| OIDC + LDAP | Identity Sync Lambda（自动） | `OIDC-LDAP` |
+| OIDC + Claims | Identity Sync Lambda（自动） | `OIDC-Claims` |
 
 ### DynamoDB user-access 表结构
 
@@ -195,11 +334,17 @@ Match -> ALLOW, No match -> DENY
 
 | 症状 | 原因 | 处理方法 |
 |------|------|---------|
-| 登录后所有文档被拒绝 | DynamoDB 中没有 SID 数据 | AD Federation：检查 AD Sync Lambda 日志。手动：执行 `setup-user-access.sh` |
+| 登录后所有文档被拒绝 | DynamoDB 中没有 SID/UID/GID 数据 | AD Federation：检查 AD Sync Lambda 日志。OIDC：检查 Identity Sync Lambda 日志。手动：执行 `setup-user-access.sh` |
 | "AD 登录"按钮未显示 | `enableAdFederation=false` | 检查 CDK 参数并重新部署 |
+| "OIDC 登录"按钮未显示 | `oidcProviderConfig` 未设置 | 在 CDK 参数中添加 `oidcProviderConfig` 并重新部署 |
 | SAML 认证失败 | SAML 元数据 URL 错误 | Managed AD：检查 IAM Identity Center 设置。Self-managed：检查 Entra ID 元数据 URL |
+| OIDC 认证失败 | `clientId` / `issuerUrl` 错误 | 确认 OIDC IdP 端的客户端设置与 CDK 参数一致 |
+| LDAP 权限获取失败 | LDAP 连接错误 | 在 CloudWatch Logs 中检查 Identity Sync Lambda 错误。登录本身不会被阻止（Fail-Open） |
 | AD 组变更未反映 | SID 缓存（24 小时） | 等待 24 小时，或删除 DynamoDB 中的相关记录后重新登录 |
 | AD Sync Lambda 超时 | 通过 SSM 执行 PowerShell 较慢 | 增加 `SSM_TIMEOUT` 环境变量（默认 60 秒） |
+| OIDC 组未获取 | IdP 端未配置组声明 | 确认 IdP 端在令牌中包含 `groups` 声明的设置。检查 `groupClaimName` 参数是否一致 |
+| OIDC 登录后 DynamoDB 中未注册权限数据 | Post-Auth Trigger 或 Identity Sync Lambda 未创建 | 指定 `oidcProviderConfig` 部署 CDK 会自动创建 Identity Sync Lambda 和 Post-Auth Trigger。在 CloudWatch Logs 中检查 Lambda 执行日志 |
+| OAuth 回调错误（OIDC 配置） | `cloudFrontUrl` 未设置 | OIDC 配置也需要 `cloudFrontUrl`。在 `cdk.context.json` 中设置并重新部署 |
 
 ---
 

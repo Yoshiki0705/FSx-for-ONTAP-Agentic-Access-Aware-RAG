@@ -36,6 +36,12 @@ export function determineRole(payload: Record<string, unknown>): string {
 }
 
 export async function GET(request: Request) {
+  // Lambda Web Adapter環境ではrequest.urlが http://0.0.0.0:3000/... になるため、
+  // リダイレクトURLのベースにはCALLBACK_URLから取得したオリジンを使用する
+  const baseUrl = CALLBACK_URL
+    ? new URL(CALLBACK_URL).origin
+    : new URL(request.url).origin;
+
   try {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
@@ -43,16 +49,16 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error("[OAuth Callback] Cognito error:", error);
-      return NextResponse.redirect(new URL("/signin?error=auth_failed", request.url));
+      return NextResponse.redirect(`${baseUrl}/signin?error=auth_failed`);
     }
 
     if (!code) {
-      return NextResponse.redirect(new URL("/signin?error=no_code", request.url));
+      return NextResponse.redirect(`${baseUrl}/signin?error=no_code`);
     }
 
     if (!COGNITO_DOMAIN || !COGNITO_CLIENT_ID) {
       console.error("[OAuth Callback] Missing COGNITO_DOMAIN or COGNITO_CLIENT_ID");
-      return NextResponse.redirect(new URL("/signin?error=config_error", request.url));
+      return NextResponse.redirect(`${baseUrl}/signin?error=config_error`);
     }
 
     // 1. 認可コードをトークンに交換
@@ -83,7 +89,7 @@ export async function GET(request: Request) {
     if (!tokenResponse.ok) {
       const errorBody = await tokenResponse.text();
       console.error("[OAuth Callback] Token exchange failed:", tokenResponse.status, errorBody);
-      return NextResponse.redirect(new URL("/signin?error=token_exchange_failed", request.url));
+      return NextResponse.redirect(`${baseUrl}/signin?error=token_exchange_failed`);
     }
 
     const tokenData = await tokenResponse.json();
@@ -91,7 +97,7 @@ export async function GET(request: Request) {
 
     if (!id_token) {
       console.error("[OAuth Callback] No id_token in response");
-      return NextResponse.redirect(new URL("/signin?error=no_id_token", request.url));
+      return NextResponse.redirect(`${baseUrl}/signin?error=no_id_token`);
     }
 
     // 2. IDトークンからユーザー属性取得
@@ -119,8 +125,7 @@ export async function GET(request: Request) {
     console.log(`✅ OAuth Callback成功: ${email} (role: ${role}, authMethod: saml)`);
 
     // 5. セッションCookie設定 + チャット画面へリダイレクト
-    const redirectUrl = new URL("/ja/genai", request.url);
-    const response = NextResponse.redirect(redirectUrl);
+    const response = NextResponse.redirect(`${baseUrl}/ja/genai`);
 
     response.cookies.set("session-token", sessionToken, {
       httpOnly: true,
@@ -134,6 +139,6 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     const err = error as Error;
     console.error("[OAuth Callback] Error:", err.message);
-    return NextResponse.redirect(new URL("/signin?error=server_error", request.url));
+    return NextResponse.redirect(`${baseUrl}/signin?error=server_error`);
   }
 }

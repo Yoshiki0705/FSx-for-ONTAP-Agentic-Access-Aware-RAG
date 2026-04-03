@@ -64,5 +64,55 @@
   // "enableAgentCoreObservability": false,
   // "alarmEvaluationPeriods": 1,
   // "dashboardRefreshInterval": 300
-  "enableMonitoring": false
+  "enableMonitoring": false,
+
+  // ========================================================================
+  // OIDC IdP連携（オプション）
+  // Keycloak、Okta、Entra ID等のOIDC準拠IdPからのサインインを有効化
+  // 設定するとCognito User PoolにOIDC IdPが登録され、サインイン画面にOIDCボタンが表示される
+  // enableAdFederation=true と併用可能（SAML + OIDC ハイブリッド構成）
+  // ========================================================================
+  //
+  // --- OIDC + LDAP構成例 ---
+  // OpenLDAP/FreeIPA環境でKeycloak等のOIDC IdPを使用する場合:
+  // ※ cloudFrontUrlはOAuthコールバックに必要です
+  //
+  // "enableAdFederation": false,
+  // "cloudFrontUrl": "https://dxxxxxxxx.cloudfront.net",
+  // "oidcProviderConfig": {
+  //   "providerName": "Keycloak",
+  //   "clientId": "rag-system",
+  //   "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:oidc-client-secret",
+  //   "issuerUrl": "https://keycloak.example.com/realms/main",
+  //   "groupClaimName": "groups"
+  // },
+  // "ldapConfig": {
+  //   "ldapUrl": "ldaps://ldap.example.com:636",
+  //   "baseDn": "dc=example,dc=com",
+  //   "bindDn": "cn=readonly,dc=example,dc=com",
+  //   "bindPasswordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ldap-bind-password",
+  //   "userSearchFilter": "(mail={email})",
+  //   "groupSearchFilter": "(member={dn})"
+  // },
+  // "permissionMappingStrategy": "uid-gid",
+  //
+  // --- SAML + OIDC ハイブリッド構成例 ---
+  // 既存AD SAML Federation + OIDC IdP（Okta等）を併用する場合:
+  //
+  // "enableAdFederation": true,
+  // "adType": "managed",
+  // "adDirectoryId": "d-0123456789",
+  // "samlMetadataUrl": "https://portal.sso.ap-northeast-1.amazonaws.com/saml/metadata/...",
+  // "oidcProviderConfig": {
+  //   "providerName": "Okta",
+  //   "clientId": "0oa1234567890",
+  //   "clientSecret": "arn:aws:secretsmanager:...",
+  //   "issuerUrl": "https://company.okta.com"
+  // },
+  // "permissionMappingStrategy": "hybrid",
+  // "cloudFrontUrl": "https://dxxxxxxxx.cloudfront.net",
+  //
+  // --- ONTAP name-mapping連携（オプション） ---
+  // UNIXユーザー名とWindowsユーザー名の対応付けを有効化
+  // "ontapNameMappingEnabled": true
 }

@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../implementation-overview.md) | [English](../en/implementation-overview.md) | [한국어](../ko/implementation-overview.md) | [简体中文](../zh-CN/implementation-overview.md) | [繁體中文](../zh-TW/implementation-overview.md) | **Français** | [Deutsch](../de/implementation-overview.md) | [Español](../es/implementation-overview.md)
 
 **Date de création** : 2026-03-25  
-**Version** : 3.3.0
+**Version** : 3.4.0
 
 ---
 
@@ -131,8 +131,22 @@ Cognito JWT Validation (Application-level authentication)
 | L2 : WAF | AWS WAF | Détection et blocage des patterns d'attaque |
 | L3 : Auth origine | OAC (SigV4) | Empêche l'accès direct contournant CloudFront |
 | L4 : Auth API | Lambda Function URL IAM Auth | Contrôle d'accès via authentification IAM |
-| L5 : Auth utilisateur | Cognito JWT | Authentification et autorisation au niveau utilisateur |
-| L6 : Authz données | Filtrage SID | Contrôle d'accès au niveau document |
+| L5 : Auth utilisateur | Cognito JWT / SAML / OIDC | Authentification et autorisation au niveau utilisateur |
+| L6 : Authz données | Filtrage SID / UID+GID | Contrôle d'accès au niveau document |
+
+### Modes d'authentification
+
+Le système fournit trois modes d'authentification, activés par configuration :
+
+| Mode | Condition d'activation | Création d'utilisateur | Mappage des permissions |
+|------|----------------------|----------------------|------------------------|
+| E-mail/Mot de passe | Par défaut | Création manuelle par l'admin | Enregistrement SID manuel |
+| SAML AD Federation | `enableAdFederation=true` | Auto à la première connexion | AD Sync Lambda (récupération SID auto) |
+| OIDC/LDAP Federation | `oidcProviderConfig` spécifié | Auto à la première connexion | Identity Sync Lambda (récupération SID/UID/GID auto) |
+
+Les modes AD Federation et OIDC/LDAP Federation réalisent le « provisionnement utilisateur sans intervention » — les permissions existantes du serveur de fichiers sont automatiquement mappées aux utilisateurs du système RAG.
+
+> Pour plus de détails sur la sélection du mode d'authentification, l'enregistrement automatique SID/UID/GID et les paramètres d'intégration AD/OIDC/LDAP, consultez le [Guide d'authentification et de gestion des utilisateurs](../fr/auth-and-user-management.md).
 
 ### Implémentation CDK
 
