@@ -703,10 +703,27 @@
     }
   },
   "signin": {
+    "title": "NetApp RAG 系統",
+    "subtitle": "基於 NetApp ONTAP 的權限感知",
     "adSignIn": "使用AD登入",
     "adSignInDesc": "使用Active Directory驗證登入",
+    "oidcSignIn": "使用{provider}登入",
+    "oidcSignInDesc": "使用{provider} OIDC驗證登入",
     "orDivider": "或",
-    "emailSignIn": "使用電子郵件/密碼登入"
+    "emailSignIn": "使用電子郵件/密碼登入",
+    "username": "使用者名稱",
+    "usernamePlaceholder": "輸入使用者名稱",
+    "password": "密碼",
+    "passwordPlaceholder": "輸入密碼",
+    "signInButton": "登入",
+    "signingIn": "登入中...",
+    "preparing": "準備中...",
+    "errorEmpty": "請輸入使用者名稱和密碼",
+    "errorCsrf": "取得安全權杖失敗",
+    "errorInvalid": "使用者名稱或密碼不正確",
+    "errorGeneral": "登入失敗，請重試。",
+    "footer": "權限感知 RAG 系統",
+    "poweredBy": "Powered by Amazon FSx for NetApp ONTAP"
   },
   "imageUpload": {
     "dropzone": "拖放圖片",
@@ -725,7 +742,11 @@
     "connected": "已連接",
     "noKBConnected": "未連接知識庫",
     "dataSources": "資料來源",
-    "status": { "ACTIVE": "活躍", "CREATING": "建立中", "FAILED": "失敗" },
+    "status": {
+      "ACTIVE": "活躍",
+      "CREATING": "建立中",
+      "FAILED": "失敗"
+    },
     "loadError": "取得知識庫清單失敗",
     "retry": "重試"
   },

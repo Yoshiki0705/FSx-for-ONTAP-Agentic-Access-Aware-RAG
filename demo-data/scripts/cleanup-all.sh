@@ -160,9 +160,45 @@ fi
 echo ""
 
 # ========================================
-# 7.5. VPC内のCDK管理外EC2インスタンス削除
+# 7.5. OpenLDAP EC2 + IAMリソース削除
 # ========================================
-echo "🧹 Step 7.5: VPC内EC2確認..."
+echo "🧹 Step 7.5: OpenLDAP関連リソース削除..."
+
+# OpenLDAP EC2インスタンス削除
+LDAP_EC2=$(aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=${STACK_PREFIX}-openldap" "Name=instance-state-name,Values=running,stopped" \
+  --region $REGION --query 'Reservations[0].Instances[0].InstanceId' --output text 2>/dev/null || echo "None")
+if [ "$LDAP_EC2" != "None" ] && [ -n "$LDAP_EC2" ]; then
+  aws ec2 terminate-instances --instance-ids "$LDAP_EC2" --region $REGION 2>/dev/null
+  echo "  ✅ OpenLDAP EC2: $LDAP_EC2 terminating"
+  aws ec2 wait instance-terminated --instance-ids "$LDAP_EC2" --region $REGION 2>/dev/null || true
+fi
+
+# OpenLDAP IAMインスタンスプロファイル + ロール削除
+PROFILE_NAME="${STACK_PREFIX}-openldap-profile"
+ROLE_NAME="${STACK_PREFIX}-openldap-role"
+aws iam remove-role-from-instance-profile --instance-profile-name "$PROFILE_NAME" --role-name "$ROLE_NAME" 2>/dev/null || true
+aws iam delete-instance-profile --instance-profile-name "$PROFILE_NAME" 2>/dev/null && echo "  ✅ IAM Profile: $PROFILE_NAME" || true
+aws iam detach-role-policy --role-name "$ROLE_NAME" --policy-arn "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore" 2>/dev/null || true
+aws iam delete-role --role-name "$ROLE_NAME" 2>/dev/null && echo "  ✅ IAM Role: $ROLE_NAME" || true
+
+# OpenLDAP セキュリティグループ削除
+LDAP_SG=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=${STACK_PREFIX}-openldap-sg" --region $REGION --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "None")
+if [ "$LDAP_SG" != "None" ] && [ -n "$LDAP_SG" ]; then
+  aws ec2 delete-security-group --group-id "$LDAP_SG" --region $REGION 2>/dev/null && echo "  ✅ SG: $LDAP_SG" || echo "  ⏭️ SG: in use (will be deleted with VPC)"
+fi
+
+# Secrets Manager シークレット削除（LDAP + ONTAP）
+for SECRET in ldap-bind-password ontap-fsxadmin-password; do
+  aws secretsmanager delete-secret --secret-id "$SECRET" --force-delete-without-recovery --region $REGION 2>/dev/null && echo "  ✅ Secret: $SECRET" || true
+done
+
+echo ""
+
+# ========================================
+# 7.6. VPC内の残留EC2インスタンス削除
+# ========================================
+echo "🧹 Step 7.6: VPC内残留EC2確認..."
 if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
   EC2_IDS=$(aws ec2 describe-instances --filters "Name=vpc-id,Values=$VPC_ID" "Name=instance-state-name,Values=running,stopped" \
     --region $REGION --query 'Reservations[].Instances[].InstanceId' --output text 2>/dev/null || echo "")

@@ -391,6 +391,32 @@ Match -> ALLOW, No match -> DENY
 
 ---
 
+
+### LDAP Connector Considerations for OpenLDAP
+
+When using the LDAP Connector with OpenLDAP environments, note the following:
+
+| Item | Details |
+|------|---------|
+| memberOf Overlay | The LDAP Connector retrieves groups from the user entry's `memberOf` attribute. Basic OpenLDAP does not auto-populate `memberOf`, so you need to add `moduleload memberof` and `overlay memberof` to `slapd.conf` and create `groupOfNames` entries |
+| posixGroup vs groupOfNames | `posixGroup` (`memberUid` attribute) and `groupOfNames` (`member` attribute) have different structural classes and cannot coexist in the same entry. The `memberOf` overlay requires `groupOfNames`, so create them in a separate OU (e.g., `ou=roles`) |
+| unixGroups Limitation | The LDAP Connector extracts group names from `memberOf` DNs but does not perform secondary lookups for `gidNumber`. Therefore `unixGroups` will be `[{name: "groupname"}]` (without `gid`), and UID/GID filtering uses only the primary GID |
+| groupSearchFilter | The `groupSearchFilter` in `cdk.context.json` is not used by the current LDAP Connector implementation. Group information is retrieved from the user entry's `memberOf` attribute |
+| Secrets Manager | Bind password is stored as plain text string (not JSON format) |
+| VPC Placement | When `ldapConfig` is specified, CDK automatically places the Lambda in the VPC and creates an LDAP security group (ports 389/636/443 outbound) |
+
+### Setup & Verification Scripts
+
+```bash
+# OpenLDAP server setup (EC2 with test users/groups)
+bash demo-data/scripts/setup-openldap.sh
+bash demo-data/scripts/verify-ldap-integration.sh
+
+# ONTAP name-mapping setup & verification
+bash demo-data/scripts/setup-ontap-namemapping.sh
+bash demo-data/scripts/verify-ontap-namemapping.sh
+```
+
 ## Verification Results
 
 ### CDK Synth + Deploy Verification (v3.4.0)
@@ -408,6 +434,8 @@ Match -> ALLOW, No match -> DENY
 - Backward compatibility: ✅ Existing SAML AD Federation works normally
 - Unit tests: ✅ 130 tests pass
 - Property tests: ✅ 52 tests pass (17 properties, numRuns=20)
+- LDAP live environment test: ✅ OpenLDAP (EC2 in VPC) → LDAP Connector → DynamoDB (uid:10001, gid:5001, source:OIDC-LDAP)
+- ONTAP name-mapping live environment test: ✅ ONTAP REST API connection → 3 name-mapping rules created/retrieved → resolveWindowsUser verified
 
 SAML + OIDC hybrid sign-in page:
 

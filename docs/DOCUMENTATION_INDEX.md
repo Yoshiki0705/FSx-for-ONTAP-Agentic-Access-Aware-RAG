@@ -8,7 +8,7 @@
 |-------------|------|
 | [README.md](../README.md) | システム概要、アーキテクチャ、デプロイ手順、WAF/Geo設定 |
 | [docs/auth-and-user-management.md](auth-and-user-management.md) | 認証・ユーザー管理ガイド（認証モード選択、AD Federation、SID自動登録、トラブルシューティング） |
-| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（12の観点: 画像分析RAG、KB接続UI、Smart Routing、監視・アラート含む） |
+| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（14の観点: 画像分析RAG、KB接続UI、Smart Routing、監視・アラート、OIDC/LDAP Federation含む） |
 | [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SIDベース権限フィルタリングの詳細設計 |
 | [docs/verification-report.md](verification-report.md) | デプロイ後の検証手順とテストケース |
 | [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（KB/Agentモード、Agent Directory、エンタープライズAgent機能、サイドバー設計） |
@@ -21,9 +21,20 @@
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [demo-data/guides/demo-scenario.md](../demo-data/guides/demo-scenario.md) | 検証シナリオ（管理者 vs 一般ユーザーの権限差異確認、AD SSOサインイン） |
-| [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD連携・CIFS共有・NTFS ACL設定（検証済み手順） |
+| [demo-data/guides/auth-mode-setup-guide.md](../demo-data/guides/auth-mode-setup-guide.md) | 認証モード別デモ環境構築ガイド（5モード、サンプル構成ファイル付き） |
+| [demo-data/guides/demo-scenario.md](../demo-data/guides/demo-scenario.md) | 検証シナリオ（管理者 vs 一般ユーザーの権限差異確認、AD SSOサインイン、OIDC/LDAPサインイン） |
+| [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD連携・CIFS共有・NTFS ACL設定・Name-Mapping設定（検証済み手順） |
 | [docs/demo-environment-guide.md](demo-environment-guide.md) | 検証環境のリソースID・アクセス情報・Embeddingサーバー手順 |
+
+## サンプル構成ファイル
+
+| ファイル | 認証モード | 内容 |
+|---------|-----------|------|
+| `demo-data/configs/mode-a-email-password.json` | メール/パスワード | 最小構成、手動SID登録 |
+| `demo-data/configs/mode-b-saml-ad-federation.json` | SAML AD Federation | Managed AD + IAM Identity Center |
+| `demo-data/configs/mode-c-oidc-ldap.json` | OIDC + LDAP | Auth0/Keycloak + OpenLDAP + ONTAP name-mapping |
+| `demo-data/configs/mode-d-oidc-claims-only.json` | OIDC Claims Only | Okta/Auth0（LDAPなし） |
+| `demo-data/configs/mode-e-saml-oidc-hybrid.json` | SAML + OIDC | AD Federation + OIDC IdP 同時有効化 |
 
 ## Embeddingサーバー（FlexCache CIFSマウント経由）
 
@@ -44,6 +55,11 @@
 | `demo-data/scripts/setup-user-access.sh` | DynamoDB SIDデータ登録 |
 | `demo-data/scripts/upload-demo-data.sh` | S3へのテストドキュメントアップロード |
 | `demo-data/scripts/sync-kb-datasource.sh` | Bedrock KBデータソース同期 |
+| `demo-data/scripts/setup-openldap.sh` | OpenLDAPサーバー構築（EC2 VPC内、テストユーザー/グループ付き） |
+| `demo-data/scripts/setup-ontap-namemapping.sh` | ONTAP REST API name-mappingルール設定 |
+| `demo-data/scripts/verify-ldap-integration.sh` | LDAP統合検証（Lambda→LDAP→DynamoDB） |
+| `demo-data/scripts/verify-ontap-namemapping.sh` | ONTAP name-mapping検証（REST API接続・ルール取得） |
+| `demo-data/scripts/setup-mode-c-oidc-ldap.sh` | モードC（OIDC+LDAP）ワンショットセットアップ（全Phase自動実行） |
 
 ## 推奨読書順序
 

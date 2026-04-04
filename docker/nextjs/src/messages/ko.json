@@ -703,10 +703,27 @@
     }
   },
   "signin": {
+    "title": "NetApp RAG 시스템",
+    "subtitle": "NetApp ONTAP 기반 권한 인식",
     "adSignIn": "AD로 로그인",
     "adSignInDesc": "Active Directory 인증을 사용하여 로그인합니다",
+    "oidcSignIn": "{provider}로 로그인",
+    "oidcSignInDesc": "{provider} OIDC 인증을 사용하여 로그인합니다",
     "orDivider": "또는",
-    "emailSignIn": "이메일/비밀번호로 로그인"
+    "emailSignIn": "이메일/비밀번호로 로그인",
+    "username": "사용자 이름",
+    "usernamePlaceholder": "사용자 이름 입력",
+    "password": "비밀번호",
+    "passwordPlaceholder": "비밀번호 입력",
+    "signInButton": "로그인",
+    "signingIn": "로그인 중...",
+    "preparing": "준비 중...",
+    "errorEmpty": "사용자 이름과 비밀번호를 입력하세요",
+    "errorCsrf": "보안 토큰을 가져오지 못했습니다",
+    "errorInvalid": "사용자 이름 또는 비밀번호가 올바르지 않습니다",
+    "errorGeneral": "로그인에 실패했습니다. 다시 시도해 주세요.",
+    "footer": "권한 인식 RAG 시스템",
+    "poweredBy": "Powered by Amazon FSx for NetApp ONTAP"
   },
   "imageUpload": {
     "dropzone": "이미지를 드래그 앤 드롭",
@@ -725,7 +742,11 @@
     "connected": "연결됨",
     "noKBConnected": "연결된 Knowledge Base가 없습니다",
     "dataSources": "데이터 소스",
-    "status": { "ACTIVE": "활성", "CREATING": "생성 중", "FAILED": "실패" },
+    "status": {
+      "ACTIVE": "활성",
+      "CREATING": "생성 중",
+      "FAILED": "실패"
+    },
     "loadError": "KB 목록을 불러오지 못했습니다",
     "retry": "재시도"
   },

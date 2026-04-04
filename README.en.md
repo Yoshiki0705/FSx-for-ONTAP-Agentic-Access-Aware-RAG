@@ -39,9 +39,9 @@ This repository is a sample that deploys an access-control-aware Agentic RAG pow
                                 +------------------+
 ```
 
-## Implementation Overview (13 Perspectives)
+## Implementation Overview (14 Perspectives)
 
-The implementation of this system is organized into 13 perspectives. For details on each item, see [docs/implementation-overview.md](docs/implementation-overview.md).
+The implementation of this system is organized into 14 perspectives. For details on each item, see [docs/implementation-overview.md](docs/implementation-overview.md).
 
 | # | Perspective | Overview | Related CDK Stack |
 |---|-------------|----------|-------------------|
@@ -58,6 +58,7 @@ The implementation of this system is organized into 13 perspectives. For details
 | 11 | Smart Routing | Automatic model selection based on query complexity. Short factual queries route to lightweight model (Haiku), long analytical queries route to high-performance model (Sonnet). ON/OFF toggle in sidebar | WebAppStack |
 | 12 | Monitoring & Alerts | CloudWatch dashboard (Lambda/CloudFront/DynamoDB/Bedrock/WAF/Advanced RAG integration), SNS alerts (error rate & latency threshold notifications), EventBridge KB Ingestion Job failure notifications, EMF custom metrics. Enable with `enableMonitoring=true` | WebAppStack (MonitoringConstruct) |
 | 13 | AgentCore Memory | Conversation context maintenance via AgentCore Memory (short-term & long-term memory). In-session conversation history (short-term) + cross-session user preferences & summaries (long-term). Enable with `enableAgentCoreMemory=true` | AIStack |
+| 14 | OIDC/LDAP Federation + ONTAP Name-Mapping | OIDC IdP (Auth0/Keycloak/Okta) integration, LDAP direct query (OpenLDAP/FreeIPA) for automatic UID/GID retrieval, ONTAP REST API name-mapping (UNIX→Windows user mapping). Configuration-driven auto-enablement. Enable with `oidcProviderConfig` + `ldapConfig` + `ontapNameMappingEnabled` | SecurityStack |
 
 ## UI Screenshots
 

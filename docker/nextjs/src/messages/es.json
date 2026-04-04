@@ -703,10 +703,27 @@
     }
   },
   "signin": {
+    "title": "Sistema RAG NetApp",
+    "subtitle": "Con reconocimiento de permisos con NetApp ONTAP",
     "adSignIn": "Iniciar sesión con AD",
     "adSignInDesc": "Iniciar sesión con autenticación de Active Directory",
+    "oidcSignIn": "Iniciar sesión con {provider}",
+    "oidcSignInDesc": "Iniciar sesión con autenticación OIDC de {provider}",
     "orDivider": "o",
-    "emailSignIn": "Iniciar sesión con email/contraseña"
+    "emailSignIn": "Iniciar sesión con email/contraseña",
+    "username": "Nombre de usuario",
+    "usernamePlaceholder": "Ingrese nombre de usuario",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Ingrese contraseña",
+    "signInButton": "Iniciar sesión",
+    "signingIn": "Iniciando sesión...",
+    "preparing": "Preparando...",
+    "errorEmpty": "Por favor ingrese nombre de usuario y contraseña",
+    "errorCsrf": "Error al obtener el token de seguridad",
+    "errorInvalid": "Nombre de usuario o contraseña incorrectos",
+    "errorGeneral": "Error al iniciar sesión. Por favor intente de nuevo.",
+    "footer": "Sistema RAG con reconocimiento de permisos",
+    "poweredBy": "Powered by Amazon FSx for NetApp ONTAP"
   },
   "imageUpload": {
     "dropzone": "Arrastra y suelta una imagen",
@@ -725,7 +742,11 @@
     "connected": "Conectada",
     "noKBConnected": "No hay base de conocimiento conectada",
     "dataSources": "Fuentes de datos",
-    "status": { "ACTIVE": "Activa", "CREATING": "Creando", "FAILED": "Fallida" },
+    "status": {
+      "ACTIVE": "Activa",
+      "CREATING": "Creando",
+      "FAILED": "Fallida"
+    },
     "loadError": "Error al cargar la lista de KB",
     "retry": "Reintentar"
   },

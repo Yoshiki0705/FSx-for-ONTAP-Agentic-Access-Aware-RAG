@@ -382,6 +382,8 @@ Match -> ALLOW, No match -> DENY
 - Cognito AdminGetUser API-Fallback: ✅ Wenn das PostConfirmation-Trigger-Ereignis keine benutzerdefinierten Attribute enthält, ruft Lambda diese über die Cognito-API ab
 - Unit-Tests: ✅ 130 bestanden
 - Property-Tests: ✅ 52 bestanden
+- LDAP Live-Umgebungstest: ✅ OpenLDAP (EC2 im VPC) → LDAP Connector → DynamoDB (uid:10001, gid:5001, source:OIDC-LDAP)
+- ONTAP Name-Mapping Live-Umgebungstest: ✅ ONTAP REST API Verbindung → 3 Name-Mapping-Regeln erstellt/abgerufen → resolveWindowsUser verifiziert
 
 ![Anmeldeseite (SAML + OIDC Hybrid)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
 
@@ -390,6 +392,25 @@ Match -> ALLOW, No match -> DENY
 ![Chat-Seite nach erfolgreicher OIDC-Anmeldung](../docs/screenshots/oidc-auth0-signin-success.png)
 
 ---
+
+
+### LDAP Connector Überlegungen für OpenLDAP
+
+| Element | Details |
+|---------|---------|
+| memberOf Overlay | Standard-OpenLDAP füllt `memberOf` nicht automatisch aus. Sie müssen `moduleload memberof` und `overlay memberof` in `slapd.conf` hinzufügen und `groupOfNames`-Einträge erstellen |
+| posixGroup vs groupOfNames | Unterschiedliche Strukturklassen, können nicht im selben Eintrag koexistieren |
+| Secrets Manager | Das Bind-Passwort wird als Klartext-String gespeichert |
+| VPC-Platzierung | Bei Angabe von `ldapConfig` platziert CDK das Lambda automatisch im VPC |
+
+### Einrichtungs- und Überprüfungsskripte
+
+```bash
+bash demo-data/scripts/setup-openldap.sh
+bash demo-data/scripts/verify-ldap-integration.sh
+bash demo-data/scripts/setup-ontap-namemapping.sh
+bash demo-data/scripts/verify-ontap-namemapping.sh
+```
 
 ## Verwandte Dokumente
 

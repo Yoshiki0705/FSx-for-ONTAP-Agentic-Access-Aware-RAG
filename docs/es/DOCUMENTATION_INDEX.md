@@ -44,6 +44,11 @@
 | `demo-data/scripts/upload-demo-data.sh` | Subir documentos de prueba a S3 |
 | `demo-data/scripts/sync-kb-datasource.sh` | Sincronizar fuente de datos de Bedrock KB |
 
+| `demo-data/scripts/setup-openldap.sh` | OpenLDAP server setup (EC2 in VPC, test users/groups) |
+| `demo-data/scripts/setup-ontap-namemapping.sh` | ONTAP REST API name-mapping rule setup |
+| `demo-data/scripts/verify-ldap-integration.sh` | LDAP integration verification |
+| `demo-data/scripts/verify-ontap-namemapping.sh` | ONTAP name-mapping verification |
+| `demo-data/scripts/setup-mode-c-oidc-ldap.sh` | Mode C (OIDC+LDAP) one-shot setup |
 ## Orden de lectura recomendado
 
 1. **README.md** — Descripción general del sistema y pasos de despliegue

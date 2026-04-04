@@ -39,9 +39,9 @@ Ce dépôt est un exemple qui déploie un RAG Agentique avec contrôle d'accès 
                                 +------------------+
 ```
 
-## Vue d'ensemble de l'implémentation (13 perspectives)
+## Vue d'ensemble de l'implémentation (14 perspectives)
 
-L'implémentation de ce système est organisée en 13 perspectives. Pour les détails de chaque élément, consultez [docs/implementation-overview.md](docs/implementation-overview.md).
+L'implémentation de ce système est organisée en 14 perspectives. Pour les détails de chaque élément, consultez [docs/implementation-overview.md](docs/implementation-overview.md).
 
 | # | Perspective | Vue d'ensemble | Stack CDK associé |
 |---|-------------|----------------|-------------------|
@@ -58,6 +58,7 @@ L'implémentation de ce système est organisée en 13 perspectives. Pour les dé
 | 11 | Routage intelligent | Sélection automatique du modèle basée sur la complexité de la requête. Les requêtes factuelles courtes sont routées vers le modèle léger (Haiku), les requêtes analytiques longues vers le modèle haute performance (Sonnet). Bouton ON/OFF dans la barre latérale | WebAppStack |
 | 12 | Surveillance et alertes | Tableau de bord CloudWatch (Lambda/CloudFront/DynamoDB/Bedrock/WAF/intégration RAG avancée), alertes SNS (notifications de seuil de taux d'erreur et de latence), notifications d'échec EventBridge KB Ingestion Job, métriques personnalisées EMF. Activer avec `enableMonitoring=true` | WebAppStack (MonitoringConstruct) |
 | 13 | AgentCore Memory | Maintien du contexte de conversation via AgentCore Memory (mémoire à court et long terme). Historique de conversation en session (court terme) + préférences utilisateur et résumés inter-sessions (long terme). Activer avec `enableAgentCoreMemory=true` | AIStack |
+| 14 | OIDC/LDAP Federation + ONTAP Name-Mapping | Intégration OIDC IdP (Auth0/Keycloak/Okta), requête LDAP directe (OpenLDAP/FreeIPA) pour récupération automatique UID/GID, ONTAP REST API name-mapping (correspondance UNIX→Windows). Activation automatique par configuration. Activer avec `oidcProviderConfig` + `ldapConfig` + `ontapNameMappingEnabled` | SecurityStack |
 
 ## Captures d'écran de l'interface
 
@@ -984,7 +985,7 @@ Lorsque deux types d'utilisateurs (administrateur et utilisateur standard) posen
 
 | Document | Contenu |
 |----------|---------|
-| [docs/implementation-overview.md](docs/implementation-overview.md) | Description détaillée de l'implémentation (13 perspectives) |
+| [docs/implementation-overview.md](docs/implementation-overview.md) | Description détaillée de l'implémentation (14 perspectives) |
 | [docs/ui-specification.md](docs/ui-specification.md) | Spécification UI (basculement KB/Agent, répertoire Agent, design barre latérale, affichage citations) |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | Détails de l'architecture de filtrage basé sur SID |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | Conception du serveur d'embedding (incluant la récupération automatique ACL ONTAP) |

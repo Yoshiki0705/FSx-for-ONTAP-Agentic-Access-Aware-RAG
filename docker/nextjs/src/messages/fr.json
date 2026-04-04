@@ -703,10 +703,27 @@
     }
   },
   "signin": {
+    "title": "Système RAG NetApp",
+    "subtitle": "Sensible aux permissions avec NetApp ONTAP",
     "adSignIn": "Se connecter avec AD",
     "adSignInDesc": "Se connecter avec l'authentification Active Directory",
+    "oidcSignIn": "Se connecter avec {provider}",
+    "oidcSignInDesc": "Se connecter avec l'authentification OIDC {provider}",
     "orDivider": "ou",
-    "emailSignIn": "Se connecter avec email/mot de passe"
+    "emailSignIn": "Se connecter avec email/mot de passe",
+    "username": "Nom d'utilisateur",
+    "usernamePlaceholder": "Entrez le nom d'utilisateur",
+    "password": "Mot de passe",
+    "passwordPlaceholder": "Entrez le mot de passe",
+    "signInButton": "Se connecter",
+    "signingIn": "Connexion en cours...",
+    "preparing": "Préparation...",
+    "errorEmpty": "Veuillez entrer le nom d'utilisateur et le mot de passe",
+    "errorCsrf": "Échec de l'obtention du jeton de sécurité",
+    "errorInvalid": "Nom d'utilisateur ou mot de passe incorrect",
+    "errorGeneral": "Échec de la connexion. Veuillez réessayer.",
+    "footer": "Système RAG sensible aux permissions",
+    "poweredBy": "Powered by Amazon FSx for NetApp ONTAP"
   },
   "imageUpload": {
     "dropzone": "Glisser-déposer une image",
@@ -725,7 +742,11 @@
     "connected": "Connectée",
     "noKBConnected": "Aucune base de connaissances connectée",
     "dataSources": "Sources de données",
-    "status": { "ACTIVE": "Active", "CREATING": "En création", "FAILED": "Échouée" },
+    "status": {
+      "ACTIVE": "Active",
+      "CREATING": "En création",
+      "FAILED": "Échouée"
+    },
     "loadError": "Échec du chargement de la liste KB",
     "retry": "Réessayer"
   },

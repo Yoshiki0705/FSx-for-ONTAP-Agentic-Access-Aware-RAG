@@ -769,10 +769,27 @@
     }
   },
   "signin": {
+    "title": "NetApp RAG 系统",
+    "subtitle": "基于 NetApp ONTAP 的权限感知",
     "adSignIn": "使用AD登录",
     "adSignInDesc": "使用Active Directory身份验证登录",
+    "oidcSignIn": "使用{provider}登录",
+    "oidcSignInDesc": "使用{provider} OIDC身份验证登录",
     "orDivider": "或",
-    "emailSignIn": "使用邮箱/密码登录"
+    "emailSignIn": "使用邮箱/密码登录",
+    "username": "用户名",
+    "usernamePlaceholder": "输入用户名",
+    "password": "密码",
+    "passwordPlaceholder": "输入密码",
+    "signInButton": "登录",
+    "signingIn": "登录中...",
+    "preparing": "准备中...",
+    "errorEmpty": "请输入用户名和密码",
+    "errorCsrf": "获取安全令牌失败",
+    "errorInvalid": "用户名或密码不正确",
+    "errorGeneral": "登录失败，请重试。",
+    "footer": "权限感知 RAG 系统",
+    "poweredBy": "Powered by Amazon FSx for NetApp ONTAP"
   },
   "imageUpload": {
     "dropzone": "拖放图片",
@@ -791,7 +808,11 @@
     "connected": "已连接",
     "noKBConnected": "未连接知识库",
     "dataSources": "数据源",
-    "status": { "ACTIVE": "活跃", "CREATING": "创建中", "FAILED": "失败" },
+    "status": {
+      "ACTIVE": "活跃",
+      "CREATING": "创建中",
+      "FAILED": "失败"
+    },
     "loadError": "获取知识库列表失败",
     "retry": "重试"
   },

@@ -115,4 +115,12 @@
   // --- ONTAP name-mapping連携（オプション） ---
   // UNIXユーザー名とWindowsユーザー名の対応付けを有効化
   // "ontapNameMappingEnabled": true
+  //
+  // --- ONTAP name-mapping + REST API設定例 ---
+  // fsxadminパスワードは事前に aws fsx update-file-system で設定が必要
+  // SVM UUIDは aws fsx describe-storage-virtual-machines で取得
+  // "ontapNameMappingEnabled": true,
+  // "ontapMgmtIp": "10.0.2.27",
+  // "ontapSvmUuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  // "ontapAdminSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ontap-fsxadmin-password"
 }

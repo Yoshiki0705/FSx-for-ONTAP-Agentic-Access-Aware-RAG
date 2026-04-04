@@ -368,6 +368,25 @@ Match -> ALLOW, No match -> DENY
 
 ---
 
+
+### Considérations du LDAP Connector pour OpenLDAP
+
+| Élément | Détails |
+|---------|---------|
+| Overlay memberOf | OpenLDAP de base ne remplit pas automatiquement `memberOf`. Il faut ajouter `moduleload memberof` et `overlay memberof` dans `slapd.conf` et créer des entrées `groupOfNames` |
+| posixGroup vs groupOfNames | Classes structurelles différentes, ne peuvent pas coexister dans la même entrée |
+| Secrets Manager | Le mot de passe de liaison est stocké en texte brut |
+| Placement VPC | Lorsque `ldapConfig` est spécifié, CDK place automatiquement le Lambda dans le VPC |
+
+### Scripts de configuration et vérification
+
+```bash
+bash demo-data/scripts/setup-openldap.sh
+bash demo-data/scripts/verify-ldap-integration.sh
+bash demo-data/scripts/setup-ontap-namemapping.sh
+bash demo-data/scripts/verify-ontap-namemapping.sh
+```
+
 ## Résultats de vérification
 
 ### Vérification CDK Synth + Déploiement (v3.4.0)
@@ -382,6 +401,8 @@ Match -> ALLOW, No match -> DENY
 - Repli API Cognito AdminGetUser : ✅ Lorsque l'événement du trigger PostConfirmation ne contient pas les attributs personnalisés, Lambda les récupère via l'API Cognito
 - Tests unitaires : ✅ 130 réussis
 - Tests de propriétés : ✅ 52 réussis
+- Test LDAP en environnement réel: ✅ OpenLDAP (EC2 dans VPC) → LDAP Connector → DynamoDB (uid:10001, gid:5001, source:OIDC-LDAP)
+- Test ONTAP name-mapping en environnement réel: ✅ Connexion ONTAP REST API → 3 règles name-mapping créées/récupérées → resolveWindowsUser vérifié
 
 ![Page de connexion (Hybride SAML + OIDC)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
 

@@ -368,6 +368,25 @@ Match -> ALLOW, No match -> DENY
 
 ---
 
+
+### OpenLDAP 환경에서의 LDAP Connector 고려사항
+
+| 항목 | 내용 |
+|------|------|
+| memberOf 오버레이 | 기본 OpenLDAP에서는 `memberOf`가 자동으로 채워지지 않습니다. `slapd.conf`에 `moduleload memberof`와 `overlay memberof`를 추가하고 `groupOfNames` 항목을 생성해야 합니다 |
+| posixGroup vs groupOfNames | 구조 클래스가 다르며 동일 항목에 공존할 수 없습니다. `memberOf` 오버레이에는 `groupOfNames`가 필요합니다 |
+| Secrets Manager | 바인드 비밀번호는 일반 텍스트 문자열로 저장됩니다 |
+| VPC 배치 | `ldapConfig` 지정 시 CDK가 자동으로 Lambda를 VPC 내에 배치합니다 |
+
+### 설정 및 검증 스크립트
+
+```bash
+bash demo-data/scripts/setup-openldap.sh
+bash demo-data/scripts/verify-ldap-integration.sh
+bash demo-data/scripts/setup-ontap-namemapping.sh
+bash demo-data/scripts/verify-ontap-namemapping.sh
+```
+
 ## 검증 결과
 
 ### CDK Synth + 배포 검증 (v3.4.0)
@@ -382,6 +401,8 @@ Match -> ALLOW, No match -> DENY
 - Cognito AdminGetUser API 폴백: ✅ PostConfirmation 트리거 이벤트에 커스텀 속성이 미포함 시 Cognito API에서 직접 취득하여 정상 동작
 - 유닛 테스트: ✅ 130 패스
 - 프로퍼티 테스트: ✅ 52 패스
+- LDAP 실환경 테스트: ✅ OpenLDAP (VPC 내 EC2) → LDAP Connector → DynamoDB (uid:10001, gid:5001, source:OIDC-LDAP)
+- ONTAP name-mapping 실환경 테스트: ✅ ONTAP REST API 연결 → name-mapping 규칙 3건 생성/조회 → resolveWindowsUser 검증
 
 ![로그인 화면 (SAML + OIDC 하이브리드)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
 

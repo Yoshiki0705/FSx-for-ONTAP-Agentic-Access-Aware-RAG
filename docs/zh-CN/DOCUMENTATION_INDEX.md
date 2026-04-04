@@ -7,7 +7,7 @@
 | 文档 | 说明 |
 |------|------|
 | [README.md](../../README.zh-CN.md) | 系统概述、架构、部署步骤、WAF/Geo 设置 |
-| [implementation-overview.md](implementation-overview.md) | 详细实现（12个方面：图像分析 RAG、KB 连接 UI、Smart Routing、监控与告警） |
+| [implementation-overview.md](implementation-overview.md) | 详细实现（14个方面：图像分析 RAG、KB 连接 UI、Smart Routing、监控与告警） |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | 基于 SID 的权限过滤详细设计 |
 | [verification-report.md](verification-report.md) | 部署后验证流程和测试用例 |
 | [ui-specification.md](ui-specification.md) | Chatbot UI 规格（KB/Agent 模式、Agent Directory、企业级 Agent 功能、侧边栏设计） |
@@ -44,6 +44,11 @@
 | `demo-data/scripts/upload-demo-data.sh` | 上传测试文档到 S3 |
 | `demo-data/scripts/sync-kb-datasource.sh` | 同步 Bedrock KB 数据源 |
 
+| `demo-data/scripts/setup-openldap.sh` | OpenLDAP server setup (EC2 in VPC, test users/groups) |
+| `demo-data/scripts/setup-ontap-namemapping.sh` | ONTAP REST API name-mapping rule setup |
+| `demo-data/scripts/verify-ldap-integration.sh` | LDAP integration verification |
+| `demo-data/scripts/verify-ontap-namemapping.sh` | ONTAP name-mapping verification |
+| `demo-data/scripts/setup-mode-c-oidc-ldap.sh` | Mode C (OIDC+LDAP) one-shot setup |
 ## 推荐阅读顺序
 
 1. **README.md** — 系统概述和部署步骤

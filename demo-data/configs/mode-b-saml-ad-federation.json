@@ -1,0 +1,12 @@
+{
+  "projectName": "perm-rag-demo",
+  "environment": "demo",
+  "adPassword": "DemoP@ssw0rd123",
+  "adDomainName": "demo.local",
+  "enableAdFederation": true,
+  "enableAgent": true,
+  "vectorStoreType": "s3vectors",
+  "samlMetadataUrl": "https://portal.sso.ap-northeast-1.amazonaws.com/saml/metadata/REPLACE_WITH_YOUR_METADATA_ID",
+  "cloudFrontUrl": "https://REPLACE_WITH_YOUR_CLOUDFRONT_URL.cloudfront.net",
+  "permissionMappingStrategy": "sid-only"
+}

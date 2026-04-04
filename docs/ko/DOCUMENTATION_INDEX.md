@@ -7,7 +7,7 @@
 | 문서 | 설명 |
 |------|------|
 | [README.md](../../README.ko.md) | 시스템 개요, 아키텍처, 배포 단계, WAF/Geo 설정 |
-| [implementation-overview.md](implementation-overview.md) | 상세 구현 (12가지 측면: 이미지 분석 RAG, KB 연결 UI, Smart Routing, 모니터링 및 알림) |
+| [implementation-overview.md](implementation-overview.md) | 상세 구현 (14가지 측면: 이미지 분석 RAG, KB 연결 UI, Smart Routing, 모니터링 및 알림) |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID 기반 권한 필터링 상세 설계 |
 | [verification-report.md](verification-report.md) | 배포 후 검증 절차 및 테스트 케이스 |
 | [ui-specification.md](ui-specification.md) | Chatbot UI 사양 (KB/Agent 모드, Agent Directory, 엔터프라이즈 Agent 기능, 사이드바 설계) |
@@ -44,6 +44,11 @@
 | `demo-data/scripts/upload-demo-data.sh` | S3에 테스트 문서 업로드 |
 | `demo-data/scripts/sync-kb-datasource.sh` | Bedrock KB 데이터 소스 동기화 |
 
+| `demo-data/scripts/setup-openldap.sh` | OpenLDAP server setup (EC2 in VPC, test users/groups) |
+| `demo-data/scripts/setup-ontap-namemapping.sh` | ONTAP REST API name-mapping rule setup |
+| `demo-data/scripts/verify-ldap-integration.sh` | LDAP integration verification |
+| `demo-data/scripts/verify-ontap-namemapping.sh` | ONTAP name-mapping verification |
+| `demo-data/scripts/setup-mode-c-oidc-ldap.sh` | Mode C (OIDC+LDAP) one-shot setup |
 ## 권장 읽기 순서
 
 1. **README.md** — 시스템 개요 및 배포 단계

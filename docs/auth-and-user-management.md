@@ -394,6 +394,45 @@ OIDC/LDAP Federationでは、既存スキーマに加えて以下のフィール
 | `oidcGroups` | List | OIDCトークンのグループクレーム値 | OIDC認証時 |
 | `authSource` | String | 認証ソース（`saml`, `oidc`, `direct`） | 全レコード |
 
+### OpenLDAP環境でのLDAP Connector考慮点
+
+OpenLDAP環境でLDAP Connectorを使用する場合、以下の点に注意が必要です。
+
+| 項目 | 内容 |
+|------|------|
+| memberOfオーバーレイ | LDAP Connectorはユーザーエントリの`memberOf`属性からグループを取得する。基本OpenLDAPでは`memberOf`が自動付与されないため、`slapd.conf`に`moduleload memberof`と`overlay memberof`を追加し、`groupOfNames`エントリを作成する必要がある |
+| posixGroupとgroupOfNames | `posixGroup`（`memberUid`属性）と`groupOfNames`（`member`属性）は構造クラスが異なり同一エントリに混在不可。`memberOf`オーバーレイには`groupOfNames`が必要なため、別OU（例: `ou=roles`）に`groupOfNames`エントリを作成する |
+| unixGroupsの制約 | LDAP Connectorは`memberOf` DNからグループ名を抽出するが、各グループの`gidNumber`を二次検索しない。そのため`unixGroups`フィールドは`[{name: "groupname"}]`（`gid`なし）となり、UID/GIDフィルタリングではプライマリGIDのみが使用される |
+| groupSearchFilter | `cdk.context.json`の`groupSearchFilter`は現在のLDAP Connector実装では使用されない。グループ情報はユーザーエントリの`memberOf`属性から取得される |
+| Secrets Manager | バインドパスワードはプレーンテキスト文字列として保存（JSON形式不要） |
+| VPC配置 | `ldapConfig`指定時、CDKが自動的にLambdaをVPC内に配置し、LDAP用セキュリティグループ（ポート389/636/443アウトバウンド）を作成する |
+
+### OpenLDAPセットアップスクリプト
+
+VPC内にOpenLDAPテスト環境を構築するスクリプトが用意されています:
+
+```bash
+# OpenLDAPサーバー構築（EC2 + テストユーザー/グループ）
+bash demo-data/scripts/setup-openldap.sh
+
+# LDAP統合検証
+bash demo-data/scripts/verify-ldap-integration.sh
+```
+
+### ONTAP Name-Mapping連携
+
+`ontapNameMappingEnabled=true` を設定すると、Permission Resolver LambdaがONTAP REST API経由でname-mappingルールを取得し、UNIXユーザー名からWindowsユーザー名への変換を行います。
+
+```bash
+# ONTAP name-mappingセットアップ
+bash demo-data/scripts/setup-ontap-namemapping.sh
+
+# 検証
+bash demo-data/scripts/verify-ontap-namemapping.sh
+```
+
+詳細は [FSx ONTAP設定ガイド](../demo-data/guides/ontap-setup-guide.md#10-ontap-name-mapping設定unixwindowsユーザー対応付け) を参照してください。
+
 ---
 
 ## 権限フィルタリングとの連携
@@ -489,6 +528,8 @@ OIDC/LDAP Federation機能追加後の検証結果:
 - 後方互換性: ✅ 既存SAML AD Federationサインイン正常動作
 - ユニットテスト: ✅ 130テスト全パス
 - プロパティテスト: ✅ 52テスト全パス（17プロパティ、numRuns=20）
+- LDAP実環境テスト: ✅ OpenLDAP（EC2 VPC内）→ LDAP Connector → DynamoDB（uid:10001, gid:5001, source:OIDC-LDAP）
+- ONTAP name-mapping実環境テスト: ✅ ONTAP REST API接続 → name-mappingルール3件作成・取得 → resolveWindowsUser動作確認
 
 SAML + OIDC ハイブリッド構成のサインイン画面:
 

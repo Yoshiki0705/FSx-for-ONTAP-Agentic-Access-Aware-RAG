@@ -541,6 +541,11 @@ export class LdapConnector {
         }
 
         // グループ情報の整形
+        // NOTE: memberOf DNからグループ名のみ抽出。各グループのgidNumberは
+        // 二次LDAPクエリが必要なため未取得。UID/GIDフィルタリングでは
+        // プライマリGID（ユーザーのgidNumber）のみが使用される。
+        // 将来的にグループGIDベースのフィルタリングが必要な場合は、
+        // ここで各グループDNに対してgidNumber属性を検索する二次クエリを追加する。
         if (userInfo.memberOf && userInfo.memberOf.length > 0) {
           userInfo.groups = userInfo.memberOf.map(dn => {
             const cnMatch = dn.match(/^[Cc][Nn]=([^,]+)/);

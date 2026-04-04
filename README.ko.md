@@ -39,9 +39,9 @@
                                 +------------------+
 ```
 
-## 구현 개요 (13가지 관점)
+## 구현 개요 (14가지 관점)
 
-이 시스템의 구현은 13가지 관점으로 구성되어 있습니다. 각 항목의 상세 내용은 [docs/implementation-overview.md](docs/implementation-overview.md)를 참조하세요.
+이 시스템의 구현은 14가지 관점으로 구성되어 있습니다. 각 항목의 상세 내용은 [docs/implementation-overview.md](docs/implementation-overview.md)를 참조하세요.
 
 | # | 관점 | 개요 | 관련 CDK 스택 |
 |---|------|------|---------------|
@@ -58,6 +58,7 @@
 | 11 | 스마트 라우팅 | 쿼리 복잡도에 따른 자동 모델 선택. 짧은 사실 확인 쿼리는 경량 모델(Haiku)로, 긴 분석 쿼리는 고성능 모델(Sonnet)로 라우팅. 사이드바에 ON/OFF 토글 | WebAppStack |
 | 12 | 모니터링 & 알림 | CloudWatch 대시보드(Lambda/CloudFront/DynamoDB/Bedrock/WAF/고급 RAG 통합), SNS 알림(오류율 & 지연 시간 임계값 알림), EventBridge KB 수집 작업 실패 알림, EMF 커스텀 메트릭. `enableMonitoring=true`로 활성화 | WebAppStack (MonitoringConstruct) |
 | 13 | AgentCore Memory | AgentCore Memory를 통한 대화 컨텍스트 유지(단기 & 장기 메모리). 세션 내 대화 이력(단기) + 세션 간 사용자 선호도 & 요약(장기). `enableAgentCoreMemory=true`로 활성화 | AIStack |
+| 14 | OIDC/LDAP Federation + ONTAP Name-Mapping | OIDC IdP(Auth0/Keycloak/Okta) 연동, LDAP 직접 쿼리(OpenLDAP/FreeIPA)를 통한 UID/GID 자동 취득, ONTAP REST API name-mapping(UNIX→Windows 사용자 매핑). 설정 기반 자동 활성화. `oidcProviderConfig` + `ldapConfig` + `ontapNameMappingEnabled`로 활성화 | SecurityStack |
 
 ## UI 스크린샷
 
@@ -1413,7 +1414,7 @@ User              Next.js API             DynamoDB            Bedrock KB        
 │   ├── scripts/                      # 설정 스크립트 (사용자 생성, SID 데이터 등록 등)
 │   └── guides/                       # 검증 시나리오 & ONTAP 설정 가이드
 ├── docs/
-│   ├── implementation-overview.md    # 상세 구현 설명 (13가지 관점)
+│   ├── implementation-overview.md    # 상세 구현 설명 (14가지 관점)
 │   ├── ui-specification.md           # UI 사양 (KB/Agent 모드 전환, 사이드바 설계)
 │   ├── stack-architecture-comparison.md # CDK 스택 아키텍처 가이드
 │   ├── embedding-server-design.md    # 임베딩 서버 설계 (ONTAP ACL 자동 검색 포함)
@@ -1436,7 +1437,7 @@ User              Next.js API             DynamoDB            Bedrock KB        
 
 | 문서 | 내용 |
 |------|------|
-| [docs/implementation-overview.md](docs/implementation-overview.md) | 상세 구현 설명 (13가지 관점) |
+| [docs/implementation-overview.md](docs/implementation-overview.md) | 상세 구현 설명 (14가지 관점) |
 | [docs/ui-specification.md](docs/ui-specification.md) | UI 사양 (KB/Agent 모드 전환, Agent Directory, 사이드바 설계, Citation 표시) |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SID 기반 권한 필터링 아키텍처 상세 |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | 임베딩 서버 설계 (ONTAP ACL 자동 검색 포함) |

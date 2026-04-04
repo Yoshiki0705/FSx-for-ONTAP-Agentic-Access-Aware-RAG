@@ -21,18 +21,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 構造化ログ出力（JSON形式、シークレット自動除外）
 - プロパティベーステスト17件（Property 1-17: CDKバリデーション、認証ソース判別、LDAP属性抽出、インジェクション防止、エラー非ブロッキング、DynamoDB保存フォーマット、キャッシュTTL、Permission Resolver戦略、UID/GIDマッチング、IdP登録組み合わせ、OIDCクレーム解析、ONTAP name-mappingフォールバック、ログシークレット除外等）
 - ユニットテスト: CDK Stack OIDC拡張34件、Identity Sync Lambda OIDC拡張23件、LDAP Connector 35件、Permission Resolver 18件、ONTAP name-mapping 12件
-- `cdk.context.json.example`: OIDC + LDAP構成例、SAML + OIDCハイブリッド構成例追加
+- `cdk.context.json.example`: OIDC + LDAP構成例、SAML + OIDCハイブリッド構成例、ONTAP name-mapping REST API設定例追加
+- **認証モード別デモ環境構築ガイド** (`demo-data/guides/auth-mode-setup-guide.md`): 5モード（メール/パスワード、SAML AD、OIDC+LDAP、OIDC Claims Only、SAML+OIDCハイブリッド）のサンプル構成ファイルと再現可能な構築手順。8言語対応
+- **サンプル構成ファイル** (`demo-data/configs/mode-a~e-*.json`): 認証モード別の`cdk.context.json`テンプレート5種。`REPLACE_*`プレースホルダーで環境非依存
+- **OpenLDAPセットアップスクリプト** (`demo-data/scripts/setup-openldap.sh`): VPC内EC2にOpenLDAPを自動構築、テストユーザー3名+グループ5つ+memberOfオーバーレイ設定
+- **ONTAP name-mappingセットアップスクリプト** (`demo-data/scripts/setup-ontap-namemapping.sh`): FSx ONTAP REST API経由でname-mappingルールを自動設定
+- **検証スクリプト**: `verify-ldap-integration.sh`（LDAP→Lambda→DynamoDB検証）、`verify-ontap-namemapping.sh`（REST API接続・ルール取得検証）
+- **モードCワンショットスクリプト** (`demo-data/scripts/setup-mode-c-oidc-ldap.sh`): 環境変数3つで全7フェーズ自動実行
+- **サインイン画面多言語対応**: `[locale]/signin/page.tsx`の全テキストを`useTranslations('signin')`に置き換え、8言語21キー追加。`/signin`フォールバックページはブラウザ言語検出→ロケール付きページへ自動リダイレクト
+- **実装概要14の観点**: README（8言語）に「OIDC/LDAP Federation + ONTAP Name-Mapping」を14番目の観点として追加
+- `cleanup-all.sh`: OpenLDAP EC2/IAM/SG/Secrets Manager自動削除ステップ追加
 
 ### Changed
 - `lib/stacks/demo/demo-security-stack.ts`: `DemoSecurityStackProps` にOIDC/LDAP設定インターフェース追加、OIDC IdP登録ロジック、LDAP Lambda VPC配置・IAM権限、環境変数設定
 - `lambda/agent-core-ad-sync/index.ts`: 認証ソース判別、OIDCパスハンドラー、DynamoDB保存ロジック拡張、LDAP Connector統合
+- `lambda/agent-core-ad-sync/ldap-connector.ts`: グループ整形のgidNumber二次クエリ制約をコードコメントに明記
 - `lambda/permissions/metadata-filter-handler.ts`: Permission Resolver戦略選択、UID/GIDフィルタリング、ONTAP name-mapping統合
 - `lambda/permissions/ontap-rest-api-client.ts`: name-mapping取得メソッド、`resolveWindowsUser` 関数追加
+- `lambda/permissions/unified-permission-service.ts`: TODOコメントを実態に合わせた説明コメントに更新
 - `docker/nextjs/components/login-form.tsx`: OIDCサインインボタン、`buildOidcSignInUrl` 関数追加
+- `docker/nextjs/src/app/[locale]/signin/page.tsx`: 全テキストを`useTranslations`に置き換え（21キー）
+- `docker/nextjs/src/app/signin/page.tsx`: ブラウザ言語検出→ロケール付きページへリダイレクトに変更
+- `docker/nextjs/src/messages/*.json` (8言語): `signin`セクション21キー追加
 - `lib/stacks/demo/demo-webapp-stack.ts`: `oidcProviderName`、`cognitoDomainUrl` props追加
 - `bin/demo-app.ts`: OIDC/LDAP設定のCDKコンテキスト読み込み、スタック間連携
-- `docs/auth-and-user-management.md` + 全7言語版: モード3（OIDC/LDAP Federation）セクション追加、権限フィルタリング戦略テーブル、トラブルシューティング拡張
-- `README.md` + 全7言語版: OIDC/LDAP Federationセクション追加、SecurityStack説明更新、セキュリティ層テーブル更新
+- `cdk.context.json.minimal`: 本CDKアプリのパラメータ形式に修正
+- `cdk.context.json.staging`: 本CDKアプリのパラメータ形式に修正（OIDC+LDAP+監視構成）
+- `cdk.context.json.production`: 本CDKアプリのパラメータ形式に修正（全機能有効構成）
+- `demo-data/scripts/cleanup-all.sh`: OpenLDAP EC2/IAM/SG/Secrets Manager削除ステップ追加
+- `demo-data/guides/demo-scenario.md`: シナリオ4（OIDC+LDAP Federation検証）追加
+- `demo-data/guides/ontap-setup-guide.md`: セクション10（ONTAP Name-Mapping設定）追加
+- `docs/auth-and-user-management.md` + 全7言語版: OpenLDAP考慮点、セットアップスクリプト、LDAP/ONTAP実環境テスト結果追加
+- `docs/DOCUMENTATION_INDEX.md` + 全7言語版: 新規スクリプト・構成ファイル・ガイドへの参照追加
+- `README.md` + 全7言語版: 実装概要14の観点、認証モード別ガイドへのリンク追加
+- `docs/screenshots/signin-page-saml-oidc-hybrid.png`: 最新のサインイン画面に差し替え
 
 ## [3.3.0] - 2026-04
 

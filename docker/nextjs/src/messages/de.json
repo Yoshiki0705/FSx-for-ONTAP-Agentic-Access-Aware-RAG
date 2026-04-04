@@ -703,10 +703,27 @@
     }
   },
   "signin": {
+    "title": "NetApp RAG System",
+    "subtitle": "Berechtigungsbewusst mit NetApp ONTAP",
     "adSignIn": "Mit AD anmelden",
     "adSignInDesc": "Mit Active Directory-Authentifizierung anmelden",
+    "oidcSignIn": "Mit {provider} anmelden",
+    "oidcSignInDesc": "Mit {provider} OIDC-Authentifizierung anmelden",
     "orDivider": "oder",
-    "emailSignIn": "Mit E-Mail/Passwort anmelden"
+    "emailSignIn": "Mit E-Mail/Passwort anmelden",
+    "username": "Benutzername",
+    "usernamePlaceholder": "Benutzername eingeben",
+    "password": "Passwort",
+    "passwordPlaceholder": "Passwort eingeben",
+    "signInButton": "Anmelden",
+    "signingIn": "Anmeldung läuft...",
+    "preparing": "Vorbereitung...",
+    "errorEmpty": "Bitte Benutzername und Passwort eingeben",
+    "errorCsrf": "Sicherheitstoken konnte nicht abgerufen werden",
+    "errorInvalid": "Benutzername oder Passwort ist falsch",
+    "errorGeneral": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "footer": "Berechtigungsbewusstes RAG-System",
+    "poweredBy": "Powered by Amazon FSx for NetApp ONTAP"
   },
   "imageUpload": {
     "dropzone": "Bild hierher ziehen",
@@ -725,7 +742,11 @@
     "connected": "Verbunden",
     "noKBConnected": "Keine Wissensdatenbank verbunden",
     "dataSources": "Datenquellen",
-    "status": { "ACTIVE": "Aktiv", "CREATING": "Wird erstellt", "FAILED": "Fehlgeschlagen" },
+    "status": {
+      "ACTIVE": "Aktiv",
+      "CREATING": "Wird erstellt",
+      "FAILED": "Fehlgeschlagen"
+    },
     "loadError": "KB-Liste konnte nicht geladen werden",
     "retry": "Erneut versuchen"
   },

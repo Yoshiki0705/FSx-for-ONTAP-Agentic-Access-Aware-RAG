@@ -58,6 +58,7 @@
 | 11 | 智慧路由 | 根據查詢複雜度自動選擇模型。簡短事實查詢路由到輕量模型（Haiku），長篇分析查詢路由到高效能模型（Sonnet）。側邊欄中的開/關切換 | WebAppStack |
 | 12 | 監控與警報 | CloudWatch 儀表板（Lambda/CloudFront/DynamoDB/Bedrock/WAF/進階 RAG 整合）、SNS 警報（錯誤率和延遲閾值通知）、EventBridge KB Ingestion Job 失敗通知、EMF 自訂指標。透過 `enableMonitoring=true` 啟用 | WebAppStack (MonitoringConstruct) |
 | 13 | AgentCore Memory | 透過 AgentCore Memory 維護對話上下文（短期和長期記憶）。會話內對話歷史（短期）+ 跨會話使用者偏好和摘要（長期）。透過 `enableAgentCoreMemory=true` 啟用 | AIStack |
+| 14 | OIDC/LDAP Federation + ONTAP Name-Mapping | OIDC IdP（Auth0/Keycloak/Okta）整合、LDAP直接查詢（OpenLDAP/FreeIPA）自動取得UID/GID、ONTAP REST API name-mapping（UNIX→Windows使用者對應）。設定驅動自動啟用。透過 `oidcProviderConfig` + `ldapConfig` + `ontapNameMappingEnabled` 啟用 | SecurityStack |
 
 ## UI 截圖
 

@@ -368,6 +368,25 @@ Match -> ALLOW, No match -> DENY
 
 ---
 
+
+### OpenLDAP 环境中的 LDAP Connector 注意事项
+
+| 项目 | 内容 |
+|------|------|
+| memberOf 覆盖层 | 基本 OpenLDAP 不会自动填充 `memberOf`。需要在 `slapd.conf` 中添加 `moduleload memberof` 和 `overlay memberof`，并创建 `groupOfNames` 条目 |
+| posixGroup vs groupOfNames | 具有不同的结构类，不能在同一条目中共存。`memberOf` 覆盖层需要 `groupOfNames` |
+| Secrets Manager | 绑定密码以纯文本字符串存储 |
+| VPC 部署 | 指定 `ldapConfig` 时，CDK 自动将 Lambda 部署到 VPC 内 |
+
+### 设置和验证脚本
+
+```bash
+bash demo-data/scripts/setup-openldap.sh
+bash demo-data/scripts/verify-ldap-integration.sh
+bash demo-data/scripts/setup-ontap-namemapping.sh
+bash demo-data/scripts/verify-ontap-namemapping.sh
+```
+
 ## 验证结果
 
 ### CDK Synth + 部署验证（v3.4.0）
@@ -382,6 +401,8 @@ Match -> ALLOW, No match -> DENY
 - Cognito AdminGetUser API 回退: ✅ PostConfirmation 触发器事件中自定义属性未包含时，通过 Cognito API 直接获取并正常运行
 - 单元测试: ✅ 130 通过
 - 属性测试: ✅ 52 通过
+- LDAP 实环境测试: ✅ OpenLDAP (VPC 内 EC2) → LDAP Connector → DynamoDB (uid:10001, gid:5001, source:OIDC-LDAP)
+- ONTAP name-mapping 实环境测试: ✅ ONTAP REST API 连接 → 3条 name-mapping 规则创建/获取 → resolveWindowsUser 验证
 
 ![登录界面（SAML + OIDC 混合）](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
 

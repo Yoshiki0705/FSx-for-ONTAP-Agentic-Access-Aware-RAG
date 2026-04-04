@@ -550,10 +550,27 @@
     }
   },
   "signin": {
+    "title": "NetApp RAG System",
+    "subtitle": "Permission-aware with NetApp ONTAP",
     "adSignIn": "ADでサインイン",
     "adSignInDesc": "Active Directory認証を使用してサインインします",
+    "oidcSignIn": "{provider}でサインイン",
+    "oidcSignInDesc": "{provider} OIDC認証を使用してサインインします",
     "orDivider": "または",
-    "emailSignIn": "メール/パスワードでサインイン"
+    "emailSignIn": "メール/パスワードでサインイン",
+    "username": "ユーザー名",
+    "usernamePlaceholder": "ユーザー名を入力",
+    "password": "パスワード",
+    "passwordPlaceholder": "パスワードを入力",
+    "signInButton": "サインイン",
+    "signingIn": "サインイン中...",
+    "preparing": "準備中...",
+    "errorEmpty": "ユーザー名とパスワードを入力してください",
+    "errorCsrf": "セキュリティトークンの取得に失敗しました",
+    "errorInvalid": "ユーザー名またはパスワードが正しくありません",
+    "errorGeneral": "サインインに失敗しました。もう一度お試しください。",
+    "footer": "Permission-aware RAG System",
+    "poweredBy": "Powered by Amazon FSx for NetApp ONTAP"
   },
   "imageUpload": {
     "dropzone": "画像をドラッグ＆ドロップ",
@@ -572,7 +589,11 @@
     "connected": "接続済み",
     "noKBConnected": "Knowledge Baseが接続されていません",
     "dataSources": "データソース",
-    "status": { "ACTIVE": "アクティブ", "CREATING": "作成中", "FAILED": "失敗" },
+    "status": {
+      "ACTIVE": "アクティブ",
+      "CREATING": "作成中",
+      "FAILED": "失敗"
+    },
     "loadError": "KB一覧の取得に失敗しました",
     "retry": "再試行"
   },

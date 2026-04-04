@@ -1,7 +1,7 @@
 # FSx ONTAP + Active Directory 連携・CIFS共有設定ガイド
 
-**最終更新**: 2026-03-25  
-**検証済み環境**: ap-northeast-1, AWS Managed Microsoft AD (Standard), FSx for ONTAP Multi-AZ
+**最終更新**: 2026-04-04  
+**検証済み環境**: ap-northeast-1, AWS Managed Microsoft AD (Standard), FSx for ONTAP Single-AZ / Multi-AZ
 
 ---
 
@@ -269,3 +269,87 @@ volume flexcache create -vserver <SVM_NAME> \
 | CIFSマウント失敗 | CIFS共有未作成 | ONTAP REST APIでCIFS共有を作成 |
 | ONTAP REST API接続不可 | fsxadminパスワード未設定 | `aws fsx update-file-system` でパスワード設定 |
 | ONTAP REST API 401 | パスワード不一致 | 正しいfsxadminパスワードを確認 |
+
+---
+
+## 10. ONTAP Name-Mapping設定（UNIX→Windowsユーザー対応付け）
+
+OIDC/LDAP環境でUNIXユーザー名からWindowsユーザー名へのマッピングが必要な場合、ONTAP REST APIでname-mappingルールを設定します。Permission Resolver LambdaがONTAP REST API経由でマッピングルールを取得し、UID/GIDベースの権限をSIDベースに変換します。
+
+### 前提条件
+
+- fsxadminパスワードが設定済み（セクション3参照）
+- `ontapNameMappingEnabled=true` が `cdk.context.json` に設定済み
+- SVM UUIDが判明していること
+
+### SVM UUID取得
+
+```bash
+SVM_UUID=$(aws fsx describe-storage-virtual-machines \
+  --region ap-northeast-1 \
+  --query 'StorageVirtualMachines[?FileSystemId==`<FS_ID>`].UUID' \
+  --output text)
+echo "SVM UUID: $SVM_UUID"
+```
+
+### Name-Mappingルール作成
+
+```bash
+MGMT_IP=<FSx Management Endpoint IP>
+ADMIN_PASSWORD=<fsxadmin password>
+SVM_UUID=<SVM UUID>
+
+# UNIX→Windowsマッピングルール作成
+curl -sk -X POST -u "fsxadmin:${ADMIN_PASSWORD}" \
+  -H "Content-Type: application/json" \
+  "https://${MGMT_IP}/api/name-services/name-mappings" \
+  -d '{
+    "svm": {"uuid": "'${SVM_UUID}'"},
+    "direction": "unix_win",
+    "index": 1,
+    "pattern": "alice",
+    "replacement": "DEMO\\alice"
+  }'
+```
+
+### Name-Mappingルール確認
+
+```bash
+curl -sk -u "fsxadmin:${ADMIN_PASSWORD}" \
+  "https://${MGMT_IP}/api/name-services/name-mappings?svm.uuid=${SVM_UUID}&direction=unix_win&fields=pattern,replacement" \
+  | python3 -m json.tool
+```
+
+### cdk.context.json設定
+
+```json
+{
+  "ontapNameMappingEnabled": true,
+  "ontapMgmtIp": "<Management Endpoint IP>",
+  "ontapSvmUuid": "<SVM UUID>",
+  "ontapAdminSecretArn": "arn:aws:secretsmanager:ap-northeast-1:<ACCOUNT>:secret:<SECRET_NAME>"
+}
+```
+
+### 検証済みの考慮点
+
+| 項目 | 内容 |
+|------|------|
+| FSx管理エンドポイント | VPC内からのみアクセス可能。ローカルからはアクセス不可 |
+| fsxadminパスワード | CDK作成時には未設定。`aws fsx update-file-system` で明示的に設定が必要 |
+| セキュリティグループ | FSx SGにポート443のインバウンドルールが必要（VPC CIDR or Lambda SG） |
+| 複数FSx環境 | タグ（`Project`）やサブネットIDでCDK管理のFSxを特定すること |
+| Secrets Manager | fsxadminパスワードはプレーンテキスト文字列として保存（JSON不要） |
+| ONTAP REST APIバージョン | ONTAP 9.17.1P4で検証済み |
+
+### セットアップスクリプト
+
+自動セットアップスクリプトが `demo-data/scripts/` に用意されています:
+
+```bash
+# ONTAP name-mapping自動セットアップ
+bash demo-data/scripts/setup-ontap-namemapping.sh
+
+# 検証
+bash demo-data/scripts/verify-ontap-namemapping.sh
+```

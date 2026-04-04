@@ -92,8 +92,9 @@ export class UnifiedPermissionService {
     try {
       if (useDetailedCheck) {
         // 詳細チェック（SSM PowerShell）
+        // 現在はONTAP REST APIと同じqueryUserPermissionsを使用。
+        // SSM PowerShell経由のNTFS ACL詳細取得が必要な場合は別メソッドに分離する。
         console.log('詳細チェックを実行します');
-        // TODO: 実際の詳細チェック実装
         permissions = await this.fsxService.queryUserPermissions(userId);
         source = 'ssm-powershell';
       } else {

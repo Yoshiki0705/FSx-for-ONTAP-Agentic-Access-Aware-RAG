@@ -550,10 +550,27 @@
     }
   },
   "signin": {
+    "title": "NetApp RAG System",
+    "subtitle": "Permission-aware with NetApp ONTAP",
     "adSignIn": "Sign in with AD",
     "adSignInDesc": "Sign in using Active Directory authentication",
+    "oidcSignIn": "Sign in with {provider}",
+    "oidcSignInDesc": "Sign in using {provider} OIDC authentication",
     "orDivider": "or",
-    "emailSignIn": "Sign in with email/password"
+    "emailSignIn": "Sign in with email/password",
+    "username": "Username",
+    "usernamePlaceholder": "Enter username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "signInButton": "Sign in",
+    "signingIn": "Signing in...",
+    "preparing": "Preparing...",
+    "errorEmpty": "Please enter username and password",
+    "errorCsrf": "Failed to obtain security token",
+    "errorInvalid": "Invalid username or password",
+    "errorGeneral": "Sign in failed. Please try again.",
+    "footer": "Permission-aware RAG System",
+    "poweredBy": "Powered by Amazon FSx for NetApp ONTAP"
   },
   "imageUpload": {
     "dropzone": "Drag and drop an image",
@@ -572,7 +589,11 @@
     "connected": "Connected",
     "noKBConnected": "No Knowledge Base connected",
     "dataSources": "Data Sources",
-    "status": { "ACTIVE": "Active", "CREATING": "Creating", "FAILED": "Failed" },
+    "status": {
+      "ACTIVE": "Active",
+      "CREATING": "Creating",
+      "FAILED": "Failed"
+    },
     "loadError": "Failed to load KB list",
     "retry": "Retry"
   },

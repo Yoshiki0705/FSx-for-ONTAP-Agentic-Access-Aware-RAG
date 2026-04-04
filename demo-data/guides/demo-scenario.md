@@ -167,3 +167,70 @@ bash demo-data/scripts/sync-kb-datasource.sh
 - **全ドキュメントが拒否される**: DynamoDB user-accessテーブルにユーザーのSIDデータが登録されているか確認。**注意**: アプリはCognitoの`sub`ではなくメールアドレスを`userId`として送信するため、DynamoDBの`userId`キーにはメールアドレスを使用すること
 - **SIDフィルタリングが効かない**: `.metadata.json` の `allowed_group_sids` が正しく設定されているか確認
 - **サインインできない**: Cognito User Poolのユーザーステータスを確認
+
+---
+
+## シナリオ4: OIDC + LDAP Federation検証
+
+> **前提条件**: `oidcProviderConfig` + `ldapConfig` でCDKデプロイ済み。OpenLDAPサーバーがVPC内で稼働中。
+
+### 4-1. OpenLDAPセットアップ
+
+```bash
+# OpenLDAPサーバー構築（EC2 + user-data）
+bash demo-data/scripts/setup-openldap.sh
+
+# cdk.context.json に ldapConfig を追加してCDKデプロイ
+npx cdk deploy perm-rag-demo-demo-Security
+```
+
+### 4-2. LDAPテストユーザー
+
+| ユーザー | メール | UID | GID | グループ |
+|---------|--------|-----|-----|---------|
+| alice | alice@demo.local | 10001 | 5001 | engineering, confidential-readers, public-readers |
+| bob | bob@demo.local | 10002 | 5002 | finance, public-readers |
+| charlie | charlie@demo.local | 10003 | 5003 | hr, confidential-readers, public-readers |
+
+### 4-3. OIDC + LDAPサインインフロー
+
+1. CloudFront URLにアクセス
+2. 「Auth0でサインイン」ボタンをクリック
+3. Auth0認証画面でメールアドレス/パスワードを入力
+4. 認証成功後、Post-Auth TriggerでIdentity Sync Lambdaが実行
+5. LDAP Connectorがalice@demo.localでOpenLDAPを検索
+6. UID(10001)/GID(5001)/memberOf(3グループ)を取得
+7. DynamoDBに `source: "OIDC-LDAP"` で保存
+8. チャット画面に遷移
+
+### 4-4. 確認ポイント
+
+| 確認項目 | 期待結果 |
+|---------|---------|
+| DynamoDB `uid` | 10001（LDAPから取得） |
+| DynamoDB `gid` | 5001（LDAPから取得） |
+| DynamoDB `source` | `OIDC-LDAP` |
+| DynamoDB `authSource` | `oidc` |
+| DynamoDB `oidcGroups` | OIDCトークンのグループクレーム値 |
+| Lambda CloudWatch Logs | `hasLdapConfig: true`, `groupCount: 3` |
+
+### 4-5. 検証スクリプト
+
+```bash
+# LDAP統合検証
+bash demo-data/scripts/verify-ldap-integration.sh
+
+# ONTAP name-mapping検証
+bash demo-data/scripts/verify-ontap-namemapping.sh
+```
+
+### 4-6. OpenLDAP構築時の考慮点
+
+| 項目 | 内容 |
+|------|------|
+| memberOfオーバーレイ | 基本OpenLDAPでは`memberOf`属性が自動付与されない。`moduleload memberof` + `overlay memberof` を `slapd.conf` に追加し、`groupOfNames` エントリを作成する必要がある |
+| posixGroupとgroupOfNames | `posixGroup`（`memberUid`属性）と`groupOfNames`（`member`属性）は構造クラスが異なり混在不可。`memberOf`オーバーレイには`groupOfNames`が必要 |
+| slapd.confモード | Amazon Linux 2023では `slapd.d` (cn=config) がデフォルトだが、`slapd.conf` モードの方が設定が簡単。systemdオーバーライドで `-f /etc/openldap/slapd.conf` を指定 |
+| セキュリティグループ | Lambda SGからLDAP SG へのポート389/636インバウンドを許可。LDAP SGからのHTTPS(443)アウトバウンドも必要（Secrets Manager/DynamoDB用） |
+| Secrets Manager | バインドパスワードはプレーンテキスト文字列として保存（JSON不要） |
+| VPC配置 | `ldapConfig` 指定時、CDKが自動的にLambdaをVPC内に配置し、LDAP用SGを作成 |
