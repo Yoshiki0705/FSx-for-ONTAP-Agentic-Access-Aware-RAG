@@ -998,7 +998,28 @@ Bedrock KB Ingestion Job 執行的處理：
 3. 使用 Amazon Titan Embed Text v2（1024 維度）進行向量化
 4. 將向量 + 中繼資料（包含 `allowed_group_sids`）儲存到向量儲存
 
-> **Ingestion Job 配額和設計考量**：限制包括每個 job 100GB/每個檔案 50MB、不能對同一 KB 進行平行同步、StartIngestionJob API 速率 0.1 req/sec（每 10 秒一次）等。包含定期同步排程方法的詳情，請參閱 [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md#bedrock-kb-ingestion-job--クォータと設計考慮点)。
+#### Ingestion Job
+
+Ingestion Job (KB sync) ingests documents from a data source into the vector store. **It does not run automatically.**
+
+```bash
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+| Constraint | Value | Description |
+|-----------|-------|-------------|
+| Max data per job | **100 GB** | Total data source size per Ingestion Job |
+| Max file size | **50 MB** | Individual file size limit (images: 3.75 MB) |
+| Concurrent jobs (per KB) | **1** | No parallel jobs on same KB |
+| Concurrent jobs (per account) | **5** | Max 5 simultaneous jobs |
+| API rate | **0.1 req/sec** | Once every 10 seconds |
+
+> Reference: [Amazon Bedrock quotas](https://docs.aws.amazon.com/general/latest/gr/bedrock.html)
+
+**100 GB workaround:** Split into multiple data sources (e.g., by department), each with its own S3 Access Point.
 
 搜尋流程：
 ```

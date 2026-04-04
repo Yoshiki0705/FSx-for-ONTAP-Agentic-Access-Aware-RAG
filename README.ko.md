@@ -998,7 +998,28 @@ Bedrock KB Ingestion Job이 수행하는 처리:
 3. Amazon Titan Embed Text v2(1024차원)로 벡터화
 4. 벡터 + 메타데이터(`allowed_group_sids` 포함)를 벡터 스토어에 저장
 
-> **Ingestion Job 할당량 및 설계 고려 사항**: 작업당 100GB/파일당 50MB, 동일 KB에 대한 병렬 동기화 불가, StartIngestionJob API 속도 0.1 req/sec(10초에 1회) 등의 제약이 있습니다. 주기적 동기화 스케줄링 방법 등 자세한 내용은 [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md#bedrock-kb-ingestion-job--クォータと設計考慮点)를 참조하세요.
+#### Ingestion Job
+
+Ingestion Job (KB sync) ingests documents from a data source into the vector store. **It does not run automatically.**
+
+```bash
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+| Constraint | Value | Description |
+|-----------|-------|-------------|
+| Max data per job | **100 GB** | Total data source size per Ingestion Job |
+| Max file size | **50 MB** | Individual file size limit (images: 3.75 MB) |
+| Concurrent jobs (per KB) | **1** | No parallel jobs on same KB |
+| Concurrent jobs (per account) | **5** | Max 5 simultaneous jobs |
+| API rate | **0.1 req/sec** | Once every 10 seconds |
+
+> Reference: [Amazon Bedrock quotas](https://docs.aws.amazon.com/general/latest/gr/bedrock.html)
+
+**100 GB workaround:** Split into multiple data sources (e.g., by department), each with its own S3 Access Point.
 
 검색 흐름:
 ```

@@ -819,6 +819,30 @@ Al usar la configuración S3 Vectors (`vectorStoreType=s3vectors`), tenga en cue
 
 > **Ruta de respaldo**: Si FSx ONTAP S3 AP no está disponible (ej. restricciones SCP de Organization), puede cargar directamente documentos + `.metadata.json` a un bucket S3 y configurarlo como fuente de datos KB. El filtrado SID no depende del tipo de fuente de datos.
 
+
+#### Ingestion Job
+
+Ingestion Job (KB sync) ingests documents from a data source into the vector store. **It does not run automatically.**
+
+```bash
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+| Constraint | Value | Description |
+|-----------|-------|-------------|
+| Max data per job | **100 GB** | Total data source size per Ingestion Job |
+| Max file size | **50 MB** | Individual file size limit (images: 3.75 MB) |
+| Concurrent jobs (per KB) | **1** | No parallel jobs on same KB |
+| Concurrent jobs (per account) | **5** | Max 5 simultaneous jobs |
+| API rate | **0.1 req/sec** | Once every 10 seconds |
+
+> Reference: [Amazon Bedrock quotas](https://docs.aws.amazon.com/general/latest/gr/bedrock.html)
+
+**100 GB workaround:** Split into multiple data sources, each with its own S3 Access Point.
+
 ### Gestión manual de documentos objetivo de embedding
 
 Puede agregar, modificar y eliminar documentos objetivo de embedding sin despliegue CDK.

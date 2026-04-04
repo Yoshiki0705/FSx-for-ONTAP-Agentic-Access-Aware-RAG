@@ -1023,7 +1023,46 @@ Processing performed by Bedrock KB Ingestion Job:
 3. Vectorizes with Amazon Titan Embed Text v2 (1024 dimensions)
 4. Stores vectors + metadata (including `allowed_group_sids`) in the vector store
 
-> **Ingestion Job quotas and design considerations**: Constraints include 100GB/50MB per file per job, no parallel sync to the same KB, StartIngestionJob API rate of 0.1 req/sec (once every 10 seconds), etc. For details including periodic sync scheduling methods, see [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md#bedrock-kb-ingestion-job--クォータと設計考慮点).
+#### How to Run Ingestion Jobs
+
+An Ingestion Job (KB sync) ingests documents from a data source into the vector store. **It does not run automatically — you must trigger it manually or on a schedule.**
+
+```bash
+# Manual execution
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+**When to run:**
+- After adding, updating, or deleting documents (changes are not reflected in the vector store until synced)
+- Incremental sync: only changed documents are reprocessed (not a full re-ingestion)
+- Duration: typically 30 seconds to 2 minutes (depends on document count)
+
+**Periodic execution:**
+- Use EventBridge Scheduler to call `StartIngestionJob` API on a schedule
+- Deploy with `enableMonitoring=true` to auto-configure EventBridge notifications for Ingestion Job failures
+- See [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md#bedrock-kb-ingestion-job--クォータと設計考慮点) for details
+
+#### Ingestion Job Quotas and Constraints
+
+| Constraint | Value | Description |
+|-----------|-------|-------------|
+| Max data per job | **100 GB** | Total data source size limit per single Ingestion Job |
+| Max file size | **50 MB** | Individual document file size limit (images: 3.75 MB) |
+| Concurrent jobs (per KB) | **1** | Cannot run parallel jobs on the same Knowledge Base |
+| Concurrent jobs (per data source) | **1** | Cannot run parallel jobs on the same data source |
+| Concurrent jobs (per account) | **5** | Max 5 simultaneous jobs across the entire account |
+| StartIngestionJob API rate | **0.1 req/sec** | Once every 10 seconds (no burst) |
+| Supported formats | .txt, .md, .html, .doc/.docx, .csv, .xls/.xlsx, .pdf, .jpeg, .png | — |
+
+> Reference: [Amazon Bedrock endpoints and quotas](https://docs.aws.amazon.com/general/latest/gr/bedrock.html), [Prerequisites for your knowledge base data](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-ds.html)
+
+**Workarounds for the 100 GB limit:**
+- Split into multiple data sources (e.g., by department or year, each with its own S3 Access Point)
+- Run Ingestion Jobs for each data source individually (serial execution within the same KB)
+- Pre-split large files (over 50 MB) into smaller chunks before placing them on the volume
 
 Search flow:
 ```
@@ -1051,9 +1090,19 @@ FSx ONTAP Volume (/data)
       └── project-plan.md.metadata.json
 ```
 
-#### .metadata.json Format
+#### .metadata.json Format and Creation
 
-Set SID-based access control in the `.metadata.json` file corresponding to each document.
+Set SID-based access control in the `.metadata.json` file corresponding to each document. Place this file in the same directory as the document, following the naming convention `<document-name>.metadata.json`.
+
+**Naming convention:**
+```
+product-catalog.md               ← Document body
+product-catalog.md.metadata.json  ← Permission metadata (must use this exact name)
+```
+
+> **Important**: `.metadata.json` follows the [Bedrock KB metadata file specification](https://docs.aws.amazon.com/bedrock/latest/userguide/s3-data-source-connector.html). If the filename is incorrect, metadata will be ignored and permission filtering will not work.
+
+**Format:**
 
 ```json
 {
@@ -1070,6 +1119,25 @@ Set SID-based access control in the `.metadata.json` file corresponding to each 
 | `allowed_group_sids` | ✅ | JSON array string of SIDs allowed access. `S-1-1-0` is Everyone |
 | `access_level` | Optional | Access level for UI display (`public`, `confidential`, `restricted`) |
 | `doc_type` | Optional | Document type (for future filtering) |
+
+**How to create:**
+
+1. **Manual**: Create the JSON file with a text editor
+2. **Auto-generate from ONTAP ACLs**: Set `ontapMgmtIp` and the Embedding server auto-generates `.metadata.json` from NTFS ACL info via ONTAP REST API (see [docs/embedding-server-design.md](docs/embedding-server-design.md))
+3. **Batch script**: Create a script to generate metadata based on directory structure
+
+**Example: allowing access to multiple groups:**
+
+```json
+{
+  "metadataAttributes": {
+    "allowed_group_sids": "[\"S-1-5-21-...-512\", \"S-1-5-21-...-1100\"]",
+    "access_level": "restricted"
+  }
+}
+```
+
+This allows access to both Domain Admins (-512) and Engineering (-1100) groups.
 
 #### Key SID Values
 
