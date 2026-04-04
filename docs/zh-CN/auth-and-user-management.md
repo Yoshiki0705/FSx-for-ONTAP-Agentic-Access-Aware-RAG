@@ -238,6 +238,19 @@ OIDC 用户登录时，以下操作将全部自动完成：
 }
 ```
 
+> **Auth0 使用时的重要注意事项**: Auth0 的 OIDC 合规应用程序要求 ID 令牌中的自定义声明使用命名空间（URL 前缀）。没有命名空间的 `groups` 声明会从 ID 令牌中被自动删除。请在 Auth0 的 Post Login Action 中按如下方式设置带命名空间的声明：
+>
+> ```javascript
+> // Auth0 Post Login Action
+> exports.onExecutePostLogin = async (event, api) => {
+>   const groups = ['developers', 'rag-users']; // 用户的组
+>   api.idToken.setCustomClaim('https://rag-system/groups', groups);
+>   api.accessToken.setCustomClaim('https://rag-system/groups', groups);
+> };
+> ```
+>
+> CDK 端的 `groupClaimName` 保持 `groups` 即可。CDK 会自动配置 `https://rag-system/groups` → `custom:oidc_groups` 的属性映射。
+
 ### 模式 E：SAML + OIDC 混合
 
 ```json
@@ -342,8 +355,9 @@ Match -> ALLOW, No match -> DENY
 | LDAP 权限获取失败 | LDAP 连接错误 | 在 CloudWatch Logs 中检查 Identity Sync Lambda 错误。登录本身不会被阻止（Fail-Open） |
 | AD 组变更未反映 | SID 缓存（24 小时） | 等待 24 小时，或删除 DynamoDB 中的相关记录后重新登录 |
 | AD Sync Lambda 超时 | 通过 SSM 执行 PowerShell 较慢 | 增加 `SSM_TIMEOUT` 环境变量（默认 60 秒） |
-| OIDC 组未获取 | IdP 端未配置组声明 | 确认 IdP 端在令牌中包含 `groups` 声明的设置。检查 `groupClaimName` 参数是否一致 |
+| OIDC 组未获取 | IdP 端未配置组声明，或未使用命名空间声明 | Auth0 等 OIDC 合规 IdP 要求 ID 令牌中的自定义声明使用命名空间（URL 前缀）。对于 Auth0，在 Post Login Action 中使用 `api.idToken.setCustomClaim('https://rag-system/groups', groups)` 设置带命名空间的声明，并确保 Cognito 属性映射也匹配 `https://rag-system/groups` → `custom:oidc_groups` |
 | OIDC 登录后 DynamoDB 中未注册权限数据 | Post-Auth Trigger 或 Identity Sync Lambda 未创建 | 指定 `oidcProviderConfig` 部署 CDK 会自动创建 Identity Sync Lambda 和 Post-Auth Trigger。在 CloudWatch Logs 中检查 Lambda 执行日志 |
+| PostConfirmation 触发器中自定义属性为空 | Cognito 规范中 PostConfirmation 事件可能不包含自定义属性 | Identity Sync Lambda 已实现 Cognito AdminGetUser API 回退。确认 Lambda 执行角色已授予 `cognito-idp:AdminGetUser` 权限 |
 | OAuth 回调错误（OIDC 配置） | `cloudFrontUrl` 未设置 | OIDC 配置也需要 `cloudFrontUrl`。在 `cdk.context.json` 中设置并重新部署 |
 
 ---
@@ -358,6 +372,8 @@ Match -> ALLOW, No match -> DENY
 - OIDC 认证流程: ✅ 端到端成功
 - Post-Auth Trigger: ✅ PostConfirmation
 - DynamoDB 自动保存: ✅ OIDC-Claims
+- OIDC 组声明管道: ✅ Auth0 Post Login Action → 命名空间声明(`https://rag-system/groups`) → Cognito `custom:oidc_groups` → Identity Sync Lambda → DynamoDB `oidcGroups: ["developers","rag-users"]`
+- Cognito AdminGetUser API 回退: ✅ PostConfirmation 触发器事件中自定义属性未包含时，通过 Cognito API 直接获取并正常运行
 - 单元测试: ✅ 130 通过
 - 属性测试: ✅ 52 通过
 

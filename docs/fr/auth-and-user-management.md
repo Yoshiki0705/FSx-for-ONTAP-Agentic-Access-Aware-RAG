@@ -238,6 +238,19 @@ Chaque méthode d'authentification est automatiquement activée lorsque sa confi
 }
 ```
 
+> **Note importante pour les utilisateurs Auth0** : Les applications conformes OIDC d'Auth0 exigent que les claims personnalisés dans les ID tokens utilisent un espace de noms (préfixe URL). Les claims `groups` sans espace de noms sont silencieusement supprimés des ID tokens. Configurez votre Auth0 Post Login Action avec des claims à espace de noms :
+>
+> ```javascript
+> // Auth0 Post Login Action
+> exports.onExecutePostLogin = async (event, api) => {
+>   const groups = ['developers', 'rag-users']; // Groupes de l'utilisateur
+>   api.idToken.setCustomClaim('https://rag-system/groups', groups);
+>   api.accessToken.setCustomClaim('https://rag-system/groups', groups);
+> };
+> ```
+>
+> Le `groupClaimName` CDK peut rester `groups`. CDK configure automatiquement le mappage d'attributs `https://rag-system/groups` → `custom:oidc_groups`.
+
 ### Modèle E : Hybride SAML + OIDC
 
 ```json
@@ -342,8 +355,9 @@ Match -> ALLOW, No match -> DENY
 | Échec de la récupération des permissions LDAP | Erreur de connexion LDAP | Vérifier les erreurs d'Identity Sync Lambda dans CloudWatch Logs. La connexion n'est pas bloquée (Fail-Open) |
 | Les modifications de groupe AD ne sont pas reflétées | Cache SID (24 heures) | Attendre 24 heures ou supprimer l'enregistrement concerné dans DynamoDB et se reconnecter |
 | Délai d'expiration AD Sync Lambda | L'exécution PowerShell via SSM est lente | Augmenter la variable d'environnement `SSM_TIMEOUT` (par défaut : 60 secondes) |
-| Groupes OIDC non récupérés | Claim de groupe non configuré dans l'IdP | Vérifier que l'IdP inclut le claim `groups` dans le jeton. Vérifier le paramètre `groupClaimName` |
+| Groupes OIDC non récupérés | Claim de groupe non configuré dans l'IdP, ou claims sans espace de noms | Les IdP conformes OIDC comme Auth0 exigent des claims personnalisés avec espace de noms dans les ID tokens. Pour Auth0, utilisez `api.idToken.setCustomClaim('https://rag-system/groups', groups)` dans un Post Login Action, et assurez-vous que le mappage d'attributs Cognito correspond à `https://rag-system/groups` → `custom:oidc_groups` |
 | Données de permissions non enregistrées dans DynamoDB après connexion OIDC | Post-Auth Trigger ou Identity Sync Lambda non créé | Le déploiement CDK avec `oidcProviderConfig` crée automatiquement l'Identity Sync Lambda et le Post-Auth Trigger. Vérifier les logs d'exécution Lambda dans CloudWatch Logs |
+| Attributs personnalisés vides dans le trigger PostConfirmation | Cognito peut ne pas inclure les attributs personnalisés dans l'événement PostConfirmation | L'Identity Sync Lambda inclut un mécanisme de repli via l'API Cognito AdminGetUser. Vérifier que le rôle d'exécution Lambda dispose de la permission `cognito-idp:AdminGetUser` |
 | Erreur de callback OAuth (configuration OIDC) | `cloudFrontUrl` non défini | `cloudFrontUrl` est également requis pour la configuration OIDC. Définir dans `cdk.context.json` et redéployer |
 
 ---
@@ -358,6 +372,8 @@ Match -> ALLOW, No match -> DENY
 - Flux d'authentification OIDC : ✅ Succès de bout en bout
 - Post-Auth Trigger : ✅ PostConfirmation
 - Sauvegarde automatique DynamoDB : ✅ OIDC-Claims
+- Pipeline de claims de groupes OIDC : ✅ Auth0 Post Login Action → claim avec espace de noms (`https://rag-system/groups`) → Cognito `custom:oidc_groups` → Identity Sync Lambda → DynamoDB `oidcGroups: ["developers","rag-users"]`
+- Repli API Cognito AdminGetUser : ✅ Lorsque l'événement du trigger PostConfirmation ne contient pas les attributs personnalisés, Lambda les récupère via l'API Cognito
 - Tests unitaires : ✅ 130 réussis
 - Tests de propriétés : ✅ 52 réussis
 

@@ -261,6 +261,19 @@ Each authentication method is automatically enabled when its configuration is pr
 }
 ```
 
+> **Important note for Auth0 users**: Auth0's OIDC-conformant applications require custom claims in ID tokens to use a namespace (URL prefix). Non-namespaced `groups` claims are silently dropped from ID tokens. Configure your Auth0 Post Login Action with namespaced claims:
+>
+> ```javascript
+> // Auth0 Post Login Action
+> exports.onExecutePostLogin = async (event, api) => {
+>   const groups = ['developers', 'rag-users']; // User's groups
+>   api.idToken.setCustomClaim('https://rag-system/groups', groups);
+>   api.accessToken.setCustomClaim('https://rag-system/groups', groups);
+> };
+> ```
+>
+> The CDK `groupClaimName` can remain as `groups`. CDK automatically configures the attribute mapping as `https://rag-system/groups` → `custom:oidc_groups`.
+
 ### Pattern E: SAML + OIDC Hybrid
 
 ```json
@@ -365,8 +378,9 @@ Match -> ALLOW, No match -> DENY
 | LDAP permission retrieval failure | LDAP connection error | Check Identity Sync Lambda logs in CloudWatch. Sign-in is not blocked (Fail-Open) |
 | AD group changes not reflected | SID cache (24 hours) | Wait 24 hours, or delete the relevant DynamoDB record and sign in again |
 | AD Sync Lambda timeout | PowerShell execution via SSM is slow | Increase the `SSM_TIMEOUT` environment variable (default: 60 seconds) |
-| OIDC groups not retrieved | Group claim not configured in IdP | Verify IdP includes `groups` claim in token. Check `groupClaimName` parameter |
+| OIDC groups not retrieved | Group claim not configured in IdP, or non-namespaced claims | Auth0 and other OIDC-conformant IdPs require namespaced custom claims in ID tokens. For Auth0, use `api.idToken.setCustomClaim('https://rag-system/groups', groups)` in a Post Login Action, and ensure Cognito attribute mapping matches |
 | DynamoDB permission data not registered after OIDC sign-in | Post-Auth Trigger or Identity Sync Lambda not created | Deploying CDK with `oidcProviderConfig` automatically creates the Identity Sync Lambda and Post-Auth Trigger. Check Lambda execution logs in CloudWatch Logs |
+| Custom attributes empty in PostConfirmation trigger | Cognito may not include custom attributes in PostConfirmation event | Identity Sync Lambda includes a Cognito AdminGetUser API fallback. Ensure Lambda role has `cognito-idp:AdminGetUser` permission |
 | OAuth callback error (OIDC configuration) | `cloudFrontUrl` not set | `cloudFrontUrl` is also required for OIDC configuration. Set it in `cdk.context.json` and redeploy |
 
 ---
@@ -383,6 +397,8 @@ Match -> ALLOW, No match -> DENY
 - Cognito auto user creation: ✅ `Auth0_auth0|...` (Status: EXTERNAL_PROVIDER)
 - Post-Auth Trigger: ✅ PostConfirmation trigger fires Identity Sync Lambda on first OIDC sign-in
 - DynamoDB auto-save: ✅ `source: "OIDC-Claims"`, `authSource: "oidc"` record created
+- OIDC groups claim pipeline: ✅ Auth0 Post Login Action → namespaced claim (`https://rag-system/groups`) → Cognito `custom:oidc_groups` → Identity Sync Lambda → DynamoDB `oidcGroups: ["developers","rag-users"]`
+- Cognito AdminGetUser API fallback: ✅ When PostConfirmation trigger event lacks custom attributes, Lambda retrieves them via Cognito API
 - Backward compatibility: ✅ Existing SAML AD Federation works normally
 - Unit tests: ✅ 130 tests pass
 - Property tests: ✅ 52 tests pass (17 properties, numRuns=20)

@@ -238,6 +238,19 @@ OIDC 사용자가 로그인하면 다음이 모두 자동으로 수행됩니다:
 }
 ```
 
+> **Auth0 사용 시 중요 참고 사항**: Auth0의 OIDC 준수 애플리케이션에서는 ID 토큰의 커스텀 클레임에 네임스페이스(URL prefix)가 필요합니다. 네임스페이스 없는 `groups` 클레임은 ID 토큰에서 자동으로 제외됩니다. Auth0의 Post Login Action에서 다음과 같이 네임스페이스가 포함된 클레임을 설정하세요:
+>
+> ```javascript
+> // Auth0 Post Login Action
+> exports.onExecutePostLogin = async (event, api) => {
+>   const groups = ['developers', 'rag-users']; // 사용자의 그룹
+>   api.idToken.setCustomClaim('https://rag-system/groups', groups);
+>   api.accessToken.setCustomClaim('https://rag-system/groups', groups);
+> };
+> ```
+>
+> CDK 측의 `groupClaimName`은 `groups`로 유지하면 됩니다. CDK가 자동으로 `https://rag-system/groups` → `custom:oidc_groups` 속성 매핑을 설정합니다.
+
 ### 패턴 E: SAML + OIDC 하이브리드
 
 ```json
@@ -342,8 +355,9 @@ Match -> ALLOW, No match -> DENY
 | LDAP 권한 취득 실패 | LDAP 연결 오류 | CloudWatch Logs에서 Identity Sync Lambda 오류를 확인. 로그인 자체는 차단되지 않음 (Fail-Open) |
 | AD 그룹 변경이 반영되지 않음 | SID 캐시 (24시간) | 24시간 대기하거나 DynamoDB의 해당 레코드를 삭제하고 재로그인 |
 | AD Sync Lambda 타임아웃 | SSM 경유 PowerShell 실행이 느림 | `SSM_TIMEOUT` 환경 변수를 늘림 (기본값: 60초) |
-| OIDC 그룹이 취득되지 않음 | IdP 측에서 그룹 클레임 미설정 | IdP 측에서 토큰에 `groups` 클레임을 포함하는 설정을 확인. `groupClaimName` 파라미터의 일치를 확인 |
+| OIDC 그룹이 취득되지 않음 | IdP 측에서 그룹 클레임 미설정 또는 네임스페이스 없는 클레임 | Auth0 등의 OIDC 준수 IdP에서는 ID 토큰의 커스텀 클레임에 네임스페이스(URL prefix)가 필요. Auth0의 경우 Post Login Action에서 `api.idToken.setCustomClaim('https://rag-system/groups', groups)`와 같이 네임스페이스가 포함된 클레임을 설정하고, Cognito 속성 매핑도 `https://rag-system/groups` → `custom:oidc_groups`에 맞춤 |
 | OIDC 로그인 후 DynamoDB에 권한 데이터가 등록되지 않음 | Post-Auth Trigger 또는 Identity Sync Lambda가 미생성 | `oidcProviderConfig`를 지정하여 CDK를 배포하면 Identity Sync Lambda와 Post-Auth Trigger가 자동 생성됨. CloudWatch Logs에서 Lambda 실행 로그 확인 |
+| PostConfirmation 트리거에서 커스텀 속성이 비어 있음 | Cognito 사양상 PostConfirmation 이벤트에 커스텀 속성이 포함되지 않는 경우가 있음 | Identity Sync Lambda에는 Cognito AdminGetUser API 폴백이 구현되어 있음. Lambda 실행 역할에 `cognito-idp:AdminGetUser` 권한이 부여되어 있는지 확인 |
 | OAuth 콜백 오류 (OIDC 구성) | `cloudFrontUrl` 미설정 | OIDC 구성에서도 `cloudFrontUrl`이 필요. `cdk.context.json`에 설정하고 재배포 |
 
 ---
@@ -358,6 +372,8 @@ Match -> ALLOW, No match -> DENY
 - OIDC 인증 플로우: ✅ 엔드투엔드 성공
 - Post-Auth Trigger: ✅ PostConfirmation
 - DynamoDB 자동 저장: ✅ OIDC-Claims
+- OIDC 그룹 클레임 파이프라인: ✅ Auth0 Post Login Action → 네임스페이스 클레임(`https://rag-system/groups`) → Cognito `custom:oidc_groups` → Identity Sync Lambda → DynamoDB `oidcGroups: ["developers","rag-users"]`
+- Cognito AdminGetUser API 폴백: ✅ PostConfirmation 트리거 이벤트에 커스텀 속성이 미포함 시 Cognito API에서 직접 취득하여 정상 동작
 - 유닛 테스트: ✅ 130 패스
 - 프로퍼티 테스트: ✅ 52 패스
 

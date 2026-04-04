@@ -286,6 +286,19 @@ LDAPサーバーへの直接接続なしで、OIDCトークンのグループク
 
 この場合、IdP側でトークンに `groups` クレームを含める設定が必要です。
 
+> **Auth0利用時の重要な注意点**: Auth0のOIDC準拠アプリケーションでは、IDトークンのカスタムクレームに名前空間（URL prefix）が必要です。名前空間なしの `groups` クレームはIDトークンから自動的に除外されます。Auth0のPost Login Actionで以下のように名前空間付きクレームを設定してください:
+>
+> ```javascript
+> // Auth0 Post Login Action
+> exports.onExecutePostLogin = async (event, api) => {
+>   const groups = ['developers', 'rag-users']; // ユーザーのグループ
+>   api.idToken.setCustomClaim('https://rag-system/groups', groups);
+>   api.accessToken.setCustomClaim('https://rag-system/groups', groups);
+> };
+> ```
+>
+> CDK側の `groupClaimName` は `groups` のままで構いません。CDKが自動的に `https://rag-system/groups` → `custom:oidc_groups` の属性マッピングを設定します。
+
 ### パターンE: SAML + OIDC ハイブリッド
 
 既存のAD SAML Federationに加えて、OIDC IdPも同時に有効化するパターンです。
@@ -443,8 +456,9 @@ Match -> ALLOW, No match -> DENY
 | LDAP権限取得失敗 | LDAP接続エラー | CloudWatch LogsでIdentity Sync Lambdaのエラーを確認。サインイン自体はブロックされない（Fail-Open） |
 | ADグループ変更が反映されない | SIDキャッシュ（24時間） | 24時間待つか、DynamoDBの該当レコードを削除して再サインイン |
 | AD Sync Lambda タイムアウト | SSM経由のPowerShell実行が遅い | `SSM_TIMEOUT` 環境変数を増やす（デフォルト60秒） |
-| OIDCグループが取得できない | IdP側でグループクレーム未設定 | IdP側でトークンに `groups` クレームを含める設定を確認。`groupClaimName` パラメータの一致を確認 |
+| OIDCグループが取得できない | IdP側でグループクレーム未設定、または名前空間なしクレーム | Auth0等のOIDC準拠IdPでは、IDトークンのカスタムクレームに名前空間（URL prefix）が必要。Auth0の場合、Post Login Actionで `api.idToken.setCustomClaim('https://rag-system/groups', groups)` のように名前空間付きクレームを設定し、Cognito属性マッピングも `https://rag-system/groups` → `custom:oidc_groups` に合わせる |
 | OIDCサインイン後にDynamoDBに権限データが登録されない | Post-Auth TriggerまたはIdentity Sync Lambdaが未作成 | `oidcProviderConfig` を指定してCDKデプロイすると自動的にIdentity Sync LambdaとPost-Auth Triggerが作成される。CloudWatch LogsでLambdaの実行ログを確認 |
+| PostConfirmation triggerでカスタム属性が空 | Cognitoの仕様でPostConfirmationイベントにカスタム属性が含まれない場合がある | Identity Sync LambdaにはCognito AdminGetUser APIフォールバックが実装済み。Lambda実行ロールに `cognito-idp:AdminGetUser` 権限が付与されていることを確認 |
 | OAuthコールバックエラー（OIDC構成） | `cloudFrontUrl` 未設定 | OIDC構成でも `cloudFrontUrl` が必要。`cdk.context.json` に設定して再デプロイ |
 
 ---
@@ -464,6 +478,8 @@ OIDC/LDAP Federation機能追加後の検証結果:
 - Auth0 SSO: ✅ 2回目のサインインで再認証不要
 - Post-Auth Trigger: ✅ PostConfirmationトリガー追加により、OIDC IdP経由の初回サインインでもIdentity Sync Lambdaが発火
 - DynamoDB自動保存: ✅ `source: "OIDC-Claims"`, `authSource: "oidc"` でレコード作成確認
+- OIDCグループクレームパイプライン: ✅ Auth0 Post Login Action → 名前空間付きクレーム(`https://rag-system/groups`) → Cognito `custom:oidc_groups` → Identity Sync Lambda → DynamoDB `oidcGroups: ["developers","rag-users"]`
+- Cognito AdminGetUser APIフォールバック: ✅ PostConfirmation triggerでカスタム属性が未含の場合、Cognito APIから直接取得して正常動作
 - 後方互換性: ✅ 既存SAML AD Federationサインイン正常動作
 - ユニットテスト: ✅ 130テスト全パス
 - プロパティテスト: ✅ 52テスト全パス（17プロパティ、numRuns=20）
