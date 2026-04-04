@@ -158,7 +158,7 @@ Aktiviert mit `enableAgentCoreMemory=true`. Fügt eine Sitzungsliste (SessionLis
 
 | Schicht | Technologie | Zweck |
 |---------|------------|-------|
-| L1: Netzwerk | CloudFront Geo Restriction | Geografische Zugriffsbeschränkung (Standard: nur Japan) |
+| L1: Netzwerk | CloudFront Geo Restriction | Geografische Zugriffsbeschränkung (Standard: `["JP"]`. Siehe [Geo-Beschränkung](#geo-beschränkung)) |
 | L2: WAF | AWS WAF (6 Regeln) | Erkennung und Blockierung von Angriffsmustern |
 | L3: Origin-Authentifizierung | CloudFront OAC (SigV4) | Verhinderung des direkten Zugriffs unter Umgehung von CloudFront |
 | L4: API-Authentifizierung | Lambda Function URL IAM Auth | Zugriffskontrolle über IAM-Authentifizierung |

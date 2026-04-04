@@ -158,7 +158,7 @@ RAG 검색 결과는 FSx 파일 경로와 접근 레벨 배지(전체 접근 가
 
 | 계층 | 기술 | 목적 |
 |------|------|------|
-| L1: 네트워크 | CloudFront Geo Restriction | 지리적 접근 제한 (기본값: 일본만) |
+| L1: 네트워크 | CloudFront Geo Restriction | 지리적 접근 제한 (기본값: `["JP"]`. [변경 방법](#지리적-제한) 참조) |
 | L2: WAF | AWS WAF (6개 규칙) | 공격 패턴 탐지 & 차단 |
 | L3: 오리진 인증 | CloudFront OAC (SigV4) | CloudFront를 우회한 직접 접근 방지 |
 | L4: API 인증 | Lambda Function URL IAM Auth | IAM 인증을 통한 접근 제어 |
@@ -927,9 +927,11 @@ CloudFront WAF는 `us-east-1`에 배포되며 6개 규칙(우선순위 순서로
 
 CloudFront 수준에서 지리적 접근 제한을 적용합니다. WAF와는 별도의 보호 계층입니다.
 
-- 기본값: 일본(`JP`)만
+- 기본값: `["JP"]` (일본만 허용)
 - CloudFront의 `GeoRestriction.allowlist`로 구현
 - 허용되지 않은 국가에서의 접근은 `403 Forbidden` 반환
+
+> **일본 이외에서 접속하는 경우**: `cdk.context.json`의 `allowedCountries`에 해당 국가의 ISO 3166-1 alpha-2 코드를 추가하세요 (예: `["JP", "US", "DE", "SG"]`). 전 세계 접속을 허용하려면 빈 배열 `[]`로 설정합니다.
 
 ### 구성
 

@@ -760,9 +760,11 @@ Le WAF CloudFront est déployé dans `us-east-1` et se compose de 6 règles (év
 
 Applique des restrictions d'accès géographique au niveau CloudFront. C'est une couche de protection séparée du WAF.
 
-- Par défaut : Japon (`JP`) uniquement
+- Par défaut : `["JP"]` (Japon uniquement)
 - Implémenté via `GeoRestriction.allowlist` de CloudFront
 - L'accès depuis les pays non autorisés retourne `403 Forbidden`
+
+> **Accès depuis l'extérieur du Japon** : Ajoutez le code ISO 3166-1 alpha-2 de votre pays dans `allowedCountries` de `cdk.context.json` (ex : `["JP", "US", "DE", "SG"]`). Définissez `[]` (tableau vide) pour autoriser l'accès mondial.
 
 ### Configuration
 

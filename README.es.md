@@ -158,7 +158,7 @@ Habilitado con `enableAgentCoreMemory=true`. Agrega una lista de sesiones (Sessi
 
 | Capa | Tecnología | Propósito |
 |------|-----------|-----------|
-| L1: Red | CloudFront Geo Restriction | Restricción de acceso geográfico (predeterminado: solo Japón) |
+| L1: Red | CloudFront Geo Restriction | Restricción de acceso geográfico (predeterminado: `["JP"]`. Ver [Restricción Geo](#restricción-geo)) |
 | L2: WAF | AWS WAF (6 reglas) | Detección y bloqueo de patrones de ataque |
 | L3: Autenticación de origen | CloudFront OAC (SigV4) | Prevenir acceso directo eludiendo CloudFront |
 | L4: Autenticación API | Lambda Function URL IAM Auth | Control de acceso mediante autenticación IAM |
