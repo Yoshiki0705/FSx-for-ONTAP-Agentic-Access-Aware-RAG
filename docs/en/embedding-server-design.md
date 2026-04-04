@@ -10,6 +10,15 @@
 
 ## Overview
 
+### Vector Store & Embedding Server
+
+| Configuration | Embedding Server | Description |
+|--------------|-----------------|-------------|
+| **S3 Vectors** (default) | **Not needed** | Bedrock KB auto-manages via S3 Access Point |
+| **OpenSearch Serverless** | **Optional** | Alternative when S3 AP unavailable |
+
+> **S3 Vectors (default): this document is for reference only.** Bedrock KB Ingestion Job handles all processing automatically.
+
 This server reads documents on FSx ONTAP via CIFS/SMB mount, vectorizes them with Amazon Bedrock Titan Embed Text v2, and indexes them into OpenSearch Serverless (AOSS).
 
 > **Note**: The Embedding server is only available when configured with AOSS (`vectorStoreType=opensearch-serverless`). With the S3 Vectors configuration (default), Bedrock KB automatically manages Embedding, so the Embedding server is not needed.

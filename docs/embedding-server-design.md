@@ -3,6 +3,7 @@
 **🌐 Language:** **日本語** | [English](en/embedding-server-design.md) | [한국어](ko/embedding-server-design.md) | [简体中文](zh-CN/embedding-server-design.md) | [繁體中文](zh-TW/embedding-server-design.md) | [Français](fr/embedding-server-design.md) | [Deutsch](de/embedding-server-design.md) | [Español](es/embedding-server-design.md)
 
 **作成日**: 2026-03-26  
+**最終更新**: 2026-04-05  
 **対象**: 開発者・運用者  
 **ソースコード**: `docker/embed/`
 
@@ -12,9 +13,32 @@
 
 FSx ONTAP上のドキュメントをCIFS/SMBマウント経由で読み取り、Amazon Bedrock Titan Embed Text v2でベクトル化し、OpenSearch Serverless（AOSS）にインデックスするサーバーです。
 
-> **注意**: EmbeddingサーバーはAOSS（`vectorStoreType=opensearch-serverless`）構成時のみ使用可能です。S3 Vectors構成（デフォルト）ではBedrock KBがEmbeddingを自動管理するため、Embeddingサーバーは不要です。
+### ベクトルストア構成とEmbeddingサーバーの関係
 
-Bedrock KBのS3データソース（Option A）やS3 Access Point（Option C）が使えない場合の代替パス（Option B）として使用します。
+本システムは2つのベクトルストア構成をサポートしており、Embeddingサーバーの必要性は構成によって異なります。
+
+| 構成 | Embedding方法 | Embeddingサーバー | 説明 |
+|------|-------------|-----------------|------|
+| **S3 Vectors**（デフォルト） | Bedrock KB自動管理 | **不要** | S3 Access Point経由でBedrock KBがドキュメント取得→チャンク分割→ベクトル化→格納を全自動実行 |
+| **OpenSearch Serverless** | Bedrock KB自動管理 or Embeddingサーバー | **オプション** | Bedrock KB経由が基本。S3 APが使えない場合の代替パスとしてEmbeddingサーバーを使用 |
+
+> **S3 Vectors構成（デフォルト）を使用する場合、このドキュメントの内容は参考情報です。** S3 Vectors構成ではBedrock KBのIngestion Jobがドキュメントの取得・チャンク分割・ベクトル化・格納を全て管理するため、Embeddingサーバーのデプロイは不要です。
+
+### データ取り込みパスの全体像
+
+```
+Option A: S3 Vectors構成（デフォルト・推奨）
+  FSx ONTAP → S3 Access Point → Bedrock KB Ingestion Job → S3 Vectors
+  ※ Embeddingサーバー不要。post-deploy-setup.sh で自動セットアップ
+
+Option B: AOSS構成 + Embeddingサーバー（本ドキュメントの対象）
+  FSx ONTAP → CIFS/SMBマウント → EC2 Embeddingサーバー → AOSS直接書き込み
+  ※ S3 APが使えない場合（FlexCache Cacheボリューム等）の代替パス
+
+Option C: AOSS構成 + S3 Access Point
+  FSx ONTAP → S3 Access Point → Bedrock KB Ingestion Job → AOSS
+  ※ Option Aと同じフローだがベクトルストアがAOSS
+```
 
 ---
 
