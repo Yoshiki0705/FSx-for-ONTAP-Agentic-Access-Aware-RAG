@@ -513,9 +513,41 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 |-----------|-------------|
 | `existingFileSystemId` | Existing FSx ONTAP file system ID (e.g., `fs-0123456789abcdef0`) |
 | `existingSvmId` | Existing SVM ID (e.g., `svm-0123456789abcdef0`) |
-| `existingVolumeId` | Existing Volume ID (e.g., `fsvol-0123456789abcdef0`) |
+| `existingVolumeId` | Existing Volume ID (e.g., `fsvol-0123456789abcdef0`) — specify **one primary volume** |
 
 > **Note**: In existing FSx reference mode, FSx/SVM/Volume are outside CDK management. They will not be deleted by `cdk destroy`. Managed AD is also not created (uses the existing environment's AD settings).
+
+##### Multiple Volumes Under One SVM
+
+When a single SVM has multiple volumes, specify only **one primary volume** as `existingVolumeId` during CDK deployment. An S3 Access Point is automatically created for this volume and registered as a Bedrock KB data source.
+
+Additional volumes can be added as embedding targets after deployment using the [Managing FSx for ONTAP Volume Embedding Targets](#managing-fsx-for-ontap-volume-embedding-targets) procedure.
+
+```
+Example existing FSx ONTAP environment:
+  FileSystem: fs-0123456789abcdef0
+  └── SVM: svm-0123456789abcdef0
+      ├── vol-data      (fsvol-aaaa...)  ← Specify as existingVolumeId (primary)
+      ├── vol-reports    (fsvol-bbbb...)  ← Add as embedding target after deploy
+      └── vol-archives   (fsvol-cccc...)  ← Add as needed
+```
+
+**Steps:**
+
+```bash
+# Step 1: CDK deploy with primary volume
+npx cdk deploy --all \
+  -c existingFileSystemId=fs-0123456789abcdef0 \
+  -c existingSvmId=svm-0123456789abcdef0 \
+  -c existingVolumeId=fsvol-aaaa...
+
+# Step 2: Post-deploy (auto-creates S3 AP + KB registration for primary volume)
+bash demo-data/scripts/post-deploy-setup.sh
+
+# Step 3: Add additional volumes (see section below)
+```
+
+> **Finding SVM IDs**: Run `aws fsx describe-storage-virtual-machines --region ap-northeast-1` to list SVMs. If a file system has multiple SVMs, specify the SVM ID that contains the volumes you want to embed.
 
 | Configuration | Cost | Latency | Recommended Use | Metadata Constraints |
 |--------------|------|---------|-----------------|---------------------|
@@ -1145,6 +1177,8 @@ aws bedrock-agent start-ingestion-job \
 ### Managing FSx for ONTAP Volume Embedding Targets
 
 Procedures for adding or removing existing FSx ONTAP volumes as Bedrock KB embedding targets. Volume creation/deletion itself is performed by the FSx administrator.
+
+> **Relationship with existing FSx reference mode**: The primary volume specified via `existingVolumeId` during CDK deployment is automatically registered as an embedding target by `post-deploy-setup.sh`. To add additional volumes on the same SVM as embedding targets, follow the procedures below. See [Using an Existing FSx for ONTAP](#using-an-existing-fsx-for-ontap) for details.
 
 #### Adding a Volume as an Embedding Target
 

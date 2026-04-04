@@ -511,9 +511,22 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 |------|------|
 | `existingFileSystemId` | 現有 FSx ONTAP 檔案系統 ID（例如 `fs-0123456789abcdef0`） |
 | `existingSvmId` | 現有 SVM ID（例如 `svm-0123456789abcdef0`） |
-| `existingVolumeId` | 現有 Volume ID（例如 `fsvol-0123456789abcdef0`） |
+| `existingVolumeId` | 現有磁碟區 ID（例：`fsvol-0123456789abcdef0`）— 指定 **一個主磁碟區** |
 
 > **注意**：在現有 FSx 參考模式下，FSx/SVM/Volume 不在 CDK 管理範圍內。`cdk destroy` 不會刪除它們。受管 AD 也不會建立（使用現有環境的 AD 設定）。
+
+
+##### 一個SVM下有多個磁碟區的情況
+
+當一個SVM下有多個磁碟區時，CDK部署時只需在 `existingVolumeId` 中指定 **一個主磁碟區**。其他磁碟區在部署完成後，按照Embedding目標管理的步驟單獨新增。
+
+```
+FileSystem: fs-0123456789abcdef0
+└── SVM: svm-0123456789abcdef0
+    ├── vol-data      (fsvol-aaaa...)  ← existingVolumeId
+    ├── vol-reports   (fsvol-bbbb...)  ← post-deploy
+    └── vol-archives  (fsvol-cccc...)  ← post-deploy
+```
 
 | 配置 | 成本 | 延遲 | 建議用途 | 中繼資料限制 |
 |------|------|------|----------|-------------|

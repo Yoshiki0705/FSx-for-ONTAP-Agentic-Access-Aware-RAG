@@ -511,9 +511,22 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 |----------|------|
 | `existingFileSystemId` | 기존 FSx ONTAP 파일 시스템 ID (예: `fs-0123456789abcdef0`) |
 | `existingSvmId` | 기존 SVM ID (예: `svm-0123456789abcdef0`) |
-| `existingVolumeId` | 기존 Volume ID (예: `fsvol-0123456789abcdef0`) |
+| `existingVolumeId` | 기존 볼륨 ID (예: `fsvol-0123456789abcdef0`) — **프라이머리 볼륨 1개** 를 지정 |
 
 > **참고**: 기존 FSx 참조 모드에서는 FSx/SVM/Volume이 CDK 관리 범위 밖에 있습니다. `cdk destroy`로 삭제되지 않습니다. Managed AD도 생성되지 않습니다 (기존 환경의 AD 설정 사용).
+
+
+##### 하나의 SVM에 여러 볼륨이 있는 경우
+
+하나의 SVM에 여러 볼륨이 있는 경우, CDK 배포 시 **프라이머리 볼륨 1개** 만 `existingVolumeId`에 지정합니다. 추가 볼륨은 배포 완료 후 Embedding 대상 관리 절차에 따라 개별적으로 추가합니다.
+
+```
+FileSystem: fs-0123456789abcdef0
+└── SVM: svm-0123456789abcdef0
+    ├── vol-data      (fsvol-aaaa...)  ← existingVolumeId
+    ├── vol-reports   (fsvol-bbbb...)  ← post-deploy
+    └── vol-archives  (fsvol-cccc...)  ← post-deploy
+```
 
 | 구성 | 비용 | 지연 시간 | 권장 용도 | 메타데이터 제약 |
 |------|------|----------|----------|----------------|

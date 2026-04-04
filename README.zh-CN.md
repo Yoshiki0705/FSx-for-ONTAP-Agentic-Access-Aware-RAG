@@ -511,9 +511,22 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 |------|------|
 | `existingFileSystemId` | 现有 FSx ONTAP 文件系统 ID（例如 `fs-0123456789abcdef0`） |
 | `existingSvmId` | 现有 SVM ID（例如 `svm-0123456789abcdef0`） |
-| `existingVolumeId` | 现有 Volume ID（例如 `fsvol-0123456789abcdef0`） |
+| `existingVolumeId` | 现有卷 ID（例：`fsvol-0123456789abcdef0`）— 指定 **一个主卷** |
 
 > **注意**：在现有 FSx 引用模式下，FSx/SVM/Volume 不受 CDK 管理。`cdk destroy` 不会删除它们。也不会创建托管 AD（使用现有环境的 AD 设置）。
+
+
+##### 一个SVM下有多个卷的情况
+
+当一个SVM下有多个卷时，CDK部署时只需在 `existingVolumeId` 中指定 **一个主卷**。其他卷在部署完成后，按照Embedding目标管理的步骤单独添加。
+
+```
+FileSystem: fs-0123456789abcdef0
+└── SVM: svm-0123456789abcdef0
+    ├── vol-data      (fsvol-aaaa...)  ← existingVolumeId
+    ├── vol-reports   (fsvol-bbbb...)  ← post-deploy
+    └── vol-archives  (fsvol-cccc...)  ← post-deploy
+```
 
 | 配置 | 成本 | 延迟 | 推荐用途 | 元数据约束 |
 |------|------|------|----------|------------|

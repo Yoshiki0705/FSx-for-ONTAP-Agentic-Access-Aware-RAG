@@ -531,9 +531,42 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 |-----------|------|
 | `existingFileSystemId` | 既存FSx ONTAPファイルシステムID（例: `fs-0123456789abcdef0`） |
 | `existingSvmId` | 既存SVM ID（例: `svm-0123456789abcdef0`） |
-| `existingVolumeId` | 既存ボリュームID（例: `fsvol-0123456789abcdef0`） |
+| `existingVolumeId` | 既存ボリュームID（例: `fsvol-0123456789abcdef0`）— **プライマリボリューム1つ** を指定 |
 
 > **注意**: 既存FSx参照モードでは、FSx/SVM/VolumeはCDK管理外となります。`cdk destroy`で削除されません。Managed ADも作成されません（既存環境のAD設定を使用）。
+
+##### 複数ボリュームがある場合
+
+1つのSVMに複数のボリュームがある場合、CDKデプロイ時には **プライマリボリューム1つ** のみを `existingVolumeId` に指定します。このボリュームに対してS3 Access Pointが自動作成され、Bedrock KBのデータソースとして登録されます。
+
+追加ボリュームは、デプロイ完了後に [FSx for ONTAPボリュームのEmbedding対象管理](#fsx-for-ontapボリュームのembedding対象管理) の手順で個別にEmbedding対象に追加します。
+
+```
+既存FSx ONTAP環境の例:
+  FileSystem: fs-0123456789abcdef0
+  └── SVM: svm-0123456789abcdef0
+      ├── vol-data     (fsvol-aaaa...)  ← existingVolumeId に指定（プライマリ）
+      ├── vol-reports   (fsvol-bbbb...)  ← デプロイ後に手動でEmbedding対象に追加
+      └── vol-archives  (fsvol-cccc...)  ← 必要に応じて追加
+```
+
+**手順:**
+
+```bash
+# Step 1: プライマリボリュームを指定してCDKデプロイ
+npx cdk deploy --all \
+  -c existingFileSystemId=fs-0123456789abcdef0 \
+  -c existingSvmId=svm-0123456789abcdef0 \
+  -c existingVolumeId=fsvol-aaaa...
+
+# Step 2: ポストデプロイ（プライマリボリュームのS3 AP + KB登録）
+bash demo-data/scripts/post-deploy-setup.sh
+
+# Step 3: 追加ボリュームをEmbedding対象に追加（下記セクション参照）
+# → 「FSx for ONTAPボリュームのEmbedding対象管理」の手順に従う
+```
+
+> **SVM IDの確認方法**: `aws fsx describe-storage-virtual-machines --region ap-northeast-1` で一覧を取得できます。1つのファイルシステムに複数のSVMがある場合は、Embedding対象のボリュームが属するSVMのIDを指定してください。
 
 | 構成 | コスト | レイテンシ | 推奨用途 | メタデータ制約 |
 |------|--------|-----------|---------|--------------|
@@ -1163,6 +1196,8 @@ aws bedrock-agent start-ingestion-job \
 ### FSx for ONTAPボリュームのEmbedding対象管理
 
 既存のFSx ONTAPボリュームをBedrock KBのEmbedding対象として追加・除外する手順です。ボリューム自体の作成・削除はFSx管理者が行います。
+
+> **既存FSx参照モードとの関係**: CDKデプロイ時に `existingVolumeId` で指定したプライマリボリュームは `post-deploy-setup.sh` で自動的にEmbedding対象に登録されます。同じSVM上の追加ボリュームをEmbedding対象にする場合は、以下の手順で個別に追加してください。詳細は [既存FSx for ONTAPの利用](#既存fsx-for-ontapの利用) を参照してください。
 
 #### ボリュームをEmbedding対象に追加
 

@@ -511,9 +511,22 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 |-----------|--------------|
 | `existingFileSystemId` | Vorhandene FSx ONTAP-Dateisystem-ID (z.B. `fs-0123456789abcdef0`) |
 | `existingSvmId` | Vorhandene SVM-ID (z.B. `svm-0123456789abcdef0`) |
-| `existingVolumeId` | Vorhandene Volume-ID (z.B. `fsvol-0123456789abcdef0`) |
+| `existingVolumeId` | Vorhandene Volume-ID (z.B. `fsvol-0123456789abcdef0`) — geben Sie **ein primäres Volume** an |
 
 > **Hinweis**: Im vorhandenen FSx-Referenzmodus liegen FSx/SVM/Volume außerhalb der CDK-Verwaltung. Sie werden durch `cdk destroy` nicht gelöscht. Verwaltetes AD wird ebenfalls nicht erstellt (verwendet die AD-Einstellungen der vorhandenen Umgebung).
+
+
+##### Mehrere Volumes unter einer SVM
+
+Wenn eine SVM mehrere Volumes enthält, geben Sie beim CDK-Deployment nur **ein primäres Volume** als `existingVolumeId` an. Zusätzliche Volumes werden nach dem Deployment über die Embedding-Zielverwaltung hinzugefügt.
+
+```
+FileSystem: fs-0123456789abcdef0
+└── SVM: svm-0123456789abcdef0
+    ├── vol-data      (fsvol-aaaa...)  ← existingVolumeId
+    ├── vol-reports   (fsvol-bbbb...)  ← post-deploy
+    └── vol-archives  (fsvol-cccc...)  ← post-deploy
+```
 
 | Konfiguration | Kosten | Latenz | Empfohlene Verwendung | Metadaten-Einschränkungen |
 |--------------|--------|--------|----------------------|--------------------------|
