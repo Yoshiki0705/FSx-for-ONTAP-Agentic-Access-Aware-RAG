@@ -201,6 +201,21 @@ Chaque méthode d'authentification est automatiquement activée lorsque sa confi
 >
 > Lorsque `enableAdFederation=true` et `oidcProviderConfig` sont spécifiés simultanément, SAML + OIDC sont tous deux supportés et les deux boutons de connexion sont affichés.
 
+### Écran de connexion dynamique
+
+L'écran de connexion affiche dynamiquement les boutons en fonction des méthodes d'authentification activées.
+
+| Méthodes activées | Écran de connexion |
+|-------------------|-------------------|
+| Email/mot de passe uniquement | Formulaire email/mot de passe |
+| + SAML | + Bouton "Se connecter avec AD" |
+| + OIDC | + Bouton "Se connecter avec {providerName}" |
+| + SAML + OIDC | + Les deux boutons affichés |
+
+> **Quel bouton les utilisateurs LDAP doivent-ils choisir ?**
+>
+> Choisissez le bouton "Se connecter avec {providerName}". LDAP gère la "récupération des permissions", pas l'"authentification". Les utilisateurs n'ont pas besoin de connaître l'existence de LDAP.
+
 ### Modèle C : OIDC + LDAP (OpenLDAP/FreeIPA + Keycloak)
 
 ```json

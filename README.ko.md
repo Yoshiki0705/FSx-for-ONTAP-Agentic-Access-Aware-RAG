@@ -410,6 +410,8 @@ SAML AD Federation 외에도 OIDC IdP(Keycloak, Okta, Entra ID 등) 및 LDAP 직
 
 각 인증 방식은 "설정 기반 자동 활성화"로 동작합니다. `cdk.context.json`에 설정값을 추가하기만 하면 활성화되며, 추가 AWS 리소스 비용은 거의 없습니다. SAML + OIDC 동시 활성화도 가능합니다.
 
+> **LDAP 사용자 로그인 방법**: 로그인 화면의 "{providerName}로 로그인" 버튼(예: "Keycloak로 로그인", "Okta로 로그인")을 선택하세요. LDAP는 인증이 아닌 권한 취득을 담당하며, OIDC IdP 로그인 후 Identity Sync Lambda가 자동으로 LDAP에서 UID/GID/그룹을 가져옵니다.
+
 **OIDC + LDAP 구성 예시 (OpenLDAP/FreeIPA + Keycloak):**
 
 ```json

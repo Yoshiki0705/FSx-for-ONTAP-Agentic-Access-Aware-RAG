@@ -412,6 +412,8 @@ Each authentication method uses "configuration-driven auto-activation." Simply a
 
 See [Authentication & User Management Guide](docs/en/auth-and-user-management.md) for details.
 
+> **How LDAP users sign in**: Choose the "Sign in with {providerName}" button on the sign-in page (e.g., "Sign in with Keycloak", "Sign in with Okta"). LDAP handles permission retrieval, not authentication — after signing in via the OIDC IdP, the Identity Sync Lambda automatically retrieves UID/GID/groups from LDAP.
+
 **OIDC + LDAP configuration example (OpenLDAP/FreeIPA + Keycloak):**
 
 ```json

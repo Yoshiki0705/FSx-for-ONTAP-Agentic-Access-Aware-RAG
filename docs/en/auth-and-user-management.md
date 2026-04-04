@@ -224,6 +224,40 @@ Each authentication method is automatically enabled when its configuration is pr
 >
 > When both `enableAdFederation=true` and `oidcProviderConfig` are specified, both SAML and OIDC are supported, and both sign-in buttons are displayed.
 
+### Dynamic Sign-in Screen
+
+The sign-in screen dynamically displays buttons based on enabled authentication methods.
+
+| Enabled Auth Methods | Sign-in Screen |
+|---------------------|----------------|
+| Email/Password only | Email/password form |
+| + SAML | + "Sign in with AD" button |
+| + OIDC | + "Sign in with {providerName}" button |
+| + SAML + OIDC | + Both buttons displayed |
+
+The button label is determined by the `oidcProviderConfig.providerName` value:
+
+| `providerName` Setting | Button Label |
+|------------------------|-------------|
+| `Auth0` | "Sign in with Auth0" |
+| `Keycloak` | "Sign in with Keycloak" |
+| `Okta` | "Sign in with Okta" |
+| `EntraID` | "Sign in with EntraID" |
+
+> **Which button should LDAP users choose?**
+>
+> Choose the "Sign in with {providerName}" button. LDAP handles "permission retrieval," not "authentication." Users don't need to be aware of LDAP at all.
+>
+> ```
+> Authentication (user action):     Sign in via OIDC IdP (Auth0/Keycloak/Okta)
+>                                       ↓
+> Permission retrieval (automatic):  Identity Sync Lambda → LDAP Connector → OpenLDAP
+>                                       ↓
+> Result:                            uid/gid/groups auto-saved to DynamoDB
+> ```
+>
+> The email/password form is for users created directly in Cognito. If OIDC/LDAP users sign in via this form, the LDAP permission retrieval path will not execute.
+
 ### Pattern C: OIDC + LDAP (OpenLDAP/FreeIPA + Keycloak)
 
 ```json

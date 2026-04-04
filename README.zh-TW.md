@@ -264,6 +264,8 @@ npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output t
 
 > **部署到不同 AWS 帳戶時**：從 `cdk.context.json` 中刪除 AZ 快取（`availability-zones:account=...`）。CDK 會自動擷取新帳戶的 AZ 資訊。
 
+> **LDAP使用者登入方式**: 請選擇登入頁面的「使用{providerName}登入」按鈕（如「使用Keycloak登入」、「使用Okta登入」）。LDAP負責權限取得而非認證，透過OIDC IdP登入後，Identity Sync Lambda會自動從LDAP取得UID/GID/群組資訊。
+
 ### 步驟 5：CDK Context 配置
 
 ```bash

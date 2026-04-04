@@ -253,6 +253,21 @@ Cada método de autenticación se activa automáticamente cuando se proporciona 
 
 ### Patrón E: Híbrido SAML + OIDC
 
+### Pantalla de inicio de sesión dinámica
+
+La pantalla de inicio de sesión muestra dinámicamente botones según los métodos de autenticación habilitados.
+
+| Métodos habilitados | Pantalla de inicio de sesión |
+|--------------------|----------------------------|
+| Solo email/contraseña | Formulario email/contraseña |
+| + SAML | + Botón "Iniciar sesión con AD" |
+| + OIDC | + Botón "Iniciar sesión con {providerName}" |
+| + SAML + OIDC | + Ambos botones mostrados |
+
+> **¿Qué botón deben elegir los usuarios LDAP?**
+>
+> Elija el botón "Iniciar sesión con {providerName}". LDAP se encarga de la "obtención de permisos", no de la "autenticación". Los usuarios no necesitan conocer la existencia de LDAP.
+
 ```json
 {
   "enableAdFederation": true,

@@ -264,6 +264,8 @@ npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output t
 
 > **Al desplegar en una cuenta AWS diferente**: Elimine la caché de AZ (`availability-zones:account=...`) de `cdk.context.json`. CDK recuperará automáticamente la información de AZ para la nueva cuenta.
 
+> **Cómo inician sesión los usuarios LDAP**: Elija el botón "Iniciar sesión con {providerName}" en la página de inicio de sesión (ej: "Iniciar sesión con Keycloak"). LDAP se encarga de la obtención de permisos, no de la autenticación.
+
 ### Paso 5: Configuración del contexto CDK
 
 ```bash

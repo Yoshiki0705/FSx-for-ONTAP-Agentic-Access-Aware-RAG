@@ -201,6 +201,21 @@ Jede Authentifizierungsmethode wird automatisch aktiviert, wenn ihre Konfigurati
 >
 > Wenn sowohl `enableAdFederation=true` als auch `oidcProviderConfig` angegeben sind, werden SAML + OIDC unterstützt und beide Anmeldeschaltflächen angezeigt.
 
+### Dynamischer Anmeldebildschirm
+
+Der Anmeldebildschirm zeigt dynamisch Schaltflächen basierend auf den aktivierten Authentifizierungsmethoden an.
+
+| Aktivierte Methoden | Anmeldebildschirm |
+|--------------------|-------------------|
+| Nur E-Mail/Passwort | E-Mail/Passwort-Formular |
+| + SAML | + "Mit AD anmelden"-Schaltfläche |
+| + OIDC | + "Mit {providerName} anmelden"-Schaltfläche |
+| + SAML + OIDC | + Beide Schaltflächen angezeigt |
+
+> **Welche Schaltfläche sollten LDAP-Benutzer wählen?**
+>
+> Wählen Sie die Schaltfläche "Mit {providerName} anmelden". LDAP ist für die "Berechtigungsabfrage" zuständig, nicht für die "Authentifizierung". Benutzer müssen LDAP nicht kennen.
+
 ### Muster C: OIDC + LDAP (OpenLDAP/FreeIPA + Keycloak)
 
 ```json

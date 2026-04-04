@@ -201,6 +201,23 @@ OIDC 用户登录时，以下操作将全部自动完成：
 >
 > 同时指定 `enableAdFederation=true` 和 `oidcProviderConfig` 时，SAML + OIDC 均受支持，登录界面显示两个按钮。
 
+### 动态登录界面
+
+登录界面根据启用的认证方式动态显示按钮。
+
+| 启用的认证方式 | 登录界面 |
+|-------------|---------|
+| 仅邮箱/密码 | 邮箱/密码表单 |
+| + SAML | + "使用AD登录"按钮 |
+| + OIDC | + "使用{providerName}登录"按钮 |
+| + SAML + OIDC | + 两个按钮都显示 |
+
+> **LDAP用户应该选择哪个按钮？**
+>
+> 请选择"使用{providerName}登录"按钮。LDAP负责的是"权限获取"而非"认证"，是后端透明机制。用户无需感知LDAP的存在。
+>
+> 邮箱/密码表单用于在Cognito中直接创建的用户。OIDC/LDAP用户通过此表单登录时，LDAP权限获取路径不会执行。
+
 ### 模式 C：OIDC + LDAP（OpenLDAP/FreeIPA + Keycloak）
 
 ```json

@@ -201,6 +201,21 @@ OIDC 使用者登入時，以下操作將全部自動完成：
 >
 > 同時指定 `enableAdFederation=true` 和 `oidcProviderConfig` 時，SAML + OIDC 均受支援，登入畫面顯示兩個按鈕。
 
+### 動態登入畫面
+
+登入畫面根據啟用的認證方式動態顯示按鈕。
+
+| 啟用的認證方式 | 登入畫面 |
+|-------------|---------|
+| 僅電子郵件/密碼 | 電子郵件/密碼表單 |
+| + SAML | + "使用AD登入"按鈕 |
+| + OIDC | + "使用{providerName}登入"按鈕 |
+| + SAML + OIDC | + 兩個按鈕都顯示 |
+
+> **LDAP使用者應該選擇哪個按鈕？**
+>
+> 請選擇"使用{providerName}登入"按鈕。LDAP負責的是"權限取得"而非"認證"，是後端透明機制。使用者無需感知LDAP的存在。
+
 ### 模式 C：OIDC + LDAP（OpenLDAP/FreeIPA + Keycloak）
 
 ```json
