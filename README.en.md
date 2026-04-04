@@ -162,7 +162,7 @@ Enabled with `enableAgentCoreMemory=true`. Adds a session list (SessionList) and
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| L1: Network | CloudFront Geo Restriction | Geographic access restriction (default: Japan only) |
+| L1: Network | CloudFront Geo Restriction | Geographic access restriction (default: `["JP"]`. See [Geo Restriction](#geo-restriction)) |
 | L2: WAF | AWS WAF (6 rules) | Attack pattern detection & blocking |
 | L3: Origin Authentication | CloudFront OAC (SigV4) | Prevent direct access bypassing CloudFront |
 | L4: API Authentication | Lambda Function URL IAM Auth | Access control via IAM authentication |
@@ -952,9 +952,11 @@ The CloudFront WAF is deployed to `us-east-1` and consists of 6 rules (evaluated
 
 Applies geographic access restrictions at the CloudFront level. This is a separate layer of protection from WAF.
 
-- Default: Japan (`JP`) only
+- Default: `["JP"]` (Japan only)
 - Implemented via CloudFront's `GeoRestriction.allowlist`
 - Access from non-allowed countries returns `403 Forbidden`
+
+> **Accessing from outside Japan**: Add your country's ISO 3166-1 alpha-2 code to `allowedCountries` in `cdk.context.json` (e.g., `["JP", "US", "DE", "SG"]`). Set to `[]` (empty array) to allow access from all countries.
 
 ### Configuration
 
