@@ -275,7 +275,7 @@ Cada método de autenticación se activa automáticamente cuando se proporciona 
 |-----------|------|---------------|-------------|
 | `oidcProviderConfig.providerName` | string | `OIDCProvider` | Nombre de visualización del IdP (mostrado en el botón de inicio de sesión) |
 | `oidcProviderConfig.clientId` | string | **Requerido** | ID de cliente OIDC |
-| `oidcProviderConfig.clientSecret` | string | **Requerido** | Secreto de cliente OIDC (se recomienda ARN de Secrets Manager) |
+| `oidcProviderConfig.clientSecret` | string | **Requerido** | Secreto de cliente OIDC (compatible con ARN de Secrets Manager, CDK resuelve automáticamente el valor en el momento del despliegue) |
 | `oidcProviderConfig.issuerUrl` | string | **Requerido** | URL del emisor OIDC |
 | `oidcProviderConfig.groupClaimName` | string | `groups` | Nombre del claim de información de grupo |
 | `ldapConfig.ldapUrl` | string | - | URL LDAP/LDAPS (ej.: `ldaps://ldap.example.com:636`) |
@@ -286,6 +286,12 @@ Cada método de autenticación se activa automáticamente cuando se proporciona 
 | `ldapConfig.groupSearchFilter` | string | `(member={dn})` | Filtro de búsqueda de grupo |
 | `permissionMappingStrategy` | string | `sid-only` | Estrategia de mapeo de permisos: `sid-only`, `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | `false` | Integración ONTAP name-mapping |
+
+> **Consideraciones para el despliegue con CDK**:
+> - Cuando se especifica un ARN de Secrets Manager para `clientSecret`, CDK resuelve automáticamente el valor del secreto en el momento del despliegue.
+> - Los atributos personalizados de Cognito no se pueden modificar ni eliminar después de su creación (limitación de CloudFormation). Por esta razón, `oidc_groups` se excluye de la definición del User Pool en CDK.
+> - Después de un despliegue con CDK, el inicio de sesión OIDC puede fallar temporalmente mientras Cognito re-resuelve los endpoints OIDC (1-2 minutos).
+> - El permiso `AdminGetUser` utiliza un ARN comodín (wildcard) para evitar dependencias circulares.
 
 ---
 

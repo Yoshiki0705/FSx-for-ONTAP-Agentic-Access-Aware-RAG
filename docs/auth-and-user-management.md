@@ -343,7 +343,7 @@ Post-Auth Trigger Event
 |-----------|-----|----------|------|
 | `oidcProviderConfig.providerName` | string | `OIDCProvider` | IdP表示名（サインインボタンに表示） |
 | `oidcProviderConfig.clientId` | string | **必須** | OIDCクライアントID |
-| `oidcProviderConfig.clientSecret` | string | **必須** | OIDCクライアントシークレット（Secrets Manager ARN推奨） |
+| `oidcProviderConfig.clientSecret` | string | **必須** | OIDCクライアントシークレット（Secrets Manager ARN または平文。ARN指定時はCDKデプロイ時に自動解決） |
 | `oidcProviderConfig.issuerUrl` | string | **必須** | OIDCイシュアーURL |
 | `oidcProviderConfig.groupClaimName` | string | `groups` | グループ情報のクレーム名 |
 | `ldapConfig.ldapUrl` | string | - | LDAP/LDAPS URL（例: `ldaps://ldap.example.com:636`） |
@@ -354,6 +354,12 @@ Post-Auth Trigger Event
 | `ldapConfig.groupSearchFilter` | string | `(member={dn})` | グループ検索フィルタ |
 | `permissionMappingStrategy` | string | `sid-only` | 権限マッピング戦略: `sid-only`, `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | `false` | ONTAP name-mapping連携 |
+
+> **CDKデプロイ時の考慮点**:
+> - `clientSecret` に `arn:aws:secretsmanager:...` 形式のARNを指定すると、CDKデプロイ時にSecrets Managerから値を自動取得してCognito IdPに設定します。平文のシークレットを `cdk.context.json` に含めずに済むため、本番環境ではARN指定を推奨します。
+> - Cognito User Poolのカスタム属性（`custom:oidc_groups` 等）は一度作成すると変更・削除できないCloudFormationの制約があります。CDKコードでは `oidc_groups` 属性をUser Pool定義から除外し、OIDC IdP作成時にCognitoが自動追加する仕組みを利用しています。
+> - CDKデプロイでOIDC IdPが更新された直後、Cognitoがエンドポイントを再解決するまで一時的にOIDCサインインが失敗する場合があります（通常1〜2分で解消）。
+> - Identity Sync Lambdaの `cognito-idp:AdminGetUser` 権限は、循環依存を避けるためリージョン・アカウントベースのワイルドカードARN（`arn:aws:cognito-idp:{region}:{account}:userpool/*`）で設定されています。
 
 ### DynamoDB拡張スキーマ
 

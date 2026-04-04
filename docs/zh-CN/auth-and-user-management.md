@@ -275,7 +275,7 @@ OIDC 用户登录时，以下操作将全部自动完成：
 |------|------|-------|------|
 | `oidcProviderConfig.providerName` | string | `OIDCProvider` | IdP 显示名称（显示在登录按钮上） |
 | `oidcProviderConfig.clientId` | string | **必填** | OIDC 客户端 ID |
-| `oidcProviderConfig.clientSecret` | string | **必填** | OIDC 客户端密钥（推荐使用 Secrets Manager ARN） |
+| `oidcProviderConfig.clientSecret` | string | **必填** | OIDC 客户端密钥（支持 Secrets Manager ARN，CDK 在部署时自动解析值） |
 | `oidcProviderConfig.issuerUrl` | string | **必填** | OIDC 签发者 URL |
 | `oidcProviderConfig.groupClaimName` | string | `groups` | 组信息声明名称 |
 | `ldapConfig.ldapUrl` | string | - | LDAP/LDAPS URL（例：`ldaps://ldap.example.com:636`） |
@@ -286,6 +286,12 @@ OIDC 用户登录时，以下操作将全部自动完成：
 | `ldapConfig.groupSearchFilter` | string | `(member={dn})` | 组搜索过滤器 |
 | `permissionMappingStrategy` | string | `sid-only` | 权限映射策略：`sid-only`、`uid-gid`、`hybrid` |
 | `ontapNameMappingEnabled` | boolean | `false` | ONTAP name-mapping 集成 |
+
+> **CDK 部署注意事项**：
+> - 当 `clientSecret` 指定 Secrets Manager ARN 时，CDK 会在部署时自动解析密钥值。
+> - Cognito 自定义属性创建后无法修改或删除（CloudFormation 限制）。因此，`oidc_groups` 被排除在 CDK User Pool 定义之外。
+> - CDK 部署后，Cognito 重新解析 OIDC 端点期间，OIDC 登录可能会暂时失败（1~2 分钟）。
+> - `AdminGetUser` 权限使用通配符 ARN 以避免循环依赖。
 
 ---
 

@@ -275,7 +275,7 @@ Jede Authentifizierungsmethode wird automatisch aktiviert, wenn ihre Konfigurati
 |-----------|-----|---------|-------------|
 | `oidcProviderConfig.providerName` | string | `OIDCProvider` | IdP-Anzeigename (auf der Anmeldeschaltfläche angezeigt) |
 | `oidcProviderConfig.clientId` | string | **Erforderlich** | OIDC-Client-ID |
-| `oidcProviderConfig.clientSecret` | string | **Erforderlich** | OIDC-Client-Secret (Secrets Manager ARN empfohlen) |
+| `oidcProviderConfig.clientSecret` | string | **Erforderlich** | OIDC-Client-Secret (Secrets Manager ARN unterstützt, CDK löst den Wert automatisch beim Deployment auf) |
 | `oidcProviderConfig.issuerUrl` | string | **Erforderlich** | OIDC-Issuer-URL |
 | `oidcProviderConfig.groupClaimName` | string | `groups` | Name des Gruppen-Claims |
 | `ldapConfig.ldapUrl` | string | - | LDAP/LDAPS-URL (z. B. `ldaps://ldap.example.com:636`) |
@@ -286,6 +286,12 @@ Jede Authentifizierungsmethode wird automatisch aktiviert, wenn ihre Konfigurati
 | `ldapConfig.groupSearchFilter` | string | `(member={dn})` | Gruppensuchfilter |
 | `permissionMappingStrategy` | string | `sid-only` | Berechtigungszuordnungsstrategie: `sid-only`, `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | `false` | ONTAP Name-Mapping-Integration |
+
+> **Hinweise zum CDK-Deployment**:
+> - Wenn für `clientSecret` ein Secrets Manager ARN angegeben wird, löst CDK den Secret-Wert beim Deployment automatisch auf.
+> - Benutzerdefinierte Cognito-Attribute können nach der Erstellung nicht geändert oder gelöscht werden (CloudFormation-Einschränkung). Aus diesem Grund wird `oidc_groups` von der CDK User Pool-Definition ausgeschlossen.
+> - Nach einem CDK-Deployment kann die OIDC-Anmeldung vorübergehend fehlschlagen, während Cognito die OIDC-Endpunkte neu auflöst (1–2 Minuten).
+> - Die `AdminGetUser`-Berechtigung verwendet einen Wildcard-ARN, um zirkuläre Abhängigkeiten zu vermeiden.
 
 ---
 

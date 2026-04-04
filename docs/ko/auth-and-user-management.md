@@ -275,7 +275,7 @@ OIDC 사용자가 로그인하면 다음이 모두 자동으로 수행됩니다:
 |---------|------|-------|------|
 | `oidcProviderConfig.providerName` | string | `OIDCProvider` | IdP 표시 이름 (로그인 버튼에 표시) |
 | `oidcProviderConfig.clientId` | string | **필수** | OIDC 클라이언트 ID |
-| `oidcProviderConfig.clientSecret` | string | **필수** | OIDC 클라이언트 시크릿 (Secrets Manager ARN 권장) |
+| `oidcProviderConfig.clientSecret` | string | **필수** | OIDC 클라이언트 시크릿 (Secrets Manager ARN 지원, CDK가 배포 시 자동으로 값을 해석) |
 | `oidcProviderConfig.issuerUrl` | string | **필수** | OIDC 이슈어 URL |
 | `oidcProviderConfig.groupClaimName` | string | `groups` | 그룹 정보 클레임 이름 |
 | `ldapConfig.ldapUrl` | string | - | LDAP/LDAPS URL (예: `ldaps://ldap.example.com:636`) |
@@ -286,6 +286,12 @@ OIDC 사용자가 로그인하면 다음이 모두 자동으로 수행됩니다:
 | `ldapConfig.groupSearchFilter` | string | `(member={dn})` | 그룹 검색 필터 |
 | `permissionMappingStrategy` | string | `sid-only` | 권한 매핑 전략: `sid-only`, `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | `false` | ONTAP name-mapping 연동 |
+
+> **CDK 배포 시 고려사항**:
+> - `clientSecret`에 Secrets Manager ARN을 지정하면, CDK가 배포 시 자동으로 시크릿 값을 해석합니다.
+> - Cognito 커스텀 속성은 생성 후 변경/삭제할 수 없습니다 (CloudFormation 제한). 이 제한으로 인해 `oidc_groups`는 CDK User Pool 정의에서 제외됩니다.
+> - CDK 배포 직후 Cognito가 OIDC 엔드포인트를 재해석하는 동안 일시적으로 OIDC 로그인이 실패할 수 있습니다 (1~2분).
+> - `AdminGetUser` 권한은 순환 의존성을 방지하기 위해 와일드카드 ARN을 사용합니다.
 
 ---
 

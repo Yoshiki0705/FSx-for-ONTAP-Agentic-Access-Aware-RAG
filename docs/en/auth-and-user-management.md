@@ -298,7 +298,7 @@ Each authentication method is automatically enabled when its configuration is pr
 |-----------|------|---------|-------------|
 | `oidcProviderConfig.providerName` | string | `OIDCProvider` | IdP display name (shown on sign-in button) |
 | `oidcProviderConfig.clientId` | string | **Required** | OIDC client ID |
-| `oidcProviderConfig.clientSecret` | string | **Required** | OIDC client secret (Secrets Manager ARN recommended) |
+| `oidcProviderConfig.clientSecret` | string | **Required** | OIDC client secret (Secrets Manager ARN or plaintext. When ARN is specified, CDK auto-resolves the value at deploy time) |
 | `oidcProviderConfig.issuerUrl` | string | **Required** | OIDC issuer URL |
 | `oidcProviderConfig.groupClaimName` | string | `groups` | Group information claim name |
 | `ldapConfig.ldapUrl` | string | - | LDAP/LDAPS URL (e.g., `ldaps://ldap.example.com:636`) |
@@ -309,6 +309,12 @@ Each authentication method is automatically enabled when its configuration is pr
 | `ldapConfig.groupSearchFilter` | string | `(member={dn})` | Group search filter |
 | `permissionMappingStrategy` | string | `sid-only` | Permission mapping strategy: `sid-only`, `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | `false` | ONTAP name-mapping integration |
+
+> **CDK Deployment Considerations**:
+> - When `clientSecret` is specified as an `arn:aws:secretsmanager:...` ARN, CDK automatically retrieves the value from Secrets Manager at deploy time and sets it on the Cognito IdP. This avoids storing plaintext secrets in `cdk.context.json` and is recommended for production.
+> - Cognito User Pool custom attributes (e.g., `custom:oidc_groups`) cannot be modified or deleted once created (CloudFormation limitation). The CDK code excludes `oidc_groups` from the User Pool definition and relies on Cognito auto-creating it when the OIDC IdP is registered.
+> - Immediately after a CDK deployment updates the OIDC IdP, Cognito may temporarily fail OIDC sign-in while re-resolving endpoints (typically resolves within 1-2 minutes).
+> - The Identity Sync Lambda's `cognito-idp:AdminGetUser` permission uses a region/account-based wildcard ARN (`arn:aws:cognito-idp:{region}:{account}:userpool/*`) to avoid circular dependencies.
 
 ---
 
