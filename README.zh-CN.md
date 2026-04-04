@@ -1,19 +1,18 @@
-# 基于 Amazon FSx for NetApp ONTAP 的权限感知 RAG 系统
+# Agentic Access-Aware RAG with Amazon FSx for NetApp ONTAP
 
 **🌐 Language / 语言:** [日本語](README.md) | [English](README.en.md) | [한국어](README.ko.md) | **简体中文** | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-一个企业级 AI 搜索系统，让用户可以在**遵守每个用户访问权限**的前提下，对文件服务器（FSx for NetApp ONTAP）上的文档进行 AI 搜索和问答。机密文档仅向授权用户回答，普通用户只能获得基于公开文档的回答。
+Amazon FSx for NetApp ONTAP 上存储的企业数据，AI代理在**遵守每个用户访问权限**的前提下，自主进行搜索、分析和回答。与传统的"回答问题"的生成式AI不同，作为Agentic AI，它会为达成目标而连续执行计划、决策和行动，优化和自动化整个业务流程。机密文档仅向授权用户回答，普通用户只能获得基于公开文档的回答。
 
-使用 AWS CDK 一键部署，结合 Amazon Bedrock（RAG/Agent）、Cognito（认证）、FSx for ONTAP（存储）、S3 Vectors（向量数据库），可验证企业级安全 RAG/AI 助手架构。基于 Next.js 15 的卡片式任务导向 UI，支持 8 种语言。
+使用 AWS CDK 一键部署，结合 Amazon Bedrock（RAG/Agent）、Amazon Cognito（认证）、Amazon FSx for NetApp ONTAP（存储）、Amazon S3 Vectors（向量数据库），可验证企业级安全架构。基于 Next.js 15 的卡片式任务导向 UI，支持 8 种语言。
 
 主要特点：
-- **权限过滤**：文件服务器的 NTFS ACL / UNIX 权限自动应用于 RAG 搜索结果
+- **权限过滤**：FSx for ONTAP 的 NTFS ACL / UNIX 权限自动应用于 RAG 搜索结果
 - **零接触配置**：AD / OIDC / LDAP 集成，用户首次登录即自动获取权限信息
-- **Agent + KB 切换**：文档搜索（KB 模式）和多步推理（Agent 模式）一键切换
+- **Agentic AI**：文档搜索（KB 模式）和自主多步推理·任务执行（Agent 模式）一键切换
 - **低成本**：默认采用 S3 Vectors（每月数美元），可切换至 OpenSearch Serverless
-
 ---
 
 ## Quick Start
@@ -429,7 +428,7 @@ AD User → CloudFront UI → "Sign in with AD" button
 
 #### OIDC/LDAP Federation（可选）— 零接触用户配置
 
-除 SAML AD Federation 外，还可以启用 OIDC IdP（Keycloak、Okta、Entra ID 等）和 LDAP 直接查询，实现零接触用户配置。文件服务器的现有用户权限会自动映射到 RAG 系统 UI 用户，无需管理员或用户手动注册。
+除 SAML AD Federation 外，还可以启用 OIDC IdP（Keycloak、Okta、Entra ID 等）和 LDAP 直接查询，实现零接触用户配置。FSx for ONTAP 的现有用户权限会自动映射到 RAG 系统 UI 用户，无需管理员或用户手动注册。
 
 各认证方式采用"配置驱动自动启用"机制。只需在 `cdk.context.json` 中添加配置值即可启用，几乎不产生额外 AWS 资源成本。SAML + OIDC 同时启用也受支持。
 

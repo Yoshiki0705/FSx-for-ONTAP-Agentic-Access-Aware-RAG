@@ -1,17 +1,17 @@
-# Permission-aware RAG System with Amazon FSx for NetApp ONTAP
+# Agentic Access-Aware RAG with Amazon FSx for NetApp ONTAP
 
 **🌐 Language / 言語:** **日本語** | [English](README.en.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-社内のファイルサーバー（FSx for NetApp ONTAP）に保存された文書を、**ユーザーごとのアクセス権限を守りながら** AI で検索・回答できるシステムです。管理者だけが見られる機密文書は管理者にだけ回答し、一般ユーザーには公開文書のみで回答します。
+Amazon FSx for NetApp ONTAP に保存された企業データに対して、**ユーザーごとのアクセス権限を守りながら**、AIエージェントが自律的に検索・分析・回答を行うシステムです。従来の「質問に回答する」生成AIとは異なり、Agentic AIとして目標達成のために計画・意思決定・行動を連続的に実行し、業務プロセス全体を最適化・自動化します。管理者だけが見られる機密文書は管理者にだけ回答し、一般ユーザーには公開文書のみで回答する権限制御を備えています。
 
-AWS CDK でワンコマンドデプロイでき、Amazon Bedrock（RAG / Agent）、Cognito（認証）、FSx for ONTAP（ストレージ）、S3 Vectors（ベクトルDB）を組み合わせたエンタープライズ向けの構成を検証できます。Next.js 15 によるカードベースのタスク指向 UI を備え、8言語に対応しています。
+AWS CDK でワンコマンドデプロイでき、Amazon Bedrock（RAG / Agent）、Amazon Cognito（認証）、Amazon FSx for NetApp ONTAP（ストレージ）、Amazon S3 Vectors（ベクトルDB）を組み合わせたエンタープライズ向けの構成を検証できます。Next.js 15 によるカードベースのタスク指向 UI を備え、8言語に対応しています。
 
 主な特徴:
-- **権限フィルタリング**: ファイルサーバーの NTFS ACL / UNIX パーミッションを RAG 検索に自動反映
+- **権限フィルタリング**: FSx for ONTAP の NTFS ACL / UNIX パーミッションを RAG 検索に自動反映
 - **ゼロタッチプロビジョニング**: AD / OIDC / LDAP 連携で、ユーザーが初回サインインするだけで権限情報を自動取得
-- **Agent + KB 切替**: 文書検索（KB モード）と多段階推論（Agent モード）をワンクリックで切替
+- **Agentic AI**: 文書検索（KB モード）と多段階推論・自律的タスク実行（Agent モード）をワンクリックで切替
 - **低コスト**: S3 Vectors（月数ドル）をデフォルト採用。OpenSearch Serverless への切替も可能
 
 ---
@@ -443,7 +443,7 @@ EC2上のADとEntra ID（旧Azure AD）を連携し、Entra IDのフェデレー
 
 #### OIDC/LDAP Federation（オプション）— ゼロタッチユーザープロビジョニング
 
-SAML AD Federationに加え、OIDC IdP（Keycloak、Okta、Entra ID等）およびLDAP直接クエリによるゼロタッチユーザープロビジョニングを有効化できます。ファイルサーバーの既存ユーザー権限がRAGシステムのUIユーザーに自動マッピングされ、管理者やユーザー自身による手動登録は不要です。
+SAML AD Federationに加え、OIDC IdP（Keycloak、Okta、Entra ID等）およびLDAP直接クエリによるゼロタッチユーザープロビジョニングを有効化できます。FSx for ONTAP の既存ユーザー権限がRAGシステムのUIユーザーに自動マッピングされ、管理者やユーザー自身による手動登録は不要です。
 
 各認証方式は「設定駆動の自動有効化」で動作します。`cdk.context.json` に設定値を追加するだけで有効化され、追加AWSリソースコストはほぼゼロです。SAML + OIDCの同時有効化も可能です。
 

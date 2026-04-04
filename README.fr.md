@@ -1,19 +1,18 @@
-# Système RAG avec gestion des permissions et Amazon FSx for NetApp ONTAP
+# Agentic Access-Aware RAG with Amazon FSx for NetApp ONTAP
 
 **🌐 Language / Langue :** [日本語](README.md) | [English](README.en.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | **Français** | [Deutsch](README.de.md) | [Español](README.es.md)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Un système de recherche IA d'entreprise qui permet aux utilisateurs d'interroger les documents d'un serveur de fichiers (FSx for NetApp ONTAP) **tout en respectant les permissions d'accès de chaque utilisateur**. Les documents confidentiels ne sont inclus dans les réponses que pour les utilisateurs autorisés ; les utilisateurs standard reçoivent des réponses basées uniquement sur les documents publics.
+Les agents IA recherchent, analysent et répondent de manière autonome aux données d'entreprise stockées sur Amazon FSx for NetApp ONTAP, **tout en respectant les permissions d'accès de chaque utilisateur**. Contrairement à l'IA générative traditionnelle qui « répond aux questions », cet Agentic AI planifie, prend des décisions et exécute des actions en continu pour atteindre ses objectifs, optimisant et automatisant l'ensemble des processus métier. Les documents confidentiels ne sont inclus dans les réponses que pour les utilisateurs autorisés.
 
-Déployez en une seule commande avec AWS CDK. Combine Amazon Bedrock (RAG/Agent), Cognito (authentification), FSx for ONTAP (stockage) et S3 Vectors (base vectorielle) dans une configuration prête pour l'entreprise. Interface utilisateur orientée tâches basée sur Next.js 15, prenant en charge 8 langues.
+Déployez en une seule commande avec AWS CDK. Combine Amazon Bedrock (RAG/Agent), Amazon Cognito (authentification), Amazon FSx for NetApp ONTAP (stockage) et Amazon S3 Vectors (base vectorielle). Interface utilisateur orientée tâches basée sur Next.js 15, prenant en charge 8 langues.
 
 Caractéristiques principales :
-- **Filtrage des permissions** : les ACL NTFS / permissions UNIX du serveur de fichiers sont automatiquement appliquées aux résultats de recherche RAG
+- **Filtrage des permissions** : les ACL NTFS / permissions UNIX de FSx for ONTAP sont automatiquement appliquées aux résultats de recherche RAG
 - **Provisionnement sans intervention** : l'intégration AD / OIDC / LDAP récupère automatiquement les permissions lors de la première connexion
-- **Basculement Agent + KB** : basculez entre la recherche documentaire (mode KB) et le raisonnement multi-étapes (mode Agent) en un clic
+- **Agentic AI** : basculez entre la recherche documentaire (mode KB) et le raisonnement multi-étapes autonome et l'exécution de tâches (mode Agent) en un clic
 - **Faible coût** : S3 Vectors (quelques dollars/mois) par défaut. Possibilité de basculer vers OpenSearch Serverless
-
 ---
 
 ## Quick Start
@@ -429,7 +428,7 @@ Intègre l'AD sur EC2 avec Entra ID (anciennement Azure AD) et utilise l'URL de 
 
 #### OIDC/LDAP Federation (optionnel) — Provisionnement utilisateur sans intervention
 
-En plus de SAML AD Federation, vous pouvez activer OIDC IdP (Keycloak, Okta, Entra ID, etc.) et les requêtes LDAP directes pour le provisionnement utilisateur sans intervention. Les permissions utilisateur existantes du serveur de fichiers sont automatiquement mappées aux utilisateurs de l'interface RAG — aucune inscription manuelle par les administrateurs ou les utilisateurs n'est requise.
+En plus de SAML AD Federation, vous pouvez activer OIDC IdP (Keycloak, Okta, Entra ID, etc.) et les requêtes LDAP directes pour le provisionnement utilisateur sans intervention. Les permissions utilisateur existantes de FSx for ONTAP sont automatiquement mappées aux utilisateurs de l'interface RAG — aucune inscription manuelle par les administrateurs ou les utilisateurs n'est requise.
 
 Chaque méthode d'authentification utilise l'« activation automatique pilotée par la configuration ». Il suffit d'ajouter les valeurs de configuration dans `cdk.context.json` pour l'activer, avec un coût de ressources AWS supplémentaire quasi nul. L'activation simultanée SAML + OIDC est également prise en charge.
 

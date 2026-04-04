@@ -1,19 +1,18 @@
-# Berechtigungsbewusstes RAG-System mit Amazon FSx for NetApp ONTAP
+# Agentic Access-Aware RAG with Amazon FSx for NetApp ONTAP
 
 **🌐 Language / Sprache:** [日本語](README.md) | [English](README.en.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | **Deutsch** | [Español](README.es.md)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Ein Enterprise-AI-Suchsystem, mit dem Benutzer Dokumente auf einem Dateiserver (FSx for NetApp ONTAP) abfragen können, **wobei die Zugriffsberechtigungen jedes Benutzers eingehalten werden**. Vertrauliche Dokumente werden nur autorisierten Benutzern in Antworten einbezogen; reguläre Benutzer erhalten Antworten nur auf Basis öffentlicher Dokumente.
+KI-Agenten durchsuchen, analysieren und beantworten autonom Unternehmensdaten auf Amazon FSx for NetApp ONTAP, **wobei die Zugriffsberechtigungen jedes Benutzers eingehalten werden**. Im Gegensatz zu herkömmlicher generativer KI, die „Fragen beantwortet", plant, entscheidet und handelt dieses Agentic AI kontinuierlich zur Zielerreichung und optimiert und automatisiert gesamte Geschäftsprozesse. Vertrauliche Dokumente werden nur autorisierten Benutzern in Antworten einbezogen.
 
-Bereitstellung mit einem einzigen AWS CDK-Befehl. Kombiniert Amazon Bedrock (RAG/Agent), Cognito (Authentifizierung), FSx for ONTAP (Speicher) und S3 Vectors (Vektordatenbank) zu einer unternehmenstauglichen Konfiguration. Kartenbasierte, aufgabenorientierte Benutzeroberfläche mit Next.js 15, unterstützt 8 Sprachen.
+Bereitstellung mit einem einzigen AWS CDK-Befehl. Kombiniert Amazon Bedrock (RAG/Agent), Amazon Cognito (Authentifizierung), Amazon FSx for NetApp ONTAP (Speicher) und Amazon S3 Vectors (Vektordatenbank). Kartenbasierte, aufgabenorientierte Benutzeroberfläche mit Next.js 15, unterstützt 8 Sprachen.
 
 Hauptmerkmale:
-- **Berechtigungsfilterung**: NTFS ACL / UNIX-Berechtigungen des Dateiservers werden automatisch auf RAG-Suchergebnisse angewendet
+- **Berechtigungsfilterung**: NTFS ACL / UNIX-Berechtigungen von FSx for ONTAP werden automatisch auf RAG-Suchergebnisse angewendet
 - **Zero-Touch-Bereitstellung**: AD / OIDC / LDAP-Integration ruft Berechtigungen automatisch bei der ersten Anmeldung ab
-- **Agent + KB-Umschaltung**: Wechseln Sie mit einem Klick zwischen Dokumentensuche (KB-Modus) und mehrstufigem Reasoning (Agent-Modus)
+- **Agentic AI**: Wechseln Sie mit einem Klick zwischen Dokumentensuche (KB-Modus) und autonomem mehrstufigem Reasoning und Aufgabenausführung (Agent-Modus)
 - **Niedrige Kosten**: S3 Vectors (wenige Dollar/Monat) als Standard. Umschaltung auf OpenSearch Serverless möglich
-
 ---
 
 ## Quick Start
@@ -429,7 +428,7 @@ Einrichtungsschritte:
 
 #### OIDC/LDAP Federation (optional) — Zero-Touch-Benutzerbereitstellung
 
-Zusätzlich zu SAML AD Federation können Sie OIDC IdP (Keycloak, Okta, Entra ID usw.) und direkte LDAP-Abfragen für die Zero-Touch-Benutzerbereitstellung aktivieren. Bestehende Dateiserverberechtigungen werden automatisch auf RAG-System-UI-Benutzer abgebildet — keine manuelle Registrierung durch Administratoren oder Benutzer erforderlich.
+Zusätzlich zu SAML AD Federation können Sie OIDC IdP (Keycloak, Okta, Entra ID usw.) und direkte LDAP-Abfragen für die Zero-Touch-Benutzerbereitstellung aktivieren. Bestehende FSx for ONTAP-Berechtigungen werden automatisch auf RAG-System-UI-Benutzer abgebildet — keine manuelle Registrierung durch Administratoren oder Benutzer erforderlich.
 
 Jede Authentifizierungsmethode verwendet die „konfigurationsgesteuerte automatische Aktivierung". Fügen Sie einfach Konfigurationswerte in `cdk.context.json` hinzu, um sie zu aktivieren — mit nahezu null zusätzlichen AWS-Ressourcenkosten. Die gleichzeitige Aktivierung von SAML + OIDC wird ebenfalls unterstützt.
 

@@ -1,19 +1,18 @@
-# Amazon FSx for NetApp ONTAP을 활용한 권한 인식 RAG 시스템
+# Agentic Access-Aware RAG with Amazon FSx for NetApp ONTAP
 
 **🌐 Language / 언어:** [日本語](README.md) | [English](README.en.md) | **한국어** | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-사내 파일 서버(FSx for NetApp ONTAP)에 저장된 문서를 **사용자별 접근 권한을 지키면서** AI로 검색·응답할 수 있는 시스템입니다. 관리자만 볼 수 있는 기밀 문서는 관리자에게만 응답하고, 일반 사용자에게는 공개 문서만으로 응답합니다.
+Amazon FSx for NetApp ONTAP에 저장된 기업 데이터에 대해 **사용자별 접근 권한을 지키면서** AI 에이전트가 자율적으로 검색·분석·응답하는 시스템입니다. 기존의 "질문에 답하는" 생성 AI와 달리, Agentic AI로서 목표 달성을 위해 계획·의사결정·행동을 연속적으로 실행하여 업무 프로세스 전체를 최적화·자동화합니다. 관리자만 볼 수 있는 기밀 문서는 관리자에게만 응답하고, 일반 사용자에게는 공개 문서만으로 응답하는 권한 제어를 갖추고 있습니다.
 
-AWS CDK로 원커맨드 배포가 가능하며, Amazon Bedrock(RAG/Agent), Cognito(인증), FSx for ONTAP(스토리지), S3 Vectors(벡터DB)를 결합한 엔터프라이즈 구성을 검증할 수 있습니다. Next.js 15 기반의 카드형 태스크 지향 UI를 갖추고 있으며 8개 언어를 지원합니다.
+AWS CDK로 원커맨드 배포가 가능하며, Amazon Bedrock(RAG/Agent), Amazon Cognito(인증), Amazon FSx for NetApp ONTAP(스토리지), Amazon S3 Vectors(벡터DB)를 결합한 엔터프라이즈 구성을 검증할 수 있습니다. Next.js 15 기반의 카드형 태스크 지향 UI를 갖추고 있으며 8개 언어를 지원합니다.
 
 주요 특징:
-- **권한 필터링**: 파일 서버의 NTFS ACL / UNIX 권한을 RAG 검색 결과에 자동 반영
+- **권한 필터링**: FSx for ONTAP의 NTFS ACL / UNIX 권한을 RAG 검색 결과에 자동 반영
 - **제로터치 프로비저닝**: AD / OIDC / LDAP 연동으로 첫 로그인 시 권한 정보를 자동 취득
-- **Agent + KB 전환**: 문서 검색(KB 모드)과 다단계 추론(Agent 모드)을 원클릭 전환
+- **Agentic AI**: 문서 검색(KB 모드)과 자율적 다단계 추론·태스크 실행(Agent 모드)을 원클릭 전환
 - **저비용**: S3 Vectors(월 수 달러)를 기본 채택. OpenSearch Serverless로 전환 가능
-
 ---
 
 ## Quick Start
@@ -427,7 +426,7 @@ EC2의 AD를 Entra ID(구 Azure AD)와 통합하고 Entra ID 페더레이션 메
 
 #### OIDC/LDAP Federation (옵션) — 제로터치 사용자 프로비저닝
 
-SAML AD Federation 외에도 OIDC IdP(Keycloak, Okta, Entra ID 등) 및 LDAP 직접 쿼리를 통한 제로터치 사용자 프로비저닝을 활성화할 수 있습니다. 파일 서버의 기존 사용자 권한이 RAG 시스템 UI 사용자에 자동 매핑되어 관리자나 사용자의 수동 등록이 불필요합니다.
+SAML AD Federation 외에도 OIDC IdP(Keycloak, Okta, Entra ID 등) 및 LDAP 직접 쿼리를 통한 제로터치 사용자 프로비저닝을 활성화할 수 있습니다. FSx for ONTAP의 기존 사용자 권한이 RAG 시스템 UI 사용자에 자동 매핑되어 관리자나 사용자의 수동 등록이 불필요합니다.
 
 각 인증 방식은 "설정 기반 자동 활성화"로 동작합니다. `cdk.context.json`에 설정값을 추가하기만 하면 활성화되며, 추가 AWS 리소스 비용은 거의 없습니다. SAML + OIDC 동시 활성화도 가능합니다.
 

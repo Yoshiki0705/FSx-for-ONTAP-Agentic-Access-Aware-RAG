@@ -103,3 +103,4 @@ docker/nextjs/tsconfig.tsbuildinfo
 !docker/embed/.env
 docs/memo
 development/environments/
+github-repo-snapshot.txt

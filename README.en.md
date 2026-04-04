@@ -1,10 +1,18 @@
-# Permission-aware RAG System with Amazon FSx for NetApp ONTAP
+# Agentic Access-Aware RAG with Amazon FSx for NetApp ONTAP
 
 **🌐 Language / 言語:** [日本語](README.md) | **English** | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-This repository is a sample that deploys an access-control-aware Agentic RAG powered by Amazon Bedrock using AWS CDK, leveraging enterprise data and access permissions on Amazon FSx for NetApp ONTAP. Using FSx for ONTAP as a data source, it implements search and response generation that considers ACL / permission information. For the vector store, you can choose between Amazon S3 Vectors (default, low cost) or Amazon OpenSearch Serverless (high performance). It features a card-based, task-oriented UI built with Next.js 15 on AWS Lambda (Lambda Web Adapter), enabling you to validate a secure RAG / AI assistant configuration for enterprise use.
+This system enables AI agents to autonomously search, analyze, and respond to enterprise data stored on Amazon FSx for NetApp ONTAP, **while respecting per-user access permissions**. Unlike traditional "answer a question" generative AI, this Agentic AI continuously plans, makes decisions, and takes actions to achieve goals — optimizing and automating entire business processes. Confidential documents are only included in answers for authorized users; regular users receive answers based on public documents only.
+
+Deploy with a single AWS CDK command. Combines Amazon Bedrock (RAG / Agent), Amazon Cognito (auth), Amazon FSx for NetApp ONTAP (storage), and Amazon S3 Vectors (vector DB) into an enterprise-ready configuration. Features a card-based task-oriented UI built with Next.js 15, supporting 8 languages.
+
+Key features:
+- **Permission filtering**: NTFS ACL / UNIX permissions from FSx for ONTAP are automatically applied to RAG search results
+- **Zero-touch provisioning**: AD / OIDC / LDAP integration auto-retrieves user permissions on first sign-in
+- **Agentic AI**: Toggle between document search (KB mode) and autonomous multi-step reasoning & task execution (Agent mode) with one click
+- **Low cost**: S3 Vectors (a few dollars/month) as default. Can switch to OpenSearch Serverless for high performance
 
 ---
 
@@ -422,7 +430,7 @@ Setup steps:
 
 #### OIDC/LDAP Federation (Optional) — Zero-Touch User Provisioning
 
-In addition to SAML AD Federation, you can enable OIDC IdP (Keycloak, Okta, Entra ID, etc.) and direct LDAP query for zero-touch user provisioning. Existing file server user permissions are automatically mapped to RAG system UI users — no manual registration by administrators or users is required.
+In addition to SAML AD Federation, you can enable OIDC IdP (Keycloak, Okta, Entra ID, etc.) and direct LDAP query for zero-touch user provisioning. Existing FSx for ONTAP user permissions are automatically mapped to RAG system UI users — no manual registration by administrators or users is required.
 
 Each authentication method uses "configuration-driven auto-activation." Simply add configuration values to `cdk.context.json` to enable, with near-zero additional AWS resource cost. SAML + OIDC simultaneous activation is also supported.
 
