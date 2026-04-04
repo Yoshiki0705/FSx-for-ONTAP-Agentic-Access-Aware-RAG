@@ -135,11 +135,12 @@ export class DemoSecurityStack extends cdk.Stack {
       signInAliases: { email: true },
       autoVerify: { email: true },
       standardAttributes: { email: { required: true, mutable: false } },
-      // AD Federation用カスタム属性
+      // カスタム属性: ad_groups, role は初回デプロイ時に作成
+      // oidc_groups はOIDC IdP作成時にCognitoが自動追加するため、ここでは定義しない
+      // （CloudFormationは既存のカスタム属性の再定義を許可しない）
       customAttributes: (props.enableAdFederation || props.oidcProviderConfig) ? {
         'ad_groups': new cognito.StringAttribute({ mutable: true }),
         'role': new cognito.StringAttribute({ mutable: true }),
-        'oidc_groups': new cognito.StringAttribute({ mutable: true }),
       } : undefined,
       passwordPolicy: {
         minLength: 8, requireLowercase: true, requireUppercase: true,
@@ -203,11 +204,17 @@ export class DemoSecurityStack extends cdk.Stack {
     // OIDC IdP（oidcProviderConfig 指定時）
     // ========================================
     if (props.oidcProviderConfig) {
-      this.oidcProvider = new cognito.UserPoolIdentityProviderOidc(this, 'OidcIdPv2', {
+      // clientSecretがSecrets Manager ARNの場合、動的参照で解決
+      // arn:aws:secretsmanager:... 形式の場合はCloudFormation動的参照を使用
+      const clientSecretValue = props.oidcProviderConfig.clientSecret.startsWith('arn:aws:secretsmanager:')
+        ? cdk.SecretValue.secretsManager(props.oidcProviderConfig.clientSecret).unsafeUnwrap()
+        : props.oidcProviderConfig.clientSecret;
+
+      this.oidcProvider = new cognito.UserPoolIdentityProviderOidc(this, 'OidcIdP', {
         userPool: this.userPool,
         name: props.oidcProviderConfig.providerName || 'OIDCProvider',
         clientId: props.oidcProviderConfig.clientId,
-        clientSecret: props.oidcProviderConfig.clientSecret,
+        clientSecret: clientSecretValue,
         issuerUrl: props.oidcProviderConfig.issuerUrl,
         scopes: ['openid', 'email', 'profile'],
         attributeRequestMethod: cognito.OidcAttributeRequestMethod.GET,
@@ -220,11 +227,6 @@ export class DemoSecurityStack extends cdk.Stack {
           },
         },
       });
-
-      // L1エスケープハッチ: attributes_url_add_attributes を true に設定
-      // CognitoがOIDC IdPのuserinfoエンドポイントからカスタムクレーム（groups等）を取得するために必要
-      const cfnOidcProvider = this.oidcProvider.node.defaultChild as cdk.CfnResource;
-      cfnOidcProvider.addPropertyOverride('ProviderDetails.attributes_url_add_attributes', 'true');
 
       // OIDC有効時にCognito Domainがまだ作成されていない場合は作成
       if (!props.enableAdFederation) {
@@ -338,9 +340,10 @@ export class DemoSecurityStack extends cdk.Stack {
       );
 
       // AdminGetUser権限（PostConfirmation triggerでカスタム属性を取得するため）
+      // 循環依存を避けるため、リージョン・アカウントベースのワイルドカードARNを使用
       this.adSyncFunction!.addToRolePolicy(new iam.PolicyStatement({
         actions: ['cognito-idp:AdminGetUser'],
-        resources: [this.userPool.userPoolArn],
+        resources: [`arn:aws:cognito-idp:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:userpool/*`],
       }));
     }
 
