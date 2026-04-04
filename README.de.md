@@ -4,9 +4,30 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-Dieses Repository ist ein Beispiel, das ein zugriffskontrollbewusstes Agentic RAG bereitstellt, das von Amazon Bedrock angetrieben und mit AWS CDK deployt wird. Es nutzt Unternehmensdaten und Zugriffsberechtigungen auf Amazon FSx for NetApp ONTAP. Mit FSx for ONTAP als Datenquelle implementiert es Suche und Antwortgenerierung unter Berücksichtigung von ACL-/Berechtigungsinformationen. Für den Vektorspeicher können Sie zwischen Amazon S3 Vectors (Standard, kostengünstig) oder Amazon OpenSearch Serverless (Hochleistung) wählen. Es verfügt über eine kartenbasierte, aufgabenorientierte Benutzeroberfläche, die mit Next.js 15 auf AWS Lambda (Lambda Web Adapter) erstellt wurde und es Ihnen ermöglicht, eine sichere RAG-/KI-Assistenten-Konfiguration für den Unternehmenseinsatz zu validieren.
+Ein Enterprise-AI-Suchsystem, mit dem Benutzer Dokumente auf einem Dateiserver (FSx for NetApp ONTAP) abfragen können, **wobei die Zugriffsberechtigungen jedes Benutzers eingehalten werden**. Vertrauliche Dokumente werden nur autorisierten Benutzern in Antworten einbezogen; reguläre Benutzer erhalten Antworten nur auf Basis öffentlicher Dokumente.
+
+Bereitstellung mit einem einzigen AWS CDK-Befehl. Kombiniert Amazon Bedrock (RAG/Agent), Cognito (Authentifizierung), FSx for ONTAP (Speicher) und S3 Vectors (Vektordatenbank) zu einer unternehmenstauglichen Konfiguration. Kartenbasierte, aufgabenorientierte Benutzeroberfläche mit Next.js 15, unterstützt 8 Sprachen.
+
+Hauptmerkmale:
+- **Berechtigungsfilterung**: NTFS ACL / UNIX-Berechtigungen des Dateiservers werden automatisch auf RAG-Suchergebnisse angewendet
+- **Zero-Touch-Bereitstellung**: AD / OIDC / LDAP-Integration ruft Berechtigungen automatisch bei der ersten Anmeldung ab
+- **Agent + KB-Umschaltung**: Wechseln Sie mit einem Klick zwischen Dokumentensuche (KB-Modus) und mehrstufigem Reasoning (Agent-Modus)
+- **Niedrige Kosten**: S3 Vectors (wenige Dollar/Monat) als Standard. Umschaltung auf OpenSearch Serverless möglich
 
 ---
+
+## Quick Start
+
+```bash
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG && npm install
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/ap-northeast-1
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/us-east-1
+bash demo-data/scripts/pre-deploy-setup.sh
+npx cdk deploy --all --require-approval never
+bash demo-data/scripts/post-deploy-setup.sh
+```
+
 
 ## Architektur
 

@@ -4,9 +4,30 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-本仓库是一个示例项目，使用 AWS CDK 部署由 Amazon Bedrock 驱动的具有访问控制感知能力的 Agentic RAG，利用 Amazon FSx for NetApp ONTAP 上的企业数据和访问权限。以 FSx for ONTAP 作为数据源，实现了考虑 ACL / 权限信息的搜索和响应生成。向量存储可选择 Amazon S3 Vectors（默认，低成本）或 Amazon OpenSearch Serverless（高性能）。采用基于 Next.js 15 的卡片式任务导向 UI，运行在 AWS Lambda（Lambda Web Adapter）上，可用于验证面向企业的安全 RAG / AI 助手配置。
+一个企业级 AI 搜索系统，让用户可以在**遵守每个用户访问权限**的前提下，对文件服务器（FSx for NetApp ONTAP）上的文档进行 AI 搜索和问答。机密文档仅向授权用户回答，普通用户只能获得基于公开文档的回答。
+
+使用 AWS CDK 一键部署，结合 Amazon Bedrock（RAG/Agent）、Cognito（认证）、FSx for ONTAP（存储）、S3 Vectors（向量数据库），可验证企业级安全 RAG/AI 助手架构。基于 Next.js 15 的卡片式任务导向 UI，支持 8 种语言。
+
+主要特点：
+- **权限过滤**：文件服务器的 NTFS ACL / UNIX 权限自动应用于 RAG 搜索结果
+- **零接触配置**：AD / OIDC / LDAP 集成，用户首次登录即自动获取权限信息
+- **Agent + KB 切换**：文档搜索（KB 模式）和多步推理（Agent 模式）一键切换
+- **低成本**：默认采用 S3 Vectors（每月数美元），可切换至 OpenSearch Serverless
 
 ---
+
+## Quick Start
+
+```bash
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG && npm install
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/ap-northeast-1
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/us-east-1
+bash demo-data/scripts/pre-deploy-setup.sh
+npx cdk deploy --all --require-approval never
+bash demo-data/scripts/post-deploy-setup.sh
+```
+
 
 ## 架构
 
@@ -1429,7 +1450,7 @@ User              Next.js API             DynamoDB            Bedrock KB        
 │   ├── scripts/                      # Setup scripts (user creation, SID data registration, etc.)
 │   └── guides/                       # Verification scenarios & ONTAP setup guide
 ├── docs/
-│   ├── implementation-overview.md    # Detailed implementation description (13 perspectives)
+│   ├── implementation-overview.md    # Detailed implementation description (14 perspectives)
 │   ├── ui-specification.md           # UI specification (KB/Agent mode switching, sidebar design)
 │   ├── stack-architecture-comparison.md # CDK stack architecture guide
 │   ├── embedding-server-design.md    # Embedding server design (including ONTAP ACL auto-retrieval)

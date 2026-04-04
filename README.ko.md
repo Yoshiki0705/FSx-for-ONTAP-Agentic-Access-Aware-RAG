@@ -4,9 +4,30 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-이 리포지토리는 AWS CDK를 사용하여 Amazon Bedrock 기반의 접근 제어 인식 Agentic RAG를 배포하는 샘플입니다. Amazon FSx for NetApp ONTAP의 엔터프라이즈 데이터와 접근 권한을 활용합니다. FSx for ONTAP을 데이터 소스로 사용하여 ACL / 권한 정보를 고려한 검색 및 응답 생성을 구현합니다. 벡터 스토어는 Amazon S3 Vectors(기본값, 저비용) 또는 Amazon OpenSearch Serverless(고성능) 중에서 선택할 수 있습니다. AWS Lambda(Lambda Web Adapter) 위에서 Next.js 15로 구축된 카드 기반 태스크 지향 UI를 제공하며, 엔터프라이즈용 보안 RAG / AI 어시스턴트 구성을 검증할 수 있습니다.
+사내 파일 서버(FSx for NetApp ONTAP)에 저장된 문서를 **사용자별 접근 권한을 지키면서** AI로 검색·응답할 수 있는 시스템입니다. 관리자만 볼 수 있는 기밀 문서는 관리자에게만 응답하고, 일반 사용자에게는 공개 문서만으로 응답합니다.
+
+AWS CDK로 원커맨드 배포가 가능하며, Amazon Bedrock(RAG/Agent), Cognito(인증), FSx for ONTAP(스토리지), S3 Vectors(벡터DB)를 결합한 엔터프라이즈 구성을 검증할 수 있습니다. Next.js 15 기반의 카드형 태스크 지향 UI를 갖추고 있으며 8개 언어를 지원합니다.
+
+주요 특징:
+- **권한 필터링**: 파일 서버의 NTFS ACL / UNIX 권한을 RAG 검색 결과에 자동 반영
+- **제로터치 프로비저닝**: AD / OIDC / LDAP 연동으로 첫 로그인 시 권한 정보를 자동 취득
+- **Agent + KB 전환**: 문서 검색(KB 모드)과 다단계 추론(Agent 모드)을 원클릭 전환
+- **저비용**: S3 Vectors(월 수 달러)를 기본 채택. OpenSearch Serverless로 전환 가능
 
 ---
+
+## Quick Start
+
+```bash
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG && npm install
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/ap-northeast-1
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/us-east-1
+bash demo-data/scripts/pre-deploy-setup.sh
+npx cdk deploy --all --require-approval never
+bash demo-data/scripts/post-deploy-setup.sh
+```
+
 
 ## 아키텍처
 

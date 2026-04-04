@@ -4,9 +4,46 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-本リポジトリは、Amazon FSx for NetApp ONTAP 上の企業データとアクセス権限を活用し、Amazon Bedrock によるアクセス制御対応の Agentic RAG を AWS CDK でデプロイするサンプルです。FSx for ONTAP をデータソースとして、ACL / 権限情報を考慮した検索と応答生成を実現し、ベクトルストアには Amazon S3 Vectors（デフォルト、低コスト）または Amazon OpenSearch Serverless（高パフォーマンス）を選択できます。Next.js 15 on AWS Lambda（Lambda Web Adapter）によるカードベースのタスク指向UIを備え、エンタープライズ向けの安全な RAG / AI アシスタント構成を検証できるようにしています。
+社内のファイルサーバー（FSx for NetApp ONTAP）に保存された文書を、**ユーザーごとのアクセス権限を守りながら** AI で検索・回答できるシステムです。管理者だけが見られる機密文書は管理者にだけ回答し、一般ユーザーには公開文書のみで回答します。
+
+AWS CDK でワンコマンドデプロイでき、Amazon Bedrock（RAG / Agent）、Cognito（認証）、FSx for ONTAP（ストレージ）、S3 Vectors（ベクトルDB）を組み合わせたエンタープライズ向けの構成を検証できます。Next.js 15 によるカードベースのタスク指向 UI を備え、8言語に対応しています。
+
+主な特徴:
+- **権限フィルタリング**: ファイルサーバーの NTFS ACL / UNIX パーミッションを RAG 検索に自動反映
+- **ゼロタッチプロビジョニング**: AD / OIDC / LDAP 連携で、ユーザーが初回サインインするだけで権限情報を自動取得
+- **Agent + KB 切替**: 文書検索（KB モード）と多段階推論（Agent モード）をワンクリックで切替
+- **低コスト**: S3 Vectors（月数ドル）をデフォルト採用。OpenSearch Serverless への切替も可能
 
 ---
+
+## クイックスタート（最短手順）
+
+```bash
+# 1. クローン & 依存関係インストール
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG
+npm install
+
+# 2. CDK Bootstrap（初回のみ）
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/ap-northeast-1
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/us-east-1
+
+# 3. Dockerイメージ準備
+bash demo-data/scripts/pre-deploy-setup.sh
+
+# 4. デプロイ（約30-40分）
+npx cdk deploy --all --require-approval never
+
+# 5. テストデータ + ユーザー作成
+bash demo-data/scripts/post-deploy-setup.sh
+
+# 6. ブラウザでアクセス
+aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
+  --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontUrl`].OutputValue' --output text
+```
+
+> 前提: Node.js 22+、Docker、AWS CLI設定済み、AdministratorAccess相当の権限。詳細は [デプロイ手順](#デプロイ手順) を参照。
+> 認証モード別の構成例は [認証モード別デモ環境構築ガイド](demo-data/guides/auth-mode-setup-guide.md) を参照。
 
 ## Architecture
 
@@ -510,10 +547,6 @@ SAML + OIDC ハイブリッド構成のサインイン画面（ADでサインイ
 
 `vectorStoreType`パラメータでベクトルストアを切り替えられます。デフォルトはS3 Vectors（低コスト）です。
 
-| 構成 | コスト | レイテンシ | 推奨用途 |
-|------|--------|-----------|---------|
-| `s3vectors`（デフォルト） | 月数ドル | サブ秒〜100ms | デモ・開発・コスト最適化 |
-
 #### 既存FSx for ONTAPの利用
 
 既にFSx for ONTAPファイルシステムが存在する場合、新規作成せずに既存リソースを参照できます。これによりデプロイ時間が大幅に短縮されます（FSx ONTAP作成の30-40分待ちが不要）。
@@ -889,23 +922,7 @@ aws s3api list-object-versions --bucket "$BUCKET" \
 aws s3api delete-bucket --bucket "$BUCKET"
 ```
 
-#### 問題5: ビルド用EC2がサブネット削除をブロック
-
-VPC内にビルド用EC2インスタンスが残っていると、Networkingスタックのサブネット削除が失敗します:
-
-```bash
-# ビルド用EC2を終了
-aws ec2 describe-instances --filters "Name=instance-state-name,Values=running" \
-  --query 'Reservations[].Instances[?Tags[?Key==`Name` && contains(Value, `build`)]].InstanceId' \
-  --output text --region ap-northeast-1
-aws ec2 terminate-instances --instance-ids <INSTANCE_ID> --region ap-northeast-1
-
-# 60秒待ってからNetworkingスタック削除をリトライ
-sleep 60
-aws cloudformation delete-stack --stack-name <PREFIX>-Networking --region ap-northeast-1
-```
-
-#### 問題6: 既存FSx参照モードでのcdk destroy
+#### 問題7: 既存FSx参照モードでのcdk destroy
 
 `existingFileSystemId`を指定してデプロイした場合、`cdk destroy`でFSx/SVM/Volumeは削除されません（CDK管理外）。S3 Vectorsベクトルバケット・インデックスは正常に削除されます。
 
@@ -1496,7 +1513,7 @@ Regular user: SID = [...-1001, S-1-1-0 (Everyone)]
 | ドキュメント | 内容 |
 |-------------|------|
 | [docs/auth-and-user-management.md](docs/auth-and-user-management.md) | 認証・ユーザー管理ガイド（認証モード選択、AD Federation、SID自動登録） |
-| [docs/implementation-overview.md](docs/implementation-overview.md) | 実装内容の詳細説明（13の観点） |
+| [docs/implementation-overview.md](docs/implementation-overview.md) | 実装内容の詳細説明（14の観点） |
 | [docs/ui-specification.md](docs/ui-specification.md) | UI仕様書（KB/Agentモード切替、Agent Directory、サイドバー設計、Citation表示） |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SIDベース権限フィルタリングのアーキテクチャ詳細 |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | Embeddingサーバー設計（ONTAP ACL自動取得含む） |

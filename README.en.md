@@ -8,6 +8,22 @@ This repository is a sample that deploys an access-control-aware Agentic RAG pow
 
 ---
 
+## Quick Start
+
+```bash
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG && npm install
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/ap-northeast-1
+npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/us-east-1
+bash demo-data/scripts/pre-deploy-setup.sh
+npx cdk deploy --all --require-approval never
+bash demo-data/scripts/post-deploy-setup.sh
+```
+
+> Prerequisites: Node.js 22+, Docker, AWS CLI configured, AdministratorAccess. See [Deployment Steps](#deployment-steps) for details.
+
+---
+
 ## Architecture
 
 ```
@@ -1452,7 +1468,7 @@ For details, see [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Archite
 │   ├── scripts/                      # Setup scripts (user creation, SID data registration, etc.)
 │   └── guides/                       # Verification scenarios & ONTAP setup guide
 ├── docs/
-│   ├── implementation-overview.md    # Detailed implementation description (13 perspectives)
+│   ├── implementation-overview.md    # Detailed implementation description (14 perspectives)
 │   ├── ui-specification.md           # UI specification (KB/Agent mode switching, sidebar design)
 │   ├── stack-architecture-comparison.md # CDK stack architecture guide
 │   ├── embedding-server-design.md    # Embedding server design (including ONTAP ACL auto-retrieval)
@@ -1475,7 +1491,7 @@ When two types of users (admin and regular user) ask the same question, you can 
 
 | Document | Content |
 |----------|---------|
-| [docs/implementation-overview.md](docs/implementation-overview.md) | Detailed implementation description (13 perspectives) |
+| [docs/implementation-overview.md](docs/implementation-overview.md) | Detailed implementation description (14 perspectives) |
 | [docs/ui-specification.md](docs/ui-specification.md) | UI specification (KB/Agent mode switching, Agent Directory, sidebar design, Citation display) |
 | [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) | SID-based permission filtering architecture details |
 | [docs/embedding-server-design.md](docs/embedding-server-design.md) | Embedding server design (including ONTAP ACL auto-retrieval) |
