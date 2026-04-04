@@ -203,22 +203,28 @@ export class DemoSecurityStack extends cdk.Stack {
     // OIDC IdP（oidcProviderConfig 指定時）
     // ========================================
     if (props.oidcProviderConfig) {
-      this.oidcProvider = new cognito.UserPoolIdentityProviderOidc(this, 'OidcIdP', {
+      this.oidcProvider = new cognito.UserPoolIdentityProviderOidc(this, 'OidcIdPv2', {
         userPool: this.userPool,
         name: props.oidcProviderConfig.providerName || 'OIDCProvider',
         clientId: props.oidcProviderConfig.clientId,
         clientSecret: props.oidcProviderConfig.clientSecret,
         issuerUrl: props.oidcProviderConfig.issuerUrl,
         scopes: ['openid', 'email', 'profile'],
+        attributeRequestMethod: cognito.OidcAttributeRequestMethod.GET,
         attributeMapping: {
           email: cognito.ProviderAttribute.other('email'),
           custom: {
             'custom:oidc_groups': cognito.ProviderAttribute.other(
-              props.oidcProviderConfig.groupClaimName || 'groups'
+              `https://rag-system/${props.oidcProviderConfig.groupClaimName || 'groups'}`
             ),
           },
         },
       });
+
+      // L1エスケープハッチ: attributes_url_add_attributes を true に設定
+      // CognitoがOIDC IdPのuserinfoエンドポイントからカスタムクレーム（groups等）を取得するために必要
+      const cfnOidcProvider = this.oidcProvider.node.defaultChild as cdk.CfnResource;
+      cfnOidcProvider.addPropertyOverride('ProviderDetails.attributes_url_add_attributes', 'true');
 
       // OIDC有効時にCognito Domainがまだ作成されていない場合は作成
       if (!props.enableAdFederation) {
@@ -330,6 +336,12 @@ export class DemoSecurityStack extends cdk.Stack {
         cognito.UserPoolOperation.POST_CONFIRMATION,
         this.adSyncFunction!,
       );
+
+      // AdminGetUser権限（PostConfirmation triggerでカスタム属性を取得するため）
+      this.adSyncFunction!.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['cognito-idp:AdminGetUser'],
+        resources: [this.userPool.userPoolArn],
+      }));
     }
 
     // ========================================

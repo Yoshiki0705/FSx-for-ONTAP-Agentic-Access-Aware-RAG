@@ -22,6 +22,10 @@ import {
   DirectoryServiceClient,
   DescribeDirectoriesCommand,
 } from '@aws-sdk/client-directory-service';
+import {
+  CognitoIdentityProviderClient,
+  AdminGetUserCommand,
+} from '@aws-sdk/client-cognito-identity-provider';
 import * as net from 'net';
 import * as tls from 'tls';
 import { LdapConnector, getBindPassword, structuredLog } from './ldap-connector';
@@ -47,6 +51,7 @@ const LDAP_BIND_PASSWORD_SECRET_ARN = process.env.LDAP_BIND_PASSWORD_SECRET_ARN 
 const ssmClient = new SSMClient({ region: REGION });
 const dynamoClient = new DynamoDBClient({ region: REGION });
 const dsClient = new DirectoryServiceClient({ region: REGION });
+const cognitoClient = new CognitoIdentityProviderClient({ region: REGION });
 
 // ========================================
 // 型定義
@@ -150,14 +155,50 @@ export function detectAuthSource(event: CognitoPostAuthEvent): AuthSource {
  * - 環境変数 OIDC_GROUP_CLAIM_NAME（デフォルト: 'groups'）で指定されたクレーム名を使用
  * - `custom:{claimName}` と `{claimName}` の両方のパスを検索
  * - JSON文字列・配列の両方をパース対応
+ * - PostConfirmation triggerではカスタム属性がイベントに含まれない場合があるため、
+ *   Cognito AdminGetUser APIからフォールバック取得する
  */
-export function parseOidcClaims(
+export async function parseOidcClaims(
   event: CognitoPostAuthEvent,
   groupClaimName: string = OIDC_GROUP_CLAIM_NAME,
-): OidcClaimsInfo {
+): Promise<OidcClaimsInfo> {
   const claims = event.request.userAttributes;
-  // Cognito属性マッピング: custom:oidc_groups, custom:{claimName}, {claimName} の順で検索
-  const groupsRaw = claims['custom:oidc_groups'] || claims[`custom:${groupClaimName}`] || claims[groupClaimName] || '[]';
+  let groupsRaw = claims['custom:oidc_groups'] || claims[`custom:${groupClaimName}`] || claims[groupClaimName];
+
+  // PostConfirmation triggerではカスタム属性がイベントに含まれない場合がある
+  // Cognito APIから直接ユーザー属性を取得するフォールバック
+  if (!groupsRaw && event.userPoolId && event.userName) {
+    try {
+      const userResp = await cognitoClient.send(new AdminGetUserCommand({
+        UserPoolId: event.userPoolId,
+        Username: event.userName,
+      }));
+      const oidcGroupsAttr = userResp.UserAttributes?.find(a => a.Name === 'custom:oidc_groups');
+      if (oidcGroupsAttr?.Value) {
+        groupsRaw = oidcGroupsAttr.Value;
+        console.log(JSON.stringify({
+          level: 'INFO',
+          source: 'parseOidcClaims',
+          message: 'Retrieved oidc_groups from Cognito API fallback',
+          userId: event.userName,
+          groupsRaw: groupsRaw?.substring(0, 200),
+          timestamp: new Date().toISOString(),
+        }));
+      }
+    } catch (err: unknown) {
+      const e = err as Error;
+      console.warn(JSON.stringify({
+        level: 'WARN',
+        source: 'parseOidcClaims',
+        message: 'Failed to retrieve user attributes from Cognito API',
+        userId: event.userName,
+        error: e.message,
+        timestamp: new Date().toISOString(),
+      }));
+    }
+  }
+
+  if (!groupsRaw) groupsRaw = '[]';
 
   let groups: string[];
   if (Array.isArray(groupsRaw)) {
@@ -309,7 +350,7 @@ async function handleOidcPath(
   }
 
   // OIDCクレームからグループ情報を取得
-  const oidcClaims = parseOidcClaims(event);
+  const oidcClaims = await parseOidcClaims(event);
 
   const hasLdapConfig = !!(LDAP_URL && LDAP_BASE_DN && LDAP_BIND_DN);
 
