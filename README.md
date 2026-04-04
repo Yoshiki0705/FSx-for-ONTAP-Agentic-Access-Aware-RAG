@@ -1039,7 +1039,46 @@ Bedrock KBのIngestion Jobが実行する処理：
 3. Amazon Titan Embed Text v2でベクトル化（1024次元）
 4. ベクトル + メタデータ（`allowed_group_sids`含む）をベクトルストアに格納
 
-> **Ingestion Jobのクォータと設計考慮点**: 1ジョブ100GB/50MB per file、同一KBへの並行同期不可、StartIngestionJob APIレート0.1 req/sec（10秒に1回）等の制約があります。定期同期のスケジューリング方法を含む詳細は [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md#bedrock-kb-ingestion-job--クォータと設計考慮点) を参照してください。
+#### Ingestion Jobの実行方法
+
+Ingestion Job（KB同期）は、データソース上のドキュメントをベクトルストアに取り込む処理です。**自動実行されないため、手動またはスケジュールで実行する必要があります。**
+
+```bash
+# 手動実行
+aws bedrock-agent start-ingestion-job \
+  --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> \
+  --region ap-northeast-1
+```
+
+**実行タイミング:**
+- ドキュメントの追加・更新・削除後に必ず実行（同期しないとベクトルストアに反映されない）
+- 差分同期: 変更されたドキュメントのみ再処理される（全件再処理ではない）
+- 所要時間: 通常30秒〜2分（ドキュメント数に依存）
+
+**定期実行の方法:**
+- EventBridge Schedulerで定期的に `StartIngestionJob` APIを呼び出す
+- `enableMonitoring=true` でデプロイすると、Ingestion Job失敗時のEventBridge通知が自動設定される
+- 詳細は [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md#bedrock-kb-ingestion-job--クォータと設計考慮点) を参照
+
+#### Ingestion Jobのクォータと制約
+
+| 制約 | 値 | 説明 |
+|------|-----|------|
+| 1ジョブあたりの最大データ量 | **100 GB** | 1回のIngestion Jobで処理できるデータソースの合計サイズ上限 |
+| 1ファイルの最大サイズ | **50 MB** | 個々のドキュメントファイルのサイズ上限（画像は3.75 MB） |
+| 同時実行数（KB単位） | **1** | 同一Knowledge Baseに対して並行実行不可 |
+| 同時実行数（データソース単位） | **1** | 同一データソースに対して並行実行不可 |
+| 同時実行数（アカウント単位） | **5** | アカウント全体で最大5ジョブ同時実行 |
+| StartIngestionJob APIレート | **0.1 req/sec** | 10秒に1回まで（バースト不可） |
+| 対応ファイル形式 | .txt, .md, .html, .doc/.docx, .csv, .xls/.xlsx, .pdf, .jpeg, .png | — |
+
+> 参考: [Amazon Bedrock endpoints and quotas](https://docs.aws.amazon.com/general/latest/gr/bedrock.html)、[Prerequisites for your knowledge base data](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-ds.html)
+
+**100 GB制限の回避策:**
+- データソースを複数に分割する（例: 部門別、年度別にS3 Access Pointを分ける）
+- 各データソースに対して個別にIngestion Jobを実行（ただし同一KB内では直列実行）
+- 大容量ファイル（50 MB超）はチャンク分割してから配置する
 
 検索時のフロー：
 ```
@@ -1067,9 +1106,19 @@ FSx ONTAP Volume (/data)
       +-- project-plan.md.metadata.json
 ```
 
-#### .metadata.json の書式
+#### .metadata.json の書式と作成方法
 
-各ドキュメントに対応する`.metadata.json`ファイルでSIDベースのアクセス制御を設定します。
+各ドキュメントに対応する `.metadata.json` ファイルで、SIDベースのアクセス制御を設定します。このファイルはドキュメントと同じディレクトリに、`<ドキュメント名>.metadata.json` という命名規則で配置します。
+
+**命名規則:**
+```
+product-catalog.md              ← ドキュメント本体
+product-catalog.md.metadata.json ← 権限メタデータ（必ずこの名前）
+```
+
+> **重要**: `.metadata.json` はBedrock KBの[メタデータファイル仕様](https://docs.aws.amazon.com/bedrock/latest/userguide/s3-data-source-connector.html)に準拠しています。ファイル名が正しくないとメタデータが無視され、権限フィルタリングが機能しません。
+
+**書式:**
 
 ```json
 {
@@ -1086,6 +1135,25 @@ FSx ONTAP Volume (/data)
 | `allowed_group_sids` | ✅ | アクセスを許可するSIDのJSON配列文字列。`S-1-1-0`はEveryone |
 | `access_level` | 任意 | UI表示用のアクセスレベル（`public`, `confidential`, `restricted`） |
 | `doc_type` | 任意 | ドキュメント種別（将来のフィルタリング用） |
+
+**作成方法:**
+
+1. **手動作成**: テキストエディタで上記JSON形式のファイルを作成
+2. **ONTAP ACLから自動生成**: `ontapMgmtIp` を設定すると、EmbeddingサーバーがONTAP REST APIからNTFS ACL情報を取得し `.metadata.json` を自動生成（[docs/embedding-server-design.md](docs/embedding-server-design.md) 参照）
+3. **スクリプトで一括生成**: ディレクトリ構造に基づいてメタデータを一括生成するスクリプトを作成可能
+
+**複数グループにアクセスを許可する例:**
+
+```json
+{
+  "metadataAttributes": {
+    "allowed_group_sids": "[\"S-1-5-21-...-512\", \"S-1-5-21-...-1100\"]",
+    "access_level": "restricted"
+  }
+}
+```
+
+この例では、Domain Admins（-512）とEngineering（-1100）の両グループにアクセスを許可しています。
 
 #### 主要なSID値
 
