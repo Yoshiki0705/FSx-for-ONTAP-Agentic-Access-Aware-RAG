@@ -631,5 +631,11 @@
     "modelUsed": "使用モデル",
     "autoRouted": "Auto",
     "manualOverride": "Manual"
+  },
+  "citation": {
+    "referencedDocuments": "参照ドキュメント",
+    "accessPublic": "全員アクセス可",
+    "accessConfidential": "管理者のみ",
+    "accessRestricted": "特定グループ"
   }
 }

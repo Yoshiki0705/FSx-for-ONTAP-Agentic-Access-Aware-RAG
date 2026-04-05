@@ -850,5 +850,11 @@
     "modelUsed": "使用模型",
     "autoRouted": "Auto",
     "manualOverride": "Manual"
+  },
+  "citation": {
+    "referencedDocuments": "参考文档",
+    "accessPublic": "所有人可访问",
+    "accessConfidential": "仅管理员",
+    "accessRestricted": "特定群组"
   }
 }

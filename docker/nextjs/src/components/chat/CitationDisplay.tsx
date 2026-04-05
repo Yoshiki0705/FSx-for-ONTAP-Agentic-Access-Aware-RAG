@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 export interface CitationItem {
   fileName: string;
@@ -29,16 +30,16 @@ function extractFilePath(s3Uri: string, fileName: string): string {
 }
 
 /**
- * access_levelを日本語のわかりやすいラベルに変換する
+ * access_levelをロケール対応のラベルに変換する
  */
-function getAccessLevelLabel(accessLevel: string): string {
+function getAccessLevelLabel(accessLevel: string, t: (key: string) => string): string {
   switch (accessLevel) {
     case 'public':
-      return '全員アクセス可';
+      return t('accessPublic');
     case 'confidential':
-      return '管理者のみ';
+      return t('accessConfidential');
     case 'restricted':
-      return '特定グループ';
+      return t('accessRestricted');
     default:
       return accessLevel;
   }
@@ -52,6 +53,7 @@ function getAccessLevelLabel(accessLevel: string): string {
  */
 export function CitationDisplay({ citations }: CitationDisplayProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const t = useTranslations('citation');
 
   if (!citations || citations.length === 0) {
     return null;
@@ -69,7 +71,7 @@ export function CitationDisplay({ citations }: CitationDisplayProps) {
     <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
       <div className="flex items-center space-x-1 mb-2">
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-          📄 参照ドキュメント ({uniqueCitations.length})
+          📄 {t('referencedDocuments')} ({uniqueCitations.length})
         </span>
       </div>
       <div className="space-y-1">
@@ -96,7 +98,7 @@ export function CitationDisplay({ citations }: CitationDisplayProps) {
                       ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                       : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
                   }`}>
-                    {getAccessLevelLabel(String(cite.metadata.access_level))}
+                    {getAccessLevelLabel(String(cite.metadata.access_level), t)}
                   </span>
                 )}
               </div>

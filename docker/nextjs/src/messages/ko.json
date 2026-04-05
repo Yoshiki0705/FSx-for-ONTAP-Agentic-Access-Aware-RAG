@@ -783,5 +783,11 @@
     "modelUsed": "사용 모델",
     "autoRouted": "Auto",
     "manualOverride": "Manual"
+  },
+  "citation": {
+    "referencedDocuments": "참조 문서",
+    "accessPublic": "전체 접근 가능",
+    "accessConfidential": "관리자 전용",
+    "accessRestricted": "특정 그룹"
   }
 }

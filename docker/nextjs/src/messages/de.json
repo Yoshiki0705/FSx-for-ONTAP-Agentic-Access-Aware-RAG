@@ -783,5 +783,11 @@
     "modelUsed": "Verwendetes Modell",
     "autoRouted": "Auto",
     "manualOverride": "Manuell"
+  },
+  "citation": {
+    "referencedDocuments": "Referenzierte Dokumente",
+    "accessPublic": "Für alle zugänglich",
+    "accessConfidential": "Nur Administratoren",
+    "accessRestricted": "Bestimmte Gruppen"
   }
 }
