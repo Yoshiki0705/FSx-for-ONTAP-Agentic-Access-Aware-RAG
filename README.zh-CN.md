@@ -122,7 +122,7 @@ Agent 模式显示 14 张工作流卡片（8 张研究 + 6 张输出）。点击
 
 RAG 搜索结果显示 FSx 文件路径和访问级别徽章（所有人可访问 / 仅管理员 / 特定组）。聊天过程中，"🔄 返回工作流选择"按钮可返回卡片网格。消息输入框左侧的"➕"按钮可开始新聊天。
 
-![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation.png)
+![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation-zh-CN.png)
 
 ### 图像上传 — 拖放 + 文件选择器（v3.1.0）
 

@@ -122,7 +122,7 @@ Agent 카드를 클릭하면 Agent ID, 상태, 모델, 버전, 생성일, 시스
 
 RAG 검색 결과는 FSx 파일 경로와 접근 레벨 배지(전체 접근 가능 / 관리자 전용 / 특정 그룹)를 표시합니다. 채팅 중 "🔄 워크플로우 선택으로 돌아가기" 버튼으로 카드 그리드로 돌아갈 수 있습니다. 메시지 입력 필드 왼쪽의 "➕" 버튼으로 새 채팅을 시작합니다.
 
-![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation.png)
+![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation-ko.png)
 
 ### 이미지 업로드 — 드래그 앤 드롭 + 파일 선택기 (v3.1.0)
 

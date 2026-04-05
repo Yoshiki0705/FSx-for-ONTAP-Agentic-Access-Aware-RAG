@@ -122,7 +122,7 @@ Ein Klick auf eine Agent-Karte zeigt ein Detailpanel mit Agent-ID, Status, Model
 
 RAG-Suchergebnisse zeigen FSx-Dateipfade und Zugriffsebenen-Badges (für alle zugänglich / nur Administratoren / bestimmte Gruppen). Während des Chats kehrt ein „🔄 Zurück zur Workflow-Auswahl"-Button zum Kartenraster zurück. Ein „➕"-Button auf der linken Seite des Nachrichteneingabefelds startet einen neuen Chat.
 
-![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation.png)
+![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation-de.png)
 
 ### Bild-Upload — Drag & Drop + Dateiauswahl (v3.1.0)
 

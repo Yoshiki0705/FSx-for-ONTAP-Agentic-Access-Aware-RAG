@@ -122,7 +122,7 @@ Cliquer sur une carte Agent affiche un panneau de détail montrant l'ID de l'Age
 
 Les résultats de recherche RAG affichent les chemins de fichiers FSx et les badges de niveau d'accès (accessible à tous / administrateurs uniquement / groupes spécifiques). Pendant le chat, un bouton « 🔄 Retour à la sélection de workflow » retourne à la grille de cartes. Un bouton « ➕ » sur le côté gauche du champ de saisie de message démarre un nouveau chat.
 
-![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation.png)
+![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation-fr.png)
 
 ### Téléchargement d'images — Glisser-déposer + Sélecteur de fichiers (v3.1.0)
 

@@ -126,7 +126,7 @@ Clicking an Agent card displays a detail panel showing Agent ID, status, model, 
 
 RAG search results display FSx file paths and access level badges (accessible to all / admin only / specific groups). During chat, a "🔄 Return to Workflow Selection" button returns to the card grid. A "➕" button on the left side of the message input field starts a new chat.
 
-![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation.png)
+![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation-en.png)
 
 ### Image Upload — Drag & Drop + File Picker (v3.1.0)
 

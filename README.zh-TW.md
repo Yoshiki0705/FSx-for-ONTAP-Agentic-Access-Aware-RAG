@@ -122,7 +122,7 @@ Agent 模式顯示 14 張工作流程卡片（8 張研究 + 6 張輸出）。點
 
 RAG 搜尋結果顯示 FSx 檔案路徑和存取等級徽章（所有人可存取 / 僅管理員 / 特定群組）。聊天期間，「🔄 返回工作流程選擇」按鈕可返回卡片網格。訊息輸入欄位左側的「➕」按鈕可開始新的聊天。
 
-![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation.png)
+![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation-zh-TW.png)
 
 ### 圖片上傳 — 拖放 + 檔案選擇器（v3.1.0）
 

@@ -122,7 +122,7 @@ Al hacer clic en una tarjeta de Agent se muestra un panel de detalle que muestra
 
 Los resultados de búsqueda RAG muestran las rutas de archivos FSx e insignias de nivel de acceso (accesible para todos / solo administradores / grupos específicos). Durante el chat, un botón "🔄 Volver a la selección de flujo de trabajo" regresa a la cuadrícula de tarjetas. Un botón "➕" en el lado izquierdo del campo de entrada de mensajes inicia un nuevo chat.
 
-![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation.png)
+![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation-es.png)
 
 ### Carga de imágenes — Arrastrar y soltar + Selector de archivos (v3.1.0)
 
