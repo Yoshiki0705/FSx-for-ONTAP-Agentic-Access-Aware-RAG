@@ -86,7 +86,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 聊天区域的初始状态以网格布局显示 14 张用途特定的卡片（8 张研究 + 6 张输出）。具有分类过滤器、收藏功能和 InfoBanner（权限信息）。
 
-![KB Mode Card Grid](docs/screenshots/kb-mode-cards-full.png)
+![KB Mode Card Grid](docs/screenshots/multilingual-zh-CN-verified.png)
 
 ### Agent 模式 — 卡片网格 + 侧边栏
 

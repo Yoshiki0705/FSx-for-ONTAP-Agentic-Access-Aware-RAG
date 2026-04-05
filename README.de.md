@@ -86,7 +86,7 @@ Die Implementierung dieses Systems ist in 14 Perspektiven organisiert. Details z
 
 Der Ausgangszustand des Chat-Bereichs zeigt 14 zweckspezifische Karten (8 Recherche + 6 Ausgabe) in einem Rasterlayout an. Enthält Kategoriefilter, Favoritenfunktion und InfoBanner (Berechtigungsinformationen).
 
-![KB Mode Card Grid](docs/screenshots/kb-mode-cards-full.png)
+![KB Mode Card Grid](docs/screenshots/multilingual-de-verified.png)
 
 ### Agent-Modus — Kartenraster + Seitenleiste
 

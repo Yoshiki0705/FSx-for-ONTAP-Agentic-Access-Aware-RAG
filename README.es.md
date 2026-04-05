@@ -86,7 +86,7 @@ La implementación de este sistema está organizada en 14 perspectivas. Para det
 
 El estado inicial del área de chat muestra 14 tarjetas de propósito específico (8 de investigación + 6 de producción) en un diseño de cuadrícula. Incluye filtros de categoría, funcionalidad de favoritos e InfoBanner (información de permisos).
 
-![KB Mode Card Grid](docs/screenshots/kb-mode-cards-full.png)
+![KB Mode Card Grid](docs/screenshots/multilingual-es-verified.png)
 
 ### Modo Agent — Cuadrícula de tarjetas + Barra lateral
 

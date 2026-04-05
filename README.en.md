@@ -90,7 +90,7 @@ The implementation of this system is organized into 14 perspectives. For details
 
 The initial state of the chat area displays 14 purpose-specific cards (8 research + 6 output) in a grid layout. Features category filters, favorites functionality, and InfoBanner (permission information).
 
-![KB Mode Card Grid](docs/screenshots/kb-mode-cards-full.png)
+![KB Mode Card Grid](docs/screenshots/multilingual-en-verified.png)
 
 ### Agent Mode — Card Grid + Sidebar
 

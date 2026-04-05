@@ -86,7 +86,7 @@ L'implémentation de ce système est organisée en 14 perspectives. Pour les dé
 
 L'état initial de la zone de chat affiche 14 cartes spécifiques (8 recherche + 6 production) dans une disposition en grille. Comprend des filtres de catégorie, une fonctionnalité de favoris et un InfoBanner (informations de permissions).
 
-![KB Mode Card Grid](docs/screenshots/kb-mode-cards-full.png)
+![KB Mode Card Grid](docs/screenshots/multilingual-fr-verified.png)
 
 ### Mode Agent — Grille de cartes + Barre latérale
 

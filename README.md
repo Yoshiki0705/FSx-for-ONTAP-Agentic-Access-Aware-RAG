@@ -103,7 +103,7 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 
 チャットエリアの初期状態では、目的別カード14枚（調査系8枚 + アウトプット系6枚）がグリッド表示されます。カテゴリフィルタ、お気に入り機能、InfoBanner（権限情報）を備えています。
 
-![KBモード カードグリッド](docs/screenshots/kb-mode-cards-full.png)
+![KBモード カードグリッド](docs/screenshots/multilingual-ja-verified.png)
 
 ### Agentモード — カードグリッド + サイドバー
 

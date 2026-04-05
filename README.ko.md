@@ -86,7 +86,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 채팅 영역의 초기 상태는 14개의 목적별 카드(8개 리서치 + 6개 출력)를 그리드 레이아웃으로 표시합니다. 카테고리 필터, 즐겨찾기 기능, InfoBanner(권한 정보)를 제공합니다.
 
-![KB Mode Card Grid](docs/screenshots/kb-mode-cards-full.png)
+![KB Mode Card Grid](docs/screenshots/multilingual-ko-verified.png)
 
 ### Agent 모드 — 카드 그리드 + 사이드바
 
