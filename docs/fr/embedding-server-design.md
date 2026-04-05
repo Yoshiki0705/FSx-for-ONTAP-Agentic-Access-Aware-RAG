@@ -12,6 +12,15 @@
 
 Ce serveur lit les documents sur FSx ONTAP via un montage CIFS/SMB, les vectorise avec Amazon Bedrock Titan Embed Text v2 et les indexe dans OpenSearch Serverless (AOSS).
 
+### Vector Store & Embedding Server
+
+| Configuration | Embedding Server | Description |
+|--------------|-----------------|-------------|
+| **S3 Vectors** (default) | **Not needed** | Bedrock KB auto-manages via S3 Access Point |
+| **OpenSearch Serverless** | **Optional** | Alternative when S3 AP unavailable |
+
+> **S3 Vectors (default): this document is for reference only.** Bedrock KB Ingestion Job handles all processing automatically.
+
 > **Remarque** : Le serveur d'Embedding n'est disponible que dans la configuration AOSS (`vectorStoreType=opensearch-serverless`). Avec la configuration S3 Vectors (par défaut), Bedrock KB gère automatiquement l'Embedding, donc le serveur d'Embedding n'est pas nécessaire.
 
 Il est utilisé comme chemin alternatif (Option B) lorsque la source de données S3 de Bedrock KB (Option A) ou le S3 Access Point (Option C) ne peut pas être utilisé.
