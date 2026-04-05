@@ -470,7 +470,7 @@ See [Authentication & User Management Guide](docs/en/auth-and-user-management.md
 
 SAML + OIDC hybrid sign-in page (Sign in with AD + Sign in with Auth0 + Email/Password):
 
-![Sign-in page (SAML + OIDC Hybrid)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![Sign-in page (SAML + OIDC Hybrid)](docs/screenshots/multilingual-en-signin.png)
 
 #### Enterprise Features (Optional)
 

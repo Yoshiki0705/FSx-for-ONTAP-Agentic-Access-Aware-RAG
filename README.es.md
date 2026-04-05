@@ -464,7 +464,7 @@ Cada método de autenticación utiliza la "activación automática basada en con
 
 Página de inicio de sesión híbrida SAML + OIDC (Iniciar sesión con AD + Iniciar sesión con Auth0 + Correo/Contraseña):
 
-![Página de inicio de sesión (SAML + OIDC Híbrido)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![Página de inicio de sesión (SAML + OIDC Híbrido)](docs/screenshots/multilingual-es-signin.png)
 
 #### Funciones empresariales (opcional)
 

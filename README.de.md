@@ -464,7 +464,7 @@ Jede Authentifizierungsmethode verwendet die „konfigurationsgesteuerte automat
 
 SAML + OIDC Hybrid-Anmeldeseite (AD-Anmeldung + Auth0-Anmeldung + E-Mail/Passwort):
 
-![Anmeldeseite (SAML + OIDC Hybrid)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![Anmeldeseite (SAML + OIDC Hybrid)](docs/screenshots/multilingual-de-signin.png)
 
 #### Enterprise-Funktionen (optional)
 

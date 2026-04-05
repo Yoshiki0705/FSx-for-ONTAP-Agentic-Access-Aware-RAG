@@ -464,7 +464,7 @@ Chaque méthode d'authentification utilise l'« activation automatique pilotée 
 
 Page de connexion hybride SAML + OIDC (Connexion AD + Connexion Auth0 + E-mail/Mot de passe) :
 
-![Page de connexion (SAML + OIDC Hybride)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![Page de connexion (SAML + OIDC Hybride)](docs/screenshots/multilingual-fr-signin.png)
 
 #### Fonctionnalités entreprise (optionnel)
 

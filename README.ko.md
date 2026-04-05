@@ -464,7 +464,7 @@ SAML AD Federation 외에도 OIDC IdP(Keycloak, Okta, Entra ID 등) 및 LDAP 직
 
 SAML + OIDC 하이브리드 구성의 로그인 화면 (AD로 로그인 + Auth0로 로그인 + 이메일/비밀번호):
 
-![로그인 화면 (SAML + OIDC 하이브리드)](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![로그인 화면 (SAML + OIDC 하이브리드)](docs/screenshots/multilingual-ko-signin.png)
 
 #### 엔터프라이즈 기능 (선택 사항)
 

@@ -464,7 +464,7 @@ AD User → CloudFront UI → "Sign in with AD" button
 
 SAML + OIDC 混合配置的登录页面（AD 登录 + Auth0 登录 + 邮箱/密码）：
 
-![登录页面（SAML + OIDC 混合）](docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![登录页面（SAML + OIDC 混合）](docs/screenshots/multilingual-zh-CN-signin.png)
 
 #### 企业功能（可选）
 
