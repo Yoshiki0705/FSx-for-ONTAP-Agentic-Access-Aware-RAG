@@ -92,13 +92,13 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 Agent 모드는 14개의 워크플로우 카드(8개 리서치 + 6개 출력)를 표시합니다. 카드를 클릭하면 자동으로 Bedrock Agent를 검색하고, 아직 생성되지 않은 경우 Agent Directory 생성 폼으로 이동합니다. 사이드바에는 Agent 선택 드롭다운, 채팅 이력 설정, 접을 수 있는 시스템 관리 섹션이 포함됩니다.
 
-![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid.png)
+![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid-ko.png)
 
 ### Agent Directory — Agent 목록 & 관리 화면
 
 `/[locale]/genai/agents`에서 접근할 수 있는 전용 Agent 관리 화면입니다. 생성된 Bedrock Agent의 카탈로그 표시, 검색 & 카테고리 필터, 상세 패널, 템플릿 기반 생성, 인라인 편집/삭제를 제공합니다. 내비게이션 바에서 Agent 모드 / Agent 목록 / KB 모드 간 전환이 가능합니다. 엔터프라이즈 기능이 활성화되면 "공유 Agent" 및 "예약 작업" 탭이 추가됩니다.
 
-![Agent Directory](docs/screenshots/agent-directory-enterprise.png)
+![Agent Directory](docs/screenshots/agent-directory-ko.png)
 
 #### Agent Directory — 공유 Agent 탭
 

@@ -92,13 +92,13 @@ L'état initial de la zone de chat affiche 14 cartes spécifiques (8 recherche +
 
 Le mode Agent affiche 14 cartes de workflow (8 recherche + 6 production). Cliquer sur une carte recherche automatiquement un Bedrock Agent, et s'il n'a pas été créé, navigue vers le formulaire de création du répertoire Agent. La barre latérale comprend un menu déroulant de sélection d'Agent, des paramètres d'historique de chat et une section d'administration système repliable.
 
-![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid.png)
+![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid-fr.png)
 
 ### Répertoire Agent — Liste des Agents et écran de gestion
 
 Un écran de gestion dédié aux Agents accessible à `/[locale]/genai/agents`. Fournit un affichage catalogue des Bedrock Agents créés, des filtres de recherche et de catégorie, un panneau de détail, une création basée sur des modèles et une édition/suppression en ligne. La barre de navigation permet de basculer entre le mode Agent / la liste des Agents / le mode KB. Lorsque les fonctionnalités entreprise sont activées, les onglets « Agents partagés » et « Tâches planifiées » sont ajoutés.
 
-![Agent Directory](docs/screenshots/agent-directory-enterprise.png)
+![Agent Directory](docs/screenshots/agent-directory-fr.png)
 
 #### Répertoire Agent — Onglet Agents partagés
 

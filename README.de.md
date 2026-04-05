@@ -92,13 +92,13 @@ Der Ausgangszustand des Chat-Bereichs zeigt 14 zweckspezifische Karten (8 Recher
 
 Der Agent-Modus zeigt 14 Workflow-Karten (8 Recherche + 6 Ausgabe) an. Ein Klick auf eine Karte sucht automatisch nach einem Bedrock Agent, und wenn keiner erstellt wurde, navigiert er zum Erstellungsformular im Agent-Verzeichnis. Die Seitenleiste enthält ein Agent-Auswahl-Dropdown, Chat-Verlaufseinstellungen und einen einklappbaren Systemverwaltungsbereich.
 
-![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid.png)
+![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid-de.png)
 
 ### Agent-Verzeichnis — Agent-Liste und Verwaltungsbildschirm
 
 Ein dedizierter Agent-Verwaltungsbildschirm, erreichbar unter `/[locale]/genai/agents`. Bietet Kataloganzeige erstellter Bedrock Agents, Such- und Kategoriefilter, Detailpanel, vorlagenbasierte Erstellung und Inline-Bearbeitung/-Löschung. Die Navigationsleiste ermöglicht das Umschalten zwischen Agent-Modus / Agent-Liste / KB-Modus. Bei aktivierten Enterprise-Funktionen werden die Tabs „Geteilte Agents" und „Geplante Aufgaben" hinzugefügt.
 
-![Agent Directory](docs/screenshots/agent-directory-enterprise.png)
+![Agent Directory](docs/screenshots/agent-directory-de.png)
 
 #### Agent-Verzeichnis — Tab Geteilte Agents
 

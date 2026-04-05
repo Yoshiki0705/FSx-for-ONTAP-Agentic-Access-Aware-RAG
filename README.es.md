@@ -92,13 +92,13 @@ El estado inicial del área de chat muestra 14 tarjetas de propósito específic
 
 El modo Agent muestra 14 tarjetas de flujo de trabajo (8 de investigación + 6 de producción). Al hacer clic en una tarjeta se busca automáticamente un Bedrock Agent, y si no se ha creado, navega al formulario de creación del directorio de Agents. La barra lateral incluye un menú desplegable de selección de Agent, configuración del historial de chat y una sección de administración del sistema plegable.
 
-![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid.png)
+![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid-es.png)
 
 ### Directorio de Agents — Lista de Agents y pantalla de gestión
 
 Una pantalla de gestión dedicada a Agents accesible en `/[locale]/genai/agents`. Proporciona visualización de catálogo de Bedrock Agents creados, filtros de búsqueda y categoría, panel de detalle, creación basada en plantillas y edición/eliminación en línea. La barra de navegación permite cambiar entre modo Agent / lista de Agents / modo KB. Cuando las funciones empresariales están habilitadas, se agregan las pestañas "Agents compartidos" y "Tareas programadas".
 
-![Agent Directory](docs/screenshots/agent-directory-enterprise.png)
+![Agent Directory](docs/screenshots/agent-directory-es.png)
 
 #### Directorio de Agents — Pestaña de Agents compartidos
 

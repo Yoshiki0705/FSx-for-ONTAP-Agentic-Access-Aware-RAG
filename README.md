@@ -109,13 +109,13 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 
 Agentモードでは14枚のワークフローカード（リサーチ系8枚 + アウトプット系6枚）が表示されます。カードクリック時にBedrock Agentが自動検索され、未作成の場合はAgent Directory作成フォームに遷移します。サイドバーにはAgent選択ドロップダウン、チャット履歴設定、折りたたみ可能なシステム管理セクションがあります。
 
-![Agentモード カードグリッド](docs/screenshots/agent-mode-card-grid.png)
+![Agentモード カードグリッド](docs/screenshots/agent-mode-card-grid-ja.png)
 
 ### Agent Directory — Agent一覧・管理画面
 
 `/[locale]/genai/agents` でアクセスできるAgent管理専用画面です。作成済みBedrock Agentのカタログ表示、検索・カテゴリフィルタ、詳細パネル、テンプレートからの作成、インライン編集・削除が可能です。ナビゲーションバーでAgentモード / Agent一覧 / KBモードを切り替えられます。エンタープライズ機能有効時は「共有Agent」「スケジュールタスク」タブが追加されます。
 
-![Agent Directory](docs/screenshots/agent-directory-enterprise.png)
+![Agent Directory](docs/screenshots/agent-directory-ja.png)
 
 #### Agent Directory — 共有Agentタブ
 

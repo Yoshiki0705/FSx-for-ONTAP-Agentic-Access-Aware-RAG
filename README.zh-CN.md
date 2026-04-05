@@ -92,13 +92,13 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 Agent 模式显示 14 张工作流卡片（8 张研究 + 6 张输出）。点击卡片会自动搜索 Bedrock Agent，如果尚未创建，则导航到 Agent Directory 创建表单。侧边栏包含 Agent 选择下拉菜单、聊天历史设置和可折叠的系统管理部分。
 
-![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid.png)
+![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid-zh-CN.png)
 
 ### Agent Directory — Agent 列表与管理界面
 
 可在 `/[locale]/genai/agents` 访问的专用 Agent 管理界面。提供已创建 Bedrock Agent 的目录展示、搜索和分类过滤器、详情面板、基于模板的创建以及内联编辑/删除。导航栏支持在 Agent 模式 / Agent 列表 / KB 模式之间切换。启用企业功能后，会添加"共享 Agent"和"定时任务"选项卡。
 
-![Agent Directory](docs/screenshots/agent-directory-enterprise.png)
+![Agent Directory](docs/screenshots/agent-directory-zh-CN.png)
 
 #### Agent Directory — 共享 Agent 选项卡
 

@@ -96,13 +96,13 @@ The initial state of the chat area displays 14 purpose-specific cards (8 researc
 
 Agent mode displays 14 workflow cards (8 research + 6 output). Clicking a card automatically searches for a Bedrock Agent, and if one hasn't been created, navigates to the Agent Directory creation form. The sidebar includes an Agent selection dropdown, chat history settings, and a collapsible system administration section.
 
-![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid.png)
+![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid-en.png)
 
 ### Agent Directory — Agent List & Management Screen
 
 A dedicated Agent management screen accessible at `/[locale]/genai/agents`. Provides catalog display of created Bedrock Agents, search & category filters, detail panel, template-based creation, and inline editing/deletion. The navigation bar allows switching between Agent mode / Agent list / KB mode. When enterprise features are enabled, "Shared Agents" and "Scheduled Tasks" tabs are added.
 
-![Agent Directory](docs/screenshots/agent-directory-enterprise.png)
+![Agent Directory](docs/screenshots/agent-directory-en.png)
 
 #### Agent Directory — Shared Agents Tab
 
