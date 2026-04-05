@@ -1077,6 +1077,22 @@ FSx ONTAP Volume (/data)
 
 > **详情**：SID 过滤机制请参阅 [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md)。
 
+
+#### Permission Metadata — Design & Future Improvements
+
+`.metadata.json` is a standard Bedrock KB specification, not custom to this project.
+
+At scale (thousands of documents), managing `.metadata.json` per file becomes a burden. Alternative approaches:
+
+| Approach | Feasibility | Pros | Cons |
+|---|---|---|---|
+| `.metadata.json` (current) | ✅ | Bedrock KB native. No extra infra | Doubles file count |
+| DynamoDB permission master + auto-gen | ✅ | DB-only permission changes. Easy audit | Requires generation pipeline |
+| ONTAP REST API dynamic retrieval | ✅ Partial | File server ACLs as source of truth | Needs Embedding server |
+| Bedrock KB Custom Data Source | ✅ | No `.metadata.json` needed | No S3 AP integration |
+
+**Recommended (large-scale):** ONTAP REST API → DynamoDB (permission master) → auto-generate `.metadata.json` → Bedrock KB Ingestion Job.
+
 #### S3 Vectors 元数据约束和注意事项
 
 使用 S3 Vectors 配置（`vectorStoreType=s3vectors`）时，请注意以下元数据约束。

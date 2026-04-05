@@ -506,7 +506,23 @@ Les paramètres de contexte CDK suivants activent les fonctionnalités d'amélio
 | `alarmEvaluationPeriods` | `1` | Nombre de périodes d'évaluation d'alarme (l'alarme se déclenche après N dépassements consécutifs du seuil) |
 | `dashboardRefreshInterval` | `300` | Intervalle de rafraîchissement automatique du tableau de bord (secondes) |
 
-#### Sélection de la configuration du magasin de vecteurs
+#
+#### Permission Metadata — Design & Future Improvements
+
+`.metadata.json` is a standard Bedrock KB specification, not custom to this project.
+
+At scale (thousands of documents), managing `.metadata.json` per file becomes a burden. Alternative approaches:
+
+| Approach | Feasibility | Pros | Cons |
+|---|---|---|---|
+| `.metadata.json` (current) | ✅ | Bedrock KB native. No extra infra | Doubles file count |
+| DynamoDB permission master + auto-gen | ✅ | DB-only permission changes. Easy audit | Requires generation pipeline |
+| ONTAP REST API dynamic retrieval | ✅ Partial | File server ACLs as source of truth | Needs Embedding server |
+| Bedrock KB Custom Data Source | ✅ | No `.metadata.json` needed | No S3 AP integration |
+
+**Recommended (large-scale):** ONTAP REST API → DynamoDB (permission master) → auto-generate `.metadata.json` → Bedrock KB Ingestion Job.
+
+### Sélection de la configuration du magasin de vecteurs
 
 Changez le magasin de vecteurs en utilisant le paramètre `vectorStoreType`. La valeur par défaut est S3 Vectors (faible coût).
 

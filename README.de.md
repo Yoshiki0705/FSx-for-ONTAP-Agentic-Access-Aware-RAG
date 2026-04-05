@@ -799,6 +799,22 @@ Legen Sie die SID-basierte Zugriffskontrolle in der `.metadata.json`-Datei fest,
 
 > **Details**: Siehe [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) für den SID-Filterungsmechanismus.
 
+
+#### Permission Metadata — Design & Future Improvements
+
+`.metadata.json` is a standard Bedrock KB specification, not custom to this project.
+
+At scale (thousands of documents), managing `.metadata.json` per file becomes a burden. Alternative approaches:
+
+| Approach | Feasibility | Pros | Cons |
+|---|---|---|---|
+| `.metadata.json` (current) | ✅ | Bedrock KB native. No extra infra | Doubles file count |
+| DynamoDB permission master + auto-gen | ✅ | DB-only permission changes. Easy audit | Requires generation pipeline |
+| ONTAP REST API dynamic retrieval | ✅ Partial | File server ACLs as source of truth | Needs Embedding server |
+| Bedrock KB Custom Data Source | ✅ | No `.metadata.json` needed | No S3 AP integration |
+
+**Recommended (large-scale):** ONTAP REST API → DynamoDB (permission master) → auto-generate `.metadata.json` → Bedrock KB Ingestion Job.
+
 #### S3 Vectors Metadaten-Einschränkungen und Überlegungen
 
 Bei Verwendung der S3 Vectors-Konfiguration (`vectorStoreType=s3vectors`) beachten Sie die folgenden Metadaten-Einschränkungen.

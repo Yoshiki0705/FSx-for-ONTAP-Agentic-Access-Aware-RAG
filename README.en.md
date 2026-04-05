@@ -1149,6 +1149,30 @@ This allows access to both Domain Admins (-512) and Engineering (-1100) groups.
 
 > **Details**: See [docs/SID-Filtering-Architecture.md](docs/SID-Filtering-Architecture.md) for the SID filtering mechanism.
 
+#### Permission Metadata Design Decisions and Future Improvements
+
+`.metadata.json` is a standard Bedrock KB specification — Ingestion Jobs automatically read it alongside documents. This is not a custom mechanism of this project.
+
+However, at scale (thousands to tens of thousands of documents), managing a `.metadata.json` file for each document on the file server becomes a maintenance burden. Below are alternative approaches and future improvement directions.
+
+| Approach | Feasibility | Pros | Cons |
+|---|---|---|---|
+| `.metadata.json` (current) | ✅ | Bedrock KB native. No additional infra | Doubles file count. Manual management burden |
+| DynamoDB permission master + auto-generation | ✅ | Permission changes are DB updates only. Easy auditing | Requires pre-Ingestion Job generation pipeline |
+| ONTAP REST API dynamic retrieval | ✅ Partially implemented | File server ACLs are the source of truth | Requires Embedding server (`ENV_AUTO_METADATA=true`) |
+| Bedrock KB Custom Data Source | ✅ | No `.metadata.json` needed. Direct API ingestion | Cannot use S3 AP integration. Requires custom ETL pipeline |
+
+**Recommended improvement direction (for large-scale environments):**
+
+```
+ONTAP REST API (ACL retrieval)
+  → DynamoDB document-permissions table (permission master)
+  → Auto-generate .metadata.json before Ingestion Job
+  → Ingest via S3 AP into Bedrock KB
+```
+
+This eliminates manual `.metadata.json` management. Permission changes are reflected automatically via DynamoDB update → next Ingestion Job.
+
 #### S3 Vectors Metadata Constraints and Considerations
 
 When using S3 Vectors configuration (`vectorStoreType=s3vectors`), note the following metadata constraints.
