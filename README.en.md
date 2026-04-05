@@ -108,19 +108,19 @@ A dedicated Agent management screen accessible at `/[locale]/genai/agents`. Prov
 
 Enabled with `enableAgentSharing=true`. Lists, previews, and imports Agent configurations from the S3 shared bucket.
 
-![Shared Agents Tab](docs/screenshots/agent-directory-shared-tab.png)
+![Shared Agents Tab](docs/screenshots/agent-directory-shared-tab-en.png)
 
 ### Agent Directory — Agent Creation Form
 
 Clicking "Create from Template" on a template card displays a creation form where you can edit the Agent name, description, system prompt, and AI model. The same form appears when clicking a card in Agent mode if the Agent hasn't been created yet.
 
-![Agent Creation Form](docs/screenshots/agent-creator-form.png)
+![Agent Creation Form](docs/screenshots/agent-creator-form-en.png)
 
 ### Agent Directory — Agent Detail & Editing
 
 Clicking an Agent card displays a detail panel showing Agent ID, status, model, version, creation date, system prompt (collapsible), and action groups. Available actions include "Edit" for inline editing, "Use in Chat" to navigate to Agent mode, "Export" for JSON configuration download, "Upload to Shared Bucket" for S3 sharing, "Create Schedule" for periodic execution settings, and "Delete" with a confirmation dialog.
 
-![Agent Detail Panel](docs/screenshots/agent-detail-panel.png)
+![Agent Detail Panel](docs/screenshots/agent-detail-panel-en.png)
 
 ### Chat Response — Citation Display + Access Level Badge
 
@@ -132,19 +132,19 @@ RAG search results display FSx file paths and access level badges (accessible to
 
 Added image upload functionality to the chat input area. Attach images via the drag & drop zone and 📎 file picker button, analyze with Bedrock Vision API (Claude Haiku 4.5), and integrate into KB search context. Supports JPEG/PNG/GIF/WebP, 3MB limit.
 
-![Image Upload Zone](docs/screenshots/kb-mode-image-upload-zone.png)
+![Image Upload Zone](docs/screenshots/kb-mode-image-upload-en.png)
 
 ### Smart Routing — Cost-Optimized Automatic Model Selection (v3.1.0)
 
 When the Smart Routing toggle in the sidebar is turned ON, it automatically selects a lightweight model (Haiku) or high-performance model (Sonnet) based on query complexity. An "⚡ Auto" option is added to the ModelSelector, and responses display the model name used along with an "Auto" badge.
 
-![Smart Routing ON + ResponseMetadata](docs/screenshots/kb-mode-response-metadata-auto.png)
+![Smart Routing ON + ResponseMetadata](docs/screenshots/kb-mode-smart-routing-en.png)
 
 ### AgentCore Memory — Session List + Memory Section (v3.3.0)
 
 Enabled with `enableAgentCoreMemory=true`. Adds a session list (SessionList) and long-term memory display (MemorySection) to the Agent mode sidebar. The chat history settings are replaced with an "AgentCore Memory: Enabled" badge.
 
-![AgentCore Memory Sidebar](docs/screenshots/agent-mode-agentcore-memory-sidebar.png)
+![AgentCore Memory Sidebar](docs/screenshots/agent-mode-agentcore-memory-sidebar-en.png)
 
 ## CDK Stack Structure
 

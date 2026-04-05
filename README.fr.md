@@ -104,19 +104,19 @@ Un écran de gestion dédié aux Agents accessible à `/[locale]/genai/agents`. 
 
 Activé avec `enableAgentSharing=true`. Liste, prévisualise et importe les configurations d'Agent depuis le bucket S3 partagé.
 
-![Shared Agents Tab](docs/screenshots/agent-directory-shared-tab.png)
+![Shared Agents Tab](docs/screenshots/agent-directory-shared-tab-fr.png)
 
 ### Répertoire Agent — Formulaire de création d'Agent
 
 Cliquer sur « Créer à partir d'un modèle » sur une carte de modèle affiche un formulaire de création où vous pouvez modifier le nom de l'Agent, la description, le prompt système et le modèle IA. Le même formulaire apparaît lorsque vous cliquez sur une carte en mode Agent si l'Agent n'a pas encore été créé.
 
-![Agent Creation Form](docs/screenshots/agent-creator-form.png)
+![Agent Creation Form](docs/screenshots/agent-creator-form-fr.png)
 
 ### Répertoire Agent — Détail et édition de l'Agent
 
 Cliquer sur une carte Agent affiche un panneau de détail montrant l'ID de l'Agent, le statut, le modèle, la version, la date de création, le prompt système (repliable) et les groupes d'actions. Les actions disponibles incluent « Modifier » pour l'édition en ligne, « Utiliser dans le chat » pour naviguer vers le mode Agent, « Exporter » pour le téléchargement de la configuration JSON, « Télécharger vers le bucket partagé » pour le partage S3, « Créer un planning » pour les paramètres d'exécution périodique, et « Supprimer » avec une boîte de dialogue de confirmation.
 
-![Agent Detail Panel](docs/screenshots/agent-detail-panel.png)
+![Agent Detail Panel](docs/screenshots/agent-detail-panel-fr.png)
 
 ### Réponse du chat — Affichage des citations + Badge de niveau d'accès
 
@@ -128,19 +128,19 @@ Les résultats de recherche RAG affichent les chemins de fichiers FSx et les bad
 
 Ajout de la fonctionnalité de téléchargement d'images dans la zone de saisie du chat. Joignez des images via la zone de glisser-déposer et le bouton 📎 sélecteur de fichiers, analysez avec l'API Bedrock Vision (Claude Haiku 4.5) et intégrez dans le contexte de recherche KB. Supporte JPEG/PNG/GIF/WebP, limite de 3 Mo.
 
-![Image Upload Zone](docs/screenshots/kb-mode-image-upload-zone.png)
+![Image Upload Zone](docs/screenshots/kb-mode-image-upload-fr.png)
 
 ### Routage intelligent — Sélection automatique de modèle optimisée en coût (v3.1.0)
 
 Lorsque le bouton de routage intelligent dans la barre latérale est activé, il sélectionne automatiquement un modèle léger (Haiku) ou un modèle haute performance (Sonnet) en fonction de la complexité de la requête. Une option « ⚡ Auto » est ajoutée au ModelSelector, et les réponses affichent le nom du modèle utilisé avec un badge « Auto ».
 
-![Smart Routing ON + ResponseMetadata](docs/screenshots/kb-mode-response-metadata-auto.png)
+![Smart Routing ON + ResponseMetadata](docs/screenshots/kb-mode-smart-routing-fr.png)
 
 ### AgentCore Memory — Liste de sessions + Section mémoire (v3.3.0)
 
 Activé avec `enableAgentCoreMemory=true`. Ajoute une liste de sessions (SessionList) et un affichage de mémoire à long terme (MemorySection) dans la barre latérale du mode Agent. Les paramètres d'historique de chat sont remplacés par un badge « AgentCore Memory: Enabled ».
 
-![AgentCore Memory Sidebar](docs/screenshots/agent-mode-agentcore-memory-sidebar.png)
+![AgentCore Memory Sidebar](docs/screenshots/agent-mode-agentcore-memory-sidebar-fr.png)
 
 ## Structure des stacks CDK
 

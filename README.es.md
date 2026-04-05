@@ -104,19 +104,19 @@ Una pantalla de gestión dedicada a Agents accesible en `/[locale]/genai/agents`
 
 Habilitado con `enableAgentSharing=true`. Lista, previsualiza e importa configuraciones de Agent desde el bucket S3 compartido.
 
-![Shared Agents Tab](docs/screenshots/agent-directory-shared-tab.png)
+![Shared Agents Tab](docs/screenshots/agent-directory-shared-tab-es.png)
 
 ### Directorio de Agents — Formulario de creación de Agent
 
 Al hacer clic en "Crear desde plantilla" en una tarjeta de plantilla se muestra un formulario de creación donde puede editar el nombre del Agent, la descripción, el prompt del sistema y el modelo de IA. El mismo formulario aparece al hacer clic en una tarjeta en modo Agent si el Agent aún no se ha creado.
 
-![Agent Creation Form](docs/screenshots/agent-creator-form.png)
+![Agent Creation Form](docs/screenshots/agent-creator-form-es.png)
 
 ### Directorio de Agents — Detalle y edición del Agent
 
 Al hacer clic en una tarjeta de Agent se muestra un panel de detalle que muestra el ID del Agent, estado, modelo, versión, fecha de creación, prompt del sistema (plegable) y grupos de acciones. Las acciones disponibles incluyen "Editar" para edición en línea, "Usar en chat" para navegar al modo Agent, "Exportar" para descarga de configuración JSON, "Subir al bucket compartido" para compartir en S3, "Crear programación" para configuración de ejecución periódica, y "Eliminar" con un diálogo de confirmación.
 
-![Agent Detail Panel](docs/screenshots/agent-detail-panel.png)
+![Agent Detail Panel](docs/screenshots/agent-detail-panel-es.png)
 
 ### Respuesta del chat — Visualización de citas + Insignia de nivel de acceso
 
@@ -128,19 +128,19 @@ Los resultados de búsqueda RAG muestran las rutas de archivos FSx e insignias d
 
 Se agregó funcionalidad de carga de imágenes al área de entrada del chat. Adjunte imágenes a través de la zona de arrastrar y soltar y el botón 📎 selector de archivos, analice con la API Bedrock Vision (Claude Haiku 4.5) e integre en el contexto de búsqueda KB. Soporta JPEG/PNG/GIF/WebP, límite de 3MB.
 
-![Image Upload Zone](docs/screenshots/kb-mode-image-upload-zone.png)
+![Image Upload Zone](docs/screenshots/kb-mode-image-upload-es.png)
 
 ### Enrutamiento inteligente — Selección automática de modelo optimizada en costos (v3.1.0)
 
 Cuando el interruptor de enrutamiento inteligente en la barra lateral está activado, selecciona automáticamente un modelo ligero (Haiku) o un modelo de alto rendimiento (Sonnet) según la complejidad de la consulta. Se agrega una opción "⚡ Auto" al ModelSelector, y las respuestas muestran el nombre del modelo utilizado junto con una insignia "Auto".
 
-![Smart Routing ON + ResponseMetadata](docs/screenshots/kb-mode-response-metadata-auto.png)
+![Smart Routing ON + ResponseMetadata](docs/screenshots/kb-mode-smart-routing-es.png)
 
 ### AgentCore Memory — Lista de sesiones + Sección de memoria (v3.3.0)
 
 Habilitado con `enableAgentCoreMemory=true`. Agrega una lista de sesiones (SessionList) y una visualización de memoria a largo plazo (MemorySection) a la barra lateral del modo Agent. La configuración del historial de chat se reemplaza con una insignia "AgentCore Memory: Enabled".
 
-![AgentCore Memory Sidebar](docs/screenshots/agent-mode-agentcore-memory-sidebar.png)
+![AgentCore Memory Sidebar](docs/screenshots/agent-mode-agentcore-memory-sidebar-es.png)
 
 ## Estructura de stacks CDK
 

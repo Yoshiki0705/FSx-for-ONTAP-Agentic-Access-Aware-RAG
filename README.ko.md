@@ -104,19 +104,19 @@ Agent 모드는 14개의 워크플로우 카드(8개 리서치 + 6개 출력)를
 
 `enableAgentSharing=true`로 활성화됩니다. S3 공유 버킷에서 Agent 구성을 목록 조회, 미리보기, 가져오기할 수 있습니다.
 
-![Shared Agents Tab](docs/screenshots/agent-directory-shared-tab.png)
+![Shared Agents Tab](docs/screenshots/agent-directory-shared-tab-ko.png)
 
 ### Agent Directory — Agent 생성 폼
 
 템플릿 카드에서 "템플릿에서 생성"을 클릭하면 Agent 이름, 설명, 시스템 프롬프트, AI 모델을 편집할 수 있는 생성 폼이 표시됩니다. Agent 모드에서 아직 Agent가 생성되지 않은 카드를 클릭해도 동일한 폼이 나타납니다.
 
-![Agent Creation Form](docs/screenshots/agent-creator-form.png)
+![Agent Creation Form](docs/screenshots/agent-creator-form-ko.png)
 
 ### Agent Directory — Agent 상세 & 편집
 
 Agent 카드를 클릭하면 Agent ID, 상태, 모델, 버전, 생성일, 시스템 프롬프트(접기 가능), 액션 그룹을 보여주는 상세 패널이 표시됩니다. 사용 가능한 작업에는 인라인 편집을 위한 "편집", Agent 모드로 이동하는 "채팅에서 사용", JSON 구성 다운로드를 위한 "내보내기", S3 공유를 위한 "공유 버킷에 업로드", 주기적 실행 설정을 위한 "스케줄 생성", 확인 대화상자가 있는 "삭제"가 포함됩니다.
 
-![Agent Detail Panel](docs/screenshots/agent-detail-panel.png)
+![Agent Detail Panel](docs/screenshots/agent-detail-panel-ko.png)
 
 ### 채팅 응답 — 인용 표시 + 접근 레벨 배지
 
@@ -128,19 +128,19 @@ RAG 검색 결과는 FSx 파일 경로와 접근 레벨 배지(전체 접근 가
 
 채팅 입력 영역에 이미지 업로드 기능이 추가되었습니다. 드래그 앤 드롭 영역과 📎 파일 선택기 버튼으로 이미지를 첨부하고, Bedrock Vision API(Claude Haiku 4.5)로 분석하여 KB 검색 컨텍스트에 통합합니다. JPEG/PNG/GIF/WebP 지원, 3MB 제한.
 
-![Image Upload Zone](docs/screenshots/kb-mode-image-upload-zone.png)
+![Image Upload Zone](docs/screenshots/kb-mode-image-upload-ko.png)
 
 ### 스마트 라우팅 — 비용 최적화 자동 모델 선택 (v3.1.0)
 
 사이드바의 스마트 라우팅 토글을 ON으로 설정하면 쿼리 복잡도에 따라 경량 모델(Haiku) 또는 고성능 모델(Sonnet)을 자동으로 선택합니다. ModelSelector에 "⚡ Auto" 옵션이 추가되고, 응답에 사용된 모델 이름과 "Auto" 배지가 표시됩니다.
 
-![Smart Routing ON + ResponseMetadata](docs/screenshots/kb-mode-response-metadata-auto.png)
+![Smart Routing ON + ResponseMetadata](docs/screenshots/kb-mode-smart-routing-ko.png)
 
 ### AgentCore Memory — 세션 목록 + 메모리 섹션 (v3.3.0)
 
 `enableAgentCoreMemory=true`로 활성화됩니다. Agent 모드 사이드바에 세션 목록(SessionList)과 장기 메모리 표시(MemorySection)가 추가됩니다. 채팅 이력 설정은 "AgentCore Memory: Enabled" 배지로 대체됩니다.
 
-![AgentCore Memory Sidebar](docs/screenshots/agent-mode-agentcore-memory-sidebar.png)
+![AgentCore Memory Sidebar](docs/screenshots/agent-mode-agentcore-memory-sidebar-ko.png)
 
 ## CDK 스택 구조
 
