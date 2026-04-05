@@ -2101,7 +2101,7 @@ function ChatbotPageContent() {
                   className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center space-x-1"
                 >
                   <span>🔄</span>
-                  <span>ワークフロー選択に戻る</span>
+                  <span>{t('chat.returnToWorkflow')}</span>
                 </button>
               </div>
             )}

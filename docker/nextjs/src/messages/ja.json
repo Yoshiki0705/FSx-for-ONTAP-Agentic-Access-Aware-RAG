@@ -134,6 +134,7 @@
     "showSessionAttributes": "セッション属性表示",
     "inputPlaceholder": "メッセージを入力してください...",
     "send": "送信",
+    "returnToWorkflow": "ワークフロー選択に戻る",
     "traceCount": "トレース: {count}件、属性: {attributeCount}件",
     "noHistory": "チャット履歴がありません",
     "agent": {

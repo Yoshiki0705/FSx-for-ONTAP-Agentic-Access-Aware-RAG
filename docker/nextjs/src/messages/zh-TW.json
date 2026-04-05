@@ -83,7 +83,7 @@
     "newChatTitle": "新對話",
     "permissionInfoUnavailable": "無法取得權限資訊",
     "send": "傳送",
-    "showSessionAttributes": "顯示會話屬性",
+    "returnToWorkflow": "返回工作流程選擇",
     "showTrace": "顯示追蹤",
     "traceCount": "{count}個追蹤",
     "knowledgeBaseMode": "Knowledge Base",

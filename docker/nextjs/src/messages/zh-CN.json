@@ -107,6 +107,7 @@
     "permissionInfoUnavailable": "无法获取权限信息",
     "saveHistory": "保存历史",
     "send": "发送",
+    "returnToWorkflow": "返回工作流选择",
     "sessionActive": "会话活动",
     "showSessionAttributes": "显示会话属性",
     "showTrace": "显示跟踪",

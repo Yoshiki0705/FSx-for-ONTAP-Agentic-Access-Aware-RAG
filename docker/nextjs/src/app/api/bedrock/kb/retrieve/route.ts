@@ -472,9 +472,9 @@ export async function POST(request: NextRequest) {
     const agentId = body.agentId || '';
 
     const systemPrompt = isAgentMode
-      ? '以下のドキュメントを参照して質問に日本語で回答してください。あなたはAIエージェントとして、多段階推論と文書検索を活用して回答します。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。'
-      : '以下のドキュメントを参照して質問に日本語で回答してください。ドキュメントに記載のない情報は「該当する情報が見つかりませんでした」と回答してください。';
-      const prompt = `${systemPrompt}\n\n${ctx}\n\n${imageAnalysisUsed && imageAnalysisResult ? `画像分析結果:\n${imageAnalysisResult}\n\n` : ''}質問: ${query}`;
+      ? 'Answer the following question based on the provided documents. Respond in the same language as the question. As an AI agent, use multi-step reasoning and document search to provide your answer. If the information is not found in the documents, respond with "No relevant information was found."'
+      : 'Answer the following question based on the provided documents. Respond in the same language as the question. If the information is not found in the documents, respond with "No relevant information was found."';
+      const prompt = `${systemPrompt}\n\n${ctx}\n\n${imageAnalysisUsed && imageAnalysisResult ? `Image analysis result:\n${imageAnalysisResult}\n\n` : ''}Question: ${query}`;
       const result = await callConverse(converseClient, converseModelId, prompt, conversationHistory);
       return NextResponse.json({
         success: true, answer: result.text,

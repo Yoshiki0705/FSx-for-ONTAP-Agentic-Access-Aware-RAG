@@ -134,6 +134,7 @@
     "showSessionAttributes": "Show Session Attributes",
     "inputPlaceholder": "Enter your message...",
     "send": "Send",
+    "returnToWorkflow": "Return to Workflow Selection",
     "traceCount": "Traces: {count}, Attributes: {attributeCount}",
     "noHistory": "No chat history yet",
     "agent": {

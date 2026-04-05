@@ -83,7 +83,7 @@
     "newChatTitle": "새 대화",
     "permissionInfoUnavailable": "권한 정보를 가져올 수 없습니다",
     "send": "전송",
-    "showSessionAttributes": "세션 속성 표시",
+    "returnToWorkflow": "워크플로우 선택으로 돌아가기",
     "showTrace": "추적 표시",
     "traceCount": "{count}개 추적",
     "knowledgeBaseMode": "Knowledge Base",

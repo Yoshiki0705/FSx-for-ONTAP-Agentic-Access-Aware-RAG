@@ -83,7 +83,7 @@
     "newChatTitle": "Nouvelle conversation",
     "permissionInfoUnavailable": "Informations de permission non disponibles",
     "send": "Envoyer",
-    "showSessionAttributes": "Afficher les attributs de session",
+    "returnToWorkflow": "Retour à la sélection du flux de travail",
     "showTrace": "Afficher la trace",
     "traceCount": "{count} traces",
     "knowledgeBaseMode": "Knowledge Base",

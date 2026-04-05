@@ -881,11 +881,11 @@ export async function POST(request: NextRequest) {
       region: bedrockRegion
     });
     
-    const prompt = `あなたは親切で知識豊富なAIアシスタントです。以下の質問に日本語で回答してください。
+    const prompt = `You are a helpful and knowledgeable AI assistant. Answer the following question in the same language it is asked in.
 
-質問: ${message}
+Question: ${message}
 
-回答:`;
+Answer:`;
 
     const answer = await invokeBedrockModel(selectedModelId, prompt, bedrockRegion);
 
