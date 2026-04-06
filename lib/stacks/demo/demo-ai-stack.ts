@@ -296,9 +296,9 @@ export class DemoAIStack extends cdk.Stack {
       functionName: `${prefix}-kb-cleanup`,
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      timeout: cdk.Duration.minutes(5),
+      timeout: cdk.Duration.minutes(10),
       code: lambda.Code.fromInline(`
-const { BedrockAgentClient, ListDataSourcesCommand, DeleteDataSourceCommand } = require('@aws-sdk/client-bedrock-agent');
+const { BedrockAgentClient, ListDataSourcesCommand, DeleteDataSourceCommand, GetDataSourceCommand, UpdateDataSourceCommand } = require('@aws-sdk/client-bedrock-agent');
 const https = require('https');
 async function sendCfnResponse(event, status, physicalId, reason) {
   const body = JSON.stringify({ Status: status, Reason: reason || '', PhysicalResourceId: physicalId || 'kb-cleanup', StackId: event.StackId, RequestId: event.RequestId, LogicalResourceId: event.LogicalResourceId });
@@ -308,6 +308,62 @@ async function sendCfnResponse(event, status, physicalId, reason) {
     req.on('error', reject); req.write(body); req.end();
   });
 }
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function deleteDataSourceWithRetry(client, kbId, ds) {
+  const dsId = ds.dataSourceId;
+  console.log('Deleting data source:', dsId, 'status:', ds.status);
+  try {
+    await client.send(new DeleteDataSourceCommand({ knowledgeBaseId: kbId, dataSourceId: dsId }));
+    // 削除完了を待機（最大60秒）
+    for (let i = 0; i < 12; i++) {
+      await sleep(5000);
+      try {
+        const check = await client.send(new GetDataSourceCommand({ knowledgeBaseId: kbId, dataSourceId: dsId }));
+        const st = check.dataSource?.status;
+        if (st === 'DELETE_UNSUCCESSFUL') {
+          console.log('Data source', dsId, 'DELETE_UNSUCCESSFUL — switching to RETAIN policy');
+          // dataDeletionPolicy を RETAIN に変更して再削除
+          const cfg = check.dataSource.dataSourceConfiguration;
+          await client.send(new UpdateDataSourceCommand({
+            knowledgeBaseId: kbId, dataSourceId: dsId,
+            name: check.dataSource.name,
+            dataDeletionPolicy: 'RETAIN',
+            dataSourceConfiguration: cfg,
+          }));
+          await sleep(2000);
+          await client.send(new DeleteDataSourceCommand({ knowledgeBaseId: kbId, dataSourceId: dsId }));
+          await sleep(10000);
+          console.log('Data source', dsId, 'deleted with RETAIN policy');
+          return;
+        }
+        console.log('Data source', dsId, 'status:', st);
+      } catch (e) {
+        if (e.name === 'ResourceNotFoundException') { console.log('Data source', dsId, 'deleted'); return; }
+        throw e;
+      }
+    }
+  } catch (e) {
+    console.warn('Delete failed for', dsId, ':', e.message);
+    // フォールバック: RETAIN に変更して再試行
+    try {
+      const info = await client.send(new GetDataSourceCommand({ knowledgeBaseId: kbId, dataSourceId: dsId }));
+      if (info.dataSource?.dataDeletionPolicy !== 'RETAIN') {
+        await client.send(new UpdateDataSourceCommand({
+          knowledgeBaseId: kbId, dataSourceId: dsId,
+          name: info.dataSource.name,
+          dataDeletionPolicy: 'RETAIN',
+          dataSourceConfiguration: info.dataSource.dataSourceConfiguration,
+        }));
+        await sleep(2000);
+      }
+      await client.send(new DeleteDataSourceCommand({ knowledgeBaseId: kbId, dataSourceId: dsId }));
+      await sleep(10000);
+      console.log('Data source', dsId, 'deleted with RETAIN fallback');
+    } catch (e2) { console.warn('RETAIN fallback also failed for', dsId, ':', e2.message); }
+  }
+}
+
 exports.handler = async (event) => {
   console.log('Event:', JSON.stringify(event));
   if (event.RequestType !== 'Delete') { await sendCfnResponse(event, 'SUCCESS', 'kb-cleanup'); return; }
@@ -317,17 +373,16 @@ exports.handler = async (event) => {
     const client = new BedrockAgentClient({ region });
     const ds = await client.send(new ListDataSourcesCommand({ knowledgeBaseId: kbId }));
     for (const s of (ds.dataSourceSummaries || [])) {
-      console.log('Deleting data source:', s.dataSourceId);
-      await client.send(new DeleteDataSourceCommand({ knowledgeBaseId: kbId, dataSourceId: s.dataSourceId }));
+      await deleteDataSourceWithRetry(client, kbId, s);
     }
-    if ((ds.dataSourceSummaries || []).length > 0) await new Promise(r => setTimeout(r, 10000));
+    if ((ds.dataSourceSummaries || []).length > 0) await sleep(5000);
   } catch (e) { console.warn('Cleanup error (non-fatal):', e.message); }
   await sendCfnResponse(event, 'SUCCESS', 'kb-cleanup');
 };
       `),
     });
     kbCleanupFn.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['bedrock:ListDataSources', 'bedrock:DeleteDataSource'],
+      actions: ['bedrock:ListDataSources', 'bedrock:DeleteDataSource', 'bedrock:GetDataSource', 'bedrock:UpdateDataSource'],
       resources: [`arn:aws:bedrock:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:knowledge-base/*`],
     }));
     kbCleanupFn.addPermission('CfnInvoke', {
