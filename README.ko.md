@@ -174,6 +174,8 @@ RAG 검색 결과는 FSx 파일 경로와 접근 레벨 배지(전체 접근 가
 
 > **참고**: 빌드는 로컬(macOS / Linux) 또는 EC2에서 실행할 수 있습니다. Apple Silicon(M1/M2/M3)의 경우, `pre-deploy-setup.sh`가 자동으로 프리빌드 모드(로컬 Next.js 빌드 + Docker 패키징)를 사용하여 x86_64 Lambda 호환 이미지를 생성합니다. EC2(x86_64)에서는 전체 Docker 빌드가 수행됩니다.
 
+> **UI 검증/개발만 하려는 경우**: AWS 환경 없이 Next.js 앱의 UI를 검증할 수 있습니다. Node.js 22+만 있으면 되며, 인증 미들웨어도 프로덕션과 동일하게 동작합니다. → [로컬 개발 가이드](docker/nextjs/LOCAL_DEVELOPMENT.ko.md)
+
 ## 배포 단계
 
 ### 1단계: 환경 설정

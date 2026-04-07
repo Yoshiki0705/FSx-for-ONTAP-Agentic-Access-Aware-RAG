@@ -6,6 +6,9 @@ import { LogIn, User, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCSRFToken } from '@/hooks/useCSRFToken';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import type { Locale } from '@/i18n/config';
 
 /** 認証オプションセクション — ランタイムでAPI経由で設定を取得 */
 function AuthOptionsSection({ locale }: { locale: string }) {
@@ -180,7 +183,13 @@ export default function SignInPage({ params }: SignInPageProps) {
       />
 
       {/* 右側: サインインフォーム */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="w-full lg:w-1/2 relative flex items-center justify-center p-6 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        {/* 言語・テーマ切り替えバー */}
+        <div className="absolute top-4 right-4 flex items-center space-x-2 z-10">
+          <ThemeToggle />
+          <LanguageSwitcher currentLocale={locale as Locale} variant="dropdown" />
+        </div>
+
         <div className="max-w-md w-full space-y-8">
           {/* ヘッダー */}
           <div className="text-center">

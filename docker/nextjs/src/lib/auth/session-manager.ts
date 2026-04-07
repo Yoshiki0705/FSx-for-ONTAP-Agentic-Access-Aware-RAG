@@ -53,11 +53,18 @@ class SessionManager {
   // DynamoDBクライアントの遅延初期化 (Node.js Runtimeでのみ使用)
   private getDynamoClient(): DynamoDBDocumentClient {
     if (!this.dynamoClient) {
-      const client = new DynamoDBClient({
+      const clientConfig: Record<string, any> = {
         region: process.env.AWS_REGION || 'ap-northeast-1'
-      });
+      };
+      // DynamoDB Local対応（ローカル開発用）
+      if (process.env.DYNAMODB_ENDPOINT) {
+        clientConfig.endpoint = process.env.DYNAMODB_ENDPOINT;
+      }
+      const client = new DynamoDBClient(clientConfig);
       this.dynamoClient = DynamoDBDocumentClient.from(client);
-      console.log('[SessionManager] DynamoDBクライアント初期化完了');
+      console.log('[SessionManager] DynamoDBクライアント初期化完了', {
+        endpoint: process.env.DYNAMODB_ENDPOINT || 'AWS default'
+      });
     }
     return this.dynamoClient;
   }

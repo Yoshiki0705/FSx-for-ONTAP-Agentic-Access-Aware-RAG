@@ -174,6 +174,8 @@ Activé avec `enableAgentCoreMemory=true`. Ajoute une liste de sessions (Session
 
 > **Note** : Les builds peuvent être exécutés localement (macOS / Linux) ou sur EC2. Pour Apple Silicon (M1/M2/M3), `pre-deploy-setup.sh` utilise automatiquement le mode pré-build (build Next.js local + packaging Docker) pour générer des images compatibles Lambda x86_64. Sur EC2 (x86_64), un build Docker complet est effectué.
 
+> **Pour la vérification/développement de l'UI uniquement** : Vous pouvez vérifier l'UI de l'application Next.js sans environnement AWS. Seul Node.js 22+ est requis, et le middleware d'authentification fonctionne de manière identique à la production. → [Guide de développement local](docker/nextjs/LOCAL_DEVELOPMENT.fr.md)
+
 ## Étapes de déploiement
 
 ### Étape 1 : Configuration de l'environnement

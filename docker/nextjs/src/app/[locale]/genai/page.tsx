@@ -1750,7 +1750,7 @@ function ChatbotPageContent() {
             <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
               <div className="text-xs text-gray-600 dark:text-gray-400">
                 <div className="font-medium mb-2 text-gray-700 dark:text-gray-300">
-                  {translations.operationMode}: {agentMode ? '🤖 Agent' : '📚 Knowledge Base'}
+                  {translations.operationMode}: {agentMode ? '🤖 ' + t('agentDirectory.nav.cards') : '📚 ' + t('chat.knowledgeBaseMode')}
                 </div>
                 <div className="space-y-1 text-blue-700 dark:text-blue-400">
                   <div className="font-medium">{translations.kbFeatures}</div>
@@ -1857,7 +1857,7 @@ function ChatbotPageContent() {
                     href={`/${memoizedLocale}/genai/agents`}
                     className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-gray-200 dark:border-gray-600"
                   >
-                    📋 Agent一覧
+                    📋 {t('agentDirectory.nav.agents')}
                   </Link>
                   
                   <div className="flex items-center space-x-2">
@@ -1883,7 +1883,7 @@ function ChatbotPageContent() {
                     : 'text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30'
                 }`}>
                   <span>{agentMode ? '🤖' : '📚'}</span>
-                  <span>{agentMode ? 'Agent' : 'Knowledge Base'}</span>
+                  <span>{agentMode ? t('agentDirectory.nav.cards') : t('chat.knowledgeBaseMode')}</span>
                 </span>
                 
                 <ThemeToggle variant="icon" />

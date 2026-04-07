@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 // DynamoDBクライアント初期化
 const dynamoClient = new DynamoDBClient({
   region: process.env.AWS_REGION || 'ap-northeast-1',
+  ...(process.env.DYNAMODB_ENDPOINT ? { endpoint: process.env.DYNAMODB_ENDPOINT } : {}),
 });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 

@@ -1,0 +1,14 @@
+# ローカル開発用 Dockerfile
+# ホットリロード対応、ミドルウェア完全動作
+FROM node:22-slim
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
