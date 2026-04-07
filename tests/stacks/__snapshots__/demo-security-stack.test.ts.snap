@@ -226,7 +226,7 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
-          "S3Key": "c44200b21da3a48014434abdd8553206247fa21daa168ccb87b620b0f2a3bdbc.zip",
+          "S3Key": "851fa9de414a2dd709fe52d036eb5de26916ca1dc09d1842eddcac140f66e4db.zip",
         },
         "Environment": {
           "Variables": {
@@ -396,6 +396,26 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
                 ],
               },
             },
+            {
+              "Action": "cognito-idp:AdminGetUser",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:cognito-idp:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":userpool/*",
+                  ],
+                ],
+              },
+            },
           ],
           "Version": "2012-10-17",
         },
@@ -465,11 +485,6 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
             "AttributeDataType": "String",
             "Mutable": true,
             "Name": "role",
-          },
-          {
-            "AttributeDataType": "String",
-            "Mutable": true,
-            "Name": "oidc_groups",
           },
         ],
         "SmsVerificationMessage": "The verification code to your new account is {####}",
@@ -673,7 +688,7 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
-          "S3Key": "c44200b21da3a48014434abdd8553206247fa21daa168ccb87b620b0f2a3bdbc.zip",
+          "S3Key": "851fa9de414a2dd709fe52d036eb5de26916ca1dc09d1842eddcac140f66e4db.zip",
         },
         "Environment": {
           "Variables": {
@@ -874,6 +889,26 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
                 ],
               },
             },
+            {
+              "Action": "cognito-idp:AdminGetUser",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:cognito-idp:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":userpool/*",
+                  ],
+                ],
+              },
+            },
           ],
           "Version": "2012-10-17",
         },
@@ -943,11 +978,6 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
             "AttributeDataType": "String",
             "Mutable": true,
             "Name": "role",
-          },
-          {
-            "AttributeDataType": "String",
-            "Mutable": true,
-            "Name": "oidc_groups",
           },
         ],
         "SmsVerificationMessage": "The verification code to your new account is {####}",

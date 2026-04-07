@@ -70,6 +70,9 @@
   ],
   "author": "NetApp Japan Tech Team",
   "license": "SEE LICENSE IN LICENSE",
+  "overrides": {
+    "handlebars": "^4.7.9"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git"
