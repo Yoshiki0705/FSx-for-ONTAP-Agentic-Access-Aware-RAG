@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2026-04
+
+### Added
+- **Phase 2 認証拡張機能**: 7つの認証・セキュリティ拡張機能を追加
+- **マルチOIDC IdPサポート**: `oidcProviders` 配列で複数のOIDC IdP（Okta + Keycloak等）を同時登録。サインイン画面に各IdPのボタンを動的表示。`oidcProviderConfig`（単一）と排他的設定
+- **OIDCグループベースドキュメントアクセス制御**: `allowed_oidc_groups` メタデータによるドキュメントアクセス制御。`checkOidcGroupAccess` 関数。SID/UID-GIDマッチ失敗時のフォールバックとしても機能
+- **LDAP TLS証明書検証**: `tlsCaCertArn`（Secrets ManagerのCA証明書ARN）と `tlsRejectUnauthorized` でLDAPS接続のカスタムCA証明書検証を制御。開発環境での自己署名証明書許可
+- **トークンリフレッシュとセッション管理**: `/api/auth/refresh` エンドポイント、`useTokenRefresh` フック。有効期限5分前にバックグラウンドリフレッシュ、期限切れ時はサインイン画面にリダイレクト
+- **Fail-Closedモード**: `authFailureMode: "fail-closed"` で権限取得失敗時にサインインをブロック。構造化ログにブロック理由を記録。サインイン画面にエラーメッセージ表示
+- **LDAPヘルスチェック**: `ldapConfig` 指定時に自動有効化（`healthCheckEnabled`）。EventBridge 5分間隔定期実行、CloudWatch Alarm（`LdapHealthCheck/Failure >= 1`）。接続・バインド・検索の各ステップ計測
+- **認証監査ログ**: `auditLogEnabled: true` でDynamoDB監査テーブル（`{prefix}-auth-audit-log`）を作成。サインイン成功/失敗イベントを記録。TTL自動削除（`auditLogRetentionDays`、デフォルト90日）
+- `lambda/ldap-health-check/index.ts`: LDAPヘルスチェックLambda関数
+- `lambda/agent-core-ad-sync/audit-logger.ts`: 監査ログ書き込みモジュール
+- `docker/nextjs/src/app/api/auth/refresh/route.ts`: トークンリフレッシュAPIエンドポイント
+- `docker/nextjs/src/hooks/useTokenRefresh.ts`: トークン自動リフレッシュフック
+- プロパティベーステスト11件追加（Property 18-28）
+- ユニットテスト: マルチOIDC IdP 15件、OIDCグループアクセス制御 13件
+
+### Changed
+- `lib/stacks/demo/demo-security-stack.ts`: `oidcProviders`、`authFailureMode`、`auditLogEnabled`、`auditLogRetentionDays`、`healthCheckEnabled`、`tlsCaCertArn`、`tlsRejectUnauthorized` パラメータ追加。LDAPヘルスチェックLambda + EventBridge Rule + CloudWatch Alarm作成ロジック。監査テーブル作成ロジック
+- `lambda/agent-core-ad-sync/index.ts`: `getGroupClaimForProvider`（IdPごとのグループクレーム名解決）、Fail-Closedモード、監査ログ統合、TLS CA証明書取得
+- `lambda/agent-core-ad-sync/ldap-connector.ts`: `tlsCaCert`、`tlsRejectUnauthorized` TLS設定フィールド追加。TLS接続エラー時の証明書検証詳細ログ
+- `lambda/permissions/metadata-filter-handler.ts`: `checkOidcGroupAccess` 関数、`filterByStrategy` にOIDCグループフォールバック統合
+- `docker/nextjs/components/login-form.tsx`: マルチOIDCボタン動的レンダリング（`parseOidcProviders`）
+- `bin/demo-app.ts`: `oidcProviders`、`authFailureMode`、`auditLogEnabled`、`auditLogRetentionDays` CDKコンテキスト読み込み
+- `cdk.context.json.example`: Phase 2拡張機能の設定例追加、issuer URL末尾スラッシュ注意事項追加
+- README（8言語）: Phase 2拡張機能のドキュメント追加、OIDCトラブルシューティング3件追加
+
+### Fixed
+- Cognito User Poolの`email`属性を`mutable: true`に変更（OIDC IdP経由のサインイン時に`user.email: Attribute cannot be updated`エラーが発生する問題を修正）
+- `writeAuditLog`呼び出しに`await`を追加（Lambda終了前にDynamoDB書き込みが完了しない問題を修正）
+- Auth0の`issuerUrl`に末尾スラッシュを追加（CognitoのIDトークン`iss`クレーム検証で`invalid_request`が発生する問題を修正）
+- OAuthコールバックのエラーログに`error_description`を追加（デバッグ情報の改善）
+- トークンリフレッシュをCookieベースに変更（OAuthコールバックで`refresh-token` httpOnly Cookie + `token-expiry` Cookie を設定。`useTokenRefresh`フックがCookieから有効期限を読み取りバックグラウンドリフレッシュを実行）
+- `AD_TYPE`のデフォルト値を`self-managed`から`none`に変更（AD未設定時のメール/パスワードサインインで`AD_EC2_INSTANCE_ID is required`エラーが発生する問題を修正）
+- `handleSamlDirectPath`にAD未設定時の早期リターンを追加（`AD_TYPE=none`の場合はSID同期をスキップ）
+- `oidcProviders`配列の最初のIdPのCDKリソースIDを`OidcIdP`に固定（`oidcProviderConfig`→`oidcProviders`移行時のCognito IdP競合を回避）
+- サインインページの`NEXT_PUBLIC_*`環境変数を`/api/auth/config`エンドポイント経由で取得するように変更（Lambda環境変数はビルド時にインライン化されないため、ランタイムでサーバーサイドAPIから取得）
+- `AuthOptionsSection`（`[locale]/signin/page.tsx`）にマルチOIDCプロバイダーボタンの動的レンダリングを追加
+- `/api/auth/ad-config`エンドポイントに`oidcProviders`フィールドを追加
+
+### Verified (デプロイ検証で確認済み)
+- **OIDC（Auth0）サインイン**: Cognito OIDC IdP経由のサインイン→チャット画面遷移→KB検索を確認。`oidctest@example.com`でPermission-aware検索が動作
+- **認証監査ログ**: OIDCサインイン時にDynamoDB `auth-audit-log` テーブルに`sign-in`イベントが記録されることを確認（authSource: oidc, idpName: Auth0, TTL設定済み）
+- **LDAPヘルスチェック**: OpenLDAP EC2（10.0.2.187:389）に対してLambda手動実行で全ステップSUCCESS（connect: 12ms, bind: 12ms, search: 16ms, total: 501ms）。CloudWatch Alarm: OK、EventBridge Rule: 5分間隔ENABLED
+- **NATゲートウェイ経由アクセス**: VPC内LambdaがNATゲートウェイ経由でSecrets Manager（バインドパスワード取得）+ CloudWatch Metrics（PutMetricData）にアクセスできることを確認
+- **構造化ログ**: LDAPヘルスチェックLambdaのCloudWatch LogsにJSON形式の構造化ログが正常出力されることを確認
+- **メール/パスワードサインイン**: admin@example.comでKBモードPermission-aware検索（confidential含む5件アクセス可）を確認
+- **2段階デプロイ**: `cloudFrontUrl`なし→URL取得→再デプロイ→Auth0 Callback URL設定の手順を検証済み
+- **OIDC→LDAP E2Eフロー**: Identity Sync Lambda直接呼び出しで`alice@demo.local`のLDAP検索を確認。UID: 10001、GID: 5001、グループ3件取得、source: `OIDC-LDAP`としてDynamoDB保存
+- **Fail-Openフォールバック**: LDAPユーザー未検出時にOIDCクレームのみにフォールバックし、サインインを継続することを確認
+- **Fail-Closedモード**: `AUTH_FAILURE_MODE=fail-closed`設定時、LDAPユーザー未検出はエラーではなくフォールバック動作（設計通り）。Fail-Closedが発動するのはLDAP接続エラー等の致命的エラー時のみ
+- **AD未設定時のdirect認証**: `AD_TYPE=none`でメール/パスワードサインイン時にSID同期をスキップし、エラーなしで正常動作することを確認（バグ修正後）
+- **`--exclusively`デプロイ**: Networkingスタック依存関係エラー回避のため、Security + WebAppスタックのみの個別デプロイが正常動作することを確認
+- **マルチOIDC IdP**: `oidcProviders`配列でCognito User Poolに2つのOIDC IdP（Auth0 + Auth0Dev）を登録。サインイン画面に2つのOIDCボタンが動的表示され、既存Auth0サインインが引き続き正常動作することを確認
+- **`oidcProviderConfig`→`oidcProviders`移行**: CDKリソースID修正により、既存のCognito OIDC IdPを維持したまま`oidcProviders`配列に移行できることを確認
+- **ONTAP name-mapping**: ONTAP REST API経由でname-mappingルール（alice→DEMO\Admin）の作成・取得を確認。fsxadminパスワードは`aws fsx update-file-system`で事前設定が必要
+
 ## [3.4.0] - 2026-04
 
 ### Added
@@ -174,4 +232,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-**最新バージョン**: 3.3.0
+**最新バージョン**: 3.5.0

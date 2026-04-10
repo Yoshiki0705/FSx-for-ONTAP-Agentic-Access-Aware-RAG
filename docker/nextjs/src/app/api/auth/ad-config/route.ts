@@ -14,6 +14,7 @@ export async function GET() {
   const callbackUrl = process.env.CALLBACK_URL || "";
   const idpName = process.env.IDP_NAME || "ActiveDirectory";
   const oidcProviderName = process.env.NEXT_PUBLIC_OIDC_PROVIDER_NAME || "";
+  const oidcProviders = process.env.NEXT_PUBLIC_OIDC_PROVIDERS || "";
 
   if (!cognitoDomain) {
     return NextResponse.json({ enabled: false });
@@ -27,5 +28,6 @@ export async function GET() {
     callbackUrl,
     idpName,
     oidcProviderName,
+    oidcProviders,
   });
 }

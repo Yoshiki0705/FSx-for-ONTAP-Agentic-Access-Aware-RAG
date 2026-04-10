@@ -46,9 +46,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
     const error = searchParams.get("error");
+    const errorDescription = searchParams.get("error_description");
 
     if (error) {
-      console.error("[OAuth Callback] Cognito error:", error);
+      console.error("[OAuth Callback] Cognito error:", error, "description:", errorDescription, "full_url:", request.url);
       return NextResponse.redirect(`${baseUrl}/signin?error=auth_failed`);
     }
 
@@ -124,7 +125,8 @@ export async function GET(request: Request) {
 
     console.log(`✅ OAuth Callback成功: ${email} (role: ${role}, authMethod: saml)`);
 
-    // 5. セッションCookie設定 + チャット画面へリダイレクト
+    // 5. セッションCookie設定 + トークン情報Cookie + チャット画面へリダイレクト
+    // リフレッシュトークンとトークン有効期限をCookieに保存（useTokenRefreshフックが使用）
     const response = NextResponse.redirect(`${baseUrl}/ja/genai`);
 
     response.cookies.set("session-token", sessionToken, {
@@ -134,6 +136,29 @@ export async function GET(request: Request) {
       maxAge: 60 * 60 * 24,
       path: "/",
     });
+
+    // リフレッシュトークンをhttpOnly Cookieに保存（/api/auth/refreshエンドポイントが使用）
+    if (tokenData.refresh_token) {
+      response.cookies.set("refresh-token", tokenData.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 30, // 30日
+        path: "/",
+      });
+    }
+
+    // トークン有効期限をクライアント読み取り可能Cookieに保存（useTokenRefreshフックが使用）
+    if (tokenData.expires_in) {
+      const expiresAt = Date.now() + tokenData.expires_in * 1000;
+      response.cookies.set("token-expiry", String(expiresAt), {
+        httpOnly: false, // クライアントサイドから読み取り可能
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: tokenData.expires_in,
+        path: "/",
+      });
+    }
 
     return response;
   } catch (error: unknown) {

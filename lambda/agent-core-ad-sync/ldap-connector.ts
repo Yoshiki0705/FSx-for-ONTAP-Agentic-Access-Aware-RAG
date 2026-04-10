@@ -34,6 +34,8 @@ export interface LdapConfig {
   bindPassword: string;
   userSearchFilter: string;   // e.g. '(mail={email})'
   groupSearchFilter: string;  // e.g. '(member={dn})'
+  tlsCaCert?: string;           // PEM形式のCA証明書文字列
+  tlsRejectUnauthorized?: boolean; // デフォルト: true
 }
 
 export interface LdapUserInfo {
@@ -48,7 +50,7 @@ export interface LdapUserInfo {
 /** 構造化ログインターフェース（Task 4.4） */
 export interface ErrorLog {
   level: 'ERROR' | 'WARN' | 'INFO';
-  source: 'LdapConnector' | 'IdentitySyncLambda' | 'OidcClaimsParser' | 'PermissionResolver';
+  source: 'LdapConnector' | 'IdentitySyncLambda' | 'OidcClaimsParser' | 'PermissionResolver' | 'PostAuthTrigger';
   operation: string;
   userId: string;
   error?: string;
@@ -600,7 +602,13 @@ export class LdapConnector {
       let socket: net.Socket;
 
       if (useTls) {
-        socket = tls.connect({ host, port, rejectUnauthorized: true }, () => {
+        const tlsOptions: tls.ConnectionOptions = {
+          host,
+          port,
+          rejectUnauthorized: this.config.tlsRejectUnauthorized ?? true,
+          ...(this.config.tlsCaCert ? { ca: [this.config.tlsCaCert] } : {}),
+        };
+        socket = tls.connect(tlsOptions, () => {
           clearTimeout(timeout);
           resolve(socket);
         });
@@ -611,8 +619,28 @@ export class LdapConnector {
         });
       }
 
-      socket.on('error', (err) => {
+      socket.on('error', (err: Error & { code?: string; cert?: { subject?: unknown; issuer?: unknown } }) => {
         clearTimeout(timeout);
+        // TLS接続エラー時に証明書検証詳細を構造化ログに記録
+        if (useTls) {
+          structuredLog({
+            level: 'ERROR',
+            source: 'LdapConnector',
+            operation: 'connect.tls',
+            userId: '',
+            error: err.message,
+            context: {
+              host,
+              port,
+              errorCode: err.code,
+              certSubject: err.cert?.subject,
+              certIssuer: err.cert?.issuer,
+              rejectUnauthorized: this.config.tlsRejectUnauthorized ?? true,
+              hasCustomCaCert: !!this.config.tlsCaCert,
+            },
+            timestamp: new Date().toISOString(),
+          });
+        }
         reject(err);
       });
 

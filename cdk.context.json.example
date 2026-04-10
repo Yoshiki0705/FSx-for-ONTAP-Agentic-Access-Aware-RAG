@@ -7,6 +7,14 @@
   "adPassword": "YourStrongP@ssw0rd123",
   "adDomainName": "demo.local",
 
+  // ⚠️ 重要: adPassword を設定すると AWS Managed Microsoft AD が作成されます。
+  // このADがIAM Identity CenterのIDソースとして使用されている場合、
+  // cdk destroy でADを削除すると Identity Center のユーザーが失われ、
+  // マネジメントコンソールにアクセスできなくなる可能性があります。
+  // デプロイ前に Identity Center のIDソース設定を確認してください。
+  // 推奨: 本番環境やチーム共有環境では、専用のAWSアカウントまたはサンドボックス環境で
+  // デプロイすることを強く推奨します。
+
   // ベクトルストア構成の選択
   // "s3vectors" (デフォルト): S3 Vectors — 低コスト、サブ秒レイテンシ、デモ・開発環境向け
   // "opensearch-serverless": OpenSearch Serverless — 高パフォーマンス、~$700/月、本番環境向け
@@ -71,6 +79,12 @@
   // Keycloak、Okta、Entra ID等のOIDC準拠IdPからのサインインを有効化
   // 設定するとCognito User PoolにOIDC IdPが登録され、サインイン画面にOIDCボタンが表示される
   // enableAdFederation=true と併用可能（SAML + OIDC ハイブリッド構成）
+  //
+  // ⚠️ issuerUrl の注意: IdPのOpenID Configuration（/.well-known/openid-configuration）の
+  //    "issuer" フィールドの値と完全一致させてください。Auth0は末尾スラッシュ付き
+  //    （例: "https://xxx.us.auth0.com/"）、Keycloakは末尾スラッシュなし
+  //    （例: "https://keycloak.example.com/realms/main"）です。
+  //    不一致の場合、Cognitoのトークン検証で "invalid_request" エラーが発生します。
   // ========================================================================
   //
   // --- OIDC + LDAP構成例 ---
@@ -123,4 +137,71 @@
   // "ontapMgmtIp": "10.0.2.27",
   // "ontapSvmUuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
   // "ontapAdminSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ontap-fsxadmin-password"
+
+  // ========================================================================
+  // Phase 2 拡張機能（オプション）
+  // ========================================================================
+
+  // --- マルチOIDC IdP構成例 ---
+  // 複数のOIDC IdP（Okta + Keycloak等）を同時登録する場合:
+  // ※ oidcProviderConfig（単一IdP）と oidcProviders（複数IdP）は排他的設定
+  //    両方を同時に指定するとバリデーションエラーが発生する
+  //
+  // "oidcProviders": [
+  //   {
+  //     "providerName": "Okta",
+  //     "clientId": "0oa1234567890",
+  //     "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:okta-client-secret",
+  //     "issuerUrl": "https://company.okta.com",
+  //     "groupClaimName": "groups"
+  //   },
+  //   {
+  //     "providerName": "Keycloak",
+  //     "clientId": "rag-system",
+  //     "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:keycloak-client-secret",
+  //     "issuerUrl": "https://keycloak.example.com/realms/main",
+  //     "groupClaimName": "roles"
+  //   }
+  // ],
+
+  // --- LDAP TLS証明書検証設定例 ---
+  // 社内PKI環境でカスタムCA証明書を使用する場合:
+  // tlsCaCertArn: Secrets ManagerにPEM形式で保存したCA証明書のARN
+  // tlsRejectUnauthorized: false にすると自己署名証明書を許可（開発・テスト環境用）
+  //
+  // "ldapConfig": {
+  //   "ldapUrl": "ldaps://ldap.example.com:636",
+  //   "baseDn": "dc=example,dc=com",
+  //   "bindDn": "cn=readonly,dc=example,dc=com",
+  //   "bindPasswordSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ldap-bind-password",
+  //   "userSearchFilter": "(mail={email})",
+  //   "groupSearchFilter": "(member={dn})",
+  //   "tlsCaCertArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ldap-ca-cert",
+  //   "tlsRejectUnauthorized": true
+  // },
+
+  // --- Fail-Closedモード設定例 ---
+  // 高セキュリティ環境向け: 権限取得失敗時にサインイン自体をブロックする
+  // "fail-open"（デフォルト）: 権限取得失敗時もサインインを継続（エラーログのみ記録）
+  // "fail-closed": 権限取得失敗時にサインインをブロック（管理者への連絡メッセージを表示）
+  //
+  // "authFailureMode": "fail-closed",
+
+  // --- LDAPヘルスチェック設定例 ---
+  // ldapConfig指定時にLDAP接続の正常性を自動検証する
+  // EventBridge Ruleで5分間隔の定期実行、CloudWatch Alarmで障害検知
+  // デフォルト: true（ldapConfig指定時は自動有効化）
+  // 検証済み: OpenLDAP EC2に対してLambda手動実行で全ステップSUCCESS（total: 501ms）
+  // VPC内LambdaはNATゲートウェイ経由でSecrets Manager + CloudWatch Metricsにアクセス
+  // enableVpcEndpoints=true でVPCエンドポイント経由のアクセスも可能
+  //
+  // "healthCheckEnabled": true,
+
+  // --- 監査ログ設定例 ---
+  // 認証イベントの監査証跡をDynamoDBテーブルに永続化する
+  // サインイン成功/失敗イベントを記録し、TTLで自動削除
+  // auditLogRetentionDays: 監査ログの保持日数（デフォルト: 90日）
+  //
+  // "auditLogEnabled": true,
+  // "auditLogRetentionDays": 90
 }

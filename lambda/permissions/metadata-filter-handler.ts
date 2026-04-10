@@ -281,6 +281,20 @@ export function checkUidGidAccess(
 }
 
 // ========================================
+// OIDCグループドキュメントマッチング (Task 13.1)
+// ========================================
+
+/** OIDCグループベースのアクセスチェック */
+export function checkOidcGroupAccess(
+  userOidcGroups: string[],
+  allowedOidcGroups: string[],
+): boolean {
+  if (!Array.isArray(userOidcGroups) || userOidcGroups.length === 0) return false;
+  if (!Array.isArray(allowedOidcGroups) || allowedOidcGroups.length === 0) return false;
+  return userOidcGroups.some(group => allowedOidcGroups.includes(group));
+}
+
+// ========================================
 // ONTAP Name-Mapping統合 (Task 7.3)
 // ========================================
 
@@ -385,6 +399,8 @@ export async function handler(event: MetadataFilterRequest): Promise<MetadataFil
     const allowed: FilteredResult[] = [];
     const filterLog: FilterDetail[] = [];
     const userSIDs = strategy.userSIDs ?? [];
+    const oidcGroups = userRecord.oidcGroups;
+    let usedOidcFallback = false;
 
     for (const r of retrievalResults) {
       const fileName = r.s3Uri.split('/').pop() || r.s3Uri;
@@ -394,13 +410,17 @@ export async function handler(event: MetadataFilterRequest): Promise<MetadataFil
       const cacheKey = `${userId}:${fileName}`;
       const cached = await getCachedResult(cacheKey);
 
-      let matchResult: { matched: boolean; matchedSID?: string };
+      let matchResult: { matched: boolean; matchedSID?: string; usedOidcFallback?: boolean };
 
       if (cached !== null) {
         matchResult = { matched: cached };
       } else {
-        matchResult = filterByStrategy(strategy, r.metadata, docSIDs);
+        matchResult = filterByStrategy(strategy, r.metadata, docSIDs, oidcGroups);
         await setCachedResult(cacheKey, userId, fileName, matchResult.matched);
+      }
+
+      if (matchResult.usedOidcFallback) {
+        usedOidcFallback = true;
       }
 
       filterLog.push({
@@ -421,18 +441,23 @@ export async function handler(event: MetadataFilterRequest): Promise<MetadataFil
       'hybrid': 'HYBRID_MATCHING',
     };
 
+    let filterMethod = filterMethodMap[strategy.type];
+    if (usedOidcFallback) {
+      filterMethod += '+OIDC_GROUP_FALLBACK';
+    }
+
     const response: MetadataFilterResponse = {
       userId,
       totalDocuments: retrievalResults.length,
       allowedDocuments: allowed.length,
       deniedDocuments: retrievalResults.length - allowed.length,
-      filterMethod: filterMethodMap[strategy.type],
+      filterMethod,
       userSIDs,
       allowed,
       filterLog,
     };
 
-    console.log(`[PermFilter] Done: ${allowed.length}/${retrievalResults.length} allowed (${strategy.type})`);
+    console.log(`[PermFilter] Done: ${allowed.length}/${retrievalResults.length} allowed (${strategy.type}${usedOidcFallback ? '+OIDC_FALLBACK' : ''})`);
     return response;
   } catch (error) {
     console.error(`[PermFilter] Error (DENY_ALL fallback):`, error);
@@ -440,33 +465,45 @@ export async function handler(event: MetadataFilterRequest): Promise<MetadataFil
   }
 }
 
-/** 戦略に応じたフィルタリングを実行 */
-function filterByStrategy(
+/** 戦略に応じたフィルタリングを実行（OIDCグループフォールバック付き） */
+export function filterByStrategy(
   strategy: PermissionResolutionStrategy,
   metadata: Record<string, unknown>,
   docSIDs: string[],
-): { matched: boolean; matchedSID?: string } {
+  oidcGroups?: string[],
+): { matched: boolean; matchedSID?: string; usedOidcFallback?: boolean } {
+  let primaryResult: { matched: boolean; matchedSID?: string } = { matched: false };
+
   if (strategy.type === 'sid') {
-    return checkSIDAccess(strategy.userSIDs!, docSIDs);
-  }
-
-  if (strategy.type === 'uid-gid') {
+    primaryResult = checkSIDAccess(strategy.userSIDs!, docSIDs);
+  } else if (strategy.type === 'uid-gid') {
     const { allowedUids, allowedGids } = extractDocumentUidGidPermissions(metadata);
-    if (allowedUids.length === 0 && allowedGids.length === 0) return { matched: false };
-    const matched = checkUidGidAccess(strategy.uid!, strategy.gid!, strategy.unixGroups, allowedUids, allowedGids);
-    return { matched };
-  }
-
-  if (strategy.type === 'hybrid') {
+    if (allowedUids.length > 0 || allowedGids.length > 0) {
+      const matched = checkUidGidAccess(strategy.uid!, strategy.gid!, strategy.unixGroups, allowedUids, allowedGids);
+      primaryResult = { matched };
+    }
+  } else if (strategy.type === 'hybrid') {
     // SIDマッチを優先
     const sidResult = checkSIDAccess(strategy.userSIDs!, docSIDs);
     if (sidResult.matched) return sidResult;
 
     // SIDマッチ失敗時にUID/GIDフォールバック
     const { allowedUids, allowedGids } = extractDocumentUidGidPermissions(metadata);
-    if (allowedUids.length === 0 && allowedGids.length === 0) return { matched: false };
-    const matched = checkUidGidAccess(strategy.uid!, strategy.gid!, strategy.unixGroups, allowedUids, allowedGids);
-    return { matched };
+    if (allowedUids.length > 0 || allowedGids.length > 0) {
+      const matched = checkUidGidAccess(strategy.uid!, strategy.gid!, strategy.unixGroups, allowedUids, allowedGids);
+      primaryResult = { matched };
+    }
+  }
+
+  // プライマリ戦略で許可された場合はそのまま返す
+  if (primaryResult.matched) return primaryResult;
+
+  // OIDCグループフォールバック: プライマリ戦略が拒否 + oidcGroupsあり + allowed_oidc_groupsあり
+  if (Array.isArray(oidcGroups) && oidcGroups.length > 0) {
+    const { allowedOidcGroups } = extractDocumentUidGidPermissions(metadata);
+    if (allowedOidcGroups.length > 0 && checkOidcGroupAccess(oidcGroups, allowedOidcGroups)) {
+      return { matched: true, usedOidcFallback: true };
+    }
   }
 
   return { matched: false };

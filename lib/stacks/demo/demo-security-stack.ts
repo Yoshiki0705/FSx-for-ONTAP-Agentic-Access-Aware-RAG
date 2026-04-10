@@ -15,6 +15,9 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as events_targets from 'aws-cdk-lib/aws-events-targets';
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import { Construct } from 'constructs';
 
 export type AdType = 'managed' | 'self-managed' | 'none';
@@ -63,13 +66,35 @@ export interface DemoSecurityStackProps extends cdk.StackProps {
     bindPasswordSecretArn: string;
     userSearchFilter?: string;  // デフォルト: '(mail={email})'
     groupSearchFilter?: string; // デフォルト: '(member={dn})'
+    tlsCaCertArn?: string;      // Secrets Manager ARN for PEM CA certificate
+    tlsRejectUnauthorized?: boolean; // デフォルト: true
+    healthCheckEnabled?: boolean; // デフォルト: true（ldapConfig指定時）
   };
+
+  /** 複数OIDC IdP設定（oidcProviderConfigと排他） */
+  oidcProviders?: Array<{
+    providerName: string;
+    clientId: string;
+    clientSecret: string;
+    issuerUrl: string;
+    attributeMapping?: Record<string, string>;
+    groupClaimName?: string;
+  }>;
 
   /** ONTAP name-mapping有効化フラグ */
   ontapNameMappingEnabled?: boolean;
 
   /** 権限マッピング戦略 */
   permissionMappingStrategy?: 'sid-only' | 'uid-gid' | 'hybrid';
+
+  /** 認証失敗時の動作モード（デフォルト: fail-open） */
+  authFailureMode?: 'fail-open' | 'fail-closed';
+
+  /** 監査ログ有効化フラグ（デフォルト: false） */
+  auditLogEnabled?: boolean;
+
+  /** 監査ログ保持日数（デフォルト: 90） */
+  auditLogRetentionDays?: number;
 }
 
 export class DemoSecurityStack extends cdk.Stack {
@@ -78,6 +103,7 @@ export class DemoSecurityStack extends cdk.Stack {
   public adSyncFunction?: lambda.Function;
   public samlProvider?: cognito.UserPoolIdentityProviderSaml;
   public oidcProvider?: cognito.UserPoolIdentityProviderOidc;
+  public oidcProviders: cognito.UserPoolIdentityProviderOidc[] = [];
   public cognitoDomainUrl?: string;
   public cognitoDomainPrefix?: string;
 
@@ -127,6 +153,30 @@ export class DemoSecurityStack extends cdk.Stack {
     }
 
     // ========================================
+    // CDKバリデーション（oidcProviders と oidcProviderConfig の排他チェック）
+    // ========================================
+    if (props.oidcProviders && props.oidcProviders.length > 0 && props.oidcProviderConfig) {
+      throw new Error(
+        'oidcProviders and oidcProviderConfig are mutually exclusive. ' +
+        'Please specify either oidcProviders (array) or oidcProviderConfig (single), not both.',
+      );
+    }
+
+    // ========================================
+    // CDKバリデーション（oidcProviders 配列内の各要素）
+    // ========================================
+    if (props.oidcProviders && props.oidcProviders.length > 0) {
+      for (const provider of props.oidcProviders) {
+        if (!provider.clientId || !provider.issuerUrl) {
+          throw new Error(
+            `oidcProviders entry '${provider.providerName || 'unknown'}' requires clientId and issuerUrl. ` +
+            'Please provide both the OIDC client ID and issuer URL for each provider.',
+          );
+        }
+      }
+    }
+
+    // ========================================
     // Cognito User Pool
     // ========================================
     this.userPool = new cognito.UserPool(this, 'UserPool', {
@@ -134,13 +184,14 @@ export class DemoSecurityStack extends cdk.Stack {
       selfSignUpEnabled: false,
       signInAliases: { email: true },
       autoVerify: { email: true },
-      standardAttributes: { email: { required: true, mutable: false } },
-      // カスタム属性: ad_groups, role は初回デプロイ時に作成
-      // oidc_groups はOIDC IdP作成時にCognitoが自動追加するため、ここでは定義しない
-      // （CloudFormationは既存のカスタム属性の再定義を許可しない）
-      customAttributes: (props.enableAdFederation || props.oidcProviderConfig) ? {
+      // email属性はmutable: trueが必須。OIDC IdP経由のサインイン時にCognitoがemail属性を
+      // 更新するため、mutable: falseだと "user.email: Attribute cannot be updated" エラーが発生する。
+      standardAttributes: { email: { required: true, mutable: true } },
+      // カスタム属性: ad_groups, role, oidc_groups は初回デプロイ時に作成
+      customAttributes: (props.enableAdFederation || props.oidcProviderConfig || (props.oidcProviders && props.oidcProviders.length > 0)) ? {
         'ad_groups': new cognito.StringAttribute({ mutable: true }),
         'role': new cognito.StringAttribute({ mutable: true }),
+        'oidc_groups': new cognito.StringAttribute({ mutable: true }),
       } : undefined,
       passwordPolicy: {
         minLength: 8, requireLowercase: true, requireUppercase: true,
@@ -241,11 +292,59 @@ export class DemoSecurityStack extends cdk.Stack {
     }
 
     // ========================================
+    // 複数OIDC IdP（oidcProviders 配列指定時）
+    // ========================================
+    if (props.oidcProviders && props.oidcProviders.length > 0) {
+      for (let i = 0; i < props.oidcProviders.length; i++) {
+        const provider = props.oidcProviders[i];
+        const clientSecretValue = provider.clientSecret.startsWith('arn:aws:secretsmanager:')
+          ? cdk.SecretValue.secretsManager(provider.clientSecret).unsafeUnwrap()
+          : provider.clientSecret;
+
+        // 最初のIdPは 'OidcIdP' リソースIDを使用（oidcProviderConfig からの移行互換性）
+        // 2つ目以降は 'OidcIdP-{providerName}' リソースIDを使用
+        const resourceId = i === 0 ? 'OidcIdP' : `OidcIdP-${provider.providerName}`;
+
+        const oidcIdP = new cognito.UserPoolIdentityProviderOidc(this, resourceId, {
+          userPool: this.userPool,
+          name: provider.providerName,
+          clientId: provider.clientId,
+          clientSecret: clientSecretValue,
+          issuerUrl: provider.issuerUrl,
+          scopes: ['openid', 'email', 'profile'],
+          attributeRequestMethod: cognito.OidcAttributeRequestMethod.GET,
+          attributeMapping: {
+            email: cognito.ProviderAttribute.other('email'),
+            custom: {
+              'custom:oidc_groups': cognito.ProviderAttribute.other(
+                `https://rag-system/${provider.groupClaimName || 'groups'}`
+              ),
+            },
+          },
+        });
+
+        this.oidcProviders.push(oidcIdP);
+      }
+
+      // 複数OIDC有効時にCognito Domainがまだ作成されていない場合は作成
+      if (!props.enableAdFederation) {
+        const domain = this.userPool.addDomain('CognitoDomain', {
+          cognitoDomain: {
+            domainPrefix: `${prefix}-auth`,
+          },
+        });
+        this.cognitoDomainUrl = `${domain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com`;
+        this.cognitoDomainPrefix = `${prefix}-auth`;
+      }
+    }
+
+    // ========================================
     // Cognito User Pool Client
     // ========================================
     const hasSaml = !!(props.enableAdFederation && this.samlProvider);
     const hasOidc = !!this.oidcProvider;
-    const hasFederation = hasSaml || hasOidc;
+    const hasMultiOidc = this.oidcProviders.length > 0;
+    const hasFederation = hasSaml || hasOidc || hasMultiOidc;
     const callbackUrl = props.cloudFrontUrl || 'https://localhost:3000';
 
     if (hasFederation) {
@@ -262,6 +361,12 @@ export class DemoSecurityStack extends cdk.Stack {
       if (hasOidc) {
         supportedProviders.push(
           cognito.UserPoolClientIdentityProvider.custom(this.oidcProvider!.providerName),
+        );
+      }
+      // 複数OIDC IdPを全てサポートプロバイダーに追加
+      for (const oidcIdP of this.oidcProviders) {
+        supportedProviders.push(
+          cognito.UserPoolClientIdentityProvider.custom(oidcIdP.providerName),
         );
       }
 
@@ -290,6 +395,9 @@ export class DemoSecurityStack extends cdk.Stack {
       if (hasOidc) {
         this.userPoolClient.node.addDependency(this.oidcProvider!);
       }
+      for (const oidcIdP of this.oidcProviders) {
+        this.userPoolClient.node.addDependency(oidcIdP);
+      }
     } else {
       // フェデレーション無効時: 既存のUSER_PASSWORD_AUTH設定を維持
       this.userPoolClient = this.userPool.addClient('WebAppClient', {
@@ -312,7 +420,7 @@ export class DemoSecurityStack extends cdk.Stack {
     // adType != 'none' の場合は createAdSyncLambda で既に作成済み
     // OIDC単独構成（ldapConfigなし）でもOIDCクレームベースのゼロタッチプロビジョニングに必要
     // ========================================
-    if ((props.ldapConfig || props.oidcProviderConfig) && !this.adSyncFunction) {
+    if ((props.ldapConfig || props.oidcProviderConfig || (props.oidcProviders && props.oidcProviders.length > 0)) && !this.adSyncFunction) {
       this.createIdentitySyncLambda(prefix, props);
     }
 
@@ -328,7 +436,7 @@ export class DemoSecurityStack extends cdk.Stack {
     // PostAuthentication: 2回目以降のサインインで発火
     // PostConfirmation: 外部IdP経由の初回サインイン時に発火（OIDC/SAML）
     // ========================================
-    const hasFederationTrigger = (props.enableAdFederation || !!props.oidcProviderConfig) && this.adSyncFunction;
+    const hasFederationTrigger = (props.enableAdFederation || !!props.oidcProviderConfig || (props.oidcProviders && props.oidcProviders.length > 0)) && this.adSyncFunction;
     if (hasFederationTrigger) {
       this.userPool.addTrigger(
         cognito.UserPoolOperation.POST_AUTHENTICATION,
@@ -345,6 +453,44 @@ export class DemoSecurityStack extends cdk.Stack {
         actions: ['cognito-idp:AdminGetUser'],
         resources: [`arn:aws:cognito-idp:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:userpool/*`],
       }));
+    }
+
+    // ========================================
+    // LDAP Health Check Lambda + EventBridge Rule + CloudWatch Alarm
+    // ldapConfig指定 + healthCheckEnabled !== false（デフォルト: true）時に作成
+    // Requirements: 16.1, 16.4, 16.5, 16.7
+    // ========================================
+    if (props.ldapConfig && props.ldapConfig.healthCheckEnabled !== false) {
+      this.createLdapHealthCheck(prefix, props);
+    }
+
+    // ========================================
+    // 監査ログテーブル（auditLogEnabled=true 時）
+    // Requirements: 17.1, 17.2, 17.3
+    // ========================================
+    if (props.auditLogEnabled) {
+      const auditTable = new dynamodb.Table(this, 'AuthAuditLogTable', {
+        tableName: `${prefix}-auth-audit-log`,
+        partitionKey: { name: 'eventId', type: dynamodb.AttributeType.STRING },
+        billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+        timeToLiveAttribute: 'expiresAt',
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      });
+
+      // Identity Sync Lambda に監査テーブルへの書き込み権限を付与
+      if (this.adSyncFunction) {
+        auditTable.grantWriteData(this.adSyncFunction);
+        this.adSyncFunction.addEnvironment('AUDIT_LOG_TABLE_NAME', auditTable.tableName);
+        this.adSyncFunction.addEnvironment(
+          'AUDIT_LOG_RETENTION_DAYS',
+          String(props.auditLogRetentionDays ?? 90),
+        );
+      }
+
+      new cdk.CfnOutput(this, 'AuditLogTableName', {
+        value: auditTable.tableName,
+        description: 'Auth audit log DynamoDB table name',
+      });
     }
 
     // ========================================
@@ -392,8 +538,17 @@ export class DemoSecurityStack extends cdk.Stack {
     if (props.oidcProviderConfig) {
       env.OIDC_GROUP_CLAIM_NAME = props.oidcProviderConfig.groupClaimName || 'groups';
     }
+    // 複数OIDC IdPのグループクレーム名マッピング
+    if (props.oidcProviders && props.oidcProviders.length > 0) {
+      const groupClaimsMapping: Record<string, string> = {};
+      for (const provider of props.oidcProviders) {
+        groupClaimsMapping[provider.providerName] = provider.groupClaimName || 'groups';
+      }
+      env.OIDC_PROVIDER_GROUP_CLAIMS = JSON.stringify(groupClaimsMapping);
+    }
     env.PERMISSION_MAPPING_STRATEGY = props.permissionMappingStrategy || 'sid-only';
     env.ONTAP_NAME_MAPPING_ENABLED = String(props.ontapNameMappingEnabled || false);
+    env.AUTH_FAILURE_MODE = props.authFailureMode || 'fail-open';
 
     this.adSyncFunction = new lambda.Function(this, 'AdSyncFn', {
       functionName: `${prefix}-ad-sync`,
@@ -522,8 +677,17 @@ export class DemoSecurityStack extends cdk.Stack {
     if (props.oidcProviderConfig) {
       env.OIDC_GROUP_CLAIM_NAME = props.oidcProviderConfig.groupClaimName || 'groups';
     }
+    // 複数OIDC IdPのグループクレーム名マッピング
+    if (props.oidcProviders && props.oidcProviders.length > 0) {
+      const groupClaimsMapping: Record<string, string> = {};
+      for (const provider of props.oidcProviders) {
+        groupClaimsMapping[provider.providerName] = provider.groupClaimName || 'groups';
+      }
+      env.OIDC_PROVIDER_GROUP_CLAIMS = JSON.stringify(groupClaimsMapping);
+    }
     env.PERMISSION_MAPPING_STRATEGY = props.permissionMappingStrategy || 'sid-only';
     env.ONTAP_NAME_MAPPING_ENABLED = String(props.ontapNameMappingEnabled || false);
+    env.AUTH_FAILURE_MODE = props.authFailureMode || 'fail-open';
 
     this.adSyncFunction = new lambda.Function(this, 'IdentitySyncFn', {
       functionName: `${prefix}-identity-sync`,
@@ -586,11 +750,25 @@ export class DemoSecurityStack extends cdk.Stack {
   private configureLdapPermissions(props: DemoSecurityStackProps): void {
     if (!props.ldapConfig || !this.adSyncFunction) return;
 
-    // Secrets Manager への読み取り権限を付与
+    // Secrets Manager への読み取り権限を付与（バインドパスワード）
     this.adSyncFunction.addToRolePolicy(new iam.PolicyStatement({
       actions: ['secretsmanager:GetSecretValue'],
       resources: [props.ldapConfig.bindPasswordSecretArn],
     }));
+
+    // TLS CA証明書用 Secrets Manager 権限（指定時のみ）
+    if (props.ldapConfig.tlsCaCertArn) {
+      this.adSyncFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['secretsmanager:GetSecretValue'],
+        resources: [props.ldapConfig.tlsCaCertArn],
+      }));
+      this.adSyncFunction.addEnvironment('LDAP_TLS_CA_CERT_ARN', props.ldapConfig.tlsCaCertArn);
+    }
+
+    // TLS rejectUnauthorized 設定
+    if (props.ldapConfig.tlsRejectUnauthorized !== undefined) {
+      this.adSyncFunction.addEnvironment('LDAP_TLS_REJECT_UNAUTHORIZED', String(props.ldapConfig.tlsRejectUnauthorized));
+    }
 
     // LDAP接続情報を環境変数に設定（パスワードはARN参照のみ）
     this.adSyncFunction.addEnvironment('LDAP_URL', props.ldapConfig.ldapUrl);
@@ -599,5 +777,152 @@ export class DemoSecurityStack extends cdk.Stack {
     this.adSyncFunction.addEnvironment('LDAP_BIND_PASSWORD_SECRET_ARN', props.ldapConfig.bindPasswordSecretArn);
     this.adSyncFunction.addEnvironment('LDAP_USER_SEARCH_FILTER', props.ldapConfig.userSearchFilter || '(mail={email})');
     this.adSyncFunction.addEnvironment('LDAP_GROUP_SEARCH_FILTER', props.ldapConfig.groupSearchFilter || '(member={dn})');
+  }
+
+  /**
+   * LDAP Health Check Lambda + EventBridge Rule + CloudWatch Alarm を作成する。
+   * ldapConfig指定 + healthCheckEnabled !== false（デフォルト: true）時に呼び出される。
+   *
+   * - Lambda: LDAP接続確立、バインド認証、テスト検索を実行
+   * - EventBridge Rule: 5分間隔の定期実行
+   * - CloudWatch Alarm: LdapHealthCheck/Failure >= 1 で発火
+   *
+   * Requirements: 16.1, 16.4, 16.5, 16.7
+   */
+  private createLdapHealthCheck(prefix: string, props: DemoSecurityStackProps): void {
+    if (!props.ldapConfig || !props.vpc) return;
+
+    // ヘルスチェックLambda用セキュリティグループ
+    const healthCheckSg = new ec2.SecurityGroup(this, 'LdapHealthCheckSg', {
+      vpc: props.vpc,
+      description: 'Security group for LDAP Health Check Lambda',
+      allowAllOutbound: false,
+    });
+
+    healthCheckSg.addEgressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(389),
+      'Allow LDAP outbound (port 389)',
+    );
+    healthCheckSg.addEgressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(636),
+      'Allow LDAPS outbound (port 636)',
+    );
+    healthCheckSg.addEgressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(443),
+      'Allow HTTPS outbound (Secrets Manager, CloudWatch)',
+    );
+
+    const securityGroups = props.lambdaSg
+      ? [props.lambdaSg, healthCheckSg]
+      : [healthCheckSg];
+
+    // 環境変数
+    const env: Record<string, string> = {
+      LDAP_URL: props.ldapConfig.ldapUrl,
+      LDAP_BASE_DN: props.ldapConfig.baseDn,
+      LDAP_BIND_DN: props.ldapConfig.bindDn,
+      LDAP_BIND_PASSWORD_SECRET_ARN: props.ldapConfig.bindPasswordSecretArn,
+    };
+    if (props.ldapConfig.tlsCaCertArn) {
+      env.LDAP_TLS_CA_CERT_ARN = props.ldapConfig.tlsCaCertArn;
+    }
+    if (props.ldapConfig.tlsRejectUnauthorized !== undefined) {
+      env.LDAP_TLS_REJECT_UNAUTHORIZED = String(props.ldapConfig.tlsRejectUnauthorized);
+    }
+
+    // ヘルスチェックLambda関数
+    const healthCheckFn = new lambda.Function(this, 'LdapHealthCheckFn', {
+      functionName: `${prefix}-ldap-health-check`,
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('lambda/ldap-health-check', {
+        bundling: {
+          image: lambda.Runtime.NODEJS_22_X.bundlingImage,
+          command: [
+            'bash', '-c',
+            'npx esbuild index.ts --bundle --platform=node --target=node22 --outfile=/asset-output/index.js --external:@aws-sdk/*',
+          ],
+          local: {
+            tryBundle(outputDir: string) {
+              try {
+                const { execSync } = require('child_process');
+                execSync(
+                  `npx esbuild lambda/ldap-health-check/index.ts --bundle --platform=node --target=node22 --outfile=${outputDir}/index.js --external:@aws-sdk/*`,
+                  { stdio: 'inherit' },
+                );
+                return true;
+              } catch {
+                return false;
+              }
+            },
+          },
+        },
+      }),
+      timeout: cdk.Duration.minutes(1),
+      memorySize: 256,
+      vpc: props.vpc,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      securityGroups,
+      environment: env,
+    });
+
+    // Secrets Manager 読み取り権限（バインドパスワード）
+    healthCheckFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['secretsmanager:GetSecretValue'],
+      resources: [props.ldapConfig.bindPasswordSecretArn],
+    }));
+
+    // TLS CA証明書用 Secrets Manager 権限（指定時のみ）
+    if (props.ldapConfig.tlsCaCertArn) {
+      healthCheckFn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['secretsmanager:GetSecretValue'],
+        resources: [props.ldapConfig.tlsCaCertArn],
+      }));
+    }
+
+    // CloudWatch PutMetricData 権限
+    healthCheckFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['cloudwatch:PutMetricData'],
+      resources: ['*'],
+      conditions: {
+        StringEquals: {
+          'cloudwatch:namespace': 'LdapHealthCheck',
+        },
+      },
+    }));
+
+    // EventBridge Rule: 5分間隔の定期実行
+    const rule = new events.Rule(this, 'LdapHealthCheckRule', {
+      ruleName: `${prefix}-ldap-health-check`,
+      description: 'LDAP Health Check - 5 minute interval',
+      schedule: events.Schedule.rate(cdk.Duration.minutes(5)),
+    });
+    rule.addTarget(new events_targets.LambdaFunction(healthCheckFn));
+
+    // CloudWatch Alarm: LdapHealthCheck/Failure >= 1
+    const failureMetric = new cloudwatch.Metric({
+      namespace: 'LdapHealthCheck',
+      metricName: 'Failure',
+      statistic: 'Sum',
+      period: cdk.Duration.minutes(5),
+    });
+
+    new cloudwatch.Alarm(this, 'LdapHealthCheckAlarm', {
+      alarmName: `${prefix}-ldap-health-check-failure`,
+      alarmDescription: 'LDAP Health Check failure detected',
+      metric: failureMetric,
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    });
+
+    new cdk.CfnOutput(this, 'LdapHealthCheckFunctionName', {
+      value: healthCheckFn.functionName,
+      description: 'LDAP Health Check Lambda function name',
+    });
   }
 }

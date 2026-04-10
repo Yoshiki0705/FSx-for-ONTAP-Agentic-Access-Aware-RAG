@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Build the SAML redirect URL for AD sign-in via Cognito Hosted UI.
@@ -43,8 +43,33 @@ function buildOidcSignInUrl(
   );
 }
 
+/** Multi-OIDC provider interface */
+interface OidcProviderEntry {
+  name: string;
+  displayName?: string;
+}
+
+/**
+ * Parse NEXT_PUBLIC_OIDC_PROVIDERS env var into an array of provider entries.
+ * Returns empty array if not set or invalid JSON.
+ */
+function parseOidcProviders(envValue: string): OidcProviderEntry[] {
+  if (!envValue) return [];
+  try {
+    const parsed = JSON.parse(envValue);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (p: unknown): p is OidcProviderEntry =>
+        typeof p === "object" && p !== null && typeof (p as OidcProviderEntry).name === "string"
+    );
+  } catch {
+    return [];
+  }
+}
+
 // Exported for testing
-export { buildAdSignInUrl, buildOidcSignInUrl };
+export { buildAdSignInUrl, buildOidcSignInUrl, parseOidcProviders };
+export type { OidcProviderEntry };
 
 export function LoginForm({
   className,
@@ -56,12 +81,30 @@ export function LoginForm({
   const [error, setError] = useState<string>("");
   const router = useRouter();
 
+  // サーバーサイド環境変数をAPIから取得（NEXT_PUBLIC_*はビルド時インライン化のため）
+  const [authConfig, setAuthConfig] = useState<{
+    oidcProviderName: string;
+    oidcProviders: string;
+    cognitoDomain: string;
+    cognitoRegion: string;
+    cognitoClientId: string;
+    callbackUrl: string;
+    idpName: string;
+  }>({ oidcProviderName: '', oidcProviders: '', cognitoDomain: '', cognitoRegion: '', cognitoClientId: '', callbackUrl: '', idpName: '' });
+
+  useEffect(() => {
+    fetch('/api/auth/config')
+      .then(res => res.json())
+      .then(data => setAuthConfig(data))
+      .catch(() => { /* ignore */ });
+  }, []);
+
   // AD Federation environment variables
-  const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "";
-  const cognitoRegion = process.env.NEXT_PUBLIC_COGNITO_REGION || "";
-  const cognitoClientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
-  const callbackUrl = process.env.NEXT_PUBLIC_CALLBACK_URL || "";
-  const idpName = process.env.NEXT_PUBLIC_IDP_NAME || "ActiveDirectory";
+  const cognitoDomain = authConfig.cognitoDomain || process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "";
+  const cognitoRegion = authConfig.cognitoRegion || process.env.NEXT_PUBLIC_COGNITO_REGION || "";
+  const cognitoClientId = authConfig.cognitoClientId || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
+  const callbackUrl = authConfig.callbackUrl || process.env.NEXT_PUBLIC_CALLBACK_URL || "";
+  const idpName = authConfig.idpName || process.env.NEXT_PUBLIC_IDP_NAME || "ActiveDirectory";
 
   const adFederationEnabled = !!(cognitoDomain && cognitoRegion && cognitoClientId && callbackUrl);
 
@@ -71,13 +114,22 @@ export function LoginForm({
     window.location.href = url;
   };
 
-  // OIDC Federation environment variables
-  const oidcProviderName = process.env.NEXT_PUBLIC_OIDC_PROVIDER_NAME || "";
-  const oidcEnabled = !!(oidcProviderName && cognitoDomain && cognitoRegion && cognitoClientId && callbackUrl);
+  // Multi-OIDC providers (NEXT_PUBLIC_OIDC_PROVIDERS takes precedence)
+  const oidcProviders = parseOidcProviders(authConfig.oidcProviders || process.env.NEXT_PUBLIC_OIDC_PROVIDERS || "");
+  const multiOidcEnabled = !!(oidcProviders.length > 0 && cognitoDomain && cognitoRegion && cognitoClientId && callbackUrl);
 
-  const handleOidcSignIn = () => {
-    if (!oidcEnabled) return;
-    const url = buildOidcSignInUrl(cognitoDomain, cognitoRegion, cognitoClientId, callbackUrl, oidcProviderName);
+  // Single OIDC provider (backward compatibility, only used when multi-provider is not set)
+  const oidcProviderName = authConfig.oidcProviderName || process.env.NEXT_PUBLIC_OIDC_PROVIDER_NAME || "";
+  const singleOidcEnabled = !!(
+    !multiOidcEnabled && oidcProviderName && cognitoDomain && cognitoRegion && cognitoClientId && callbackUrl
+  );
+
+  const anyOidcEnabled = multiOidcEnabled || singleOidcEnabled;
+
+  const handleOidcSignIn = (providerName?: string) => {
+    const name = providerName || oidcProviderName;
+    if (!name) return;
+    const url = buildOidcSignInUrl(cognitoDomain, cognitoRegion, cognitoClientId, callbackUrl, name);
     window.location.href = url;
   };
 
@@ -143,10 +195,26 @@ export function LoginForm({
             </button>
           </>
         )}
-        {oidcEnabled && (
+        {multiOidcEnabled &&
+          oidcProviders.map((provider) => (
+            <button
+              key={provider.name}
+              type="button"
+              onClick={() => handleOidcSignIn(provider.name)}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-indigo-600 text-white hover:bg-indigo-700 h-10 px-4 py-2 w-full"
+            >
+              <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                <path d="M2 12h20" />
+              </svg>
+              Sign in with {provider.displayName || provider.name}
+            </button>
+          ))}
+        {singleOidcEnabled && (
           <button
             type="button"
-            onClick={handleOidcSignIn}
+            onClick={() => handleOidcSignIn()}
             className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-indigo-600 text-white hover:bg-indigo-700 h-10 px-4 py-2 w-full"
           >
             <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -157,7 +225,7 @@ export function LoginForm({
             Sign in with {oidcProviderName}
           </button>
         )}
-        {(adFederationEnabled || oidcEnabled) && (
+        {(adFederationEnabled || anyOidcEnabled) && (
           <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
             <span className="relative z-10 bg-background px-2 text-muted-foreground">
               or

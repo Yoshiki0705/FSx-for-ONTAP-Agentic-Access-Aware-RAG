@@ -80,6 +80,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   // --- OIDC Federation UI設定（オプション） ---
   /** OIDC IdPプロバイダー名（例: "Keycloak", "Okta"）。設定時にNext.jsサインイン画面にOIDCボタンを表示 */
   oidcProviderName?: string;
+  /** 複数OIDC IdP情報（マルチOIDC IdPサポート時） */
+  oidcProviders?: Array<{ name: string; displayName?: string }>;
   /** Cognito Hosted UIドメイン（例: "myapp-demo.auth.ap-northeast-1.amazoncognito.com"） */
   cognitoDomainUrl?: string;
   // --- AD Federation設定（オプション） ---
@@ -171,6 +173,7 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(props.permissionAuditTableName ? { PERMISSION_AUDIT_TABLE_NAME: props.permissionAuditTableName } : {}),
         // OIDC Federation UI設定（オプション）
         ...(props.oidcProviderName ? { NEXT_PUBLIC_OIDC_PROVIDER_NAME: props.oidcProviderName } : {}),
+        ...(props.oidcProviders && props.oidcProviders.length > 0 ? { NEXT_PUBLIC_OIDC_PROVIDERS: JSON.stringify(props.oidcProviders) } : {}),
         ...(props.cognitoDomainUrl ? { NEXT_PUBLIC_COGNITO_DOMAIN: props.cognitoDomainUrl } : {}),
         NEXT_PUBLIC_COGNITO_REGION: cdk.Aws.REGION,
         // AD Federation設定（オプション）

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { LogIn, User, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -20,6 +20,7 @@ function AuthOptionsSection({ locale }: { locale: string }) {
     callbackUrl?: string;
     idpName?: string;
     oidcProviderName?: string;
+    oidcProviders?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -67,7 +68,16 @@ function AuthOptionsSection({ locale }: { locale: string }) {
   const hasAd = !!authConfig.idpName;
   const hasOidc = !!authConfig.oidcProviderName;
 
-  if (!hasAd && !hasOidc) return null;
+  // マルチOIDCプロバイダーのパース
+  let multiOidcProviders: Array<{ name: string; displayName?: string }> = [];
+  if (authConfig.oidcProviders) {
+    try {
+      multiOidcProviders = JSON.parse(authConfig.oidcProviders);
+    } catch { /* ignore */ }
+  }
+  const hasMultiOidc = multiOidcProviders.length > 0;
+
+  if (!hasAd && !hasOidc && !hasMultiOidc) return null;
 
   return (
     <div className="mt-6 space-y-4">
@@ -87,7 +97,23 @@ function AuthOptionsSection({ locale }: { locale: string }) {
             </p>
           </>
         )}
-        {hasOidc && (
+        {hasMultiOidc ? (
+          multiOidcProviders.map((provider) => (
+            <div key={provider.name}>
+              <button
+                type="button"
+                onClick={() => { window.location.href = buildSignInUrl(provider.name); }}
+                className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                {t('oidcSignIn', { provider: provider.displayName || provider.name })}
+              </button>
+              <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-1">
+                {t('oidcSignInDesc', { provider: provider.displayName || provider.name })}
+              </p>
+            </div>
+          ))
+        ) : hasOidc ? (
           <>
             <button
               type="button"
@@ -101,7 +127,7 @@ function AuthOptionsSection({ locale }: { locale: string }) {
               {t('oidcSignInDesc', { provider: authConfig.oidcProviderName })}
             </p>
           </>
-        )}
+        ) : null}
       </div>
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -127,6 +153,7 @@ export default function SignInPage({ params }: SignInPageProps) {
   const { locale } = use(params);
   const t = useTranslations('signin');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn, isLoading, isAuthenticated } = useAuthStore();
   const { token: csrfToken, isLoading: csrfLoading } = useCSRFToken();
   
@@ -134,6 +161,28 @@ export default function SignInPage({ params }: SignInPageProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+
+  // URLクエリパラメータからエラーメッセージを表示（Cognito認証エラー等）
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      switch (errorParam) {
+        case 'auth_failed':
+          // Fail-Closedモードでブロックされた場合、またはCognito認証エラー
+          setError('認証に失敗しました。管理者に連絡してください。');
+          break;
+        case 'token_exchange_failed':
+          setError('認証に失敗しました。管理者に連絡してください。');
+          break;
+        case 'server_error':
+          setError('認証に失敗しました。管理者に連絡してください。');
+          break;
+        default:
+          setError('認証に失敗しました。管理者に連絡してください。');
+          break;
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (isAuthenticated) {

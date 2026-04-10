@@ -770,3 +770,191 @@ describe('OIDC/LDAP environment variables on Lambda', () => {
     });
   });
 });
+
+
+// ========================================
+// 9. マルチOIDC IdP登録
+// Validates: Requirements 11.2, 11.3
+// ========================================
+
+describe('Multi-OIDC IdP registration (oidcProviders array)', () => {
+  const oidcProviders = [
+    {
+      providerName: 'Okta',
+      clientId: 'okta-client-id',
+      clientSecret: 'okta-secret',
+      issuerUrl: 'https://company.okta.com',
+      groupClaimName: 'groups',
+    },
+    {
+      providerName: 'Keycloak',
+      clientId: 'keycloak-client-id',
+      clientSecret: 'keycloak-secret',
+      issuerUrl: 'https://keycloak.example.com/realms/main',
+      groupClaimName: 'roles',
+    },
+  ];
+
+  it('oidcProviders配列の各要素に対してOIDC IdPリソースが作成される', () => {
+    const { template } = createTestSecurityStack({
+      oidcProviders,
+      cloudFrontUrl: 'https://d111111abcdef8.cloudfront.net',
+    });
+
+    const resources = template.toJSON().Resources;
+    const oidcIdPs = Object.values(resources).filter(
+      (r: any) => r.Type === 'AWS::Cognito::UserPoolIdentityProvider' && r.Properties?.ProviderType === 'OIDC'
+    );
+    expect(oidcIdPs).toHaveLength(2);
+
+    // Okta IdP
+    template.hasResourceProperties('AWS::Cognito::UserPoolIdentityProvider', {
+      ProviderName: 'Okta',
+      ProviderType: 'OIDC',
+      ProviderDetails: Match.objectLike({
+        client_id: 'okta-client-id',
+        oidc_issuer: 'https://company.okta.com',
+      }),
+    });
+
+    // Keycloak IdP
+    template.hasResourceProperties('AWS::Cognito::UserPoolIdentityProvider', {
+      ProviderName: 'Keycloak',
+      ProviderType: 'OIDC',
+      ProviderDetails: Match.objectLike({
+        client_id: 'keycloak-client-id',
+        oidc_issuer: 'https://keycloak.example.com/realms/main',
+      }),
+    });
+  });
+
+  it('全OIDC IdPがUser Pool Clientのサポートプロバイダーに含まれる', () => {
+    const { template } = createTestSecurityStack({
+      oidcProviders,
+      cloudFrontUrl: 'https://d111111abcdef8.cloudfront.net',
+    });
+
+    const resources = template.toJSON().Resources;
+    const client = Object.values(resources).find(
+      (r: any) => r.Type === 'AWS::Cognito::UserPoolClient'
+    ) as any;
+    const providers = client.Properties.SupportedIdentityProviders;
+    // COGNITO + 2 OIDC Refs = 3 providers
+    expect(providers).toHaveLength(3);
+    expect(providers).toContain('COGNITO');
+    const refProviders = providers.filter((p: any) => typeof p === 'object' && p.Ref);
+    expect(refProviders).toHaveLength(2);
+  });
+
+  it('Cognito Domainが作成される', () => {
+    const { template } = createTestSecurityStack({
+      oidcProviders,
+    });
+
+    template.hasResourceProperties('AWS::Cognito::UserPoolDomain', {
+      Domain: 'testproj-dev-auth',
+    });
+  });
+
+  it('stack.oidcProviders配列にIdPが格納される', () => {
+    const { stack } = createTestSecurityStack({
+      oidcProviders,
+    });
+
+    expect(stack.oidcProviders).toHaveLength(2);
+  });
+
+  it('SAML + マルチOIDCハイブリッド構成で全IdPがサポートプロバイダーに含まれる', () => {
+    const { template } = createTestSecurityStack({
+      enableAdFederation: true,
+      adType: 'managed',
+      adDirectoryId: 'd-1234567890',
+      cloudFrontUrl: 'https://d111111abcdef8.cloudfront.net',
+      oidcProviders,
+    });
+
+    const resources = template.toJSON().Resources;
+    const client = Object.values(resources).find(
+      (r: any) => r.Type === 'AWS::Cognito::UserPoolClient'
+    ) as any;
+    const providers = client.Properties.SupportedIdentityProviders;
+    // COGNITO + SAML Ref + 2 OIDC Refs = 4 providers
+    expect(providers).toHaveLength(4);
+    expect(providers).toContain('COGNITO');
+  });
+
+  it('OIDC_PROVIDER_GROUP_CLAIMS環境変数がLambdaに設定される', () => {
+    const { template } = createTestSecurityStack({
+      oidcProviders,
+    });
+
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      FunctionName: 'testproj-dev-identity-sync',
+      Environment: Match.objectLike({
+        Variables: Match.objectLike({
+          OIDC_PROVIDER_GROUP_CLAIMS: JSON.stringify({ Okta: 'groups', Keycloak: 'roles' }),
+        }),
+      }),
+    });
+  });
+
+  it('oidcProviders配列内のclientId欠損時にバリデーションエラーがスローされる', () => {
+    expect(() => {
+      createTestSecurityStack({
+        oidcProviders: [
+          {
+            providerName: 'BadProvider',
+            clientId: '',
+            clientSecret: 'secret',
+            issuerUrl: 'https://example.com',
+          },
+        ],
+      });
+    }).toThrow(/BadProvider.*clientId.*issuerUrl/);
+  });
+
+  it('oidcProviders配列内のissuerUrl欠損時にバリデーションエラーがスローされる', () => {
+    expect(() => {
+      createTestSecurityStack({
+        oidcProviders: [
+          {
+            providerName: 'BadProvider',
+            clientId: 'valid-id',
+            clientSecret: 'secret',
+            issuerUrl: '',
+          },
+        ],
+      });
+    }).toThrow(/BadProvider.*clientId.*issuerUrl/);
+  });
+
+  it('User Pool ClientにOAuth設定が含まれる', () => {
+    const { template } = createTestSecurityStack({
+      oidcProviders,
+      cloudFrontUrl: 'https://d111111abcdef8.cloudfront.net',
+    });
+
+    template.hasResourceProperties('AWS::Cognito::UserPoolClient', {
+      AllowedOAuthFlows: ['code'],
+      AllowedOAuthScopes: Match.arrayWith(['openid', 'email', 'profile']),
+      CallbackURLs: ['https://d111111abcdef8.cloudfront.net/api/auth/callback'],
+      LogoutURLs: ['https://d111111abcdef8.cloudfront.net/signin'],
+    });
+  });
+
+  it('Post-Auth TriggerがマルチOIDC構成で設定される', () => {
+    const { template, stack } = createTestSecurityStack({
+      oidcProviders,
+    });
+
+    expect(stack.adSyncFunction).toBeDefined();
+
+    // PostAuthentication trigger
+    template.hasResourceProperties('AWS::Cognito::UserPool', {
+      LambdaConfig: Match.objectLike({
+        PostAuthentication: Match.anyValue(),
+        PostConfirmation: Match.anyValue(),
+      }),
+    });
+  });
+});

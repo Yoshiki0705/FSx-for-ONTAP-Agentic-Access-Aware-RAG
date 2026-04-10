@@ -29,11 +29,12 @@ import {
 import * as net from 'net';
 import * as tls from 'tls';
 import { LdapConnector, getBindPassword, structuredLog } from './ldap-connector';
+import { writeAuditLog } from './audit-logger';
 
 // ========================================
 // 環境変数
 // ========================================
-const AD_TYPE = (process.env.AD_TYPE || 'self-managed') as 'managed' | 'self-managed';
+const AD_TYPE = (process.env.AD_TYPE || 'none') as 'managed' | 'self-managed' | 'none';
 const AD_EC2_INSTANCE_ID = process.env.AD_EC2_INSTANCE_ID; // self-managed用
 const AD_DIRECTORY_ID = process.env.AD_DIRECTORY_ID;       // managed用
 const AD_DOMAIN_NAME = process.env.AD_DOMAIN_NAME || '';   // managed用
@@ -43,10 +44,20 @@ const REGION = process.env.AWS_REGION || 'ap-northeast-1';
 const SSM_TIMEOUT = parseInt(process.env.SSM_TIMEOUT || '60', 10);
 const SID_CACHE_TTL = parseInt(process.env.SID_CACHE_TTL || '86400', 10);
 const OIDC_GROUP_CLAIM_NAME = process.env.OIDC_GROUP_CLAIM_NAME || 'groups';
+const OIDC_PROVIDER_GROUP_CLAIMS: Record<string, string> = (() => {
+  try {
+    return JSON.parse(process.env.OIDC_PROVIDER_GROUP_CLAIMS || '{}');
+  } catch {
+    return {};
+  }
+})();
 const LDAP_URL = process.env.LDAP_URL || '';
 const LDAP_BASE_DN = process.env.LDAP_BASE_DN || '';
 const LDAP_BIND_DN = process.env.LDAP_BIND_DN || '';
 const LDAP_BIND_PASSWORD_SECRET_ARN = process.env.LDAP_BIND_PASSWORD_SECRET_ARN || '';
+const LDAP_TLS_CA_CERT_ARN = process.env.LDAP_TLS_CA_CERT_ARN || '';
+const LDAP_TLS_REJECT_UNAUTHORIZED = process.env.LDAP_TLS_REJECT_UNAUTHORIZED;
+const AUTH_FAILURE_MODE = process.env.AUTH_FAILURE_MODE || 'fail-open';
 
 const ssmClient = new SSMClient({ region: REGION });
 const dynamoClient = new DynamoDBClient({ region: REGION });
@@ -144,6 +155,34 @@ export function detectAuthSource(event: CognitoPostAuthEvent): AuthSource {
     return 'direct';
   }
   return 'direct';
+}
+
+// ========================================
+// IdPごとのグループクレーム名解決（Task 12.4）
+// ========================================
+
+/**
+ * Cognitoの identities 属性からOIDCプロバイダー名を抽出し、
+ * そのプロバイダーに対応するグループクレーム名を返す。
+ *
+ * - 環境変数 OIDC_PROVIDER_GROUP_CLAIMS（JSON: {"Okta":"groups","Keycloak":"roles"}）から
+ *   IdPごとのクレーム名マッピングを参照
+ * - マッピングが見つからない場合は OIDC_GROUP_CLAIM_NAME 環境変数にフォールバック
+ * - それも未設定の場合はデフォルト 'groups' を返す
+ */
+export function getGroupClaimForProvider(identities: string): string {
+  try {
+    const parsed = JSON.parse(identities);
+    if (!Array.isArray(parsed)) return OIDC_GROUP_CLAIM_NAME;
+
+    const oidcIdentity = parsed.find((id: any) => id.providerType === 'OIDC');
+    if (oidcIdentity?.providerName && OIDC_PROVIDER_GROUP_CLAIMS[oidcIdentity.providerName]) {
+      return OIDC_PROVIDER_GROUP_CLAIMS[oidcIdentity.providerName];
+    }
+  } catch {
+    // identities のパースに失敗した場合はデフォルトにフォールバック
+  }
+  return OIDC_GROUP_CLAIM_NAME;
 }
 
 // ========================================
@@ -270,9 +309,67 @@ async function handleCognitoTrigger(event: CognitoPostAuthEvent): Promise<Cognit
       // SAML / Direct パス — 既存の AD Sync 処理（後方互換性維持）
       await handleSamlDirectPath(event, userId, username);
     }
+
+    // 監査ログ: サインイン成功（Task 21.3）
+    const identities = event.request.userAttributes['identities'] || '';
+    let idpName = 'direct';
+    try {
+      const parsed = JSON.parse(identities);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        idpName = parsed[0].providerName || parsed[0].providerType || 'unknown';
+      }
+    } catch { /* ignore */ }
+
+    await writeAuditLog({
+      userId,
+      email: email || '',
+      authSource,
+      idpName,
+      eventType: 'sign-in',
+    }).catch(() => { /* non-blocking */ });
   } catch (error: unknown) {
-    // サインインをブロックしない — エラーログのみ（Fail-Open認証）
     const err = error as Error;
+
+    // Fail-Closedモード: エラーをスローしてサインインをブロック
+    if (AUTH_FAILURE_MODE === 'fail-closed') {
+      structuredLog({
+        level: 'ERROR',
+        source: 'PostAuthTrigger',
+        operation: 'handleCognitoTrigger.failClosed',
+        userId: event.userName,
+        error: err.message,
+        context: {
+          authFailureMode: AUTH_FAILURE_MODE,
+          blockReason: 'Identity sync failed in fail-closed mode',
+          triggerSource: event.triggerSource,
+        },
+        timestamp: new Date().toISOString(),
+      });
+
+      // 監査ログ: サインイン失敗（Task 21.3）
+      const failAuthSource = detectAuthSource(event);
+      let failIdpName = 'unknown';
+      try {
+        const ids = event.request.userAttributes['identities'] || '';
+        const parsed = JSON.parse(ids);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          failIdpName = parsed[0].providerName || parsed[0].providerType || 'unknown';
+        }
+      } catch { failIdpName = 'direct'; }
+
+      await writeAuditLog({
+        userId: event.userName,
+        email: event.request.userAttributes.email || '',
+        authSource: failAuthSource,
+        idpName: failIdpName,
+        eventType: 'sign-in-failed',
+        details: { error: err.message, blockReason: 'fail-closed' },
+      }).catch(() => { /* non-blocking */ });
+
+      throw new Error(`Authentication failed: ${err.message}`);
+    }
+
+    // Fail-Open（デフォルト）: サインインをブロックしない — エラーログのみ
     console.error(JSON.stringify({
       level: 'ERROR',
       source: 'PostAuthTrigger',
@@ -295,6 +392,19 @@ async function handleSamlDirectPath(
   userId: string,
   username: string,
 ): Promise<void> {
+  // AD設定がない場合はSID同期をスキップ（メール/パスワード認証でAD未設定時）
+  if (AD_TYPE === 'none') {
+    console.log(JSON.stringify({
+      level: 'INFO',
+      source: 'PostAuthTrigger',
+      message: 'No AD configured, skipping SID sync for direct/SAML auth',
+      userId,
+      username,
+      timestamp: new Date().toISOString(),
+    }));
+    return;
+  }
+
   // キャッシュTTLチェック（24時間）
   const cached = await getCachedWithTtlCheck(userId);
   if (cached) {
@@ -350,7 +460,9 @@ async function handleOidcPath(
   }
 
   // OIDCクレームからグループ情報を取得
-  const oidcClaims = await parseOidcClaims(event);
+  const identities = event.request.userAttributes['identities'] || '';
+  const groupClaimName = getGroupClaimForProvider(identities);
+  const oidcClaims = await parseOidcClaims(event, groupClaimName);
 
   const hasLdapConfig = !!(LDAP_URL && LDAP_BASE_DN && LDAP_BIND_DN);
 
@@ -364,6 +476,30 @@ async function handleOidcPath(
       const bindPassword = await getBindPassword(LDAP_BIND_PASSWORD_SECRET_ARN);
 
       if (bindPassword) {
+        // TLS CA証明書の取得（設定されている場合）
+        let tlsCaCert: string | undefined;
+        if (LDAP_TLS_CA_CERT_ARN) {
+          const caCertValue = await getBindPassword(LDAP_TLS_CA_CERT_ARN);
+          if (caCertValue) {
+            tlsCaCert = caCertValue;
+          } else {
+            structuredLog({
+              level: 'WARN',
+              source: 'IdentitySyncLambda',
+              operation: 'handleOidcPath.tlsCaCert',
+              userId,
+              error: 'Failed to retrieve TLS CA certificate from Secrets Manager',
+              context: { tlsCaCertArn: LDAP_TLS_CA_CERT_ARN },
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
+
+        // tlsRejectUnauthorized の解決（環境変数未設定時はデフォルト true）
+        const tlsRejectUnauthorized = LDAP_TLS_REJECT_UNAUTHORIZED !== undefined
+          ? LDAP_TLS_REJECT_UNAUTHORIZED !== 'false'
+          : undefined;
+
         const connector = new LdapConnector({
           ldapUrl: LDAP_URL,
           baseDn: LDAP_BASE_DN,
@@ -371,6 +507,8 @@ async function handleOidcPath(
           bindPassword,
           userSearchFilter: process.env.LDAP_USER_SEARCH_FILTER || '(mail={email})',
           groupSearchFilter: process.env.LDAP_GROUP_SEARCH_FILTER || '(member={dn})',
+          tlsCaCert,
+          tlsRejectUnauthorized,
         });
 
         ldapUserInfo = await connector.queryUser(email);

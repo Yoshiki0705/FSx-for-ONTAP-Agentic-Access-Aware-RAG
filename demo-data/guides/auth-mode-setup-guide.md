@@ -221,10 +221,31 @@ bash demo-data/scripts/verify-ldap-integration.sh
 # ONTAP name-mapping検証
 bash demo-data/scripts/verify-ontap-namemapping.sh
 
+# LDAPヘルスチェック検証
+# Lambda手動実行（接続・バインド・検索の各ステップ結果を確認）
+aws lambda invoke --function-name perm-rag-demo-demo-ldap-health-check \
+  --region ap-northeast-1 /tmp/health-check-result.json && cat /tmp/health-check-result.json
+
+# CloudWatch Alarm状態確認（OK = 正常、ALARM = LDAP接続失敗）
+aws cloudwatch describe-alarms \
+  --alarm-names perm-rag-demo-demo-ldap-health-check-failure \
+  --region ap-northeast-1 \
+  --query 'MetricAlarms[0].{State:StateValue,Reason:StateReason}'
+
+# EventBridge Rule確認（5分間隔の定期実行）
+aws events describe-rule --name perm-rag-demo-demo-ldap-health-check \
+  --region ap-northeast-1 --query '{State:State,Schedule:ScheduleExpression}'
+
+# CloudWatch Logs確認（構造化ログ）
+aws logs tail /aws/lambda/perm-rag-demo-demo-ldap-health-check \
+  --region ap-northeast-1 --since 1h
+
 # ブラウザ検証:
 # CloudFront URL → 「Auth0でサインイン」→ Auth0認証 → チャット画面
 # DynamoDB: uid, gid, source="OIDC-LDAP" を確認
 ```
+
+> **検証済み結果（2026-04-10）**: OpenLDAP EC2（10.0.2.187:389）に対してLDAPヘルスチェックLambda手動実行で全ステップSUCCESS（connect: 12ms, bind: 12ms, search: 16ms, total: 501ms）。CloudWatch Alarm: OK、EventBridge Rule: 5分間隔ENABLED。NATゲートウェイ経由でSecrets Manager + CloudWatch Metricsアクセス正常。
 
 ### テストユーザー（OpenLDAP）
 
@@ -312,6 +333,183 @@ cp demo-data/configs/mode-e-saml-oidc-hybrid.json cdk.context.json
 
 ---
 
+## 認証方式の選択ガイド
+
+### 意思決定フローチャート
+
+既存の認証基盤に基づいて、最適な認証モードを選択してください。
+
+```
+既存の認証基盤は？
+│
+├─ なし（新規構築）
+│   └─ → モードA（メール/パスワード）で開始
+│       後からモードC/Dに移行可能
+│
+├─ Windows Active Directory（オンプレミスまたはManaged AD）
+│   ├─ IAM Identity Center設定済み？
+│   │   ├─ Yes → モードB（SAML AD Federation）
+│   │   └─ No  → AD FS / Entra ID経由でSAML設定 → モードB
+│   │
+│   └─ OIDC IdPも併用したい？
+│       └─ Yes → モードE（SAML + OIDC ハイブリッド）
+│
+├─ OIDC IdP（Keycloak / Okta / Entra ID / Auth0）
+│   ├─ LDAP/FreeIPAサーバーもある？
+│   │   └─ Yes → モードC（OIDC + LDAP）
+│   │       UID/GIDベースの権限フィルタリングが可能
+│   │
+│   └─ LDAPなし（IdPのグループクレームのみ）
+│       └─ → モードD（OIDC Claims Only）
+│           IdP側でグループクレーム設定が必要
+│
+└─ 複数のIdPを同時利用（Okta + Keycloak等）
+    └─ → oidcProviders配列（Phase 2マルチOIDC）
+        サインイン画面に各IdPのボタンが動的表示
+```
+
+### 権限マッピング戦略の選択
+
+`permissionMappingStrategy` パラメータで、ドキュメントアクセス制御の方式を選択します。
+
+| 戦略 | 設定値 | 条件 | ドキュメントメタデータ | 推奨環境 |
+|------|--------|------|---------------------|---------|
+| SIDのみ | `sid-only` | Windows AD環境 | `allowed_group_sids` | NTFS ACLでファイル権限を管理している環境 |
+| UID/GIDのみ | `uid-gid` | UNIX/Linux環境 | `allowed_uids`, `allowed_gids` | POSIX権限でファイル権限を管理している環境 |
+| ハイブリッド | `hybrid` | 混在環境 | SID + UID/GID両方 | AD + LDAP両方のユーザーが存在する環境 |
+
+```
+ファイルサーバーの権限管理方式は？
+│
+├─ NTFS ACL（Windows AD環境）
+│   └─ permissionMappingStrategy: "sid-only"
+│       .metadata.json に allowed_group_sids を設定
+│
+├─ POSIX権限（UNIX/Linux環境）
+│   └─ permissionMappingStrategy: "uid-gid"
+│       .metadata.json に allowed_uids, allowed_gids を設定
+│
+├─ 両方（ADユーザー + UNIXユーザーが混在）
+│   └─ permissionMappingStrategy: "hybrid"
+│       SIDマッチを優先、失敗時にUID/GIDフォールバック
+│
+└─ OIDCグループのみ（ファイルサーバー権限と無関係）
+    └─ permissionMappingStrategy: 任意
+        .metadata.json に allowed_oidc_groups を設定
+        全戦略でOIDCグループフォールバックが動作
+```
+
+### 既存IdPとの統合チェックリスト
+
+OIDC IdPを統合する場合、IdP側で以下の設定が必要です。
+
+#### 共通（全OIDC IdP）
+
+- [ ] RAGシステム用のクライアントアプリケーション（Regular Web Application）を作成
+- [ ] `clientId` と `clientSecret` を取得
+- [ ] `clientSecret` をAWS Secrets Managerに登録
+- [ ] Allowed Callback URLs に `https://{cognito-domain}.auth.{region}.amazoncognito.com/oauth2/idpresponse` を設定
+- [ ] Allowed Logout URLs に `https://{cloudfront-url}/signin` を設定
+- [ ] `issuerUrl` を `/.well-known/openid-configuration` の `issuer` フィールドから取得（末尾スラッシュに注意）
+- [ ] `openid`, `email`, `profile` スコープが有効であることを確認
+
+#### Auth0固有
+
+- [ ] `issuerUrl` に末尾スラッシュを付ける（例: `https://xxx.auth0.com/`）
+- [ ] グループクレームを使用する場合: Post Login Actionで名前空間付きカスタムクレームを設定
+- [ ] テストユーザーを作成し、メールアドレスを設定
+
+#### Keycloak固有
+
+- [ ] `issuerUrl` に末尾スラッシュを付けない（例: `https://keycloak.example.com/realms/main`）
+- [ ] Client Protocol: `openid-connect`、Access Type: `confidential`
+- [ ] グループクレーム: Client Scopes → `groups` マッパーを追加
+- [ ] LDAPフェデレーション設定済みの場合: Keycloakが自動的にLDAPグループをトークンに含める
+
+#### Okta固有
+
+- [ ] `issuerUrl` に末尾スラッシュを付けない（例: `https://company.okta.com`）
+- [ ] Application Type: `Web Application`
+- [ ] グループクレーム: Authorization Server → Claims → `groups` クレームを追加（Filter: Matches regex `.*`）
+
+#### Entra ID（旧Azure AD）固有
+
+- [ ] `issuerUrl`: `https://login.microsoftonline.com/{tenant-id}/v2.0`
+- [ ] App Registration → Authentication → Web → Redirect URIs にCallback URLを追加
+- [ ] Token Configuration → Optional Claims → `groups` を追加
+- [ ] API Permissions: `openid`, `email`, `profile` を付与
+
+---
+
+## モード間の移行手順
+
+### モードA → モードC/D（メール/パスワード → OIDC Federation）
+
+最も一般的な移行パターンです。PoCをモードAで開始し、本番環境でOIDC Federationに移行します。
+
+```bash
+# Step 1: 現在のcdk.context.jsonをバックアップ
+cp cdk.context.json cdk.context.json.mode-a-backup
+
+# Step 2: OIDC設定を追加
+# cdk.context.json に以下を追加:
+#   "oidcProviderConfig": { ... }
+#   "cloudFrontUrl": "https://dxxxxxxxx.cloudfront.net"
+#   "permissionMappingStrategy": "hybrid"  (既存SIDデータとの共存)
+
+# Step 3: 再デプロイ（SecurityスタックとWebAppスタックのみ）
+npx cdk deploy perm-rag-demo-demo-Security perm-rag-demo-demo-WebApp \
+  --app "npx ts-node bin/demo-app.ts" --method=direct --require-approval never --exclusively
+
+# Step 4: OIDC IdP側のCallback URLを設定
+
+# Step 5: 検証
+# - 既存のメール/パスワードユーザーは引き続きサインイン可能
+# - 新規OIDCユーザーは「{providerName}でサインイン」ボタンからサインイン
+# - 両方のユーザーが同じKB検索を利用可能
+```
+
+**注意点:**
+- 既存のCognitoユーザー（メール/パスワード）は削除されません
+- 既存のDynamoDB SIDデータも保持されます
+- `permissionMappingStrategy: "hybrid"` にすることで、SIDユーザーとUID/GIDユーザーが共存できます
+- Cognito User Poolの`email.mutable`が`false`の場合、User Poolの再作成が必要です（Securityスタックの`cdk destroy`→再デプロイ）
+
+### モードB → モードE（SAML AD → SAML + OIDC ハイブリッド）
+
+既存のAD SAML Federationに、追加のOIDC IdPを統合します。
+
+```bash
+# Step 1: cdk.context.json に oidcProviderConfig を追加
+# enableAdFederation: true はそのまま維持
+
+# Step 2: 再デプロイ
+npx cdk deploy perm-rag-demo-demo-Security perm-rag-demo-demo-WebApp \
+  --app "npx ts-node bin/demo-app.ts" --method=direct --require-approval never --exclusively
+
+# Step 3: サインイン画面に「ADでサインイン」+「{providerName}でサインイン」の両方が表示されることを確認
+```
+
+**注意点:**
+- 既存のADユーザーのSIDデータは保持されます
+- OIDCユーザーは初回サインイン時に新規Cognitoユーザーとして作成されます
+- ADユーザーとOIDCユーザーが同じメールアドレスの場合、Cognito上で別ユーザーとして管理されます
+
+### 認証方式の削除（OIDC → メール/パスワードのみに戻す）
+
+```bash
+# Step 1: cdk.context.json から oidcProviderConfig を削除
+# Step 2: 再デプロイ
+npx cdk deploy perm-rag-demo-demo-Security perm-rag-demo-demo-WebApp \
+  --app "npx ts-node bin/demo-app.ts" --method=direct --require-approval never --exclusively
+
+# 注意: OIDC IdPで作成されたCognitoユーザーは残りますが、
+# サインイン画面からOIDCボタンが消えるため、OIDCサインインはできなくなります。
+# メール/パスワードでのサインインは引き続き可能です。
+```
+
+---
+
 ## クリーンアップ
 
 ```bash
@@ -331,7 +529,9 @@ npx cdk destroy --all
 | CDKデプロイ失敗 | 全て | CDK CLIバージョン不一致 | `npm install aws-cdk@latest` で更新 |
 | サインイン後に全拒否 | A | SIDデータ未登録 | `post-deploy-setup.sh` を実行 |
 | 「ADでサインイン」非表示 | B,E | `enableAdFederation=false` | `cdk.context.json` を確認 |
-| OIDC認証失敗 | C,D,E | `clientId`/`issuerUrl` 不正 | OIDC IdP設定を確認 |
+| OIDC認証失敗 | C,D,E | `clientId`/`issuerUrl` 不正 | OIDC IdP設定を確認。`issuerUrl`はIdPの`/.well-known/openid-configuration`の`issuer`値と完全一致させる（Auth0は末尾`/`付き） |
+| OIDC `invalid_request` | C,D,E | issuerUrl末尾スラッシュ不一致 | Auth0: `https://xxx.auth0.com/`（末尾`/`必須）、Keycloak: 末尾`/`なし |
+| OIDC `Attribute cannot be updated` | C,D,E | email属性が`mutable: false` | User Pool再作成が必要（`mutable`は作成後変更不可） |
 | LDAP接続失敗 | C | SG/VPC設定不正 | Lambda CloudWatch Logsを確認 |
 | OAuthコールバックエラー | B,C,D,E | `cloudFrontUrl` 未設定 | 初回デプロイ後にURL取得→再デプロイ |
 | ONTAP REST API接続不可 | C | fsxadminパスワード未設定 | `aws fsx update-file-system` で設定 |

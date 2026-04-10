@@ -1,5 +1,9 @@
 # ===== Permission-aware RAG FSxN CDK =====
 
+# CDK Context (contains environment-specific settings, account IDs, secrets ARNs)
+cdk.context.json
+cdk.context.json.full-backup
+
 # Node.js
 node_modules/
 dist/
@@ -109,3 +113,4 @@ github-repo-snapshot.txt
 # Dev.to記事（ローカル作業用）
 devto-article.md
 docs/presentation-brief.md
+docs/screenshots/debug-oidc-result.png

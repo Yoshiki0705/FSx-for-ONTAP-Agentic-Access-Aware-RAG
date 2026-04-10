@@ -32,7 +32,9 @@ export default function SignInFallback() {
 
   useEffect(() => {
     const locale = detectLocale();
-    router.replace(`/${locale}/signin`);
+    // クエリパラメータを保持してリダイレクト（例: ?error=auth_failed）
+    const searchParams = typeof window !== 'undefined' ? window.location.search : '';
+    router.replace(`/${locale}/signin${searchParams}`);
   }, [router]);
 
   return (

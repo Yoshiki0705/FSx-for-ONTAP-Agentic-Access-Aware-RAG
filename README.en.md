@@ -82,7 +82,7 @@ The implementation of this system is organized into 14 perspectives. For details
 | 11 | Smart Routing | Automatic model selection based on query complexity. Short factual queries route to lightweight model (Haiku), long analytical queries route to high-performance model (Sonnet). ON/OFF toggle in sidebar | WebAppStack |
 | 12 | Monitoring & Alerts | CloudWatch dashboard (Lambda/CloudFront/DynamoDB/Bedrock/WAF/Advanced RAG integration), SNS alerts (error rate & latency threshold notifications), EventBridge KB Ingestion Job failure notifications, EMF custom metrics. Enable with `enableMonitoring=true` | WebAppStack (MonitoringConstruct) |
 | 13 | AgentCore Memory | Conversation context maintenance via AgentCore Memory (short-term & long-term memory). In-session conversation history (short-term) + cross-session user preferences & summaries (long-term). Enable with `enableAgentCoreMemory=true` | AIStack |
-| 14 | OIDC/LDAP Federation + ONTAP Name-Mapping | OIDC IdP (Auth0/Keycloak/Okta) integration, LDAP direct query (OpenLDAP/FreeIPA) for automatic UID/GID retrieval, ONTAP REST API name-mapping (UNIX→Windows user mapping). Configuration-driven auto-enablement. Enable with `oidcProviderConfig` + `ldapConfig` + `ontapNameMappingEnabled` | SecurityStack |
+| 14 | OIDC/LDAP Federation + ONTAP Name-Mapping | OIDC IdP (Auth0/Keycloak/Okta) integration, LDAP direct query (OpenLDAP/FreeIPA) for automatic UID/GID retrieval, ONTAP REST API name-mapping (UNIX→Windows user mapping). Configuration-driven auto-enablement. Enable with `oidcProviderConfig` + `ldapConfig` + `ontapNameMappingEnabled`. **Phase 2 Extensions**: Multi-OIDC IdP (`oidcProviders` array), OIDC group-based document access control (`allowed_oidc_groups`), LDAP TLS certificate verification (`tlsCaCertArn`), token refresh/session management, Fail-Closed mode (`authFailureMode`), LDAP health check (EventBridge + CloudWatch Alarm), auth audit log (`auditLogEnabled`) | SecurityStack |
 
 ## UI Screenshots
 
@@ -152,7 +152,7 @@ Enabled with `enableAgentCoreMemory=true`. Adds a session list (SessionList) and
 |---|-------|--------|-----------|-------------|
 | 1 | WafStack | us-east-1 | WAF WebACL, IP Set | WAF for CloudFront (rate limiting, managed rules) |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups, VPC Endpoints (optional) | Network infrastructure |
-| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + OIDC IdP + Cognito Domain (when Federation enabled), Identity Sync Lambda (optional) | Authentication & authorization (SAML/OIDC/Email) |
+| 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + OIDC IdP + Cognito Domain (when Federation enabled), Identity Sync Lambda (optional), LDAP Health Check Lambda + CloudWatch Alarm (optional), Auth Audit Log DynamoDB (optional) | Authentication & authorization (SAML/OIDC/Email) |
 | 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS encryption (optional), CloudTrail (optional) | Storage, SID data, permission cache |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless (selected via `vectorStoreType`), Bedrock Guardrails (optional) | RAG search infrastructure (Titan Embed v2) |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda (optional), MonitoringConstruct (optional) | Web application, Agent Management, monitoring & alerts |
@@ -167,7 +167,7 @@ Enabled with `enableAgentCoreMemory=true`. Adds a session list (SessionList) and
 | L3: Origin Authentication | CloudFront OAC (SigV4) | Prevent direct access bypassing CloudFront |
 | L4: API Authentication | Lambda Function URL IAM Auth | Access control via IAM authentication |
 | L5: User Authentication | Cognito JWT / SAML / OIDC Federation | User-level authentication & authorization |
-| L6: Data Authorization | SID / UID+GID Filtering | Document-level access control |
+| L6: Data Authorization | SID / UID+GID / OIDC Group Filtering | Document-level access control. Fail-Closed mode (`authFailureMode=fail-closed`) can block sign-in when permission retrieval fails |
 
 ## Prerequisites
 
@@ -181,6 +181,68 @@ Enabled with `enableAgentCoreMemory=true`. Adds a session list (SessionList) and
 > **For UI verification/development only**: You can verify the Next.js app UI without any AWS environment. Only Node.js 22+ is required, and the authentication middleware works identically to production. → [Local Development Guide](docker/nextjs/LOCAL_DEVELOPMENT.en.md)
 
 ## Deployment Steps
+
+### ⚠️ Important Notice About Impact on Existing AWS Environments
+
+This CDK project creates and modifies the following AWS resources. **If deploying to an existing production or shared team environment, please verify the impact beforehand.**
+
+#### This System's Authentication and AWS Management Console Authentication Are Completely Independent
+
+The RAG system's authentication methods (OIDC / LDAP / email-password) and AWS Management Console access (IAM Identity Center / IAM users) are **completely independent systems**. Changing the RAG system's authentication method has no impact on Management Console access.
+
+```
+┌──────────────────────────────┐    ┌──────────────────────────────┐
+│  AWS Management Console      │    │  RAG System (Chat UI)        │
+│                              │    │                              │
+│  Auth: IAM Identity Center   │    │  Auth: Cognito User Pool     │
+│        or IAM Users          │    │    ├ OIDC (Auth0/Okta/etc.)  │
+│                              │    │    ├ SAML (AD Federation)    │
+│  ← Not modified by this CDK  │    │    └ Email/Password          │
+│                              │    │                              │
+│  Completely independent ─────┼────┤  ← Configured by this CDK   │
+└──────────────────────────────┘    └──────────────────────────────┘
+```
+
+#### Parameters That Affect Existing Environments
+
+| Parameter | Impact | Risk Level | Pre-check |
+|-----------|--------|------------|-----------|
+| `adPassword` | Creates a new AWS Managed Microsoft AD (for FSx ONTAP). AD itself does not affect Identity Center — see note below | 🟡 Medium | See "Note on Managed AD" below |
+| `enableAdFederation` | Creates Cognito SAML IdP. Adds "Sign in with AD" button to RAG sign-in screen | 🟢 Low | Verify no existing Cognito User Pool |
+| `enableVpcEndpoints` | Creates VPC endpoints. May affect existing VPC routing | 🟡 Medium | Check VPC endpoint limits |
+| `enableKmsEncryption` | Creates KMS CMK. Changes S3/DynamoDB encryption settings | 🟢 Low | Check existing KMS key count |
+
+#### Note on Managed AD
+
+Setting `adPassword` creates an AWS Managed Microsoft AD, but **creating the AD alone does not affect Identity Center**.
+
+The problem occurs only if you perform the following **manual operation**:
+
+1. CDK creates Managed AD (`adPassword` set)
+2. **You manually** change Identity Center's identity source from "Identity Center directory" to "Active Directory"
+3. Identity Center starts using Managed AD users as its identity source
+4. `cdk destroy` deletes the Managed AD
+5. → Identity Center's identity source is lost, console access is blocked
+
+**Mitigation:**
+- Keep Identity Center's identity source as "Identity Center directory" (default) — do not change it
+- Maintain IAM user console access as a backup
+- Check Identity Center identity source settings before running `cdk destroy`
+
+**Verification Commands:**
+```bash
+# Check IAM Identity Center instances and users
+aws sso-admin list-instances --region ap-northeast-1
+aws identitystore list-users --identity-store-id <IDENTITY_STORE_ID> --region ap-northeast-1
+
+# Check existing Managed AD
+aws ds describe-directories --region ap-northeast-1
+
+# Check existing Cognito User Pools
+aws cognito-idp list-user-pools --max-results 10 --region ap-northeast-1
+```
+
+> **Recommended**: For production or shared team environments, we strongly recommend deploying in a dedicated AWS account or sandbox environment.
 
 ### Step 1: Environment Setup
 
@@ -327,6 +389,8 @@ EOF
 | `adPassword` | string | Not set (no AD created) | AWS Managed Microsoft AD admin password. When set, creates AD and joins SVM to the domain |
 | `adDomainName` | string | `demo.local` | AD domain name (FQDN) |
 
+> **⚠️ Important**: Setting `adPassword` creates an AWS Managed Microsoft AD. Creating the AD alone does not affect Identity Center. However, if you manually change Identity Center's identity source to Managed AD, deleting the AD via `cdk destroy` will cause Identity Center users to be lost. Keep Identity Center's identity source as "Identity Center directory" (default).
+
 > **Note**: AD creation takes an additional 20-30 minutes. SID filtering demos are possible without AD (verified using DynamoDB SID data).
 
 #### AD SAML Federation (Optional)
@@ -429,10 +493,36 @@ Setup steps:
 | USER_PASSWORD_AUTH 401 error | SECRET_HASH not sent when Client Secret is enabled | When `enableAdFederation=true`, User Pool Client has Client Secret. Sign-in API needs to compute SECRET_HASH from `COGNITO_CLIENT_SECRET` env var |
 | Post-Auth Trigger `Cannot find module 'index'` | Lambda TypeScript not compiled | CDK `Code.fromAsset` has esbuild bundling option. `npx esbuild index.ts --bundle --platform=node --target=node22 --outfile=index.js --external:@aws-sdk/*` |
 | OAuth Callback `0.0.0.0` redirect | Lambda Web Adapter `request.url` is `http://0.0.0.0:3000/...` | Use `CALLBACK_URL` env var to construct redirect base URL |
+| OIDC sign-in `invalid_request` | issuerUrl mismatch | Verify that `oidcProviderConfig.issuerUrl` exactly matches the `issuer` field in the IdP's `/.well-known/openid-configuration`. Auth0 requires a trailing slash (`https://xxx.auth0.com/`) |
+| OIDC sign-in `Attribute cannot be updated` | Cognito User Pool email attribute is `mutable: false` | Verify that CDK `standardAttributes.email.mutable` is `true`. `mutable` cannot be changed after User Pool creation, so the User Pool must be recreated |
+| CDK deploy fails after manually deleting OIDC IdP | CDK stack state inconsistency | Manually deleting and recreating a Cognito IdP causes a mismatch between CDK stack state and actual state. Manage only via CDK deploy and avoid manual operations |
+| LDAP health check Lambda timeout | VPC Lambda cannot access Secrets Manager | NAT Gateway or `enableVpcEndpoints=true` (Secrets Manager VPC endpoint) required. Test manually: `aws lambda invoke --function-name perm-rag-demo-demo-ldap-health-check /tmp/result.json` |
+| LDAP health check Alarm in ALARM state | LDAP connection failure | Check CloudWatch Logs (`/aws/lambda/perm-rag-demo-demo-ldap-health-check`) for structured logs. Connection error → SG/VPC config, Bind error → password/DN, Search error → baseDN |
+| Networking stack update fails without `--exclusively` | VPC CrossStack Export dependency | Use `npx cdk deploy perm-rag-demo-demo-Security perm-rag-demo-demo-WebApp --exclusively` to deploy Security/WebApp only |
+| `AD_EC2_INSTANCE_ID is required` error on email/password sign-in | SID sync runs when AD is not configured | Fixed in v3.5.0. `AD_TYPE` default changed to `none`, SID sync skipped when AD not configured. Redeploy if using older Lambda |
+| Fail-Closed mode not triggered (LDAP user not found) | By design | LDAP user not found is not an error — falls back to OIDC claims only. Fail-Closed triggers only on fatal errors: LDAP connection timeout, Secrets Manager retrieval failure, etc. |
+| CDK deploy fails when migrating `oidcProviderConfig` → `oidcProviders` | Cognito IdP resource ID conflict | Fixed in v3.5.0. First IdP's CDK resource ID fixed to `OidcIdP` for migration compatibility. For older versions, `cdk destroy` Security stack → redeploy required |
+| ONTAP REST API `User is not authorized` | fsxadmin password not set | Set via `aws fsx update-file-system --file-system-id <FS_ID> --ontap-configuration '{"FsxAdminPassword":"<PASSWORD>"}'`. Store in Secrets Manager and specify `ontapAdminSecretArn` |
 
 #### OIDC/LDAP Federation (Optional) — Zero-Touch User Provisioning
 
 In addition to SAML AD Federation, you can enable OIDC IdP (Keycloak, Okta, Entra ID, etc.) and direct LDAP query for zero-touch user provisioning. Existing FSx for ONTAP user permissions are automatically mapped to RAG system UI users — no manual registration by administrators or users is required.
+
+##### How to Choose Your Authentication Method
+
+Choose the authentication method that matches your existing environment. **Whichever method you choose, AWS Management Console access is not affected.**
+
+| Your Environment | Recommended Method | Sign-in Button | Configuration |
+|-----------------|-------------------|----------------|---------------|
+| Nothing specific (just want to try) | Email/Password | Form only | No config needed (default) |
+| Using Okta | OIDC Federation | "Sign in with Okta" | `oidcProviderConfig.providerName: "Okta"` |
+| Using Keycloak | OIDC + LDAP | "Sign in with Keycloak" | `oidcProviderConfig` + `ldapConfig` |
+| Using Entra ID (Azure AD) | OIDC Federation | "Sign in with EntraID" | `oidcProviderConfig.providerName: "EntraID"` |
+| Using Auth0 | OIDC Federation | "Sign in with Auth0" | `oidcProviderConfig.providerName: "Auth0"` |
+| Using Windows AD | SAML AD Federation | "Sign in with AD" | `enableAdFederation: true` |
+| Multiple IdPs simultaneously | Multi-OIDC | Buttons for each IdP | `oidcProviders` array |
+
+> **Button names are customizable**: The name set in `providerName` is displayed directly on the button. For example, setting `"Corporate SSO"` displays "Sign in with Corporate SSO".
 
 Each authentication method uses "configuration-driven auto-activation." Simply add configuration values to `cdk.context.json` to enable, with near-zero additional AWS resource cost. SAML + OIDC simultaneous activation is also supported.
 
@@ -469,6 +559,81 @@ See [Authentication & User Management Guide](docs/en/auth-and-user-management.md
 | `ldapConfig` | object | LDAP connection settings (`ldapUrl`, `baseDn`, `bindDn`, `bindPasswordSecretArn`, `userSearchFilter`, `groupSearchFilter`) |
 | `permissionMappingStrategy` | string | Permission mapping strategy: `sid-only` (default), `uid-gid`, `hybrid` |
 | `ontapNameMappingEnabled` | boolean | ONTAP name-mapping integration (UNIX→Windows user mapping) |
+
+> **⚠️ issuerUrl Note**: The `oidcProviderConfig.issuerUrl` must exactly match the `issuer` field in the IdP's `/.well-known/openid-configuration`. Auth0 requires a trailing slash (`https://xxx.auth0.com/`), while Keycloak does not (`https://keycloak.example.com/realms/main`). A mismatch causes Cognito token validation to return an `invalid_request` error.
+
+> **⚠️ OIDC Federation 2-Stage Deploy**: OIDC configuration requires `cloudFrontUrl` for OAuth callbacks, but the CloudFront URL is unknown during the first deployment. Follow these steps:
+> 1. Run `cdk deploy` without `cloudFrontUrl`
+> 2. Get the CloudFront URL from WebApp stack outputs: `aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp --query 'Stacks[0].Outputs[?OutputKey==\`CloudFrontUrl\`].OutputValue' --output text`
+> 3. Add `cloudFrontUrl` to `cdk.context.json` and redeploy
+> 4. Configure the OIDC IdP's Allowed Callback URLs with `https://{cognito-domain}.auth.{region}.amazoncognito.com/oauth2/idpresponse`
+
+##### Phase 2 Extensions
+
+Phase 2 adds the following 7 extension features. All are controlled via `cdk.context.json` parameters.
+
+**Multi-OIDC IdP Configuration (`oidcProviders` array):**
+
+In addition to `oidcProviderConfig` (single IdP), the `oidcProviders` array allows registering multiple OIDC IdPs simultaneously. Sign-in buttons for each IdP are dynamically displayed on the sign-in page. `oidcProviderConfig` and `oidcProviders` are mutually exclusive settings.
+
+```json
+{
+  "oidcProviders": [
+    {
+      "providerName": "Okta",
+      "clientId": "0oa1234567890",
+      "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:okta-client-secret",
+      "issuerUrl": "https://company.okta.com",
+      "groupClaimName": "groups"
+    },
+    {
+      "providerName": "Keycloak",
+      "clientId": "rag-system",
+      "clientSecret": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:keycloak-client-secret",
+      "issuerUrl": "https://keycloak.example.com/realms/main",
+      "groupClaimName": "roles"
+    }
+  ]
+}
+```
+
+**Fail-Closed Mode (`authFailureMode`):**
+
+The default is Fail-Open (sign-in continues even when permission retrieval fails). In high-security environments, setting `authFailureMode: "fail-closed"` blocks sign-in itself when permission retrieval fails.
+
+> **⚠️ Fail-Closed Trigger Conditions**: When an LDAP user is not found, this is not an error — it falls back to OIDC claims only (sign-in continues). Fail-Closed triggers only on fatal errors: LDAP connection timeout, Secrets Manager password retrieval failure, DynamoDB write failure, etc.
+
+**LDAP Health Check (`healthCheckEnabled`):**
+
+Automatically enabled when `ldapConfig` is specified (default: `true`). Runs periodic checks every 5 minutes via EventBridge Rule, verifying LDAP connection, bind, and search health. Notifies via CloudWatch Alarm on failure.
+
+**Audit Log (`auditLogEnabled`):**
+
+Setting `auditLogEnabled: true` records authentication events (sign-in success/failure) to a DynamoDB audit table. Automatic deletion via TTL (default: 90 days). Sign-in is not blocked even if audit table writes fail.
+
+**TLS Certificate Verification (`tlsCaCertArn`, `tlsRejectUnauthorized`):**
+
+Specify `tlsCaCertArn` (Secrets Manager CA certificate ARN) and `tlsRejectUnauthorized` (default: `true`) within `ldapConfig` to control custom CA certificate verification for LDAPS connections. In development environments, `tlsRejectUnauthorized: false` allows self-signed certificates.
+
+**OIDC Group-Based Document Access Control:**
+
+Setting `allowed_oidc_groups` in document metadata enables access control via intersection check with the user's `oidcGroups`. Also functions as a fallback when SID/UID-GID matching fails.
+
+**Token Refresh and Session Management:**
+
+Automatically refreshes access tokens after OIDC authentication. Performs background refresh 5 minutes before expiration, and redirects to the sign-in page when the refresh token expires.
+
+**Phase 2 CDK Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `oidcProviders` | array | (none) | Multiple OIDC IdP configuration array (mutually exclusive with `oidcProviderConfig`) |
+| `authFailureMode` | string | `fail-open` | Behavior on permission retrieval failure (`fail-open` / `fail-closed`) |
+| `auditLogEnabled` | boolean | `false` | Create auth audit log DynamoDB table |
+| `auditLogRetentionDays` | number | `90` | Audit log retention days (TTL auto-deletion) |
+| `healthCheckEnabled` | boolean | `true` | LDAP health check Lambda + EventBridge + CloudWatch Alarm |
+| `tlsCaCertArn` | string | (none) | Within `ldapConfig`: Secrets Manager ARN for custom CA certificate for LDAPS |
+| `tlsRejectUnauthorized` | boolean | `true` | Within `ldapConfig`: TLS certificate verification (`false` to allow self-signed certificates) |
 
 SAML + OIDC hybrid sign-in page (Sign in with AD + Sign in with Auth0 + Email/Password):
 
@@ -513,6 +678,10 @@ The following CDK context parameters enable security enhancement and architectur
 | `enableAdvancedPermissions` | `false` | Time-based access control + permission decision audit log. Creates `permission-audit` DynamoDB table |
 | `alarmEvaluationPeriods` | `1` | Number of alarm evaluation periods (alarm fires after N consecutive threshold breaches) |
 | `dashboardRefreshInterval` | `300` | Dashboard auto-refresh interval (seconds) |
+| `authFailureMode` | `fail-open` | Fail-Closed mode toggle (`fail-open` / `fail-closed`). `fail-closed` blocks sign-in when permission retrieval fails |
+| `auditLogEnabled` | `false` | Auth audit log. Creates DynamoDB audit table (`{prefix}-auth-audit-log`) |
+| `auditLogRetentionDays` | `90` | Audit log retention days (TTL auto-deletion) |
+| `healthCheckEnabled` | `true` | LDAP health check (when `ldapConfig` specified). EventBridge 5-min interval + CloudWatch Alarm |
 
 #### Vector Store Configuration Selection
 
@@ -694,6 +863,10 @@ aws cloudformation describe-stacks \
 ```
 
 ### Resource Cleanup
+
+> **⚠️ Important**: `cleanup-all.sh` deletes all CDK stacks. If Managed AD (when `adPassword` is set) is deleted, it may affect the IAM Identity Center identity source. Before deletion, verify:
+> - Identity Center identity source is not set to Managed AD
+> - IAM user console access is enabled (as backup)
 
 Use the script that deletes all resources (CDK stacks + manually created resources) at once:
 
@@ -917,6 +1090,10 @@ aws cloudformation delete-stack --stack-name <PREFIX>-Networking --regio
 When deployed with `existingFileSystemId` specified, `cdk destroy` will not delete FSx/SVM/Volume (outside CDK management). S3 Vectors vector buckets and indexes are deleted normally.
 
 #### Recommended: Complete Cleanup Script
+
+> **⚠️ Important**: `cleanup-all.sh` deletes all CDK stacks. If Managed AD (when `adPassword` is set) is deleted, it may affect the IAM Identity Center identity source. Before deletion, verify:
+> - Identity Center identity source is not set to Managed AD
+> - IAM user console access is enabled (as backup)
 
 The complete deletion procedure to avoid the above issues is automated in `demo-data/scripts/cleanup-all.sh`:
 

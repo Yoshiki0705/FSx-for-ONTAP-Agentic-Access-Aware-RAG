@@ -41,6 +41,7 @@ import { ResponseMetadata } from '@/components/chat/ResponseMetadata';
 import { RoutingToggle } from '@/components/sidebar/RoutingToggle';
 import { useMemory } from '@/hooks/useMemory';
 import type { Message as MemoryMessage } from '@/providers/MemoryProvider';
+import { useTokenRefresh } from '@/hooks/useTokenRefresh';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -470,6 +471,9 @@ function ChatbotPageContent() {
   
   // Zustandストアを強制的に初期化（Next.js 15のTree Shaking対策）
   const regionStore = useRegionStore();
+  
+  // トークン自動リフレッシュ（OIDC IdPセッション無効化時は再認証リダイレクト）
+  useTokenRefresh();
   
   // ✅ 2026-01-19: useAuthStoreと同期してuser stateを管理（sign-out fix）
   const authStore = useAuthStore();
