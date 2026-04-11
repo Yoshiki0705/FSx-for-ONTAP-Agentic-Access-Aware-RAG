@@ -39,7 +39,7 @@
     "read": "Read",
     "write": "Write",
     "available": "Available",
-    "directories": "Directories"
+    "directories": "{count} directories accessible"
   },
   "agent": {
     "information": "Workflow Info",
@@ -572,7 +572,11 @@
     "connected": "Connected",
     "noKBConnected": "No Knowledge Base connected",
     "dataSources": "Data Sources",
-    "status": { "ACTIVE": "Active", "CREATING": "Creating", "FAILED": "Failed" },
+    "status": {
+      "ACTIVE": "Active",
+      "CREATING": "Creating",
+      "FAILED": "Failed"
+    },
     "loadError": "Failed to load KB list",
     "retry": "Retry"
   },
@@ -609,5 +613,34 @@
     "modelUsed": "Model Used",
     "autoRouted": "Auto",
     "manualOverride": "Manual"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "Single Agent",
+    "multiAgent": "Multi Agent",
+    "label": "Chat mode"
+  },
+  "agentSelector": {
+    "placeholder": "Select Agent",
+    "label": "Agent selector",
+    "noAgents": "No agents available"
+  },
+  "overflowMenu": {
+    "label": "More options"
+  },
+  "userMenu": {
+    "agentDirectory": "Agent Directory",
+    "signOut": "Sign Out"
+  },
+  "modelIndicator": {
+    "label": "Model selector",
+    "fallbackNotice": "Model changed: {previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "Template Gallery",
+    "description": "Select from pre-configured Team templates:",
+    "customBuild": "Build from scratch",
+    "addButton": "+ Add",
+    "createButton": "+ Create"
   }
 }

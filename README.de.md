@@ -84,7 +84,7 @@ Die Implementierung dieses Systems ist in 14 Perspektiven organisiert. Details z
 
 ### KB-Modus — Kartenraster (Ausgangszustand)
 
-Der Ausgangszustand des Chat-Bereichs zeigt 14 zweckspezifische Karten (8 Recherche + 6 Ausgabe) in einem Rasterlayout an. Enthält Kategoriefilter, Favoritenfunktion und InfoBanner (Berechtigungsinformationen).
+Der Header enthält einen einheitlichen 3-Modus-Umschalter (KB / Single Agent / Multi Agent). Die Seitenleiste zeigt Benutzerinformationen, Zugriffsberechtigungen (Verzeichnisnamen, Lese-/Schreibberechtigungen), Chat-Verlaufseinstellungen und Systemverwaltung (Region, Modellauswahl, Smart Routing, Berechtigungssteuerung) an. Der Chat-Bereich zeigt 14 zweckspezifische Karten in einem Rasterlayout.
 
 ![KB Mode Card Grid](docs/screenshots/multilingual-de-verified.png)
 
@@ -239,6 +239,33 @@ aws cognito-idp list-user-pools --max-results 10 --region ap-northeast-1
 ```
 
 > **Empfohlen**: Für Produktions- oder Team-Shared-Umgebungen empfehlen wir dringend die Bereitstellung in einem dedizierten AWS-Konto oder einer Sandbox-Umgebung.
+
+#### v3.5.0 UI/UX-Optimierung – Upgrade-Hinweise
+
+v3.5.0 enthält wesentliche Änderungen an der Header-UI, der Sidebar-Struktur und der Modus-Umschaltlogik. Beim Upgrade einer bestehenden Umgebung überprüfen Sie Folgendes:
+
+| Änderung | Auswirkung | Überprüfung |
+|----------|------------|-------------|
+| Einheitlicher 3-Modus-Umschalter (KB / Einzel-Agent / Multi-Agent) | Bisheriger 2-Stufen-Umschalter (KB/Agent + Einzel/Multi) in einen zusammengeführt. URL-Abfrageparameter (`?mode=agent`, `?mode=multi-agent`) bleiben kompatibel | Überprüfen Sie, ob die Modus-Umschaltung im Browser fehlerfrei funktioniert |
+| ModelIndicator aus dem Header entfernt | Modellauswahl in die Sidebar-Systemeinstellungen konsolidiert. Keine Modelländerung über den Header | Überprüfen Sie, ob die Modelländerung über die Sidebar-Systemeinstellungen funktioniert |
+| Agent-Auswahl-Dropdown in den Header befördert | Agent-Directory-Link vom Benutzermenü in das Agent-Auswahl-Dropdown verschoben | Überprüfen Sie, ob das Agent-Directory über das „Agent-Auswahl"-Dropdown im Agent-Modus erreichbar ist |
+| Zugriffsberechtigungsbereich zur Agent-Sidebar hinzugefügt | Agent-Modus-Sidebar zeigt jetzt Verzeichnisnamen und Lese-/Schreibberechtigungen an | Überprüfen Sie, ob Zugriffsberechtigungen in der Agent-Modus-Sidebar angezeigt werden |
+| CDK AI-Stack: SupervisorAgent `agentCollaboration` | Von `DISABLED` auf `SUPERVISOR_ROUTER` geändert. Erforderlich, wenn bereits Collaborators zugeordnet sind | Führen Sie `cdk diff perm-rag-demo-demo-AI` zur Überprüfung aus |
+
+**Upgrade-Schritte:**
+```bash
+# 1. Diff prüfen
+cdk diff perm-rag-demo-demo-WebApp
+cdk diff perm-rag-demo-demo-AI
+
+# 2. WebApp bereitstellen (Docker-Image-Update)
+./development/scripts/deploy-webapp.sh
+
+# 3. Browser-Überprüfung
+# - KB → Einzel-Agent → Multi-Agent Umschaltung funktioniert fehlerfrei
+# - Agent-Auswahl-Dropdown zeigt Agent-Liste an
+# - Sidebar zeigt Zugriffsberechtigungen an
+```
 
 ### Schritt 1: Umgebungseinrichtung
 
@@ -1373,11 +1400,11 @@ graph TB
 
 ### UI-Screenshots
 
-#### Agent-Modus — Single/Multi-Umschalter
+#### Einheitlicher 3-Modus-Umschalter — KB / Single Agent / Multi Agent
 
-Der Agent-Modus-Header zeigt einen Single/Multi-Umschalter an. Der Multi-Modus wird aktiviert, wenn eine Team-Konfiguration verfügbar ist.
+Der Header enthält einen einheitlichen 3-Modus-Umschalter. KB (blau), Single Agent (lila) und Multi Agent (lila) können mit einem Klick umgeschaltet werden. Das Agent-Auswahl-Dropdown erscheint nur in Agent-Modi — der Single-Modus zeigt einzelne Agents, der Multi-Modus zeigt nur Supervisor Agents.
 
-![Single/Multi-Umschalter](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+![Einheitlicher 3-Modus-Umschalter](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
 
 #### Agent Directory — Teams-Tab + Vorlagengalerie
 

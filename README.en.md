@@ -88,13 +88,13 @@ The implementation of this system is organized into 14 perspectives. For details
 
 ### KB Mode — Card Grid (Initial State)
 
-The initial state of the chat area displays 14 purpose-specific cards (8 research + 6 output) in a grid layout. Features category filters, favorites functionality, and InfoBanner (permission information).
+The header features a unified 3-mode toggle (KB / Single Agent / Multi Agent). The sidebar displays user info, access permissions (directory names, read/write permissions), chat history settings, and system administration (region, model selection, Smart Routing, permission control). The chat area shows 14 purpose-specific cards in a grid layout.
 
 ![KB Mode Card Grid](docs/screenshots/multilingual-en-verified.png)
 
 ### Agent Mode — Card Grid + Sidebar
 
-Agent mode displays 14 workflow cards (8 research + 6 output). Clicking a card automatically searches for a Bedrock Agent, and if one hasn't been created, navigates to the Agent Directory creation form. The sidebar includes an Agent selection dropdown, chat history settings, and a collapsible system administration section.
+In Single Agent mode, the header shows an Agent selection dropdown with available agents and an Agent Directory link. The sidebar includes Agent info, access permissions (directory names, read/write permissions), chat history settings, and system administration. In Multi Agent mode, only Supervisor Agents are selectable.
 
 ![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid-en.png)
 
@@ -199,7 +199,7 @@ The RAG system's authentication methods (OIDC / LDAP / email-password) and AWS M
 │                              │    │    ├ SAML (AD Federation)    │
 │  ← Not modified by this CDK  │    │    └ Email/Password          │
 │                              │    │                              │
-│  Completely independent ─────┼────┤  ← Configured by this CDK   │
+│  Completely independent ─────┼────┤  ← Configured by this CDK    │
 └──────────────────────────────┘    └──────────────────────────────┘
 ```
 
@@ -243,6 +243,33 @@ aws cognito-idp list-user-pools --max-results 10 --region ap-northeast-1
 ```
 
 > **Recommended**: For production or shared team environments, we strongly recommend deploying in a dedicated AWS account or sandbox environment.
+
+#### v3.5.0 UI/UX Optimization Upgrade Notes
+
+v3.5.0 includes major changes to the header UI, sidebar structure, and mode switching logic. When upgrading from an existing environment, verify the following:
+
+| Change | Impact | Verification |
+|--------|--------|-------------|
+| Unified 3-mode toggle (KB / Single Agent / Multi Agent) | Existing 2-step toggle (KB/Agent + Single/Multi) merged into one. URL query params (`?mode=agent`, `?mode=multi-agent`) remain compatible | Verify mode switching works without errors in browser |
+| ModelIndicator removed from header | Model selection consolidated to sidebar System Settings. No model change from header | Verify model change works from sidebar System Settings |
+| Agent selector dropdown promoted to header | Agent Directory link moved from user menu to Agent selector dropdown | Verify Agent Directory is accessible from "Agent Select" dropdown in Agent mode |
+| Access permissions section added to Agent sidebar | Agent mode sidebar now shows directory names and read/write permissions | Verify access permissions appear in Agent mode sidebar |
+| CDK AI Stack: SupervisorAgent `agentCollaboration` | Changed from `DISABLED` to `SUPERVISOR_ROUTER`. Required when collaborators are already associated | Run `cdk diff perm-rag-demo-demo-AI` to verify |
+
+**Upgrade steps:**
+```bash
+# 1. Check diff
+cdk diff perm-rag-demo-demo-WebApp
+cdk diff perm-rag-demo-demo-AI
+
+# 2. Deploy WebApp (Docker image update)
+./development/scripts/deploy-webapp.sh
+
+# 3. Browser verification
+# - KB → Single Agent → Multi Agent switching works without errors
+# - Agent selector dropdown shows agent list
+# - Sidebar shows access permissions
+```
 
 ### Step 1: Environment Setup
 
@@ -1938,15 +1965,15 @@ graph TB
 
 ### UI Screenshots
 
-#### Agent Mode — Single/Multi Toggle
+#### Unified 3-Mode Toggle — KB / Single Agent / Multi Agent
 
-The Agent mode header displays a Single/Multi toggle. Multi mode is enabled when a Team configuration is available.
+The header features a unified 3-mode toggle. KB (blue), Single Agent (purple), and Multi Agent (purple) can be switched with one click. The Agent selection dropdown appears only in Agent modes — Single mode shows individual agents, Multi mode shows only Supervisor Agents.
 
-![Single/Multi Toggle](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+![Unified 3-Mode Toggle](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
 
 #### Agent Directory — Teams Tab + Template Gallery
 
-The Agent Directory includes a Teams tab with a template gallery for one-click Team creation.
+The Agent Directory includes a Teams tab with a template gallery for one-click Team creation. Access Agent Directory via the "Agent Select" dropdown link in the header.
 
 ![Teams Tab + Template Gallery](docs/screenshots/multi-agent-teams-tab-production-ja.png)
 

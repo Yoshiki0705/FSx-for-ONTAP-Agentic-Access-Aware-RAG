@@ -9,6 +9,8 @@ import { useAgentsList, AgentSummary } from '@/hooks/useAgentsList';
 import { useAgentStore } from '@/store/useAgentStore';
 import { useChatStore } from '@/store/useChatStore';
 import { useBedrockConfig } from '@/hooks';
+import { useHeaderStore } from '@/store/useHeaderStore';
+import { useAgentTeamStore } from '@/store/useAgentTeamStore';
 
 interface AgentInfoSectionProps {
   agentInfo: NormalizedAgentInfo | null;
@@ -304,11 +306,19 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
           <option value="">
             {isLoadingAgents ? tCommon('loading') : t('selectAgent')}
           </option>
-          {agents && agents.map((agent) => (
-            <option key={agent.agentId} value={agent.agentId}>
-              {agent.agentName} ({agent.agentId})
-            </option>
-          ))}
+          {(() => {
+            const chatMode = useHeaderStore.getState().chatMode;
+            const teams = useAgentTeamStore.getState().teams;
+            const supervisorIds = new Set(teams.map((tm: any) => tm.supervisorAgentId).filter(Boolean));
+            const filtered = chatMode === 'multi-agent'
+              ? (agents || []).filter(a => supervisorIds.has(a.agentId))
+              : (agents || []).filter(a => !supervisorIds.has(a.agentId));
+            return filtered.map((agent) => (
+              <option key={agent.agentId} value={agent.agentId}>
+                {agent.agentName} ({agent.agentId})
+              </option>
+            ));
+          })()}
         </select>
 
         {/* エラー表示 */}

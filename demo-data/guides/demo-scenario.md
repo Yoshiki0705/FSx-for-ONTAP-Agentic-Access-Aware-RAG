@@ -246,8 +246,8 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 
 ### 5-1. マルチエージェントモードの有効化
 
-1. チャット画面のヘッダーで **[Multi]** トグルをクリック
-2. Team選択ドロップダウンから「Permission RAG Team」を選択
+1. チャット画面のヘッダーで **[マルチAgent]** トグルをクリック
+2. ヘッダーの **[Agent選択]** ドロップダウンからSupervisor Agent（`perm-rag-demo-demo-supervisor`）を選択
 3. 新しいマルチエージェントセッションが自動作成される
 
 ### 5-2. 権限フィルタリング付きマルチエージェント検索

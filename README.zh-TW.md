@@ -84,7 +84,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 ### KB 模式 — 卡片網格（初始狀態）
 
-聊天區域的初始狀態以網格佈局顯示 14 張用途特定的卡片（8 張研究 + 6 張輸出）。具備分類篩選器、收藏功能和 InfoBanner（權限資訊）。
+標題列配備統一的 3 模式切換開關（KB / Single Agent / Multi Agent）。側邊欄顯示使用者資訊、存取權限（目錄名稱、讀取/寫入權限）、聊天歷史設定和系統管理（區域、模型選擇、Smart Routing、權限控制）。聊天區域以網格佈局顯示 14 張用途特定的卡片。
 
 ![KB Mode Card Grid](docs/screenshots/multilingual-zh-TW-verified.png)
 
@@ -239,6 +239,33 @@ aws cognito-idp list-user-pools --max-results 10 --region ap-northeast-1
 ```
 
 > **建議**：對於生產環境或團隊共享環境，強烈建議在專用 AWS 帳戶或沙箱環境中部署。
+
+#### v3.5.0 UI/UX 最佳化升級說明
+
+v3.5.0 包含對標頭 UI、側邊欄結構和模式切換邏輯的重大變更。從現有環境升級時，請驗證以下內容：
+
+| 變更 | 影響 | 驗證方法 |
+|------|------|---------|
+| 統一的 3 模式切換（KB / 單一 Agent / 多 Agent） | 原有的 2 步驟切換（KB/Agent + 單一/多）合併為一個。URL 查詢參數（`?mode=agent`、`?mode=multi-agent`）保持相容 | 在瀏覽器中驗證模式切換是否正常運作 |
+| 從標頭移除 ModelIndicator | 模型選擇整合至側邊欄系統設定。無法從標頭變更模型 | 驗證是否可以從側邊欄系統設定變更模型 |
+| Agent 選擇下拉選單提升至標頭 | Agent 目錄連結從使用者選單移至 Agent 選擇下拉選單 | 在 Agent 模式下驗證是否可以從「Agent 選擇」下拉選單存取 Agent 目錄 |
+| Agent 側邊欄新增存取權限區段 | Agent 模式側邊欄現在顯示目錄名稱和讀取/寫入權限 | 驗證 Agent 模式側邊欄中是否顯示存取權限 |
+| CDK AI 堆疊：SupervisorAgent `agentCollaboration` | 從 `DISABLED` 變更為 `SUPERVISOR_ROUTER`。當已關聯協作者時為必要 | 執行 `cdk diff perm-rag-demo-demo-AI` 進行驗證 |
+
+**升級步驟：**
+```bash
+# 1. 檢查差異
+cdk diff perm-rag-demo-demo-WebApp
+cdk diff perm-rag-demo-demo-AI
+
+# 2. 部署 WebApp（Docker 映像更新）
+./development/scripts/deploy-webapp.sh
+
+# 3. 瀏覽器驗證
+# - KB → 單一 Agent → 多 Agent 切換正常無錯誤
+# - Agent 選擇下拉選單顯示 Agent 清單
+# - 側邊欄顯示存取權限
+```
 
 ### 步驟 1：環境設定
 
@@ -1662,11 +1689,11 @@ graph TB
 
 ### UI 截圖
 
-#### Agent 模式 — Single/Multi 切換開關
+#### 統一 3 模式切換 — KB / Single Agent / Multi Agent
 
-Agent 模式標題列顯示 Single/Multi 切換開關。當 Team 配置可用時，Multi 模式將被啟用。
+標題列配備統一的 3 模式切換開關。KB（藍色）、Single Agent（紫色）和 Multi Agent（紫色）可一鍵切換。Agent 選擇下拉選單僅在 Agent 模式下顯示——Single 模式顯示個別 Agent，Multi 模式僅顯示 Supervisor Agent。
 
-![Single/Multi 切換開關](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+![統一 3 模式切換](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
 
 #### Agent Directory — Teams 分頁 + 範本庫
 

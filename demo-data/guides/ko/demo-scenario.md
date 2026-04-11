@@ -64,8 +64,8 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 
 ### 5-1. 멀티 에이전트 모드 활성화
 
-1. 채팅 헤더에서 **[Multi]** 토글 클릭
-2. Team 드롭다운에서 "Permission RAG Team" 선택
+1. 채팅 헤더에서 **[Multi Agent]** 토글 클릭
+2. 헤더의 **[Agent Select]** 드롭다운에서 Supervisor Agent 선택
 3. 새로운 멀티 에이전트 세션이 자동 생성됨
 
 ### 5-2. 권한 필터링 멀티 에이전트 검색

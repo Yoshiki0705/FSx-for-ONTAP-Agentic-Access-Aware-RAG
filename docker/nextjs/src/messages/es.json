@@ -239,7 +239,7 @@
     "write": "Escritura",
     "available": "Disponible",
     "unavailable": "No disponible",
-    "directories": "Directorios"
+    "directories": "{count} directorios accesibles"
   },
   "region": {
     "availableModels": "Modelos disponibles",
@@ -789,5 +789,34 @@
     "accessPublic": "Accesible para todos",
     "accessConfidential": "Solo administradores",
     "accessRestricted": "Grupos específicos"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "Agente único",
+    "multiAgent": "Multi Agente",
+    "label": "Modo de chat"
+  },
+  "agentSelector": {
+    "placeholder": "Seleccionar Agente",
+    "label": "Selector de agente",
+    "noAgents": "No hay agentes disponibles"
+  },
+  "overflowMenu": {
+    "label": "Más opciones"
+  },
+  "userMenu": {
+    "agentDirectory": "Directorio de Agentes",
+    "signOut": "Cerrar sesión"
+  },
+  "modelIndicator": {
+    "label": "Selector de modelo",
+    "fallbackNotice": "Modelo cambiado: {previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "Galería de plantillas",
+    "description": "Seleccionar de plantillas de equipo preconfiguradas:",
+    "customBuild": "Construir desde cero",
+    "addButton": "+ Agregar",
+    "createButton": "+ Crear"
   }
 }

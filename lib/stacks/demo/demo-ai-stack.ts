@@ -1345,8 +1345,12 @@ ${langInstruction}`,
           agentName: `${prefix}-supervisor`,
           agentResourceRoleArn: supervisorRole.roleArn,
           foundationModel: supervisorModel,
-          agentCollaboration: 'DISABLED', // Initially DISABLED; Custom Resource will change to SUPERVISOR_ROUTER after associating collaborators
-          autoPrepare: true, // Prepare as DISABLED first, then re-prepare as SUPERVISOR_ROUTER via Custom Resource
+          agentCollaboration: 'SUPERVISOR_ROUTER', // ⚠️ Must be SUPERVISOR_ROUTER when collaborators are associated.
+          // Setting to 'DISABLED' will cause CloudFormation UPDATE_FAILED:
+          // "You cannot set the AgentCollaboration attribute to DISABLED.
+          //  The agent has other agents collaborators added."
+          // This was discovered during UI/UX optimization deployment (2026-04-11).
+          autoPrepare: true,
           instruction: `You are the Supervisor Agent for the Permission-aware RAG system.
 For every user question, you MUST use the following Collaborator Agents to answer. Do NOT generate answers on your own.
 

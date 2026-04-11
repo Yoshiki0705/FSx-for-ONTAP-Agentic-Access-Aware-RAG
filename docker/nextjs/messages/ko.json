@@ -239,7 +239,7 @@
     "write": "쓰기",
     "available": "사용 가능",
     "unavailable": "사용 불가",
-    "directories": "디렉토리"
+    "directories": "{count}개의 디렉토리에 접근 가능"
   },
   "region": {
     "availableModels": "사용 가능한 모델",
@@ -725,7 +725,11 @@
     "connected": "연결됨",
     "noKBConnected": "연결된 Knowledge Base가 없습니다",
     "dataSources": "데이터 소스",
-    "status": { "ACTIVE": "활성", "CREATING": "생성 중", "FAILED": "실패" },
+    "status": {
+      "ACTIVE": "활성",
+      "CREATING": "생성 중",
+      "FAILED": "실패"
+    },
     "loadError": "KB 목록을 불러오지 못했습니다",
     "retry": "재시도"
   },
@@ -762,5 +766,34 @@
     "modelUsed": "사용 모델",
     "autoRouted": "Auto",
     "manualOverride": "Manual"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "싱글 에이전트",
+    "multiAgent": "멀티 에이전트",
+    "label": "채팅 모드"
+  },
+  "agentSelector": {
+    "placeholder": "에이전트 선택",
+    "label": "에이전트 선택기",
+    "noAgents": "사용 가능한 에이전트 없음"
+  },
+  "overflowMenu": {
+    "label": "더 보기"
+  },
+  "userMenu": {
+    "agentDirectory": "에이전트 디렉토리",
+    "signOut": "로그아웃"
+  },
+  "modelIndicator": {
+    "label": "모델 선택기",
+    "fallbackNotice": "모델 변경: {previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "템플릿 갤러리",
+    "description": "사전 구성된 팀 템플릿에서 선택:",
+    "customBuild": "처음부터 구성",
+    "addButton": "+ 추가",
+    "createButton": "+ 생성"
   }
 }

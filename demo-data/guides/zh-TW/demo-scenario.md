@@ -64,8 +64,8 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 
 ### 5-1. 啟用多智能體模式
 
-1. 點擊聊天標頭的 **[Multi]** 切換按鈕
-2. 從 Team 下拉選單中選擇 "Permission RAG Team"
+1. 點擊聊天標頭的 **[Multi Agent]** 切換按鈕
+2. 從標頭的 **[Agent Select]** 下拉選單中選擇 Supervisor Agent
 3. 自動建立新的多智能體工作階段
 
 ### 5-2. 權限過濾多智能體搜尋

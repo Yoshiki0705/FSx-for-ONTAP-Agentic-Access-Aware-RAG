@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.5.0] - 2026-04
 
 ### Added
+- **UI/UX最適化**: ヘッダーバーの情報過多・モード表示の重複・レイアウトシフトを解消
+  - 統合3モードトグル（KB / シングルAgent / マルチAgent）をヘッダーに配置。既存の2段階トグル（KB/Agent + Single/Multi）を1つのセグメントコントロールに統合
+  - Agent選択ドロップダウンをヘッダーに昇格。シングルAgentモードでは個別Agent、マルチAgentモードではSupervisor Agentのみを表示。Agent Directoryリンクもドロップダウン内に配置
+  - アクセス権限セクションをAgentモードのサイドバーにも追加。全モード（KB/シングルAgent/マルチAgent）でディレクトリ名・読み取り/書き込み権限を表示
+  - ModelIndicatorをヘッダーから削除し、サイドバーのシステム管理に集約
+  - UserMenuをサインアウトのみに簡素化
+  - サイドバーの折りたたみアニメーション（`transition-all duration-300`）とレスポンシブ対応（md未満でオーバーレイ表示）
+  - 全8言語（ja, en, de, es, fr, ko, zh-CN, zh-TW）のi18n翻訳キーを追加
 - **Phase 2 認証拡張機能**: 7つの認証・セキュリティ拡張機能を追加
 - **マルチOIDC IdPサポート**: `oidcProviders` 配列で複数のOIDC IdP（Okta + Keycloak等）を同時登録。サインイン画面に各IdPのボタンを動的表示。`oidcProviderConfig`（単一）と排他的設定
 - **OIDCグループベースドキュメントアクセス制御**: `allowed_oidc_groups` メタデータによるドキュメントアクセス制御。`checkOidcGroupAccess` 関数。SID/UID-GIDマッチ失敗時のフォールバックとしても機能

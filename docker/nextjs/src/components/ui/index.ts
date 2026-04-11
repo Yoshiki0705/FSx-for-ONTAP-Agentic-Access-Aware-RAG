@@ -19,4 +19,8 @@ export { Toast } from './Toast';
 export { AgentModeToggle } from './AgentModeToggle';
 export { CollapsiblePanel } from './CollapsiblePanel';
 export type { CollapsiblePanelProps } from './CollapsiblePanel';
+export { OverflowMenu } from './OverflowMenu';
+export type { OverflowMenuItem } from './OverflowMenu';
+export { UserMenu } from './UserMenu';
+export type { UserMenuProps } from './UserMenu';
 export { WorkflowSection } from './WorkflowSection';

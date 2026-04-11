@@ -64,8 +64,8 @@ Deployment mit `enableMultiAgent: true` in `cdk.context.json`.
 
 ### 5-1. Multi-Agent-Modus aktivieren
 
-1. Klicken Sie auf den **[Multi]**-Umschalter im Chat-Header
-2. Wählen Sie „Permission RAG Team" aus dem Team-Dropdown
+1. Klicken Sie auf den **[Multi Agent]**-Umschalter im Chat-Header
+2. Wählen Sie den Supervisor Agent aus dem **[Agent Select]**-Dropdown im Header
 3. Eine neue Multi-Agent-Sitzung wird automatisch erstellt
 
 ### 5-2. Berechtigungsgefilterte Multi-Agent-Suche

@@ -239,7 +239,7 @@
     "write": "Schreiben",
     "available": "Verfügbar",
     "unavailable": "Nicht verfügbar",
-    "directories": "Verzeichnisse"
+    "directories": "{count} Verzeichnisse zugänglich"
   },
   "region": {
     "availableModels": "Verfügbare Modelle",
@@ -789,5 +789,34 @@
     "accessPublic": "Für alle zugänglich",
     "accessConfidential": "Nur Administratoren",
     "accessRestricted": "Bestimmte Gruppen"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "Einzel-Agent",
+    "multiAgent": "Multi-Agent",
+    "label": "Chat-Modus"
+  },
+  "agentSelector": {
+    "placeholder": "Agent wählen",
+    "label": "Agent-Auswahl",
+    "noAgents": "Keine Agents verfügbar"
+  },
+  "overflowMenu": {
+    "label": "Weitere Optionen"
+  },
+  "userMenu": {
+    "agentDirectory": "Agent-Verzeichnis",
+    "signOut": "Abmelden"
+  },
+  "modelIndicator": {
+    "label": "Modellauswahl",
+    "fallbackNotice": "Modell geändert: {previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "Vorlagengalerie",
+    "description": "Aus vorkonfigurierten Team-Vorlagen auswählen:",
+    "customBuild": "Von Grund auf erstellen",
+    "addButton": "+ Hinzufügen",
+    "createButton": "+ Erstellen"
   }
 }

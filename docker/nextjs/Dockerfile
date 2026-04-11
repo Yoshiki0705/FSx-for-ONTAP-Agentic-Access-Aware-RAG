@@ -16,6 +16,17 @@
 #
 # ビルド方法:
 #   docker build -t webapp .
+#
+# 【Apple Silicon (M1+) でのビルド注意事項】
+#   BuildKit使用時、Lambda互換のDockerマニフェスト形式にするため
+#   以下のフラグが必須:
+#     docker buildx build --platform linux/amd64 \
+#       --provenance=false --sbom=false --output type=docker \
+#       -t <ecr-uri>:latest -f Dockerfile .
+#
+#   ⚠️ --provenance=false --sbom=false --output type=docker を
+#   省略すると OCI image index 形式になり、Lambda の
+#   UpdateFunctionCode で "image manifest not supported" エラーが発生します。
 # ============================================================
 
 # --- Stage 1: ビルド ---

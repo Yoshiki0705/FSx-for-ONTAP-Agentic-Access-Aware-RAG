@@ -239,7 +239,7 @@
     "write": "Écriture",
     "available": "Disponible",
     "unavailable": "Indisponible",
-    "directories": "Répertoires"
+    "directories": "{count} répertoires accessibles"
   },
   "region": {
     "availableModels": "Modèles disponibles",
@@ -725,7 +725,11 @@
     "connected": "Connectée",
     "noKBConnected": "Aucune base de connaissances connectée",
     "dataSources": "Sources de données",
-    "status": { "ACTIVE": "Active", "CREATING": "En création", "FAILED": "Échouée" },
+    "status": {
+      "ACTIVE": "Active",
+      "CREATING": "En création",
+      "FAILED": "Échouée"
+    },
     "loadError": "Échec du chargement de la liste KB",
     "retry": "Réessayer"
   },
@@ -762,5 +766,34 @@
     "modelUsed": "Modèle utilisé",
     "autoRouted": "Auto",
     "manualOverride": "Manuel"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "Agent unique",
+    "multiAgent": "Multi Agent",
+    "label": "Mode de chat"
+  },
+  "agentSelector": {
+    "placeholder": "Sélectionner un agent",
+    "label": "Sélecteur d'agent",
+    "noAgents": "Aucun agent disponible"
+  },
+  "overflowMenu": {
+    "label": "Plus d'options"
+  },
+  "userMenu": {
+    "agentDirectory": "Répertoire des agents",
+    "signOut": "Déconnexion"
+  },
+  "modelIndicator": {
+    "label": "Sélecteur de modèle",
+    "fallbackNotice": "Modèle modifié : {previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "Galerie de modèles",
+    "description": "Sélectionner parmi les modèles d'équipe préconfigurés :",
+    "customBuild": "Construire à partir de zéro",
+    "addButton": "+ Ajouter",
+    "createButton": "+ Créer"
   }
 }

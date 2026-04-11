@@ -39,7 +39,7 @@
     "read": "読み取り",
     "write": "書き込み",
     "available": "利用可能",
-    "directories": "ディレクトリ"
+    "directories": "{count}個のディレクトリにアクセス可能"
   },
   "agent": {
     "information": "ワークフロー情報",
@@ -637,5 +637,34 @@
     "accessPublic": "全員アクセス可",
     "accessConfidential": "管理者のみ",
     "accessRestricted": "特定グループ"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "シングルAgent",
+    "multiAgent": "マルチAgent",
+    "label": "チャットモード"
+  },
+  "agentSelector": {
+    "placeholder": "Agent選択",
+    "label": "Agent選択",
+    "noAgents": "利用可能なAgentがありません"
+  },
+  "overflowMenu": {
+    "label": "その他のオプション"
+  },
+  "userMenu": {
+    "agentDirectory": "Agent Directory",
+    "signOut": "サインアウト"
+  },
+  "modelIndicator": {
+    "label": "モデル選択",
+    "fallbackNotice": "モデル変更: {previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "テンプレートギャラリー",
+    "description": "事前構成済み Team テンプレートから選択:",
+    "customBuild": "ゼロから構成",
+    "addButton": "+ 追加",
+    "createButton": "+ 作成"
   }
 }

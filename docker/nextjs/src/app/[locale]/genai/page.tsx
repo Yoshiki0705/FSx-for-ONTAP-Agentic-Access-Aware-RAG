@@ -42,13 +42,22 @@ import { RoutingToggle } from '@/components/sidebar/RoutingToggle';
 import { useMemory } from '@/hooks/useMemory';
 import type { Message as MemoryMessage } from '@/providers/MemoryProvider';
 import { useTokenRefresh } from '@/hooks/useTokenRefresh';
-import AgentModeToggle from '@/components/chat/AgentModeToggle';
+// AgentModeToggle removed in Task 8.2 — replaced by UnifiedModeToggle
 import MultiAgentTraceTimeline from '@/components/chat/MultiAgentTraceTimeline';
 import MultiAgentExecutionStatus from '@/components/chat/MultiAgentExecutionStatus';
 import CollaboratorDetailPanel from '@/components/chat/CollaboratorDetailPanel';
 import CostSummary from '@/components/chat/CostSummary';
 import { useAgentTeamStore } from '@/store/useAgentTeamStore';
 import type { MultiAgentTraceResult } from '@/types/multi-agent';
+import UnifiedModeToggle from '@/components/chat/UnifiedModeToggle';
+import type { ChatMode } from '@/components/chat/UnifiedModeToggle';
+import HeaderAgentSelector from '@/components/chat/HeaderAgentSelector';
+import type { AgentListItem } from '@/components/chat/HeaderAgentSelector';
+import ModelIndicator from '@/components/bedrock/ModelIndicator';
+import { UserMenu } from '@/components/ui/UserMenu';
+import { OverflowMenu } from '@/components/ui/OverflowMenu';
+import type { OverflowMenuItem } from '@/components/ui/OverflowMenu';
+import { useHeaderStore } from '@/store/useHeaderStore';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -415,48 +424,7 @@ function MessageContent({ content }: { content: string }) {
   }
 }
 
-/** Wrapper to use useAgentTeamStore reactively inside the chat header */
-function MultiAgentModeToggleWrapper() {
-  const { agentMode: multiAgentMode, setAgentMode: setMultiAgentMode, teams, setTeams, selectedTeam, setSelectedTeam } = useAgentTeamStore();
-
-  // Fetch teams on mount if not already loaded
-  useEffect(() => {
-    if (teams.length === 0) {
-      fetch('/api/bedrock/agent-team', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'list' }),
-      })
-        .then(r => r.json())
-        .then(d => {
-          if (d.success && d.teams) {
-            setTeams(d.teams);
-            // 最初のTeamを自動選択（selectedTeam未設定時）
-            if (d.teams.length > 0 && !selectedTeam) {
-              setSelectedTeam(d.teams[0]);
-            }
-          }
-        })
-        .catch(() => {});
-    }
-  }, []);
-
-  const handleModeChange = useCallback((mode: 'single' | 'multi') => {
-    setMultiAgentMode(mode);
-    // Multiモード切替時にselectedTeamが未設定なら最初のTeamを選択
-    if (mode === 'multi' && !selectedTeam && teams.length > 0) {
-      setSelectedTeam(teams[0]);
-    }
-  }, [setMultiAgentMode, selectedTeam, teams, setSelectedTeam]);
-
-  return (
-    <AgentModeToggle
-      mode={multiAgentMode}
-      onModeChange={handleModeChange}
-      multiAgentAvailable={teams.length > 0}
-    />
-  );
-}
+// MultiAgentModeToggleWrapper removed in Task 8.2 — integrated into UnifiedModeToggle
 
 /** Wrapper to reactively render MultiAgentExecutionStatus from Zustand store */
 function MultiAgentExecutionStatusDisplay() {
@@ -486,7 +454,6 @@ function ChatbotPageContent() {
     historyDisabled: t('sidebar.historyDisabled'),
     autoSave: t('sidebar.autoSave'),
     sessionOnly: t('sidebar.sessionOnly'),
-    operationMode: t('sidebar.operationMode'),
     permissionControl: t('sidebar.permissionControl'),
     
     // Common
@@ -506,10 +473,6 @@ function ChatbotPageContent() {
     newChat: t('chat.newChat'),
     chatHistory: t('chat.chatHistory'),
     newChatShortcut: t('chat.newChatShortcut'),
-    kbFeatures: t('chat.kbFeatures'),
-    kbFeature1: t('chat.kbFeature1'),
-    kbFeature2: t('chat.kbFeature2'),
-    kbFeature3: t('chat.kbFeature3'),
     inputPlaceholder: t('chat.inputPlaceholder'),
     send: t('chat.send'),
     
@@ -518,8 +481,7 @@ function ChatbotPageContent() {
     sidebarToggleOpen: t('chatbot.sidebarToggleOpen'),
     title: t('chatbot.title'),
     
-    // Auth
-    signOutButton: t('auth.signOutButton'),
+    // Auth (signOutButton removed in Task 8.2 — handled by UserMenu)
     
     // Model
     requestAccess: t('model.requestAccess'),
@@ -605,29 +567,75 @@ function ChatbotPageContent() {
       });
     }
   }, [themeStore.effectiveTheme]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // sidebarOpen は useHeaderStore に移行済み（Task 8.4）
+  const sidebarOpen = useHeaderStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useHeaderStore((s) => s.setSidebarOpen);
+  const toggleSidebar = useHeaderStore((s) => s.toggleSidebar);
+
+  // Task 9.3: レスポンシブサイドバー — md Breakpoint (768px) 未満で自動折りたたみ + オーバーレイ表示
+  const [isBelowMd, setIsBelowMd] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const MD_BREAKPOINT = 768;
+
+    const handleResize = () => {
+      const below = window.innerWidth < MD_BREAKPOINT;
+      setIsBelowMd(below);
+      // md 未満になったらサイドバーを自動折りたたみ
+      if (below) {
+        setSidebarOpen(false);
+      }
+    };
+
+    // 初期チェック
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [setSidebarOpen]);
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_MODEL_ID);
   const [selectedModelName, setSelectedModelName] = useState('Amazon Nova Pro');
   const [userDirectories, setUserDirectories] = useState<any>(null);
   const [availableModelCount, setAvailableModelCount] = useState<number>(0);
   const [isLoadingDirectories, setIsLoadingDirectories] = useState(false);
 
-  // Agent/KBモード切替
-  const [agentMode, setAgentMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('mode') === 'agent';
+  // Agent/KBモード切替 — useHeaderStore.chatMode から派生（Task 8.4）
+  const headerChatModeFromStore = useHeaderStore((s) => s.chatMode);
+  const setHeaderChatMode = useHeaderStore((s) => s.setChatMode);
+  const agentMode = headerChatModeFromStore !== 'kb';
+  const setAgentMode = useCallback((isAgent: boolean) => {
+    if (!isAgent) {
+      setHeaderChatMode('kb');
+    } else {
+      // Agent モード ON 時は useAgentTeamStore の agentMode で single/multi を判定
+      const teamMode = useAgentTeamStore.getState().agentMode;
+      setHeaderChatMode(teamMode === 'multi' ? 'multi-agent' : 'single-agent');
     }
-    return false;
-  });
+  }, [setHeaderChatMode]);
+
   const searchParams = useSearchParams();
-  // Sync agentMode with URL search params (handles client-side navigation from Link)
+  // ページロード時に URL クエリパラメータから useHeaderStore.chatMode を初期化（Task 8.4）
   useEffect(() => {
     const modeParam = searchParams.get('mode');
-    const shouldBeAgent = modeParam === 'agent';
-    if (shouldBeAgent !== agentMode) {
-      console.log(`🔄 [ChatbotPage] Mode sync from URL: ${agentMode ? 'agent' : 'kb'} → ${shouldBeAgent ? 'agent' : 'kb'}`);
-      setAgentMode(shouldBeAgent);
+    let targetChatMode: ChatMode;
+    if (modeParam === 'multi-agent') {
+      targetChatMode = 'multi-agent';
+    } else if (modeParam === 'agent') {
+      targetChatMode = 'single-agent';
+    } else {
+      targetChatMode = 'kb';
+    }
+    if (targetChatMode !== headerChatModeFromStore) {
+      console.log(`🔄 [ChatbotPage] Mode sync from URL: ${headerChatModeFromStore} → ${targetChatMode}`);
+      setHeaderChatMode(targetChatMode);
+      // multi-agent の場合は useAgentTeamStore も同期
+      if (targetChatMode === 'multi-agent') {
+        useAgentTeamStore.getState().setAgentMode('multi');
+      } else if (targetChatMode === 'single-agent') {
+        useAgentTeamStore.getState().setAgentMode('single');
+      }
     }
   }, [searchParams]);
   const { selectedAgentId } = useAgentStore();
@@ -674,7 +682,6 @@ function ChatbotPageContent() {
   // const [isProcessingAction, setIsProcessingAction] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const signOutButtonRef = useRef<HTMLButtonElement>(null);
 
   // ワークフロー選択イベントリスナー
   useEffect(() => {
@@ -1690,44 +1697,120 @@ function ChatbotPageContent() {
     }
   };
   
-  // ✅ v17: Attach event handler after user is loaded
-  // setTimeout ensures DOM is fully updated before attaching handler
-  // Dependency on user ensures handler is attached after user state is loaded
+  // signOutButtonRef useEffect removed in Task 8.2 — sign-out is now handled by UserMenu
+
+  // === Task 8.1 / 8.4: Header Flexbox layout — state & handlers for new components ===
+
+  // headerChatMode は useHeaderStore.chatMode から直接取得（Task 8.4 で統合済み）
+  const headerChatMode: ChatMode = headerChatModeFromStore;
+
+  // Multi-Agent が利用可能かどうか — teams をページロード時にfetch
+  const headerMultiAgentAvailable = useAgentTeamStore((s) => s.teams.length > 0);
   useEffect(() => {
-    // Skip if user is not loaded yet
-    if (!user) {
-      console.log('⏳ [useEffect v17] Waiting for user to load...');
-      return;
+    fetch('/api/bedrock/agent-team', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'list' }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.teams) && d.teams.length > 0) {
+          useAgentTeamStore.getState().setTeams(d.teams);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // UnifiedModeToggle のモード変更ハンドラ（useHeaderStore.setChatMode と同期 — Task 8.4）
+  const handleHeaderModeChange = useCallback((mode: ChatMode) => {
+    // useHeaderStore.chatMode を更新
+    setHeaderChatMode(mode);
+
+    if (mode === 'kb') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('mode');
+      window.history.replaceState({}, '', url.toString());
+    } else {
+      const teamMode = mode === 'multi-agent' ? 'multi' : 'single';
+      useAgentTeamStore.getState().setAgentMode(teamMode);
+      const url = new URL(window.location.href);
+      url.searchParams.set('mode', mode === 'multi-agent' ? 'multi-agent' : 'agent');
+      window.history.replaceState({}, '', url.toString());
+      // Multi モード切替時に selectedTeam が未設定なら最初の Team を選択
+      if (teamMode === 'multi') {
+        const { selectedTeam, teams, setSelectedTeam } = useAgentTeamStore.getState();
+        if (!selectedTeam && teams.length > 0) {
+          setSelectedTeam(teams[0]);
+        }
+      }
     }
-    
-    console.log('🔧 [useEffect v17] User loaded, attaching sign-out button handler...');
-    
-    // Use setTimeout with 100ms delay to ensure button is fully rendered
-    const timeoutId = setTimeout(() => {
-      const button = signOutButtonRef.current;
-      
-      if (button) {
-        console.log('✅ [useEffect v17] Button ref found, attaching onclick handler');
-        button.onclick = (e) => {
-          e.preventDefault();
-          console.log('🔘 [DOM onclick v17] Sign-out button clicked - calling handleSignOut()');
-          handleSignOut();
-        };
-      } else {
-        console.warn('⚠️ [useEffect v17] Button ref not found');
-      }
-    }, 100); // 100ms delay to ensure button is fully rendered
-    
-    // Cleanup
-    return () => {
-      clearTimeout(timeoutId);
-      const button = signOutButtonRef.current;
-      if (button) {
-        console.log('🧹 [useEffect v17] Cleaning up onclick handler');
-        button.onclick = null;
-      }
-    };
-  }, [user]); // ✅ v17: Dependency on user - attach handler after user is loaded
+  }, [setHeaderChatMode]);
+
+  // HeaderAgentSelector 用の Agent リスト（API から取得）
+  const [headerAgentList, setHeaderAgentList] = useState<AgentListItem[]>([]);
+  useEffect(() => {
+    if (!agentMode) return;
+    fetch(`/api/bedrock/agents/list?region=${regionStore.selectedRegion}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && d.agents) {
+          setHeaderAgentList(
+            d.agents.map((a: any) => ({
+              agentId: a.agentId,
+              agentName: a.agentName || a.agentId,
+              status: a.status === 'PREPARED' ? 'PREPARED' : a.status === 'FAILED' ? 'FAILED' : 'NOT_PREPARED',
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, [agentMode, regionStore.selectedRegion]);
+
+  // ModelIndicator 用のモデルリスト
+  const [headerModelList, setHeaderModelList] = useState<Array<{ modelId: string; modelName: string }>>([]);
+  useEffect(() => {
+    fetch('/api/bedrock/region-info')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && d.data?.availableModels) {
+          setHeaderModelList(
+            d.data.availableModels.map((m: any) => ({
+              modelId: m.modelId,
+              modelName: m.modelName || m.modelId,
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, [regionStore.selectedRegion]);
+
+  // OverflowMenu 用のアイテム（sm 未満で表示される項目）
+  const headerOverflowItems: OverflowMenuItem[] = useMemo(() => [
+    {
+      id: 'language',
+      label: t('common.language') ?? 'Language',
+      onClick: () => {
+        // LanguageSwitcher はドロップダウンなので、OverflowMenu 内では簡易的にトグル
+        // 実際の言語切替は LanguageSwitcher コンポーネントが担当
+      },
+    },
+    {
+      id: 'theme',
+      label: themeStore.effectiveTheme === 'dark' ? 'Light Mode' : 'Dark Mode',
+      onClick: () => {
+        themeStore.setTheme(themeStore.effectiveTheme === 'dark' ? 'light' : 'dark');
+      },
+    },
+    {
+      id: 'agent-directory',
+      label: t('agentDirectory.nav.agents'),
+      onClick: () => {
+        router.push(`/${memoizedLocale}/genai/agents`);
+      },
+    },
+  ], [t, themeStore, router, memoizedLocale]);
+
+  // === End Task 8.1 header state ===
 
   // ✅ v5: Early return check AFTER handleSignOut is defined
   if (!isClient || !user) {
@@ -1740,16 +1823,53 @@ function ChatbotPageContent() {
 
   return (
     <div className="h-screen bg-white dark:bg-gray-900 flex overflow-hidden">
-      {/* サイドバー（モードに応じて切替） */}
-      <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 overflow-hidden bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0`}>
+      {/* Task 9.3: md 未満時のバックドロップ — クリックでサイドバーを閉じる */}
+      {isBelowMd && sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* サイドバー（モードに応じて切替） — Task 9.2: 折りたたみアニメーション + aria-hidden, Task 9.3: レスポンシブオーバーレイ */}
+      <div
+        className={`
+          ${isBelowMd
+            ? `fixed top-0 left-0 h-full z-50 ${sidebarOpen ? 'w-80' : 'w-0'}`
+            : `${sidebarOpen ? 'w-80' : 'w-0'} flex-shrink-0`
+          }
+          transition-all duration-300 ease-in-out overflow-hidden bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
+        `}
+        aria-hidden={!sidebarOpen}
+      >
         {agentMode ? (
           /* Agentモードサイドバー */
           <AgentModeSidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            onNewChat={() => {
+              if (!user) return;
+              const sessionTitle = memoizedLocale === 'en'
+                ? `New Chat - ${new Date().toLocaleDateString('en-US')}`
+                : `新しいチャット - ${new Date().toLocaleDateString('ja-JP')}`;
+              setCurrentSession({
+                id: `session-${Date.now()}`,
+                title: sessionTitle,
+                messages: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+            }}
             selectedModelId={selectedModelId}
             onModelChange={setSelectedModelId}
             onCreateAgent={() => {
               window.dispatchEvent(new CustomEvent('open-agent-creation-wizard'));
             }}
+            userName={user?.username}
+            userEmail={user?.email || user?.username}
+            userRole={user?.role}
+            userDirectories={userDirectories}
             locale={memoizedLocale}
           />
         ) : (
@@ -1864,6 +1984,11 @@ function ChatbotPageContent() {
                   </div>
                   <div className="text-xs text-gray-600">
                     <div>📁 {translations.directories.replace('{count}', userDirectories.accessibleDirectories.length.toString())}</div>
+                    {userDirectories.accessibleDirectories.length > 0 && (
+                      <div className="mt-1 ml-4 text-gray-500 dark:text-gray-500">
+                        {userDirectories.accessibleDirectories.join(', ')}
+                      </div>
+                    )}
                     <div className="flex items-center space-x-2 mt-1">
                       <span className={userDirectories.permissions.read ? 'text-green-600' : 'text-red-600'}>
                         {userDirectories.permissions.read ? '✅' : '❌'} {translations.read}
@@ -1926,21 +2051,6 @@ function ChatbotPageContent() {
               <RegionSelector />
             </div>
 
-            {/* 動作モード情報セクション（読み取り専用） */}
-            <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <div className="text-xs text-gray-600 dark:text-gray-400">
-                <div className="font-medium mb-2 text-gray-700 dark:text-gray-300">
-                  {translations.operationMode}: {agentMode ? '🤖 ' + t('agentDirectory.nav.cards') : '📚 ' + t('chat.knowledgeBaseMode')}
-                </div>
-                <div className="space-y-1 text-blue-700 dark:text-blue-400">
-                  <div className="font-medium">{translations.kbFeatures}</div>
-                  <div>{translations.kbFeature1}</div>
-                  <div>{translations.kbFeature2}</div>
-                  <div>{translations.kbFeature3}</div>
-                </div>
-              </div>
-            </div>
-
             {/* AIモデル選択セクション */}
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
               {/* ✅ Task 2 Fix: Agent mode時も通常のModelSelectorを使用 */}
@@ -1979,108 +2089,78 @@ function ChatbotPageContent() {
         )}
       </div>
 
-      {/* メインコンテンツ */}
-      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
-        {/* ヘッダー */}
+      {/* メインコンテンツ — Task 9.3: Chat_Area 最低幅 320px */}
+      <div className="flex-1 flex flex-col min-w-[320px] transition-all duration-300">
+        {/* ヘッダー — Flexbox左右グループレイアウト (Task 8.1) */}
         <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 flex-shrink-0">
           <div className="px-3 sm:px-4 lg:px-6">
-            <div className="flex justify-between items-center h-14">
-              <div className="flex items-center">
+            <div className="flex items-center h-14 gap-3">
+              {/* 左グループ: flex-1 で残りスペースを吸収、Agent_Selector の幅変動を吸収 */}
+              <div className="flex flex-1 min-w-0 items-center gap-2">
+                {/* サイドバートグル */}
                 <button
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 mr-2 transition-colors"
+                  onClick={toggleSidebar}
+                  aria-label={sidebarOpen ? translations.sidebarToggleClose : translations.sidebarToggleOpen}
+                  className="p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex-shrink-0 transition-colors"
                   title={sidebarOpen ? translations.sidebarToggleClose : translations.sidebarToggleOpen}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-                <div className="flex items-center space-x-3">
-                  <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{translations.title}</h1>
-                  
-                  {/* KB/Agent モード切替トグル */}
-                  <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
-                    <button
-                      onClick={() => {
-                        setAgentMode(false);
-                        const url = new URL(window.location.href);
-                        url.searchParams.delete('mode');
-                        window.history.replaceState({}, '', url.toString());
-                      }}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                        !agentMode
-                          ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                      }`}
-                    >
-                      📚 KB
-                    </button>
-                    <button
-                      onClick={() => {
-                        setAgentMode(true);
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('mode', 'agent');
-                        window.history.replaceState({}, '', url.toString());
-                      }}
-                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                        agentMode
-                          ? 'bg-white dark:bg-gray-600 text-purple-600 dark:text-purple-400 shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                      }`}
-                    >
-                      🤖 Agent
-                    </button>
-                  </div>
-                  
-                  {/* Agent Directory リンク */}
-                  <Link
-                    href={`/${memoizedLocale}/genai/agents`}
-                    className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-gray-200 dark:border-gray-600"
-                  >
-                    📋 {t('agentDirectory.nav.agents')}
-                  </Link>
 
-                  {/* Multi-Agent Mode Toggle (Single/Multi) */}
-                  {agentMode && (
-                    <MultiAgentModeToggleWrapper />
-                  )}
-                  
-                  <div className="flex items-center space-x-2">
-                    {saveHistory && (
-                      <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-                        {translations.historySaving}
-                      </span>
-                    )}
-                    <span className="px-2 py-1 text-sm bg-blue-100 text-blue-900 rounded-full font-medium">
-                      {selectedModelName}
-                    </span>
-                  </div>
-                </div>
+                {/* アプリタイトル */}
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate flex-shrink-0">{translations.title}</h1>
+
+                {/* UnifiedModeToggle (KB / Single Agent / Multi Agent) */}
+                <UnifiedModeToggle
+                  mode={headerChatMode}
+                  onModeChange={handleHeaderModeChange}
+                  multiAgentAvailable={headerMultiAgentAvailable}
+                />
+
+                {/* HeaderAgentSelector — Agent モード時のみ表示 */}
+                {agentMode && (() => {
+                  // Multi Agent: Supervisor/Team のみ表示、Single Agent: Supervisor以外を表示
+                  const teams = useAgentTeamStore.getState().teams;
+                  const supervisorIds = new Set(teams.map((t: any) => t.supervisorAgentId).filter(Boolean));
+                  const filteredAgents = headerChatMode === 'multi-agent'
+                    ? headerAgentList.filter((a) => supervisorIds.has(a.agentId))
+                    : headerAgentList.filter((a) => !supervisorIds.has(a.agentId));
+                  return (
+                    <HeaderAgentSelector
+                      selectedAgentId={selectedAgentId}
+                      onAgentChange={(agentId) => {
+                        useAgentStore.getState().setSelectedAgentId(agentId);
+                      }}
+                      agents={filteredAgents}
+                      locale={memoizedLocale}
+                    />
+                  );
+                })()}
               </div>
-              <div className="flex items-center space-x-3">
-                {/* 言語切り替え */}
-                <LanguageSwitcher currentLocale={memoizedLocale} variant="dropdown" />
-                
-                {/* モード表示 */}
-                <span className={`flex items-center space-x-1 px-3 py-1.5 text-sm font-medium rounded-lg ${
-                  agentMode
-                    ? 'text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30'
-                    : 'text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30'
-                }`}>
-                  <span>{agentMode ? '🤖' : '📚'}</span>
-                  <span>{agentMode ? t('agentDirectory.nav.cards') : t('chat.knowledgeBaseMode')}</span>
-                </span>
-                
-                <ThemeToggle variant="icon" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {t('auth.welcomeMessage', { username: user?.username })}
-                </span>
-                <button
-                  ref={signOutButtonRef}
-                  className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                >
-                  {translations.signOutButton}
-                </button>
+
+              {/* 右グループ: flex-shrink-0 で固定幅、モード切替に関わらず位置安定 */}
+              <div className="flex flex-shrink-0 items-center gap-2">
+                {/* 言語切り替え (sm以上で表示、sm未満はOverflowMenuへ) */}
+                <div className="hidden sm:block">
+                  <LanguageSwitcher currentLocale={memoizedLocale} variant="dropdown" />
+                </div>
+
+                {/* テーマ切替 (sm以上で表示、sm未満はOverflowMenuへ) */}
+                <div className="hidden sm:block">
+                  <ThemeToggle variant="icon" />
+                </div>
+
+                {/* UserMenu */}
+                <UserMenu
+                  username={user?.username ?? ''}
+                  locale={memoizedLocale}
+                  onSignOut={handleSignOut}
+                />
+
+                {/* OverflowMenu (sm未満で表示) */}
+                <OverflowMenu items={headerOverflowItems} />
               </div>
             </div>
           </div>

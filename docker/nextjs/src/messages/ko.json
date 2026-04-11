@@ -239,7 +239,7 @@
     "write": "쓰기",
     "available": "사용 가능",
     "unavailable": "사용 불가",
-    "directories": "디렉토리"
+    "directories": "{count}개의 디렉토리에 접근 가능"
   },
   "region": {
     "availableModels": "사용 가능한 모델",
@@ -789,5 +789,34 @@
     "accessPublic": "전체 접근 가능",
     "accessConfidential": "관리자 전용",
     "accessRestricted": "특정 그룹"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "싱글 에이전트",
+    "multiAgent": "멀티 에이전트",
+    "label": "채팅 모드"
+  },
+  "agentSelector": {
+    "placeholder": "에이전트 선택",
+    "label": "에이전트 선택기",
+    "noAgents": "사용 가능한 에이전트 없음"
+  },
+  "overflowMenu": {
+    "label": "더 보기"
+  },
+  "userMenu": {
+    "agentDirectory": "에이전트 디렉토리",
+    "signOut": "로그아웃"
+  },
+  "modelIndicator": {
+    "label": "모델 선택기",
+    "fallbackNotice": "모델 변경: {previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "템플릿 갤러리",
+    "description": "사전 구성된 팀 템플릿에서 선택:",
+    "customBuild": "처음부터 구성",
+    "addButton": "+ 추가",
+    "createButton": "+ 생성"
   }
 }

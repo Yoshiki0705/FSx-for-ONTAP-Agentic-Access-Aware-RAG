@@ -11,8 +11,8 @@
   "dependencies": {
     "@aws-sdk/client-bedrock": "^3.930.0",
     "@aws-sdk/client-bedrock-agent": "^3.930.0",
-    "@aws-sdk/client-bedrock-agentcore": "^3.930.0",
     "@aws-sdk/client-bedrock-agent-runtime": "^3.930.0",
+    "@aws-sdk/client-bedrock-agentcore": "^3.930.0",
     "@aws-sdk/client-bedrock-runtime": "^3.930.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.930.0",
     "@aws-sdk/client-dynamodb": "^3.930.0",
@@ -57,6 +57,9 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/js-cookie": "^3.0.6",
     "@types/lodash": "^4.17.12",
     "@types/lodash-es": "^4.17.12",

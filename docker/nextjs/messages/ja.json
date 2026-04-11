@@ -39,7 +39,7 @@
     "read": "読み取り",
     "write": "書き込み",
     "available": "利用可能",
-    "directories": "ディレクトリ"
+    "directories": "{count}個のディレクトリにアクセス可能"
   },
   "agent": {
     "information": "ワークフロー情報",
@@ -572,7 +572,11 @@
     "connected": "接続済み",
     "noKBConnected": "Knowledge Baseが接続されていません",
     "dataSources": "データソース",
-    "status": { "ACTIVE": "アクティブ", "CREATING": "作成中", "FAILED": "失敗" },
+    "status": {
+      "ACTIVE": "アクティブ",
+      "CREATING": "作成中",
+      "FAILED": "失敗"
+    },
     "loadError": "KB一覧の取得に失敗しました",
     "retry": "再試行"
   },
@@ -609,5 +613,34 @@
     "modelUsed": "使用モデル",
     "autoRouted": "Auto",
     "manualOverride": "Manual"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "シングルAgent",
+    "multiAgent": "マルチAgent",
+    "label": "チャットモード"
+  },
+  "agentSelector": {
+    "placeholder": "Agent選択",
+    "label": "Agent選択",
+    "noAgents": "利用可能なAgentがありません"
+  },
+  "overflowMenu": {
+    "label": "その他のオプション"
+  },
+  "userMenu": {
+    "agentDirectory": "Agent Directory",
+    "signOut": "サインアウト"
+  },
+  "modelIndicator": {
+    "label": "モデル選択",
+    "fallbackNotice": "モデル変更: {previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "テンプレートギャラリー",
+    "description": "事前構成済み Team テンプレートから選択:",
+    "customBuild": "ゼロから構成",
+    "addButton": "+ 追加",
+    "createButton": "+ 作成"
   }
 }

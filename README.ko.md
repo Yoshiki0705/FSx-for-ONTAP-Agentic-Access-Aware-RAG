@@ -84,7 +84,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 ### KB 모드 — 카드 그리드 (초기 상태)
 
-채팅 영역의 초기 상태는 14개의 목적별 카드(8개 리서치 + 6개 출력)를 그리드 레이아웃으로 표시합니다. 카테고리 필터, 즐겨찾기 기능, InfoBanner(권한 정보)를 제공합니다.
+헤더에 통합 3모드 토글(KB / Single Agent / Multi Agent)이 배치됩니다. 사이드바에는 사용자 정보, 접근 권한(디렉토리 이름, 읽기/쓰기 권한), 채팅 이력 설정, 시스템 관리(리전, 모델 선택, Smart Routing, 권한 제어)가 표시됩니다. 채팅 영역에는 목적별 카드 14개가 그리드 레이아웃으로 표시됩니다.
 
 ![KB Mode Card Grid](docs/screenshots/multilingual-ko-verified.png)
 
@@ -239,6 +239,33 @@ aws cognito-idp list-user-pools --max-results 10 --region ap-northeast-1
 ```
 
 > **권장**: 프로덕션 환경이나 팀 공유 환경에서는 전용 AWS 계정 또는 샌드박스 환경에서 배포하는 것을 강력히 권장합니다.
+
+#### v3.5.0 UI/UX 최적화 업그레이드 참고사항
+
+v3.5.0에는 헤더 UI, 사이드바 구조, 모드 전환 로직에 대한 주요 변경 사항이 포함되어 있습니다. 기존 환경에서 업그레이드할 때 다음을 확인하세요:
+
+| 변경 사항 | 영향 | 확인 방법 |
+|-----------|------|----------|
+| 통합 3모드 토글 (KB / 단일 Agent / 멀티 Agent) | 기존 2단계 토글 (KB/Agent + 단일/멀티)이 하나로 통합. URL 쿼리 파라미터 (`?mode=agent`, `?mode=multi-agent`)는 호환성 유지 | 브라우저에서 모드 전환이 오류 없이 작동하는지 확인 |
+| 헤더에서 ModelIndicator 제거 | 모델 선택이 사이드바 시스템 설정으로 통합. 헤더에서 모델 변경 불가 | 사이드바 시스템 설정에서 모델 변경이 가능한지 확인 |
+| Agent 선택 드롭다운이 헤더로 승격 | Agent 디렉토리 링크가 사용자 메뉴에서 Agent 선택 드롭다운으로 이동 | Agent 모드에서 "Agent 선택" 드롭다운으로 Agent 디렉토리에 접근 가능한지 확인 |
+| Agent 사이드바에 접근 권한 섹션 추가 | Agent 모드 사이드바에 디렉토리 이름 및 읽기/쓰기 권한 표시 | Agent 모드 사이드바에 접근 권한이 표시되는지 확인 |
+| CDK AI 스택: SupervisorAgent `agentCollaboration` | `DISABLED`에서 `SUPERVISOR_ROUTER`로 변경. 이미 협력자가 연결된 환경에서 필수 | `cdk diff perm-rag-demo-demo-AI`를 실행하여 확인 |
+
+**업그레이드 단계:**
+```bash
+# 1. 차이점 확인
+cdk diff perm-rag-demo-demo-WebApp
+cdk diff perm-rag-demo-demo-AI
+
+# 2. WebApp 배포 (Docker 이미지 업데이트)
+./development/scripts/deploy-webapp.sh
+
+# 3. 브라우저 확인
+# - KB → 단일 Agent → 멀티 Agent 전환이 오류 없이 작동
+# - Agent 선택 드롭다운에 Agent 목록 표시
+# - 사이드바에 접근 권한 표시
+```
 
 ### 1단계: 환경 설정
 
@@ -1874,11 +1901,11 @@ graph TB
 
 ### UI 스크린샷
 
-#### Agent 모드 — Single/Multi 전환 토글
+#### 통합 3모드 토글 — KB / Single Agent / Multi Agent
 
-Agent 모드 헤더에 Single/Multi 전환 토글이 표시됩니다. Team 구성이 사용 가능한 경우 Multi 모드가 활성화됩니다.
+헤더에 통합 3모드 토글이 배치됩니다. KB(파란색), Single Agent(보라색), Multi Agent(보라색)를 원클릭으로 전환할 수 있습니다. Agent 선택 드롭다운은 Agent 모드에서만 표시되며, Single 모드에서는 개별 Agent가, Multi 모드에서는 Supervisor Agent만 표시됩니다.
 
-![Single/Multi 전환 토글](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+![통합 3모드 토글](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
 
 #### Agent Directory — Teams 탭 + 템플릿 갤러리
 

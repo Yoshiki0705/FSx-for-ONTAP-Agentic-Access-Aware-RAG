@@ -282,7 +282,7 @@
     "granted": "已授权",
     "restricted": "受限",
     "unavailable": "不可用",
-    "directories": "目录"
+    "directories": "{count}个目录可访问"
   },
   "region": {
     "availableModels": "可用模型",
@@ -856,5 +856,34 @@
     "accessPublic": "所有人可访问",
     "accessConfidential": "仅管理员",
     "accessRestricted": "特定群组"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "单一代理",
+    "multiAgent": "多代理",
+    "label": "聊天模式"
+  },
+  "agentSelector": {
+    "placeholder": "选择代理",
+    "label": "代理选择器",
+    "noAgents": "没有可用的代理"
+  },
+  "overflowMenu": {
+    "label": "更多选项"
+  },
+  "userMenu": {
+    "agentDirectory": "代理目录",
+    "signOut": "退出登录"
+  },
+  "modelIndicator": {
+    "label": "模型选择器",
+    "fallbackNotice": "模型已更改：{previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "模板库",
+    "description": "从预配置的团队模板中选择：",
+    "customBuild": "从零开始构建",
+    "addButton": "+ 添加",
+    "createButton": "+ 创建"
   }
 }

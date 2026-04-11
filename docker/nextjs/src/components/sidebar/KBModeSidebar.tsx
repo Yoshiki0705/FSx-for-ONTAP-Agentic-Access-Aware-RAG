@@ -59,7 +59,6 @@ interface KBModeSidebarProps {
  * - FSxディレクトリ情報（アクセス権限）
  * - Bedrockt("region.region")選択
  * - チャット履歴設定
- * - 動作モード情報
  * - AIモデル選択（通常のModelSelector）
  * - 権限制御状態
  */
@@ -269,21 +268,6 @@ export function KBModeSidebar({
               {saveHistory && <span className="text-green-600 dark:text-green-400">✓</span>}
             </div>
           </button>
-        </div>
-
-        {/* 動作モード情報セクション（読み取り専用） */}
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <div className="text-xs text-gray-600 dark:text-gray-400">
-            <div className="font-medium mb-2 text-gray-700 dark:text-gray-300">
-              {t('sidebar.operationMode')}: 📚 {t('chat.knowledgeBaseMode')}
-            </div>
-            <div className="space-y-1 text-blue-700 dark:text-blue-400">
-              <div className="font-medium">{t('sidebar.kbFeatures')}:</div>
-              <div>{t('chat.kbFeature1')}</div>
-              <div>{t('chat.kbFeature2')}</div>
-              <div>{t('chat.kbFeature3')}</div>
-            </div>
-          </div>
         </div>
 
         {/* AIモデル選択セクション */}

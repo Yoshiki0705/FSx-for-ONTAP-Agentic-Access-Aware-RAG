@@ -239,7 +239,7 @@
     "write": "寫入",
     "available": "可用",
     "unavailable": "不可用",
-    "directories": "目錄"
+    "directories": "{count}個目錄可存取"
   },
   "region": {
     "availableModels": "可用模型",
@@ -789,5 +789,34 @@
     "accessPublic": "所有人可存取",
     "accessConfidential": "僅管理員",
     "accessRestricted": "特定群組"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "單一代理",
+    "multiAgent": "多代理",
+    "label": "聊天模式"
+  },
+  "agentSelector": {
+    "placeholder": "選擇代理",
+    "label": "代理選擇器",
+    "noAgents": "沒有可用的代理"
+  },
+  "overflowMenu": {
+    "label": "更多選項"
+  },
+  "userMenu": {
+    "agentDirectory": "代理目錄",
+    "signOut": "登出"
+  },
+  "modelIndicator": {
+    "label": "模型選擇器",
+    "fallbackNotice": "模型已變更：{previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "範本庫",
+    "description": "從預配置的團隊範本中選擇：",
+    "customBuild": "從零開始建構",
+    "addButton": "+ 新增",
+    "createButton": "+ 建立"
   }
 }

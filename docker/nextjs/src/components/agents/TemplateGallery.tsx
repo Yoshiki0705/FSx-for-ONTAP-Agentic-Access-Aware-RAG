@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { AgentMetadataBadges } from './AgentMetadataBadges';
 import type {
   AgentTeamTemplate,
@@ -141,15 +142,16 @@ export interface TemplateGalleryProps {
 }
 
 export function TemplateGallery({ onSelectTemplate, additionalTemplates }: TemplateGalleryProps) {
+  const t = useTranslations('templateGallery');
   const allTemplates = [...BUILTIN_TEMPLATES, ...(additionalTemplates ?? [])];
 
   return (
     <div className="mb-8">
       <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-        テンプレートギャラリー
+        {t('title')}
       </h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        事前構成済み Team テンプレートから選択:
+        {t('description')}
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -181,7 +183,7 @@ export function TemplateGallery({ onSelectTemplate, additionalTemplates }: Templ
               {/* Metadata */}
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                 {isCustom ? (
-                  <span>🛠️ ゼロから構成</span>
+                  <span>🛠️ {t('customBuild')}</span>
                 ) : (
                   <span>🤖 {tmpl.collaborators.length} agents · 📊 {tmpl.routingMode}</span>
                 )}
@@ -203,7 +205,7 @@ export function TemplateGallery({ onSelectTemplate, additionalTemplates }: Templ
                 onClick={() => onSelectTemplate(tmpl)}
                 className="w-full px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 mt-auto"
               >
-                {isCustom ? '+ 作成' : '+ 追加'}
+                {isCustom ? t('createButton') : t('addButton')}
               </button>
             </div>
           );

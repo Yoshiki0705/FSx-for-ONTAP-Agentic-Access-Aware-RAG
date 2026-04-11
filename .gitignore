@@ -4,6 +4,9 @@
 cdk.context.json
 cdk.context.json.full-backup
 
+# CDK Outputs (contains account-specific stack outputs)
+cdk-outputs.json
+
 # Node.js
 node_modules/
 dist/

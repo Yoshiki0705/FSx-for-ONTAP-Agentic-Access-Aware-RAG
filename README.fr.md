@@ -84,7 +84,7 @@ L'implémentation de ce système est organisée en 14 perspectives. Pour les dé
 
 ### Mode KB — Grille de cartes (État initial)
 
-L'état initial de la zone de chat affiche 14 cartes spécifiques (8 recherche + 6 production) dans une disposition en grille. Comprend des filtres de catégorie, une fonctionnalité de favoris et un InfoBanner (informations de permissions).
+L'en-tête comporte un sélecteur unifié à 3 modes (KB / Single Agent / Multi Agent). La barre latérale affiche les informations utilisateur, les permissions d'accès (noms de répertoire, permissions lecture/écriture), les paramètres d'historique de chat et l'administration système (région, sélection de modèle, Smart Routing, contrôle des permissions). La zone de chat affiche 14 cartes spécifiques dans une disposition en grille.
 
 ![KB Mode Card Grid](docs/screenshots/multilingual-fr-verified.png)
 
@@ -239,6 +239,33 @@ aws cognito-idp list-user-pools --max-results 10 --region ap-northeast-1
 ```
 
 > **Recommandé** : Pour les environnements de production ou partagés d'équipe, nous recommandons fortement de déployer dans un compte AWS dédié ou un environnement sandbox.
+
+#### Notes de mise à niveau v3.5.0 – Optimisation UI/UX
+
+v3.5.0 inclut des modifications majeures de l'interface du header, de la structure de la barre latérale et de la logique de changement de mode. Lors de la mise à niveau d'un environnement existant, vérifiez les points suivants :
+
+| Modification | Impact | Vérification |
+|-------------|--------|-------------|
+| Sélecteur unifié à 3 modes (KB / Agent unique / Multi-Agent) | L'ancien sélecteur en 2 étapes (KB/Agent + Unique/Multi) fusionné en un seul. Les paramètres d'URL (`?mode=agent`, `?mode=multi-agent`) restent compatibles | Vérifiez que le changement de mode fonctionne sans erreur dans le navigateur |
+| ModelIndicator supprimé du header | La sélection du modèle est consolidée dans les Paramètres système de la barre latérale. Plus de changement de modèle depuis le header | Vérifiez que le changement de modèle fonctionne depuis les Paramètres système de la barre latérale |
+| Menu déroulant de sélection d'Agent promu dans le header | Le lien du Répertoire d'Agents déplacé du menu utilisateur vers le menu déroulant de sélection d'Agent | Vérifiez que le Répertoire d'Agents est accessible depuis le menu déroulant « Sélection d'Agent » en mode Agent |
+| Section des permissions d'accès ajoutée à la barre latérale Agent | La barre latérale du mode Agent affiche désormais les noms de répertoires et les permissions lecture/écriture | Vérifiez que les permissions d'accès apparaissent dans la barre latérale du mode Agent |
+| CDK AI Stack : SupervisorAgent `agentCollaboration` | Modifié de `DISABLED` à `SUPERVISOR_ROUTER`. Requis lorsque des collaborateurs sont déjà associés | Exécutez `cdk diff perm-rag-demo-demo-AI` pour vérifier |
+
+**Étapes de mise à niveau :**
+```bash
+# 1. Vérifier les différences
+cdk diff perm-rag-demo-demo-WebApp
+cdk diff perm-rag-demo-demo-AI
+
+# 2. Déployer WebApp (mise à jour de l'image Docker)
+./development/scripts/deploy-webapp.sh
+
+# 3. Vérification dans le navigateur
+# - Le changement KB → Agent unique → Multi-Agent fonctionne sans erreur
+# - Le menu déroulant de sélection d'Agent affiche la liste des agents
+# - La barre latérale affiche les permissions d'accès
+```
 
 ### Étape 1 : Configuration de l'environnement
 
@@ -1419,11 +1446,11 @@ graph TB
 
 ### Captures d'Écran de l'UI
 
-#### Mode Agent — Bascule Single/Multi
+#### Sélecteur Unifié à 3 Modes — KB / Single Agent / Multi Agent
 
-L'en-tête du mode Agent affiche une bascule Single/Multi. Le mode Multi est activé lorsqu'une configuration Team est disponible.
+L'en-tête comporte un sélecteur unifié à 3 modes. KB (bleu), Single Agent (violet) et Multi Agent (violet) peuvent être basculés en un clic. Le menu déroulant de sélection d'Agent n'apparaît que dans les modes Agent — le mode Single affiche les agents individuels, le mode Multi affiche uniquement les Supervisor Agents.
 
-![Bascule Single/Multi](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+![Sélecteur Unifié à 3 Modes](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
 
 #### Agent Directory — Onglet Teams + Galerie de Modèles
 

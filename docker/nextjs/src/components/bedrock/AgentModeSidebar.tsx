@@ -18,6 +18,14 @@ interface AgentModeSidebarProps {
   onModelChange: (modelId: string) => void;
   onCreateAgent: () => void;
   locale: string;
+  // UI/UX最適化: Task 8.1で追加されたprops（互換性のためオプション）
+  isOpen?: boolean;
+  onClose?: () => void;
+  onNewChat?: () => void;
+  userName?: string;
+  userEmail?: string;
+  userRole?: string;
+  userDirectories?: any;
 }
 
 export function AgentModeSidebar({
@@ -25,9 +33,12 @@ export function AgentModeSidebar({
   onModelChange,
   onCreateAgent: _onCreateAgent,
   locale,
+  userRole,
+  userDirectories,
 }: AgentModeSidebarProps) {
   const t = useCustomTranslations(locale);
   const tSidebar = useTranslations('sidebar');
+  const tPermissions = useTranslations('permissions');
   const { config } = useBedrockConfig();
   const { selectedAgentId } = useAgentStore();
   const { saveHistory, setSaveHistory } = useChatStore();
@@ -77,6 +88,33 @@ export function AgentModeSidebar({
           </div>
         )}
       </div>
+
+      {/* アクセス権限セクション */}
+      {userDirectories && (
+        <div className="px-4 pb-3">
+          <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{tSidebar('accessPermissions')}</h3>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-3 text-xs space-y-2">
+            {userDirectories.accessibleDirectories && (
+              <div className="text-gray-600 dark:text-gray-400">
+                <div>📁 {tPermissions('directories', { count: userDirectories.accessibleDirectories.length })}</div>
+                {userDirectories.accessibleDirectories.length > 0 && (
+                  <div className="mt-1 ml-4 text-gray-500 dark:text-gray-500">
+                    {userDirectories.accessibleDirectories.join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex items-center space-x-3 mt-1">
+              <span className={userDirectories.permissions?.read ? 'text-green-600' : 'text-red-600'}>
+                {userDirectories.permissions?.read ? '✅' : '❌'} {tPermissions('read')}
+              </span>
+              <span className={userDirectories.permissions?.write ? 'text-green-600' : 'text-red-600'}>
+                {userDirectories.permissions?.write ? '✅' : '❌'} {tPermissions('write')}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* チャット履歴設定（独立セクション） */}
       <div className="px-4 pb-3">

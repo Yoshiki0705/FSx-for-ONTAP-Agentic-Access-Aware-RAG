@@ -239,7 +239,7 @@
     "write": "寫入",
     "available": "可用",
     "unavailable": "不可用",
-    "directories": "目錄"
+    "directories": "{count}個目錄可存取"
   },
   "region": {
     "availableModels": "可用模型",
@@ -725,7 +725,11 @@
     "connected": "已連接",
     "noKBConnected": "未連接知識庫",
     "dataSources": "資料來源",
-    "status": { "ACTIVE": "活躍", "CREATING": "建立中", "FAILED": "失敗" },
+    "status": {
+      "ACTIVE": "活躍",
+      "CREATING": "建立中",
+      "FAILED": "失敗"
+    },
     "loadError": "取得知識庫清單失敗",
     "retry": "重試"
   },
@@ -762,5 +766,34 @@
     "modelUsed": "使用模型",
     "autoRouted": "Auto",
     "manualOverride": "Manual"
+  },
+  "modeToggle": {
+    "kb": "KB",
+    "singleAgent": "單一代理",
+    "multiAgent": "多代理",
+    "label": "聊天模式"
+  },
+  "agentSelector": {
+    "placeholder": "選擇代理",
+    "label": "代理選擇器",
+    "noAgents": "沒有可用的代理"
+  },
+  "overflowMenu": {
+    "label": "更多選項"
+  },
+  "userMenu": {
+    "agentDirectory": "代理目錄",
+    "signOut": "登出"
+  },
+  "modelIndicator": {
+    "label": "模型選擇器",
+    "fallbackNotice": "模型已變更：{previous} → {current}"
+  },
+  "templateGallery": {
+    "title": "範本庫",
+    "description": "從預配置的團隊範本中選擇：",
+    "customBuild": "從零開始建構",
+    "addButton": "+ 新增",
+    "createButton": "+ 建立"
   }
 }

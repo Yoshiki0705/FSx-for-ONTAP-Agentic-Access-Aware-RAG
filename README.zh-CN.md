@@ -84,7 +84,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 ### KB 模式 — 卡片网格（初始状态）
 
-聊天区域的初始状态以网格布局显示 14 张用途特定的卡片（8 张研究 + 6 张输出）。具有分类过滤器、收藏功能和 InfoBanner（权限信息）。
+标题栏配备统一的 3 模式切换开关（KB / Single Agent / Multi Agent）。侧边栏显示用户信息、访问权限（目录名称、读/写权限）、聊天历史设置和系统管理（区域、模型选择、Smart Routing、权限控制）。聊天区域以网格布局显示 14 张用途特定的卡片。
 
 ![KB Mode Card Grid](docs/screenshots/multilingual-zh-CN-verified.png)
 
@@ -239,6 +239,33 @@ aws cognito-idp list-user-pools --max-results 10 --region ap-northeast-1
 ```
 
 > **建议**：对于生产环境或团队共享环境，强烈建议在专用 AWS 账户或沙箱环境中部署。
+
+#### v3.5.0 UI/UX 优化升级说明
+
+v3.5.0 包含对头部 UI、侧边栏结构和模式切换逻辑的重大更改。从现有环境升级时，请验证以下内容：
+
+| 变更 | 影响 | 验证方法 |
+|------|------|---------|
+| 统一的 3 模式切换（KB / 单 Agent / 多 Agent） | 原有的 2 步切换（KB/Agent + 单/多）合并为一个。URL 查询参数（`?mode=agent`、`?mode=multi-agent`）保持兼容 | 在浏览器中验证模式切换是否正常工作 |
+| 从头部移除 ModelIndicator | 模型选择整合到侧边栏系统设置中。无法从头部更改模型 | 验证是否可以从侧边栏系统设置更改模型 |
+| Agent 选择下拉菜单提升至头部 | Agent 目录链接从用户菜单移至 Agent 选择下拉菜单 | 在 Agent 模式下验证是否可以从"Agent 选择"下拉菜单访问 Agent 目录 |
+| Agent 侧边栏添加访问权限部分 | Agent 模式侧边栏现在显示目录名称和读/写权限 | 验证 Agent 模式侧边栏中是否显示访问权限 |
+| CDK AI 堆栈：SupervisorAgent `agentCollaboration` | 从 `DISABLED` 更改为 `SUPERVISOR_ROUTER`。当已关联协作者时为必需 | 运行 `cdk diff perm-rag-demo-demo-AI` 进行验证 |
+
+**升级步骤：**
+```bash
+# 1. 检查差异
+cdk diff perm-rag-demo-demo-WebApp
+cdk diff perm-rag-demo-demo-AI
+
+# 2. 部署 WebApp（Docker 镜像更新）
+./development/scripts/deploy-webapp.sh
+
+# 3. 浏览器验证
+# - KB → 单 Agent → 多 Agent 切换正常无错误
+# - Agent 选择下拉菜单显示 Agent 列表
+# - 侧边栏显示访问权限
+```
 
 ### 步骤 1：环境设置
 
@@ -1876,11 +1903,11 @@ graph TB
 
 ### UI 截图
 
-#### Agent 模式 — Single/Multi 切换开关
+#### 统一 3 模式切换 — KB / Single Agent / Multi Agent
 
-Agent 模式标题栏显示 Single/Multi 切换开关。当 Team 配置可用时，Multi 模式将被启用。
+标题栏配备统一的 3 模式切换开关。KB（蓝色）、Single Agent（紫色）和 Multi Agent（紫色）可一键切换。Agent 选择下拉菜单仅在 Agent 模式下显示——Single 模式显示单个 Agent，Multi 模式仅显示 Supervisor Agent。
 
-![Single/Multi 切换开关](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+![统一 3 模式切换](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
 
 #### Agent Directory — Teams 标签页 + 模板库
 

@@ -84,7 +84,7 @@ La implementación de este sistema está organizada en 14 perspectivas. Para det
 
 ### Modo KB — Cuadrícula de tarjetas (Estado inicial)
 
-El estado inicial del área de chat muestra 14 tarjetas de propósito específico (8 de investigación + 6 de producción) en un diseño de cuadrícula. Incluye filtros de categoría, funcionalidad de favoritos e InfoBanner (información de permisos).
+El encabezado presenta un alternador unificado de 3 modos (KB / Single Agent / Multi Agent). La barra lateral muestra información del usuario, permisos de acceso (nombres de directorio, permisos de lectura/escritura), configuración del historial de chat y administración del sistema (región, selección de modelo, Smart Routing, control de permisos). El área de chat muestra 14 tarjetas de propósito específico en un diseño de cuadrícula.
 
 ![KB Mode Card Grid](docs/screenshots/multilingual-es-verified.png)
 
@@ -239,6 +239,33 @@ aws cognito-idp list-user-pools --max-results 10 --region ap-northeast-1
 ```
 
 > **Recomendado**: Para entornos de producción o compartidos de equipo, recomendamos encarecidamente desplegar en una cuenta AWS dedicada o un entorno sandbox.
+
+#### Notas de actualización de optimización UI/UX v3.5.0
+
+v3.5.0 incluye cambios importantes en la UI del encabezado, la estructura de la barra lateral y la lógica de cambio de modo. Al actualizar desde un entorno existente, verifique lo siguiente:
+
+| Cambio | Impacto | Verificación |
+|--------|---------|-------------|
+| Selector unificado de 3 modos (KB / Agente único / Multi-Agente) | El selector de 2 pasos anterior (KB/Agente + Único/Multi) se fusionó en uno. Los parámetros de consulta URL (`?mode=agent`, `?mode=multi-agent`) siguen siendo compatibles | Verifique que el cambio de modo funcione sin errores en el navegador |
+| ModelIndicator eliminado del encabezado | La selección de modelo se consolidó en la Configuración del sistema de la barra lateral. No se puede cambiar el modelo desde el encabezado | Verifique que el cambio de modelo funcione desde la Configuración del sistema de la barra lateral |
+| Desplegable de selección de Agente promovido al encabezado | El enlace del Directorio de Agentes se movió del menú de usuario al desplegable de selección de Agente | Verifique que el Directorio de Agentes sea accesible desde el desplegable "Selección de Agente" en modo Agente |
+| Sección de permisos de acceso añadida a la barra lateral de Agente | La barra lateral del modo Agente ahora muestra nombres de directorio y permisos de lectura/escritura | Verifique que los permisos de acceso aparezcan en la barra lateral del modo Agente |
+| CDK AI Stack: SupervisorAgent `agentCollaboration` | Cambiado de `DISABLED` a `SUPERVISOR_ROUTER`. Requerido cuando ya hay colaboradores asociados | Ejecute `cdk diff perm-rag-demo-demo-AI` para verificar |
+
+**Pasos de actualización:**
+```bash
+# 1. Verificar diferencias
+cdk diff perm-rag-demo-demo-WebApp
+cdk diff perm-rag-demo-demo-AI
+
+# 2. Desplegar WebApp (actualización de imagen Docker)
+./development/scripts/deploy-webapp.sh
+
+# 3. Verificación en navegador
+# - El cambio KB → Agente único → Multi-Agente funciona sin errores
+# - El desplegable de selección de Agente muestra la lista de agentes
+# - La barra lateral muestra los permisos de acceso
+```
 
 ### Paso 1: Configuración del entorno
 
@@ -1373,11 +1400,11 @@ graph TB
 
 ### Capturas de Pantalla de la UI
 
-#### Modo Agent — Alternador Single/Multi
+#### Alternador Unificado de 3 Modos — KB / Single Agent / Multi Agent
 
-El encabezado del modo Agent muestra un alternador Single/Multi. El modo Multi se habilita cuando hay una configuración de Team disponible.
+El encabezado presenta un alternador unificado de 3 modos. KB (azul), Single Agent (púrpura) y Multi Agent (púrpura) se pueden cambiar con un clic. El menú desplegable de selección de Agent aparece solo en los modos Agent — el modo Single muestra agentes individuales, el modo Multi muestra solo Supervisor Agents.
 
-![Alternador Single/Multi](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+![Alternador Unificado de 3 Modos](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
 
 #### Agent Directory — Pestaña Teams + Galería de Plantillas
 
