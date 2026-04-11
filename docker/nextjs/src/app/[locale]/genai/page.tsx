@@ -42,6 +42,13 @@ import { RoutingToggle } from '@/components/sidebar/RoutingToggle';
 import { useMemory } from '@/hooks/useMemory';
 import type { Message as MemoryMessage } from '@/providers/MemoryProvider';
 import { useTokenRefresh } from '@/hooks/useTokenRefresh';
+import AgentModeToggle from '@/components/chat/AgentModeToggle';
+import MultiAgentTraceTimeline from '@/components/chat/MultiAgentTraceTimeline';
+import MultiAgentExecutionStatus from '@/components/chat/MultiAgentExecutionStatus';
+import CollaboratorDetailPanel from '@/components/chat/CollaboratorDetailPanel';
+import CostSummary from '@/components/chat/CostSummary';
+import { useAgentTeamStore } from '@/store/useAgentTeamStore';
+import type { MultiAgentTraceResult } from '@/types/multi-agent';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -406,6 +413,56 @@ function MessageContent({ content }: { content: string }) {
     console.error('❌ [MessageContent] Fatal error:', error);
     return <div className="text-red-500">Error rendering message content</div>;
   }
+}
+
+/** Wrapper to use useAgentTeamStore reactively inside the chat header */
+function MultiAgentModeToggleWrapper() {
+  const { agentMode: multiAgentMode, setAgentMode: setMultiAgentMode, teams, setTeams, selectedTeam, setSelectedTeam } = useAgentTeamStore();
+
+  // Fetch teams on mount if not already loaded
+  useEffect(() => {
+    if (teams.length === 0) {
+      fetch('/api/bedrock/agent-team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'list' }),
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && d.teams) {
+            setTeams(d.teams);
+            // 最初のTeamを自動選択（selectedTeam未設定時）
+            if (d.teams.length > 0 && !selectedTeam) {
+              setSelectedTeam(d.teams[0]);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const handleModeChange = useCallback((mode: 'single' | 'multi') => {
+    setMultiAgentMode(mode);
+    // Multiモード切替時にselectedTeamが未設定なら最初のTeamを選択
+    if (mode === 'multi' && !selectedTeam && teams.length > 0) {
+      setSelectedTeam(teams[0]);
+    }
+  }, [setMultiAgentMode, selectedTeam, teams, setSelectedTeam]);
+
+  return (
+    <AgentModeToggle
+      mode={multiAgentMode}
+      onModeChange={handleModeChange}
+      multiAgentAvailable={teams.length > 0}
+    />
+  );
+}
+
+/** Wrapper to reactively render MultiAgentExecutionStatus from Zustand store */
+function MultiAgentExecutionStatusDisplay() {
+  const executionStatus = useAgentTeamStore((s) => s.executionStatus);
+  if (!executionStatus) return null;
+  return <MultiAgentExecutionStatus status={executionStatus} />;
 }
 
 function ChatbotPageContent() {
@@ -1193,7 +1250,20 @@ function ChatbotPageContent() {
   // Bedrock AgentのInvokeAgent APIを直接呼び出し、Agentの多段階推論を活用
   // Permission-awareはAgent側のKB設定またはAction Groupで実現
   // フォールバック: Agent呼び出し失敗時はKB Retrieve + SIDフィルタリング（ハイブリッド方式）
-  const generateAgentResponse = async (query: string): Promise<{ answer: string; citations: CitationItem[] }> => {
+  //
+  // Multi-Agent モード統合:
+  // Zustand storeの agentMode === 'multi' かつ selectedTeam が存在する場合、
+  // /api/bedrock/agent-team/invoke を呼び出し、multiAgentTrace を返す。
+  // それ以外は従来の Single Agent 呼び出し（/api/bedrock/agent）を使用。
+  const generateAgentResponse = async (query: string): Promise<{ answer: string; citations: CitationItem[]; multiAgentTrace?: MultiAgentTraceResult }> => {
+    // Multi-Agent モード判定
+    const { agentMode: multiMode, selectedTeam, setExecutionStatus } = useAgentTeamStore.getState();
+
+    if (multiMode === 'multi' && selectedTeam) {
+      return await generateMultiAgentResponse(query, selectedTeam, setExecutionStatus);
+    }
+
+    // --- Single Agent モード（従来ロジック） ---
     try {
       const currentRegion = typeof window !== 'undefined'
         ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
@@ -1259,6 +1329,111 @@ function ChatbotPageContent() {
       return await generateAgentFallback(query, currentRegion);
     } catch (error) {
       console.error('❌ [Agent] Error, falling back to KB hybrid:', error);
+      const currentRegion = typeof window !== 'undefined'
+        ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
+        : 'ap-northeast-1';
+      return await generateAgentFallback(query, currentRegion);
+    }
+  };
+
+  // Multi-Agent モードのレスポンス生成（/api/bedrock/agent-team/invoke）
+  // Supervisor Agent経由でCollaborator Agentチェーンを実行し、
+  // multiAgentTrace（タイムライン、コスト、Guardrail結果）を返す。
+  const generateMultiAgentResponse = async (
+    query: string,
+    team: import('@/types/multi-agent').AgentTeamConfig,
+    setExecutionStatus: (status: import('@/types/multi-agent').MultiAgentExecutionStatus | null) => void,
+  ): Promise<{ answer: string; citations: CitationItem[]; multiAgentTrace?: MultiAgentTraceResult }> => {
+    try {
+      console.log('🤖 [Multi-Agent] Invoking team:', {
+        teamId: team.teamId,
+        teamName: team.teamName,
+        collaboratorCount: team.collaborators.length,
+        routingMode: team.routingMode,
+        query: query.substring(0, 100),
+      });
+
+      // リアルタイムステータス: 実行開始
+      const collaboratorMap = new Map<string, {
+        role: import('@/types/multi-agent').CollaboratorRole;
+        name: string;
+        status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+        elapsedMs: number;
+      }>();
+      for (const c of team.collaborators) {
+        collaboratorMap.set(c.agentId || c.name, {
+          role: (c.role || 'retrieval') as import('@/types/multi-agent').CollaboratorRole,
+          name: c.name,
+          status: 'pending',
+          elapsedMs: 0,
+        });
+      }
+      setExecutionStatus({
+        isExecuting: true,
+        currentPhase: 'routing',
+        collaboratorStatuses: collaboratorMap,
+        elapsedMs: 0,
+        estimatedCostUsd: 0,
+      });
+
+      const response = await fetch('/api/bedrock/agent-team/invoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teamId: team.teamId,
+          message: query,
+          userId: user.username,
+          sessionId: currentSession?.id || `team-session-${Date.now()}`,
+        }),
+      });
+
+      const data = await response.json();
+
+      // リアルタイムステータス: 実行完了
+      setExecutionStatus(null);
+
+      if (data.success && data.response) {
+        console.log('✅ [Multi-Agent] Invoke success:', {
+          responseLength: data.response.length,
+          hasTrace: !!data.multiAgentTrace,
+          collaboratorCount: data.multiAgentTrace?.collaboratorTraces?.length ?? 0,
+          estimatedCost: data.multiAgentTrace?.estimatedCostUsd,
+        });
+
+        // citationの抽出（multiAgentTraceのcollaboratorTracesから）
+        const agentCitations: CitationItem[] = [];
+        if (data.multiAgentTrace?.collaboratorTraces) {
+          for (const ct of data.multiAgentTrace.collaboratorTraces) {
+            if (ct.citations) {
+              for (const c of ct.citations) {
+                agentCitations.push({
+                  fileName: c.fileName || c.sourceUri?.split('/').pop() || 'Unknown',
+                  s3Uri: c.sourceUri || c.s3Uri || '',
+                  content: c.content || c.text || '',
+                  metadata: c.metadata || {},
+                });
+              }
+            }
+          }
+        }
+
+        return {
+          answer: data.response,
+          citations: agentCitations,
+          multiAgentTrace: data.multiAgentTrace as MultiAgentTraceResult | undefined,
+        };
+      }
+
+      // Multi-Agent呼び出し失敗 → KB Retrieveフォールバック
+      console.warn('⚠️ [Multi-Agent] Invoke failed, falling back to KB hybrid:', data.error);
+      const fallbackRegion = typeof window !== 'undefined'
+        ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
+        : 'ap-northeast-1';
+      return await generateAgentFallback(query, fallbackRegion);
+    } catch (error) {
+      console.error('❌ [Multi-Agent] Error, falling back to single agent:', error);
+      setExecutionStatus(null);
+      // フォールバック: agentMode を一時的にsingleとして再帰呼び出しを避ける
       const currentRegion = typeof window !== 'undefined'
         ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
         : 'ap-northeast-1';
@@ -1382,17 +1557,18 @@ function ChatbotPageContent() {
 
     try {
       // モードに応じてRAG処理またはAgent処理を実行
-      const { answer: responseText, citations } = agentMode
+      const { answer: responseText, citations, multiAgentTrace } = agentMode
         ? await generateAgentResponse(currentInput)
-        : await generateRAGResponse(currentInput, currentImageData, currentImageMimeType, routingDecision);
+        : { ...await generateRAGResponse(currentInput, currentImageData, currentImageMimeType, routingDecision), multiAgentTrace: undefined };
 
       const botMessageId = `bot-${Date.now()}`;
-      const botResponse: Message = {
+      const botResponse: Message & { multiAgentTrace?: MultiAgentTraceResult } = {
         id: botMessageId,
         content: responseText,
         role: 'assistant',
         timestamp: Date.now(),
-        sessionId: currentSession.id
+        sessionId: currentSession.id,
+        ...(multiAgentTrace ? { multiAgentTrace } : {}),
       };
 
       addMessage(botResponse);
@@ -1863,6 +2039,11 @@ function ChatbotPageContent() {
                   >
                     📋 {t('agentDirectory.nav.agents')}
                   </Link>
+
+                  {/* Multi-Agent Mode Toggle (Single/Multi) */}
+                  {agentMode && (
+                    <MultiAgentModeToggleWrapper />
+                  )}
                   
                   <div className="flex items-center space-x-2">
                     {saveHistory && (
@@ -2043,6 +2224,16 @@ function ChatbotPageContent() {
                         locale={memoizedLocale}
                       />
                     )}
+                    {/* Multi-Agent Trace Display (conditionally rendered when trace data present) */}
+                    {message.role === 'assistant' && (message as any).multiAgentTrace && (
+                      <div className="mt-3 space-y-2">
+                        <MultiAgentTraceTimeline trace={(message as any).multiAgentTrace as MultiAgentTraceResult} />
+                        {((message as any).multiAgentTrace as MultiAgentTraceResult).collaboratorTraces.map((ct) => (
+                          <CollaboratorDetailPanel key={ct.collaboratorAgentId} trace={ct} />
+                        ))}
+                        <CostSummary trace={(message as any).multiAgentTrace as MultiAgentTraceResult} />
+                      </div>
+                    )}
                     <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                       }`}>
                       {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('ja-JP') : ''}
@@ -2060,6 +2251,8 @@ function ChatbotPageContent() {
                       {translations.loading}
                     </div>
                   </div>
+                  {/* Multi-Agent リアルタイムステータス表示 */}
+                  <MultiAgentExecutionStatusDisplay />
                 </div>
               </div>
             )}

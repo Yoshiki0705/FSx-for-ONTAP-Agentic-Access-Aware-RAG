@@ -29,6 +29,7 @@ import {
 } from '@aws-sdk/client-bedrock-agent';
 import { SSMAgentManagerFactory } from '@/services/ssm-agent-manager';
 import { createMetricsLogger } from '@/lib/monitoring/metrics';
+import type { MultiAgentTraceResult } from '@/types/multi-agent';
 
 // Bedrock Agent設定
 // SSMパラメータから動的に取得、フォールバックとして環境変数を使用
@@ -37,6 +38,9 @@ const ssmManager = SSMAgentManagerFactory.getInstance(ENVIRONMENT);
 
 // Bedrock Clientsの初期化
 const BEDROCK_REGION = process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
+
+// Default agent mode: 'single' or 'multi' (Requirements 11.2, 11.3)
+const DEFAULT_AGENT_MODE = (process.env.DEFAULT_AGENT_MODE || 'single') as 'single' | 'multi';
 
 const agentRuntimeClient = new BedrockAgentRuntimeClient({
   region: BEDROCK_REGION,
@@ -178,9 +182,18 @@ async function pollAgentUntilPrepared(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, userId, sessionId, action, selectedAgentId } = body;
+    const { message, userId, sessionId, action, selectedAgentId, mode, teamId } = body;
 
-    // アクション別処理
+    // Determine effective agent mode (Requirements 11.2, 11.3, 11.5)
+    const effectiveMode: 'single' | 'multi' =
+      mode === 'multi' || mode === 'single' ? mode : DEFAULT_AGENT_MODE;
+
+    // If mode=multi and action is invoke (or default), route to multi-agent logic
+    if (effectiveMode === 'multi' && (!action || action === 'invoke')) {
+      return await handleMultiAgentInvoke(request, body);
+    }
+
+    // アクション別処理 (existing single-agent logic)
     switch (action) {
       case 'invoke':
         return await handleInvokeAgent(message, userId, sessionId, selectedAgentId);
@@ -221,6 +234,93 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
+    );
+  }
+}
+
+/**
+ * マルチエージェント呼び出し処理 (Requirements 11.2, 11.5)
+ *
+ * mode=multi の場合、agent-team invoke ロジックを使用して
+ * Supervisor Agent 経由でマルチエージェント協調処理を実行する。
+ */
+async function handleMultiAgentInvoke(
+  request: NextRequest,
+  body: any,
+): Promise<NextResponse> {
+  const { message, userId, sessionId, teamId } = body;
+
+  if (!message) {
+    return NextResponse.json(
+      { success: false, error: 'メッセージが必要です' },
+      { status: 400 },
+    );
+  }
+
+  if (!teamId || typeof teamId !== 'string') {
+    return NextResponse.json(
+      { success: false, error: 'mode=multi の場合、teamId が必要です' },
+      { status: 400 },
+    );
+  }
+
+  // Forward to the agent-team invoke endpoint internally
+  // Build the internal request URL for the agent-team invoke route
+  const baseUrl = request.nextUrl.origin;
+  const invokeUrl = `${baseUrl}/api/bedrock/agent-team/invoke`;
+
+  console.log('[Bedrock Agent] Routing to multi-agent mode:', {
+    teamId,
+    userId,
+    messageLength: message?.length,
+  });
+
+  try {
+    const teamResponse = await fetch(invokeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Forward authorization header for authentication
+        ...(request.headers.get('authorization')
+          ? { authorization: request.headers.get('authorization')! }
+          : {}),
+      },
+      body: JSON.stringify({
+        teamId,
+        message,
+        sessionId,
+        userId,
+      }),
+    });
+
+    const teamData = await teamResponse.json();
+
+    if (!teamResponse.ok) {
+      return NextResponse.json(teamData, { status: teamResponse.status });
+    }
+
+    // Map the agent-team response to the standard agent response format
+    // so the frontend can handle both modes uniformly
+    return NextResponse.json({
+      success: true,
+      answer: teamData.response || 'Agent Team処理が完了しましたが、レスポンスが空です。',
+      metadata: {
+        agentMode: true,
+        multiAgentMode: true,
+        sessionId: teamData.multiAgentTrace?.sessionId || sessionId,
+        teamId,
+        trace: undefined,
+      },
+      multiAgentTrace: teamData.multiAgentTrace as MultiAgentTraceResult | undefined,
+    });
+  } catch (error) {
+    console.error('[Bedrock Agent] Multi-agent invoke error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'マルチエージェント呼び出しに失敗しました',
+      },
+      { status: 500 },
     );
   }
 }

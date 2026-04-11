@@ -1342,6 +1342,122 @@ Coincidencia → ALLOW, Sin coincidencia → DENY
 
 Ya sea un volumen NTFS o UNIX, se aplica el mismo filtrado SID siempre que la información SID esté incluida en `.metadata.json`.
 
+## Colaboración Multi-Agente
+
+Aprovecha el patrón **Supervisor + Collaborator** de Amazon Bedrock Agents para orquestar múltiples agentes especializados que realizan búsqueda filtrada por permisos, análisis y generación de documentos.
+
+### Arquitectura
+
+```mermaid
+graph TB
+    User[Usuario] --> SA[Supervisor Agent<br/>Detección de Intención y Enrutamiento]
+    SA --> PR[Permission Resolver<br/>Resolución SID/UID/GID]
+    SA --> RA[Retrieval Agent<br/>Búsqueda KB + Filtro]
+    SA --> AA[Analysis Agent<br/>Análisis de Contexto]
+    SA --> OA[Output Agent<br/>Generación de Documentos]
+    SA -.-> VA[Vision Agent<br/>Comprensión de Imágenes ※Opcional]
+    PR --> UAT[(User Access Table)]
+    RA --> KB[(Bedrock KB)]
+    AA -.->|Contexto Filtrado| RA
+    OA -.->|Contexto Filtrado| RA
+```
+
+### Características Principales
+
+- **Límites de permisos preservados**: Acceso a KB restringido solo a Permission Resolver y Retrieval Agent. Otros agentes usan exclusivamente "contexto filtrado"
+- **Separación de roles IAM**: Cada Collaborator recibe un rol IAM individual con privilegios mínimos
+- **Optimizado en costos**: Deshabilitado por defecto (`enableMultiAgent: false`). Sin costo adicional hasta su activación
+- **Dos modos de enrutamiento**: `supervisor_router` (baja latencia) / `supervisor` (tareas complejas)
+- **Alternador UI**: Cambio entre modo Single / Multi con un clic en la interfaz de chat
+- **Agent Trace**: Visualización de la línea de tiempo de ejecución multi-agente y desglose de costos por Collaborator
+
+### Capturas de Pantalla de la UI
+
+#### Modo Agent — Alternador Single/Multi
+
+El encabezado del modo Agent muestra un alternador Single/Multi. El modo Multi se habilita cuando hay una configuración de Team disponible.
+
+![Alternador Single/Multi](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+
+#### Agent Directory — Pestaña Teams + Galería de Plantillas
+
+El Agent Directory incluye una pestaña Teams con una galería de plantillas para crear Teams con un clic.
+
+![Pestaña Teams + Galería de Plantillas](docs/screenshots/multi-agent-teams-tab-production-ja.png)
+
+#### Asistente de Creación de Team — 5 Pasos
+
+Al hacer clic en "+" en una plantilla se abre un asistente de creación de Team de 5 pasos.
+
+![Asistente de Creación de Team Paso 2: Personalización de Collaborator](docs/screenshots/multi-agent-team-wizard-step2-production-ja.png)
+
+![Asistente de Creación de Team Paso 5: Confirmación (Costo Estimado)](docs/screenshots/multi-agent-team-wizard-step5-production-ja.png)
+
+#### Team Creado — Tarjeta de Team
+
+Después de la creación, la tarjeta del Team aparece en la pestaña Teams mostrando la cantidad de agentes, modo de enrutamiento, Trust Level y badges de Tool Profile.
+
+![Team Creado](docs/screenshots/multi-agent-team-created-production-ja.png)
+
+#### Modo Multi Habilitado — Después de la Creación del Team
+
+Después de crear un Team, el toggle del modo Multi en el encabezado del chat se habilita (ya no está deshabilitado).
+
+![Modo Multi Habilitado](docs/screenshots/multi-agent-mode-toggle-enabled-production-ja.png)
+
+#### Respuesta del Supervisor Agent — Filtrada por Permisos
+
+Al seleccionar el Supervisor Agent y enviar un mensaje de chat, se activa la cadena de Collaborator Agent para la búsqueda en KB, devolviendo una respuesta filtrada por permisos con citas.
+
+![Respuesta del Supervisor Agent](docs/screenshots/multi-agent-supervisor-response-production-ja.png)
+
+### Notas de Despliegue
+
+Hallazgos técnicos críticos del despliegue real en AWS.
+
+#### Valores válidos de CloudFormation `AgentCollaboration`
+
+- Valores válidos: `DISABLED` | `SUPERVISOR` | `SUPERVISOR_ROUTER` solamente
+- `COLLABORATOR` NO es un valor válido (a pesar de aparecer en alguna documentación)
+- Los Collaborator Agents NO deben establecer `AgentCollaboration` (por defecto: `DISABLED`)
+
+#### Despliegue en 2 etapas requerido (Supervisor Agent)
+
+El Supervisor Agent no puede crearse con `AgentCollaboration=SUPERVISOR_ROUTER` y `AgentCollaborators` en una sola operación de CloudFormation.
+
+1. Crear primero el Supervisor Agent con `AgentCollaboration=DISABLED`
+2. Usar un Custom Resource Lambda para:
+   - `UpdateAgent` → cambiar a `SUPERVISOR_ROUTER`
+   - `AssociateAgentCollaborator` para cada colaborador
+   - `PrepareAgent`
+
+#### Requisitos de permisos IAM
+
+- El rol IAM del Supervisor Agent necesita: `bedrock:GetAgentAlias` + `bedrock:InvokeAgent` en `agent-alias/*/*`
+- El Custom Resource Lambda necesita: `iam:PassRole` para el rol del Supervisor
+- `autoPrepare=true` no puede usarse en el Supervisor Agent (falla sin colaboradores)
+
+#### Alias de Collaborator Agent
+
+- Cada Collaborator Agent necesita un `CfnAgentAlias` antes de poder ser referenciado por el Supervisor
+- Formato de ARN del alias: `arn:aws:bedrock:REGION:ACCOUNT:agent-alias/{agent-id}/{alias-id}`
+
+#### Construcción de imagen Docker (Lambda)
+
+- Apple Silicon: Usar `Dockerfile.prebuilt` con `--provenance=false --sbom=false`
+- `docker/app/Dockerfile` NO es para Lambda Web Adapter (archivo heredado)
+- Después del push a ECR, usar `aws lambda update-function-code` directamente (CDK no detecta cambios en la etiqueta `latest`)
+
+### Estructura de Costos
+
+| Escenario | Llamadas de Agent | Costo Est./Solicitud |
+|---|---|---|
+| Single Agent (existente) | 1 | ~$0.02 |
+| Multi-Agent (consulta simple) | 2–3 | ~$0.06 |
+| Multi-Agent (consulta compleja) | 4–6 | ~$0.17 |
+
+> Facturación basada en solicitudes — sin costo adicional si no se utiliza.
+
 ## Licencia
 
 [Apache License 2.0](LICENSE)

@@ -175,6 +175,24 @@ npm run dev
 
 ---
 
+## Docker Image Build (Lambda Deployment)
+
+Notes for building Docker images for Lambda deployment:
+
+- **Apple Silicon (M1/M2/M3)**: Use `Dockerfile.prebuilt` with `--provenance=false --sbom=false`
+  ```bash
+  docker build --platform linux/amd64 --provenance=false --sbom=false \
+    -f docker/nextjs/Dockerfile.prebuilt -t permission-aware-rag-webapp .
+  ```
+- **`docker/app/Dockerfile`**: NOT for Lambda Web Adapter (legacy file). Use `docker/nextjs/Dockerfile.prebuilt` for Lambda deployment
+- **After ECR push**: CDK doesn't detect `latest` tag changes — use `aws lambda update-function-code` directly
+  ```bash
+  aws lambda update-function-code --function-name <function-name> \
+    --image-uri <ecr-uri>:latest
+  ```
+
+---
+
 ## File structure
 
 ```

@@ -139,6 +139,37 @@
   // "ontapAdminSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ontap-fsxadmin-password"
 
   // ========================================================================
+  // マルチエージェント協調（Multi-Agent Collaboration）
+  // Supervisor + Collaborator パターンによる高度なマルチエージェント処理
+  // enableAgent=true が前提条件。デフォルト無効のため追加コストは発生しない
+  //
+  // ⚠️ デプロイ注意事項:
+  // - CloudFormation AgentCollaboration の有効値: DISABLED | SUPERVISOR | SUPERVISOR_ROUTER のみ
+  //   （COLLABORATOR は無効値。Collaborator Agent は AgentCollaboration を設定しない）
+  // - Supervisor Agent は2段階デプロイが必要:
+  //   1. AgentCollaboration=DISABLED で作成
+  //   2. Custom Resource Lambda で SUPERVISOR_ROUTER に変更 + AssociateAgentCollaborator + PrepareAgent
+  // - Supervisor IAM ロール: bedrock:GetAgentAlias + bedrock:InvokeAgent (agent-alias/*/*)
+  // - Custom Resource Lambda: iam:PassRole (Supervisor ロール用) が必要
+  // - autoPrepare=true は Supervisor Agent では使用不可（Collaborator なしで失敗）
+  // - 各 Collaborator Agent は CfnAgentAlias が必要（Supervisor からの参照に必須）
+  // ========================================================================
+  // "enableMultiAgent": false,
+  // "supervisorRoutingMode": "supervisor_router",
+  // "supervisorAutoRouting": false,
+  // "enableVisionAgent": false,
+  // "defaultAgentMode": "single",
+  // "retrievalMaxResults": 5,
+  // "mcpConnectors": [],
+  // "collaboratorModels": {},
+  // "ontapNameMappingEnabled": false,
+  //
+  // Agent instruction の回答言語設定:
+  //   "auto" (デフォルト) = ユーザーの入力言語に合わせて回答
+  //   "Japanese" / "English" / "Korean" 等 = 指定言語で固定回答
+  // "agentLanguage": "auto"
+
+  // ========================================================================
   // Phase 2 拡張機能（オプション）
   // ========================================================================
 

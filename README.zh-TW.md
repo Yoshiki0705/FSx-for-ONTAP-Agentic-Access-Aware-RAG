@@ -1631,6 +1631,122 @@ SID 過濾不依賴於 S3 AP 的使用者類型。所有模式中運作相同的
 
 無論是 NTFS 磁碟區還是 UNIX 磁碟區，只要在 `.metadata.json` 中記錄了 SID 資訊，就會套用相同的 SID 過濾。
 
+## 多智能體協作（Multi-Agent Collaboration）
+
+利用 Amazon Bedrock Agents 的 **Supervisor + Collaborator 模式**，編排多個專業智能體協同執行權限過濾搜尋、分析和文件生成。
+
+### 架構
+
+```mermaid
+graph TB
+    User[使用者] --> SA[Supervisor Agent<br/>意圖偵測與路由]
+    SA --> PR[Permission Resolver<br/>SID/UID/GID 解析]
+    SA --> RA[Retrieval Agent<br/>KB 搜尋 + 過濾]
+    SA --> AA[Analysis Agent<br/>上下文分析]
+    SA --> OA[Output Agent<br/>文件生成]
+    SA -.-> VA[Vision Agent<br/>影像理解 ※選用]
+    PR --> UAT[(User Access Table)]
+    RA --> KB[(Bedrock KB)]
+    AA -.->|過濾後上下文| RA
+    OA -.->|過濾後上下文| RA
+```
+
+### 主要特性
+
+- **權限邊界維持**：KB 存取僅限 Permission Resolver 和 Retrieval Agent。其他 Agent 僅使用「過濾後上下文」
+- **IAM 角色分離**：每個 Collaborator 獲得最小權限的獨立 IAM 角色
+- **成本最佳化**：預設停用（`enableMultiAgent: false`）。未啟用則無額外費用
+- **兩種路由模式**：`supervisor_router`（低延遲）/ `supervisor`（複雜任務）
+- **UI 切換**：在聊天介面一鍵切換 Single / Multi 模式
+- **Agent Trace**：視覺化多智能體執行時間線及各 Collaborator 成本明細
+
+### UI 截圖
+
+#### Agent 模式 — Single/Multi 切換開關
+
+Agent 模式標題列顯示 Single/Multi 切換開關。當 Team 配置可用時，Multi 模式將被啟用。
+
+![Single/Multi 切換開關](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+
+#### Agent Directory — Teams 分頁 + 範本庫
+
+Agent Directory 包含 Teams 分頁，透過範本庫可一鍵建立 Team。
+
+![Teams 分頁 + 範本庫](docs/screenshots/multi-agent-teams-tab-production-ja.png)
+
+#### Team 建立精靈 — 5 個步驟
+
+點擊範本上的「+」按鈕，將開啟 5 步 Team 建立精靈。
+
+![Team 建立精靈第 2 步：Collaborator 自訂](docs/screenshots/multi-agent-team-wizard-step2-production-ja.png)
+
+![Team 建立精靈第 5 步：確認（預估成本）](docs/screenshots/multi-agent-team-wizard-step5-production-ja.png)
+
+#### Team 建立完成 — Team 卡片顯示
+
+建立完成後，Team 卡片將顯示在 Teams 分頁中，展示智能體數量、路由模式、Trust Level 和 Tool Profile 徽章。
+
+![Team 建立完成](docs/screenshots/multi-agent-team-created-production-ja.png)
+
+#### Multi 模式啟用 — Team 建立後
+
+建立 Team 後，聊天標題列中的 Multi 模式開關將變為啟用狀態（不再處於停用狀態）。
+
+![Multi 模式啟用](docs/screenshots/multi-agent-mode-toggle-enabled-production-ja.png)
+
+#### Supervisor Agent 回應 — 權限過濾
+
+選擇 Supervisor Agent 並傳送聊天訊息後，將觸發 Collaborator Agent 鏈進行 KB 搜尋，回傳經過權限過濾的回應及引用。
+
+![Supervisor Agent 回應](docs/screenshots/multi-agent-supervisor-response-production-ja.png)
+
+### 部署注意事項
+
+實際 AWS 部署中發現的關鍵技術要點。
+
+#### CloudFormation `AgentCollaboration` 有效值
+
+- 有效值：`DISABLED` | `SUPERVISOR` | `SUPERVISOR_ROUTER` 僅此三種
+- `COLLABORATOR` 不是有效值（儘管某些文件中有提及）
+- Collaborator Agent 不應設定 `AgentCollaboration`（預設使用 `DISABLED`）
+
+#### 需要 2 階段部署（Supervisor Agent）
+
+Supervisor Agent 無法在單次 CloudFormation 操作中同時建立 `AgentCollaboration=SUPERVISOR_ROUTER` 和 `AgentCollaborators`。
+
+1. 首先以 `AgentCollaboration=DISABLED` 建立 Supervisor Agent
+2. 使用 Custom Resource Lambda 執行：
+   - `UpdateAgent` → 變更為 `SUPERVISOR_ROUTER`
+   - `AssociateAgentCollaborator` 關聯每個 Collaborator
+   - `PrepareAgent`
+
+#### IAM 權限要求
+
+- Supervisor Agent IAM 角色需要：`bedrock:GetAgentAlias` + `bedrock:InvokeAgent`（資源：`agent-alias/*/*`）
+- Custom Resource Lambda 需要：對 Supervisor 角色的 `iam:PassRole`
+- Supervisor Agent 不能使用 `autoPrepare=true`（沒有 Collaborator 時會失敗）
+
+#### Collaborator Agent Alias
+
+- 每個 Collaborator Agent 在被 Supervisor 引用之前需要 `CfnAgentAlias`
+- Alias ARN 格式：`arn:aws:bedrock:REGION:ACCOUNT:agent-alias/{agent-id}/{alias-id}`
+
+#### Docker 映像建置（Lambda）
+
+- Apple Silicon：使用 `Dockerfile.prebuilt` 並指定 `--provenance=false --sbom=false`
+- `docker/app/Dockerfile` 不是 Lambda Web Adapter 用的（舊檔案）
+- ECR 推送後直接使用 `aws lambda update-function-code`（CDK 不偵測 `latest` 標籤變更）
+
+### 成本結構
+
+| 情境 | Agent 呼叫 | 預估成本/請求 |
+|---|---|---|
+| Single Agent（現有） | 1 次 | 約 $0.02 |
+| Multi-Agent（簡單查詢） | 2~3 次 | 約 $0.06 |
+| Multi-Agent（複雜查詢） | 4~6 次 | 約 $0.17 |
+
+> 按請求計費 — 不使用則不產生額外費用。
+
 ## 授權
 
 [Apache License 2.0](LICENSE)

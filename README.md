@@ -1944,6 +1944,140 @@ Match -> ALLOW, No match -> DENY
 
 NTFSボリュームでもUNIXボリュームでも、`.metadata.json`にSID情報を記載すれば同じSIDフィルタリングが適用されます。
 
+## マルチエージェント協調（Multi-Agent Collaboration）
+
+Amazon Bedrock Agents の **Supervisor + Collaborator パターン** を活用し、複数の専門エージェントが協調して権限フィルタリング付きの高度な検索・分析・ドキュメント生成を実行します。
+
+### アーキテクチャ
+
+```mermaid
+graph TB
+    User[ユーザー] --> SA[Supervisor Agent<br/>意図検出・ルーティング]
+    SA --> PR[Permission Resolver<br/>SID/UID/GID解決]
+    SA --> RA[Retrieval Agent<br/>KB検索+フィルタ]
+    SA --> AA[Analysis Agent<br/>コンテキスト分析]
+    SA --> OA[Output Agent<br/>ドキュメント生成]
+    SA -.-> VA[Vision Agent<br/>画像理解 ※オプション]
+    PR --> UAT[(User Access Table)]
+    RA --> KB[(Bedrock KB)]
+    AA -.->|Filtered Context| RA
+    OA -.->|Filtered Context| RA
+```
+
+### 主な特徴
+
+- **権限境界の維持**: KB アクセスは Permission Resolver と Retrieval Agent のみに限定。他の Agent は「フィルタ済みコンテキスト」のみ使用
+- **IAM ロール分離**: 各 Collaborator に最小権限の個別 IAM ロールを付与
+- **コスト最適化**: デフォルト無効（`enableMultiAgent: false`）。有効化しない限り追加コスト $0
+- **2つのルーティングモード**: `supervisor_router`（低レイテンシ）/ `supervisor`（複雑タスク向け）
+- **UI トグル**: チャット画面で Single / Multi モードをワンクリック切替
+- **Agent Trace**: マルチエージェント実行のタイムライン・コスト内訳を可視化
+
+### UI スクリーンショット
+
+#### Agentモード — Single/Multi切替トグル
+
+Agentモードのヘッダーに Single/Multi 切替トグルが表示されます。Team構成が利用可能な場合にMultiモードが有効化されます。
+
+![Single/Multi切替トグル](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+
+#### Agent Directory — Teamsタブ + テンプレートギャラリー
+
+Agent DirectoryにTeamsタブが追加され、テンプレートギャラリーからワンクリックでTeamを作成できます。
+
+![Teamsタブ + テンプレートギャラリー](docs/screenshots/multi-agent-teams-tab-production-ja.png)
+
+#### Team作成ウィザード — 5ステップ
+
+テンプレートから「+ 追加」をクリックすると、5ステップのTeam作成ウィザードが開きます。
+
+![Team作成ウィザード Step 2: Collaboratorカスタマイズ](docs/screenshots/multi-agent-team-wizard-step2-production-ja.png)
+
+![Team作成ウィザード Step 5: 確認画面（推定コスト表示）](docs/screenshots/multi-agent-team-wizard-step5-production-ja.png)
+
+#### Team作成完了 — Teamカード表示
+
+Team作成後、TeamsタブにTeamカードが表示されます。Agent数、ルーティングモード、Trust Level、Tool Profileバッジが確認できます。
+
+![Team作成完了](docs/screenshots/multi-agent-team-created-production-ja.png)
+
+#### Multiモード有効化 — Team作成後
+
+Team作成後、チャットヘッダーのMultiモードトグルが有効化されます（disabledが解除）。
+
+![Multiモード有効化](docs/screenshots/multi-agent-mode-toggle-enabled-production-ja.png)
+
+#### Supervisor Agentレスポンス — 権限フィルタリング済み
+
+Supervisor Agentを選択してチャットを送信すると、Collaborator Agent経由でKB検索が実行され、権限フィルタリング済みの回答とcitationが返されます。
+
+![Supervisor Agentレスポンス](docs/screenshots/multi-agent-supervisor-response-production-ja.png)
+
+### コスト構造
+
+| シナリオ | Agent呼び出し | 推定コスト/リクエスト |
+|---|---|---|
+| Single Agent（既存） | 1回 | 約$0.02 |
+| Multi-Agent（単純クエリ） | 2〜3回 | 約$0.06 |
+| Multi-Agent（複雑クエリ） | 4〜6回 | 約$0.17 |
+
+> リクエストベース課金のため、使わなければ追加コストは発生しません。
+
+### CDK 設定パラメータ
+
+```jsonc
+{
+  "enableMultiAgent": false,              // マルチエージェント有効化（デフォルト: false）
+  "supervisorRoutingMode": "supervisor_router", // ルーティングモード
+  "supervisorAutoRouting": false,         // 自動ルーティング
+  "enableVisionAgent": false,             // Vision Agent 有効化
+  "defaultAgentMode": "single",           // デフォルトモード（single / multi）
+  "retrievalMaxResults": 5,               // KB検索最大結果数
+  "mcpConnectors": [],                    // MCP接続設定
+  "collaboratorModels": {},               // Collaborator別モデル指定
+  "ontapNameMappingEnabled": false        // ONTAP name-mapping有効化
+}
+```
+
+詳細は [設計ドキュメント](.kiro/specs/multi-agent-collaboration/design.md) を参照してください。
+
+### デプロイ時の注意事項
+
+実際のAWSデプロイで判明した重要な技術的知見です。
+
+#### CloudFormation `AgentCollaboration` の有効値
+
+- 有効値: `DISABLED` | `SUPERVISOR` | `SUPERVISOR_ROUTER` のみ
+- `COLLABORATOR` は有効値ではない（一部ドキュメントに記載があるが誤り）
+- Collaborator Agent は `AgentCollaboration` を設定しない（デフォルトの `DISABLED` を使用）
+
+#### 2段階デプロイが必要（Supervisor Agent）
+
+Supervisor Agent は `AgentCollaboration=SUPERVISOR_ROUTER` と `AgentCollaborators` を単一の CloudFormation オペレーションで同時に作成できません。
+
+1. まず `AgentCollaboration=DISABLED` で Supervisor Agent を作成
+2. Custom Resource Lambda で以下を実行:
+   - `UpdateAgent` → `SUPERVISOR_ROUTER` に変更
+   - `AssociateAgentCollaborator` で各 Collaborator を関連付け
+   - `PrepareAgent` でエージェントを準備
+
+#### IAM 権限要件
+
+- Supervisor Agent の IAM ロール: `bedrock:GetAgentAlias` + `bedrock:InvokeAgent`（リソース: `agent-alias/*/*`）
+- Custom Resource Lambda: Supervisor ロールに対する `iam:PassRole` が必要
+- Supervisor Agent では `autoPrepare=true` は使用不可（Collaborator なしの状態で失敗する）
+
+#### Collaborator Agent Alias
+
+- 各 Collaborator Agent は Supervisor から参照される前に `CfnAgentAlias` が必要
+- Alias ARN 形式: `arn:aws:bedrock:REGION:ACCOUNT:agent-alias/{agent-id}/{alias-id}`
+
+#### Docker イメージビルド（Lambda 用）
+
+- Apple Silicon: `Dockerfile.prebuilt` を使用し、`--provenance=false --sbom=false` を指定
+- `docker/app/Dockerfile` は Lambda Web Adapter 用ではない（旧ファイル）
+- ECR プッシュ後は `aws lambda update-function-code` を直接使用（CDK は `latest` タグの変更を検出しない）
+
 ## License
 
 [Apache License 2.0](LICENSE)

@@ -189,3 +189,60 @@ docker/nextjs/
 │       └── route.ts           # サインインAPI（デモ認証フォールバック付き）
 └── messages/                  # 翻訳ファイル（8言語）
 ```
+
+
+---
+
+## マルチエージェント開発
+
+### 概要
+
+マルチエージェント協調機能（`enableMultiAgent: true`）のローカル開発時の注意事項です。
+
+### 環境変数
+
+`.env.local` に以下を追加してマルチエージェントモードを有効化:
+
+```bash
+NEXT_PUBLIC_ENABLE_MULTI_AGENT=true
+NEXT_PUBLIC_DEFAULT_AGENT_MODE=single
+```
+
+### API Route のテスト
+
+マルチエージェント関連の API Route はモック応答を返します:
+
+```bash
+# Agent Team 一覧
+curl http://localhost:3000/api/bedrock/agent-team -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"action": "list"}'
+
+# Agent Team 実行（モック）
+curl http://localhost:3000/api/bedrock/agent-team/invoke -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"teamId": "test-team", "message": "テスト質問"}'
+```
+
+### UI 開発のポイント
+
+- チャットヘッダーの Single/Multi トグルは `NEXT_PUBLIC_ENABLE_MULTI_AGENT=true` で表示
+- Agent Trace タイムラインはモックデータで動作確認可能
+- Zustand Store `useAgentTeamStore` でマルチエージェント状態を管理
+- AWS 環境なしでも UI コンポーネントの開発・テストが可能
+
+### Docker イメージビルド（Lambda デプロイ用）
+
+Lambda 用の Docker イメージをビルドする際の注意事項:
+
+- **Apple Silicon (M1/M2/M3)**: `Dockerfile.prebuilt` を使用し、`--provenance=false --sbom=false` を指定
+  ```bash
+  docker build --platform linux/amd64 --provenance=false --sbom=false \
+    -f docker/nextjs/Dockerfile.prebuilt -t permission-aware-rag-webapp .
+  ```
+- **`docker/app/Dockerfile`**: Lambda Web Adapter 用ではない（旧ファイル）。Lambda デプロイには `docker/nextjs/Dockerfile.prebuilt` を使用
+- **ECR プッシュ後の更新**: CDK は `latest` タグの変更を検出しないため、`aws lambda update-function-code` を直接使用
+  ```bash
+  aws lambda update-function-code --function-name <function-name> \
+    --image-uri <ecr-uri>:latest
+  ```

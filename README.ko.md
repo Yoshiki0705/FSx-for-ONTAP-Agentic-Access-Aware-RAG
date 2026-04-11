@@ -1843,6 +1843,122 @@ route.ts에서 사용자 SID(DynamoDB user-access)와 대조
 
 NTFS 볼륨이든 UNIX 볼륨이든 `.metadata.json`에 SID 정보를 기재하면 동일한 SID 필터링이 적용됩니다.
 
+## 멀티 에이전트 협업 (Multi-Agent Collaboration)
+
+Amazon Bedrock Agents의 **Supervisor + Collaborator 패턴**을 활용하여 여러 전문 에이전트가 협력하여 권한 필터링된 검색, 분석, 문서 생성을 수행합니다.
+
+### 아키텍처
+
+```mermaid
+graph TB
+    User[사용자] --> SA[Supervisor Agent<br/>의도 감지 및 라우팅]
+    SA --> PR[Permission Resolver<br/>SID/UID/GID 해결]
+    SA --> RA[Retrieval Agent<br/>KB 검색 + 필터]
+    SA --> AA[Analysis Agent<br/>컨텍스트 분석]
+    SA --> OA[Output Agent<br/>문서 생성]
+    SA -.-> VA[Vision Agent<br/>이미지 이해 ※선택사항]
+    PR --> UAT[(User Access Table)]
+    RA --> KB[(Bedrock KB)]
+    AA -.->|필터링된 컨텍스트| RA
+    OA -.->|필터링된 컨텍스트| RA
+```
+
+### 주요 특징
+
+- **권한 경계 유지**: KB 접근은 Permission Resolver와 Retrieval Agent만 가능. 다른 Agent는 "필터링된 컨텍스트"만 사용
+- **IAM 역할 분리**: 각 Collaborator에 최소 권한의 개별 IAM 역할 부여
+- **비용 최적화**: 기본 비활성화 (`enableMultiAgent: false`). 활성화하지 않으면 추가 비용 $0
+- **2가지 라우팅 모드**: `supervisor_router` (저지연) / `supervisor` (복잡한 작업)
+- **UI 토글**: 채팅 화면에서 Single / Multi 모드를 원클릭 전환
+- **Agent Trace**: 멀티 에이전트 실행 타임라인 및 Collaborator별 비용 내역 시각화
+
+### UI 스크린샷
+
+#### Agent 모드 — Single/Multi 전환 토글
+
+Agent 모드 헤더에 Single/Multi 전환 토글이 표시됩니다. Team 구성이 사용 가능한 경우 Multi 모드가 활성화됩니다.
+
+![Single/Multi 전환 토글](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+
+#### Agent Directory — Teams 탭 + 템플릿 갤러리
+
+Agent Directory에 Teams 탭이 포함되어 있으며, 템플릿 갤러리에서 원클릭으로 Team을 생성할 수 있습니다.
+
+![Teams 탭 + 템플릿 갤러리](docs/screenshots/multi-agent-teams-tab-production-ja.png)
+
+#### Team 생성 마법사 — 5단계
+
+템플릿의 "+"를 클릭하면 5단계 Team 생성 마법사가 열립니다.
+
+![Team 생성 마법사 2단계: Collaborator 커스터마이징](docs/screenshots/multi-agent-team-wizard-step2-production-ja.png)
+
+![Team 생성 마법사 5단계: 확인 (예상 비용)](docs/screenshots/multi-agent-team-wizard-step5-production-ja.png)
+
+#### Team 생성 완료 — Team 카드 표시
+
+생성 후 Teams 탭에 Team 카드가 표시되며, 에이전트 수, 라우팅 모드, Trust Level, Tool Profile 배지가 나타납니다.
+
+![Team 생성 완료](docs/screenshots/multi-agent-team-created-production-ja.png)
+
+#### Multi 모드 활성화 — Team 생성 후
+
+Team 생성 후, 채팅 헤더의 Multi 모드 토글이 활성화됩니다 (비활성화 상태가 해제됨).
+
+![Multi 모드 활성화](docs/screenshots/multi-agent-mode-toggle-enabled-production-ja.png)
+
+#### Supervisor Agent 응답 — 권한 필터링 적용
+
+Supervisor Agent를 선택하고 채팅 메시지를 전송하면, Collaborator Agent 체인을 통해 KB 검색이 실행되어 권한 필터링이 적용된 응답과 인용이 반환됩니다.
+
+![Supervisor Agent 응답](docs/screenshots/multi-agent-supervisor-response-production-ja.png)
+
+### 배포 시 주의사항
+
+실제 AWS 배포에서 확인된 중요한 기술적 발견 사항입니다.
+
+#### CloudFormation `AgentCollaboration` 유효 값
+
+- 유효 값: `DISABLED` | `SUPERVISOR` | `SUPERVISOR_ROUTER` 만 가능
+- `COLLABORATOR`는 유효한 값이 아님 (일부 문서에 기재되어 있지만 오류)
+- Collaborator Agent는 `AgentCollaboration`을 설정하지 않음 (기본값 `DISABLED` 사용)
+
+#### 2단계 배포 필요 (Supervisor Agent)
+
+Supervisor Agent는 `AgentCollaboration=SUPERVISOR_ROUTER`와 `AgentCollaborators`를 단일 CloudFormation 작업으로 동시에 생성할 수 없습니다.
+
+1. 먼저 `AgentCollaboration=DISABLED`로 Supervisor Agent 생성
+2. Custom Resource Lambda로 다음을 실행:
+   - `UpdateAgent` → `SUPERVISOR_ROUTER`로 변경
+   - `AssociateAgentCollaborator`로 각 Collaborator 연결
+   - `PrepareAgent`
+
+#### IAM 권한 요구사항
+
+- Supervisor Agent IAM 역할: `bedrock:GetAgentAlias` + `bedrock:InvokeAgent` (리소스: `agent-alias/*/*`)
+- Custom Resource Lambda: Supervisor 역할에 대한 `iam:PassRole` 필요
+- Supervisor Agent에서 `autoPrepare=true` 사용 불가 (Collaborator 없이 실패)
+
+#### Collaborator Agent Alias
+
+- 각 Collaborator Agent는 Supervisor에서 참조되기 전에 `CfnAgentAlias`가 필요
+- Alias ARN 형식: `arn:aws:bedrock:REGION:ACCOUNT:agent-alias/{agent-id}/{alias-id}`
+
+#### Docker 이미지 빌드 (Lambda)
+
+- Apple Silicon: `Dockerfile.prebuilt`를 사용하고 `--provenance=false --sbom=false` 지정
+- `docker/app/Dockerfile`은 Lambda Web Adapter용이 아님 (레거시 파일)
+- ECR 푸시 후 `aws lambda update-function-code`를 직접 사용 (CDK는 `latest` 태그 변경을 감지하지 않음)
+
+### 비용 구조
+
+| 시나리오 | Agent 호출 | 예상 비용/요청 |
+|---|---|---|
+| Single Agent (기존) | 1회 | 약 $0.02 |
+| Multi-Agent (단순 쿼리) | 2~3회 | 약 $0.06 |
+| Multi-Agent (복잡 쿼리) | 4~6회 | 약 $0.17 |
+
+> 요청 기반 과금 — 사용하지 않으면 추가 비용이 발생하지 않습니다.
+
 ## 라이선스
 
 [Apache License 2.0](LICENSE)

@@ -7,15 +7,17 @@
 
 import { AgentCoreClient, UIResponse } from './agentcore-client';
 import { useAgentCore } from '@/hooks/useAgentCore';
+import type { MultiAgentTraceResult } from '@/types/multi-agent';
 
 export interface ChatRequest {
   message: string;
   sessionId?: string;
   model?: string;
   region?: string;
-  mode?: 'agent' | 'kb';
+  mode?: 'agent' | 'kb' | 'multi';
   userId?: string;
   preferences?: Record<string, any>;
+  teamId?: string;
 }
 
 export interface ChatResponse {
@@ -27,6 +29,7 @@ export interface ChatResponse {
   sessionId?: string;
   traceData?: any;
   metadata?: Record<string, any>;
+  multiAgentTrace?: MultiAgentTraceResult;
 }
 
 export interface ChatServiceConfig {

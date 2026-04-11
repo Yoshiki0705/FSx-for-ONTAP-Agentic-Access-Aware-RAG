@@ -1342,6 +1342,122 @@ In route.ts mit Benutzer-SIDs (DynamoDB user-access) abgeglichen
 
 Ob NTFS- oder UNIX-Volume, die gleiche SID-Filterung wird angewendet, solange SID-Informationen in `.metadata.json` enthalten sind.
 
+## Multi-Agent-Kollaboration
+
+Nutzt das **Supervisor + Collaborator-Muster** von Amazon Bedrock Agents, um mehrere spezialisierte Agenten zu orchestrieren, die berechtigungsgefilterte Suche, Analyse und Dokumentenerstellung durchführen.
+
+### Architektur
+
+```mermaid
+graph TB
+    User[Benutzer] --> SA[Supervisor Agent<br/>Absichtserkennung & Routing]
+    SA --> PR[Permission Resolver<br/>SID/UID/GID-Auflösung]
+    SA --> RA[Retrieval Agent<br/>KB-Suche + Filter]
+    SA --> AA[Analysis Agent<br/>Kontextanalyse]
+    SA --> OA[Output Agent<br/>Dokumentenerstellung]
+    SA -.-> VA[Vision Agent<br/>Bildverständnis ※Optional]
+    PR --> UAT[(User Access Table)]
+    RA --> KB[(Bedrock KB)]
+    AA -.->|Gefilterter Kontext| RA
+    OA -.->|Gefilterter Kontext| RA
+```
+
+### Hauptmerkmale
+
+- **Berechtigungsgrenzen erhalten**: KB-Zugriff nur für Permission Resolver und Retrieval Agent. Andere Agenten verwenden ausschließlich „gefilterten Kontext"
+- **IAM-Rollentrennung**: Jeder Collaborator erhält eine individuelle IAM-Rolle mit minimalen Berechtigungen
+- **Kostenoptimiert**: Standardmäßig deaktiviert (`enableMultiAgent: false`). Keine zusätzlichen Kosten bis zur Aktivierung
+- **Zwei Routing-Modi**: `supervisor_router` (niedrige Latenz) / `supervisor` (komplexe Aufgaben)
+- **UI-Umschalter**: Wechsel zwischen Single / Multi-Modus mit einem Klick in der Chat-UI
+- **Agent Trace**: Visualisierung der Multi-Agent-Ausführungszeitleiste und Kostenaufschlüsselung pro Collaborator
+
+### UI-Screenshots
+
+#### Agent-Modus — Single/Multi-Umschalter
+
+Der Agent-Modus-Header zeigt einen Single/Multi-Umschalter an. Der Multi-Modus wird aktiviert, wenn eine Team-Konfiguration verfügbar ist.
+
+![Single/Multi-Umschalter](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+
+#### Agent Directory — Teams-Tab + Vorlagengalerie
+
+Das Agent Directory enthält einen Teams-Tab mit einer Vorlagengalerie zur Team-Erstellung mit einem Klick.
+
+![Teams-Tab + Vorlagengalerie](docs/screenshots/multi-agent-teams-tab-production-ja.png)
+
+#### Team-Erstellungsassistent — 5 Schritte
+
+Durch Klicken auf „+" bei einer Vorlage öffnet sich ein 5-Schritte-Team-Erstellungsassistent.
+
+![Team-Erstellungsassistent Schritt 2: Collaborator-Anpassung](docs/screenshots/multi-agent-team-wizard-step2-production-ja.png)
+
+![Team-Erstellungsassistent Schritt 5: Bestätigung (Geschätzte Kosten)](docs/screenshots/multi-agent-team-wizard-step5-production-ja.png)
+
+#### Team erstellt — Team-Karte
+
+Nach der Erstellung erscheint die Team-Karte im Teams-Tab mit Agentenanzahl, Routing-Modus, Trust Level und Tool Profile Badges.
+
+![Team erstellt](docs/screenshots/multi-agent-team-created-production-ja.png)
+
+#### Multi-Modus aktiviert — Nach Team-Erstellung
+
+Nach der Team-Erstellung wird der Multi-Modus-Toggle im Chat-Header aktiviert (nicht mehr deaktiviert).
+
+![Multi-Modus aktiviert](docs/screenshots/multi-agent-mode-toggle-enabled-production-ja.png)
+
+#### Supervisor Agent Antwort — Berechtigungsgefiltert
+
+Wenn Sie den Supervisor Agent auswählen und eine Chat-Nachricht senden, wird die Collaborator Agent-Kette für die KB-Suche ausgelöst und eine berechtigungsgefilterte Antwort mit Zitaten zurückgegeben.
+
+![Supervisor Agent Antwort](docs/screenshots/multi-agent-supervisor-response-production-ja.png)
+
+### Hinweise zur Bereitstellung
+
+Kritische technische Erkenntnisse aus der tatsächlichen AWS-Bereitstellung.
+
+#### CloudFormation `AgentCollaboration` gültige Werte
+
+- Gültige Werte: `DISABLED` | `SUPERVISOR` | `SUPERVISOR_ROUTER` nur
+- `COLLABORATOR` ist KEIN gültiger Wert (trotz Erwähnung in einiger Dokumentation)
+- Collaborator Agents sollten `AgentCollaboration` NICHT setzen (Standard: `DISABLED`)
+
+#### 2-Stufen-Bereitstellung erforderlich (Supervisor Agent)
+
+Supervisor Agent kann nicht mit `AgentCollaboration=SUPERVISOR_ROUTER` und `AgentCollaborators` in einer einzigen CloudFormation-Operation erstellt werden.
+
+1. Supervisor Agent zuerst mit `AgentCollaboration=DISABLED` erstellen
+2. Custom Resource Lambda verwenden:
+   - `UpdateAgent` → auf `SUPERVISOR_ROUTER` ändern
+   - `AssociateAgentCollaborator` für jeden Collaborator
+   - `PrepareAgent`
+
+#### IAM-Berechtigungsanforderungen
+
+- Supervisor Agent IAM-Rolle benötigt: `bedrock:GetAgentAlias` + `bedrock:InvokeAgent` auf `agent-alias/*/*`
+- Custom Resource Lambda benötigt: `iam:PassRole` für die Supervisor-Rolle
+- `autoPrepare=true` kann nicht für Supervisor Agent verwendet werden (schlägt ohne Collaborators fehl)
+
+#### Collaborator Agent Aliases
+
+- Jeder Collaborator Agent benötigt einen `CfnAgentAlias` bevor er vom Supervisor referenziert werden kann
+- Alias ARN-Format: `arn:aws:bedrock:REGION:ACCOUNT:agent-alias/{agent-id}/{alias-id}`
+
+#### Docker-Image-Build (Lambda)
+
+- Apple Silicon: `Dockerfile.prebuilt` mit `--provenance=false --sbom=false` verwenden
+- `docker/app/Dockerfile` ist NICHT für Lambda Web Adapter (Legacy-Datei)
+- Nach ECR-Push `aws lambda update-function-code` direkt verwenden (CDK erkennt `latest`-Tag-Änderungen nicht)
+
+### Kostenstruktur
+
+| Szenario | Agent-Aufrufe | Geschätzte Kosten/Anfrage |
+|---|---|---|
+| Single Agent (bestehend) | 1 | ~$0,02 |
+| Multi-Agent (einfache Abfrage) | 2–3 | ~$0,06 |
+| Multi-Agent (komplexe Abfrage) | 4–6 | ~$0,17 |
+
+> Anforderungsbasierte Abrechnung — keine zusätzlichen Kosten bei Nichtverwendung.
+
 ## Lizenz
 
 [Apache License 2.0](LICENSE)

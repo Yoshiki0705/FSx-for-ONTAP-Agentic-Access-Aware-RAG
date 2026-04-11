@@ -1907,6 +1907,138 @@ Match → ALLOW, No match → DENY
 
 Whether using NTFS or UNIX volumes, the same SID filtering is applied as long as SID information is included in `.metadata.json`.
 
+## Multi-Agent Collaboration
+
+Leverages Amazon Bedrock Agents' **Supervisor + Collaborator pattern** to orchestrate multiple specialized agents that perform permission-filtered search, analysis, and document generation.
+
+### Architecture
+
+```mermaid
+graph TB
+    User[User] --> SA[Supervisor Agent<br/>Intent Detection & Routing]
+    SA --> PR[Permission Resolver<br/>SID/UID/GID Resolution]
+    SA --> RA[Retrieval Agent<br/>KB Search + Filter]
+    SA --> AA[Analysis Agent<br/>Context Analysis]
+    SA --> OA[Output Agent<br/>Document Generation]
+    SA -.-> VA[Vision Agent<br/>Image Understanding ※Optional]
+    PR --> UAT[(User Access Table)]
+    RA --> KB[(Bedrock KB)]
+    AA -.->|Filtered Context| RA
+    OA -.->|Filtered Context| RA
+```
+
+### Key Features
+
+- **Permission boundary preserved**: KB access restricted to Permission Resolver and Retrieval Agent only. Other agents use "filtered context" exclusively
+- **IAM role separation**: Each Collaborator gets a least-privilege individual IAM role
+- **Cost optimized**: Disabled by default (`enableMultiAgent: false`). Zero additional cost until enabled
+- **Two routing modes**: `supervisor_router` (low latency) / `supervisor` (complex tasks)
+- **UI toggle**: Switch between Single / Multi mode with one click in the chat UI
+- **Agent Trace**: Visualize multi-agent execution timeline and per-collaborator cost breakdown
+
+### UI Screenshots
+
+#### Agent Mode — Single/Multi Toggle
+
+The Agent mode header displays a Single/Multi toggle. Multi mode is enabled when a Team configuration is available.
+
+![Single/Multi Toggle](docs/screenshots/multi-agent-mode-toggle-production-ja.png)
+
+#### Agent Directory — Teams Tab + Template Gallery
+
+The Agent Directory includes a Teams tab with a template gallery for one-click Team creation.
+
+![Teams Tab + Template Gallery](docs/screenshots/multi-agent-teams-tab-production-ja.png)
+
+#### Team Creation Wizard — 5 Steps
+
+Clicking "+" on a template opens a 5-step Team creation wizard.
+
+![Team Creation Wizard Step 2: Collaborator Customization](docs/screenshots/multi-agent-team-wizard-step2-production-ja.png)
+
+![Team Creation Wizard Step 5: Confirmation (Estimated Cost)](docs/screenshots/multi-agent-team-wizard-step5-production-ja.png)
+
+#### Team Created — Team Card Display
+
+After creation, the Team card appears in the Teams tab showing agent count, routing mode, Trust Level, and Tool Profile badges.
+
+![Team Created](docs/screenshots/multi-agent-team-created-production-ja.png)
+
+#### Multi Mode Enabled — After Team Creation
+
+After creating a Team, the Multi mode toggle in the chat header becomes enabled (no longer disabled).
+
+![Multi Mode Enabled](docs/screenshots/multi-agent-mode-toggle-enabled-production-ja.png)
+
+#### Supervisor Agent Response — Permission-Filtered
+
+Selecting the Supervisor Agent and sending a chat message triggers the Collaborator Agent chain for KB search, returning a permission-filtered response with citations.
+
+![Supervisor Agent Response](docs/screenshots/multi-agent-supervisor-response-production-ja.png)
+
+### Deployment Notes
+
+Critical technical findings from actual AWS deployment.
+
+#### CloudFormation `AgentCollaboration` Valid Values
+
+- Valid values: `DISABLED` | `SUPERVISOR` | `SUPERVISOR_ROUTER` only
+- `COLLABORATOR` is NOT a valid value (despite appearing in some documentation)
+- Collaborator Agents should NOT set `AgentCollaboration` (defaults to `DISABLED`)
+
+#### 2-Stage Deploy Required (Supervisor Agent)
+
+Supervisor Agent cannot be created with `AgentCollaboration=SUPERVISOR_ROUTER` and `AgentCollaborators` in a single CloudFormation operation.
+
+1. Create Supervisor Agent with `AgentCollaboration=DISABLED` first
+2. Use a Custom Resource Lambda to:
+   - `UpdateAgent` → change to `SUPERVISOR_ROUTER`
+   - `AssociateAgentCollaborator` for each collaborator
+   - `PrepareAgent`
+
+#### IAM Permission Requirements
+
+- Supervisor Agent IAM role needs: `bedrock:GetAgentAlias` + `bedrock:InvokeAgent` on `agent-alias/*/*`
+- Custom Resource Lambda needs: `iam:PassRole` for the Supervisor role
+- `autoPrepare=true` cannot be used on Supervisor Agent (fails without collaborators)
+
+#### Collaborator Agent Aliases
+
+- Each Collaborator Agent needs a `CfnAgentAlias` before it can be referenced by the Supervisor
+- Alias ARN format: `arn:aws:bedrock:REGION:ACCOUNT:agent-alias/{agent-id}/{alias-id}`
+
+#### Docker Image Build (Lambda)
+
+- Apple Silicon: Must use `Dockerfile.prebuilt` with `--provenance=false --sbom=false`
+- `docker/app/Dockerfile` is NOT for Lambda Web Adapter (legacy file)
+- After ECR push, use `aws lambda update-function-code` directly (CDK doesn't detect `latest` tag changes)
+
+### Cost Structure
+
+| Scenario | Agent Calls | Est. Cost/Request |
+|---|---|---|
+| Single Agent (existing) | 1 | ~$0.02 |
+| Multi-Agent (simple query) | 2–3 | ~$0.06 |
+| Multi-Agent (complex query) | 4–6 | ~$0.17 |
+
+> Request-based pricing — no additional cost if not used.
+
+### CDK Parameters
+
+```jsonc
+{
+  "enableMultiAgent": false,              // Enable multi-agent (default: false)
+  "supervisorRoutingMode": "supervisor_router", // Routing mode
+  "supervisorAutoRouting": false,         // Auto routing
+  "enableVisionAgent": false,             // Enable Vision Agent
+  "defaultAgentMode": "single",           // Default mode (single / multi)
+  "retrievalMaxResults": 5,               // KB search max results
+  "mcpConnectors": [],                    // MCP connector config
+  "collaboratorModels": {},               // Per-collaborator model override
+  "ontapNameMappingEnabled": false        // ONTAP name-mapping
+}
+```
+
 ## License
 
 [Apache License 2.0](LICENSE)

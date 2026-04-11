@@ -4,6 +4,7 @@
  */
 
 import type { UpdateAgentFormData } from './agent-directory';
+import type { ToolProfile, TrustLevel, DataBoundary } from './multi-agent';
 
 // ---------------------------------------------------------------------------
 // Tool Selection (Action Groups)
@@ -80,6 +81,9 @@ export interface AgentConfig {
   };
   costTags?: CostTags;
   inferenceProfileArn?: string;
+  toolProfiles?: ToolProfile[];
+  trustLevel?: TrustLevel;
+  dataBoundary?: DataBoundary;
   exportedAt: string;
   exportedBy?: string;
 }

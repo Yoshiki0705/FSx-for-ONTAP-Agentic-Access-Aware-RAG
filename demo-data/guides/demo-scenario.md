@@ -234,3 +234,66 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 | セキュリティグループ | Lambda SGからLDAP SG へのポート389/636インバウンドを許可。LDAP SGからのHTTPS(443)アウトバウンドも必要（Secrets Manager/DynamoDB用） |
 | Secrets Manager | バインドパスワードはプレーンテキスト文字列として保存（JSON不要） |
 | VPC配置 | `ldapConfig` 指定時、CDKが自動的にLambdaをVPC内に配置し、LDAP用SGを作成 |
+
+
+---
+
+## 5. マルチエージェント協調デモ
+
+### 前提条件
+
+`cdk.context.json` で `enableMultiAgent: true` を設定してデプロイ済みであること。
+
+### 5-1. マルチエージェントモードの有効化
+
+1. チャット画面のヘッダーで **[Multi]** トグルをクリック
+2. Team選択ドロップダウンから「Permission RAG Team」を選択
+3. 新しいマルチエージェントセッションが自動作成される
+
+### 5-2. 権限フィルタリング付きマルチエージェント検索
+
+**admin ユーザーでサインイン:**
+
+```
+質問: 財務レポートの概要を教えてください
+```
+
+- Permission Resolver → SID解決 → Retrieval Agent → KB検索（フィルタ付き） → Analysis Agent → 回答生成
+- Agent Trace UIでタイムライン・コスト内訳を確認
+
+**user ユーザーでサインイン:**
+
+同じ質問を送信し、権限フィルタリングにより異なる結果が返ることを確認。
+
+### 5-3. Single Agent vs Multi-Agent 比較
+
+1. **Single モード**で質問を送信 → レスポンス時間・コストを記録
+2. **Multi モード**に切替 → 同じ質問を送信 → レスポンス時間・コストを比較
+3. Agent Trace UIで各Collaboratorの実行時間・トークン消費を確認
+
+### 5-4. デプロイ時の注意事項
+
+マルチエージェント機能のデプロイには以下の技術的制約があります:
+
+- **CloudFormation `AgentCollaboration` 有効値**: `DISABLED` | `SUPERVISOR` | `SUPERVISOR_ROUTER` のみ。`COLLABORATOR` は無効値
+- **2段階デプロイ**: Supervisor Agent は `DISABLED` で作成後、Custom Resource Lambda で `SUPERVISOR_ROUTER` に変更 → `AssociateAgentCollaborator` → `PrepareAgent` の順で実行
+- **IAM 権限**: Supervisor ロールに `bedrock:GetAgentAlias` + `bedrock:InvokeAgent`（`agent-alias/*/*`）、Custom Resource Lambda に `iam:PassRole` が必要
+- **Collaborator Alias**: 各 Collaborator Agent は `CfnAgentAlias` が必須（Supervisor からの参照に必要）
+- **autoPrepare=true 不可**: Supervisor Agent では Collaborator なしの状態で失敗するため使用不可
+
+### 5-5. 動作確認で得た知見
+
+- **Team一覧フェッチ**: チャットページのMultiモードトグルは、ページロード時にTeam一覧をAPIフェッチして`teams.length > 0`を確認する。Team未作成の場合はMultiモードが無効化される（設計通り）
+- **Supervisor Agent直接選択**: Supervisor Agentをドロップダウンから直接選択してSingle Agentモードで呼び出しても、Bedrock Agent側でマルチエージェント協調が処理される（Supervisor → Collaborator の実行フローが動作する）
+- **権限フィルタリング**: Supervisor Agent経由のレスポンスにも権限フィルタリング済みのcitationが含まれる（adminユーザーはconfidentialドキュメントも参照可能、一般ユーザーはpublicのみ）
+- **Docker イメージ更新**: コード変更後は `docker buildx build --provenance=false --sbom=false` → `aws lambda update-function-code` → `aws cloudfront create-invalidation` の3ステップが必要（CDKは`latest`タグの変更を検出しない）
+- **Multiモード統合**: Multiモードトグル → `/api/bedrock/agent-team/invoke` 呼び出し → `multiAgentTrace` 付きレスポンス → MultiAgentTraceTimeline + CostSummary の条件付きレンダリングが動作確認済み
+- **Collaboratorトレース**: Bedrock Agent InvokeAgent APIのトレースイベントからCollaborator実行情報を抽出する `buildCollaboratorTraces` は、Supervisor内部のCollaborator呼び出しがトレースに含まれない場合がある（Bedrock側の制約）。レスポンス自体は正常に返される
+- **Supervisor instruction改善**: Supervisor Agentの instruction を「必ずCollaboratorを呼び出す」よう明示的に記述することで、Collaborator呼び出しが安定する。Alias更新時に自動的に新バージョンが作成される（`update-agent-alias` → 新バージョン自動作成）
+- **Collaboratorトレース推定**: Bedrock Agent `SUPERVISOR_ROUTER` モードでは、Collaborator呼び出しのトレースが `collaboratorInvocationInput/Output` として返されない場合がある。`buildCollaboratorTraces` は rationale + modelInvocationOutput から推定トレースを構築するフォールバック戦略を実装
+- **routingClassifierTrace**: `SUPERVISOR_ROUTER` モードでは、Collaborator呼び出しのトレースは `orchestrationTrace` ではなく `routingClassifierTrace` 内の `agentCollaboratorInvocationInput/Output` に含まれる。`buildCollaboratorTraces` は両方のトレース形式を検索するよう修正済み
+- **filteredSearch Lambda SID自動解決**: Supervisor → RetrievalAgent → filteredSearch Lambda の呼び出しチェーンでは、`sessionAttributes` が Collaborator に伝播される。filteredSearch Lambda は `sessionAttributes.userId` から DynamoDB User Access Table を参照してSID情報を自動解決するフォールバックを実装。SIDパラメータなしでも権限フィルタリングが動作する
+- **KBメタデータのクォート問題**: Bedrock KB の `allowed_group_sids` メタデータは `['"S-1-1-0"']` のように余分なダブルクォートを含む場合がある。`cleanSID` 関数で除去して正しいSIDマッチングを実現
+- **Retrieval Agent instruction**: 「必ずfilteredSearchを呼び出す」「SIDが必要と自分で判断しない」と明示的に記述することで、Action Group Lambda の確実な呼び出しが実現
+- **Agent instruction多言語対応**: CDK `agentLanguage` プロパティ（デフォルト: `'auto'`）により、Agent instruction を英語ベースで記述し、回答言語はユーザーの入力言語に自動追従。`cdk.context.json` で `"agentLanguage": "Japanese"` 等の固定指定も可能
+- **E2E動作確認成功**: admin ユーザーで Multiモード → 「製品カタログの内容を教えてください」→ FSx for ONTAP 上の `product-catalog.md` の内容が権限フィルタリング済みで返却。RetrievalAgent 詳細パネル（実行時間 8.1s）、CostSummary（$0.049、入力11.6Kトークン）が正常表示

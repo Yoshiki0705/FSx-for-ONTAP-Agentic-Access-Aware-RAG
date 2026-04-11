@@ -17,6 +17,11 @@ import { SharedConfigPreview } from './SharedConfigPreview';
 import { ExecutionHistoryList } from './ExecutionHistoryList';
 import type { AgentDetail, UpdateAgentFormData } from '@/types/agent-directory';
 import type { AgentConfig, ExecutionRecord } from '@/types/enterprise-agent';
+import { TeamsTab } from './TeamsTab';
+import { TemplateGallery } from './TemplateGallery';
+import { TeamCreateWizard } from './TeamCreateWizard';
+import { useAgentTeamStore } from '@/store/useAgentTeamStore';
+import type { AgentTeamTemplate } from '@/types/multi-agent';
 
 interface AgentDirectoryProps { locale: string; initialCreateCategory?: string; }
 
@@ -40,6 +45,10 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [executions, setExecutions] = useState<ExecutionRecord[]>([]);
   const [executionsLoading, setExecutionsLoading] = useState(false);
+  const [showTeamWizard, setShowTeamWizard] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<AgentTeamTemplate | null>(null);
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const { setTeams } = useAgentTeamStore();
 
   useEffect(() => { if (initialCreateCategory && AGENT_CATEGORY_MAP[initialCreateCategory]) { setCreateCategory(initialCreateCategory); setViewMode('create'); } }, [initialCreateCategory, setViewMode]);
 
@@ -86,7 +95,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
   const categoryKeys = Object.keys(AGENT_CATEGORY_MAP);
   const handleBackToGrid = useCallback(() => { setSelectedAgent(null); setViewMode('grid'); }, [setSelectedAgent, setViewMode]);
   const creatorInitialData: UpdateAgentFormData | null = createCategory && AGENT_CATEGORY_MAP[createCategory] ? { agentName: AGENT_CATEGORY_MAP[createCategory].agentNamePattern, description: AGENT_CATEGORY_MAP[createCategory].description, instruction: AGENT_CATEGORY_MAP[createCategory].instruction, foundationModel: AGENT_CATEGORY_MAP[createCategory].foundationModel } : null;
-  const TABS = [{ key: 'agents' as const, label: t('tabs.agents') }, { key: 'shared' as const, label: t('tabs.shared') }, { key: 'schedules' as const, label: t('tabs.schedules') }];
+  const TABS = [{ key: 'agents' as const, label: t('tabs.agents') }, { key: 'teams' as const, label: '👥 Teams' }, { key: 'shared' as const, label: t('tabs.shared') }, { key: 'schedules' as const, label: t('tabs.schedules') }];
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -139,6 +148,78 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
           {!isLoading && !error && agents.length > 0 && filteredAgents.length === 0 && <p className="text-center text-gray-500 dark:text-gray-400 py-8">{t('noAgentsFound')}</p>}
           <AgentTemplateSection onSelectTemplate={handleTemplateSelect} locale={locale} />
         </>
+      )}
+
+      {viewMode === 'grid' && activeTab === 'teams' && (
+        <div>
+          {showTeamWizard && selectedTemplate ? (
+            <div>
+              <button
+                onClick={() => setShowTeamWizard(false)}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4"
+              >
+                ← Teams
+              </button>
+              <TeamCreateWizard
+                template={selectedTemplate}
+                isCreating={isCreatingTeam}
+                onCancel={() => setShowTeamWizard(false)}
+                onSubmit={async (config) => {
+                  setIsCreatingTeam(true);
+                  try {
+                    const r = await fetch('/api/bedrock/agent-team', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        action: 'create',
+                        ...config,
+                      }),
+                    });
+                    const d = await r.json();
+                    if (d.success) {
+                      // Refresh teams list
+                      const listRes = await fetch('/api/bedrock/agent-team', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'list' }),
+                      });
+                      const listData = await listRes.json();
+                      if (listData.success) setTeams(listData.teams || []);
+                      setShowTeamWizard(false);
+                      setSelectedTemplate(null);
+                    } else {
+                      setError(d.error || 'Failed to create team');
+                    }
+                  } catch {
+                    setError('Failed to create team');
+                  } finally {
+                    setIsCreatingTeam(false);
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <TemplateGallery
+                onSelectTemplate={(template: AgentTeamTemplate) => {
+                  setSelectedTemplate(template);
+                  setShowTeamWizard(true);
+                }}
+              />
+              <TeamsTab
+                activeTab="teams"
+                onTabChange={(tab) => {
+                  if (tab === 'agents') setActiveTab('agents');
+                  else if (tab === 'shared') setActiveTab('shared');
+                  else if (tab === 'teams') setActiveTab('teams');
+                }}
+                onUseInChat={(teamId) => {
+                  router.push(`/${locale}/genai?mode=agent`);
+                }}
+              />
+            </>
+          )}
+        </div>
       )}
 
       {viewMode === 'grid' && activeTab === 'shared' && (

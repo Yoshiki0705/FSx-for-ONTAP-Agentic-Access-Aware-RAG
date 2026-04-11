@@ -20,7 +20,7 @@ export interface AgentDirectoryState {
   searchQuery: string;
   selectedCategory: string; // 'all' | category key
   viewMode: 'grid' | 'detail' | 'edit' | 'create' | 'import';
-  activeTab: 'agents' | 'shared' | 'schedules';
+  activeTab: 'agents' | 'shared' | 'schedules' | 'teams';
   isLoading: boolean;
   error: string | null;
 
@@ -37,7 +37,7 @@ export interface AgentDirectoryState {
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (category: string) => void;
   setViewMode: (mode: 'grid' | 'detail' | 'edit' | 'create' | 'import') => void;
-  setActiveTab: (tab: 'agents' | 'shared' | 'schedules') => void;
+  setActiveTab: (tab: 'agents' | 'shared' | 'schedules' | 'teams') => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setCreationProgress: (progress: CreationProgress | null) => void;

@@ -4,6 +4,7 @@
  */
 
 import type { AgentSummary } from '@/hooks/useAgentsList';
+import type { ToolProfile, TrustLevel, DataBoundary } from './multi-agent';
 
 /**
  * Action Group概要情報
@@ -31,6 +32,11 @@ export interface AgentDetail {
   agentResourceRoleArn?: string;
   idleSessionTTLInSeconds?: number;
   actionGroups?: ActionGroupSummary[];
+  toolProfiles?: ToolProfile[];
+  trustLevel?: TrustLevel;
+  dataBoundary?: DataBoundary;
+  agentCollaboration?: 'SUPERVISOR' | 'COLLABORATOR' | 'DISABLED';
+  teamId?: string;
 }
 
 /**

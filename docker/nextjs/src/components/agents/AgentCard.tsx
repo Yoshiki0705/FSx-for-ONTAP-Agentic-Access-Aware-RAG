@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { inferCategoryTag } from '@/utils/agentCategoryUtils';
 import { getStatusStyle, isLoadingStatus } from '@/utils/agentStatusUtils';
 import type { AgentSummary } from '@/hooks/useAgentsList';
+import type { ToolProfile, TrustLevel, DataBoundary } from '@/types/multi-agent';
+import { AgentMetadataBadges } from './AgentMetadataBadges';
 
 // Re-export for backward compatibility
 export { getStatusStyle, isLoadingStatus } from '@/utils/agentStatusUtils';
@@ -12,9 +14,13 @@ interface AgentCardProps {
   agent: AgentSummary;
   categoryTag?: string;
   onClick: (agentId: string) => void;
+  /** Multi-agent metadata — optional, displayed as badges below description */
+  toolProfiles?: ToolProfile[];
+  trustLevel?: TrustLevel;
+  dataBoundary?: DataBoundary;
 }
 
-export function AgentCard({ agent, categoryTag, onClick }: AgentCardProps) {
+export function AgentCard({ agent, categoryTag, onClick, toolProfiles, trustLevel, dataBoundary }: AgentCardProps) {
   const t = useTranslations('agentDirectory');
   const category = categoryTag ?? inferCategoryTag(agent);
   const statusStyle = getStatusStyle(agent.agentStatus);
@@ -46,6 +52,17 @@ export function AgentCard({ agent, categoryTag, onClick }: AgentCardProps) {
         <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-3">
           {agent.description}
         </p>
+      )}
+
+      {/* Multi-agent metadata badges (Tool Profile / Trust Level / Data Boundary) */}
+      {(toolProfiles?.length || trustLevel || dataBoundary) && (
+        <div className="mb-3">
+          <AgentMetadataBadges
+            toolProfiles={toolProfiles}
+            trustLevel={trustLevel}
+            dataBoundary={dataBoundary}
+          />
+        </div>
       )}
 
       <div className="flex items-center gap-2 flex-wrap">

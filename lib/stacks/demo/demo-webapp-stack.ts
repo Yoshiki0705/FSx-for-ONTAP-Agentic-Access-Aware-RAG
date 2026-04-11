@@ -60,6 +60,14 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   agentSchedulerRoleArn?: string;
   /** AgentCore Memory ID（enableAgentCoreMemory時、AIStackから） */
   memoryId?: string;
+  /** Supervisor Agent ID（enableMultiAgent時、AIStackから） */
+  supervisorAgentId?: string;
+  /** Supervisor Agent Alias ID（enableMultiAgent時、AIStackから） */
+  supervisorAgentAliasId?: string;
+  /** デフォルトAgentモード（single / multi） */
+  defaultAgentMode?: 'single' | 'multi';
+  /** Agent Team DynamoDBテーブル名（enableMultiAgent時、AIStackから） */
+  agentTeamTableName?: string;
   /** 権限監査テーブル名（enableAdvancedPermissions時、StorageStackから） */
   permissionAuditTableName?: string;
   // --- 監視・アラート機能（オプション） ---
@@ -168,6 +176,11 @@ export class DemoWebAppStack extends cdk.Stack {
         // AgentCore Memory設定（オプション）
         ...(props.memoryId ? { AGENTCORE_MEMORY_ID: props.memoryId } : {}),
         ...(props.memoryId ? { ENABLE_AGENTCORE_MEMORY: 'true' } : {}),
+        // マルチエージェント協調設定（オプション）
+        ...(props.supervisorAgentId ? { SUPERVISOR_AGENT_ID: props.supervisorAgentId } : {}),
+        ...(props.supervisorAgentAliasId ? { SUPERVISOR_AGENT_ALIAS_ID: props.supervisorAgentAliasId } : {}),
+        ...(props.defaultAgentMode ? { DEFAULT_AGENT_MODE: props.defaultAgentMode } : {}),
+        ...(props.agentTeamTableName ? { AGENT_TEAM_TABLE_NAME: props.agentTeamTableName } : {}),
         // 高度権限制御設定（オプション）
         ...(props.permissionAuditTableName ? { ENABLE_ADVANCED_PERMISSIONS: 'true' } : {}),
         ...(props.permissionAuditTableName ? { PERMISSION_AUDIT_TABLE_NAME: props.permissionAuditTableName } : {}),
@@ -295,6 +308,23 @@ export class DemoWebAppStack extends cdk.Stack {
     // DynamoDB権限（権限キャッシュ + ユーザーアクセス）
     permissionCacheTable.grantReadWriteData(this.webAppFunction);
     userAccessTable.grantReadData(this.webAppFunction);
+
+    // Agent Team DynamoDB テーブル権限（enableMultiAgent時）
+    if (props.agentTeamTableName) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'dynamodb:GetItem',
+          'dynamodb:PutItem',
+          'dynamodb:UpdateItem',
+          'dynamodb:DeleteItem',
+          'dynamodb:Scan',
+          'dynamodb:Query',
+        ],
+        resources: [
+          `arn:aws:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/${props.agentTeamTableName}`,
+        ],
+      }));
+    }
 
     // S3権限（KBデータソースバケットの.metadata.json読み取り、オプション）
     if (dataBucket) {

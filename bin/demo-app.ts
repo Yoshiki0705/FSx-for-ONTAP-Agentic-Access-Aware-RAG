@@ -129,6 +129,20 @@ const vectorStoreType = (app.node.tryGetContext('vectorStoreType') || 's3vectors
 // AgentCore機能（オプション）
 const enableAgentCoreMemory = ctxBool('enableAgentCoreMemory');
 
+// マルチエージェント協調（オプション）
+const enableMultiAgent = ctxBool('enableMultiAgent');
+const supervisorRoutingMode = (app.node.tryGetContext('supervisorRoutingMode') || 'supervisor_router') as 'supervisor_router' | 'supervisor';
+const supervisorAutoRouting = ctxBool('supervisorAutoRouting');
+const enableVisionAgent = ctxBool('enableVisionAgent');
+const defaultAgentMode = (app.node.tryGetContext('defaultAgentMode') || 'single') as 'single' | 'multi';
+const retrievalMaxResults = parseInt(app.node.tryGetContext('retrievalMaxResults'), 10) || 5;
+const mcpConnectors = app.node.tryGetContext('mcpConnectors') as Array<{
+  connectorType: 'ontap-ops' | 'identity-access' | 'document-workflow';
+  endpointUrl: string;
+  allowedOperations: string[];
+}> | undefined;
+const collaboratorModels = app.node.tryGetContext('collaboratorModels') as Record<string, string> | undefined;
+
 // 高度権限制御（オプション）
 const enableAdvancedPermissions = ctxBool('enableAdvancedPermissions');
 
@@ -233,11 +247,21 @@ const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   enableAgentSharing,
   enableAgentSchedules,
   enableAgentCoreMemory,
+  enableMultiAgent,
+  supervisorRoutingMode,
+  supervisorAutoRouting,
+  enableVisionAgent,
+  defaultAgentMode,
+  retrievalMaxResults,
+  mcpConnectors,
+  collaboratorModels,
+  ontapNameMappingEnabled,
+  agentLanguage: (app.node.tryGetContext('agentLanguage') as string) || 'auto',
   userAccessTableName: storageStack.userAccessTable.tableName,
   userAccessTableArn: storageStack.userAccessTable.tableArn,
   vectorStoreType: vectorStoreType as 's3vectors' | 'opensearch-serverless',
   env: primaryEnv,
-  description: `[${projectName}] Bedrock KB, ${vectorStoreType === 'opensearch-serverless' ? 'OpenSearch Serverless' : 'S3 Vectors'}${enableAgent ? ', Bedrock Agent' : ''}${enableAgentSharing ? ', Agent Sharing' : ''}${enableAgentSchedules ? ', Agent Schedules' : ''}`,
+  description: `[${projectName}] Bedrock KB, ${vectorStoreType === 'opensearch-serverless' ? 'OpenSearch Serverless' : 'S3 Vectors'}${enableAgent ? ', Bedrock Agent' : ''}${enableMultiAgent ? ', Multi-Agent Collaboration' : ''}${enableAgentSharing ? ', Agent Sharing' : ''}${enableAgentSchedules ? ', Agent Schedules' : ''}`,
 });
 aiStack.addDependency(storageStack);
 
@@ -265,6 +289,11 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentSchedulerRoleArn: aiStack.schedulerRoleArn,
   // AgentCore Memory（オプション）
   memoryId: aiStack.memoryId,
+  // マルチエージェント協調（オプション）
+  supervisorAgentId: enableMultiAgent ? aiStack.supervisorAgentId : undefined,
+  supervisorAgentAliasId: enableMultiAgent ? aiStack.supervisorAgentAliasId : undefined,
+  defaultAgentMode: enableMultiAgent ? defaultAgentMode : 'single',
+  agentTeamTableName: enableMultiAgent ? aiStack.agentTeamTableName : undefined,
   // 高度権限制御（オプション）
   permissionAuditTableName: storageStack.permissionAuditTable?.tableName,
   // 監視・アラート機能（オプション）
