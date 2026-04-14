@@ -1885,7 +1885,7 @@ function ChatbotPageContent() {
             selectedModelId={selectedModelId}
             onModelChange={setSelectedModelId}
             onCreateAgent={() => {
-              window.dispatchEvent(new CustomEvent('open-agent-creation-wizard'));
+              router.push(`/${memoizedLocale}/genai/agents`);
             }}
             userName={user?.username}
             userEmail={user?.email || user?.username}

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import { NormalizedAgentInfo, AgentStatus } from '@/types/bedrock-agent';
 import { formatAgentInfoForDisplay } from '@/hooks/useAgentInfoNormalization';
@@ -79,65 +81,22 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
     }
   }, [selectedAgent, agents.length]);
 
-  // Agent作成ウィザードイベントリスナー
+  // Agent作成 → Agent Directory へナビゲーション
+  const router = useRouter();
+  const currentLocale = useLocale();
+
   useEffect(() => {
-    const handleAgentCreationWizard = async (event: CustomEvent) => {
-      console.log('🚀 [AgentInfoSection] Agent作成ウィザードイベント受信:', event.detail);
-      
-      // シンプルなAgent作成フォーム
-      const agentName = prompt('Agent名を入力してください（例: マーケティング支援Agent）:');
-      
-      if (!agentName || !agentName.trim()) {
-        return;
-      }
-
-      try {
-        console.log('🚀 [AgentInfoSection] Agent作成開始:', agentName.trim());
-        
-        const response = await fetch('/api/bedrock/create-agent', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: agentName.trim(),
-            description: `${agentName.trim()} - Created via UI`,
-            instructions: 'You are a helpful AI assistant. Please provide accurate and helpful responses to user questions.',
-            foundationModel: 'anthropic.claude-3-sonnet-20240229-v1:0',
-            region: bedrockConfig?.region || 'ap-northeast-1',
-          }),
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-          alert(`Agent "${agentName.trim()}" を作成しました！`);
-          
-          // 作成されたAgentを選択
-          if (data.agent?.agentId) {
-            setSelectedAgentId(data.agent.agentId);
-          }
-          
-          // ページをリロードして最新の状態を反映
-          window.location.reload();
-        } else {
-          console.error('❌ [AgentInfoSection] Agent作成失敗:', data.error);
-          alert(`Agent作成に失敗しました: ${data.error}`);
-        }
-      } catch (error) {
-        console.error('❌ [AgentInfoSection] Agent作成エラー:', error);
-        alert('Agent作成中にエラーが発生しました');
-      }
+    const handleAgentCreationWizard = () => {
+      console.log('🚀 [AgentInfoSection] Agent Directory へナビゲーション');
+      router.push(`/${currentLocale}/genai/agents`);
     };
 
-    // イベントリスナーを追加
     window.addEventListener('open-agent-creation-wizard', handleAgentCreationWizard as EventListener);
     
-    // クリーンアップ
     return () => {
       window.removeEventListener('open-agent-creation-wizard', handleAgentCreationWizard as EventListener);
     };
-  }, [bedrockConfig?.region, setSelectedAgentId]);
+  }, [router, currentLocale]);
 
   // ステータスに応じたスタイル設定
   const getStatusStyle = (status: AgentStatus) => {
@@ -274,15 +233,7 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
         </h3>
         <Button
           onClick={() => {
-            // Agent作成ウィザードを開くグローバルイベントを発火
-            const event = new CustomEvent('open-agent-creation-wizard', {
-              detail: {
-                source: 'AgentInfoSection',
-                timestamp: Date.now()
-              }
-            });
-            window.dispatchEvent(event);
-            console.log('🚀 [AgentInfoSection] Agent作成ウィザード開始イベント発火');
+            router.push(`/${currentLocale}/genai/agents`);
           }}
           size="sm"
           variant="outline"
@@ -469,15 +420,7 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
       <div className="flex gap-2">
         <Button
           onClick={() => {
-            // Agent作成ウィザードを開くグローバルイベントを発火
-            const event = new CustomEvent('open-agent-creation-wizard', {
-              detail: {
-                source: 'AgentInfoSection-CreateButton',
-                timestamp: Date.now()
-              }
-            });
-            window.dispatchEvent(event);
-            console.log('🚀 [AgentInfoSection] Agent作成ウィザード開始イベント発火（作成ボタン）');
+            router.push(`/${currentLocale}/genai/agents`);
           }}
           size="sm"
           className="flex-1 text-xs"
