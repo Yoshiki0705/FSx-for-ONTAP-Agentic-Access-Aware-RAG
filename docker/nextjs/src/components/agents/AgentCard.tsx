@@ -6,6 +6,7 @@ import { getStatusStyle, isLoadingStatus } from '@/utils/agentStatusUtils';
 import type { AgentSummary } from '@/hooks/useAgentsList';
 import type { ToolProfile, TrustLevel, DataBoundary } from '@/types/multi-agent';
 import { AgentMetadataBadges } from './AgentMetadataBadges';
+import { PolicyBadge } from './PolicyBadge';
 
 // Re-export for backward compatibility
 export { getStatusStyle, isLoadingStatus } from '@/utils/agentStatusUtils';
@@ -18,9 +19,11 @@ interface AgentCardProps {
   toolProfiles?: ToolProfile[];
   trustLevel?: TrustLevel;
   dataBoundary?: DataBoundary;
+  /** Whether this agent has a policy applied */
+  hasPolicy?: boolean;
 }
 
-export function AgentCard({ agent, categoryTag, onClick, toolProfiles, trustLevel, dataBoundary }: AgentCardProps) {
+export function AgentCard({ agent, categoryTag, onClick, toolProfiles, trustLevel, dataBoundary, hasPolicy }: AgentCardProps) {
   const t = useTranslations('agentDirectory');
   const category = categoryTag ?? inferCategoryTag(agent);
   const statusStyle = getStatusStyle(agent.agentStatus);
@@ -71,6 +74,7 @@ export function AgentCard({ agent, categoryTag, onClick, toolProfiles, trustLeve
             {category}
           </span>
         )}
+        <PolicyBadge hasPolicy={!!hasPolicy} />
       </div>
     </button>
   );

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { VoiceButton } from './VoiceButton';
+import { useVoiceSession } from '@/hooks/useVoiceSession';
 
 interface MessageInputProps {
   value: string;
@@ -14,7 +16,7 @@ interface MessageInputProps {
 
 /**
  * 拡張メッセージ入力コンポーネント
- * 複数行入力、自動高さ調整、文字数カウンター
+ * 複数行入力、自動高さ調整、文字数カウンター、音声入力ボタン
  */
 export function MessageInput({
   value,
@@ -27,6 +29,8 @@ export function MessageInput({
 }: MessageInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [rows, setRows] = useState(1);
+  const { isRecording, startRecording, stopRecording, sessionState } = useVoiceSession();
+  const isVoiceActive = sessionState !== 'idle' && sessionState !== 'error';
 
   // 自動高さ調整
   useEffect(() => {
@@ -79,13 +83,23 @@ export function MessageInput({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        disabled={disabled}
+        disabled={disabled || isVoiceActive}
         maxLength={maxLength}
         rows={rows}
-        className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-sm resize-none"
+        className="w-full px-4 py-3 pr-20 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-sm resize-none"
         aria-label="メッセージ入力"
         aria-describedby="message-input-help"
       />
+
+      {/* 音声入力ボタン */}
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        <VoiceButton
+          disabled={disabled}
+          isRecording={isRecording}
+          onRecordingStart={startRecording}
+          onRecordingStop={stopRecording}
+        />
+      </div>
 
       {/* ヘルプテキスト */}
       <div id="message-input-help" className="sr-only">

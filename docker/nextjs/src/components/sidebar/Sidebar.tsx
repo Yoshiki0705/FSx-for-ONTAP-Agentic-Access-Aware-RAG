@@ -8,6 +8,8 @@ import { useChatStore } from '@/store/useChatStore';
 import { AnimatedSidebar, AnimatedSidebarContent, AnimatedSidebarItem } from './AnimatedSidebar';
 import { ChatHistorySearch } from './ChatHistorySearch';
 import { SidebarSections } from './SidebarSections';
+import { GuardrailsAdminPanel } from '@/components/guardrails/GuardrailsAdminPanel';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { Plus, Settings, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -22,6 +24,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose, currentSessionId, onNewChat, onSessionSelect }: SidebarProps) {
   const locale = useLocale();
   const t = useCustomTranslations(locale);
+  const { guardrailsEnabled } = useFeatureFlags();
   
   // searchQueryをローカルstateに変更
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,6 +112,10 @@ export function Sidebar({ isOpen, onClose, currentSessionId, onNewChat, onSessio
       </div>
 
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        {/* Guardrails Admin Panel (admin only, when enabled) */}
+        {guardrailsEnabled && (
+          <GuardrailsAdminPanel enableGuardrails={true} isAdmin={true} />
+        )}
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <span>{sortedSessions.length}件のチャット</span>
           {searchQuery && (

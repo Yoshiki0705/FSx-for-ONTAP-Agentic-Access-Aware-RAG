@@ -10,3 +10,4 @@ export { SidebarSections } from './SidebarSections';
 export { RoutingToggle } from './RoutingToggle';
 export { SessionList } from './SessionList';
 export { MemorySection } from './MemorySection';
+export { EmbeddingModelInfo } from './EmbeddingModelInfo';

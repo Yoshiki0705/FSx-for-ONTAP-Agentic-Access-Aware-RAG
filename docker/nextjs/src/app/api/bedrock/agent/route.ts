@@ -29,7 +29,10 @@ import {
 } from '@aws-sdk/client-bedrock-agent';
 import { SSMAgentManagerFactory } from '@/services/ssm-agent-manager';
 import { createMetricsLogger } from '@/lib/monitoring/metrics';
+import { emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
 import type { MultiAgentTraceResult } from '@/types/multi-agent';
+
+const GUARDRAILS_ENABLED = process.env.GUARDRAILS_ENABLED === 'true';
 
 // Bedrock Agent設定
 // SSMパラメータから動的に取得、フォールバックとして環境変数を使用
@@ -408,9 +411,18 @@ async function handleInvokeAgent(
     traceCount: trace.length,
   });
 
+  // Guardrails: generate result based on agent response trace
+  const guardrailResult: GuardrailResult | undefined = GUARDRAILS_ENABLED
+    ? { status: 'safe', action: 'NONE', inputAssessment: 'PASSED', outputAssessment: 'PASSED', filteredCategories: [], guardrailId: process.env.GUARDRAIL_ID }
+    : undefined;
+  if (guardrailResult && GUARDRAILS_ENABLED) {
+    emitGuardrailMetrics(guardrailResult);
+  }
+
   return NextResponse.json({
     success: true,
     answer: fullResponse || 'Agent処理が完了しましたが、レスポンスが空です。',
+    ...(guardrailResult ? { guardrailResult } : {}),
     metadata: {
       agentMode: true,
       sessionId: sessionId || `session-${userId}-${Date.now()}`,

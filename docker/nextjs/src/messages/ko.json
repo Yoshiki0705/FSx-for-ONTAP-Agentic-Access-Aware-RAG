@@ -63,6 +63,26 @@
     "currentRegionModels": "현재 리전 모델 수"
   },
   "chat": {
+    "guardrailsStatus": {
+      "safe": "안전",
+      "filtered": "필터됨",
+      "blocked": "차단됨",
+      "checkUnavailable": "확인 불가",
+      "tooltipTitle": "Guardrails 상세",
+      "inputAssessment": "입력 확인",
+      "outputAssessment": "출력 확인",
+      "filteredCategories": "필터 카테고리",
+      "passed": "통과",
+      "categories": {
+        "SEXUAL": "성적 콘텐츠",
+        "VIOLENCE": "폭력",
+        "HATE": "혐오",
+        "INSULTS": "모욕",
+        "MISCONDUCT": "부정행위",
+        "PROMPT_ATTACK": "프롬프트 공격",
+        "PII": "개인정보"
+      }
+    },
     "agentModeLabel": "Agent 모드",
     "agentProcessingDetailed": "Agent가 요청을 처리 중입니다...",
     "agentProcessingSteps": "Agent가 쿼리를 분석하는 동안 잠시 기다려 주세요",
@@ -107,6 +127,51 @@
     "saveHistory": "기록 저장",
     "autoTitleGeneration": "자동 제목 생성",
     "sessionActive": "세션 활성",
+    "multimodal": {
+      "mediaText": "텍스트",
+      "mediaImage": "이미지",
+      "mediaVideo": "동영상",
+      "mediaAudio": "오디오",
+      "filterAll": "전체",
+      "filterText": "텍스트",
+      "filterImage": "이미지",
+      "filterVideo": "동영상",
+      "filterAudio": "오디오",
+      "similaritySearch": "유사 검색",
+      "visionAnalysis": "Vision 분석",
+      "embeddingModel": "임베딩 모델",
+      "multimodalBadge": "멀티모달",
+      "textOnlyBadge": "텍스트 전용",
+      "supportedTypes": "지원 미디어 유형: 텍스트, 이미지, 동영상, 오디오",
+      "cdkRedeployNote": "임베딩 모델 변경에는 CDK 재배포 및 전체 데이터 재수집이 필요합니다",
+      "dualKbText": "텍스트 전용 검색",
+      "dualKbMultimodal": "멀티모달 검색",
+      "fallbackMessage": "멀티모달 검색을 사용할 수 없어 텍스트 검색 결과를 표시합니다",
+      "noAccessibleResults": "접근 가능한 검색 결과가 없습니다",
+      "imageSearchFailed": "이미지 유사 검색에 실패했습니다. Vision 분석을 시도해 주세요",
+      "imageSearchFallback": "이미지 검색 시간이 초과되어 텍스트 검색으로 전환되었습니다"
+    },
+    "voice": {
+      "startRecording": "음성 입력 시작",
+      "stopRecording": "음성 입력 중지",
+      "recording": "녹음 중...",
+      "processing": "음성 처리 중...",
+      "playback": "음성 재생 중",
+      "pause": "일시정지",
+      "resume": "재개",
+      "stop": "정지",
+      "volumeControl": "음량 조절",
+      "waveformInput": "입력 음성 파형",
+      "waveformOutput": "출력 음성 파형",
+      "micPermissionDenied": "마이크 접근이 거부되었습니다. 브라우저 설정에서 마이크 접근을 허용해 주세요",
+      "connectionFailed": "음성 서비스에 연결할 수 없습니다. 텍스트 입력을 이용해 주세요",
+      "recognitionFailed": "음성을 인식할 수 없습니다. 다시 시도해 주세요",
+      "apiError": "음성 처리 중 오류가 발생했습니다",
+      "noResults": "접근 가능한 검색 결과가 없습니다",
+      "fallbackToText": "텍스트 입력으로 전환되었습니다",
+      "shortcut": "단축키: {shortcut}",
+      "silenceTimeout": "무음이 감지되어 녹음이 중지되었습니다"
+    },
     "introduction": {
       "welcome": "안녕하세요, {username}님!",
       "title": "권한 인식 RAG 챗봇에 오신 것을 환영합니다 🎉",
@@ -341,7 +406,28 @@
     "settingsPanel": "설정 패널",
     "systemInfo": "시스템",
     "userInfo": "사용자 정보",
-    "writePermission": "쓰기"
+    "writePermission": "쓰기",
+    "guardrailsPanel": {
+      "title": "가드레일",
+      "enabled": "활성",
+      "disabled": "비활성",
+      "guardrailId": "Guardrail ID",
+      "accountGuardrails": "계정 Guardrails",
+      "orgGuardrails": "조직 Guardrails",
+      "orgEnabled": "조직 가드레일: 활성",
+      "orgNotConfigured": "조직 가드레일: 미설정",
+      "orgUnavailable": "조직 가드레일: 확인 불가",
+      "contentFilters": "콘텐츠 필터",
+      "piiDetection": "PII 감지",
+      "topicPolicies": "주제 정책",
+      "contextualGrounding": "컨텍스트 근거 확인",
+      "filterStrength": {
+        "NONE": "없음",
+        "LOW": "낮음",
+        "MEDIUM": "중간",
+        "HIGH": "높음"
+      }
+    }
   },
   "theme": {
     "dark": "다크 모드",
@@ -700,6 +786,75 @@
       "agents": "Agent 목록",
       "shared": "공유 Agent",
       "schedules": "스케줄 작업"
+    },
+    "registry": {
+      "tab": "Registry",
+      "tabWithRegion": "Registry ({region})",
+      "searchPlaceholder": "에이전트, 도구, MCP 서버 검색...",
+      "filterAll": "전체",
+      "filterAgent": "에이전트",
+      "filterTool": "도구",
+      "filterMcpServer": "MCP 서버",
+      "noResults": "Registry 레코드를 찾을 수 없습니다",
+      "noResultsSearch": "\"{query}\"에 대한 결과가 없습니다",
+      "loadMore": "더 보기",
+      "loading": "로드 중...",
+      "import": "가져오기",
+      "importing": "가져오는 중...",
+      "importSuccess": "에이전트를 가져왔습니다: {name}",
+      "importFailed": "가져오기 실패: {error}",
+      "publish": "Registry에 게시",
+      "publishing": "게시 중...",
+      "publishSuccess": "Registry에 게시되었습니다 (승인 대기 중)",
+      "publishFailed": "게시 실패: {error}",
+      "pendingApproval": "승인 대기",
+      "approved": "승인됨",
+      "rejected": "거부됨",
+      "publisher": "게시자",
+      "protocols": "프로토콜",
+      "services": "관련 서비스",
+      "invocation": "호출 방법",
+      "createdAt": "생성일",
+      "updatedAt": "업데이트일",
+      "foundationModel": "기반 모델",
+      "actionGroups": "액션 그룹",
+      "knowledgeBases": "지식 베이스",
+      "mcpEndpoint": "엔드포인트",
+      "mcpTools": "도구",
+      "mcpAuth": "인증 방식",
+      "errorTitle": "Registry 오류",
+      "errorMessage": "Agent Registry에 연결할 수 없습니다",
+      "errorRetry": "재시도",
+      "regionUnsupported": "배포 리전이 Agent Registry를 지원하지 않습니다. cdk.context.json에서 `agentRegistryRegion`을 설정하세요: {regions}",
+      "regionConnected": "{region}에 연결됨"
+    },
+    "policy": {
+      "sectionTitle": "정책 설정",
+      "templateLabel": "템플릿 선택",
+      "templateNone": "템플릿 없음 (사용자 정의)",
+      "securityName": "보안 중심",
+      "securityDesc": "KB 검색만 허용. 외부 API 및 MCP 서버 접근을 차단합니다.",
+      "securityText": "이 에이전트는 KB 검색만 사용할 수 있습니다. 외부 API 접근 및 MCP 서버 연결이 금지되어 있습니다.",
+      "costName": "비용 중심",
+      "costDesc": "경량 모델 호출만 허용. 대규모 데이터 처리를 차단합니다.",
+      "costText": "이 에이전트는 경량 모델 호출만 허용됩니다. 대규모 데이터 처리 및 고비용 API 호출이 금지되어 있습니다.",
+      "flexibilityName": "유연성 중심",
+      "flexibilityDesc": "모든 도구 접근 허용. 모든 작업의 로그 기록이 필수입니다.",
+      "flexibilityText": "이 에이전트는 모든 도구와 API에 접근할 수 있습니다. 단, 모든 작업이 로그에 기록됩니다.",
+      "inputLabel": "정책 정의 (자연어)",
+      "inputPlaceholder": "에이전트의 행동 제약을 자연어로 기술하세요...",
+      "charCount": "{count}/2000자",
+      "badge": "🛡️ 정책 적용 중",
+      "noPolicy": "정책 미설정",
+      "deleteConfirmTitle": "정책을 삭제하시겠습니까?",
+      "deleteConfirmMessage": "이 에이전트의 정책을 삭제하면 행동 제약이 해제됩니다.",
+      "deleteConfirmButton": "삭제",
+      "cancelButton": "취소",
+      "saveError": "정책 저장에 실패했습니다. 다시 시도해 주세요.",
+      "deleteError": "정책 삭제에 실패했습니다. 다시 시도해 주세요.",
+      "evaluationBlocked": "정책에 의해 제한된 작업입니다",
+      "evaluationFailed": "정책 평가에 실패했습니다. 관리자에게 문의하세요.",
+      "detailTitle": "정책"
     }
   },
   "signin": {
@@ -767,6 +922,26 @@
       "noSessions": "세션이 없습니다",
       "lastUpdated": "최종 업데이트",
       "messageCount": "메시지 수"
+    },
+    "episodes": {
+      "tab": "에피소드",
+      "search": "에피소드 검색...",
+      "noEpisodes": "에피소드가 없습니다",
+      "noResults": "일치하는 에피소드를 찾을 수 없습니다",
+      "goal": "목표",
+      "steps": "추론 단계",
+      "actions": "액션",
+      "outcome": "결과",
+      "reflection": "회고",
+      "statusSuccess": "성공",
+      "statusPartial": "부분 성공",
+      "statusFailure": "실패",
+      "deleteConfirm": "이 에피소드를 삭제하시겠습니까?",
+      "deleteError": "에피소드 삭제에 실패했습니다",
+      "fetchError": "에피소드를 가져오지 못했습니다. 다시 시도해 주세요",
+      "referenceBadge": "과거 경험 참조",
+      "stepCount": "{count}단계",
+      "refreshButton": "새로고침"
     }
   },
   "smartRouting": {
@@ -811,6 +986,81 @@
   "modelIndicator": {
     "label": "모델 선택기",
     "fallbackNotice": "모델 변경: {previous} → {current}"
+  },
+  "teamWizard": {
+    "steps": {
+      "teamInfo": "팀 정보",
+      "collaborators": "협력자",
+      "tools": "도구",
+      "routing": "라우팅",
+      "confirm": "확인"
+    },
+    "teamInfo": {
+      "title": "팀 이름 및 설명",
+      "name": "팀 이름",
+      "description": "설명"
+    },
+    "collaborators": {
+      "title": "협력자 커스터마이징",
+      "agentName": "Agent 이름",
+      "instruction": "지시",
+      "foundationModel": "기반 모델",
+      "trustLevel": "신뢰 수준",
+      "dataBoundary": "데이터 경계",
+      "roles": {
+        "permission-resolver": "권한 해결",
+        "retrieval": "검색 Agent",
+        "analysis": "분석 Agent",
+        "output": "출력 Agent",
+        "vision": "비전 Agent"
+      },
+      "defaultInstructions": {
+        "permission-resolver": "사용자 SID/UID/GID 권한을 해결합니다",
+        "retrieval": "메타데이터 필터를 사용하여 KB 검색을 실행합니다",
+        "analysis": "컨텍스트 요약 및 추론을 수행합니다",
+        "output": "문서를 생성합니다",
+        "vision": "이미지 이해 및 분석을 수행합니다"
+      }
+    },
+    "tools": {
+      "title": "도구 선택",
+      "categories": {
+        "permission": "권한 및 접근",
+        "analysis": "분석 및 생성",
+        "sharing": "공유 및 통합"
+      },
+      "descriptions": {
+        "access-check": "SID/UID/GID 권한 해결, User Access Table 조회",
+        "kb-retrieve": "Bedrock KB 검색 (메타데이터 필터 포함)",
+        "vision-analyze": "이미지 이해 및 분석 (멀티모달 모델)",
+        "schedule-run": "예약 실행 (Background Agent)",
+        "share-agent": "S3 버킷을 통한 Agent/Team 공유"
+      }
+    },
+    "routing": {
+      "title": "라우팅 모드",
+      "supervisorRouter": "Supervisor Router",
+      "supervisorRouterDesc": "Supervisor가 쿼리 내용에 따라 최적의 Collaborator를 자동 선택합니다",
+      "supervisor": "Supervisor",
+      "supervisorDesc": "Supervisor가 모든 Collaborator에 순차적으로 질의하고 결과를 통합합니다"
+    },
+    "confirm": {
+      "title": "확인",
+      "costEstimate": "예상 비용 (요청당)",
+      "collaboratorCount": "협력자 수",
+      "toolCount": "도구 수"
+    },
+    "buttons": {
+      "cancel": "취소",
+      "back": "← 이전",
+      "next": "다음 →",
+      "create": "🚀 팀 생성",
+      "add": "+ 추가",
+      "delete": "삭제"
+    },
+    "toolSelectDesc": "각 Collaborator에 할당할 도구를 선택하세요.",
+    "toolSecurityNote": "⚠️ 보안상의 이유로 일반 셸 실행 및 무제한 파일 작업은 사용할 수 없습니다",
+    "autoRouting": "자동 라우팅 (쿼리 복잡도에 따라 자동으로 모드 선택)"
   },
   "templateGallery": {
     "title": "템플릿 갤러리",

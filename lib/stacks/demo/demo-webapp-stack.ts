@@ -60,6 +60,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   agentSchedulerRoleArn?: string;
   /** AgentCore Memory ID（enableAgentCoreMemory時、AIStackから） */
   memoryId?: string;
+  /** エピソード記憶有効化フラグ（enableEpisodicMemory時、AIStackから） */
+  enableEpisodicMemory?: boolean;
   /** Supervisor Agent ID（enableMultiAgent時、AIStackから） */
   supervisorAgentId?: string;
   /** Supervisor Agent Alias ID（enableMultiAgent時、AIStackから） */
@@ -101,6 +103,22 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   callbackUrl?: string;
   /** SAML IdP名（デフォルト: "ActiveDirectory"） */
   idpName?: string;
+  /** Agent Registry 有効化フラグ（AIStackから） */
+  enableAgentRegistry?: boolean;
+  /** Agent Registry リージョン（AIStackから） */
+  agentRegistryRegion?: string;
+  /** Agent Registry ARN（cdk.context.json から） */
+  agentRegistryArn?: string;
+  /** Bedrock Guardrail ID（AIStackから、enableGuardrails=true 時のみ） */
+  guardrailId?: string;
+  /** Bedrock Guardrail Version（AIStackから、enableGuardrails=true 時のみ） */
+  guardrailVersion?: string;
+  /** 音声チャット有効化フラグ（AIStackから） */
+  enableVoiceChat?: boolean;
+  /** AgentCore Policy 有効化フラグ（デフォルト: false） */
+  enableAgentPolicy?: boolean;
+  /** ポリシー評価失敗時の挙動（デフォルト: 'fail-open'） */
+  policyFailureMode?: 'fail-open' | 'fail-closed';
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -176,6 +194,8 @@ export class DemoWebAppStack extends cdk.Stack {
         // AgentCore Memory設定（オプション）
         ...(props.memoryId ? { AGENTCORE_MEMORY_ID: props.memoryId } : {}),
         ...(props.memoryId ? { ENABLE_AGENTCORE_MEMORY: 'true' } : {}),
+        // Episodic Memory設定（オプション）
+        ...(props.enableEpisodicMemory ? { EPISODIC_MEMORY_ENABLED: 'true' } : {}),
         // マルチエージェント協調設定（オプション）
         ...(props.supervisorAgentId ? { SUPERVISOR_AGENT_ID: props.supervisorAgentId } : {}),
         ...(props.supervisorAgentAliasId ? { SUPERVISOR_AGENT_ALIAS_ID: props.supervisorAgentAliasId } : {}),
@@ -194,6 +214,20 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(props.cognitoClientSecret ? { COGNITO_CLIENT_SECRET: props.cognitoClientSecret } : {}),
         ...(props.callbackUrl ? { CALLBACK_URL: props.callbackUrl } : {}),
         ...(props.idpName ? { IDP_NAME: props.idpName } : {}),
+        // Agent Registry設定（オプション）
+        ...(props.enableAgentRegistry ? { ENABLE_AGENT_REGISTRY: 'true' } : {}),
+        ...(props.agentRegistryRegion ? { AGENT_REGISTRY_REGION: props.agentRegistryRegion } : {}),
+        ...(props.agentRegistryArn ? { AGENT_REGISTRY_ARN: props.agentRegistryArn } : {}),
+        // Guardrails設定（オプション）
+        ...(props.guardrailId ? { GUARDRAILS_ENABLED: 'true' } : {}),
+        ...(props.guardrailId ? { GUARDRAIL_ID: props.guardrailId } : {}),
+        ...(props.guardrailVersion ? { GUARDRAIL_VERSION: props.guardrailVersion } : {}),
+        // 音声チャット設定（オプション）
+        VOICE_CHAT_ENABLED: props.enableVoiceChat ? 'true' : 'false',
+        ...(props.enableVoiceChat ? { NOVA_SONIC_MODEL_ID: 'amazon.nova-sonic-v1:0' } : {}),
+        // AgentCore Policy設定（オプション）
+        AGENT_POLICY_ENABLED: props.enableAgentPolicy ? 'true' : 'false',
+        ...(props.enableAgentPolicy ? { POLICY_FAILURE_MODE: props.policyFailureMode ?? 'fail-open' } : {}),
       },
     });
 
@@ -263,6 +297,55 @@ export class DemoWebAppStack extends cdk.Stack {
       resources: ['*'],
     }));
 
+    // Guardrails API 権限（enableGuardrails=true 時のみ）
+    if (props.guardrailId) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'bedrock:ApplyGuardrail',
+          'bedrock:GetGuardrail',
+          'bedrock:ListGuardrails',
+        ],
+        resources: ['*'],
+      }));
+    }
+
+    // 音声チャット（Nova Sonic）権限（enableVoiceChat=true 時のみ）
+    if (props.enableVoiceChat) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'bedrock:InvokeModelWithBidirectionalStream',
+        ],
+        resources: [
+          `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/amazon.nova-sonic-v1:0`,
+        ],
+      }));
+    }
+
+    // AgentCore Policy API 権限（enableAgentPolicy=true 時のみ）
+    // GA版: Policy Engine + Gateway + Policy CRUD
+    if (props.enableAgentPolicy) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        sid: 'AgentCorePolicyAccess',
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'bedrock-agentcore:CreatePolicyEngine',
+          'bedrock-agentcore:GetPolicyEngine',
+          'bedrock-agentcore:ListPolicyEngines',
+          'bedrock-agentcore:DeletePolicyEngine',
+          'bedrock-agentcore:CreatePolicy',
+          'bedrock-agentcore:GetPolicy',
+          'bedrock-agentcore:UpdatePolicy',
+          'bedrock-agentcore:DeletePolicy',
+          'bedrock-agentcore:StartPolicyGeneration',
+          'bedrock-agentcore:GetPolicyGeneration',
+          'bedrock-agentcore:CreateGateway',
+          'bedrock-agentcore:GetGateway',
+          'bedrock-agentcore:ListGateways',
+        ],
+        resources: ['*'],
+      }));
+    }
+
     // AgentCore Memory API 権限（enableAgentCoreMemory=true 時のみ必要）
     // Lambda から AgentCore Memory API を呼び出すために必要。
     // memoryId が渡されている場合のみ追加（CDK条件付き）。
@@ -276,6 +359,44 @@ export class DemoWebAppStack extends cdk.Stack {
           'bedrock-agentcore:RetrieveMemoryRecords',
         ],
         resources: [`arn:aws:bedrock-agentcore:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:memory/*`],
+      }));
+    }
+
+    // Episodic Memory API 権限（enableEpisodicMemory=true 時のみ追加）
+    if (props.enableEpisodicMemory) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        sid: 'EpisodicMemoryAccess',
+        actions: [
+          'bedrock-agentcore:SearchMemory',
+          'bedrock-agentcore:DeleteMemoryRecord',
+        ],
+        resources: [`arn:aws:bedrock-agentcore:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:memory/*`],
+      }));
+    }
+
+    // AgentCore Registry API 権限（enableAgentRegistry=true 時のみ必要）
+    // Lambda から AgentCore Registry API を呼び出すために必要。
+    // GA版: コントロールプレーン（CRUD）+ データプレーン（検索）
+    if (props.enableAgentRegistry) {
+      const registryRegion = props.agentRegistryRegion || cdk.Aws.REGION;
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          // データプレーン（検索）
+          'bedrock-agentcore:SearchRegistryRecords',
+          // コントロールプレーン（CRUD）
+          'bedrock-agentcore:CreateRegistry',
+          'bedrock-agentcore:GetRegistry',
+          'bedrock-agentcore:CreateRegistryRecord',
+          'bedrock-agentcore:GetRegistryRecord',
+          'bedrock-agentcore:ListRegistryRecords',
+          'bedrock-agentcore:UpdateRegistryRecord',
+          'bedrock-agentcore:DeleteRegistryRecord',
+          'bedrock-agentcore:UpdateRegistryRecordStatus',
+          'bedrock-agentcore:SubmitRegistryRecordForApproval',
+        ],
+        resources: [
+          `arn:aws:bedrock-agentcore:${registryRegion}:${cdk.Aws.ACCOUNT_ID}:*`,
+        ],
       }));
     }
 
@@ -472,6 +593,18 @@ export class DemoWebAppStack extends cdk.Stack {
     cdk.Tags.of(this).add('Project', projectName);
     cdk.Tags.of(this).add('Environment', environment);
 
+    // AgentCore Policy CfnOutput（enableAgentPolicy=true 時のみ）
+    if (props.enableAgentPolicy) {
+      new cdk.CfnOutput(this, 'AgentPolicyEnabled', {
+        value: 'true',
+        description: 'AgentCore Policy is enabled',
+      });
+      new cdk.CfnOutput(this, 'PolicyFailureMode', {
+        value: props.policyFailureMode ?? 'fail-open',
+        description: 'Policy evaluation failure mode',
+      });
+    }
+
     // ========================================
     // 監視・アラート機能（オプション）
     // ========================================
@@ -493,6 +626,8 @@ export class DemoWebAppStack extends cdk.Stack {
         enableAgentCoreObservability: props.enableAgentCoreObservability,
         alarmEvaluationPeriods: props.alarmEvaluationPeriods,
         dashboardRefreshInterval: props.dashboardRefreshInterval,
+        guardrailId: props.guardrailId,
+        enableAgentPolicy: props.enableAgentPolicy,
       });
     }
   }

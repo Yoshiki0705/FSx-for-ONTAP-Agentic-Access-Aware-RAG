@@ -25,7 +25,28 @@
     "sessionActive": "セッション有効",
     "newSession": "新しいセッション",
     "regionSelection": "リージョン選択",
-    "kbFeatures": "KB機能"
+    "kbFeatures": "KB機能",
+    "guardrailsPanel": {
+      "title": "ガードレール",
+      "enabled": "有効",
+      "disabled": "無効",
+      "guardrailId": "Guardrail ID",
+      "accountGuardrails": "アカウント Guardrails",
+      "orgGuardrails": "組織 Guardrails",
+      "orgEnabled": "組織ガードレール: 有効",
+      "orgNotConfigured": "組織ガードレール: 未設定",
+      "orgUnavailable": "組織ガードレール: 確認不可",
+      "contentFilters": "コンテンツフィルタ",
+      "piiDetection": "PII 検出",
+      "topicPolicies": "トピックポリシー",
+      "contextualGrounding": "コンテキスト接地チェック",
+      "filterStrength": {
+        "NONE": "なし",
+        "LOW": "低",
+        "MEDIUM": "中",
+        "HIGH": "高"
+      }
+    }
   },
   "common": {
     "loading": "読み込み中...",
@@ -122,6 +143,26 @@
   },
   "chat": {
     "newChat": "新しいチャット",
+    "guardrailsStatus": {
+      "safe": "安全",
+      "filtered": "フィルタ済み",
+      "blocked": "ブロック",
+      "checkUnavailable": "チェック不可",
+      "tooltipTitle": "Guardrails 詳細",
+      "inputAssessment": "入力チェック",
+      "outputAssessment": "出力チェック",
+      "filteredCategories": "フィルタカテゴリ",
+      "passed": "通過",
+      "categories": {
+        "SEXUAL": "性的コンテンツ",
+        "VIOLENCE": "暴力",
+        "HATE": "ヘイト",
+        "INSULTS": "侮辱",
+        "MISCONDUCT": "不正行為",
+        "PROMPT_ATTACK": "プロンプト攻撃",
+        "PII": "個人情報"
+      }
+    },
     "chatHistory": "チャット履歴",
     "newChatShortcut": "新しいチャットを開始 (Ctrl+N)",
     "kbFeatures": "KB機能",
@@ -155,7 +196,52 @@
     },
     "saveHistory": "履歴を保存",
     "autoTitleGeneration": "自動タイトル生成",
-    "sessionActive": "セッション有効"
+    "sessionActive": "セッション有効",
+    "multimodal": {
+      "mediaText": "テキスト",
+      "mediaImage": "画像",
+      "mediaVideo": "動画",
+      "mediaAudio": "音声",
+      "filterAll": "すべて",
+      "filterText": "テキスト",
+      "filterImage": "画像",
+      "filterVideo": "動画",
+      "filterAudio": "音声",
+      "similaritySearch": "類似検索",
+      "visionAnalysis": "Vision分析",
+      "embeddingModel": "埋め込みモデル",
+      "multimodalBadge": "マルチモーダル対応",
+      "textOnlyBadge": "テキスト専用",
+      "supportedTypes": "対応メディアタイプ: テキスト・画像・動画・音声",
+      "cdkRedeployNote": "埋め込みモデルの変更にはCDK再デプロイと全データの再インジェストが必要です",
+      "dualKbText": "テキスト専用検索",
+      "dualKbMultimodal": "マルチモーダル検索",
+      "fallbackMessage": "マルチモーダル検索が利用できないため、テキスト検索で結果を表示しています",
+      "noAccessibleResults": "アクセス可能な検索結果がありません",
+      "imageSearchFailed": "画像の類似検索に失敗しました。Vision分析をお試しください",
+      "imageSearchFallback": "画像検索がタイムアウトしました。テキスト検索にフォールバックしました"
+    },
+    "voice": {
+      "startRecording": "音声入力を開始",
+      "stopRecording": "音声入力を停止",
+      "recording": "録音中...",
+      "processing": "音声を処理中...",
+      "playback": "音声再生中",
+      "pause": "一時停止",
+      "resume": "再開",
+      "stop": "停止",
+      "volumeControl": "音量調整",
+      "waveformInput": "入力音声波形",
+      "waveformOutput": "出力音声波形",
+      "micPermissionDenied": "マイクへのアクセスが拒否されました。ブラウザの設定からマイクアクセスを許可してください",
+      "connectionFailed": "音声サービスに接続できません。テキスト入力をご利用ください",
+      "recognitionFailed": "音声を認識できませんでした。もう一度お試しください",
+      "apiError": "音声処理中にエラーが発生しました",
+      "noResults": "アクセス可能な検索結果がありません",
+      "fallbackToText": "テキスト入力に切り替えました",
+      "shortcut": "ショートカット: {shortcut}",
+      "silenceTimeout": "無音が検出されたため録音を停止しました"
+    }
   },
   "introduction": {
     "welcome": "こんにちは、{username}さん！",
@@ -548,6 +634,75 @@
       "agents": "Agent一覧",
       "shared": "共有Agent",
       "schedules": "スケジュールタスク"
+    },
+    "registry": {
+      "tab": "Registry",
+      "tabWithRegion": "Registry ({region})",
+      "searchPlaceholder": "Agent、ツール、MCPサーバーを検索...",
+      "filterAll": "すべて",
+      "filterAgent": "Agent",
+      "filterTool": "ツール",
+      "filterMcpServer": "MCPサーバー",
+      "noResults": "Registryレコードが見つかりません",
+      "noResultsSearch": "「{query}」の検索結果はありません",
+      "loadMore": "さらに読み込む",
+      "loading": "読み込み中...",
+      "import": "インポート",
+      "importing": "インポート中...",
+      "importSuccess": "Agentをインポートしました: {name}",
+      "importFailed": "インポートに失敗しました: {error}",
+      "publish": "Registryにパブリッシュ",
+      "publishing": "パブリッシュ中...",
+      "publishSuccess": "Registryにパブリッシュしました（承認待ち）",
+      "publishFailed": "パブリッシュに失敗しました: {error}",
+      "pendingApproval": "承認待ち",
+      "approved": "承認済み",
+      "rejected": "却下",
+      "publisher": "パブリッシャー",
+      "protocols": "プロトコル",
+      "services": "関連サービス",
+      "invocation": "呼び出し方法",
+      "createdAt": "作成日",
+      "updatedAt": "更新日",
+      "foundationModel": "基盤モデル",
+      "actionGroups": "アクショングループ",
+      "knowledgeBases": "ナレッジベース",
+      "mcpEndpoint": "エンドポイント",
+      "mcpTools": "ツール",
+      "mcpAuth": "認証方式",
+      "errorTitle": "Registryエラー",
+      "errorMessage": "Agent Registryに接続できません",
+      "errorRetry": "再試行",
+      "regionUnsupported": "デプロイリージョンはAgent Registry非対応です。cdk.context.jsonで`agentRegistryRegion`を設定してください: {regions}",
+      "regionConnected": "{region}に接続中"
+    },
+    "policy": {
+      "sectionTitle": "ポリシー設定",
+      "templateLabel": "テンプレート選択",
+      "templateNone": "テンプレートなし（カスタム）",
+      "securityName": "セキュリティ重視",
+      "securityDesc": "KB検索のみ許可。外部API・MCPサーバーアクセスを禁止します。",
+      "securityText": "このエージェントはKB検索のみ使用可能です。外部APIアクセスおよびMCPサーバーへの接続は禁止されています。",
+      "costName": "コスト重視",
+      "costDesc": "軽量モデル呼び出しのみ許可。大規模データ処理を禁止します。",
+      "costText": "このエージェントは軽量モデルの呼び出しのみ許可されています。大規模データ処理や高コストのAPI呼び出しは禁止されています。",
+      "flexibilityName": "柔軟性重視",
+      "flexibilityDesc": "全ツールアクセスを許可。全アクションのログ記録が必須です。",
+      "flexibilityText": "このエージェントは全てのツールとAPIにアクセスできます。ただし、全てのアクションはログに記録されます。",
+      "inputLabel": "ポリシー定義（自然言語）",
+      "inputPlaceholder": "エージェントの行動制約を自然言語で記述してください...",
+      "charCount": "{count}/2000文字",
+      "badge": "🛡️ ポリシー適用中",
+      "noPolicy": "ポリシー未設定",
+      "deleteConfirmTitle": "ポリシーを削除しますか？",
+      "deleteConfirmMessage": "このエージェントのポリシーを削除すると、行動制約が解除されます。",
+      "deleteConfirmButton": "削除",
+      "cancelButton": "キャンセル",
+      "saveError": "ポリシーの保存に失敗しました。再試行してください。",
+      "deleteError": "ポリシーの削除に失敗しました。再試行してください。",
+      "evaluationBlocked": "ポリシーにより制限されたアクションです",
+      "evaluationFailed": "ポリシー評価に失敗しました。管理者に連絡してください。",
+      "detailTitle": "ポリシー"
     }
   },
   "signin": {
@@ -615,6 +770,26 @@
       "noSessions": "セッションはありません",
       "lastUpdated": "最終更新",
       "messageCount": "メッセージ数"
+    },
+    "episodes": {
+      "tab": "エピソード",
+      "search": "エピソードを検索...",
+      "noEpisodes": "エピソードはありません",
+      "noResults": "該当するエピソードが見つかりません",
+      "goal": "目標",
+      "steps": "推論ステップ",
+      "actions": "アクション",
+      "outcome": "結果",
+      "reflection": "振り返り",
+      "statusSuccess": "成功",
+      "statusPartial": "部分成功",
+      "statusFailure": "失敗",
+      "deleteConfirm": "このエピソードを削除しますか？",
+      "deleteError": "エピソードの削除に失敗しました",
+      "fetchError": "エピソードの取得に失敗しました。再試行してください",
+      "referenceBadge": "過去の経験を参照",
+      "stepCount": "{count}ステップ",
+      "refreshButton": "更新"
     }
   },
   "smartRouting": {
@@ -659,6 +834,81 @@
   "modelIndicator": {
     "label": "モデル選択",
     "fallbackNotice": "モデル変更: {previous} → {current}"
+  },
+  "teamWizard": {
+    "steps": {
+      "teamInfo": "チーム情報",
+      "collaborators": "コラボレーター",
+      "tools": "ツール",
+      "routing": "ルーティング",
+      "confirm": "確認"
+    },
+    "teamInfo": {
+      "title": "チーム名・説明",
+      "name": "チーム名",
+      "description": "説明"
+    },
+    "collaborators": {
+      "title": "コラボレーターカスタマイズ",
+      "agentName": "Agent名",
+      "instruction": "指示",
+      "foundationModel": "基盤モデル",
+      "trustLevel": "信頼レベル",
+      "dataBoundary": "データ境界",
+      "roles": {
+        "permission-resolver": "権限解決",
+        "retrieval": "検索Agent",
+        "analysis": "分析Agent",
+        "output": "出力Agent",
+        "vision": "画像分析Agent"
+      },
+      "defaultInstructions": {
+        "permission-resolver": "ユーザーのSID/UID/GID権限を解決する",
+        "retrieval": "KBメタデータフィルタ付き検索を実行する",
+        "analysis": "コンテキスト要約・推論を実行する",
+        "output": "ドキュメント生成を実行する",
+        "vision": "画像理解・分析を実行する"
+      }
+    },
+    "tools": {
+      "title": "ツール選択",
+      "categories": {
+        "permission": "権限・アクセス系",
+        "analysis": "分析・生成系",
+        "sharing": "共有・連携系"
+      },
+      "descriptions": {
+        "access-check": "SID/UID/GID権限解決、User Access Table参照",
+        "kb-retrieve": "Bedrock KB検索（メタデータフィルタ付き）",
+        "vision-analyze": "画像理解・分析（マルチモーダルモデル使用）",
+        "schedule-run": "スケジュール実行（Background Agent）",
+        "share-agent": "S3バケット経由のAgent/Team共有"
+      }
+    },
+    "routing": {
+      "title": "ルーティングモード",
+      "supervisorRouter": "Supervisor Router",
+      "supervisorRouterDesc": "Supervisorがクエリ内容に基づいて最適なCollaboratorを自動選択",
+      "supervisor": "Supervisor",
+      "supervisorDesc": "Supervisorが全Collaboratorに順次問い合わせ、結果を統合"
+    },
+    "confirm": {
+      "title": "確認",
+      "costEstimate": "推定コスト（1リクエストあたり）",
+      "collaboratorCount": "コラボレーター数",
+      "toolCount": "ツール数"
+    },
+    "buttons": {
+      "cancel": "キャンセル",
+      "back": "← 前へ",
+      "next": "次へ →",
+      "create": "🚀 チームを作成",
+      "add": "+ 追加",
+      "delete": "削除"
+    },
+    "toolSelectDesc": "各 Collaborator に割り当てるツールを選択してください。",
+    "toolSecurityNote": "⚠️ 汎用シェル実行、無制限ファイル操作はセキュリティ上の理由で利用できません",
+    "autoRouting": "自動ルーティング（クエリ複雑度に基づきモードを自動選択）"
   },
   "templateGallery": {
     "title": "テンプレートギャラリー",

@@ -83,6 +83,26 @@
     "currentRegionModels": "当前区域模型数"
   },
   "chat": {
+    "guardrailsStatus": {
+      "safe": "安全",
+      "filtered": "已过滤",
+      "blocked": "已阻止",
+      "checkUnavailable": "无法检查",
+      "tooltipTitle": "Guardrails 详情",
+      "inputAssessment": "输入检查",
+      "outputAssessment": "输出检查",
+      "filteredCategories": "过滤类别",
+      "passed": "通过",
+      "categories": {
+        "SEXUAL": "色情内容",
+        "VIOLENCE": "暴力",
+        "HATE": "仇恨言论",
+        "INSULTS": "侮辱",
+        "MISCONDUCT": "不当行为",
+        "PROMPT_ATTACK": "提示攻击",
+        "PII": "个人信息"
+      }
+    },
     "agentMode": "Agent 模式",
     "agentModeLabel": "Agent 模式",
     "agentProcessingDetailed": "Agent正在处理您的请求...",
@@ -128,6 +148,51 @@
       "automaticDocumentSearchDesc": "自动搜索和引用相关文档",
       "contextOptimization": "上下文优化",
       "contextOptimizationDesc": "根据上下文生成最佳回答"
+    },
+    "multimodal": {
+      "mediaText": "文本",
+      "mediaImage": "图片",
+      "mediaVideo": "视频",
+      "mediaAudio": "音频",
+      "filterAll": "全部",
+      "filterText": "文本",
+      "filterImage": "图片",
+      "filterVideo": "视频",
+      "filterAudio": "音频",
+      "similaritySearch": "相似搜索",
+      "visionAnalysis": "Vision 分析",
+      "embeddingModel": "嵌入模型",
+      "multimodalBadge": "多模态",
+      "textOnlyBadge": "纯文本",
+      "supportedTypes": "支持的媒体类型：文本、图片、视频、音频",
+      "cdkRedeployNote": "更改嵌入模型需要重新部署 CDK 并完整重新导入数据",
+      "dualKbText": "纯文本搜索",
+      "dualKbMultimodal": "多模态搜索",
+      "fallbackMessage": "多模态搜索不可用，正在显示文本搜索结果",
+      "noAccessibleResults": "未找到可访问的搜索结果",
+      "imageSearchFailed": "图片相似搜索失败，请尝试 Vision 分析",
+      "imageSearchFallback": "图片搜索超时，已切换至文本搜索"
+    },
+    "voice": {
+      "startRecording": "开始语音输入",
+      "stopRecording": "停止语音输入",
+      "recording": "录音中...",
+      "processing": "语音处理中...",
+      "playback": "语音播放中",
+      "pause": "暂停",
+      "resume": "继续",
+      "stop": "停止",
+      "volumeControl": "音量调节",
+      "waveformInput": "输入语音波形",
+      "waveformOutput": "输出语音波形",
+      "micPermissionDenied": "麦克风访问被拒绝。请在浏览器设置中允许麦克风访问",
+      "connectionFailed": "无法连接语音服务。请使用文本输入",
+      "recognitionFailed": "无法识别语音。请重试",
+      "apiError": "语音处理过程中发生错误",
+      "noResults": "没有可访问的搜索结果",
+      "fallbackToText": "已切换至文本输入",
+      "shortcut": "快捷键: {shortcut}",
+      "silenceTimeout": "检测到静音，录音已停止"
     },
     "introduction": {
       "welcome": "你好，{username}！",
@@ -401,7 +466,28 @@
     "settingsPanel": "设置面板",
     "systemInfo": "系统",
     "userInfo": "用户信息",
-    "writePermission": "写入"
+    "writePermission": "写入",
+    "guardrailsPanel": {
+      "title": "护栏",
+      "enabled": "已启用",
+      "disabled": "已禁用",
+      "guardrailId": "Guardrail ID",
+      "accountGuardrails": "账户 Guardrails",
+      "orgGuardrails": "组织 Guardrails",
+      "orgEnabled": "组织护栏: 已启用",
+      "orgNotConfigured": "组织护栏: 未配置",
+      "orgUnavailable": "组织护栏: 无法确认",
+      "contentFilters": "内容过滤",
+      "piiDetection": "PII 检测",
+      "topicPolicies": "主题策略",
+      "contextualGrounding": "上下文接地检查",
+      "filterStrength": {
+        "NONE": "无",
+        "LOW": "低",
+        "MEDIUM": "中",
+        "HIGH": "高"
+      }
+    }
   },
   "theme": {
     "current": "当前: {mode}",
@@ -767,6 +853,75 @@
       "agents": "Agent列表",
       "shared": "共享Agent",
       "schedules": "调度任务"
+    },
+    "registry": {
+      "tab": "Registry",
+      "tabWithRegion": "Registry ({region})",
+      "searchPlaceholder": "搜索代理、工具、MCP服务器...",
+      "filterAll": "全部",
+      "filterAgent": "代理",
+      "filterTool": "工具",
+      "filterMcpServer": "MCP服务器",
+      "noResults": "未找到Registry记录",
+      "noResultsSearch": "未找到\"{query}\"的结果",
+      "loadMore": "加载更多",
+      "loading": "加载中...",
+      "import": "导入",
+      "importing": "导入中...",
+      "importSuccess": "成功导入代理: {name}",
+      "importFailed": "导入失败: {error}",
+      "publish": "发布到Registry",
+      "publishing": "发布中...",
+      "publishSuccess": "已发布到Registry（等待审批）",
+      "publishFailed": "发布失败: {error}",
+      "pendingApproval": "等待审批",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "publisher": "发布者",
+      "protocols": "协议",
+      "services": "相关服务",
+      "invocation": "调用方式",
+      "createdAt": "创建时间",
+      "updatedAt": "更新时间",
+      "foundationModel": "基础模型",
+      "actionGroups": "操作组",
+      "knowledgeBases": "知识库",
+      "mcpEndpoint": "端点",
+      "mcpTools": "工具",
+      "mcpAuth": "认证方式",
+      "errorTitle": "Registry错误",
+      "errorMessage": "无法连接到Agent Registry",
+      "errorRetry": "重试",
+      "regionUnsupported": "您的部署区域不支持Agent Registry。请在cdk.context.json中设置`agentRegistryRegion`: {regions}",
+      "regionConnected": "已连接到{region}"
+    },
+    "policy": {
+      "sectionTitle": "策略设置",
+      "templateLabel": "选择模板",
+      "templateNone": "无模板（自定义）",
+      "securityName": "安全优先",
+      "securityDesc": "仅允许KB搜索。禁止外部API和MCP服务器访问。",
+      "securityText": "此代理仅可使用KB搜索。禁止外部API访问和MCP服务器连接。",
+      "costName": "成本优先",
+      "costDesc": "仅允许轻量模型调用。禁止大规模数据处理。",
+      "costText": "此代理仅允许调用轻量模型。禁止大规模数据处理和高成本API调用。",
+      "flexibilityName": "灵活性优先",
+      "flexibilityDesc": "允许所有工具访问。所有操作必须记录日志。",
+      "flexibilityText": "此代理可以访问所有工具和API。但所有操作都会被记录。",
+      "inputLabel": "策略定义（自然语言）",
+      "inputPlaceholder": "用自然语言描述代理的行为约束...",
+      "charCount": "{count}/2000字符",
+      "badge": "🛡️ 策略已启用",
+      "noPolicy": "未设置策略",
+      "deleteConfirmTitle": "删除策略？",
+      "deleteConfirmMessage": "删除此代理的策略将解除所有行为约束。",
+      "deleteConfirmButton": "删除",
+      "cancelButton": "取消",
+      "saveError": "策略保存失败，请重试。",
+      "deleteError": "策略删除失败，请重试。",
+      "evaluationBlocked": "操作被策略限制",
+      "evaluationFailed": "策略评估失败，请联系管理员。",
+      "detailTitle": "策略"
     }
   },
   "signin": {
@@ -834,6 +989,26 @@
       "noSessions": "没有会话",
       "lastUpdated": "最后更新",
       "messageCount": "消息数"
+    },
+    "episodes": {
+      "tab": "情景记忆",
+      "search": "搜索情景记忆...",
+      "noEpisodes": "没有情景记忆",
+      "noResults": "未找到匹配的情景记忆",
+      "goal": "目标",
+      "steps": "推理步骤",
+      "actions": "操作",
+      "outcome": "结果",
+      "reflection": "反思",
+      "statusSuccess": "成功",
+      "statusPartial": "部分成功",
+      "statusFailure": "失败",
+      "deleteConfirm": "确定要删除此情景记忆吗？",
+      "deleteError": "删除情景记忆失败",
+      "fetchError": "获取情景记忆失败，请重试",
+      "referenceBadge": "参考了过去的经验",
+      "stepCount": "{count}个步骤",
+      "refreshButton": "刷新"
     }
   },
   "smartRouting": {
@@ -878,6 +1053,81 @@
   "modelIndicator": {
     "label": "模型选择器",
     "fallbackNotice": "模型已更改：{previous} → {current}"
+  },
+  "teamWizard": {
+    "steps": {
+      "teamInfo": "团队信息",
+      "collaborators": "协作者",
+      "tools": "工具",
+      "routing": "路由",
+      "confirm": "确认"
+    },
+    "teamInfo": {
+      "title": "团队名称与描述",
+      "name": "团队名称",
+      "description": "描述"
+    },
+    "collaborators": {
+      "title": "协作者自定义",
+      "agentName": "Agent 名称",
+      "instruction": "指令",
+      "foundationModel": "基础模型",
+      "trustLevel": "信任级别",
+      "dataBoundary": "数据边界",
+      "roles": {
+        "permission-resolver": "权限解析",
+        "retrieval": "检索 Agent",
+        "analysis": "分析 Agent",
+        "output": "输出 Agent",
+        "vision": "视觉 Agent"
+      },
+      "defaultInstructions": {
+        "permission-resolver": "解析用户 SID/UID/GID 权限",
+        "retrieval": "使用元数据过滤器执行 KB 搜索",
+        "analysis": "执行上下文摘要和推理",
+        "output": "生成文档",
+        "vision": "执行图像理解和分析"
+      }
+    },
+    "tools": {
+      "title": "工具选择",
+      "categories": {
+        "permission": "权限与访问",
+        "analysis": "分析与生成",
+        "sharing": "共享与集成"
+      },
+      "descriptions": {
+        "access-check": "SID/UID/GID 权限解析，User Access Table 查询",
+        "kb-retrieve": "Bedrock KB 搜索（含元数据过滤器）",
+        "vision-analyze": "图像理解与分析（多模态模型）",
+        "schedule-run": "定时执行（Background Agent）",
+        "share-agent": "通过 S3 存储桶共享 Agent/Team"
+      }
+    },
+    "routing": {
+      "title": "路由模式",
+      "supervisorRouter": "Supervisor Router",
+      "supervisorRouterDesc": "Supervisor 根据查询内容自动选择最优 Collaborator",
+      "supervisor": "Supervisor",
+      "supervisorDesc": "Supervisor 依次查询所有 Collaborator 并整合结果"
+    },
+    "confirm": {
+      "title": "确认",
+      "costEstimate": "预估费用（每次请求）",
+      "collaboratorCount": "协作者数量",
+      "toolCount": "工具数量"
+    },
+    "buttons": {
+      "cancel": "取消",
+      "back": "← 上一步",
+      "next": "下一步 →",
+      "create": "🚀 创建团队",
+      "add": "+ 添加",
+      "delete": "删除"
+    },
+    "toolSelectDesc": "选择要分配给每个协作者的工具。",
+    "toolSecurityNote": "⚠️ 出于安全原因，不提供通用 Shell 执行和无限制文件操作",
+    "autoRouting": "自动路由（根据查询复杂度自动选择模式）"
   },
   "templateGallery": {
     "title": "模板库",

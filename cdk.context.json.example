@@ -20,6 +20,19 @@
   // "opensearch-serverless": OpenSearch Serverless — 高パフォーマンス、~$700/月、本番環境向け
   "vectorStoreType": "s3vectors",
 
+  // 埋め込みモデル構成（オプション）
+  // "titan-text-v2" (デフォルト): Amazon Titan Text Embeddings v2（テキスト専用、1024次元）
+  // "nova-multimodal": Amazon Nova Multimodal Embeddings（テキスト・画像・動画・音声、1024次元）
+  // ⚠️ 変更には KB 再作成と全データの再インジェストが必要
+  // ⚠️ nova-multimodal は us-east-1, us-west-2 のみ対応
+  // "embeddingModel": "titan-text-v2",
+
+  // マルチモーダル KB モード（embeddingModel: "nova-multimodal" 時のみ有効）
+  // "replace" (デフォルト): 単一 KB（選択した埋め込みモデルのみ）
+  // "dual": テキスト専用 KB (titan-text-v2) + マルチモーダル KB (nova-multimodal) の並行運用
+  //         段階的なマルチモーダル移行に推奨
+  // "multimodalKbMode": "replace",
+
   // 既存FSx for ONTAP参照（オプション）
   // 指定するとFSx/SVM/Volumeを新規作成せず、既存リソースを参照する
   // デプロイ時間が大幅に短縮される（FSx作成の30-40分待ちが不要）
@@ -37,6 +50,28 @@
   "enableAgentSchedules": false,
   // "enableAgentCoreMemory": AgentCore Memory（短期・長期メモリ）。enableAgent=true が前提条件
   "enableAgentCoreMemory": false,
+  // "enableEpisodicMemory": エピソード記憶（Episodic Memory）。enableAgentCoreMemory=true が前提条件
+  // エージェントの過去の経験（目標、推論ステップ、結果、振り返り）を記録・検索する
+  // "enableEpisodicMemory": false,
+  // "enableVoiceChat": 音声チャット（Amazon Nova Sonic）。デフォルト: false
+  // 有効化すると Lambda に bedrock:InvokeModelWithBidirectionalStream 権限が付与される
+  // 推定月額コスト: $70〜$100（入力 ~$0.0019/分、出力 ~$0.0076/分）
+  "enableVoiceChat": false,
+  // "enableAgentPolicy": AgentCore Policy（エージェント行動制御）。enableAgent=true が前提条件
+  // 自然言語でエージェントの行動境界を定義し、リアルタイムにポリシーを強制する
+  // "policyFailureMode": ポリシー評価失敗時の挙動（"fail-open" | "fail-closed"、デフォルト: "fail-open"）
+  "enableAgentPolicy": false,
+  // "policyFailureMode": "fail-open",
+  // "enableAgentRegistry": Agent Registry統合（Agent Directory に Registry タブを追加）。enableAgent=true が前提条件
+  // 対応リージョン: us-east-1, us-west-2, ap-southeast-2, ap-northeast-1, eu-west-1
+  "enableAgentRegistry": false,
+  // "agentRegistryRegion": Agent Registry API 呼び出し先リージョン（デフォルト: デプロイリージョン）
+  // デプロイリージョンが Agent Registry 非対応の場合に対応リージョンを指定
+  // "agentRegistryRegion": "ap-northeast-1",
+  // "agentRegistryArn": Agent Registry ARN（事前に create_registry で作成が必要）
+  // Preview API のため、CDK 外でレジストリを作成し ARN を指定する
+  // 例: aws bedrock-agentcore-control create-registry --name my-registry --authorizer-type AWS_IAM --region ap-northeast-1
+  // "agentRegistryArn": "arn:aws:bedrock-agentcore:ap-northeast-1:123456789012:registry/xxxxxxxxxx",
   // "enableAdvancedPermissions": 時間ベースアクセス制御 + 権限判定監査ログ
   "enableAdvancedPermissions": false,
 
@@ -73,6 +108,45 @@
   // "alarmEvaluationPeriods": 1,
   // "dashboardRefreshInterval": 300
   "enableMonitoring": false,
+
+  // ========================================================================
+  // Guardrails 詳細設定（オプション）
+  // enableGuardrails=true 時に Guardrails のコンテンツフィルタ強度、トピックポリシー、
+  // PII 検出設定を詳細に制御する。未設定時はデフォルト構成（全カテゴリ HIGH）が適用される。
+  // enableGuardrails=false 時は guardrailsConfig は無視される。
+  // ========================================================================
+  //
+  // "enableGuardrails": true,
+  // "guardrailsConfig": {
+  //   // コンテンツフィルタ: カテゴリ別の入力・出力フィルタ強度（NONE / LOW / MEDIUM / HIGH）
+  //   "contentFilters": [
+  //     { "type": "SEXUAL", "inputStrength": "HIGH", "outputStrength": "HIGH" },
+  //     { "type": "VIOLENCE", "inputStrength": "MEDIUM", "outputStrength": "HIGH" },
+  //     { "type": "HATE", "inputStrength": "HIGH", "outputStrength": "HIGH" },
+  //     { "type": "INSULTS", "inputStrength": "LOW", "outputStrength": "MEDIUM" },
+  //     { "type": "MISCONDUCT", "inputStrength": "HIGH", "outputStrength": "HIGH" },
+  //     { "type": "PROMPT_ATTACK", "inputStrength": "HIGH", "outputStrength": "NONE" }
+  //   ],
+  //   // トピックポリシー: 特定トピックの検出・ブロック
+  //   "topicPolicies": [
+  //     {
+  //       "name": "CompetitorInfo",
+  //       "definition": "競合他社の製品情報や価格に関する質問",
+  //       "examples": ["競合のA社の製品と比較して"],
+  //       "action": "BLOCK"
+  //     }
+  //   ],
+  //   // PII 検出: エンティティタイプ別のアクション（BLOCK / ANONYMIZE）
+  //   "piiConfig": [
+  //     { "type": "EMAIL", "action": "ANONYMIZE" },
+  //     { "type": "PHONE", "action": "ANONYMIZE" },
+  //     { "type": "CREDIT_DEBIT_CARD_NUMBER", "action": "BLOCK" }
+  //   ],
+  //   // コンテキスト接地チェック: ハルシネーション防止（true で有効化）
+  //   "contextualGrounding": true,
+  //   "groundingThreshold": 0.7,
+  //   "relevanceThreshold": 0.7
+  // },
 
   // ========================================================================
   // OIDC IdP連携（オプション）
@@ -154,6 +228,10 @@
   // - autoPrepare=true は Supervisor Agent では使用不可（Collaborator なしで失敗）
   // - 各 Collaborator Agent は CfnAgentAlias が必要（Supervisor からの参照に必須）
   // ========================================================================
+  // "enableMultiAgent": マルチエージェント協調。enableAgent=true 時はデフォルト有効。
+  // Bedrock Agent は待機コストゼロのため、有効化しても追加ランニングコストは発生しない。
+  // マルチAgentモードで実際にチャットした場合のみトークン消費が 3-6 倍になる。
+  // 明示的に false を設定した場合のみ無効化される。
   // "enableMultiAgent": false,
   // "supervisorRoutingMode": "supervisor_router",
   // "supervisorAutoRouting": false,

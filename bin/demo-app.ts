@@ -15,6 +15,7 @@
  *   -c enableAgent=true          Bedrock Agent + Action Group
  *   -c enableAdFederation=true   AD SAML Federation (Cognito + SAML IdP + Post-Auth Trigger)
  *   -c enableGuardrails=true     Bedrock Guardrails
+ *   -c guardrailsConfig={}       Guardrails詳細設定（contentFilters, topicPolicies, piiConfig, contextualGrounding）
  *   -c enableKmsEncryption=true  KMS暗号化
  *   -c enableCloudTrail=true     CloudTrail監査ログ
  *   -c enableVpcEndpoints=true   VPCエンドポイント
@@ -32,6 +33,11 @@
  *   -c authFailureMode=fail-closed  認証失敗時の動作モード（fail-open, fail-closed）
  *   -c auditLogEnabled=true         認証監査ログ（DynamoDB監査テーブル）
  *   -c auditLogRetentionDays=90     監査ログ保持日数（デフォルト: 90日）
+ *   -c enableAgentRegistry=true     Agent Registry統合（AgentCore Registry API）
+ *   -c agentRegistryRegion=xxx      Agent Registry APIリージョン（デフォルト: デプロイリージョン）
+ *   -c embeddingModel=xxx           埋め込みモデル（titan-text-v2, nova-multimodal）
+ *   -c multimodalKbMode=xxx         マルチモーダルKBモード（replace, dual）
+ *   -c enableVoiceChat=true         音声チャット（Amazon Nova Sonic）
  */
 
 import 'source-map-support/register';
@@ -118,6 +124,7 @@ const ontapAdminSecretArn: string | undefined = app.node.tryGetContext('ontapAdm
 // オプション機能
 const usePermissionFilterLambda = ctxBool('usePermissionFilterLambda');
 const enableGuardrails = ctxBool('enableGuardrails');
+const guardrailsConfig = app.node.tryGetContext('guardrailsConfig') as import('../lib/stacks/demo/demo-ai-stack').GuardrailsConfig | undefined;
 const enableAgent = ctxBool('enableAgent');
 const enableKmsEncryption = ctxBool('enableKmsEncryption');
 const enableCloudTrail = ctxBool('enableCloudTrail');
@@ -128,9 +135,31 @@ const vectorStoreType = (app.node.tryGetContext('vectorStoreType') || 's3vectors
 
 // AgentCore機能（オプション）
 const enableAgentCoreMemory = ctxBool('enableAgentCoreMemory');
+const enableEpisodicMemory = ctxBool('enableEpisodicMemory');
 
-// マルチエージェント協調（オプション）
-const enableMultiAgent = ctxBool('enableMultiAgent');
+// Agent Registry（オプション）
+const enableAgentRegistry = ctxBool('enableAgentRegistry');
+const agentRegistryRegion: string | undefined = app.node.tryGetContext('agentRegistryRegion');
+
+// 埋め込みモデル（オプション）
+const embeddingModel: string | undefined = app.node.tryGetContext('embeddingModel');
+const multimodalKbMode: string | undefined = app.node.tryGetContext('multimodalKbMode');
+
+// 音声チャット（オプション）
+const enableVoiceChat = ctxBool('enableVoiceChat');
+
+// AgentCore Policy（オプション）
+const enableAgentPolicy = ctxBool('enableAgentPolicy');
+const policyFailureMode = (app.node.tryGetContext('policyFailureMode') || 'fail-open') as 'fail-open' | 'fail-closed';
+
+// マルチエージェント協調（enableAgent=true 時はデフォルト有効）
+// enableMultiAgent を明示的に false に設定した場合のみ無効化
+// Bedrock Agent は待機コストゼロのため、有効化しても追加ランニングコストは発生しない
+// （マルチAgentモードで実際にチャットした場合のみトークン消費が 3-6 倍になる）
+const enableMultiAgentExplicit = app.node.tryGetContext('enableMultiAgent');
+const enableMultiAgent = enableMultiAgentExplicit === false || enableMultiAgentExplicit === 'false'
+  ? false
+  : enableAgent; // enableAgent=true なら enableMultiAgent もデフォルト true
 const supervisorRoutingMode = (app.node.tryGetContext('supervisorRoutingMode') || 'supervisor_router') as 'supervisor_router' | 'supervisor';
 const supervisorAutoRouting = ctxBool('supervisorAutoRouting');
 const enableVisionAgent = ctxBool('enableVisionAgent');
@@ -243,10 +272,12 @@ securityStack.addDependency(storageStack);
 const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   projectName, environment,
   enableGuardrails,
+  guardrailsConfig,
   enableAgent,
   enableAgentSharing,
   enableAgentSchedules,
   enableAgentCoreMemory,
+  enableEpisodicMemory: enableAgentCoreMemory && enableEpisodicMemory,
   enableMultiAgent,
   supervisorRoutingMode,
   supervisorAutoRouting,
@@ -260,6 +291,11 @@ const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   userAccessTableName: storageStack.userAccessTable.tableName,
   userAccessTableArn: storageStack.userAccessTable.tableArn,
   vectorStoreType: vectorStoreType as 's3vectors' | 'opensearch-serverless',
+  enableAgentRegistry,
+  agentRegistryRegion,
+  embeddingModel,
+  multimodalKbMode,
+  enableVoiceChat,
   env: primaryEnv,
   description: `[${projectName}] Bedrock KB, ${vectorStoreType === 'opensearch-serverless' ? 'OpenSearch Serverless' : 'S3 Vectors'}${enableAgent ? ', Bedrock Agent' : ''}${enableMultiAgent ? ', Multi-Agent Collaboration' : ''}${enableAgentSharing ? ', Agent Sharing' : ''}${enableAgentSchedules ? ', Agent Schedules' : ''}`,
 });
@@ -289,6 +325,8 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentSchedulerRoleArn: aiStack.schedulerRoleArn,
   // AgentCore Memory（オプション）
   memoryId: aiStack.memoryId,
+  // Episodic Memory（オプション）
+  enableEpisodicMemory: enableAgentCoreMemory && enableEpisodicMemory,
   // マルチエージェント協調（オプション）
   supervisorAgentId: enableMultiAgent ? aiStack.supervisorAgentId : undefined,
   supervisorAgentAliasId: enableMultiAgent ? aiStack.supervisorAgentAliasId : undefined,
@@ -315,6 +353,18 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   cognitoClientSecret: (enableAdFederation || oidcProviderConfig || hasOidcProviders) ? securityStack.userPoolClient.userPoolClientSecret.unsafeUnwrap() : undefined,
   callbackUrl: (enableAdFederation || oidcProviderConfig || hasOidcProviders) && cloudFrontUrl ? `${cloudFrontUrl}/api/auth/callback` : undefined,
   idpName: enableAdFederation ? 'ActiveDirectory' : (oidcProviderConfig ? oidcProviderConfig.providerName : undefined),
+  // Agent Registry設定（オプション）
+  enableAgentRegistry: aiStack.enableAgentRegistry,
+  agentRegistryRegion: aiStack.agentRegistryRegion,
+  agentRegistryArn: app.node.tryGetContext('agentRegistryArn') as string | undefined,
+  // Guardrails設定（オプション）
+  guardrailId: enableGuardrails ? aiStack.guardrailId : undefined,
+  guardrailVersion: enableGuardrails ? aiStack.guardrailVersion : undefined,
+  // 音声チャット設定（オプション）
+  enableVoiceChat,
+  // AgentCore Policy設定（オプション）
+  enableAgentPolicy,
+  policyFailureMode: enableAgentPolicy ? policyFailureMode : undefined,
   env: primaryEnv, crossRegionReferences: true,
   description: `[${projectName}] Lambda Web Adapter + CloudFront`,
 });

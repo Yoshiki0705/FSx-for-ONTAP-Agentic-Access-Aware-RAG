@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { AgentMetadataBadges } from './AgentMetadataBadges';
 import type {
   AgentTeamConfig,
@@ -28,19 +29,19 @@ import type {
 // ===== Constants =====
 
 const WIZARD_STEPS = [
-  { label: 'Team Info', icon: '📝' },
-  { label: 'Collaborators', icon: '🤖' },
-  { label: 'Tools', icon: '🛠️' },
-  { label: 'Routing', icon: '🧭' },
-  { label: 'Confirm', icon: '✅' },
+  { key: 'teamInfo', icon: '📝' },
+  { key: 'collaborators', icon: '🤖' },
+  { key: 'tools', icon: '🛠️' },
+  { key: 'routing', icon: '🧭' },
+  { key: 'confirm', icon: '✅' },
 ] as const;
 
-const AVAILABLE_TOOLS: { profile: ToolProfile; label: string; description: string; category: string }[] = [
-  { profile: 'access-check', label: 'access-check', description: 'SID/UID/GID権限解決、User Access Table参照', category: '権限・アクセス系' },
-  { profile: 'kb-retrieve', label: 'kb-retrieve', description: 'Bedrock KB検索（メタデータフィルタ付き）', category: '権限・アクセス系' },
-  { profile: 'vision-analyze', label: 'vision-analyze', description: '画像理解・分析（マルチモーダルモデル使用）', category: '分析・生成系' },
-  { profile: 'schedule-run', label: 'schedule-run', description: 'スケジュール実行（Background Agent）', category: '分析・生成系' },
-  { profile: 'share-agent', label: 'share-agent', description: 'S3バケット経由のAgent/Team共有', category: '共有・連携系' },
+const AVAILABLE_TOOLS: { profile: ToolProfile; label: string; descKey: string; categoryKey: string }[] = [
+  { profile: 'access-check', label: 'access-check', descKey: 'access-check', categoryKey: 'permission' },
+  { profile: 'kb-retrieve', label: 'kb-retrieve', descKey: 'kb-retrieve', categoryKey: 'permission' },
+  { profile: 'vision-analyze', label: 'vision-analyze', descKey: 'vision-analyze', categoryKey: 'analysis' },
+  { profile: 'schedule-run', label: 'schedule-run', descKey: 'schedule-run', categoryKey: 'analysis' },
+  { profile: 'share-agent', label: 'share-agent', descKey: 'share-agent', categoryKey: 'sharing' },
 ];
 
 const FOUNDATION_MODELS = [
@@ -88,6 +89,7 @@ export interface TeamCreateWizardProps {
 }
 
 export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: TeamCreateWizardProps) {
+  const t = useTranslations('teamWizard');
   const [step, setStep] = useState(0);
 
   // Step 1 state
@@ -222,7 +224,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
             >
               {i < step ? '✓' : s.icon}
             </div>
-            <span className="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">{s.label}</span>
+            <span className="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">{t(`steps.${s.key}`)}</span>
             {i < WIZARD_STEPS.length - 1 && (
               <div className="w-8 h-px bg-gray-300 dark:bg-gray-600 mx-1" />
             )}
@@ -233,9 +235,9 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
       {/* ===== Step 1: Team Info ===== */}
       {step === 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Team 名・説明</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('teamInfo.title')}</h2>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team 名</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('teamInfo.name')}</label>
             <input
               type="text"
               value={teamName}
@@ -245,7 +247,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">説明</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('teamInfo.description')}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -261,10 +263,10 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
       {step === 1 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Collaborator カスタマイズ</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('collaborators.title')}</h2>
             {collaborators.length < COLLABORATOR_ROLES.length && (
               <button onClick={addCollaborator} className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-300 rounded hover:bg-blue-50 dark:hover:bg-blue-900">
-                + 追加
+                {t('buttons.add')}
               </button>
             )}
           </div>
@@ -293,13 +295,13 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
                 <span className="text-sm font-medium text-gray-500">Role: {ac.role}</span>
                 {collaborators.length > 1 && (
                   <button onClick={() => removeCollaborator(activeCollabIdx)} className="text-xs text-red-500 hover:underline">
-                    削除
+                    {t('buttons.delete')}
                   </button>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Agent 名</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('collaborators.agentName')}</label>
                 <input
                   type="text"
                   value={ac.agentName}
@@ -309,7 +311,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Instruction</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('collaborators.instruction')}</label>
                 <textarea
                   value={ac.instruction}
                   onChange={(e) => updateCollaborator(activeCollabIdx, { instruction: e.target.value })}
@@ -320,7 +322,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Foundation Model</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('collaborators.foundationModel')}</label>
                   <select
                     value={ac.foundationModel}
                     onChange={(e) => updateCollaborator(activeCollabIdx, { foundationModel: e.target.value })}
@@ -332,7 +334,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Trust Level</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('collaborators.trustLevel')}</label>
                   <select
                     value={ac.trustLevel}
                     onChange={(e) => updateCollaborator(activeCollabIdx, { trustLevel: e.target.value as TrustLevel })}
@@ -342,7 +344,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Data Boundary</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('collaborators.dataBoundary')}</label>
                   <select
                     value={ac.dataBoundary}
                     onChange={(e) => updateCollaborator(activeCollabIdx, { dataBoundary: e.target.value as DataBoundary })}
@@ -360,9 +362,9 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
       {/* ===== Step 3: Tool Selection ===== */}
       {step === 2 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">🛠️ ツール選択</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">🛠️ {t('tools.title')}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            各 Collaborator に割り当てるツールを選択してください。
+            {t('toolSelectDesc')}
           </p>
 
           {collaborators.map((collab, cIdx) => (
@@ -384,7 +386,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
                     />
                     <div>
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{tool.label}</span>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{tool.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t(`tools.descriptions.${tool.descKey}`)}</p>
                     </div>
                   </label>
                 ))}
@@ -393,7 +395,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
           ))}
 
           <p className="text-xs text-amber-600 dark:text-amber-400">
-            ⚠️ 汎用シェル実行、無制限ファイル操作はセキュリティ上の理由で利用できません
+            {t('toolSecurityNote')}
           </p>
         </div>
       )}
@@ -401,12 +403,12 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
       {/* ===== Step 4: Routing Mode ===== */}
       {step === 3 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">🧭 ルーティングモード</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">🧭 {t('routing.title')}</h2>
 
           <div className="space-y-3">
             {([
-              { mode: 'supervisor_router' as RoutingMode, label: 'Supervisor Router', desc: '低レイテンシ。単純タスク向け。Supervisor が最適な Collaborator を自動選択。' },
-              { mode: 'supervisor' as RoutingMode, label: 'Supervisor', desc: '複雑タスク向け。Supervisor がタスクを分解し、複数 Collaborator を順次呼び出し。' },
+              { mode: 'supervisor_router' as RoutingMode, label: t('routing.supervisorRouter'), desc: t('routing.supervisorRouterDesc') },
+              { mode: 'supervisor' as RoutingMode, label: t('routing.supervisor'), desc: t('routing.supervisorDesc') },
             ]).map((opt) => (
               <label
                 key={opt.mode}
@@ -440,7 +442,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
               className="rounded border-gray-300"
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              自動ルーティング（クエリ複雑度に基づきモードを自動選択）
+              {t('autoRouting')}
             </span>
           </label>
         </div>
@@ -449,19 +451,19 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
       {/* ===== Step 5: Confirmation ===== */}
       {step === 4 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">✅ 確認</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">✅ {t('confirm.title')}</h2>
 
           <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
             <div>
-              <span className="text-xs text-gray-500">Team 名</span>
+              <span className="text-xs text-gray-500">{t('teamInfo.name')}</span>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{teamName}</p>
             </div>
             <div>
-              <span className="text-xs text-gray-500">説明</span>
+              <span className="text-xs text-gray-500">{t('teamInfo.description')}</span>
               <p className="text-sm text-gray-700 dark:text-gray-300">{description || '—'}</p>
             </div>
             <div>
-              <span className="text-xs text-gray-500">ルーティング</span>
+              <span className="text-xs text-gray-500">{t('routing.title')}</span>
               <p className="text-sm text-gray-700 dark:text-gray-300">
                 {routingMode} {autoRouting && '(自動)'}
               </p>
@@ -486,7 +488,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
 
             {/* Cost estimate */}
             <div className="p-3 rounded bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">💰 推定コスト（1リクエストあたり）</span>
+              <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">💰 {t('confirm.costEstimate')}</span>
               <p className="text-lg font-bold text-amber-800 dark:text-amber-200 mt-1">
                 ~${estimatedCost.toFixed(3)}
               </p>
@@ -505,7 +507,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
           className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
           disabled={isCreating}
         >
-          {step === 0 ? 'キャンセル' : '← 前へ'}
+          {step === 0 ? t('buttons.cancel') : t('buttons.back')}
         </button>
 
         {step < WIZARD_STEPS.length - 1 ? (
@@ -514,7 +516,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
             disabled={!canNext()}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            次へ →
+            {t('buttons.next')}
           </button>
         ) : (
           <button
@@ -522,7 +524,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
             disabled={isCreating || !canNext()}
             className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
           >
-            {isCreating ? '作成中...' : '🚀 Team を作成'}
+            {isCreating ? '...' : t('buttons.create')}
           </button>
         )}
       </div>

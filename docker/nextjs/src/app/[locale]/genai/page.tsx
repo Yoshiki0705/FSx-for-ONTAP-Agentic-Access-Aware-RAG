@@ -1704,8 +1704,12 @@ function ChatbotPageContent() {
   // headerChatMode は useHeaderStore.chatMode から直接取得（Task 8.4 で統合済み）
   const headerChatMode: ChatMode = headerChatModeFromStore;
 
-  // Multi-Agent が利用可能かどうか — teams をページロード時にfetch
-  const headerMultiAgentAvailable = useAgentTeamStore((s) => s.teams.length > 0);
+  // Multi-Agent が利用可能かどうか
+  // 1. Agent Teams が1つ以上作成されている場合
+  // 2. Supervisor Agent ID が環境変数で設定されている場合（CDK enableMultiAgent=true）
+  const hasTeams = useAgentTeamStore((s) => s.teams.length > 0);
+  const [hasSupervisor, setHasSupervisor] = useState(false);
+  const headerMultiAgentAvailable = hasTeams || hasSupervisor;
   useEffect(() => {
     fetch('/api/bedrock/agent-team', {
       method: 'POST',
@@ -1716,6 +1720,23 @@ function ChatbotPageContent() {
       .then((d) => {
         if (d.success && Array.isArray(d.teams) && d.teams.length > 0) {
           useAgentTeamStore.getState().setTeams(d.teams);
+        }
+      })
+      .catch(() => {});
+
+    // Supervisor Agent ID の存在確認（CDK enableMultiAgent=true 時に設定される）
+    fetch('/api/bedrock/agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'list' }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.agents)) {
+          const hasSupervisorAgent = d.agents.some((a: any) =>
+            a.agentName?.includes('supervisor') || a.agentId === process.env.NEXT_PUBLIC_SUPERVISOR_AGENT_ID
+          );
+          setHasSupervisor(hasSupervisorAgent);
         }
       })
       .catch(() => {});

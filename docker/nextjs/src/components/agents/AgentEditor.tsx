@@ -7,6 +7,7 @@ import { ActionGroupSelector } from './ActionGroupSelector';
 import { GuardrailSettings } from './GuardrailSettings';
 import { InferenceProfileSelector } from './InferenceProfileSelector';
 import { KBSelector } from './KBSelector';
+import { PolicySection } from './PolicySection';
 import { useKnowledgeBases } from '@/hooks/useKnowledgeBases';
 import type { AgentDetail, UpdateAgentFormData } from '@/types/agent-directory';
 import type { CostTags } from '@/types/enterprise-agent';
@@ -54,6 +55,7 @@ export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProp
   const [guardrailVersion, setGuardrailVersion] = useState<string | null>(null);
   const [inferenceProfileArn, setInferenceProfileArn] = useState<string | null>(null);
   const [costTags, setCostTags] = useState<CostTags>({ department: '', project: '' });
+  const [policyText, setPolicyText] = useState(agent.policyText || '');
 
   // KB Selector state
   const [selectedKBIds, setSelectedKBIds] = useState<string[]>([]);
@@ -204,6 +206,15 @@ export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProp
             guardrailVersion={guardrailVersion}
             onEnabledChange={setGuardrailEnabled}
             onGuardrailChange={(id, ver) => { setGuardrailId(id); setGuardrailVersion(ver); }}
+            disabled={saving}
+          />
+        </div>
+
+        {/* Policy Section */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <PolicySection
+            policyText={policyText}
+            onPolicyChange={setPolicyText}
             disabled={saving}
           />
         </div>

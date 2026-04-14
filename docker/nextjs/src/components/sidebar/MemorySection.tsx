@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import * as Collapsible from '@radix-ui/react-collapsible';
+import { EpisodeTab } from './EpisodeTab';
 
 /**
  * メモリレコードの型定義
@@ -74,6 +75,8 @@ export function MemorySection({ locale: _locale }: MemorySectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [memoryEnabled, setMemoryEnabled] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState<'memory' | 'episodes'>('memory');
+  const [episodicEnabled, setEpisodicEnabled] = useState(false);
 
   /**
    * AgentCore Memory の有効状態を確認
@@ -85,6 +88,14 @@ export function MemorySection({ locale: _locale }: MemorySectionProps) {
       })
       .catch(() => {
         setMemoryEnabled(false);
+      });
+    // エピソード記憶の有効状態を確認
+    fetch('/api/agentcore/memory/episodes', { method: 'GET' })
+      .then((res) => {
+        setEpisodicEnabled(res.status !== 404);
+      })
+      .catch(() => {
+        setEpisodicEnabled(false);
       });
   }, []);
 
@@ -197,6 +208,39 @@ export function MemorySection({ locale: _locale }: MemorySectionProps) {
       </Collapsible.Trigger>
 
       <Collapsible.Content className="mt-2 space-y-1">
+        {/* タブ切替（エピソード記憶有効時のみ） */}
+        {episodicEnabled && (
+          <div className="flex border-b border-gray-200 dark:border-gray-600 mb-2">
+            <button
+              onClick={() => setActiveTab('memory')}
+              className={`px-2 py-1 text-xs font-medium transition-colors ${
+                activeTab === 'memory'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              {t('agentcore.memory.title')}
+            </button>
+            <button
+              onClick={() => setActiveTab('episodes')}
+              className={`px-2 py-1 text-xs font-medium transition-colors ${
+                activeTab === 'episodes'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              {t('agentcore.episodes.tab')}
+            </button>
+          </div>
+        )}
+
+        {/* エピソードタブ */}
+        {activeTab === 'episodes' && episodicEnabled && (
+          <EpisodeTab locale={_locale} />
+        )}
+
+        {/* メモリタブ（既存） */}
+        {activeTab === 'memory' && (<>
         {/* ローディング */}
         {isLoading && (
           <div className="flex items-center justify-center py-3">
@@ -266,6 +310,7 @@ export function MemorySection({ locale: _locale }: MemorySectionProps) {
             })}
           </div>
         )}
+        </>)}
       </Collapsible.Content>
     </Collapsible.Root>
   );

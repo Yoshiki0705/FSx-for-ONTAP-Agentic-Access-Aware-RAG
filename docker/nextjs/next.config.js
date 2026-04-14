@@ -25,6 +25,14 @@ const nextConfig = {
   },
   env: {
     CUSTOM_KEY: 'my-value',
+    // v4.0.0 フィーチャーフラグ — ビルド時に process.env から読み取りインライン化
+    // Docker build-arg または環境変数で設定: NEXT_PUBLIC_VOICE_CHAT_ENABLED=true
+    NEXT_PUBLIC_VOICE_CHAT_ENABLED: process.env.NEXT_PUBLIC_VOICE_CHAT_ENABLED || 'false',
+    NEXT_PUBLIC_GUARDRAILS_ENABLED: process.env.NEXT_PUBLIC_GUARDRAILS_ENABLED || 'false',
+    NEXT_PUBLIC_ENABLE_AGENT_REGISTRY: process.env.NEXT_PUBLIC_ENABLE_AGENT_REGISTRY || 'false',
+    NEXT_PUBLIC_AGENT_REGISTRY_REGION: process.env.NEXT_PUBLIC_AGENT_REGISTRY_REGION || 'ap-northeast-1',
+    NEXT_PUBLIC_AGENT_POLICY_ENABLED: process.env.NEXT_PUBLIC_AGENT_POLICY_ENABLED || 'false',
+    NEXT_PUBLIC_EPISODIC_MEMORY_ENABLED: process.env.NEXT_PUBLIC_EPISODIC_MEMORY_ENABLED || 'false',
   },
   async headers() {
     return [

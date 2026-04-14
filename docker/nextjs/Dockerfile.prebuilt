@@ -19,6 +19,12 @@
 #
 # 使用方法:
 #   1. npm install && npm run build  (ローカルでNext.jsビルド)
+#      ⚠️ v4.0.0 フィーチャーフラグを有効化する場合は、ビルド前に環境変数を設定:
+#      export NEXT_PUBLIC_VOICE_CHAT_ENABLED=true
+#      export NEXT_PUBLIC_GUARDRAILS_ENABLED=true
+#      export NEXT_PUBLIC_ENABLE_AGENT_REGISTRY=true
+#      export NEXT_PUBLIC_AGENT_POLICY_ENABLED=true
+#      export NEXT_PUBLIC_EPISODIC_MEMORY_ENABLED=true
 #   2. Lambda Adapter 取得 (x86_64):
 #      docker pull --platform linux/amd64 public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1
 #      id=$(docker create --platform linux/amd64 public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 /bin/true)

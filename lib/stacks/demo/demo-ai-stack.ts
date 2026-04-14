@@ -16,6 +16,126 @@ import * as bedrock from 'aws-cdk-lib/aws-bedrock';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as bedrockagentcore from 'aws-cdk-lib/aws-bedrockagentcore';
 import { Construct } from 'constructs';
+import { EmbeddingModelRegistry } from '../../config/embedding-model-registry';
+import { KBConfigStrategy } from '../../config/kb-config-strategy';
+
+// ========================================
+// Guardrails Configuration Types
+// ========================================
+
+/** コンテンツフィルタ強度 */
+export type FilterStrength = 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH';
+
+/** カテゴリ別コンテンツフィルタ設定 */
+export interface ContentFilterConfig {
+  type: 'SEXUAL' | 'VIOLENCE' | 'HATE' | 'INSULTS' | 'MISCONDUCT' | 'PROMPT_ATTACK';
+  inputStrength: FilterStrength;
+  outputStrength: FilterStrength;
+}
+
+/** カスタムトピックポリシー */
+export interface TopicPolicyConfig {
+  name: string;
+  definition: string;
+  examples?: string[];
+  action: 'BLOCK';
+}
+
+/** PII エンティティ設定 */
+export interface PiiEntityConfig {
+  type: string;
+  action: 'BLOCK' | 'ANONYMIZE';
+}
+
+/** guardrailsConfig CDK コンテキストパラメータ */
+export interface GuardrailsConfig {
+  contentFilters?: ContentFilterConfig[];
+  topicPolicies?: TopicPolicyConfig[];
+  piiConfig?: PiiEntityConfig[];
+  contextualGrounding?: boolean;
+  /** コンテキスト接地チェック閾値（0.0-1.0、デフォルト: 0.7） */
+  groundingThreshold?: number;
+  /** 関連性チェック閾値（0.0-1.0、デフォルト: 0.7） */
+  relevanceThreshold?: number;
+}
+
+/**
+ * guardrailsConfig を CfnGuardrail プロパティに変換する純粋関数。
+ * guardrailsConfig 未設定時はデフォルト構成（全カテゴリ HIGH）を返す。
+ */
+export function buildGuardrailProps(config?: GuardrailsConfig): {
+  contentPolicyConfig: bedrock.CfnGuardrail.ContentPolicyConfigProperty;
+  sensitiveInformationPolicyConfig: bedrock.CfnGuardrail.SensitiveInformationPolicyConfigProperty;
+  topicPolicyConfig?: bedrock.CfnGuardrail.TopicPolicyConfigProperty;
+  contextualGroundingPolicyConfig?: bedrock.CfnGuardrail.ContextualGroundingPolicyConfigProperty;
+} {
+  // デフォルトコンテンツフィルタ（全カテゴリ HIGH、PROMPT_ATTACK は出力 NONE）
+  const defaultFilters: ContentFilterConfig[] = [
+    { type: 'SEXUAL', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+    { type: 'VIOLENCE', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+    { type: 'HATE', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+    { type: 'INSULTS', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+    { type: 'MISCONDUCT', inputStrength: 'HIGH', outputStrength: 'HIGH' },
+    { type: 'PROMPT_ATTACK', inputStrength: 'HIGH', outputStrength: 'NONE' },
+  ];
+
+  // デフォルト PII 設定
+  const defaultPii: PiiEntityConfig[] = [
+    { type: 'EMAIL', action: 'ANONYMIZE' },
+    { type: 'PHONE', action: 'ANONYMIZE' },
+    { type: 'NAME', action: 'ANONYMIZE' },
+    { type: 'US_SOCIAL_SECURITY_NUMBER', action: 'BLOCK' },
+    { type: 'CREDIT_DEBIT_CARD_NUMBER', action: 'BLOCK' },
+  ];
+
+  const filters = config?.contentFilters ?? defaultFilters;
+  const pii = config?.piiConfig ?? defaultPii;
+
+  const result: {
+    contentPolicyConfig: bedrock.CfnGuardrail.ContentPolicyConfigProperty;
+    sensitiveInformationPolicyConfig: bedrock.CfnGuardrail.SensitiveInformationPolicyConfigProperty;
+    topicPolicyConfig?: bedrock.CfnGuardrail.TopicPolicyConfigProperty;
+    contextualGroundingPolicyConfig?: bedrock.CfnGuardrail.ContextualGroundingPolicyConfigProperty;
+  } = {
+    contentPolicyConfig: {
+      filtersConfig: filters.map(f => ({
+        type: f.type,
+        inputStrength: f.inputStrength,
+        outputStrength: f.outputStrength,
+      })),
+    },
+    sensitiveInformationPolicyConfig: {
+      piiEntitiesConfig: pii.map(p => ({
+        type: p.type,
+        action: p.action,
+      })),
+    },
+  };
+
+  // トピックポリシー
+  if (config?.topicPolicies && config.topicPolicies.length > 0) {
+    result.topicPolicyConfig = {
+      topicsConfig: config.topicPolicies.map(tp => ({
+        name: tp.name,
+        definition: tp.definition,
+        ...(tp.examples && tp.examples.length > 0 ? { examples: tp.examples } : {}),
+        type: 'DENY',
+      })),
+    };
+  }
+
+  // コンテキスト接地チェック
+  if (config?.contextualGrounding) {
+    result.contextualGroundingPolicyConfig = {
+      filtersConfig: [
+        { type: 'GROUNDING', threshold: config.groundingThreshold ?? 0.7 },
+        { type: 'RELEVANCE', threshold: config.relevanceThreshold ?? 0.7 },
+      ],
+    };
+  }
+
+  return result;
+}
 
 /**
  * MCP Connector CDK構成インターフェース
@@ -37,6 +157,8 @@ export interface DemoAIStackProps extends cdk.StackProps {
   environment: string;
   /** Bedrock Guardrailsを有効化するか（デフォルト: false） */
   enableGuardrails?: boolean;
+  /** Guardrails 詳細設定（enableGuardrails=true 時のみ有効） */
+  guardrailsConfig?: GuardrailsConfig;
   /** Bedrock Agentを作成するか（デフォルト: false） */
   enableAgent?: boolean;
   /** ユーザーアクセスDynamoDBテーブル名（Agent Action Group用） */
@@ -51,6 +173,8 @@ export interface DemoAIStackProps extends cdk.StackProps {
   enableAgentSchedules?: boolean;
   /** AgentCore Memory（短期・長期メモリ）を有効化するか（デフォルト: false、enableAgent=true が前提条件） */
   enableAgentCoreMemory?: boolean;
+  /** エピソード記憶を有効化するか（デフォルト: false、enableAgentCoreMemory=true が前提条件） */
+  enableEpisodicMemory?: boolean;
   /** マルチエージェント協調を有効化するか（デフォルト: false） */
   enableMultiAgent?: boolean;
   /** Supervisorルーティングモード（デフォルト: 'supervisor_router'） */
@@ -71,6 +195,16 @@ export interface DemoAIStackProps extends cdk.StackProps {
   ontapNameMappingEnabled?: boolean;
   /** Agent instruction の基本言語（デフォルト: 'auto' — ユーザーの入力言語に合わせて回答） */
   agentLanguage?: string;
+  /** Agent Registry 統合を有効化するか（デフォルト: false） */
+  enableAgentRegistry?: boolean;
+  /** Agent Registry API 呼び出しに使用するリージョン（デフォルト: デプロイリージョン） */
+  agentRegistryRegion?: string;
+  /** 埋め込みモデル（デフォルト: 'titan-text-v2'） */
+  embeddingModel?: string;
+  /** マルチモーダルKBモード（デフォルト: 'replace'） */
+  multimodalKbMode?: string;
+  /** 音声チャット（Nova Sonic）を有効化するか（デフォルト: false） */
+  enableVoiceChat?: boolean;
 }
 
 export class DemoAIStack extends cdk.Stack {
@@ -132,6 +266,16 @@ export class DemoAIStack extends cdk.Stack {
   public readonly supervisorAgentAliasId?: string;
   /** Agent Team DynamoDB テーブル名（enableMultiAgent=true 時のみ） */
   public readonly agentTeamTableName?: string;
+  /** Agent Registry 有効化フラグ */
+  public readonly enableAgentRegistry?: boolean;
+  /** Agent Registry リージョン */
+  public readonly agentRegistryRegion?: string;
+  /** マルチモーダル KB ID（Dual KB モード時のみ） */
+  public readonly multimodalKnowledgeBaseId?: string;
+  /** テキスト専用 KB ID（Dual KB モード時のみ） */
+  public readonly textKnowledgeBaseId?: string;
+  /** 埋め込みモデル関連の Lambda 環境変数 */
+  public readonly embeddingEnvVars: Record<string, string> = {};
 
   constructor(scope: Construct, id: string, props: DemoAIStackProps) {
     super(scope, id, props);
@@ -181,6 +325,54 @@ export class DemoAIStack extends cdk.Stack {
       );
     }
 
+    // --- Agent Registry バリデーション ---
+    const SUPPORTED_REGISTRY_REGIONS = [
+      'us-east-1', 'us-west-2', 'ap-southeast-2', 'ap-northeast-1', 'eu-west-1'
+    ];
+
+    if (props.enableAgentRegistry && props.agentRegistryRegion) {
+      if (!SUPPORTED_REGISTRY_REGIONS.includes(props.agentRegistryRegion)) {
+        throw new Error(
+          `Invalid agentRegistryRegion: '${props.agentRegistryRegion}'. ` +
+          `Supported regions: ${SUPPORTED_REGISTRY_REGIONS.join(', ')}`
+        );
+      }
+    }
+
+    // Agent Registry プロパティ設定
+    this.enableAgentRegistry = props.enableAgentRegistry;
+    this.agentRegistryRegion = props.enableAgentRegistry
+      ? (props.agentRegistryRegion || cdk.Aws.REGION)
+      : undefined;
+
+    // --- 埋め込みモデル バリデーション ---
+    const embeddingModelKey = props.embeddingModel || 'titan-text-v2';
+    const multimodalKbMode = props.multimodalKbMode || 'replace';
+
+    // パラメータバリデーション
+    EmbeddingModelRegistry.validateKbMode(multimodalKbMode);
+
+    // リージョンバリデーション（CDK synth時はトークンなので実リージョンでのみ検証）
+    const deployRegion = this.region;
+    if (!cdk.Token.isUnresolved(deployRegion)) {
+      EmbeddingModelRegistry.validate(embeddingModelKey, deployRegion);
+      if (multimodalKbMode === 'dual') {
+        // Dual モードでは両方のモデルがリージョンで利用可能か検証
+        EmbeddingModelRegistry.validate('titan-text-v2', deployRegion);
+        EmbeddingModelRegistry.validate('nova-multimodal', deployRegion);
+      }
+    }
+
+    // モデル定義とKB構成戦略を取得
+    const embeddingModel = EmbeddingModelRegistry.resolve(embeddingModelKey);
+    const kbConfigStrategy = new KBConfigStrategy(
+      embeddingModel,
+      cdk.Aws.REGION,
+      cdk.Aws.ACCOUNT_ID,
+    );
+    const kbConfig = kbConfigStrategy.buildConfig();
+    const isDualMode = multimodalKbMode === 'dual';
+
     const { projectName, environment, enableGuardrails, enableAgent, userAccessTableName, userAccessTableArn } = props;
     const prefix = `${projectName}-${environment}`;
     const collectionName = `${projectName}-${environment}-vectors`.substring(0, 32).toLowerCase();
@@ -199,7 +391,7 @@ export class DemoAIStack extends cdk.Stack {
     const commonPolicyStatements: iam.PolicyStatement[] = [
       new iam.PolicyStatement({
         actions: ['bedrock:InvokeModel'],
-        resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/amazon.titan-embed-text-v2:0`],
+        resources: [kbConfig.embeddingModelArn],
       }),
       // FSx ONTAP S3 Access Point経由のアクセス権限
       // S3 APエイリアスをBedrock KBデータソースとして使用
@@ -230,6 +422,17 @@ export class DemoAIStack extends cdk.Stack {
         }),
       },
     });
+
+    // モデル固有の IAM ポリシーを追加（BDA Parser 権限など）
+    for (const stmt of kbConfig.iamStatements) {
+      // InvokeModel は commonPolicyStatements に含まれるのでスキップ
+      const json = stmt.toJSON();
+      const action = json.Action;
+      const actions = Array.isArray(action) ? action : [action];
+      if (!actions.includes('bedrock:InvokeModel')) {
+        kbRole.addToPolicy(stmt);
+      }
+    }
 
     // --- 条件分岐: vectorStoreType に基づくリソース作成 ---
     // Task 3.1: S3 Vectors と OpenSearch Serverless の条件分岐
@@ -265,7 +468,7 @@ export class DemoAIStack extends cdk.Stack {
         knowledgeBaseConfiguration: {
           type: 'VECTOR',
           vectorKnowledgeBaseConfiguration: {
-            embeddingModelArn: `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/amazon.titan-embed-text-v2:0`,
+            embeddingModelArn: kbConfig.embeddingModelArn,
           },
         },
         storageConfiguration: {
@@ -376,7 +579,7 @@ export class DemoAIStack extends cdk.Stack {
         knowledgeBaseConfiguration: {
           type: 'VECTOR',
           vectorKnowledgeBaseConfiguration: {
-            embeddingModelArn: `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/amazon.titan-embed-text-v2:0`,
+            embeddingModelArn: kbConfig.embeddingModelArn,
           },
         },
         storageConfiguration: {
@@ -396,6 +599,90 @@ export class DemoAIStack extends cdk.Stack {
     }
 
     this.knowledgeBaseId = kb.attrKnowledgeBaseId;
+
+    // --- Dual KB モード対応（Task 2.3） ---
+    // multimodalKbMode='dual' 時にテキスト専用 KB + マルチモーダル KB の 2 つを作成
+    let multimodalKb: bedrock.CfnKnowledgeBase | undefined;
+    if (isDualMode) {
+      // Dual モードでは、プライマリ KB はテキスト専用（titan-text-v2）
+      // 2 つ目の KB はマルチモーダル（nova-multimodal）
+      const mmModel = EmbeddingModelRegistry.resolve('nova-multimodal');
+      const mmStrategy = new KBConfigStrategy(mmModel, cdk.Aws.REGION, cdk.Aws.ACCOUNT_ID);
+      const mmConfig = mmStrategy.buildConfig();
+
+      // マルチモーダル KB 用の InvokeModel 権限を追加
+      kbRole.addToPolicy(new iam.PolicyStatement({
+        actions: ['bedrock:InvokeModel'],
+        resources: [mmConfig.embeddingModelArn],
+      }));
+
+      // BDA Parser 権限を追加（マルチモーダルモデル用）
+      for (const stmt of mmConfig.iamStatements) {
+        const json = stmt.toJSON();
+        const action = json.Action;
+        const actions = Array.isArray(action) ? action : [action];
+        if (!actions.includes('bedrock:InvokeModel')) {
+          kbRole.addToPolicy(stmt);
+        }
+      }
+
+      if (vectorStoreType === 's3vectors') {
+        multimodalKb = new bedrock.CfnKnowledgeBase(this, 'MultimodalKnowledgeBase', {
+          name: `${prefix}-mm-kb`,
+          roleArn: kbRole.roleArn,
+          knowledgeBaseConfiguration: {
+            type: 'VECTOR',
+            vectorKnowledgeBaseConfiguration: {
+              embeddingModelArn: mmConfig.embeddingModelArn,
+            },
+          },
+          storageConfiguration: {
+            type: 'S3_VECTORS',
+            s3VectorsConfiguration: {
+              vectorBucketArn: this.vectorBucketArn!,
+              indexArn: this.vectorIndexArn!,
+            },
+          },
+        });
+      } else {
+        multimodalKb = new bedrock.CfnKnowledgeBase(this, 'MultimodalKnowledgeBase', {
+          name: `${prefix}-mm-kb`,
+          roleArn: kbRole.roleArn,
+          knowledgeBaseConfiguration: {
+            type: 'VECTOR',
+            vectorKnowledgeBaseConfiguration: {
+              embeddingModelArn: mmConfig.embeddingModelArn,
+            },
+          },
+          storageConfiguration: {
+            type: 'OPENSEARCH_SERVERLESS',
+            opensearchServerlessConfiguration: {
+              collectionArn: this.ossCollection!.attrArn,
+              vectorIndexName: indexName,
+              fieldMapping: {
+                vectorField: 'bedrock-knowledge-base-default-vector',
+                textField: 'AMAZON_BEDROCK_TEXT_CHUNK',
+                metadataField: 'AMAZON_BEDROCK_METADATA',
+              },
+            },
+          },
+        });
+      }
+
+      this.textKnowledgeBaseId = kb.attrKnowledgeBaseId;
+      this.multimodalKnowledgeBaseId = multimodalKb.attrKnowledgeBaseId;
+    }
+
+    // --- 埋め込みモデル関連の Lambda 環境変数を設定（Task 2.2） ---
+    const embeddingEnvVars: Record<string, string> = {
+      ...kbConfig.lambdaEnvVars,
+    };
+    if (isDualMode) {
+      embeddingEnvVars.DUAL_KB_MODE = 'true';
+      embeddingEnvVars.BEDROCK_KB_ID_TEXT = kb.attrKnowledgeBaseId;
+      embeddingEnvVars.BEDROCK_KB_ID_MULTIMODAL = multimodalKb!.attrKnowledgeBaseId;
+    }
+    (this as any).embeddingEnvVars = embeddingEnvVars;
 
     // --- KB削除前クリーンアップ（カスタムリソース） ---
     // CDK外で追加されたデータソースをKB削除前に自動削除する
@@ -523,29 +810,16 @@ exports.handler = async (event) => {
     // --- Bedrock Guardrails（オプション） ---
     // コンテンツ安全性フィルタリング: 有害コンテンツ、PII、プロンプトインジェクション対策
     if (enableGuardrails) {
+      const guardrailProps = buildGuardrailProps(props.guardrailsConfig);
+
       const guardrail = new bedrock.CfnGuardrail(this, 'Guardrail', {
         name: `${prefix}-guardrail`,
         blockedInputMessaging: 'この入力はセキュリティポリシーにより拒否されました。',
         blockedOutputsMessaging: 'この回答はセキュリティポリシーにより制限されました。',
-        contentPolicyConfig: {
-          filtersConfig: [
-            { type: 'SEXUAL', inputStrength: 'HIGH', outputStrength: 'HIGH' },
-            { type: 'VIOLENCE', inputStrength: 'HIGH', outputStrength: 'HIGH' },
-            { type: 'HATE', inputStrength: 'HIGH', outputStrength: 'HIGH' },
-            { type: 'INSULTS', inputStrength: 'HIGH', outputStrength: 'HIGH' },
-            { type: 'MISCONDUCT', inputStrength: 'HIGH', outputStrength: 'HIGH' },
-            { type: 'PROMPT_ATTACK', inputStrength: 'HIGH', outputStrength: 'NONE' },
-          ],
-        },
-        sensitiveInformationPolicyConfig: {
-          piiEntitiesConfig: [
-            { type: 'EMAIL', action: 'ANONYMIZE' },
-            { type: 'PHONE', action: 'ANONYMIZE' },
-            { type: 'NAME', action: 'ANONYMIZE' },
-            { type: 'US_SOCIAL_SECURITY_NUMBER', action: 'BLOCK' },
-            { type: 'CREDIT_DEBIT_CARD_NUMBER', action: 'BLOCK' },
-          ],
-        },
+        contentPolicyConfig: guardrailProps.contentPolicyConfig,
+        sensitiveInformationPolicyConfig: guardrailProps.sensitiveInformationPolicyConfig,
+        ...(guardrailProps.topicPolicyConfig ? { topicPolicyConfig: guardrailProps.topicPolicyConfig } : {}),
+        ...(guardrailProps.contextualGroundingPolicyConfig ? { contextualGroundingPolicyConfig: guardrailProps.contextualGroundingPolicyConfig } : {}),
       });
 
       this.guardrailId = guardrail.attrGuardrailId;
@@ -555,6 +829,19 @@ exports.handler = async (event) => {
         value: guardrail.attrGuardrailId,
         description: 'Bedrock Guardrail ID for content safety filtering',
         exportName: `${prefix}-GuardrailId`,
+      });
+
+      // Guardrails 構成情報の出力
+      const enabledCategories = (guardrailProps.contentPolicyConfig.filtersConfig as any[])
+        .map((f: any) => f.type).join(', ');
+      new cdk.CfnOutput(this, 'GuardrailConfig', {
+        value: JSON.stringify({
+          categories: enabledCategories,
+          hasTopicPolicies: !!guardrailProps.topicPolicyConfig,
+          hasContextualGrounding: !!guardrailProps.contextualGroundingPolicyConfig,
+          customConfig: !!props.guardrailsConfig,
+        }),
+        description: 'Guardrails configuration summary',
       });
     }
 
@@ -716,15 +1003,29 @@ ${langInstruction}`,
           },
         });
 
-        // CfnMemory リソース作成（semantic + summary 戦略）
+        // CfnMemory リソース作成（semantic + summary 戦略、オプションで episodic）
+        const memoryStrategies: any[] = [
+          { semanticMemoryStrategy: { name: 'semantic' } },
+          { summaryMemoryStrategy: { name: 'summary' } },
+        ];
+
+        if (props.enableEpisodicMemory) {
+          memoryStrategies.push({
+            episodicMemoryStrategy: {
+              name: 'episodic',
+              namespaceTemplates: ['/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}/'],
+              reflectionConfiguration: {
+                namespaces: ['/strategies/{memoryStrategyId}/actors/{actorId}/'],
+              },
+            },
+          });
+        }
+
         const memory = new bedrockagentcore.CfnMemory(this, 'AgentMemory', {
           name: `${prefix.replace(/-/g, '_')}_memory`,
           eventExpiryDuration: 3, // 3日（短期メモリTTL、最小値）
           memoryExecutionRoleArn: memoryRole.roleArn,
-          memoryStrategies: [
-            { semanticMemoryStrategy: { name: 'semantic' } },
-            { summaryMemoryStrategy: { name: 'summary' } },
-          ],
+          memoryStrategies,
         });
 
         // CfnMemory の Tags はマップ形式（{ key: value }）を要求するため、
@@ -748,6 +1049,15 @@ ${langInstruction}`,
           description: 'AgentCore Memory ARN',
           exportName: `${prefix}-MemoryArn`,
         });
+
+        // --- Episodic Memory IAM ポリシー（enableEpisodicMemory=true 時のみ） ---
+        if (props.enableEpisodicMemory) {
+          new cdk.CfnOutput(this, 'EpisodicMemoryEnabled', {
+            value: 'true',
+            description: 'AgentCore Episodic Memory Enabled',
+            exportName: `${prefix}-EpisodicMemoryEnabled`,
+          });
+        }
       }
 
       // =================================================================
@@ -1341,16 +1651,17 @@ ${langInstruction}`,
         }
 
         // Supervisor Agent CfnAgent 構成
+        // ⚠️ 初回作成時: DISABLED で作成し、Custom Resource Lambda で
+        // Collaborator 追加後に SUPERVISOR_ROUTER に変更 + PrepareAgent を実行。
+        // CloudFormation の Bedrock Agent リソースハンドラーは SUPERVISOR_ROUTER で
+        // 作成すると Collaborator なしで PrepareAgent を実行して失敗するため。
         const supervisorAgentProps: bedrock.CfnAgentProps = {
           agentName: `${prefix}-supervisor`,
           agentResourceRoleArn: supervisorRole.roleArn,
           foundationModel: supervisorModel,
-          agentCollaboration: 'SUPERVISOR_ROUTER', // ⚠️ Must be SUPERVISOR_ROUTER when collaborators are associated.
-          // Setting to 'DISABLED' will cause CloudFormation UPDATE_FAILED:
-          // "You cannot set the AgentCollaboration attribute to DISABLED.
-          //  The agent has other agents collaborators added."
-          // This was discovered during UI/UX optimization deployment (2026-04-11).
-          autoPrepare: true,
+          agentCollaboration: 'DISABLED',
+          autoPrepare: false, // Custom Resource で Collaborator 追加後に PrepareAgent を実行
+          skipResourceInUseCheckOnDelete: true,
           instruction: `You are the Supervisor Agent for the Permission-aware RAG system.
 For every user question, you MUST use the following Collaborator Agents to answer. Do NOT generate answers on your own.
 
@@ -1635,6 +1946,30 @@ ${langInstruction}`,
       description: 'Estimated monthly cost for the vector store',
     });
 
+    // --- 埋め込みモデル関連 CfnOutput（Task 2.2） ---
+    for (const [key, value] of Object.entries(kbConfig.cfnOutputs)) {
+      new cdk.CfnOutput(this, key, {
+        value,
+        description: `Embedding model config: ${key}`,
+      });
+    }
+
+    // Dual KB モード時の追加出力
+    if (isDualMode && multimodalKb) {
+      new cdk.CfnOutput(this, 'TextKnowledgeBaseId', {
+        value: kb.attrKnowledgeBaseId,
+        description: 'Text-only Knowledge Base ID (Dual KB mode)',
+      });
+      new cdk.CfnOutput(this, 'MultimodalKnowledgeBaseId', {
+        value: multimodalKb.attrKnowledgeBaseId,
+        description: 'Multimodal Knowledge Base ID (Dual KB mode)',
+      });
+      new cdk.CfnOutput(this, 'DualKbMode', {
+        value: 'true',
+        description: 'Dual KB mode is enabled',
+      });
+    }
+
     // Task 3.3: 構成固有出力
     if (vectorStoreType === 's3vectors') {
       new cdk.CfnOutput(this, 'VectorBucketArn', {
@@ -1670,6 +2005,42 @@ ${langInstruction}`,
       if (infra.lambdaArn) this.agentSchedulerLambdaArn = infra.lambdaArn;
       if (infra.fn) this.agentSchedulerFunction = infra.fn;
       if (infra.schedulerRoleArn) this.schedulerRoleArn = infra.schedulerRoleArn;
+    }
+
+    // --- Agent Registry 統合（オプション） ---
+    if (props.enableAgentRegistry) {
+      const registryRegion = props.agentRegistryRegion || cdk.Aws.REGION;
+
+      new cdk.CfnOutput(this, 'AgentRegistryEnabled', {
+        value: 'true',
+        description: 'Agent Registry integration is enabled',
+      });
+
+      new cdk.CfnOutput(this, 'AgentRegistryRegion', {
+        value: registryRegion,
+        description: 'Agent Registry API region',
+      });
+    }
+
+    // --- 音声チャット（Nova Sonic）（オプション: enableVoiceChat=true 時のみ） ---
+    if (props.enableVoiceChat) {
+      new cdk.CfnOutput(this, 'VoiceChatEnabled', {
+        value: 'true',
+        description: 'Voice Chat (Nova Sonic) is enabled',
+      });
+      new cdk.CfnOutput(this, 'VoiceChatModelId', {
+        value: 'amazon.nova-sonic-v1:0',
+        description: 'Nova Sonic model ID for voice chat',
+      });
+      new cdk.CfnOutput(this, 'VoiceChatEstimatedCost', {
+        value: '$70-$100/month (input ~$0.0019/min, output ~$0.0076/min)',
+        description: 'Estimated monthly cost for voice chat',
+      });
+    } else {
+      new cdk.CfnOutput(this, 'VoiceChatEnabled', {
+        value: 'false',
+        description: 'Voice Chat (Nova Sonic) is disabled',
+      });
     }
   }
 

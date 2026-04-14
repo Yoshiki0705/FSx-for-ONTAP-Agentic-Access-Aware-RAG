@@ -22,6 +22,8 @@ import { TemplateGallery } from './TemplateGallery';
 import { TeamCreateWizard } from './TeamCreateWizard';
 import { useAgentTeamStore } from '@/store/useAgentTeamStore';
 import type { AgentTeamTemplate } from '@/types/multi-agent';
+import { RegistryPanel } from './registry/RegistryPanel';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
 interface AgentDirectoryProps { locale: string; initialCreateCategory?: string; }
 
@@ -42,6 +44,31 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
   const [createCategory, setCreateCategory] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [previewConfig, setPreviewConfig] = useState<AgentConfig | null>(null);
+
+  // URLクエリパラメータからタブ状態を復元（言語切替時の状態保持）
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam && ['agents', 'teams', 'shared', 'schedules', 'registry'].includes(tabParam)) {
+        setActiveTab(tabParam as typeof activeTab);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // タブ変更時にURLクエリパラメータを更新（ページリロードなし）
+  const handleTabChange = useCallback((tab: typeof activeTab) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (tab === 'agents') {
+        url.searchParams.delete('tab');
+      } else {
+        url.searchParams.set('tab', tab);
+      }
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [setActiveTab]);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [executions, setExecutions] = useState<ExecutionRecord[]>([]);
   const [executionsLoading, setExecutionsLoading] = useState(false);
@@ -95,7 +122,16 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
   const categoryKeys = Object.keys(AGENT_CATEGORY_MAP);
   const handleBackToGrid = useCallback(() => { setSelectedAgent(null); setViewMode('grid'); }, [setSelectedAgent, setViewMode]);
   const creatorInitialData: UpdateAgentFormData | null = createCategory && AGENT_CATEGORY_MAP[createCategory] ? { agentName: AGENT_CATEGORY_MAP[createCategory].agentNamePattern, description: AGENT_CATEGORY_MAP[createCategory].description, instruction: AGENT_CATEGORY_MAP[createCategory].instruction, foundationModel: AGENT_CATEGORY_MAP[createCategory].foundationModel } : null;
-  const TABS = [{ key: 'agents' as const, label: t('tabs.agents') }, { key: 'teams' as const, label: '👥 Teams' }, { key: 'shared' as const, label: t('tabs.shared') }, { key: 'schedules' as const, label: t('tabs.schedules') }];
+  const { agentRegistryEnabled, agentRegistryRegion: registryRegionFlag } = useFeatureFlags();
+  const enableRegistry = agentRegistryEnabled;
+  const registryRegion = registryRegionFlag;
+  const TABS: { key: typeof activeTab; label: string }[] = [
+    { key: 'agents', label: t('tabs.agents') },
+    { key: 'teams', label: '👥 Teams' },
+    { key: 'shared', label: t('tabs.shared') },
+    { key: 'schedules', label: t('tabs.schedules') },
+    ...(enableRegistry ? [{ key: 'registry' as const, label: `Registry (${registryRegion})` }] : []),
+  ];
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -103,7 +139,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
 
       {viewMode === 'grid' && (
         <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-6">
-          {TABS.map(tab => (<button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.key ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'}`}>{tab.label}</button>))}
+          {TABS.map(tab => (<button key={tab.key} onClick={() => handleTabChange(tab.key)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.key ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'}`}>{tab.label}</button>))}
           <button onClick={() => setViewMode('import')} className="ml-auto px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 border border-gray-300 dark:border-gray-600 rounded-md">📥 {t('sharing.import')}</button>
         </div>
       )}
@@ -246,6 +282,10 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
             </div>
           ))}</div>
         )}</div>
+      )}
+
+      {viewMode === 'grid' && activeTab === 'registry' && enableRegistry && (
+        <RegistryPanel />
       )}
 
       {deleteConfirm && (

@@ -2,12 +2,20 @@
 
 import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { MediaTypeIndicator } from './MediaTypeIndicator';
+import { MediaPreview } from './MediaPreview';
+import type { MediaType } from '@/types/multimodal';
 
 export interface CitationItem {
   fileName: string;
   s3Uri: string;
   content: string;
   metadata?: Record<string, unknown>;
+  /** Multimodal extension fields */
+  mediaType?: MediaType;
+  presignedUrl?: string;
+  duration?: number;
+  timestampRange?: { start: number; end: number };
 }
 
 interface CitationDisplayProps {
@@ -86,7 +94,13 @@ export function CitationDisplay({ citations }: CitationDisplayProps) {
               aria-expanded={expandedIndex === index}
             >
               <div className="flex items-center space-x-2 min-w-0">
-                <span className="text-blue-600 dark:text-blue-400 flex-shrink-0">📎</span>
+                <span className="text-blue-600 dark:text-blue-400 flex-shrink-0">
+                  {cite.mediaType ? (
+                    <MediaTypeIndicator mediaType={cite.mediaType} />
+                  ) : (
+                    '📎'
+                  )}
+                </span>
                 <span className="text-gray-700 dark:text-gray-300 font-medium truncate">
                   {extractFilePath(cite.s3Uri, cite.fileName)}
                 </span>
@@ -115,6 +129,16 @@ export function CitationDisplay({ citations }: CitationDisplayProps) {
             </button>
             {expandedIndex === index && cite.content && (
               <div className="px-3 pb-2 border-t border-gray-200 dark:border-gray-600">
+                {cite.mediaType && cite.mediaType !== 'text' && (
+                  <MediaPreview
+                    mediaType={cite.mediaType}
+                    presignedUrl={cite.presignedUrl}
+                    fileName={cite.fileName}
+                    duration={cite.duration}
+                    timestampRange={cite.timestampRange}
+                    className="mt-2 mb-1"
+                  />
+                )}
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 whitespace-pre-wrap leading-relaxed">
                   {cite.content}
                 </p>

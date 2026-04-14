@@ -5,6 +5,121 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-04
+
+### Added
+- **AgentCore Policy**: エージェント行動制御（AgentCore Policy 統合）
+  - `enableAgentPolicy` CDK パラメータ: AgentCore Policy のオプトイン有効化（デフォルト: `false`）
+  - `policyFailureMode` CDK パラメータ: ポリシー評価失敗時の挙動（`fail-open` | `fail-closed`、デフォルト: `fail-open`）
+  - Lambda IAM: `bedrock:EvaluateAgentPolicy`, `bedrock:CreateAgentPolicy`, `bedrock:GetAgentPolicy`, `bedrock:UpdateAgentPolicy`, `bedrock:DeleteAgentPolicy`, `bedrock:ListAgentPolicies`（6 アクション）
+  - ポリシー CRUD API Route (`/api/bedrock/agent-policy`): 作成・取得・更新・削除
+  - PolicyEvaluationMiddleware (`lib/policy-evaluation.ts`): 3 秒タイムアウト、fail-open/fail-closed 対応
+  - PolicySection: Agent 作成・編集フォーム内のポリシー設定セクション
+  - PolicyTemplateSelector: 3 種類のテンプレート（セキュリティ重視、コスト重視、柔軟性重視）
+  - PolicyDisplay: Agent 詳細パネル内のポリシー表示（折りたたみ可能）
+  - PolicyBadge: ポリシー適用状態バッジ（🛡️）
+  - 違反ログ（EMF 形式）: `PermissionAwareRAG/AgentPolicy` 名前空間
+  - MonitoringConstruct 拡張: PolicyEvaluationCount, PolicyViolationCount, PolicyEvaluationLatency ウィジェット
+  - 8 言語 i18n 対応（`agentDirectory.policy` 名前空間）
+
+- **Amazon Nova Sonic 音声チャット**: 音声対話機能
+  - `enableVoiceChat` CDK パラメータ: 音声チャットのオプトイン有効化（デフォルト: `false`）
+  - Lambda IAM: `bedrock:InvokeModelWithBidirectionalStream`（Nova Sonic モデル ARN に限定）
+  - Voice Stream API Route (`/api/voice/stream`): WebSocket プロキシ（ブラウザ ↔ Lambda ↔ Nova Sonic）
+  - Voice Config API Route (`/api/voice/config`): 音声チャット設定取得
+  - VoiceButton: 🎤 マイクボタン（録音中パルスアニメーション、Ctrl+Shift+V ショートカット）
+  - WaveformAnimation: Canvas ベース波形描画（入力=青、出力=緑、reduced-motion 対応）
+  - VoicePlaybackControls: 一時停止/再開、音量調整、停止
+  - useVoiceSession: WebSocket 接続、マイクストリーム、無音検出（30秒）、自動再接続（最大3回）
+  - useVoiceCapability: 音声機能利用可否判定
+  - useVoiceStore: Zustand グローバル状態管理
+  - 8言語 i18n 対応（`chat.voice` 名前空間）
+  - 推定月額コスト: $70〜$100
+
+- **AgentCore Episodic Memory**: エピソード記憶（Episodic Memory）機能
+  - `enableEpisodicMemory` CDK パラメータ: エピソード記憶のオプトイン有効化（`enableAgentCoreMemory=true` が前提条件）
+  - CfnMemory `episodicMemoryStrategy`: 既存の semantic/summary に加えて episodic 戦略を条件付き追加
+  - 5 API ルート: エピソード一覧取得、検索、削除、類似エピソード検索、振り返りトリガー
+  - EpisodeTab: MemorySection 内のタブ切替 UI（メモリ ↔ エピソード）
+  - EpisodeCard: 目標サマリー、ステップ数、結果ステータスアイコン（✅⚠️❌）、作成日時表示
+  - EpisodeDetailPanel: 折りたたみ可能なセクション（推論ステップ、アクション、振り返り）
+  - EpisodeSearch: 300ms デバウンス付きセマンティック検索
+  - EpisodeReferenceBadge: チャット応答への「📚 過去の経験を参照」バッジ
+  - 類似エピソード自動注入: タスク実行時に上位3件の類似エピソードを推論コンテキストに注入
+  - Background Reflection: 会話完了後のエピソード自動抽出トリガー
+  - 楽観的 UI 更新: エピソード削除時の即座除去 + 失敗時ロールバック
+  - Graceful Degradation: エピソード記憶障害時もコアエージェント機能を継続
+  - IAM ポリシー: `SearchMemory`, `DeleteMemoryRecord` の条件付き付与
+  - 8 言語 i18n 対応（`agentcore.episodes.*` 名前空間）
+- **Guardrails Organizational Safeguards**: Bedrock Guardrails 統合の拡張
+  - `guardrailsConfig` CDK パラメータ: コンテンツフィルタ強度・トピックポリシー・PII 検出設定の詳細制御
+  - `buildGuardrailProps` 純粋変換関数: `guardrailsConfig` → CfnGuardrail プロパティマッピング
+  - Organizational Safeguards 検出: `ListGuardrails` API による組織ポリシーの自動検出・表示
+  - GuardrailsStatusBadge: チャット応答への Guardrails 処理結果バッジ（✅ safe / ⚠️ filtered / ⚠️ チェック不可）
+  - Guardrails 介入ログ: 構造化 JSON ログ（プライバシー保護付き、ブロックテキスト非記録）
+  - EMF カスタムメトリクス: `GuardrailsInputBlocked`, `GuardrailsOutputFiltered`, `GuardrailsPassthrough`
+  - MonitoringConstruct 拡張: CloudWatch ダッシュボード Guardrails セクション、介入率 SNS アラート
+  - GuardrailsAdminPanel: サイドバー System Management セクションの読み取り専用管理パネル
+  - Fail-Open エラーハンドリング: Guardrails API タイムアウト・5xx 時のチャット機能継続
+  - 8 言語 i18n 対応（`sidebar.guardrailsPanel.*`, `chat.guardrailsStatus.*` 名前空間）
+- **新規 CDK パラメータ**: `guardrailsConfig`（object, オプション）
+- **新規 API ルート**: `/api/bedrock/guardrails/status`
+- **新規 UI コンポーネント**: GuardrailsStatusBadge, GuardrailsAdminPanel
+- **マルチモーダル RAG 検索**: Amazon Nova Multimodal Embeddings によるテキスト・画像・動画・音声のクロスモーダル検索
+  - Embedding Model Registry パターン: モデル定義を構成オブジェクトとして抽象化、新モデル追加はカタログ登録のみ
+  - KB Config Strategy: Registry から取得したモデル定義に基づく動的 KB 構成生成
+  - Multi-KB Query Router: Dual KB モード時のクエリ特性ベースルーティング
+  - MediaPreviewService: S3 署名付き URL 生成（15 分有効期限、権限チェック付き）
+  - 画像類似検索: アップロード画像をクロスモーダル類似検索クエリとして使用
+  - Dual KB アーキテクチャ: テキスト専用 KB + マルチモーダル KB の並行運用
+  - 対応メディア: JPEG, PNG, GIF, WebP, MP4, MOV, AVI, MP3, WAV, FLAC, M4A
+  - 8 言語 i18n 対応（`chat.multimodal.*` 名前空間）
+- **新規 CDK パラメータ**: `embeddingModel`（string, デフォルト: `titan-text-v2`）、`multimodalKbMode`（string, デフォルト: `replace`）
+- **新規コンポーネント**: EmbeddingModelRegistry, KBConfigStrategy, KBQueryRouter, MediaPreviewService, MediaTypeIndicator, MediaPreview, MediaTypeFilter, ImageSearchAction, EmbeddingModelInfo, DualKBToggle
+- **マイグレーションガイド**: `docs/migration-guide-multimodal.md` — titan-text-v2 → nova-multimodal 移行手順
+- **Agent Registry 統合**: Agent Directory に AWS Agent Registry（Amazon Bedrock AgentCore）タブを追加
+  - 組織内の Agent・ツール・MCP サーバーをセマンティック検索・閲覧
+  - Registry レコードからローカル Bedrock Agent へのインポート（名前重複時は `_imported_YYYYMMDD` サフィックス付与）
+  - ローカル Agent の Registry へのパブリッシュ（承認ワークフロー対応）
+  - リソースタイプフィルタ（Agent / Tool / McpServer）、ページネーション（20件/ページ）
+  - クロスリージョンアクセス（`agentRegistryRegion` パラメータ）
+  - フォールトアイソレーション（Registry エラーが他タブに影響しない）
+  - 8言語 i18n 対応（ja, en, ko, zh-CN, zh-TW, fr, de, es）
+- **新規 CDK パラメータ**: `enableAgentRegistry`（boolean, デフォルト: false）、`agentRegistryRegion`（string, オプション）
+- **新規 API ルート**: `/api/bedrock/agent-registry/search`, `/detail`, `/import`, `/publish`
+- **新規 UI コンポーネント**: RegistryPanel, RegistrySearchBar, RegistryTypeFilter, RegistryCardGrid, RegistryCard, RegistryDetailPanel, RegistryImportDialog, RegistryRegionBadge, RegistryErrorFallback
+
+### Technical Notes
+- **Agent Registry**: Preview API (April 2026). SDK commands (`search_registry_records`, `create_registry_record`, etc.) are available in boto3/AWS CLI. Node.js SDK uses SigV4-signed HTTP with REST path mapping (`/registry-records/search`, `/registries/{id}/records`). Requires a registry to be created first via `create_registry` (control plane). `agentRegistryArn` CDK context parameter passes the registry ARN to Lambda environment.
+- **Voice Chat**: Phase 1 implementation uses REST + Bedrock Converse API for audio processing. Phase 2 (WebSocket via API Gateway + Nova Sonic InvokeModelWithBidirectionalStream) planned for real-time streaming
+- **AgentCore Policy**: GA (March 2026). Architecture changed from direct API calls to Policy Engine + Gateway model. Policies are written in Cedar language (or natural language auto-conversion). IAM actions updated to `bedrock-agentcore:CreatePolicyEngine`, `CreatePolicy`, `GetPolicy`, `UpdatePolicy`, `DeletePolicy`, `CreateGateway`, etc.
+- **Episodic Memory**: GA (part of AgentCore Memory). `episodicMemoryStrategy` requires `reflectionConfiguration.namespaces` parameter. Without it, `CreateMemory` returns "Invalid memory strategy input" error. Correct configuration: `{ episodicMemoryStrategy: { name: 'episodic', namespaceTemplates: [...], reflectionConfiguration: { namespaces: [...] } } }`
+- **npm dependencies**: Added `@aws-crypto/sha256-js`, `@smithy/signature-v4`, `@smithy/protocol-http`, `@aws-sdk/credential-provider-node` for SigV4 signing
+
+### Verified (デプロイ検証で確認済み — ap-northeast-1)
+- **Agent Registry**: `SearchRegistryRecords` API 正常動作（空レジストリに対して空結果返却）。IAM アクション更新済み（`SearchRegistryRecords`, `CreateRegistryRecord` 等）。レジストリ作成（`create_registry`）→ 検索の E2E フロー確認
+- **Guardrails**: GuardrailId 作成成功（READY 状態）。Agent 応答に `guardrailResult` フィールド含む（`inputAssessment: PASSED`, `outputAssessment: PASSED`）。Fail-Open 動作確認
+- **AgentCore Memory**: 3 ストラテジー全て ACTIVE（semantic, summary, episodic）。`reflectionConfiguration.namespaces` パラメータ追加で episodic 作成成功
+- **Voice Chat**: `/api/voice/config` が正常応答（`enabled: true`, `modelId: amazon.nova-sonic-v1:0`, 8 言語対応）
+- **AgentCore Policy**: GA 版 Policy Engine + Gateway API 正常応答。IAM アクション更新済み（`bedrock-agentcore:CreatePolicyEngine` 等）
+- **KB Retrieve**: 権限フィルタリング正常動作（admin: 機密文書アクセス可、user: 公開文書のみ）
+- **Agent Invoke**: Bedrock Agent 正常応答 + Guardrails 統合確認
+- **既存 FSx 流用**: `existingFileSystemId` / `existingSvmId` / `existingVolumeId` 指定でデプロイ時間大幅短縮（FSx 作成 30-40 分スキップ）
+- **S3 Access Point**: UNIX セキュリティスタイル + root ユーザーで正常作成・データアクセス確認
+- **UI ブラウザ動作確認**: KBモード（カードグリッド14枚、サイドバー、権限表示）、シングルAgentモード（6 Agent 表示、Agent選択ドロップダウン）、マルチAgentモード（3モードトグル切替）、Agent Directory（Registry タブ、Teams タブ、テンプレート10種）、言語切替（8言語、タブ状態 `?tab=registry` 保持）、Feature Flags ランタイム API（Registry タブ・Guardrails パネルの条件表示）を確認
+- **KB 検索**: admin@example.com で Permission-aware 検索正常動作。Citation 6件（confidential + public）、アクセスレベルバッジ（管理者のみ / 全員アクセス可）表示確認
+- **enableMultiAgent デフォルト有効化**: `enableAgent=true` 時に Supervisor Agent（R81K1Z819W）が自動作成され、マルチAgentモードが利用可能であることを確認
+
+### Changed
+- `enableMultiAgent` のデフォルト値を `enableAgent=true` 時に自動有効化に変更。Bedrock Agent は待機コストゼロのため、有効化しても追加ランニングコストは発生しない。マルチAgentモードで実際にチャットした場合のみトークン消費が 3-6 倍になる。明示的に `enableMultiAgent: false` を設定した場合のみ無効化される
+- Supervisor Agent の `agentCollaboration` を `DISABLED` + `autoPrepare: false` で作成し、Custom Resource Lambda で `SUPERVISOR_ROUTER` に変更する方式に修正（CloudFormation の Bedrock Agent リソースハンドラーが `SUPERVISOR_ROUTER` で作成時に Collaborator なしで PrepareAgent を実行して失敗する問題を回避）
+- Agent Registry クライアントを GA 版 SDK API（`SearchRegistryRecords`, `CreateRegistryRecord` 等）に対応。SigV4 HTTP + REST パスマッピング方式
+- AgentCore Policy API を GA 版 Policy Engine + Gateway アーキテクチャに対応。IAM アクションを `bedrock-agentcore:CreatePolicyEngine` 等に更新
+- `NEXT_PUBLIC_*` フィーチャーフラグのビルド時インライン化問題を解決。`/api/config/features` API + `useFeatureFlags` フックによるランタイム取得方式に統一
+- TeamCreateWizard の全テキストを 8 言語 i18n 対応（`teamWizard` 名前空間）
+- LanguageSwitcher の言語切替時にタブ状態（`?tab=teams` 等）を URL クエリパラメータで保持
+- マルチAgent モード有効化判定に Supervisor Agent 名検出を追加（Agent Teams 未作成でも Supervisor Agent がデプロイ済みなら有効化）
+
 ## [3.5.1] - 2026-04-11
 
 ### Changed
@@ -247,4 +362,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-**最新バージョン**: 3.5.0
+**最新バージョン**: 4.0.0

@@ -63,9 +63,9 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
-## Implementation Overview (14 Perspectives)
+## Implementation Overview (16 Perspectives)
 
-The implementation of this system is organized into 14 perspectives. For details on each item, see [docs/implementation-overview.md](docs/implementation-overview.md).
+The implementation of this system is organized into 16 perspectives. For details on each item, see [docs/implementation-overview.md](docs/implementation-overview.md).
 
 | # | Perspective | Overview | Related CDK Stack |
 |---|-------------|----------|-------------------|
@@ -82,7 +82,49 @@ The implementation of this system is organized into 14 perspectives. For details
 | 11 | Smart Routing | Automatic model selection based on query complexity. Short factual queries route to lightweight model (Haiku), long analytical queries route to high-performance model (Sonnet). ON/OFF toggle in sidebar | WebAppStack |
 | 12 | Monitoring & Alerts | CloudWatch dashboard (Lambda/CloudFront/DynamoDB/Bedrock/WAF/Advanced RAG integration), SNS alerts (error rate & latency threshold notifications), EventBridge KB Ingestion Job failure notifications, EMF custom metrics. Enable with `enableMonitoring=true` | WebAppStack (MonitoringConstruct) |
 | 13 | AgentCore Memory | Conversation context maintenance via AgentCore Memory (short-term & long-term memory). In-session conversation history (short-term) + cross-session user preferences & summaries (long-term). Enable with `enableAgentCoreMemory=true` | AIStack |
+| 13.1 | Episodic Memory | Episodic memory (goal, reasoning steps, outcome, reflection) recording & search. Automatic similar episode reference for improved agent performance. Enable with `enableEpisodicMemory=true` (requires `enableAgentCoreMemory=true`) | AIStack |
 | 14 | OIDC/LDAP Federation + ONTAP Name-Mapping | OIDC IdP (Auth0/Keycloak/Okta) integration, LDAP direct query (OpenLDAP/FreeIPA) for automatic UID/GID retrieval, ONTAP REST API name-mapping (UNIX→Windows user mapping). Configuration-driven auto-enablement. Enable with `oidcProviderConfig` + `ldapConfig` + `ontapNameMappingEnabled`. **Phase 2 Extensions**: Multi-OIDC IdP (`oidcProviders` array), OIDC group-based document access control (`allowed_oidc_groups`), LDAP TLS certificate verification (`tlsCaCertArn`), token refresh/session management, Fail-Closed mode (`authFailureMode`), LDAP health check (EventBridge + CloudWatch Alarm), auth audit log (`auditLogEnabled`) | SecurityStack |
+| 15 | Agent Registry Integration | Adds an AWS Agent Registry (AgentCore) tab to Agent Directory. Semantic search, import, and publish Agents, Tools, and MCP Servers across the organization. Approval workflow support. Cross-region access (`agentRegistryRegion`). Enable with `enableAgentRegistry=true` | AIStack, WebAppStack |
+| 16 | Multimodal RAG Search | Cross-modal search across text, images, video, and audio using Amazon Nova Multimodal Embeddings. Extensible via Embedding Model Registry + KB Config Strategy pattern. Dual KB architecture (text-only + multimodal parallel operation) support. Opt-in with `embeddingModel: "nova-multimodal"`. Supported media: JPEG, PNG, GIF, WebP, MP4, MOV, MP3, WAV, etc. | AIStack |
+| 17 | Guardrails Organizational Safeguards | Extended Bedrock Guardrails integration. Detailed configuration of content filter strength, topic policies, and PII detection via `guardrailsConfig` CDK parameter. AWS Organizations Organizational Safeguards detection and display. GuardrailsStatusBadge (✅ safe / ⚠️ filtered) on chat responses. Intervention logging (structured JSON), EMF metrics, and CloudWatch dashboard integration. Read-only GuardrailsAdminPanel for administrators. Fail-Open error handling. Enable with `enableGuardrails=true` + `guardrailsConfig` | AIStack, WebAppStack |
+| 18 | Voice Chat (Nova Sonic) | Voice interaction via Amazon Nova Sonic. Browser microphone input → Nova Sonic (speech-to-speech) → simultaneous text + audio output. Integrated with existing RAG pipeline (including Permission Filter). Supports KB and Agent modes. Waveform animation, 30s silence timeout, auto-reconnect (max 3 attempts), text fallback. 8-language i18n support. Enable with `enableVoiceChat=true`. Estimated cost: $70–$100/month | AIStack, WebAppStack |
+| 19 | AgentCore Policy | Agent behavior control via AgentCore Policy. Define agent boundaries in natural language to restrict tool, API, and MCP server access. 3 policy templates (security-focused, cost-focused, flexibility-focused). PolicyEvaluationMiddleware (3s timeout, fail-open/fail-closed). Violation logging (EMF format) and CloudWatch dashboard integration. 8-language i18n support. Enable with `enableAgentPolicy=true` | WebAppStack |
+
+#### v4.0.0 Technical Notes
+
+| Feature | API Status | Implementation | Notes |
+|---------|-----------|----------------|-------|
+| Agent Registry | Preview (Apr 2026) | SigV4 signed HTTP + REST path mapping | SDK commands (`search_registry_records` etc.) available in boto3/CLI. Node.js uses SigV4 HTTP. Requires creating a registry first via `create_registry`. Specify ARN via `agentRegistryArn` |
+| Multimodal RAG | GA (Nov 2025) | AWS SDK v3 (BedrockAgentRuntimeClient) | Fully implemented. Nova Multimodal Embeddings available in us-east-1, us-west-2 only |
+| Guardrails Org Safeguards | GA (Apr 2026) | AWS SDK v3 (BedrockClient) | Fully implemented. Organizational Safeguards configured in AWS Organizations management account |
+| AgentCore Episodic Memory | GA (Dec 2025) | AWS SDK v3 (BedrockAgentCoreClient) | `episodicMemoryStrategy` requires `reflectionConfiguration.namespaces` parameter. Without it, CreateMemory returns "Invalid memory strategy input" error |
+| Nova Sonic Voice Chat | GA (Dec 2025) | REST + Bedrock Converse API | Phase 1 implementation (REST-based). Real-time bidirectional streaming requires API Gateway WebSocket (Phase 2) |
+| AgentCore Policy | GA (Mar 2026) | SigV4 signed HTTP (Policy Engine + Gateway model) | GA version changed to Policy Engine + Gateway architecture. Policies written in Cedar language. IAM actions updated to `bedrock-agentcore:CreatePolicyEngine` etc. |
+
+**Voice Chat Phase 1 / Phase 2 Architecture:**
+
+| Item | Phase 1 (Current) | Phase 2 (Future) |
+|------|-------------------|------------------|
+| Communication | REST (POST /api/voice/stream) | WebSocket (API Gateway) |
+| Audio Processing | Bedrock Converse API for speech-to-text conversion, then input to RAG pipeline | Nova Sonic InvokeModelWithBidirectionalStream for bidirectional streaming |
+| Latency | Medium (buffering + batch processing) | Low (real-time streaming) |
+| Permission Filtering | ✅ Existing SID/UID/GID filtering applied | ✅ Same logic applied |
+
+**v4.0.0 Feature Flags:**
+
+The UI display of v4.0.0 new features (Guardrails admin panel, Agent Registry tab, AgentCore Policy section, etc.) is controlled by a feature flags API (`/api/config/features`) that retrieves flags from Lambda environment variables at runtime. When you enable a feature via CDK parameters, the corresponding Lambda environment variable is set and automatically reflected in the frontend.
+
+**Multi-Agent Collaboration:**
+
+When `enableAgent=true`, `enableMultiAgent` is enabled by default (only disabled when explicitly set to `false`). Bedrock Agents have zero standby cost, so enabling multi-agent mode incurs no additional running cost. Token consumption increases 3-6x only when actually chatting in Multi Agent mode.
+
+**npm Dependencies (added in v4.0.0):**
+
+The following packages are required in `docker/nextjs/package.json` (used for SigV4 signing):
+```bash
+cd docker/nextjs
+npm install @aws-crypto/sha256-js @smithy/signature-v4 @smithy/protocol-http @aws-sdk/credential-provider-node
+```
 
 ## UI Screenshots
 
@@ -90,19 +132,19 @@ The implementation of this system is organized into 14 perspectives. For details
 
 The header features a unified 3-mode toggle (KB / Single Agent / Multi Agent). The sidebar displays user info, access permissions (directory names, read/write permissions), chat history settings, and system administration (region, model selection, Smart Routing, permission control). The chat area shows 14 purpose-specific cards in a grid layout.
 
-![KB Mode Card Grid](docs/screenshots/multilingual-en-verified.png)
+![KB Mode Card Grid](docs/screenshots/v4-kb-mode-ja.png)
 
 ### Agent Mode — Card Grid + Sidebar
 
 In Single Agent mode, the header shows an Agent selection dropdown with available agents and an Agent Directory link. The sidebar includes Agent info, access permissions (directory names, read/write permissions), chat history settings, and system administration. In Multi Agent mode, only Supervisor Agents are selectable.
 
-![Agent Mode Card Grid](docs/screenshots/agent-mode-card-grid-en.png)
+![Agent Mode Card Grid](docs/screenshots/v4-agent-mode-ja.png)
 
 ### Agent Directory — Agent List & Management Screen
 
 A dedicated Agent management screen accessible at `/[locale]/genai/agents`. Provides catalog display of created Bedrock Agents, search & category filters, detail panel, template-based creation, and inline editing/deletion. The navigation bar allows switching between Agent mode / Agent list / KB mode. When enterprise features are enabled, "Shared Agents" and "Scheduled Tasks" tabs are added.
 
-![Agent Directory](docs/screenshots/agent-directory-en.png)
+![Agent Directory](docs/screenshots/v4-agent-directory-registry-en.png)
 
 #### Agent Directory — Shared Agents Tab
 
@@ -126,7 +168,7 @@ Clicking an Agent card displays a detail panel showing Agent ID, status, model, 
 
 RAG search results display FSx file paths and access level badges (accessible to all / admin only / specific groups). During chat, a "🔄 Return to Workflow Selection" button returns to the card grid. A "➕" button on the left side of the message input field starts a new chat.
 
-![Chat Response + Citation](docs/screenshots/kb-mode-chat-citation-en.png)
+![Chat Response + Citation](docs/screenshots/v4-kb-chat-response-ja.png)
 
 ### Image Upload — Drag & Drop + File Picker (v3.1.0)
 
@@ -692,6 +734,7 @@ The following CDK context parameters enable security enhancement and architectur
 | `s3apUserName` | (auto) | S3 AP user name. Default: WINDOWS→`Admin`, UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | Execute SID filtering via dedicated Lambda (with inline filtering fallback) |
 | `enableGuardrails` | `false` | Bedrock Guardrails (harmful content filter + PII protection) |
+| `guardrailsConfig` | *(none)* | Guardrails detailed configuration (`contentFilters`, `topicPolicies`, `piiConfig`, `contextualGrounding`). Effective only when `enableGuardrails=true`. Uses default configuration (all categories HIGH) when not set |
 | `enableAgent` | `false` | Bedrock Agent + Permission-aware Action Group (KB search + SID filtering). Dynamic Agent creation (auto-creates and binds category-specific Agents on card click) |
 | `enableAgentSharing` | `false` | Agent configuration sharing S3 bucket. JSON export/import of Agent configurations, organization-wide sharing via S3 |
 | `enableAgentSchedules` | `false` | Agent scheduled execution infrastructure (EventBridge Scheduler + Lambda + DynamoDB execution history table) |
@@ -701,6 +744,7 @@ The following CDK context parameters enable security enhancement and architectur
 | `enableMonitoring` | `false` | CloudWatch dashboard + SNS alerts + EventBridge KB Ingestion monitoring. Cost: Dashboard $3/month + Alarms $0.10/alarm/month |
 | `monitoringEmail` | *(none)* | Alert notification email address (effective when `enableMonitoring=true`) |
 | `enableAgentCoreMemory` | `false` | Enable AgentCore Memory (short-term & long-term memory). Requires `enableAgent=true` |
+| `enableEpisodicMemory` | `false` | Enable Episodic Memory. Requires `enableAgentCoreMemory=true`. Records and searches agent past experiences |
 | `enableAgentCoreObservability` | `false` | Integrate AgentCore Runtime metrics into dashboard (effective when `enableMonitoring=true`) |
 | `enableAdvancedPermissions` | `false` | Time-based access control + permission decision audit log. Creates `permission-audit` DynamoDB table |
 | `alarmEvaluationPeriods` | `1` | Number of alarm evaluation periods (alarm fires after N consecutive threshold breaches) |
@@ -709,6 +753,10 @@ The following CDK context parameters enable security enhancement and architectur
 | `auditLogEnabled` | `false` | Auth audit log. Creates DynamoDB audit table (`{prefix}-auth-audit-log`) |
 | `auditLogRetentionDays` | `90` | Audit log retention days (TTL auto-deletion) |
 | `healthCheckEnabled` | `true` | LDAP health check (when `ldapConfig` specified). EventBridge 5-min interval + CloudWatch Alarm |
+| `enableAgentRegistry` | `false` | Enable Agent Registry integration. Adds Registry tab to Agent Directory |
+| `agentRegistryRegion` | Deploy region | Region for Agent Registry API calls. Supported: us-east-1, us-west-2, ap-southeast-2, ap-northeast-1, eu-west-1 |
+| `embeddingModel` | `titan-text-v2` | KB embedding model. `titan-text-v2` (text-only, 1024 dim) or `nova-multimodal` (text/image/video/audio, 1024 dim). Changing requires KB recreation and full data re-ingestion |
+| `multimodalKbMode` | `replace` | KB configuration mode. `replace` (single KB) or `dual` (text-only KB + multimodal KB parallel operation). `dual` recommended for gradual migration |
 
 #### Vector Store Configuration Selection
 
@@ -961,6 +1009,34 @@ aws cloudformation create-stack --stack-name CDKToolkit \
 | `actorId failed to satisfy constraint` | actorId contains `@` `.` from email address | Already handled in `lib/agentcore/auth.ts`: `@` → `_at_`, `.` → `_dot_` |
 | `AccessDeniedException: bedrock-agentcore:CreateEvent` | Lambda execution role lacks AgentCore permissions | Automatically added when deploying CDK with `enableAgentCoreMemory=true` |
 | `exec format error` (Lambda startup failure) | Docker image architecture mismatch with Lambda | Lambda is x86_64. On Apple Silicon, use `docker buildx` + `--platform linux/amd64` |
+
+### Agent Registry Integration
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Registry tab not displayed | `enableAgentRegistry=false` or not set | Set `enableAgentRegistry: true` in `cdk.context.json` and redeploy |
+| Registry search timeout | AgentCore Registry API connection failure | Verify `agentRegistryRegion` is a supported region. Cross-region timeout is 15 seconds |
+| Registry region unsupported warning | Deploy region does not support Agent Registry | Set `agentRegistryRegion` to a supported region (us-east-1, us-west-2, ap-southeast-2, ap-northeast-1, eu-west-1) |
+
+### Multimodal RAG Search
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Multimodal search returns no results | `embeddingModel` is `titan-text-v2` (default) | Set `embeddingModel: "nova-multimodal"` in `cdk.context.json` and redeploy. Requires KB recreation and full data re-ingestion |
+| Nova Multimodal region unsupported | `nova-multimodal` only available in us-east-1, us-west-2 | Deploy to a supported region or use `titan-text-v2` |
+| Multimodal UI not displayed | `MULTIMODAL_ENABLED=false` | Redeploy with `embeddingModel: "nova-multimodal"`. Lambda env var `MULTIMODAL_ENABLED=true` is set automatically |
+| One KB fails in Dual KB mode | KB ingestion error or resource limits | Check CloudWatch logs for each KB's ingestion status. Search continues on the healthy KB |
+
+### Guardrails Organizational Safeguards
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Guardrails status badge not displayed | `enableGuardrails=false` or Lambda env var `GUARDRAILS_ENABLED` not set | Set `enableGuardrails: true` in `cdk.context.json` and redeploy |
+| "⚠️ Check unavailable" badge displayed | Guardrails API timeout (>5s) or 5xx error | Check CloudWatch logs for error details. Chat functionality continues via Fail-Open strategy |
+| GuardrailsAdminPanel not displayed | Not an admin role, or `enableGuardrails=false` | Sign in with admin role and verify `enableGuardrails=true` |
+| "Organizational Guardrails: Unavailable" displayed | Organizational Safeguards detection API failure | Verify Lambda execution role has `bedrock:ListGuardrails`, `bedrock:GetGuardrail` permissions |
+| `guardrailsConfig` settings not applied | `guardrailsConfig` set while `enableGuardrails=false` | Set `enableGuardrails=true` first. `guardrailsConfig` is ignored when `enableGuardrails=false` |
+| No Guardrails section in CloudWatch dashboard | `enableMonitoring=false` or `enableGuardrails=false` | Set both to `true` and redeploy |
 
 ### SSM Session Manager Connection Failure
 
@@ -2054,7 +2130,7 @@ Supervisor Agent cannot be created with `AgentCollaboration=SUPERVISOR_ROUTER` a
 
 ```jsonc
 {
-  "enableMultiAgent": false,              // Enable multi-agent (default: false)
+  "enableMultiAgent": true,               // Enable multi-agent (default: true when enableAgent=true. Zero standby cost)
   "supervisorRoutingMode": "supervisor_router", // Routing mode
   "supervisorAutoRouting": false,         // Auto routing
   "enableVisionAgent": false,             // Enable Vision Agent

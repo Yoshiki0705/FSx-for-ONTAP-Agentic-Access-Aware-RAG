@@ -107,6 +107,51 @@
     "saveHistory": "Enregistrer l'historique",
     "autoTitleGeneration": "Génération automatique de titre",
     "sessionActive": "Session active",
+    "multimodal": {
+      "mediaText": "Texte",
+      "mediaImage": "Image",
+      "mediaVideo": "Vidéo",
+      "mediaAudio": "Audio",
+      "filterAll": "Tout",
+      "filterText": "Texte",
+      "filterImage": "Image",
+      "filterVideo": "Vidéo",
+      "filterAudio": "Audio",
+      "similaritySearch": "Recherche par similarité",
+      "visionAnalysis": "Analyse Vision",
+      "embeddingModel": "Modèle d'embedding",
+      "multimodalBadge": "Multimodal",
+      "textOnlyBadge": "Texte uniquement",
+      "supportedTypes": "Types de médias pris en charge : Texte, Image, Vidéo, Audio",
+      "cdkRedeployNote": "La modification du modèle d'embedding nécessite un redéploiement CDK et une réingestion complète des données",
+      "dualKbText": "Recherche texte uniquement",
+      "dualKbMultimodal": "Recherche multimodale",
+      "fallbackMessage": "La recherche multimodale n'est pas disponible. Affichage des résultats de recherche textuelle",
+      "noAccessibleResults": "Aucun résultat de recherche accessible trouvé",
+      "imageSearchFailed": "La recherche par similarité d'image a échoué. Veuillez essayer l'analyse Vision",
+      "imageSearchFallback": "La recherche d'image a expiré. Retour à la recherche textuelle"
+    },
+    "voice": {
+      "startRecording": "Démarrer la saisie vocale",
+      "stopRecording": "Arrêter la saisie vocale",
+      "recording": "Enregistrement...",
+      "processing": "Traitement vocal...",
+      "playback": "Lecture audio",
+      "pause": "Pause",
+      "resume": "Reprendre",
+      "stop": "Arrêter",
+      "volumeControl": "Réglage du volume",
+      "waveformInput": "Forme d'onde audio d'entrée",
+      "waveformOutput": "Forme d'onde audio de sortie",
+      "micPermissionDenied": "L'accès au microphone a été refusé. Veuillez autoriser l'accès au microphone dans les paramètres du navigateur",
+      "connectionFailed": "Impossible de se connecter au service vocal. Veuillez utiliser la saisie textuelle",
+      "recognitionFailed": "Impossible de reconnaître la voix. Veuillez réessayer",
+      "apiError": "Une erreur s'est produite lors du traitement vocal",
+      "noResults": "Aucun résultat de recherche accessible",
+      "fallbackToText": "Basculé vers la saisie textuelle",
+      "shortcut": "Raccourci : {shortcut}",
+      "silenceTimeout": "Enregistrement arrêté en raison du silence détecté"
+    },
     "introduction": {
       "welcome": "Bonjour, {username} !",
       "title": "Bienvenue sur le Chatbot RAG avec gestion des permissions 🎉",
@@ -700,6 +745,75 @@
       "agents": "Agents",
       "shared": "Agents partagés",
       "schedules": "Tâches planifiées"
+    },
+    "registry": {
+      "tab": "Registry",
+      "tabWithRegion": "Registry ({region})",
+      "searchPlaceholder": "Rechercher des agents, outils, serveurs MCP...",
+      "filterAll": "Tout",
+      "filterAgent": "Agent",
+      "filterTool": "Outil",
+      "filterMcpServer": "Serveur MCP",
+      "noResults": "Aucun enregistrement Registry trouvé",
+      "noResultsSearch": "Aucun résultat pour \"{query}\"",
+      "loadMore": "Charger plus",
+      "loading": "Chargement...",
+      "import": "Importer",
+      "importing": "Importation...",
+      "importSuccess": "Agent importé avec succès : {name}",
+      "importFailed": "Échec de l'importation : {error}",
+      "publish": "Publier dans le Registry",
+      "publishing": "Publication...",
+      "publishSuccess": "Publié dans le Registry (en attente d'approbation)",
+      "publishFailed": "Échec de la publication : {error}",
+      "pendingApproval": "En attente d'approbation",
+      "approved": "Approuvé",
+      "rejected": "Rejeté",
+      "publisher": "Éditeur",
+      "protocols": "Protocoles",
+      "services": "Services associés",
+      "invocation": "Méthode d'invocation",
+      "createdAt": "Créé le",
+      "updatedAt": "Mis à jour le",
+      "foundationModel": "Modèle de base",
+      "actionGroups": "Groupes d'actions",
+      "knowledgeBases": "Bases de connaissances",
+      "mcpEndpoint": "Point de terminaison",
+      "mcpTools": "Outils",
+      "mcpAuth": "Authentification",
+      "errorTitle": "Erreur Registry",
+      "errorMessage": "Impossible de se connecter à l'Agent Registry",
+      "errorRetry": "Réessayer",
+      "regionUnsupported": "Votre région de déploiement ne prend pas en charge l'Agent Registry. Définissez `agentRegistryRegion` dans cdk.context.json : {regions}",
+      "regionConnected": "Connecté à {region}"
+    },
+    "policy": {
+      "sectionTitle": "Paramètres de politique",
+      "templateLabel": "Sélectionner un modèle",
+      "templateNone": "Aucun modèle (Personnalisé)",
+      "securityName": "Axé sécurité",
+      "securityDesc": "Autoriser uniquement la recherche KB. Bloquer l'accès aux API externes et serveurs MCP.",
+      "securityText": "Cet agent ne peut utiliser que la recherche KB. L'accès aux API externes et les connexions aux serveurs MCP sont interdits.",
+      "costName": "Axé coûts",
+      "costDesc": "Autoriser uniquement les appels de modèles légers. Bloquer le traitement de données à grande échelle.",
+      "costText": "Cet agent n'est autorisé qu'à appeler des modèles légers. Le traitement de données à grande échelle et les appels API coûteux sont interdits.",
+      "flexibilityName": "Axé flexibilité",
+      "flexibilityDesc": "Autoriser l'accès à tous les outils. Toutes les actions doivent être journalisées.",
+      "flexibilityText": "Cet agent peut accéder à tous les outils et API. Cependant, toutes les actions sont journalisées.",
+      "inputLabel": "Définition de politique (Langage naturel)",
+      "inputPlaceholder": "Décrivez les contraintes comportementales de l'agent en langage naturel...",
+      "charCount": "{count}/2000 caractères",
+      "badge": "🛡️ Politique active",
+      "noPolicy": "Aucune politique définie",
+      "deleteConfirmTitle": "Supprimer la politique ?",
+      "deleteConfirmMessage": "La suppression de la politique de cet agent supprimera toutes les contraintes comportementales.",
+      "deleteConfirmButton": "Supprimer",
+      "cancelButton": "Annuler",
+      "saveError": "Échec de la sauvegarde de la politique. Veuillez réessayer.",
+      "deleteError": "Échec de la suppression de la politique. Veuillez réessayer.",
+      "evaluationBlocked": "Action restreinte par la politique",
+      "evaluationFailed": "L'évaluation de la politique a échoué. Veuillez contacter votre administrateur.",
+      "detailTitle": "Politique"
     }
   },
   "signin": {
@@ -767,6 +881,26 @@
       "noSessions": "Aucune session",
       "lastUpdated": "Dernière mise à jour",
       "messageCount": "Nombre de messages"
+    },
+    "episodes": {
+      "tab": "Épisodes",
+      "search": "Rechercher des épisodes...",
+      "noEpisodes": "Aucun épisode",
+      "noResults": "Aucun épisode correspondant trouvé",
+      "goal": "Objectif",
+      "steps": "Étapes de raisonnement",
+      "actions": "Actions",
+      "outcome": "Résultat",
+      "reflection": "Réflexion",
+      "statusSuccess": "Succès",
+      "statusPartial": "Partiel",
+      "statusFailure": "Échec",
+      "deleteConfirm": "Supprimer cet épisode ?",
+      "deleteError": "Échec de la suppression de l'épisode",
+      "fetchError": "Échec de la récupération des épisodes. Veuillez réessayer",
+      "referenceBadge": "Expériences passées référencées",
+      "stepCount": "{count} étapes",
+      "refreshButton": "Actualiser"
     }
   },
   "smartRouting": {
@@ -811,6 +945,81 @@
   "modelIndicator": {
     "label": "Sélecteur de modèle",
     "fallbackNotice": "Modèle modifié : {previous} → {current}"
+  },
+  "teamWizard": {
+    "steps": {
+      "teamInfo": "Infos équipe",
+      "collaborators": "Collaborateurs",
+      "tools": "Outils",
+      "routing": "Routage",
+      "confirm": "Confirmation"
+    },
+    "teamInfo": {
+      "title": "Nom et description de l'équipe",
+      "name": "Nom de l'équipe",
+      "description": "Description"
+    },
+    "collaborators": {
+      "title": "Personnalisation des collaborateurs",
+      "agentName": "Nom de l'Agent",
+      "instruction": "Instruction",
+      "foundationModel": "Modèle de base",
+      "trustLevel": "Niveau de confiance",
+      "dataBoundary": "Limite de données",
+      "roles": {
+        "permission-resolver": "Résolveur de permissions",
+        "retrieval": "Agent de recherche",
+        "analysis": "Agent d'analyse",
+        "output": "Agent de sortie",
+        "vision": "Agent de vision"
+      },
+      "defaultInstructions": {
+        "permission-resolver": "Résoudre les permissions SID/UID/GID de l'utilisateur",
+        "retrieval": "Exécuter une recherche KB avec filtres de métadonnées",
+        "analysis": "Effectuer la synthèse et le raisonnement du contexte",
+        "output": "Générer des documents",
+        "vision": "Effectuer la compréhension et l'analyse d'images"
+      }
+    },
+    "tools": {
+      "title": "Sélection des outils",
+      "categories": {
+        "permission": "Permissions et accès",
+        "analysis": "Analyse et génération",
+        "sharing": "Partage et intégration"
+      },
+      "descriptions": {
+        "access-check": "Résolution des permissions SID/UID/GID, consultation de la User Access Table",
+        "kb-retrieve": "Recherche Bedrock KB (avec filtres de métadonnées)",
+        "vision-analyze": "Compréhension et analyse d'images (modèle multimodal)",
+        "schedule-run": "Exécution planifiée (Background Agent)",
+        "share-agent": "Partage d'Agent/Team via un bucket S3"
+      }
+    },
+    "routing": {
+      "title": "Mode de routage",
+      "supervisorRouter": "Supervisor Router",
+      "supervisorRouterDesc": "Le Supervisor sélectionne automatiquement le Collaborator optimal en fonction du contenu de la requête",
+      "supervisor": "Supervisor",
+      "supervisorDesc": "Le Supervisor interroge séquentiellement tous les Collaborators et intègre les résultats"
+    },
+    "confirm": {
+      "title": "Confirmation",
+      "costEstimate": "Coût estimé (par requête)",
+      "collaboratorCount": "Collaborateurs",
+      "toolCount": "Outils"
+    },
+    "buttons": {
+      "cancel": "Annuler",
+      "back": "← Précédent",
+      "next": "Suivant →",
+      "create": "🚀 Créer l'équipe",
+      "add": "+ Ajouter",
+      "delete": "Supprimer"
+    },
+    "toolSelectDesc": "Sélectionnez les outils à attribuer à chaque Collaborateur.",
+    "toolSecurityNote": "⚠️ L'exécution shell générale et les opérations de fichiers sans restriction ne sont pas disponibles pour des raisons de sécurité",
+    "autoRouting": "Routage automatique (sélection automatique du mode en fonction de la complexité de la requête)"
   },
   "templateGallery": {
     "title": "Galerie de modèles",

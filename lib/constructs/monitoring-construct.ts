@@ -39,6 +39,10 @@ export interface MonitoringConstructProps {
   enableAgentCoreObservability?: boolean;
   alarmEvaluationPeriods?: number;
   dashboardRefreshInterval?: number;
+  /** Guardrail ID（enableGuardrails=true 時のみ設定） */
+  guardrailId?: string;
+  /** AgentCore Policy 有効化フラグ（enableAgentPolicy=true 時のみ設定） */
+  enableAgentPolicy?: boolean;
 }
 
 export class MonitoringConstruct extends Construct {
@@ -485,6 +489,90 @@ export class MonitoringConstruct extends Construct {
             new cloudwatch.Metric({ namespace: 'AWS/BedrockAgentCore', metricName: 'MemorySessions', period: cdk.Duration.minutes(5), statistic: 'Sum' }),
           ],
           width: 12,
+        }),
+      );
+    }
+
+    // --- Guardrails（条件付き） ---
+    if (props.guardrailId) {
+      const grNs = 'PermissionAwareRAG/Guardrails';
+      const grDims = { Operation: 'guardrails' };
+
+      this.dashboard.addWidgets(
+        new cloudwatch.TextWidget({ markdown: '# Guardrails', width: 24, height: 1 }),
+      );
+      this.dashboard.addWidgets(
+        new cloudwatch.GraphWidget({
+          title: 'Guardrails — Input Blocked',
+          left: [
+            new cloudwatch.Metric({ namespace: grNs, metricName: 'GuardrailsInputBlocked', dimensionsMap: grDims, statistic: 'Sum', period: cdk.Duration.minutes(5) }),
+          ],
+          width: 8, height: 6,
+        }),
+        new cloudwatch.GraphWidget({
+          title: 'Guardrails — Output Filtered',
+          left: [
+            new cloudwatch.Metric({ namespace: grNs, metricName: 'GuardrailsOutputFiltered', dimensionsMap: grDims, statistic: 'Sum', period: cdk.Duration.minutes(5) }),
+          ],
+          width: 8, height: 6,
+        }),
+        new cloudwatch.GraphWidget({
+          title: 'Guardrails — Passthrough',
+          left: [
+            new cloudwatch.Metric({ namespace: grNs, metricName: 'GuardrailsPassthrough', dimensionsMap: grDims, statistic: 'Sum', period: cdk.Duration.minutes(5) }),
+          ],
+          width: 8, height: 6,
+        }),
+      );
+
+      // Guardrails Intervention Rate Alarm (> 10%)
+      const guardrailsInterventionAlarm = new cloudwatch.Alarm(this, 'GuardrailsInterventionRate', {
+        alarmName: `${prefix}-guardrails-intervention-rate`,
+        metric: new cloudwatch.MathExpression({
+          expression: '((blocked + filtered) / (blocked + filtered + passed)) * 100',
+          usingMetrics: {
+            blocked: new cloudwatch.Metric({ namespace: grNs, metricName: 'GuardrailsInputBlocked', dimensionsMap: grDims, statistic: 'Sum', period: cdk.Duration.minutes(5) }),
+            filtered: new cloudwatch.Metric({ namespace: grNs, metricName: 'GuardrailsOutputFiltered', dimensionsMap: grDims, statistic: 'Sum', period: cdk.Duration.minutes(5) }),
+            passed: new cloudwatch.Metric({ namespace: grNs, metricName: 'GuardrailsPassthrough', dimensionsMap: grDims, statistic: 'Sum', period: cdk.Duration.minutes(5) }),
+          },
+          period: cdk.Duration.minutes(5),
+        }),
+        threshold: 10,
+        evaluationPeriods,
+        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      });
+      guardrailsInterventionAlarm.addAlarmAction(...alarmActions);
+      guardrailsInterventionAlarm.addOkAction(...alarmActions);
+    }
+
+    // --- AgentCore Policy（条件付き） ---
+    if (props.enableAgentPolicy) {
+      const policyNs = 'PermissionAwareRAG/AgentPolicy';
+      this.dashboard.addWidgets(
+        new cloudwatch.TextWidget({ markdown: '# AgentCore Policy', width: 24, height: 1 }),
+      );
+      this.dashboard.addWidgets(
+        new cloudwatch.GraphWidget({
+          title: 'Policy — Evaluation Count',
+          left: [
+            new cloudwatch.Metric({ namespace: policyNs, metricName: 'PolicyEvaluationCount', statistic: 'Sum', period: cdk.Duration.minutes(5) }),
+          ],
+          width: 8, height: 6,
+        }),
+        new cloudwatch.GraphWidget({
+          title: 'Policy — Violation Count',
+          left: [
+            new cloudwatch.Metric({ namespace: policyNs, metricName: 'PolicyViolationCount', statistic: 'Sum', period: cdk.Duration.minutes(5) }),
+          ],
+          width: 8, height: 6,
+        }),
+        new cloudwatch.GraphWidget({
+          title: 'Policy — Evaluation Latency',
+          left: [
+            new cloudwatch.Metric({ namespace: policyNs, metricName: 'PolicyEvaluationLatency', statistic: 'Average', period: cdk.Duration.minutes(5) }),
+          ],
+          width: 8, height: 6,
         }),
       );
     }

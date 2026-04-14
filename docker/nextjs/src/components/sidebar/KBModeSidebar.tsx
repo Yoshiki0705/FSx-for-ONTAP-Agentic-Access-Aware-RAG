@@ -5,6 +5,8 @@ import { useChatSearch } from '@/hooks/useChatSearch';
 import { ModelSelector } from '../bedrock/ModelSelector';
 import { RegionSelector } from '../bedrock/RegionSelector';
 import { ChatHistorySearch } from '../search/ChatHistorySearch';
+import { GuardrailsAdminPanel } from '../guardrails/GuardrailsAdminPanel';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import type { ChatSession } from '@/types/chat';
 
 /**
@@ -80,6 +82,7 @@ export function KBModeSidebar({
   userRole = 'User'
 }: KBModeSidebarProps) {
   const t = useCustomTranslations(locale);
+  const { guardrailsEnabled } = useFeatureFlags();
   
   // チャット履歴検索
   const {
@@ -295,6 +298,14 @@ export function KBModeSidebar({
               {t('model.requestAccess')}
             </div>
           </div>
+        </div>
+
+        {/* Guardrails Admin Panel（管理者のみ） */}
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <GuardrailsAdminPanel
+            enableGuardrails={guardrailsEnabled}
+            isAdmin={true}
+          />
         </div>
       </div>
     </div>

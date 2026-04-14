@@ -73,7 +73,13 @@ if command -v docker &> /dev/null && docker info &> /dev/null; then
   if [ "$HOST_ARCH" = "arm64" ] || [ "$HOST_ARCH" = "aarch64" ]; then
     echo "  🍎 Apple Silicon detected — using prebuilt mode (local Next.js build + Docker package)"
     echo "  📦 Building Next.js locally..."
-    (cd ${PROJECT_ROOT}/docker/nextjs && npm install && NODE_ENV=production npm run build)
+    (cd ${PROJECT_ROOT}/docker/nextjs && npm install && \
+      NEXT_PUBLIC_VOICE_CHAT_ENABLED=true \
+      NEXT_PUBLIC_GUARDRAILS_ENABLED=true \
+      NEXT_PUBLIC_ENABLE_AGENT_REGISTRY=true \
+      NEXT_PUBLIC_AGENT_POLICY_ENABLED=true \
+      NEXT_PUBLIC_EPISODIC_MEMORY_ENABLED=true \
+      NODE_ENV=production npm run build)
 
     echo "  📥 Fetching x86_64 Lambda Adapter..."
     # ⚠️ --platform linux/amd64 を必ず指定すること。
@@ -93,6 +99,11 @@ if command -v docker &> /dev/null && docker info &> /dev/null; then
   else
     echo "  🖥️ x86_64 detected — using full Docker build"
     docker build --no-cache \
+      --build-arg NEXT_PUBLIC_VOICE_CHAT_ENABLED=true \
+      --build-arg NEXT_PUBLIC_GUARDRAILS_ENABLED=true \
+      --build-arg NEXT_PUBLIC_ENABLE_AGENT_REGISTRY=true \
+      --build-arg NEXT_PUBLIC_AGENT_POLICY_ENABLED=true \
+      --build-arg NEXT_PUBLIC_EPISODIC_MEMORY_ENABLED=true \
       -t ${ECR_URI}:${IMAGE_TAG} \
       -f ${PROJECT_ROOT}/docker/nextjs/Dockerfile \
       ${PROJECT_ROOT}/docker/nextjs/
@@ -149,7 +160,7 @@ phases:
       - ECR_URI=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_REPO}
   build:
     commands:
-      - docker build --no-cache -t \${ECR_URI}:${IMAGE_TAG} -f Dockerfile .
+      - docker build --no-cache --build-arg NEXT_PUBLIC_VOICE_CHAT_ENABLED=true --build-arg NEXT_PUBLIC_GUARDRAILS_ENABLED=true --build-arg NEXT_PUBLIC_ENABLE_AGENT_REGISTRY=true --build-arg NEXT_PUBLIC_AGENT_POLICY_ENABLED=true --build-arg NEXT_PUBLIC_EPISODIC_MEMORY_ENABLED=true -t \${ECR_URI}:${IMAGE_TAG} -f Dockerfile .
       - docker tag \${ECR_URI}:${IMAGE_TAG} \${ECR_URI}:latest
   post_build:
     commands:

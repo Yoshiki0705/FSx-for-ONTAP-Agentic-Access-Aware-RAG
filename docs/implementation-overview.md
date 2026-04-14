@@ -3,7 +3,7 @@
 **🌐 Language:** **日本語** | [English](en/implementation-overview.md) | [한국어](ko/implementation-overview.md) | [简体中文](zh-CN/implementation-overview.md) | [繁體中文](zh-TW/implementation-overview.md) | [Français](fr/implementation-overview.md) | [Deutsch](de/implementation-overview.md) | [Español](es/implementation-overview.md)
 
 **作成日**: 2026-03-25  
-**バージョン**: 3.4.0
+**バージョン**: 4.0.0
 
 ---
 
@@ -859,8 +859,290 @@ Authentication Flow
 |--------|------|
 | `AGENTCORE_MEMORY_ID` | AgentCore Memory ID（CDK出力） |
 | `ENABLE_AGENTCORE_MEMORY` | Memory機能有効フラグ |
+| `EPISODIC_MEMORY_ENABLED` | エピソード記憶有効フラグ（`enableEpisodicMemory=true` 時のみ） |
+
+### 13.1 エピソード記憶（Episodic Memory）
+
+`enableEpisodicMemory=true`（`enableAgentCoreMemory=true` が前提条件）で有効化されるオプション機能。セマンティックメモリが「エージェントが何を知っているか」を保持するのに対し、エピソード記憶は「エージェントがどのようにそこに到達したか」を保持します。
+
+#### データフロー
+
+1. **エピソード作成**: 会話完了後に Background Reflection プロセスがトリガーされ、会話内容からエピソード（goal, steps, actions, outcome, reflection）を自動抽出
+2. **類似エピソード検索**: タスク実行時に類似エピソードを検索し、上位3件を推論コンテキストに注入
+3. **エピソード管理**: MemorySection の「エピソード」タブでエピソード一覧表示、検索、削除
+
+#### API ルート
+
+| ルート | メソッド | 説明 |
+|--------|---------|------|
+| `/api/agentcore/memory/episodes` | GET | エピソード一覧取得 |
+| `/api/agentcore/memory/episodes` | DELETE | エピソード削除 |
+| `/api/agentcore/memory/episodes/search` | POST | エピソード検索 |
+| `/api/agentcore/memory/episodes/similar` | POST | 類似エピソード検索 |
+| `/api/agentcore/memory/episodes/reflect` | POST | 振り返りトリガー |
+
+#### エラー分離戦略
+
+エピソード記憶は「ベストエフォート」として設計。障害時はコア機能（チャット、タスク実行、セマンティックメモリ）を優先し、エピソード参照なしでタスクを実行します。
 
 ---
+
+## 14. Agent Registry 統合 — AWS Agent Registry（AgentCore）連携
+
+### 実装内容
+
+Agent Directory（`/[locale]/genai/agents`）に「Registry」タブを追加し、AWS Agent Registry（Amazon Bedrock AgentCore）と連携する機能を実装しています。組織内で管理されている Agent、ツール、MCP サーバー等のリソースをセマンティック検索・閲覧・インポート・パブリッシュできます。
+
+### アーキテクチャ
+
+```
+ブラウザ (Registry Tab)
+  → /api/bedrock/agent-registry/search   → registry-client.ts → AgentCore Registry API (Agent_Registry_Region)
+  → /api/bedrock/agent-registry/detail   → registry-client.ts → AgentCore Registry API
+  → /api/bedrock/agent-registry/import   → registry-client.ts → AgentCore Registry API + Bedrock Agent API (デプロイリージョン)
+  → /api/bedrock/agent-registry/publish  → registry-client.ts → AgentCore Registry API
+```
+
+### データフロー
+
+1. **検索フロー**: ユーザーが検索クエリを入力 → 300ms デバウンス → `/api/bedrock/agent-registry/search` → `registry-client.ts` → AgentCore `SearchResources` API → カードグリッド表示
+2. **インポートフロー**: Registry レコード選択 → `/api/bedrock/agent-registry/import` → `GetResource` でメタデータ取得 → `CreateAgent` + `PrepareAgent` + `CreateAgentAlias` でローカル Agent 作成
+3. **パブリッシュフロー**: Agent 詳細パネル → 「Registry にパブリッシュ」 → `/api/bedrock/agent-registry/publish` → `GetAgent` でメタデータ取得 → `CreateResource` で Registry 登録（承認待ちステータス）
+
+### クロスリージョンアクセス
+
+Agent Registry（Preview）は 5 リージョン（us-east-1, us-west-2, ap-southeast-2, ap-northeast-1, eu-west-1）で利用可能です。デプロイリージョンが非対応の場合、`agentRegistryRegion` CDK コンテキストパラメータで対応リージョンを指定し、クロスリージョンアクセスを実現します。
+
+- Lambda 環境変数 `AGENT_REGISTRY_REGION` で接続先リージョンを制御
+- IAM ポリシーのリソース ARN は指定リージョンに制限
+- クロスリージョン時のタイムアウトは 15 秒（デフォルト 10 秒から延長）
+
+### フォールトアイソレーション
+
+Registry タブは React Error Boundary と独立した Zustand ストア（`useRegistryStore`）で他タブから分離されています。Registry サービスが完全にダウンしても、Agents、Teams、Shared、Schedules タブは正常に動作します。
+
+### CDKコンテキストパラメータ
+
+| パラメータ | デフォルト | 説明 |
+|-----------|----------|------|
+| `enableAgentRegistry` | `false` | Agent Registry 統合の有効化（`enableAgent=true` が前提条件） |
+| `agentRegistryRegion` | デプロイリージョン | Agent Registry API 呼び出し先リージョン |
+
+### 環境変数
+
+| 変数名 | 説明 |
+|--------|------|
+| `ENABLE_AGENT_REGISTRY` | Registry 機能有効フラグ |
+| `AGENT_REGISTRY_REGION` | Registry API 接続先リージョン |
+
+---
+
+## 15. マルチモーダル RAG 検索 — Amazon Nova Multimodal Embeddings 統合
+
+### 実装内容
+
+Amazon Bedrock Knowledge Bases のマルチモーダル検索機能を統合し、テキスト・画像・動画・音声のクロスモーダル検索を実現しています。Embedding Model Registry パターンにより、新しい埋め込みモデルの追加がカタログへの登録のみで対応可能です。
+
+### アーキテクチャ
+
+```
+cdk.context.json                    CDK Deploy Time
+  embeddingModel ──────► EmbeddingModelRegistry ──► KBConfigStrategy
+  multimodalKbMode ─┘        (モデルカタログ)          (モデル非依存KB構成)
+                                                          │
+                              ┌───────────────────────────┤
+                              ▼                           ▼
+                    KB: Text-Only              KB: Multimodal
+                    (titan-text-v2)            (nova-multimodal)
+                              │                           │
+                              └─────────┬─────────────────┘
+                                        ▼
+                              KBQueryRouter (Dual KB時)
+                                        │
+                              SearchService → PermissionFilter → MediaPreviewService
+```
+
+### デプロイ構成パターン
+
+| パラメータ組み合わせ | KB 構成 | 埋め込みモデル |
+|---|---|---|
+| `embeddingModel` 未設定 / `titan-text-v2` | 単一 KB（テキスト専用） | titan-embed-text-v2:0 (1024dim) |
+| `embeddingModel: nova-multimodal` | 単一 KB（マルチモーダル） | Nova Multimodal Embeddings |
+| `multimodalKbMode: dual` | 2 つの KB 並行運用 | titan-text-v2 + nova-multimodal |
+
+### CDK パラメータ
+
+| パラメータ | デフォルト | 説明 |
+|-----------|----------|------|
+| `embeddingModel` | `titan-text-v2` | KB 埋め込みモデル。変更には KB 再作成と全データ再インジェストが必要 |
+| `multimodalKbMode` | `replace` | `replace`（単一 KB）または `dual`（テキスト専用 + マルチモーダル並行運用） |
+
+### 環境変数
+
+| 変数名 | 説明 |
+|--------|------|
+| `EMBEDDING_MODEL` | 使用中の埋め込みモデル ID |
+| `MULTIMODAL_ENABLED` | マルチモーダル機能の有効/無効 |
+| `EMBEDDING_MODEL_DISPLAY_NAME` | UI 表示用モデル名 |
+| `DUAL_KB_MODE` | Dual KB モードの有効/無効 |
+| `BEDROCK_KB_ID_TEXT` | テキスト専用 KB ID（Dual モード時） |
+| `BEDROCK_KB_ID_MULTIMODAL` | マルチモーダル KB ID（Dual モード時） |
+
+---
+
+## 16. Guardrails Organizational Safeguards — Bedrock Guardrails 拡張
+
+### 実装内容
+
+既存の Bedrock Guardrails 統合（`enableGuardrails` パラメータ）を拡張し、`guardrailsConfig` CDK パラメータによるコンテンツフィルタ強度・トピックポリシー・PII 検出の詳細設定、AWS Organizations Organizational Safeguards の検出・表示、チャット応答への GuardrailsStatusBadge 表示、介入ログ・メトリクス・CloudWatch ダッシュボード統合、管理者向け GuardrailsAdminPanel を実装しています。
+
+### アーキテクチャ
+
+```
+cdk.context.json                    CDK Deploy Time
+  enableGuardrails ──────► buildGuardrailProps() ──► CfnGuardrail (Standalone)
+  guardrailsConfig ──┘     (純粋変換関数)              │
+                                                       ├─► GUARDRAIL_ID → Lambda 環境変数
+                                                       └─► MonitoringConstruct Props
+
+Runtime (Lambda / Next.js)
+  User Input ──► Bedrock API (with guardrailIdentifier)
+                    │
+                    ├─► Standalone Guardrails チェック
+                    └─► Organizational Safeguards チェック（自動適用）
+                    │
+                    ▼
+              guardrailTrace
+                    │
+        ┌───────────┼───────────┐
+        ▼           ▼           ▼
+  parseGuardrailTrace  logIntervention  emitMetrics (EMF)
+        │                                    │
+        ▼                                    ▼
+  GuardrailResult ──► Frontend          CloudWatch Metrics
+        │                                    │
+        ├─► GuardrailsStatusBadge       Dashboard + Alarm
+        └─► GuardrailsAdminPanel
+```
+
+### Fail-Open エラーハンドリング戦略
+
+Guardrails サービスの障害時は Fail-Open 戦略を採用し、チャット機能の可用性を優先します。
+
+| エラーシナリオ | バックエンド動作 | フロントエンド表示 |
+|---|---|---|
+| Guardrails API タイムアウト（5秒超） | チェックスキップ、モデル応答をそのまま返却 | ⚠️ チェック不可 バッジ |
+| Guardrails API 5xx エラー | チェックスキップ、エラーログ記録 | ⚠️ チェック不可 バッジ |
+| Org Safeguards 検出 API 失敗 | スタンドアロン情報のみ返却 | 「組織ガードレール: 確認不可」 |
+| EMF メトリクス送信失敗 | エラーログ記録、チャット継続 | 影響なし |
+
+### CDK パラメータ
+
+| パラメータ | デフォルト | 説明 |
+|-----------|----------|------|
+| `enableGuardrails` | `false` | Bedrock Guardrails 有効化 |
+| `guardrailsConfig` | *(なし)* | Guardrails 詳細設定（`contentFilters`, `topicPolicies`, `piiConfig`, `contextualGrounding`） |
+
+### 環境変数
+
+| 変数名 | 説明 |
+|--------|------|
+| `GUARDRAILS_ENABLED` | Guardrails 機能の有効/無効 |
+| `GUARDRAIL_ID` | 作成された Guardrail の ID |
+| `GUARDRAIL_VERSION` | Guardrail のバージョン |
+
+---
+
+## 17. 音声チャット（Nova Sonic） — Amazon Nova Sonic 音声対話
+
+### 実装内容
+
+Amazon Nova Sonic による音声対話機能を実装しています。ブラウザのマイクから音声入力を受け取り、Bedrock Converse API で音声→テキスト変換後、既存の RAG パイプライン（Permission Filter 含む）に入力し、テキスト＋音声の同時出力を行います。
+
+### アーキテクチャ（Phase 1: REST ベース）
+
+```
+ブラウザ (マイク) → POST /api/voice/stream → Bedrock Converse API (音声→テキスト)
+                                              → KB/Agent RAG パイプライン
+                                              → テキスト + 音声レスポンス → ブラウザ
+```
+
+### 主要コンポーネント
+
+| コンポーネント | 説明 |
+|-------------|------|
+| VoiceButton | 🎤 マイクボタン（録音中パルスアニメーション、Ctrl+Shift+V ショートカット） |
+| WaveformAnimation | Canvas ベース波形描画（入力=青、出力=緑、reduced-motion 対応） |
+| VoicePlaybackControls | 一時停止/再開、音量調整、停止 |
+| useVoiceSession | WebSocket 接続、マイクストリーム、無音検出（30秒）、自動再接続（最大3回） |
+| useVoiceCapability | 音声機能利用可否判定（環境変数 + マイク対応 + 権限） |
+
+### CDK パラメータ
+
+| パラメータ | デフォルト | 説明 |
+|-----------|----------|------|
+| `enableVoiceChat` | `false` | 音声チャット有効化。Lambda に `bedrock:InvokeModelWithBidirectionalStream` 権限を付与 |
+
+### 環境変数
+
+| 変数名 | 説明 |
+|--------|------|
+| `VOICE_CHAT_ENABLED` | 音声チャット機能の有効/無効 |
+| `NOVA_SONIC_MODEL_ID` | Nova Sonic モデル ID（`amazon.nova-sonic-v1:0`） |
+
+---
+
+## 18. AgentCore Policy — エージェント行動制御
+
+### 実装内容
+
+AgentCore Policy によるエージェント行動制御を実装しています。自然言語でポリシーを定義し、エージェントのツール・API・MCP サーバーアクセスをリアルタイムに制限します。GA 版では Policy Engine + Gateway アーキテクチャに変更されています。
+
+### アーキテクチャ
+
+```
+Agent アクション実行前 → PolicyEvaluationMiddleware → AgentCore Policy API
+                         ↓ allowed=true → アクション実行
+                         ↓ allowed=false → ブロック + 違反ログ（EMF）
+                         ↓ エラー → fail-open: 実行継続 / fail-closed: ブロック
+```
+
+### 主要コンポーネント
+
+| コンポーネント | 説明 |
+|-------------|------|
+| PolicySection | Agent 作成・編集フォーム内のポリシー設定セクション |
+| PolicyTemplateSelector | 3 種類のテンプレート（セキュリティ重視、コスト重視、柔軟性重視） |
+| PolicyDisplay | Agent 詳細パネル内のポリシー表示（折りたたみ可能） |
+| PolicyBadge | ポリシー適用状態バッジ（🛡️） |
+| PolicyEvaluationMiddleware | 3 秒タイムアウト、fail-open/fail-closed 対応 |
+
+### CDK パラメータ
+
+| パラメータ | デフォルト | 説明 |
+|-----------|----------|------|
+| `enableAgentPolicy` | `false` | AgentCore Policy 有効化（`enableAgent=true` が前提条件） |
+| `policyFailureMode` | `fail-open` | ポリシー評価失敗時の挙動（`fail-open` / `fail-closed`） |
+
+### 環境変数
+
+| 変数名 | 説明 |
+|--------|------|
+| `AGENT_POLICY_ENABLED` | AgentCore Policy 機能の有効/無効 |
+| `POLICY_FAILURE_MODE` | ポリシー評価失敗時の挙動モード |
+
+---
+
+## API 実装ステータス
+
+| 機能 | バックエンド→AWS SDK | 実装方式 | GA 時の対応 |
+|------|-------------------|---------|-----------|
+| Agent Registry | SigV4 署名 HTTP | `registry-client.ts` → AgentCore REST API | SDK コマンドに差し替え |
+| マルチモーダル RAG | AWS SDK v3 | `BedrockAgentRuntimeClient` + `RetrieveCommand` | 対応不要（完全実装） |
+| Guardrails | AWS SDK v3 | `BedrockClient` + `ListGuardrailsCommand` / `GetGuardrailCommand` | 対応不要（完全実装） |
+| Episodic Memory | AWS SDK v3 | `BedrockAgentCoreClient` + `RetrieveMemoryRecordsCommand` | 対応不要（完全実装） |
+| Voice Chat | REST + Converse API | `BedrockRuntimeClient` + `ConverseCommand` → RAG パイプライン | Phase 2: WebSocket + `InvokeModelWithBidirectionalStream` |
+| AgentCore Policy | SigV4 署名 HTTP | `callAgentPolicyAPI` → Bedrock REST API | SDK コマンドに差し替え |
 
 ## システム全体アーキテクチャ
 
@@ -914,11 +1196,21 @@ Authentication Flow
 | `useS3AccessPoint` | 2 | `false` | S3 APをKBデータソースに使用 |
 | `usePermissionFilterLambda` | 3 | `false` | Permission Filter Lambda有効化 |
 | `enableGuardrails` | 4 | `false` | Bedrock Guardrails有効化 |
+| `guardrailsConfig` | 4 | (なし) | Guardrails 詳細設定（`contentFilters`, `topicPolicies`, `piiConfig`, `contextualGrounding`）。`enableGuardrails=true` 時のみ有効 |
 | `enableKmsEncryption` | 4 | `false` | KMS暗号化（S3, DynamoDB） |
 | `enableCloudTrail` | 4 | `false` | CloudTrail監査ログ |
 | `enableVpcEndpoints` | 4 | `false` | VPCエンドポイント（Bedrock, SSM等） |
 | `enableMonitoring` | - | `false` | CloudWatchダッシュボード + SNSアラート + EventBridge監視 |
 | `monitoringEmail` | - | (なし) | アラート通知先メールアドレス |
 | `enableAgentCoreMemory` | - | `false` | AgentCore Memory（短期・長期メモリ）を有効化（`enableAgent=true` が前提条件） |
+| `enableEpisodicMemory` | - | `false` | エピソード記憶を有効化（`enableAgentCoreMemory=true` が前提条件） |
 | `enableAgentCoreObservability` | - | `false` | AgentCore Runtimeメトリクスをダッシュボードに統合 |
 | `enableAdvancedPermissions` | - | `false` | 時間ベースアクセス制御 + 権限判定監査ログ |
+| `enableAgentRegistry` | - | `false` | Agent Registry 統合（Agent Directory に Registry タブを追加） |
+| `agentRegistryRegion` | - | デプロイリージョン | Agent Registry API 呼び出し先リージョン |
+| `agentRegistryArn` | - | (なし) | Agent Registry ARN（事前に `create_registry` で作成が必要） |
+| `embeddingModel` | - | `titan-text-v2` | KB 埋め込みモデル（`titan-text-v2` / `nova-multimodal`） |
+| `multimodalKbMode` | - | `replace` | マルチモーダル KB モード（`replace` / `dual`） |
+| `enableVoiceChat` | - | `false` | 音声チャット（Amazon Nova Sonic）を有効化 |
+| `enableAgentPolicy` | - | `false` | AgentCore Policy（エージェント行動制御）を有効化 |
+| `policyFailureMode` | - | `fail-open` | ポリシー評価失敗時の挙動（`fail-open` / `fail-closed`） |

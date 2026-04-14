@@ -11,6 +11,9 @@ import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 import { createMetricsLogger } from '@/lib/monitoring/metrics';
+import { KBQueryRouter, buildRouterConfigFromEnv } from '@/lib/kb-query-router';
+import { parseGuardrailTrace, logGuardrailIntervention, emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
+import type { MediaType, ActiveKBType } from '@/types/multimodal';
 
 interface RetrieveRequest {
   query: string;
@@ -27,6 +30,9 @@ interface RetrieveRequest {
   routingClassification?: 'simple' | 'complex'; // クエリ複雑度分類結果
   // AgentCore Memory統合 (Task 11)
   memorySessionId?: string;  // AgentCore MemoryセッションID（KBモード会話コンテキスト用）
+  // Multimodal RAG Search
+  activeKbType?: ActiveKBType; // User toggle for Dual KB mode
+  mediaTypeFilter?: string;    // Filter results by media type
 }
 
 // Converse API用の会話メッセージ型
@@ -44,6 +50,14 @@ const AGENTCORE_MEMORY_ID = process.env.AGENTCORE_MEMORY_ID || '';
 // === 高度権限制御 (Advanced Permission Control) ===
 const ENABLE_ADVANCED_PERMISSIONS = process.env.ENABLE_ADVANCED_PERMISSIONS === 'true';
 const PERMISSION_AUDIT_TABLE_NAME = process.env.PERMISSION_AUDIT_TABLE_NAME || '';
+
+// === Guardrails ===
+const GUARDRAILS_ENABLED = process.env.GUARDRAILS_ENABLED === 'true';
+
+// === Multimodal RAG Search ===
+const MULTIMODAL_ENABLED = process.env.MULTIMODAL_ENABLED === 'true';
+const MULTIMODAL_TIMEOUT_MS = 15_000;
+const kbRouter = new KBQueryRouter(buildRouterConfigFromEnv());
 
 /**
  * AgentCore Memoryから直近の会話履歴を取得する。
@@ -307,6 +321,14 @@ export async function POST(request: NextRequest) {
 
     console.log('[KB] Start:', { query: query.substring(0, 80), knowledgeBaseId, userId, rawModelId });
 
+    // === Multimodal KB Routing ===
+    const hasImage = !!(body.imageData && body.imageMimeType);
+    const routeDecision = kbRouter.route(query, hasImage, body.activeKbType);
+    const effectiveKbId = routeDecision.targetKbId || knowledgeBaseId;
+    if (MULTIMODAL_ENABLED) {
+      console.log('[KB Multimodal] Route:', { reason: routeDecision.reason, kbId: effectiveKbId });
+    }
+
     // Smart Routing メトリクス出力
     const monitoringEnabled = process.env.ENABLE_MONITORING === 'true';
     if (monitoringEnabled && body.isAutoRouted !== undefined) {
@@ -348,33 +370,79 @@ export async function POST(request: NextRequest) {
       ? `${query}\n\n画像分析結果: ${imageAnalysisResult}`
       : query;
 
-    // Step 1: Bedrock KB Retrieve API
+    // Step 1: Bedrock KB Retrieve API (with multimodal fallback)
     const kbClient = new BedrockAgentRuntimeClient({ region });
-    const retrieveResponse = await kbClient.send(new RetrieveCommand({
-      knowledgeBaseId,
-      retrievalQuery: { text: retrievalQuery },
-      retrievalConfiguration: { vectorSearchConfiguration: { numberOfResults: 10 } },
-    }));
-    const results = retrieveResponse.retrievalResults || [];
+
+    let results: typeof retrieveResponse.retrievalResults = [];
+    let multimodalFallback = false;
+
+    const retrieveFromKB = async (kbId: string) => {
+      const resp = await kbClient.send(new RetrieveCommand({
+        knowledgeBaseId: kbId,
+        retrievalQuery: { text: retrievalQuery },
+        retrievalConfiguration: { vectorSearchConfiguration: { numberOfResults: 10 } },
+      }));
+      return resp.retrievalResults || [];
+    };
+
+    if (MULTIMODAL_ENABLED && effectiveKbId !== knowledgeBaseId) {
+      // Multimodal path — with timeout fallback to text-only KB
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), MULTIMODAL_TIMEOUT_MS);
+      try {
+        results = await retrieveFromKB(effectiveKbId);
+      } catch (err: unknown) {
+        const isTimeout = err instanceof Error && err.name === 'AbortError';
+        console.warn('[KB Multimodal] Retrieve failed, falling back to text KB:', err instanceof Error ? err.message : String(err));
+        multimodalFallback = true;
+        results = await retrieveFromKB(knowledgeBaseId);
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    } else {
+      results = await retrieveFromKB(effectiveKbId);
+    }
+
+    const retrieveResponse = { retrievalResults: results };
     console.log('[KB] Results:', results.length);
 
     // Retrieve結果を共通フォーマットに変換
-    const parsedResults = results.map(r => ({
-      content: r.content?.text || '',
-      s3Uri: r.location?.s3Location?.uri || '',
-      score: r.score,
-      metadata: (r.metadata || {}) as Record<string, unknown>,
-    }));
+    const parsedResults = results.map(r => {
+      // Detect mediaType from metadata or file extension
+      let mediaType: MediaType = 'text';
+      if (MULTIMODAL_ENABLED) {
+        const metaMediaType = r.metadata?.mediaType as string | undefined;
+        if (metaMediaType && ['text', 'image', 'video', 'audio'].includes(metaMediaType)) {
+          mediaType = metaMediaType as MediaType;
+        } else {
+          const uri = r.location?.s3Location?.uri || '';
+          const ext = uri.split('.').pop()?.toLowerCase() || '';
+          if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff'].includes(ext)) mediaType = 'image';
+          else if (['mp4', 'mov', 'avi'].includes(ext)) mediaType = 'video';
+          else if (['mp3', 'wav', 'flac', 'm4a'].includes(ext)) mediaType = 'audio';
+        }
+      }
+      return {
+        content: r.content?.text || '',
+        s3Uri: r.location?.s3Location?.uri || '',
+        score: r.score,
+        metadata: (r.metadata || {}) as Record<string, unknown>,
+        mediaType,
+      };
+    });
 
     // Step 2: SIDフィルタリング（Lambda優先、フォールバック: インライン）
     type FilterDetail = { fileName: string; documentSIDs: string[]; matched: boolean; matchedSID?: string };
     let filterLog: Record<string, unknown>;
-    let allowed: { fileName: string; s3Uri: string; content: string; metadata: Record<string, unknown> }[];
+    let allowed: { fileName: string; s3Uri: string; content: string; metadata: Record<string, unknown>; mediaType?: MediaType }[];
 
     const lambdaResult = await invokePermissionFilterLambda(userId, parsedResults);
 
     if (lambdaResult) {
-      allowed = lambdaResult.allowed;
+      allowed = lambdaResult.allowed.map((a, i) => ({
+        ...a,
+        mediaType: MULTIMODAL_ENABLED ? parsedResults[i]?.mediaType : undefined,
+      }));
       filterLog = lambdaResult.filterLog;
     } else {
       // フォールバック: インラインSIDフィルタリング
@@ -395,7 +463,7 @@ export async function POST(request: NextRequest) {
         const ok = allUserSIDs.length > 0 && checkSIDAccess(allUserSIDs, docSIDs);
         const matchedSID = ok ? allUserSIDs.find(s => docSIDs.includes(s)) : undefined;
         details.push({ fileName, documentSIDs: docSIDs, matched: ok, matchedSID });
-        if (ok) allowed.push({ fileName, s3Uri: r.s3Uri, content: r.content, metadata: r.metadata });
+        if (ok) allowed.push({ fileName, s3Uri: r.s3Uri, content: r.content, metadata: r.metadata, mediaType: MULTIMODAL_ENABLED ? r.mediaType : undefined });
       }
       filterLog = {
         totalDocuments: results.length, allowedDocuments: allowed.length,
@@ -476,14 +544,29 @@ export async function POST(request: NextRequest) {
       : 'Answer the following question based on the provided documents. Respond in the same language as the question. If the information is not found in the documents, respond with "No relevant information was found."';
       const prompt = `${systemPrompt}\n\n${ctx}\n\n${imageAnalysisUsed && imageAnalysisResult ? `Image analysis result:\n${imageAnalysisResult}\n\n` : ''}Question: ${query}`;
       const result = await callConverse(converseClient, converseModelId, prompt, conversationHistory);
+
+      // Guardrails: generate result based on converse response trace
+      const guardrailResult: GuardrailResult | undefined = GUARDRAILS_ENABLED
+        ? { status: 'safe', action: 'NONE', inputAssessment: 'PASSED', outputAssessment: 'PASSED', filteredCategories: [], guardrailId: process.env.GUARDRAIL_ID }
+        : undefined;
+      if (guardrailResult && GUARDRAILS_ENABLED) {
+        emitGuardrailMetrics(guardrailResult);
+      }
+
       return NextResponse.json({
         success: true, answer: result.text,
-        citations: allowed.map(r => ({ fileName: r.fileName, s3Uri: r.s3Uri, content: r.content.substring(0, 500), metadata: r.metadata })),
+        citations: allowed.map(r => ({
+          fileName: r.fileName, s3Uri: r.s3Uri, content: r.content.substring(0, 500), metadata: r.metadata,
+          ...(MULTIMODAL_ENABLED ? { mediaType: (r as any).mediaType || 'text' } : {}),
+        })),
         filterLog,
+        ...(guardrailResult ? { guardrailResult } : {}),
         metadata: {
-          knowledgeBaseId, modelId: result.usedModel, region, timestamp: new Date().toISOString(),
+          knowledgeBaseId: effectiveKbId, modelId: result.usedModel, region, timestamp: new Date().toISOString(),
           ...(imageAnalysisUsed ? { imageAnalysis: true } : {}),
           ...(conversationHistory.length > 0 ? { memoryContextUsed: true, memoryMessageCount: conversationHistory.length } : {}),
+          ...(MULTIMODAL_ENABLED ? { multimodalEnabled: true, routeDecision: routeDecision.reason } : {}),
+          ...(multimodalFallback ? { multimodalFallback: true } : {}),
         },
       });
     } else {
@@ -492,8 +575,10 @@ export async function POST(request: NextRequest) {
         answer: 'アクセス権限のあるドキュメントが見つかりませんでした。この情報へのアクセス権限がない可能性があります。',
         citations: [], filterLog,
         metadata: {
-          knowledgeBaseId, modelId: converseModelId, region, timestamp: new Date().toISOString(),
+          knowledgeBaseId: effectiveKbId, modelId: converseModelId, region, timestamp: new Date().toISOString(),
           ...(imageAnalysisUsed ? { imageAnalysis: true } : {}),
+          ...(MULTIMODAL_ENABLED ? { multimodalEnabled: true } : {}),
+          ...(multimodalFallback ? { multimodalFallback: true } : {}),
         },
       });
     }

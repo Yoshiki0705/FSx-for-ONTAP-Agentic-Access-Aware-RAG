@@ -25,7 +25,28 @@
     "sessionActive": "Session Active",
     "newSession": "New Session",
     "regionSelection": "Region Selection",
-    "kbFeatures": "KB Features"
+    "kbFeatures": "KB Features",
+    "guardrailsPanel": {
+      "title": "Guardrails",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "guardrailId": "Guardrail ID",
+      "accountGuardrails": "Account Guardrails",
+      "orgGuardrails": "Organization Guardrails",
+      "orgEnabled": "Org Guardrails: Enabled",
+      "orgNotConfigured": "Org Guardrails: Not Configured",
+      "orgUnavailable": "Org Guardrails: Unavailable",
+      "contentFilters": "Content Filters",
+      "piiDetection": "PII Detection",
+      "topicPolicies": "Topic Policies",
+      "contextualGrounding": "Contextual Grounding Check",
+      "filterStrength": {
+        "NONE": "None",
+        "LOW": "Low",
+        "MEDIUM": "Medium",
+        "HIGH": "High"
+      }
+    }
   },
   "common": {
     "loading": "Loading...",
@@ -122,6 +143,26 @@
   },
   "chat": {
     "newChat": "New Chat",
+    "guardrailsStatus": {
+      "safe": "Safe",
+      "filtered": "Filtered",
+      "blocked": "Blocked",
+      "checkUnavailable": "Check Unavailable",
+      "tooltipTitle": "Guardrails Details",
+      "inputAssessment": "Input Check",
+      "outputAssessment": "Output Check",
+      "filteredCategories": "Filtered Categories",
+      "passed": "Passed",
+      "categories": {
+        "SEXUAL": "Sexual Content",
+        "VIOLENCE": "Violence",
+        "HATE": "Hate Speech",
+        "INSULTS": "Insults",
+        "MISCONDUCT": "Misconduct",
+        "PROMPT_ATTACK": "Prompt Attack",
+        "PII": "Personal Information"
+      }
+    },
     "chatHistory": "Chat History",
     "newChatShortcut": "Start new chat (Ctrl+N)",
     "kbFeatures": "KB Features",
@@ -155,7 +196,52 @@
     },
     "saveHistory": "Save History",
     "autoTitleGeneration": "Auto Title Generation",
-    "sessionActive": "Session Active"
+    "sessionActive": "Session Active",
+    "multimodal": {
+      "mediaText": "Text",
+      "mediaImage": "Image",
+      "mediaVideo": "Video",
+      "mediaAudio": "Audio",
+      "filterAll": "All",
+      "filterText": "Text",
+      "filterImage": "Image",
+      "filterVideo": "Video",
+      "filterAudio": "Audio",
+      "similaritySearch": "Similarity Search",
+      "visionAnalysis": "Vision Analysis",
+      "embeddingModel": "Embedding Model",
+      "multimodalBadge": "Multimodal",
+      "textOnlyBadge": "Text Only",
+      "supportedTypes": "Supported media types: Text, Image, Video, Audio",
+      "cdkRedeployNote": "Changing the embedding model requires CDK redeployment and full data re-ingestion",
+      "dualKbText": "Text-only Search",
+      "dualKbMultimodal": "Multimodal Search",
+      "fallbackMessage": "Multimodal search is unavailable. Showing text search results instead",
+      "noAccessibleResults": "No accessible search results found",
+      "imageSearchFailed": "Image similarity search failed. Please try Vision Analysis instead",
+      "imageSearchFallback": "Image search timed out. Fell back to text search"
+    },
+    "voice": {
+      "startRecording": "Start voice input",
+      "stopRecording": "Stop voice input",
+      "recording": "Recording...",
+      "processing": "Processing voice...",
+      "playback": "Playing audio",
+      "pause": "Pause",
+      "resume": "Resume",
+      "stop": "Stop",
+      "volumeControl": "Volume control",
+      "waveformInput": "Input audio waveform",
+      "waveformOutput": "Output audio waveform",
+      "micPermissionDenied": "Microphone access was denied. Please allow microphone access in your browser settings",
+      "connectionFailed": "Cannot connect to voice service. Please use text input",
+      "recognitionFailed": "Could not recognize voice. Please try again",
+      "apiError": "An error occurred during voice processing",
+      "noResults": "No accessible search results",
+      "fallbackToText": "Switched to text input",
+      "shortcut": "Shortcut: {shortcut}",
+      "silenceTimeout": "Recording stopped due to silence detected"
+    }
   },
   "introduction": {
     "welcome": "Hello, {username}!",
@@ -548,6 +634,75 @@
       "agents": "Agents",
       "shared": "Shared Agents",
       "schedules": "Scheduled Tasks"
+    },
+    "registry": {
+      "tab": "Registry",
+      "tabWithRegion": "Registry ({region})",
+      "searchPlaceholder": "Search agents, tools, MCP servers...",
+      "filterAll": "All",
+      "filterAgent": "Agent",
+      "filterTool": "Tool",
+      "filterMcpServer": "MCP Server",
+      "noResults": "No registry records found",
+      "noResultsSearch": "No results for \"{query}\"",
+      "loadMore": "Load more",
+      "loading": "Loading...",
+      "import": "Import",
+      "importing": "Importing...",
+      "importSuccess": "Successfully imported agent: {name}",
+      "importFailed": "Import failed: {error}",
+      "publish": "Publish to Registry",
+      "publishing": "Publishing...",
+      "publishSuccess": "Published to Registry (pending approval)",
+      "publishFailed": "Publish failed: {error}",
+      "pendingApproval": "Pending Approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "publisher": "Publisher",
+      "protocols": "Protocols",
+      "services": "Related Services",
+      "invocation": "Invocation Method",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "foundationModel": "Foundation Model",
+      "actionGroups": "Action Groups",
+      "knowledgeBases": "Knowledge Bases",
+      "mcpEndpoint": "Endpoint",
+      "mcpTools": "Tools",
+      "mcpAuth": "Authentication",
+      "errorTitle": "Registry Error",
+      "errorMessage": "Failed to connect to Agent Registry",
+      "errorRetry": "Retry",
+      "regionUnsupported": "Your deploy region does not support Agent Registry. Set `agentRegistryRegion` in cdk.context.json to one of: {regions}",
+      "regionConnected": "Connected to {region}"
+    },
+    "policy": {
+      "sectionTitle": "Policy Settings",
+      "templateLabel": "Select Template",
+      "templateNone": "No template (Custom)",
+      "securityName": "Security-focused",
+      "securityDesc": "Allow KB search only. Block external API and MCP server access.",
+      "securityText": "This agent can only use KB search. External API access and MCP server connections are prohibited.",
+      "costName": "Cost-focused",
+      "costDesc": "Allow lightweight model calls only. Block large-scale data processing.",
+      "costText": "This agent is only allowed to call lightweight models. Large-scale data processing and high-cost API calls are prohibited.",
+      "flexibilityName": "Flexibility-focused",
+      "flexibilityDesc": "Allow all tool access. All actions must be logged.",
+      "flexibilityText": "This agent can access all tools and APIs. However, all actions are logged.",
+      "inputLabel": "Policy Definition (Natural Language)",
+      "inputPlaceholder": "Describe the agent's behavioral constraints in natural language...",
+      "charCount": "{count}/2000 characters",
+      "badge": "🛡️ Policy Active",
+      "noPolicy": "No policy set",
+      "deleteConfirmTitle": "Delete policy?",
+      "deleteConfirmMessage": "Deleting this agent's policy will remove all behavioral constraints.",
+      "deleteConfirmButton": "Delete",
+      "cancelButton": "Cancel",
+      "saveError": "Failed to save policy. Please try again.",
+      "deleteError": "Failed to delete policy. Please try again.",
+      "evaluationBlocked": "Action restricted by policy",
+      "evaluationFailed": "Policy evaluation failed. Please contact your administrator.",
+      "detailTitle": "Policy"
     }
   },
   "signin": {
@@ -615,6 +770,26 @@
       "noSessions": "No sessions",
       "lastUpdated": "Last updated",
       "messageCount": "Messages"
+    },
+    "episodes": {
+      "tab": "Episodes",
+      "search": "Search episodes...",
+      "noEpisodes": "No episodes",
+      "noResults": "No matching episodes found",
+      "goal": "Goal",
+      "steps": "Reasoning Steps",
+      "actions": "Actions",
+      "outcome": "Outcome",
+      "reflection": "Reflection",
+      "statusSuccess": "Success",
+      "statusPartial": "Partial",
+      "statusFailure": "Failure",
+      "deleteConfirm": "Delete this episode?",
+      "deleteError": "Failed to delete episode",
+      "fetchError": "Failed to fetch episodes. Please retry",
+      "referenceBadge": "Referenced past experiences",
+      "stepCount": "{count} steps",
+      "refreshButton": "Refresh"
     }
   },
   "smartRouting": {
@@ -659,6 +834,81 @@
   "modelIndicator": {
     "label": "Model selector",
     "fallbackNotice": "Model changed: {previous} → {current}"
+  },
+  "teamWizard": {
+    "steps": {
+      "teamInfo": "Team Info",
+      "collaborators": "Collaborators",
+      "tools": "Tools",
+      "routing": "Routing",
+      "confirm": "Confirm"
+    },
+    "teamInfo": {
+      "title": "Team Name & Description",
+      "name": "Team Name",
+      "description": "Description"
+    },
+    "collaborators": {
+      "title": "Collaborator Customization",
+      "agentName": "Agent Name",
+      "instruction": "Instruction",
+      "foundationModel": "Foundation Model",
+      "trustLevel": "Trust Level",
+      "dataBoundary": "Data Boundary",
+      "roles": {
+        "permission-resolver": "Permission Resolver",
+        "retrieval": "Retrieval Agent",
+        "analysis": "Analysis Agent",
+        "output": "Output Agent",
+        "vision": "Vision Agent"
+      },
+      "defaultInstructions": {
+        "permission-resolver": "Resolve user SID/UID/GID permissions",
+        "retrieval": "Execute KB search with metadata filters",
+        "analysis": "Perform context summarization and reasoning",
+        "output": "Generate documents",
+        "vision": "Perform image understanding and analysis"
+      }
+    },
+    "tools": {
+      "title": "Tool Selection",
+      "categories": {
+        "permission": "Permission & Access",
+        "analysis": "Analysis & Generation",
+        "sharing": "Sharing & Integration"
+      },
+      "descriptions": {
+        "access-check": "SID/UID/GID permission resolution, User Access Table lookup",
+        "kb-retrieve": "Bedrock KB search (with metadata filters)",
+        "vision-analyze": "Image understanding & analysis (multimodal model)",
+        "schedule-run": "Scheduled execution (Background Agent)",
+        "share-agent": "Agent/Team sharing via S3 bucket"
+      }
+    },
+    "routing": {
+      "title": "Routing Mode",
+      "supervisorRouter": "Supervisor Router",
+      "supervisorRouterDesc": "Supervisor automatically selects the optimal Collaborator based on query content",
+      "supervisor": "Supervisor",
+      "supervisorDesc": "Supervisor queries all Collaborators sequentially and integrates results"
+    },
+    "confirm": {
+      "title": "Confirmation",
+      "costEstimate": "Estimated cost (per request)",
+      "collaboratorCount": "Collaborators",
+      "toolCount": "Tools"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "back": "← Back",
+      "next": "Next →",
+      "create": "🚀 Create Team",
+      "add": "+ Add",
+      "delete": "Delete"
+    },
+    "toolSelectDesc": "Select tools to assign to each Collaborator.",
+    "toolSecurityNote": "⚠️ General shell execution and unrestricted file operations are not available for security reasons",
+    "autoRouting": "Auto routing (automatically select mode based on query complexity)"
   },
   "templateGallery": {
     "title": "Template Gallery",

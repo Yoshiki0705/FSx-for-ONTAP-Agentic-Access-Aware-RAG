@@ -3,9 +3,12 @@
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { exportAgentConfig } from '@/utils/agentConfigUtils';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { ScheduleForm } from './ScheduleForm';
 import { ExecutionHistoryList } from './ExecutionHistoryList';
 import { ConnectedKBList } from './ConnectedKBList';
+import { PolicyDisplay } from './PolicyDisplay';
+import { PolicyBadge } from './PolicyBadge';
 import type { AgentDetail } from '@/types/agent-directory';
 import type { CreateScheduleParams, ScheduleTask, ExecutionRecord } from '@/types/enterprise-agent';
 
@@ -29,6 +32,9 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [manualRunning, setManualRunning] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [publishStatus, setPublishStatus] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const { agentRegistryEnabled: enableRegistry, agentPolicyEnabled } = useFeatureFlags();
 
   // Export agent config as JSON file download
   const handleExport = useCallback(() => {
@@ -58,6 +64,29 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
       setUploadStatus(t('sharing.uploadError'));
     }
   }, [agent, t]);
+
+  // Publish to Agent Registry
+  const handlePublishToRegistry = useCallback(async () => {
+    setIsPublishing(true);
+    setPublishStatus(null);
+    try {
+      const res = await fetch('/api/bedrock/agent-registry/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId: agent.agentId, description: agent.description }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPublishStatus(data.status === 'PENDING_APPROVAL' ? 'Published — pending approval' : 'Published successfully');
+      } else {
+        setPublishStatus(data.error || 'Publish failed');
+      }
+    } catch {
+      setPublishStatus('Failed to publish to Registry');
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [agent]);
 
   // Create schedule
   const handleCreateSchedule = useCallback(async (params: CreateScheduleParams) => {
@@ -161,6 +190,16 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
         </div>
       )}
 
+      {/* Policy Display */}
+      {agentPolicyEnabled && (
+        <div className="mb-6">
+          <PolicyBadge hasPolicy={!!agent.policyText} />
+          <div className="mt-2">
+            <PolicyDisplay policyText={agent.policyText || null} policyId={agent.policyId} />
+          </div>
+        </div>
+      )}
+
       {/* Action Groups */}
       {Array.isArray(agent.actionGroups) && agent.actionGroups.length > 0 && (
         <div className="mb-6">
@@ -234,9 +273,19 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
         <button onClick={onEdit} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">{t('editAgent')}</button>
         <button onClick={handleExport} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">{t('sharing.export')}</button>
         <button onClick={handleUploadToS3} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">{t('sharing.uploadToS3')}</button>
+        {enableRegistry && (
+          <button
+            onClick={handlePublishToRegistry}
+            disabled={isPublishing}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50"
+          >
+            {isPublishing ? 'Publishing...' : 'Publish to Registry'}
+          </button>
+        )}
         <button onClick={onDelete} className="px-4 py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 text-sm font-medium">{t('deleteAgent')}</button>
       </div>
       {uploadStatus && <p className="text-xs mt-2 text-gray-600 dark:text-gray-400">{uploadStatus}</p>}
+      {publishStatus && <p className="text-xs mt-2 text-gray-600 dark:text-gray-400">{publishStatus}</p>}
     </div>
   );
 }

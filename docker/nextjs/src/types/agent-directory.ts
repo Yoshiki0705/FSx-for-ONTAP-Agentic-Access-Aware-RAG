@@ -37,6 +37,8 @@ export interface AgentDetail {
   dataBoundary?: DataBoundary;
   agentCollaboration?: 'SUPERVISOR' | 'COLLABORATOR' | 'DISABLED';
   teamId?: string;
+  policyText?: string;
+  policyId?: string;
 }
 
 /**

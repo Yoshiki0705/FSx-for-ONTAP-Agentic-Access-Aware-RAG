@@ -107,6 +107,51 @@
     "saveHistory": "Verlauf speichern",
     "autoTitleGeneration": "Automatische Titelgenerierung",
     "sessionActive": "Sitzung aktiv",
+    "multimodal": {
+      "mediaText": "Text",
+      "mediaImage": "Bild",
+      "mediaVideo": "Video",
+      "mediaAudio": "Audio",
+      "filterAll": "Alle",
+      "filterText": "Text",
+      "filterImage": "Bild",
+      "filterVideo": "Video",
+      "filterAudio": "Audio",
+      "similaritySearch": "Ähnlichkeitssuche",
+      "visionAnalysis": "Vision-Analyse",
+      "embeddingModel": "Einbettungsmodell",
+      "multimodalBadge": "Multimodal",
+      "textOnlyBadge": "Nur Text",
+      "supportedTypes": "Unterstützte Medientypen: Text, Bild, Video, Audio",
+      "cdkRedeployNote": "Die Änderung des Einbettungsmodells erfordert ein CDK-Redeployment und eine vollständige Daten-Neuaufnahme",
+      "dualKbText": "Nur-Text-Suche",
+      "dualKbMultimodal": "Multimodale Suche",
+      "fallbackMessage": "Multimodale Suche nicht verfügbar. Textbasierte Suchergebnisse werden angezeigt",
+      "noAccessibleResults": "Keine zugänglichen Suchergebnisse gefunden",
+      "imageSearchFailed": "Bildähnlichkeitssuche fehlgeschlagen. Bitte versuchen Sie die Vision-Analyse",
+      "imageSearchFallback": "Bildsuche hat das Zeitlimit überschritten. Auf Textsuche zurückgefallen"
+    },
+    "voice": {
+      "startRecording": "Spracheingabe starten",
+      "stopRecording": "Spracheingabe stoppen",
+      "recording": "Aufnahme...",
+      "processing": "Sprachverarbeitung...",
+      "playback": "Audiowiedergabe",
+      "pause": "Pause",
+      "resume": "Fortsetzen",
+      "stop": "Stopp",
+      "volumeControl": "Lautstärkeregelung",
+      "waveformInput": "Eingangs-Audio-Wellenform",
+      "waveformOutput": "Ausgangs-Audio-Wellenform",
+      "micPermissionDenied": "Mikrofonzugriff wurde verweigert. Bitte erlauben Sie den Mikrofonzugriff in den Browsereinstellungen",
+      "connectionFailed": "Verbindung zum Sprachdienst nicht möglich. Bitte verwenden Sie die Texteingabe",
+      "recognitionFailed": "Sprache konnte nicht erkannt werden. Bitte versuchen Sie es erneut",
+      "apiError": "Bei der Sprachverarbeitung ist ein Fehler aufgetreten",
+      "noResults": "Keine zugänglichen Suchergebnisse",
+      "fallbackToText": "Auf Texteingabe umgeschaltet",
+      "shortcut": "Tastenkürzel: {shortcut}",
+      "silenceTimeout": "Aufnahme wegen erkannter Stille gestoppt"
+    },
     "introduction": {
       "welcome": "Hallo, {username}!",
       "title": "Willkommen beim berechtigungsbewussten RAG-Chatbot 🎉",
@@ -700,6 +745,75 @@
       "agents": "Agents",
       "shared": "Freigegebene Agents",
       "schedules": "Geplante Aufgaben"
+    },
+    "registry": {
+      "tab": "Registry",
+      "tabWithRegion": "Registry ({region})",
+      "searchPlaceholder": "Agenten, Tools, MCP-Server suchen...",
+      "filterAll": "Alle",
+      "filterAgent": "Agent",
+      "filterTool": "Tool",
+      "filterMcpServer": "MCP-Server",
+      "noResults": "Keine Registry-Einträge gefunden",
+      "noResultsSearch": "Keine Ergebnisse für \"{query}\"",
+      "loadMore": "Mehr laden",
+      "loading": "Wird geladen...",
+      "import": "Importieren",
+      "importing": "Importieren...",
+      "importSuccess": "Agent erfolgreich importiert: {name}",
+      "importFailed": "Import fehlgeschlagen: {error}",
+      "publish": "Im Registry veröffentlichen",
+      "publishing": "Veröffentlichen...",
+      "publishSuccess": "Im Registry veröffentlicht (Genehmigung ausstehend)",
+      "publishFailed": "Veröffentlichung fehlgeschlagen: {error}",
+      "pendingApproval": "Genehmigung ausstehend",
+      "approved": "Genehmigt",
+      "rejected": "Abgelehnt",
+      "publisher": "Herausgeber",
+      "protocols": "Protokolle",
+      "services": "Zugehörige Dienste",
+      "invocation": "Aufrufmethode",
+      "createdAt": "Erstellt am",
+      "updatedAt": "Aktualisiert am",
+      "foundationModel": "Grundmodell",
+      "actionGroups": "Aktionsgruppen",
+      "knowledgeBases": "Wissensdatenbanken",
+      "mcpEndpoint": "Endpunkt",
+      "mcpTools": "Tools",
+      "mcpAuth": "Authentifizierung",
+      "errorTitle": "Registry-Fehler",
+      "errorMessage": "Verbindung zum Agent Registry fehlgeschlagen",
+      "errorRetry": "Erneut versuchen",
+      "regionUnsupported": "Ihre Bereitstellungsregion unterstützt Agent Registry nicht. Setzen Sie `agentRegistryRegion` in cdk.context.json: {regions}",
+      "regionConnected": "Verbunden mit {region}"
+    },
+    "policy": {
+      "sectionTitle": "Richtlinieneinstellungen",
+      "templateLabel": "Vorlage auswählen",
+      "templateNone": "Keine Vorlage (Benutzerdefiniert)",
+      "securityName": "Sicherheitsorientiert",
+      "securityDesc": "Nur KB-Suche erlauben. Externen API- und MCP-Server-Zugriff blockieren.",
+      "securityText": "Dieser Agent kann nur die KB-Suche verwenden. Externer API-Zugriff und MCP-Server-Verbindungen sind untersagt.",
+      "costName": "Kostenorientiert",
+      "costDesc": "Nur leichte Modellaufrufe erlauben. Großflächige Datenverarbeitung blockieren.",
+      "costText": "Dieser Agent darf nur leichte Modelle aufrufen. Großflächige Datenverarbeitung und kostenintensive API-Aufrufe sind untersagt.",
+      "flexibilityName": "Flexibilitätsorientiert",
+      "flexibilityDesc": "Zugriff auf alle Tools erlauben. Alle Aktionen müssen protokolliert werden.",
+      "flexibilityText": "Dieser Agent kann auf alle Tools und APIs zugreifen. Allerdings werden alle Aktionen protokolliert.",
+      "inputLabel": "Richtliniendefinition (Natürliche Sprache)",
+      "inputPlaceholder": "Beschreiben Sie die Verhaltenseinschränkungen des Agenten in natürlicher Sprache...",
+      "charCount": "{count}/2000 Zeichen",
+      "badge": "🛡️ Richtlinie aktiv",
+      "noPolicy": "Keine Richtlinie festgelegt",
+      "deleteConfirmTitle": "Richtlinie löschen?",
+      "deleteConfirmMessage": "Das Löschen der Richtlinie dieses Agenten hebt alle Verhaltenseinschränkungen auf.",
+      "deleteConfirmButton": "Löschen",
+      "cancelButton": "Abbrechen",
+      "saveError": "Richtlinie konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "deleteError": "Richtlinie konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+      "evaluationBlocked": "Aktion durch Richtlinie eingeschränkt",
+      "evaluationFailed": "Richtlinienbewertung fehlgeschlagen. Bitte kontaktieren Sie Ihren Administrator.",
+      "detailTitle": "Richtlinie"
     }
   },
   "signin": {
@@ -767,6 +881,26 @@
       "noSessions": "Keine Sitzungen vorhanden",
       "lastUpdated": "Zuletzt aktualisiert",
       "messageCount": "Nachrichtenanzahl"
+    },
+    "episodes": {
+      "tab": "Episoden",
+      "search": "Episoden suchen...",
+      "noEpisodes": "Keine Episoden vorhanden",
+      "noResults": "Keine passenden Episoden gefunden",
+      "goal": "Ziel",
+      "steps": "Denkschritte",
+      "actions": "Aktionen",
+      "outcome": "Ergebnis",
+      "reflection": "Reflexion",
+      "statusSuccess": "Erfolg",
+      "statusPartial": "Teilerfolg",
+      "statusFailure": "Fehlgeschlagen",
+      "deleteConfirm": "Diese Episode löschen?",
+      "deleteError": "Episode konnte nicht gelöscht werden",
+      "fetchError": "Episoden konnten nicht abgerufen werden. Bitte erneut versuchen",
+      "referenceBadge": "Vergangene Erfahrungen referenziert",
+      "stepCount": "{count} Schritte",
+      "refreshButton": "Aktualisieren"
     }
   },
   "smartRouting": {
@@ -811,6 +945,81 @@
   "modelIndicator": {
     "label": "Modellauswahl",
     "fallbackNotice": "Modell geändert: {previous} → {current}"
+  },
+  "teamWizard": {
+    "steps": {
+      "teamInfo": "Team-Info",
+      "collaborators": "Mitarbeiter",
+      "tools": "Werkzeuge",
+      "routing": "Routing",
+      "confirm": "Bestätigung"
+    },
+    "teamInfo": {
+      "title": "Teamname und Beschreibung",
+      "name": "Teamname",
+      "description": "Beschreibung"
+    },
+    "collaborators": {
+      "title": "Mitarbeiter-Anpassung",
+      "agentName": "Agent-Name",
+      "instruction": "Anweisung",
+      "foundationModel": "Basismodell",
+      "trustLevel": "Vertrauensstufe",
+      "dataBoundary": "Datengrenze",
+      "roles": {
+        "permission-resolver": "Berechtigungsauflöser",
+        "retrieval": "Such-Agent",
+        "analysis": "Analyse-Agent",
+        "output": "Ausgabe-Agent",
+        "vision": "Vision-Agent"
+      },
+      "defaultInstructions": {
+        "permission-resolver": "SID/UID/GID-Berechtigungen des Benutzers auflösen",
+        "retrieval": "KB-Suche mit Metadatenfiltern ausführen",
+        "analysis": "Kontextzusammenfassung und Schlussfolgerung durchführen",
+        "output": "Dokumente generieren",
+        "vision": "Bildverständnis und -analyse durchführen"
+      }
+    },
+    "tools": {
+      "title": "Werkzeugauswahl",
+      "categories": {
+        "permission": "Berechtigungen und Zugriff",
+        "analysis": "Analyse und Generierung",
+        "sharing": "Freigabe und Integration"
+      },
+      "descriptions": {
+        "access-check": "SID/UID/GID-Berechtigungsauflösung, User Access Table-Abfrage",
+        "kb-retrieve": "Bedrock KB-Suche (mit Metadatenfiltern)",
+        "vision-analyze": "Bildverständnis und -analyse (multimodales Modell)",
+        "schedule-run": "Geplante Ausführung (Background Agent)",
+        "share-agent": "Agent/Team-Freigabe über S3-Bucket"
+      }
+    },
+    "routing": {
+      "title": "Routing-Modus",
+      "supervisorRouter": "Supervisor Router",
+      "supervisorRouterDesc": "Der Supervisor wählt automatisch den optimalen Collaborator basierend auf dem Abfrageinhalt",
+      "supervisor": "Supervisor",
+      "supervisorDesc": "Der Supervisor fragt alle Collaborators sequenziell ab und integriert die Ergebnisse"
+    },
+    "confirm": {
+      "title": "Bestätigung",
+      "costEstimate": "Geschätzte Kosten (pro Anfrage)",
+      "collaboratorCount": "Mitarbeiter",
+      "toolCount": "Werkzeuge"
+    },
+    "buttons": {
+      "cancel": "Abbrechen",
+      "back": "← Zurück",
+      "next": "Weiter →",
+      "create": "🚀 Team erstellen",
+      "add": "+ Hinzufügen",
+      "delete": "Löschen"
+    },
+    "toolSelectDesc": "Wählen Sie die Werkzeuge aus, die jedem Mitarbeiter zugewiesen werden sollen.",
+    "toolSecurityNote": "⚠️ Allgemeine Shell-Ausführung und uneingeschränkte Dateioperationen sind aus Sicherheitsgründen nicht verfügbar",
+    "autoRouting": "Automatisches Routing (automatische Modusauswahl basierend auf der Abfragekomplexität)"
   },
   "templateGallery": {
     "title": "Vorlagengalerie",

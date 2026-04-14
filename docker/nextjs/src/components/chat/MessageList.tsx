@@ -5,6 +5,8 @@ import { useLocale } from 'next-intl';
 import { Message } from '@/types/chat';
 import { MessageActions } from './MessageActions';
 import { CodeBlock, InlineCode } from './CodeBlock';
+import { GuardrailsStatusBadge } from '@/components/guardrails/GuardrailsStatusBadge';
+import { EpisodeReferenceBadge } from './EpisodeReferenceBadge';
 
 interface MessageListProps {
   messages: Message[];
@@ -158,6 +160,21 @@ export function MessageList({ messages, onEdit, onDelete, onCopy }: MessageListP
             )}
 
             {/* メッセージアクション */}
+            <div className="flex items-center gap-2 mt-1">
+              {/* Guardrails Status Badge (assistant messages only) */}
+              {message.role === 'assistant' && (message as any).guardrailResult && (
+                <GuardrailsStatusBadge
+                  guardrailResult={(message as any).guardrailResult}
+                  enableGuardrails={true}
+                />
+              )}
+              {/* Episode Reference Badge (assistant messages only) */}
+              {message.role === 'assistant' && (message as any).episodeReferenced && (
+                <EpisodeReferenceBadge
+                  episodeCount={(message as any).episodeCount || 0}
+                />
+              )}
+            </div>
             <MessageActions
               messageId={message.id}
               content={message.content}

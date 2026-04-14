@@ -44,24 +44,14 @@ export function LanguageSwitcher({
     const oldLocale = segments[1];
     segments[1] = newLocale; // /[locale]/... の [locale] 部分を置き換え
     
-    // クエリパラメータを保持（modeパラメータを維持）
+    // クエリパラメータを保持（全パラメータを維持）
     const searchParams = new URLSearchParams(window.location.search);
-    
-    // 重要: KBモードの場合はmodeパラメータを削除
-    // Agentモードの場合のみmode=agentを保持
-    const currentMode = searchParams.get('mode');
-    if (!currentMode || currentMode !== 'agent') {
-      // KBモードまたはパラメータなし → modeパラメータを削除
-      searchParams.delete('mode');
-    }
     
     const newPath = segments.join('/') + (searchParams.toString() ? `?${searchParams.toString()}` : '');
     
     console.log(`[LanguageSwitcher] パス変更: ${pathname} → ${newPath}`);
     console.log(`[LanguageSwitcher] ロケール変更: ${oldLocale} → ${newLocale}`);
     console.log(`[LanguageSwitcher] クエリパラメータ保持: ${searchParams.toString()}`);
-    console.log(`[LanguageSwitcher] 現在のモード: ${currentMode || 'KB (デフォルト)'}`);
-    
     try {
       // APIを使用してCookieを設定（バックグラウンドで実行）
       fetch('/api/locale', {
