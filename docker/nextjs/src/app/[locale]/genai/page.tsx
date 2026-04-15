@@ -58,6 +58,7 @@ import { UserMenu } from '@/components/ui/UserMenu';
 import { OverflowMenu } from '@/components/ui/OverflowMenu';
 import type { OverflowMenuItem } from '@/components/ui/OverflowMenu';
 import { useHeaderStore } from '@/store/useHeaderStore';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
 // エラーメッセージ表示用の型定義（将来の拡張用）
 // interface ErrorDisplayProps {
@@ -1709,7 +1710,8 @@ function ChatbotPageContent() {
   // 2. Supervisor Agent ID が環境変数で設定されている場合（CDK enableMultiAgent=true）
   const hasTeams = useAgentTeamStore((s) => s.teams.length > 0);
   const [hasSupervisor, setHasSupervisor] = useState(false);
-  const headerMultiAgentAvailable = hasTeams || hasSupervisor;
+  const featureFlags = useFeatureFlags();
+  const headerMultiAgentAvailable = hasTeams || hasSupervisor || featureFlags.multiAgentEnabled;
   useEffect(() => {
     fetch('/api/bedrock/agent-team', {
       method: 'POST',
