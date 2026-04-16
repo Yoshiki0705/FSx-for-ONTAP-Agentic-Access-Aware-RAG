@@ -25,6 +25,7 @@
     "createAgent": "创建 Agent",
     "createNew": "创建新 Agent",
     "delete": "删除代理",
+    "language": "语言",
     "deleteConfirm": "确定要删除\"{name}\"吗？此操作无法撤销。",
     "error": {},
     "features": "Agent 功能",
@@ -263,6 +264,7 @@
     "close": "关闭",
     "confirm": "确认",
     "delete": "删除",
+    "language": "语言",
     "disabled": "已禁用",
     "edit": "编辑",
     "enabled": "已启用",
@@ -1123,7 +1125,8 @@
       "next": "下一步 →",
       "create": "🚀 创建团队",
       "add": "+ 添加",
-      "delete": "删除"
+      "delete": "删除",
+    "language": "语言"
     },
     "toolSelectDesc": "选择要分配给每个协作者的工具。",
     "toolSecurityNote": "⚠️ 出于安全原因，不提供通用 Shell 执行和无限制文件操作",

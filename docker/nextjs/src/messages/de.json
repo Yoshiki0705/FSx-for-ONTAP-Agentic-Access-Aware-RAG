@@ -210,6 +210,7 @@
     "close": "Schließen",
     "confirm": "Bestätigen",
     "delete": "Löschen",
+    "language": "Sprache",
     "disabled": "Deaktiviert",
     "edit": "Bearbeiten",
     "enabled": "Aktiviert",
@@ -1015,7 +1016,8 @@
       "next": "Weiter →",
       "create": "🚀 Team erstellen",
       "add": "+ Hinzufügen",
-      "delete": "Löschen"
+      "delete": "Löschen",
+    "language": "Sprache"
     },
     "toolSelectDesc": "Wählen Sie die Werkzeuge aus, die jedem Mitarbeiter zugewiesen werden sollen.",
     "toolSecurityNote": "⚠️ Allgemeine Shell-Ausführung und uneingeschränkte Dateioperationen sind aus Sicherheitsgründen nicht verfügbar",

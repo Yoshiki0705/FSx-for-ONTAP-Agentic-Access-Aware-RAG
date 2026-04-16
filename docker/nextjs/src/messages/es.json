@@ -210,6 +210,7 @@
     "close": "Cerrar",
     "confirm": "Confirmar",
     "delete": "Eliminar",
+    "language": "Idioma",
     "disabled": "Deshabilitado",
     "edit": "Editar",
     "enabled": "Habilitado",
@@ -1015,7 +1016,8 @@
       "next": "Siguiente →",
       "create": "🚀 Crear equipo",
       "add": "+ Agregar",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+    "language": "Idioma"
     },
     "toolSelectDesc": "Seleccione las herramientas a asignar a cada Colaborador.",
     "toolSecurityNote": "⚠️ La ejecución general de shell y las operaciones de archivos sin restricciones no están disponibles por razones de seguridad",

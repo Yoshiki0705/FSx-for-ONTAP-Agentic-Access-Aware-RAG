@@ -230,6 +230,7 @@
     "close": "닫기",
     "confirm": "확인",
     "delete": "삭제",
+    "language": "언어",
     "disabled": "비활성화됨",
     "edit": "편집",
     "enabled": "활성화됨",
@@ -1056,7 +1057,8 @@
       "next": "다음 →",
       "create": "🚀 팀 생성",
       "add": "+ 추가",
-      "delete": "삭제"
+      "delete": "삭제",
+    "language": "언어"
     },
     "toolSelectDesc": "각 Collaborator에 할당할 도구를 선택하세요.",
     "toolSecurityNote": "⚠️ 보안상의 이유로 일반 셸 실행 및 무제한 파일 작업은 사용할 수 없습니다",

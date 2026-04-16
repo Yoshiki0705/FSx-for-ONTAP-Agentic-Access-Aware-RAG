@@ -210,6 +210,7 @@
     "close": "關閉",
     "confirm": "確認",
     "delete": "刪除",
+    "language": "語言",
     "disabled": "已停用",
     "edit": "編輯",
     "enabled": "已啟用",
@@ -1036,7 +1037,8 @@
       "next": "下一步 →",
       "create": "🚀 建立團隊",
       "add": "+ 新增",
-      "delete": "刪除"
+      "delete": "刪除",
+    "language": "語言"
     },
     "toolSelectDesc": "選擇要分配給每個協作者的工具。",
     "toolSecurityNote": "⚠️ 基於安全考量，不提供一般 Shell 執行及無限制檔案操作",

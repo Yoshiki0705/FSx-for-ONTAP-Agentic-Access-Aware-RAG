@@ -468,7 +468,7 @@ function ChatbotPageContent() {
     read: t('permissions.read'),
     write: t('permissions.write'),
     available: t('permissions.available'),
-    directories: t('permissions.directories'),  // 追加: t is not defined エラーの修正
+    directories: t('permissions.directories', { count: 0 }),  // デフォルト count=0（実際の値は userDirectories 取得後に置換）
     
     // Chatt
     newChat: t('chat.newChat'),
