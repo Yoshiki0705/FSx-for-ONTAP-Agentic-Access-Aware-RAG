@@ -51,7 +51,7 @@
     "@aws-sdk/client-ssm": "^3.700.0",
     "@aws-sdk/lib-dynamodb": "^3.700.0",
     "aws-cdk-lib": "^2.235.0",
-    "cdk-docker-image-deployment": "^0.0.932",
+    "cdk-docker-image-deployment": "^0.0.987",
     "cdk-nag": "^2.37.55",
     "constructs": "^10.3.0",
     "source-map-support": "^0.5.21"
