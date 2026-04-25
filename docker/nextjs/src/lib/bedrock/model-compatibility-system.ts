@@ -68,14 +68,14 @@ export class ModelCompatibilitySystem {
    * モデルデータベースの初期化（AWS MCPサーバー情報を基に）
    */
   private initializeModelDatabase(): void {
-    // Anthropic Claude 3.5 Sonnet (安定版)
-    this.modelDatabase.set('anthropic.claude-3-5-sonnet-20240620-v1:0', {
-      modelId: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
-      modelName: 'Claude 3.5 Sonnet',
+    // Anthropic Claude Sonnet 4 (最新安定版)
+    this.modelDatabase.set('anthropic.claude-sonnet-4-20250514-v1:0', {
+      modelId: 'anthropic.claude-sonnet-4-20250514-v1:0',
+      modelName: 'Claude Sonnet 4',
       provider: 'Anthropic',
-      family: 'claude-3-5-sonnet',
-      version: '20240620-v1',
-      releaseDate: '2024-06-20',
+      family: 'claude-sonnet-4',
+      version: '20250514-v1',
+      releaseDate: '2025-05-14',
       isStable: true,
       isDeprecated: false,
       supportedFeatures: {
@@ -90,6 +90,29 @@ export class ModelCompatibilitySystem {
       ],
       inputModalities: ['Text'],
       outputModalities: ['Text'],
+    });
+
+    // Anthropic Claude 3.5 Sonnet v1 (廃止済み - 2026-03-01)
+    this.modelDatabase.set('anthropic.claude-3-5-sonnet-20240620-v1:0', {
+      modelId: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+      modelName: 'Claude 3.5 Sonnet (Deprecated)',
+      provider: 'Anthropic',
+      family: 'claude-3-5-sonnet',
+      version: '20240620-v1',
+      releaseDate: '2024-06-20',
+      isStable: false,
+      isDeprecated: true,
+      supportedFeatures: {
+        onDemand: false,
+        provisioned: false,
+        streaming: false,
+        crossRegion: false,
+      },
+      supportedRegions: [],
+      inputModalities: ['Text'],
+      outputModalities: ['Text'],
+      deprecationDate: '2026-03-01',
+      replacementModel: 'anthropic.claude-sonnet-4-20250514-v1:0',
     });
 
     // Anthropic Claude 3.5 Sonnet v2 (問題のある版)
@@ -112,7 +135,7 @@ export class ModelCompatibilitySystem {
       inputModalities: ['Text'],
       outputModalities: ['Text'],
       deprecationDate: '2024-12-01',
-      replacementModel: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+      replacementModel: 'anthropic.claude-sonnet-4-20250514-v1:0',
     });
 
     // Anthropic Claude 3 Haiku
@@ -219,9 +242,9 @@ export class ModelCompatibilitySystem {
       namingPattern: 'anthropic.claude-{version}-{date}-v{revision}:0',
       families: {
         'claude-3-5-sonnet': {
-          stableVersions: ['anthropic.claude-3-5-sonnet-20240620-v1:0'],
-          latestVersions: ['anthropic.claude-3-5-sonnet-20241120-v1:0'],
-          deprecatedVersions: ['anthropic.claude-3-5-sonnet-20241022-v2:0'],
+          stableVersions: ['anthropic.claude-sonnet-4-20250514-v1:0'],
+          latestVersions: ['anthropic.claude-sonnet-4-20250514-v1:0'],
+          deprecatedVersions: ['anthropic.claude-3-5-sonnet-20240620-v1:0', 'anthropic.claude-3-5-sonnet-20241022-v2:0'],
           namingConvention: 'anthropic.claude-3-5-sonnet-YYYYMMDD-v{revision}:0',
         },
         'claude-3-haiku': {
@@ -278,7 +301,7 @@ export class ModelCompatibilitySystem {
   private initializeRegionalAvailability(): void {
     // 主要リージョンでの利用可能モデル
     this.regionalAvailability.set('us-east-1', [
-      'anthropic.claude-3-5-sonnet-20240620-v1:0',
+      'anthropic.claude-sonnet-4-20250514-v1:0',
       'anthropic.claude-3-haiku-20240307-v1:0',
       'amazon.nova-pro-v1:0',
       'amazon.nova-lite-v1:0',
@@ -286,7 +309,7 @@ export class ModelCompatibilitySystem {
     ]);
 
     this.regionalAvailability.set('us-west-2', [
-      'anthropic.claude-3-5-sonnet-20240620-v1:0',
+      'anthropic.claude-sonnet-4-20250514-v1:0',
       'anthropic.claude-3-haiku-20240307-v1:0',
       'amazon.nova-pro-v1:0',
       'amazon.nova-lite-v1:0',
@@ -294,7 +317,7 @@ export class ModelCompatibilitySystem {
     ]);
 
     this.regionalAvailability.set('ap-northeast-1', [
-      'anthropic.claude-3-5-sonnet-20240620-v1:0',
+      'anthropic.claude-sonnet-4-20250514-v1:0',
       'anthropic.claude-3-haiku-20240307-v1:0',
       'amazon.nova-pro-v1:0',
       'amazon.nova-lite-v1:0',
@@ -302,7 +325,7 @@ export class ModelCompatibilitySystem {
     ]);
 
     this.regionalAvailability.set('eu-west-1', [
-      'anthropic.claude-3-5-sonnet-20240620-v1:0',
+      'anthropic.claude-sonnet-4-20250514-v1:0',
       'anthropic.claude-3-haiku-20240307-v1:0',
       'amazon.nova-lite-v1:0',
       'amazon.titan-text-express-v1',
@@ -320,10 +343,10 @@ export class ModelCompatibilitySystem {
     
     // ユースケース別優先順位
     const priorities = {
-      chat: ['claude-3-5-sonnet', 'claude-3-haiku', 'nova-pro', 'nova-lite'],
-      generation: ['claude-3-5-sonnet', 'nova-pro', 'claude-3-haiku', 'nova-lite'],
+      chat: ['claude-sonnet-4', 'claude-3-5-sonnet', 'claude-3-haiku', 'nova-pro', 'nova-lite'],
+      generation: ['claude-sonnet-4', 'claude-3-5-sonnet', 'nova-pro', 'claude-3-haiku', 'nova-lite'],
       'cost-effective': ['claude-3-haiku', 'nova-lite', 'titan-text', 'nova-pro'],
-      multimodal: ['nova-pro', 'nova-lite', 'claude-3-5-sonnet'],
+      multimodal: ['nova-pro', 'nova-lite', 'claude-sonnet-4'],
     };
 
     const familyPriority = priorities[useCase];

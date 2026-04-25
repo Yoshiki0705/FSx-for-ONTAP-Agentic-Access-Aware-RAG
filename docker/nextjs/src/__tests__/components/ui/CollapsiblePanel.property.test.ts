@@ -18,7 +18,7 @@ import { useSidebarStore } from '../../../store/useSidebarStore';
 describe('Feature: sidebar-workflow-agent-redesign, Property 1: collapsible toggle inverts state', () => {
   beforeEach(() => {
     // Reset store to default state before each test
-    useSidebarStore.setState({ systemSettingsExpanded: false });
+    useSidebarStore.getState().setExpanded('system-settings', false);
   });
 
   it('N回トグル後の状態は initialState XOR (N % 2 === 1) と等しい', () => {
@@ -27,8 +27,8 @@ describe('Feature: sidebar-workflow-agent-redesign, Property 1: collapsible togg
         fc.boolean(),
         fc.integer({ min: 1, max: 100 }),
         (initialState: boolean, clickCount: number) => {
-          // Set initial state
-          useSidebarStore.setState({ systemSettingsExpanded: initialState });
+          // Set initial state via setExpanded
+          useSidebarStore.getState().setExpanded('system-settings', initialState);
 
           // Perform N toggles
           for (let i = 0; i < clickCount; i++) {
@@ -37,7 +37,7 @@ describe('Feature: sidebar-workflow-agent-redesign, Property 1: collapsible togg
 
           // Verify: after N toggles, state === initialState XOR (N is odd)
           const expectedState = clickCount % 2 === 1 ? !initialState : initialState;
-          const actualState = useSidebarStore.getState().systemSettingsExpanded;
+          const actualState = useSidebarStore.getState().isExpanded('system-settings');
 
           expect(actualState).toBe(expectedState);
         }

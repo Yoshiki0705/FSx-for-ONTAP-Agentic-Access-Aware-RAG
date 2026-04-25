@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 /**
  * Property-Based Test: Agent一覧の完全性 (Property 5)
  *
@@ -16,7 +17,7 @@ import '@testing-library/jest-dom';
 
 // --- Mocks ---
 
-jest.mock('next-intl', () => ({
+vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
       placeholder: 'Select Agent',
@@ -75,7 +76,7 @@ describe('Feature: ui-ux-optimization, Property 5: Agent一覧の完全性', () 
           render(
             React.createElement(HeaderAgentSelector, {
               selectedAgentId: null,
-              onAgentChange: jest.fn(),
+              onAgentChange: vi.fn(),
               agents: uniqueAgents,
               disabled: false,
             }),
@@ -111,7 +112,7 @@ describe('Feature: ui-ux-optimization, Property 5: Agent一覧の完全性', () 
           render(
             React.createElement(HeaderAgentSelector, {
               selectedAgentId: null,
-              onAgentChange: jest.fn(),
+              onAgentChange: vi.fn(),
               agents: uniqueAgents,
               disabled: false,
             }),
@@ -143,7 +144,7 @@ describe('Feature: ui-ux-optimization, Property 5: Agent一覧の完全性', () 
           render(
             React.createElement(HeaderAgentSelector, {
               selectedAgentId: null,
-              onAgentChange: jest.fn(),
+              onAgentChange: vi.fn(),
               agents: uniqueAgents,
               disabled: false,
             }),

@@ -14,7 +14,8 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
+import { vi, describe, it, expect, afterEach } from 'vitest';
 import AgentModeToggle from '@/components/chat/AgentModeToggle';
 import type { AgentModeToggleProps } from '@/components/chat/AgentModeToggle';
 
@@ -49,7 +50,7 @@ describe('AgentModeToggle', () => {
     it('renders a radiogroup with aria-label "Agent mode"', () => {
       const { container, cleanup } = renderToggle({
         mode: 'single',
-        onModeChange: jest.fn(),
+        onModeChange: vi.fn(),
         multiAgentAvailable: true,
       });
 
@@ -63,7 +64,7 @@ describe('AgentModeToggle', () => {
     it('renders two radio buttons with correct aria-checked', () => {
       const { container, cleanup } = renderToggle({
         mode: 'single',
-        onModeChange: jest.fn(),
+        onModeChange: vi.fn(),
         multiAgentAvailable: true,
       });
 
@@ -82,7 +83,7 @@ describe('AgentModeToggle', () => {
     it('reflects multi mode in aria-checked when mode is multi', () => {
       const { container, cleanup } = renderToggle({
         mode: 'multi',
-        onModeChange: jest.fn(),
+        onModeChange: vi.fn(),
         multiAgentAvailable: true,
       });
 
@@ -98,7 +99,7 @@ describe('AgentModeToggle', () => {
 
   describe('mode switching', () => {
     it('calls onModeChange with "multi" when Multi button is clicked', () => {
-      const onModeChange = jest.fn();
+      const onModeChange = vi.fn();
       const { container, cleanup } = renderToggle({
         mode: 'single',
         onModeChange,
@@ -117,7 +118,7 @@ describe('AgentModeToggle', () => {
     });
 
     it('calls onModeChange with "single" when Single button is clicked from multi mode', () => {
-      const onModeChange = jest.fn();
+      const onModeChange = vi.fn();
       const { container, cleanup } = renderToggle({
         mode: 'multi',
         onModeChange,
@@ -135,7 +136,7 @@ describe('AgentModeToggle', () => {
     });
 
     it('does NOT call onModeChange when clicking the already-selected mode', () => {
-      const onModeChange = jest.fn();
+      const onModeChange = vi.fn();
       const { container, cleanup } = renderToggle({
         mode: 'single',
         onModeChange,
@@ -155,7 +156,7 @@ describe('AgentModeToggle', () => {
 
   describe('disabled state', () => {
     it('does NOT call onModeChange when multiAgentAvailable is false', () => {
-      const onModeChange = jest.fn();
+      const onModeChange = vi.fn();
       const { container, cleanup } = renderToggle({
         mode: 'single',
         onModeChange,
@@ -176,7 +177,7 @@ describe('AgentModeToggle', () => {
     });
 
     it('disables both buttons when disabled prop is true', () => {
-      const onModeChange = jest.fn();
+      const onModeChange = vi.fn();
       const { container, cleanup } = renderToggle({
         mode: 'single',
         onModeChange,
@@ -198,7 +199,7 @@ describe('AgentModeToggle', () => {
     it('shows tooltip on mouseenter when multi is unavailable', () => {
       const { container, cleanup } = renderToggle({
         mode: 'single',
-        onModeChange: jest.fn(),
+        onModeChange: vi.fn(),
         multiAgentAvailable: false,
       });
 
@@ -232,7 +233,7 @@ describe('AgentModeToggle', () => {
     it('does NOT show tooltip when multi is available', () => {
       const { container, cleanup } = renderToggle({
         mode: 'single',
-        onModeChange: jest.fn(),
+        onModeChange: vi.fn(),
         multiAgentAvailable: true,
       });
 

@@ -328,7 +328,7 @@ ${t('introduction.askAnything')}`;
 // 2026-01-14: Enhanced null safety for Agent mode compatibility
 // 2026-01-14 v2: Added try-catch and additional validation to prevent runtime errors
 // 2026-01-14 v4: Added comprehensive logging
-function MessageContent({ content }: { content: string }) {
+function LocalMessageContent({ content }: { content: string }) {
   console.log('🔍 [MessageContent] Rendering...', {
     hasContent: !!content,
     contentType: typeof content,
@@ -1369,9 +1369,9 @@ function ChatbotPageContent() {
         elapsedMs: number;
       }>();
       for (const c of team.collaborators) {
-        collaboratorMap.set(c.agentId || c.name, {
+        collaboratorMap.set(c.agentId || c.agentName, {
           role: (c.role || 'retrieval') as import('@/types/multi-agent').CollaboratorRole,
-          name: c.name,
+          name: c.agentName,
           status: 'pending',
           elapsedMs: 0,
         });
@@ -1880,8 +1880,8 @@ function ChatbotPageContent() {
                 id: `session-${Date.now()}`,
                 title: sessionTitle,
                 messages: [],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
               });
             }}
             selectedModelId={selectedModelId}

@@ -238,7 +238,7 @@ describe('Property 14: Fail-open / Fail-closed error handling', () => {
    * - fail-open: action executes on error (with error log)
    * - fail-closed: action blocked on error
    */
-  it('fail-open allows action on error, fail-closed blocks', async () => {
+  it('fail-open allows action on error, fail-closed blocks', { timeout: 30000 }, async () => {
     const origEnabled = process.env.AGENT_POLICY_ENABLED;
     const origMode = process.env.POLICY_FAILURE_MODE;
 

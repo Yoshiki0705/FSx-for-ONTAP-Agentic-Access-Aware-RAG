@@ -1,4 +1,5 @@
 import { BedrockModel } from '../../config/bedrock-models';
+import { FALLBACK_MODEL_ID } from '@/config/model-defaults';
 
 /**
  * モデル検索・フィルタリング用ユーティリティ関数
@@ -40,7 +41,7 @@ export interface ProcessedModel {
 
 // フォールバックモデル
 export const FALLBACK_MODEL: ProcessedModel = {
-  id: 'amazon.nova-pro-v1:0',
+  id: FALLBACK_MODEL_ID,
   name: 'Amazon Nova Pro',
   provider: 'Amazon',
   category: 'General',

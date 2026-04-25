@@ -4,6 +4,9 @@ export interface Message {
   content: string;
   timestamp?: number;
   sessionId?: string;
+  // Compatibility with ChatMessage type
+  text?: string;
+  sender?: 'user' | 'bot';
   metadata?: {
     model?: string;
     temperature?: number;

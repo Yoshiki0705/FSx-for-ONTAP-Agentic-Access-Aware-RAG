@@ -2,6 +2,8 @@
  * Bedrock モデルアダプター
  */
 
+import { DEFAULT_CHAT_MODEL } from '@/config/model-defaults';
+
 export interface ModelAdapter {
   modelId: string;
   formatRequest: (message: string, settings?: any) => any;
@@ -30,7 +32,7 @@ export class BedrockModelAdapters {
 
 // デフォルトアダプターの登録
 BedrockModelAdapters.registerAdapter({
-  modelId: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+  modelId: DEFAULT_CHAT_MODEL,
   formatRequest: (message: string, settings = {}) => ({
     anthropic_version: 'bedrock-2023-05-31',
     max_tokens: settings.maxTokens || 4000,

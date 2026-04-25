@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 /**
  * Property-Based Test: URLパラメータマッピングの一貫性 (Property 1)
  *
@@ -13,20 +14,20 @@
  */
 
 // Mock next-intl before importing the component
-jest.mock('next-intl', () => ({
+vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
 // Mock next/navigation
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
-  useRouter: () => ({ replace: jest.fn() }),
+  useRouter: () => ({ replace: vi.fn() }),
   usePathname: () => '/genai',
 }));
 
 // Mock the header store
-jest.mock('@/store/useHeaderStore', () => ({
-  useHeaderStore: () => jest.fn(),
+vi.mock('@/store/useHeaderStore', () => ({
+  useHeaderStore: () => vi.fn(),
 }));
 
 import * as fc from 'fast-check';

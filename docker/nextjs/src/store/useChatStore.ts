@@ -1,21 +1,8 @@
 import { create } from 'zustand';
+import type { Message, ChatSession } from '@/types/chat';
 
-export interface ChatMessage {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-  sessionId?: string;
-}
-
-export interface ChatSession {
-  id: string;
-  title: string;
-  messages: ChatMessage[];
-  createdAt: Date;
-  updatedAt: Date;
-  userId: string;
-}
+export type ChatMessage = Message;
+export type { ChatSession } from '@/types/chat';
 
 interface ChatStore {
   // チャット履歴設定
@@ -112,7 +99,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const updatedSession = {
       ...state.currentSession,
       messages: [...state.currentSession.messages, message],
-      updatedAt: new Date()
+      updatedAt: Date.now()
     };
     
     return {

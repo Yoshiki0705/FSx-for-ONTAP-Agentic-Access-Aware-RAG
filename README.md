@@ -1024,6 +1024,26 @@ bash demo-data/scripts/cleanup-all.sh
 
 ## トラブルシューティング
 
+### デプロイ検証スクリプト
+
+デプロイ後の全機能検証を自動実行できます:
+
+```bash
+bash demo-data/scripts/verify-deployment.sh [stack-prefix]
+# 例: bash demo-data/scripts/verify-deployment.sh v4-test-demo
+```
+
+27項目を自動チェック: CloudFormation, Lambda環境変数, Bedrock Agent, AgentCore Memory, Guardrails, CloudWatch, CloudFront, DynamoDB
+
+### デプロイ後の注意事項
+
+| 項目 | 内容 |
+|------|------|
+| WAFスタックのリージョン | WAFスタックは `us-east-1` にデプロイされる（CloudFront用）。他のスタックは指定リージョン |
+| Cognitoユーザー | CDKデプロイ後にユーザーは自動作成されない。`post-deploy-setup.sh` を実行するか手動で作成。ユーザー名はメールアドレス形式が必要 |
+| Geo制限 | `allowedCountries: ["JP"]` 設定時、日本国外からのCloudFrontアクセスがブロックされる |
+| Agent Registry API | Preview APIのため、IAM権限が正しくても403が返る場合がある。`agentRegistryArn` の事前作成が必要 |
+
 ### WebAppスタック作成失敗（ECRイメージ不存在）
 
 | 症状 | 原因 | 対処 |

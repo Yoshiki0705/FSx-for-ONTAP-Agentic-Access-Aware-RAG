@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 /**
  * Integration Test: ヘッダー統合テスト
  *
@@ -19,7 +20,7 @@ import '@testing-library/jest-dom';
 
 // --- Mocks ---
 
-jest.mock('next-intl', () => ({
+vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, params?: Record<string, string>) => {
     const translations: Record<string, string> = {
       // UnifiedModeToggle
@@ -37,15 +38,15 @@ jest.mock('next-intl', () => ({
   },
 }));
 
-const mockReplace = jest.fn();
-jest.mock('next/navigation', () => ({
+const mockReplace = vi.fn();
+vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ replace: mockReplace }),
   usePathname: () => '/genai',
 }));
 
-const mockSetChatMode = jest.fn();
-jest.mock('@/store/useHeaderStore', () => ({
+const mockSetChatMode = vi.fn();
+vi.mock('@/store/useHeaderStore', () => ({
   useHeaderStore: (selector: (s: any) => any) =>
     selector({ setChatMode: mockSetChatMode }),
 }));
@@ -146,7 +147,7 @@ function HeaderIntegrationHarness({
 
 describe('Header Integration: Full mode switch cycle', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // Validates: Requirements 1.1, 1.2, 6.1, 6.2
@@ -257,7 +258,7 @@ describe('Header Integration: Model fallback on mode switch', () => {
   let toastEvents: CustomEvent[] = [];
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     toastEvents = [];
 
     // Listen for toast notification events

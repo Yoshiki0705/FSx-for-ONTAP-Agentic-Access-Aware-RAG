@@ -82,7 +82,7 @@ export function useAgentCore(): UseAgentCoreReturn {
   // 初期化
   useEffect(() => {
     loadSettings();
-  }, [session?.user?.userId]);
+  }, [session?.user?.username]);
 
   // ヘルスチェック（定期実行）
   useEffect(() => {
@@ -97,7 +97,7 @@ export function useAgentCore(): UseAgentCoreReturn {
    * 設定を読み込み
    */
   const loadSettings = useCallback(async () => {
-    if (!session?.user?.userId) return;
+    if (!session?.user?.username) return;
 
     try {
       const response = await fetch('/api/preferences/agentcore', {
@@ -118,13 +118,13 @@ export function useAgentCore(): UseAgentCoreReturn {
     } catch (error) {
       console.warn('[useAgentCore] Failed to load settings:', error);
     }
-  }, [session?.user?.userId]);
+  }, [session?.user?.username]);
 
   /**
    * 設定を保存
    */
   const saveSettings = useCallback(async (settings: Partial<AgentCoreSettings>) => {
-    if (!session?.user?.userId || !state.settings.autoSave) return;
+    if (!session?.user?.username || !state.settings.autoSave) return;
 
     try {
       await fetch('/api/preferences/agentcore', {
@@ -148,8 +148,8 @@ export function useAgentCore(): UseAgentCoreReturn {
     try {
       const enrichedContext = {
         ...context,
-        sessionId: context?.sessionId || session?.sessionId,
-        userId: session?.user?.userId,
+        sessionId: context?.sessionId,
+        userId: session?.user?.username,
         preferences: state.settings,
       };
 

@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 /**
  * Property-Based Test: テキスト省略の正確性 (Property 2)
  *

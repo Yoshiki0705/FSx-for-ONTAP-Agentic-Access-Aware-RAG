@@ -105,7 +105,6 @@ export async function deleteEpisode(episodeId: string, userId: string): Promise<
     const command = new DeleteMemoryRecordCommand({
       memoryId: MEMORY_ID,
       memoryRecordId: episodeId,
-      namespace: userId,
     });
     await getClient().send(command);
   } catch (error) {

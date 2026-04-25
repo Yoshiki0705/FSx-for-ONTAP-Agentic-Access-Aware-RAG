@@ -14,7 +14,8 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
+import { vi, describe, it, expect, afterEach, beforeEach } from 'vitest';
 import MultiAgentExecutionStatus from '@/components/chat/MultiAgentExecutionStatus';
 import type { MultiAgentExecutionStatus as ExecutionStatusType } from '@/types/multi-agent';
 
@@ -83,7 +84,7 @@ function renderComponent(status: ExecutionStatusType) {
 describe('MultiAgentExecutionStatus', () => {
   afterEach(() => {
     document.body.innerHTML = '';
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('accessibility', () => {

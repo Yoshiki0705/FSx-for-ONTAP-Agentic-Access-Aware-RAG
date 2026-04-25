@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.0.0] - 2026-04
 
+### Verified (2026-04-25)
+- **AWS環境デプロイ検証完了**: 全6スタック正常デプロイ、27項目全チェック合格
+- **エンドツーエンドフロー確認**: Cognito認証→KB検索→Agent実行→レスポンス返却
+- **検証スクリプト追加**: `demo-data/scripts/verify-deployment.sh` — 自動検証27項目
+- **テスト全パス**: 90ファイル / 709テストケース (Vitest + fast-check)
+
+### Fixed
+- TypeScript型不整合修正: `Message`/`ChatMessage`/`ChatSession` 型を統一
+- テストフレームワーク移行: `jest.fn()` → `vi.fn()`, `react-dom/test-utils` → `react`
+- `policy-evaluation.ts`: `policyId` プロパティ欠落修正
+- `episodic-memory.ts`: `DeleteMemoryRecordCommand` の不正パラメータ修正
+- `useAgentCore.ts`: `User` 型の `userId` → `username` 修正
+- `agentcore-client.ts`: 無効な `source` 値修正
+- `genai/page.tsx`: `CollaboratorConfig.name` → `agentName` 修正
+- 未使用ファイル削除: `src/page.tsx`, `lib/storage-manager.ts`, `lib/api/client.ts`
+
 ### Added
 - **AgentCore Policy**: エージェント行動制御（AgentCore Policy 統合）
   - `enableAgentPolicy` CDK パラメータ: AgentCore Policy のオプトイン有効化（デフォルト: `false`）

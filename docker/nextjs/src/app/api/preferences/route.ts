@@ -13,6 +13,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { jwtVerify } from 'jose';
 import { CSRFMiddleware } from '@/lib/security/csrf-protection';
+import { DEFAULT_PREFERENCE_MODEL, DEFAULT_REGION } from '@/config/model-defaults';
 
 // DynamoDBクライアント初期化
 const dynamoClient = new DynamoDBClient({
@@ -120,9 +121,9 @@ function getDefaultPreferences(userId: string): UserPreferences {
     userId,
     theme: 'system',
     language: 'ja',
-    region: 'ap-northeast-1',
+    region: DEFAULT_REGION,
     modelPreferences: {
-      defaultModel: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+      defaultModel: DEFAULT_PREFERENCE_MODEL,
       preferredProvider: 'anthropic',
       autoSelectModel: true
     },

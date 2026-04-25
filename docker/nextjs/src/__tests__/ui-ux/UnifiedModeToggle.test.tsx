@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 /**
  * Unit Test: UnifiedModeToggle コンポーネント
  *
@@ -13,7 +14,7 @@ import '@testing-library/jest-dom';
 
 // --- Mocks ---
 
-jest.mock('next-intl', () => ({
+vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
       kb: 'KB',
@@ -25,15 +26,15 @@ jest.mock('next-intl', () => ({
   },
 }));
 
-const mockReplace = jest.fn();
-jest.mock('next/navigation', () => ({
+const mockReplace = vi.fn();
+vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ replace: mockReplace }),
   usePathname: () => '/genai',
 }));
 
-const mockSetChatMode = jest.fn();
-jest.mock('@/store/useHeaderStore', () => ({
+const mockSetChatMode = vi.fn();
+vi.mock('@/store/useHeaderStore', () => ({
   useHeaderStore: (selector: (s: any) => any) =>
     selector({ setChatMode: mockSetChatMode }),
 }));
@@ -45,7 +46,7 @@ import UnifiedModeToggle from '../../components/chat/UnifiedModeToggle';
 function renderToggle(props: Partial<React.ComponentProps<typeof UnifiedModeToggle>> = {}) {
   const defaultProps: React.ComponentProps<typeof UnifiedModeToggle> = {
     mode: 'kb',
-    onModeChange: jest.fn(),
+    onModeChange: vi.fn(),
     multiAgentAvailable: true,
     ...props,
   };
@@ -56,7 +57,7 @@ function renderToggle(props: Partial<React.ComponentProps<typeof UnifiedModeTogg
 
 describe('UnifiedModeToggle', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // Validates: Requirement 1.1
@@ -68,8 +69,8 @@ describe('UnifiedModeToggle', () => {
       expect(radios).toHaveLength(3);
 
       expect(screen.getByText('KB')).toBeInTheDocument();
-      expect(screen.getByText('Single')).toBeInTheDocument();
-      expect(screen.getByText('Multi')).toBeInTheDocument();
+      expect(screen.getByText('Single Agent')).toBeInTheDocument();
+      expect(screen.getByText('Multi Agent')).toBeInTheDocument();
     });
   });
 
@@ -110,7 +111,7 @@ describe('UnifiedModeToggle', () => {
     });
 
     it('does not call onModeChange when clicking disabled Multi button', () => {
-      const onModeChange = jest.fn();
+      const onModeChange = vi.fn();
       renderToggle({ multiAgentAvailable: false, onModeChange });
 
       const multiButton = screen.getAllByRole('radio')[2];
@@ -159,7 +160,7 @@ describe('UnifiedModeToggle', () => {
   // Validates: Requirement 1.5 (keyboard navigation)
   describe('keyboard navigation', () => {
     it('ArrowRight moves from KB to Single Agent', () => {
-      const onModeChange = jest.fn();
+      const onModeChange = vi.fn();
       renderToggle({ mode: 'kb', onModeChange });
 
       const kbButton = screen.getAllByRole('radio')[0];
@@ -169,7 +170,7 @@ describe('UnifiedModeToggle', () => {
     });
 
     it('ArrowLeft moves from Single Agent to KB', () => {
-      const onModeChange = jest.fn();
+      const onModeChange = vi.fn();
       renderToggle({ mode: 'single-agent', onModeChange });
 
       const singleButton = screen.getAllByRole('radio')[1];
@@ -179,7 +180,7 @@ describe('UnifiedModeToggle', () => {
     });
 
     it('ArrowRight skips disabled Multi Agent', () => {
-      const onModeChange = jest.fn();
+      const onModeChange = vi.fn();
       renderToggle({ mode: 'single-agent', onModeChange, multiAgentAvailable: false });
 
       const singleButton = screen.getAllByRole('radio')[1];

@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 /**
  * i18n Smoke Test: 全8言語ファイルの翻訳キー存在検証
  *

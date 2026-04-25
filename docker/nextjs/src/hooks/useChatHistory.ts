@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ChatSession, Message } from '@/types/chat';
+import { DEFAULT_CHAT_MODEL, DEFAULT_REGION } from '@/config/model-defaults';
 
 /**
  * 保存ステータスの型定義
@@ -56,8 +57,8 @@ export function useChatHistory() {
             createdAt: typeof s.createdAt === 'string' ? new Date(s.createdAt).getTime() : s.createdAt,
             updatedAt: typeof s.updatedAt === 'string' ? new Date(s.updatedAt).getTime() : s.updatedAt,
             mode: s.mode,
-            model: s.model || 'anthropic.claude-3-5-sonnet-20240620-v1:0',
-            region: s.region || 'ap-northeast-1'
+            model: s.model || DEFAULT_CHAT_MODEL,
+            region: s.region || DEFAULT_REGION
           }));
           
           setSessions(loadedSessions);
@@ -133,8 +134,8 @@ export function useChatHistory() {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       mode,
-      model: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
-      region: 'ap-northeast-1'
+      model: DEFAULT_CHAT_MODEL,
+      region: DEFAULT_REGION
     };
     
     const newSessions = [newSession, ...sessions];

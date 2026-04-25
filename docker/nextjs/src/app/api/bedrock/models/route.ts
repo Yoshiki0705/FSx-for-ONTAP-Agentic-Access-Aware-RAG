@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { BedrockClient, ListFoundationModelsCommand } from '@aws-sdk/client-bedrock';
 import { generateModelConfig } from '@/config/model-pattern-detector';
 import { resolveInferenceProfile } from '@/lib/inference-profile-resolver';
+import { BASE_RECOMMENDED_MODELS, FALLBACK_MODEL_ID, DEFAULT_REGION } from '@/config/model-defaults';
 
 export async function GET() {
   try {
-    const region = process.env.BEDROCK_REGION || 'ap-northeast-1';
+    const region = process.env.BEDROCK_REGION || DEFAULT_REGION;
     
     const bedrockClient = new BedrockClient({
       region: region,
@@ -45,11 +46,7 @@ export async function GET() {
     });
 
     // 推奨モデルとデフォルトモデルを設定（inference profileで解決）
-    const baseRecommendedModels = [
-      'amazon.nova-pro-v1:0',
-      'anthropic.claude-3-5-sonnet-20241022-v2:0',
-      'deepseek.v3-v1:0',
-    ];
+    const baseRecommendedModels = [...BASE_RECOMMENDED_MODELS];
     
     // リージョンに基づいてinference profileを解決
     const recommendedModels = baseRecommendedModels
@@ -57,7 +54,7 @@ export async function GET() {
       .filter(id => models.some(m => m.id === id));
     
     // デフォルトモデルもinference profileで解決
-    const baseDefaultModelId = 'amazon.nova-pro-v1:0';
+    const baseDefaultModelId = FALLBACK_MODEL_ID;
     const resolvedDefaultModelId = resolveInferenceProfile(baseDefaultModelId, region);
     const defaultModelId = models.find(m => m.id === resolvedDefaultModelId)?.id || models[0]?.id || '';
 

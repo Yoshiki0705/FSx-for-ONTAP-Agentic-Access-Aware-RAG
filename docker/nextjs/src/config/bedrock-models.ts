@@ -1,5 +1,7 @@
 // 動的Bedrockモデル設定（自動検出対応版）
 
+import { FALLBACK_MODEL_ID_APAC, FALLBACK_RECOMMENDED_MODELS } from '@/config/model-defaults';
+
 /**
  * リクエスト形式の種類
  * - anthropic: Anthropic Messages API形式
@@ -106,7 +108,7 @@ const FALLBACK_MODELS: BedrockModel[] = [
 // 動的モデルデータ（キャッシュ用）
 let cachedModels: BedrockModel[] | null = null;
 let cachedRecommendedModels: string[] = [];
-let cachedDefaultModelId: string = 'apac.amazon.nova-pro-v1:0';
+let cachedDefaultModelId: string = FALLBACK_MODEL_ID_APAC;
 let lastFetchTime: number = 0;
 const CACHE_DURATION = 0; // キャッシュ無効化（常に最新データを取得）
 
@@ -146,7 +148,7 @@ export async function fetchAvailableModels(): Promise<{
       // キャッシュ更新
       cachedModels = data.data.models;
       cachedRecommendedModels = data.data.recommendedModels || [];
-      cachedDefaultModelId = data.data.defaultModelId || 'apac.amazon.nova-pro-v1:0';
+      cachedDefaultModelId = data.data.defaultModelId || FALLBACK_MODEL_ID_APAC;
       lastFetchTime = now;
       
       return {
@@ -162,15 +164,15 @@ export async function fetchAvailableModels(): Promise<{
   // フォールバック
   return {
     models: FALLBACK_MODELS,
-    recommendedModels: ['apac.amazon.nova-pro-v1:0', 'apac.anthropic.claude-3-5-sonnet-20241022-v2:0'],
-    defaultModelId: 'apac.amazon.nova-pro-v1:0'
+    recommendedModels: [...FALLBACK_RECOMMENDED_MODELS],
+    defaultModelId: FALLBACK_MODEL_ID_APAC
   };
 }
 
 // 同期的なアクセス用（後方互換性）
 export let AVAILABLE_MODELS: BedrockModel[] = FALLBACK_MODELS;
-export let RECOMMENDED_MODELS: string[] = ['amazon.nova-pro-v1:0'];
-export let DEFAULT_MODEL_ID: string = 'amazon.nova-pro-v1:0';
+export let RECOMMENDED_MODELS: string[] = [FALLBACK_MODEL_ID_APAC];
+export let DEFAULT_MODEL_ID: string = FALLBACK_MODEL_ID_APAC;
 
 // 初期化時にモデルを取得
 if (typeof window !== 'undefined') {

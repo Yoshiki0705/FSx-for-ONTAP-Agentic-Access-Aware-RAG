@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 /**
  * Unit Test: OverflowMenu & UserMenu コンポーネント
  *
@@ -23,7 +24,7 @@ import '@testing-library/jest-dom';
 
 // --- Mocks ---
 
-jest.mock('next-intl', () => ({
+vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
       label: 'More options',
@@ -34,7 +35,7 @@ jest.mock('next-intl', () => ({
   },
 }));
 
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   return function MockLink({
     children,
     href,
@@ -62,7 +63,7 @@ function createItems(count: number = 3): OverflowMenuItem[] {
     id: `item-${i}`,
     label: `Item ${i}`,
     icon: <span data-testid={`icon-${i}`}>🔧</span>,
-    onClick: jest.fn(),
+    onClick: vi.fn(),
   }));
 }
 
@@ -70,7 +71,7 @@ function createItems(count: number = 3): OverflowMenuItem[] {
 
 describe('OverflowMenu', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // Validates: Requirement 9.3
@@ -215,11 +216,11 @@ describe('UserMenu', () => {
   const defaultProps = {
     username: 'testuser',
     locale: 'en',
-    onSignOut: jest.fn(),
+    onSignOut: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('renders username', () => {
@@ -230,29 +231,27 @@ describe('UserMenu', () => {
     });
   });
 
-  describe('click opens dropdown with Agent Directory and Sign Out', () => {
-    it('shows Agent Directory link and Sign Out button on click', () => {
+  describe('click opens dropdown with Sign Out', () => {
+    it('shows Sign Out button on click', () => {
       render(<UserMenu {...defaultProps} />);
 
       const trigger = screen.getByRole('button', { name: /testuser/i });
       fireEvent.click(trigger);
 
-      expect(screen.getByText('Agent Directory')).toBeInTheDocument();
       expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
-    it('Agent Directory links to the correct locale path', () => {
+    it('menu has correct role', () => {
       render(<UserMenu {...defaultProps} locale="ja" />);
 
       const trigger = screen.getByRole('button', { name: /testuser/i });
       fireEvent.click(trigger);
 
-      const link = screen.getByText('Agent Directory').closest('a');
-      expect(link).toHaveAttribute('href', '/ja/genai/agents');
+      expect(screen.getByRole('menu')).toBeInTheDocument();
     });
 
     it('calls onSignOut when Sign Out is clicked', () => {
-      const onSignOut = jest.fn();
+      const onSignOut = vi.fn();
       render(<UserMenu {...defaultProps} onSignOut={onSignOut} />);
 
       const trigger = screen.getByRole('button', { name: /testuser/i });

@@ -75,7 +75,7 @@ export async function evaluatePolicy(
       );
     }
 
-    return { ...result, evaluationTimeMs };
+    return { ...result, policyId, evaluationTimeMs };
   } catch (error: any) {
     const evaluationTimeMs = Date.now() - startTime;
     const errorType = error?.message === 'TIMEOUT' ? 'TIMEOUT' : 'SERVER_ERROR';

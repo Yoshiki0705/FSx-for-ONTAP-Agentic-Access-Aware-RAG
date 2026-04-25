@@ -194,7 +194,7 @@ export class AgentCoreClient {
         model: lambdaResponse.metadata?.model || 'unknown',
         tokens: lambdaResponse.metadata?.tokens || 0,
         latency,
-        source: 'agentcore-v2'
+        source: 'agentcore'
       }
     };
   }

@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 /**
  * Property-Based Test: サイドバー状態の永続化ラウンドトリップ (Property 6)
  *

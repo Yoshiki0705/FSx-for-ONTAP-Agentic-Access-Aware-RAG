@@ -13,6 +13,7 @@ import { unmarshall } from '@aws-sdk/util-dynamodb';
 import { createMetricsLogger } from '@/lib/monitoring/metrics';
 import { KBQueryRouter, buildRouterConfigFromEnv } from '@/lib/kb-query-router';
 import { parseGuardrailTrace, logGuardrailIntervention, emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
+import { KB_CONVERSE_FALLBACK_MODELS, DEFAULT_REGION } from '@/config/model-defaults';
 import type { MediaType, ActiveKBType } from '@/types/multimodal';
 
 interface RetrieveRequest {
@@ -163,10 +164,7 @@ function resolveConverseModelId(rawModelId: string): string {
   return rawModelId;
 }
 
-const CONVERSE_FALLBACK_MODELS = [
-  'apac.amazon.nova-lite-v1:0',
-  'anthropic.claude-3-haiku-20240307-v1:0',
-];
+const CONVERSE_FALLBACK_MODELS = [...KB_CONVERSE_FALLBACK_MODELS];
 
 async function callConverse(
   client: BedrockRuntimeClient,
@@ -312,7 +310,7 @@ export async function POST(request: NextRequest) {
     const body: RetrieveRequest = await request.json();
     const { query, userId } = body;
     const knowledgeBaseId = body.knowledgeBaseId || process.env.BEDROCK_KB_ID || '';
-    const region = body.region || process.env.BEDROCK_REGION || 'ap-northeast-1';
+    const region = body.region || process.env.BEDROCK_REGION || DEFAULT_REGION;
     const rawModelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0';
 
     if (!query?.trim()) return NextResponse.json({ success: false, error: 'empty' }, { status: 400 });
