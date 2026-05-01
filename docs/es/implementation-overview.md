@@ -862,6 +862,67 @@ Authentication Flow
 
 ---
 
+## 19. Automatización de Operaciones FSx ONTAP — Lambda + Step Functions
+
+### Descripción general
+
+Suite de automatización independiente para operaciones de FSx for NetApp ONTAP usando Lambda + Step Functions. Sin dependencia de eventos — controlado mediante EventBridge Scheduler (periódico) o invocación desde la aplicación. Sin montaje NFS desde Lambda — todas las operaciones vía ONTAP REST API / FSx API.
+
+### Casos de uso
+
+| # | Caso de uso | Lambda | Disparador |
+|---|-------------|--------|-----------|
+| 1 | Failover/Failback de SnapMirror | snapmirror_ops (9 acciones) | Step Functions |
+| 2 | Monitoreo de capacidad y auto-expansión | capacity_monitor | EventBridge (5 min) |
+| 3 | Ejecución de API de gestión ONTAP | ontap_api_executor | API Gateway / Manual |
+| 4 | Preprocesamiento de datos para IA/Análisis | data_preprocessor | EventBridge / App |
+
+### Requisitos de VPC Endpoints
+
+Lambda en VPC requiere estos Interface VPC Endpoints:
+- `com.amazonaws.{region}.secretsmanager`
+- `com.amazonaws.{region}.fsx`
+- `com.amazonaws.{region}.monitoring`
+- `com.amazonaws.{region}.sns`
+- `com.amazonaws.{region}.s3` — **Gateway** (debe estar asociado con la tabla de rutas de la subred Lambda)
+
+### Resultados de verificación AWS (2026-05-01)
+
+| Prueba | Resultado |
+|--------|-----------|
+| Conectividad ONTAP REST API | ✅ APROBADO (ONTAP 9.17.1P4D3, 5/5 pruebas) |
+| capacity_monitor | ✅ APROBADO (FS 1024 GiB + 3 volúmenes) |
+| ontap_api_executor | ✅ APROBADO (GET /cluster) |
+| snapmirror_ops | ✅ APROBADO (discover + discover_shares) |
+| Step Functions | ✅ APROBADO (SUCCEEDED) |
+| CFn Stack Deploy | ✅ APROBADO |
+| capacity_monitor (redimensionamiento real) | ✅ APROBADO (4 volúmenes × 20% expansión) |
+| SnapMirror E2E (break/resync) | ✅ APROBADO (11/11 pruebas) |
+| EventBridge Scheduler | ✅ APROBADO (auto-ejecución de 5 min confirmada) |
+| data_preprocessor (FSx ONTAP S3 AP) | ✅ APROBADO (scan, collect_metadata, generate_tasks) |
+
+### Salvaguardas de monitoreo de capacidad
+
+| Parámetro | Predeterminado | Propósito |
+|-----------|----------------|-----------|
+| `DRY_RUN` | `true` | Predeterminado seguro — registra sin ejecutar |
+| `MAX_GROW_PER_ACTION_PCT` | 50% | Tasa máxima de crecimiento por acción |
+| `MAX_GROW_PER_DAY_GIB` | 500 GiB | Expansión diaria máxima total |
+
+### Verificación TLS
+
+La verificación de certificados TLS está habilitada por defecto. Para producción: bundle CA vía `ONTAP_CA_CERT_PATH`. Para lab/PoC: `ONTAP_VERIFY_SSL=false`.
+
+### Pruebas
+
+38 pruebas unitarias que cubren modos de verificación TLS, rutas duales de inicialización SnapMirror (10 acciones), salvaguardas de capacidad y operaciones S3 AP.
+
+### Costo: ~$2.60/mes
+
+Detalles en [automation/fsxn-ops/](../../automation/fsxn-ops/).
+
+---
+
 ## Overall System Architecture
 
 ```

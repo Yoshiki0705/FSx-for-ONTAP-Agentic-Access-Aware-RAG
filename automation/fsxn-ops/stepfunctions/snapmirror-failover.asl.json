@@ -1,0 +1,286 @@
+{
+  "Comment": "FSx for NetApp ONTAP — SnapMirror Planned Failover Orchestration",
+  "StartAt": "ValidateInput",
+  "States": {
+    "ValidateInput": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "And": [
+            { "Variable": "$.prod_management_lif", "IsPresent": true },
+            { "Variable": "$.dr_management_lif", "IsPresent": true },
+            { "Variable": "$.prod_svm", "IsPresent": true },
+            { "Variable": "$.dr_svm", "IsPresent": true }
+          ],
+          "Next": "NotifyFailoverStart"
+        }
+      ],
+      "Default": "InputValidationFailed"
+    },
+
+    "InputValidationFailed": {
+      "Type": "Fail",
+      "Error": "InputValidationError",
+      "Cause": "必須パラメータが不足: prod_management_lif, dr_management_lif, prod_svm, dr_svm"
+    },
+
+    "NotifyFailoverStart": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn.$": "$.sns_topic_arn",
+        "Subject": "🔄 SnapMirror フェイルオーバー開始",
+        "Message.$": "States.Format('SnapMirror Planned Failover 開始\\nProd SVM: {}\\nDR SVM: {}\\n実行者: {}', $.prod_svm, $.dr_svm, $.initiated_by)"
+      },
+      "ResultPath": "$.notification_result",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "DiscoverRelationships",
+          "ResultPath": "$.notification_error"
+        }
+      ],
+      "Next": "DiscoverRelationships"
+    },
+
+    "DiscoverRelationships": {
+      "Type": "Task",
+      "Resource": "${SnapMirrorOpsLambdaArn}",
+      "Parameters": {
+        "action": "discover",
+        "management_lif.$": "$.prod_management_lif",
+        "svm_name.$": "$.prod_svm"
+      },
+      "ResultPath": "$.discovery",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "FailoverFailed",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Next": "CheckRelationshipsFound"
+    },
+
+    "CheckRelationshipsFound": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.discovery.total_count",
+          "NumericGreaterThan": 0,
+          "Next": "DiscoverShares"
+        }
+      ],
+      "Default": "NoRelationshipsFound"
+    },
+
+    "NoRelationshipsFound": {
+      "Type": "Fail",
+      "Error": "NoRelationshipsError",
+      "Cause": "SnapMirror 関係が見つかりません"
+    },
+
+    "DiscoverShares": {
+      "Type": "Task",
+      "Resource": "${SnapMirrorOpsLambdaArn}",
+      "Parameters": {
+        "action": "discover_shares",
+        "management_lif.$": "$.prod_management_lif",
+        "svm_name.$": "$.prod_svm"
+      },
+      "ResultPath": "$.shares_discovery",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "ProcessRelationships",
+          "ResultPath": "$.shares_error"
+        }
+      ],
+      "Next": "ProcessRelationships"
+    },
+
+    "ProcessRelationships": {
+      "Type": "Map",
+      "ItemsPath": "$.discovery.relationships",
+      "MaxConcurrency": 5,
+      "Parameters": {
+        "relationship.$": "$$.Map.Item.Value",
+        "prod_management_lif.$": "$.prod_management_lif",
+        "dr_management_lif.$": "$.dr_management_lif",
+        "dr_svm.$": "$.dr_svm"
+      },
+      "Iterator": {
+        "StartAt": "FinalTransfer",
+        "States": {
+          "FinalTransfer": {
+            "Type": "Task",
+            "Resource": "${SnapMirrorOpsLambdaArn}",
+            "Parameters": {
+              "action": "final_transfer",
+              "management_lif.$": "$.prod_management_lif",
+              "relationship_uuid.$": "$.relationship.uuid"
+            },
+            "ResultPath": "$.transfer_result",
+            "Retry": [
+              {
+                "ErrorEquals": ["Lambda.ServiceException"],
+                "IntervalSeconds": 10,
+                "MaxAttempts": 2,
+                "BackoffRate": 2
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": ["States.ALL"],
+                "Next": "BreakRelationship",
+                "ResultPath": "$.transfer_error"
+              }
+            ],
+            "Next": "WaitForTransfer"
+          },
+
+          "WaitForTransfer": {
+            "Type": "Wait",
+            "Seconds": 30,
+            "Next": "CheckTransferComplete"
+          },
+
+          "CheckTransferComplete": {
+            "Type": "Task",
+            "Resource": "${SnapMirrorOpsLambdaArn}",
+            "Parameters": {
+              "action": "check_transfer",
+              "management_lif.$": "$.prod_management_lif",
+              "relationship_uuid.$": "$.relationship.uuid"
+            },
+            "ResultPath": "$.transfer_status",
+            "Next": "IsTransferComplete"
+          },
+
+          "IsTransferComplete": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.transfer_status.is_transfer_complete",
+                "BooleanEquals": true,
+                "Next": "BreakRelationship"
+              }
+            ],
+            "Default": "WaitForTransfer"
+          },
+
+          "BreakRelationship": {
+            "Type": "Task",
+            "Resource": "${SnapMirrorOpsLambdaArn}",
+            "Parameters": {
+              "action": "break",
+              "management_lif.$": "$.dr_management_lif",
+              "relationship_uuid.$": "$.relationship.uuid"
+            },
+            "ResultPath": "$.break_result",
+            "Retry": [
+              {
+                "ErrorEquals": ["Lambda.ServiceException"],
+                "IntervalSeconds": 5,
+                "MaxAttempts": 3,
+                "BackoffRate": 2
+              }
+            ],
+            "Next": "ValidateBreak"
+          },
+
+          "ValidateBreak": {
+            "Type": "Task",
+            "Resource": "${SnapMirrorOpsLambdaArn}",
+            "Parameters": {
+              "action": "validate",
+              "management_lif.$": "$.dr_management_lif",
+              "relationship_uuid.$": "$.relationship.uuid",
+              "expected_state": "broken_off"
+            },
+            "ResultPath": "$.validation",
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.failover_results",
+      "Next": "RecreateSharesOnDR"
+    },
+
+    "RecreateSharesOnDR": {
+      "Type": "Task",
+      "Resource": "${SnapMirrorOpsLambdaArn}",
+      "Parameters": {
+        "action": "recreate_shares",
+        "management_lif.$": "$.dr_management_lif",
+        "svm_name.$": "$.dr_svm",
+        "shares_config.$": "$.shares_discovery.shares"
+      },
+      "ResultPath": "$.shares_result",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "NotifyFailoverComplete",
+          "ResultPath": "$.shares_error"
+        }
+      ],
+      "Next": "NotifyFailoverComplete"
+    },
+
+    "NotifyFailoverComplete": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn.$": "$.sns_topic_arn",
+        "Subject": "✅ SnapMirror フェイルオーバー完了",
+        "Message.$": "States.Format('SnapMirror Planned Failover 完了\\nProd SVM: {}\\nDR SVM: {}\\n処理関係数: {}\\n実行者: {}', $.prod_svm, $.dr_svm, $.discovery.total_count, $.initiated_by)"
+      },
+      "ResultPath": "$.final_notification",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "FailoverSuccess",
+          "ResultPath": "$.notification_error"
+        }
+      ],
+      "Next": "FailoverSuccess"
+    },
+
+    "FailoverSuccess": {
+      "Type": "Succeed"
+    },
+
+    "FailoverFailed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn.$": "$.sns_topic_arn",
+        "Subject": "❌ SnapMirror フェイルオーバー失敗",
+        "Message.$": "States.Format('SnapMirror Planned Failover 失敗\\nエラー: {}', $.error)"
+      },
+      "ResultPath": "$.error_notification",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "FailoverFailedState",
+          "ResultPath": null
+        }
+      ],
+      "Next": "FailoverFailedState"
+    },
+
+    "FailoverFailedState": {
+      "Type": "Fail",
+      "Error": "FailoverError",
+      "Cause": "SnapMirror フェイルオーバーが失敗しました"
+    }
+  }
+}

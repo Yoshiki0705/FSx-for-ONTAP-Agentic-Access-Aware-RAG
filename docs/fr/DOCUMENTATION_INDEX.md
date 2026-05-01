@@ -24,6 +24,14 @@
 | [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | Intégration FSx ONTAP + AD, partage CIFS, configuration NTFS ACL (procédures vérifiées) |
 | [demo-environment-guide.md](demo-environment-guide.md) | ID des ressources de l'environnement de vérification, informations d'accès, procédures du serveur Embedding |
 
+## Automatisation des opérations FSx ONTAP
+
+| Document | Description |
+|----------|-------------|
+| [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | Vue d'ensemble de la suite d'automatisation (structure des répertoires, cas d'utilisation) |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | Pourquoi cette architecture simplifie les opérations FSx ONTAP |
+| [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | Rapport de vérification d'intégration AWS (2026-05-01, toutes les phases RÉUSSIES) |
+
 ## Serveur Embedding (via montage FlexCache CIFS)
 
 | Document / Fichier | Description |

@@ -49,6 +49,11 @@ cdk.context.json
 !.env.example
 !docker/nextjs/.env.development
 
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
 # Kiro IDE設定（開発環境固有）
 .kiro/
 

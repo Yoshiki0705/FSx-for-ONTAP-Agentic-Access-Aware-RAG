@@ -24,6 +24,14 @@
 | [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD 集成、CIFS 共享、NTFS ACL 配置（已验证流程） |
 | [demo-environment-guide.md](demo-environment-guide.md) | 验证环境资源 ID、访问信息、Embedding 服务器流程 |
 
+## FSx ONTAP 运维自动化
+
+| 文档 | 说明 |
+|------|------|
+| [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | 运维自动化套件概述（目录结构、用例） |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 此架构如何简化 FSx ONTAP 运维 |
+| [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS 集成验证报告（2026-05-01，所有阶段通过） |
+
 ## Embedding 服务器（通过 FlexCache CIFS 挂载）
 
 | 文档 / 文件 | 说明 |

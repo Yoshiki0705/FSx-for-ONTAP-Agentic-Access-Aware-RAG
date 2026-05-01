@@ -56,3 +56,26 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 | Security Group | Port 443 inbound required (VPC CIDR or Lambda SG) |
 | Secrets Manager | fsxadmin password stored as plain text string |
 | ONTAP version | Verified on ONTAP 9.17.1P4 |
+
+---
+
+## 운영 자동화 (선택 사항)
+
+Lambda + Step Functions를 사용한 독립형 자동화 스위트가 `automation/fsxn-ops/`에 있습니다.
+
+### 전제 조건
+
+- VPC 엔드포인트 (5개 필수): `secretsmanager`, `fsx`, `monitoring`, `sns` (Interface) + `s3` (Gateway)
+- Secrets Manager: `{"username": "fsxadmin", "password": "xxx"}` 형식
+- fsxadmin 비밀번호가 Secrets Manager와 FSx ONTAP 간에 일치해야 함
+
+### 기능
+
+| 기능 | 설명 |
+|------|------|
+| 용량 모니터링 | EventBridge 5분 간격, 자동 확장 + SNS 알림 |
+| SnapMirror DR | Step Functions 페일오버/페일백 오케스트레이션 |
+| ONTAP API 실행 | Lambda를 통한 안전한 ONTAP REST API 실행 |
+| 데이터 전처리 | FSx ONTAP S3 Access Point를 통한 AI/분석 전처리 |
+
+자세한 내용: [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md)

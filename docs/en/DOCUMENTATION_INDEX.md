@@ -24,6 +24,15 @@
 | [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD integration, CIFS share, NTFS ACL configuration (verified procedures) |
 | [demo-environment-guide.md](demo-environment-guide.md) | Verification environment resource IDs, access info, Embedding server procedures |
 
+## FSx ONTAP Ops Automation
+
+| Document | Description |
+|----------|-------------|
+| [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | Ops automation suite overview (directory structure, use cases) |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | Why this architecture simplifies FSx ONTAP operations |
+| [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS integration verification report (2026-05-01, all phases PASS) |
+| [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | Integrated CloudFormation template (incl. VPC endpoints) |
+
 ## Embedding Server (via FlexCache CIFS Mount)
 
 | Document / File | Description |

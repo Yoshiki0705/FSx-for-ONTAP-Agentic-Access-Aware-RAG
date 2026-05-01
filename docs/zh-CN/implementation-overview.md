@@ -511,6 +511,67 @@ User            Next.js API         DynamoDB        Bedrock KB      Converse API
 
 ---
 
+## 19. FSx ONTAP 运维自动化 — Lambda + Step Functions
+
+### 概述
+
+使用 Lambda + Step Functions 的 FSx for NetApp ONTAP 运维自动化独立套件。无事件驱动依赖 — 通过 EventBridge Scheduler（定期）或应用驱动调用控制。Lambda 不进行 NFS 挂载 — 所有操作通过 ONTAP REST API / FSx API 执行。
+
+### 用例
+
+| # | 用例 | Lambda | 触发器 |
+|---|------|--------|--------|
+| 1 | SnapMirror 故障转移/故障恢复 | snapmirror_ops（9 个操作） | Step Functions |
+| 2 | 容量监控与自动扩展 | capacity_monitor | EventBridge（5分钟） |
+| 3 | ONTAP 管理 API 执行 | ontap_api_executor | API Gateway / 手动 |
+| 4 | AI/分析数据预处理 | data_preprocessor | EventBridge / 应用 |
+
+### VPC 端点要求
+
+VPC 中的 Lambda 需要以下 Interface VPC Endpoints：
+- `com.amazonaws.{region}.secretsmanager`
+- `com.amazonaws.{region}.fsx`
+- `com.amazonaws.{region}.monitoring`
+- `com.amazonaws.{region}.sns`
+- `com.amazonaws.{region}.s3` — **Gateway**（必须关联到 Lambda 子网路由表）
+
+### AWS 验证结果（2026-05-01）
+
+| 测试 | 结果 |
+|------|------|
+| ONTAP REST API 连接 | ✅ 通过（ONTAP 9.17.1P4D3，5/5 测试） |
+| capacity_monitor | ✅ 通过（FS 1024 GiB + 3 卷） |
+| ontap_api_executor | ✅ 通过（GET /cluster） |
+| snapmirror_ops | ✅ 通过（discover + discover_shares） |
+| Step Functions | ✅ 通过（SUCCEEDED） |
+| CFn Stack Deploy | ✅ 通过 |
+| capacity_monitor（实际扩容） | ✅ 通过（4 卷 × 20% 扩展） |
+| SnapMirror E2E（break/resync） | ✅ 通过（11/11 测试） |
+| EventBridge Scheduler | ✅ 通过（5 分钟自动执行已确认） |
+| data_preprocessor（FSx ONTAP S3 AP） | ✅ 通过（scan、collect_metadata、generate_tasks） |
+
+### 容量监控防护措施
+
+| 参数 | 默认值 | 用途 |
+|------|--------|------|
+| `DRY_RUN` | `true` | 安全默认值 — 仅记录不执行 |
+| `MAX_GROW_PER_ACTION_PCT` | 50% | 单次操作最大扩展率 |
+| `MAX_GROW_PER_DAY_GIB` | 500 GiB | 每日最大总扩展量 |
+
+### TLS 验证
+
+TLS 证书验证默认启用。生产环境：通过 `ONTAP_CA_CERT_PATH` 指定 CA 包。实验/PoC：`ONTAP_VERIFY_SSL=false`。
+
+### 测试
+
+38 个单元测试，覆盖 TLS 验证模式、SnapMirror 双初始化路径（10 个操作）、容量防护措施和 S3 AP 操作。
+
+### 成本：约 $2.60/月
+
+详情请参阅 [automation/fsxn-ops/](../../automation/fsxn-ops/)。
+
+---
+
 ## 整体系统架构
 
 ```

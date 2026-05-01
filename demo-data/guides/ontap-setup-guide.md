@@ -353,3 +353,80 @@ bash demo-data/scripts/setup-ontap-namemapping.sh
 # 検証
 bash demo-data/scripts/verify-ontap-namemapping.sh
 ```
+
+---
+
+## 運用自動化 (オプション)
+
+FSx for NetApp ONTAP の運用を Lambda + Step Functions で自動化するスタンドアロン構成が `automation/fsxn-ops/` に用意されています。CDK スタックとは独立してデプロイ可能です。
+
+### デプロイ
+
+```bash
+# CloudFormation でデプロイ
+aws cloudformation deploy \
+  --template-file automation/fsxn-ops/cfn/fsxn-ops-stack.yaml \
+  --stack-name fsxn-ops \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    FsxFilesystemId=<FSX_FILESYSTEM_ID> \
+    ManagementLif=<MANAGEMENT_LIF_IP> \
+    OntapSecretId=<SECRETS_MANAGER_SECRET_ARN> \
+    VpcId=<VPC_ID> \
+    SubnetIds=<PRIVATE_SUBNET_ID> \
+    SecurityGroupId=<SECURITY_GROUP_ID> \
+    NotificationEmail=<YOUR_EMAIL>
+```
+
+### 前提条件
+
+- VPC エンドポイント: `secretsmanager`, `fsx`, `monitoring`, `sns` (Interface) + `s3` (Gateway) の **5 つ**が必要
+  - S3 Gateway エンドポイントは Lambda サブネットのルートテーブルに関連付けが必要
+  - CFn テンプレートに含まれています (`CreateVpcEndpoints=true` の場合)
+- Secrets Manager: `{"username": "fsxadmin", "password": "xxx"}` 形式のシークレット
+  - **重要**: Secrets Manager のパスワードと FSx ONTAP の fsxadmin パスワードが一致していること
+- セキュリティグループ: Lambda から ONTAP 管理 LIF (port 443) へのアウトバウンド許可
+
+### FSx ONTAP S3 Access Point について
+
+データ前処理 Lambda は FSx ONTAP の S3 Access Point 経由で NAS データにアクセスします。
+通常の S3 Access Point とは異なり、FSx 専用の API で作成します:
+
+```bash
+# FSx ONTAP S3 Access Point の作成
+aws fsx create-and-attach-s3-access-point \
+  --name my-s3ap \
+  --type ONTAP \
+  --ontap-configuration '{
+    "VolumeId": "<VOLUME_ID>",
+    "FileSystemIdentity": {
+      "Type": "UNIX",
+      "UnixUser": {"Name": "root"}
+    }
+  }'
+
+# 確認
+aws fsx describe-s3-access-point-attachments
+```
+
+### 提供機能
+
+| 機能 | 説明 |
+|------|------|
+| 容量監視 | EventBridge 5分間隔で FS/ボリューム使用率を監視、閾値超過時に自動拡張 + SNS 通知 |
+| SnapMirror DR | Step Functions でフェイルオーバー/フェイルバックを自動化 |
+| ONTAP API 実行 | Lambda 経由で任意の ONTAP REST API を安全に実行 |
+| データ前処理 | S3 Access Point 経由で AI/分析向けデータ前処理 |
+
+### 検証
+
+```bash
+# ユニットテスト
+pip install -r automation/fsxn-ops/requirements.txt
+pytest automation/fsxn-ops/tests/ -v
+
+# AWS 統合テスト (Lambda デプロイ→テスト→クリーンアップを自動実行)
+bash automation/fsxn-ops/tests/integration/run_aws_verification.sh
+```
+
+詳細は [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) を参照。

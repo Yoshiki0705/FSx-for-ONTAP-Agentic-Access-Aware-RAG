@@ -1,0 +1,280 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  FSx for NetApp ONTAP 運用自動化 — IAM ロール設計
+  最小権限の原則に基づき、各 Lambda / Step Functions に必要な権限のみを付与する。
+
+Parameters:
+  FsxFilesystemId:
+    Type: String
+    Description: FSx for ONTAP ファイルシステム ID
+  SecretArn:
+    Type: String
+    Description: ONTAP 認証情報の Secrets Manager ARN
+  SnsTopicArn:
+    Type: String
+    Description: 通知先 SNS トピック ARN
+  OutputBucketArn:
+    Type: String
+    Description: 前処理出力先 S3 バケット ARN
+    Default: ""
+  S3AccessPointArn:
+    Type: String
+    Description: S3 Access Point ARN
+    Default: ""
+
+Resources:
+  # ============================================================
+  # 1. 容量監視 Lambda 実行ロール
+  # ============================================================
+  CapacityMonitorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-capacity-monitor-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: FsxReadAndResize
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # FSx ファイルシステム情報の読み取りと容量変更
+              - Effect: Allow
+                Action:
+                  - fsx:DescribeFileSystems
+                  - fsx:DescribeVolumes
+                  - fsx:DescribeStorageVirtualMachines
+                  - fsx:UpdateFileSystem
+                  - fsx:UpdateVolume
+                Resource: !Sub "arn:aws:fsx:${AWS::Region}:${AWS::AccountId}:file-system/${FsxFilesystemId}"
+              - Effect: Allow
+                Action:
+                  - fsx:DescribeVolumes
+                  - fsx:UpdateVolume
+                Resource: !Sub "arn:aws:fsx:${AWS::Region}:${AWS::AccountId}:volume/*"
+              # CloudWatch メトリクス読み取り
+              - Effect: Allow
+                Action:
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:GetMetricData
+                Resource: "*"
+              # Secrets Manager (ONTAP 認証情報)
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
+              # SNS 通知
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref SnsTopicArn
+
+  # ============================================================
+  # 2. ONTAP API Executor Lambda 実行ロール
+  # ============================================================
+  OntapApiExecutorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-ontap-api-executor-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
+
+  # ============================================================
+  # 3. SnapMirror 操作 Lambda 実行ロール
+  # ============================================================
+  SnapMirrorOpsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-snapmirror-ops-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: SnapMirrorOpsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Secrets Manager
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
+              # SNS 通知
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref SnsTopicArn
+
+  # ============================================================
+  # 4. データ前処理 Lambda 実行ロール
+  # ============================================================
+  DataPreprocessorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-data-preprocessor-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: DataPreprocessorPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # S3 Access Point 経由のデータ読み取り
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Ref S3AccessPointArn
+                  - !Sub "${S3AccessPointArn}/*"
+              # 出力先 S3 バケットへの書き込み
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource:
+                  - !Ref OutputBucketArn
+                  - !Sub "${OutputBucketArn}/*"
+              # Secrets Manager
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
+
+  # ============================================================
+  # 5. Step Functions 実行ロール
+  # ============================================================
+  StepFunctionsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-stepfunctions-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Lambda 呼び出し
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:fsxn-ops-*"
+              # SNS 通知
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref SnsTopicArn
+              # CloudWatch Logs
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
+                Resource: "*"
+
+  # ============================================================
+  # 6. EventBridge Scheduler 実行ロール
+  # ============================================================
+  EventBridgeSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-eventbridge-scheduler-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:fsxn-ops-capacity-monitor"
+
+Outputs:
+  CapacityMonitorRoleArn:
+    Value: !GetAtt CapacityMonitorRole.Arn
+    Export:
+      Name: fsxn-ops-capacity-monitor-role-arn
+
+  OntapApiExecutorRoleArn:
+    Value: !GetAtt OntapApiExecutorRole.Arn
+    Export:
+      Name: fsxn-ops-ontap-api-executor-role-arn
+
+  SnapMirrorOpsRoleArn:
+    Value: !GetAtt SnapMirrorOpsRole.Arn
+    Export:
+      Name: fsxn-ops-snapmirror-ops-role-arn
+
+  DataPreprocessorRoleArn:
+    Value: !GetAtt DataPreprocessorRole.Arn
+    Export:
+      Name: fsxn-ops-data-preprocessor-role-arn
+
+  StepFunctionsExecutionRoleArn:
+    Value: !GetAtt StepFunctionsExecutionRole.Arn
+    Export:
+      Name: fsxn-ops-stepfunctions-role-arn
+
+  EventBridgeSchedulerRoleArn:
+    Value: !GetAtt EventBridgeSchedulerRole.Arn
+    Export:
+      Name: fsxn-ops-eventbridge-scheduler-role-arn
