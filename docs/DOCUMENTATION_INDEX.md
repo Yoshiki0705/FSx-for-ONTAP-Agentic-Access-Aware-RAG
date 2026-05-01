@@ -26,6 +26,15 @@
 | [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD連携・CIFS共有・NTFS ACL設定・Name-Mapping設定（検証済み手順） |
 | [docs/demo-environment-guide.md](demo-environment-guide.md) | 検証環境のリソースID・アクセス情報・Embeddingサーバー手順 |
 
+## FSx ONTAP 運用自動化
+
+| ドキュメント | 内容 |
+|-------------|------|
+| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | 運用自動化スイート概要（ディレクトリ構成、ユースケース一覧） |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | この構成で楽になる理由（設計判断、コスト見積もり、セキュリティ設計） |
+| [automation/fsxn-ops/docs/aws-verification-report.md](../automation/fsxn-ops/docs/aws-verification-report.md) | AWS 環境統合検証レポート（2026-05-01実施、全Phase PASS） |
+| [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | 統合 CloudFormation テンプレート（VPC エンドポイント含む） |
+
 ## サンプル構成ファイル
 
 | ファイル | 認証モード | 内容 |

@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  FSx for NetApp ONTAP 運用自動化 — EventBridge Scheduler 定義
+  イベント駆動ではなく、定期実行で運用自動化を実現する。
+
+Parameters:
+  CapacityMonitorLambdaArn:
+    Type: String
+    Description: 容量監視 Lambda 関数 ARN
+  SchedulerRoleArn:
+    Type: String
+    Description: EventBridge Scheduler 実行ロール ARN
+  MonitoringIntervalMinutes:
+    Type: Number
+    Default: 5
+    Description: 容量監視の実行間隔 (分)
+    AllowedValues: [1, 5, 10, 15, 30, 60]
+  EnableCapacityMonitor:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: 容量監視スケジュールの有効/無効
+
+Conditions:
+  IsCapacityMonitorEnabled: !Equals [!Ref EnableCapacityMonitor, "true"]
+
+Resources:
+  # ============================================================
+  # 容量監視スケジュール (5分間隔)
+  # ============================================================
+  CapacityMonitorSchedule:
+    Type: AWS::Scheduler::Schedule
+    Condition: IsCapacityMonitorEnabled
+    Properties:
+      Name: fsxn-ops-capacity-monitor
+      Description: >
+        FSx for ONTAP の容量を定期監視し、閾値超過時に自動拡張と通知を行う。
+        イベント駆動ではなく、EventBridge Scheduler による定期実行。
+      ScheduleExpression: !Sub "rate(${MonitoringIntervalMinutes} minutes)"
+      ScheduleExpressionTimezone: Asia/Tokyo
+      State: ENABLED
+      FlexibleTimeWindow:
+        Mode: FLEXIBLE
+        MaximumWindowInMinutes: 5
+      Target:
+        Arn: !Ref CapacityMonitorLambdaArn
+        RoleArn: !Ref SchedulerRoleArn
+        Input: |
+          {
+            "source": "eventbridge-scheduler",
+            "detail-type": "scheduled-capacity-check"
+          }
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 3600
+          MaximumRetryAttempts: 3
+
+  # ============================================================
+  # 日次レポートスケジュール (毎朝 9:00 JST)
+  # ============================================================
+  DailyReportSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: fsxn-ops-daily-report
+      Description: >
+        FSx for ONTAP の日次容量レポートを生成する。
+        毎朝 9:00 JST に実行。
+      ScheduleExpression: "cron(0 9 * * ? *)"
+      ScheduleExpressionTimezone: Asia/Tokyo
+      State: ENABLED
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: !Ref CapacityMonitorLambdaArn
+        RoleArn: !Ref SchedulerRoleArn
+        Input: |
+          {
+            "source": "eventbridge-scheduler",
+            "detail-type": "daily-capacity-report",
+            "report_mode": true
+          }
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 7200
+          MaximumRetryAttempts: 2
+
+Outputs:
+  CapacityMonitorScheduleArn:
+    Condition: IsCapacityMonitorEnabled
+    Value: !GetAtt CapacityMonitorSchedule.Arn
+    Description: 容量監視スケジュール ARN
+
+  DailyReportScheduleArn:
+    Value: !GetAtt DailyReportSchedule.Arn
+    Description: 日次レポートスケジュール ARN

@@ -84,6 +84,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 | 17 | Guardrails Organizational Safeguards | Bedrock Guardrails 扩展。通过 `guardrailsConfig` CDK 参数详细配置内容过滤强度、主题策略和 PII 检测。AWS Organizations Organizational Safeguards 检测与显示。聊天响应中显示 GuardrailsStatusBadge（✅ safe / ⚠️ filtered）。干预日志（结构化 JSON）、EMF 指标、CloudWatch 仪表板集成。管理员只读 GuardrailsAdminPanel。Fail-Open 错误处理。通过 `enableGuardrails=true` + `guardrailsConfig` 启用 | AIStack, WebAppStack |
 | 18 | 语音聊天 (Nova Sonic) | 通过 Amazon Nova Sonic 实现语音对话功能。浏览器麦克风输入 → Nova Sonic (speech-to-speech) → 文本 + 语音同时输出。与现有 RAG 管道（含 Permission Filter）集成。支持 KB/Agent 模式。波形动画、30秒静音超时、自动重连（最多3次）、文本回退。8种语言 i18n 支持。通过 `enableVoiceChat=true` 启用。预估月费：$70~$100 | AIStack, WebAppStack |
 | 19 | AgentCore Policy | 通过 AgentCore Policy 实现代理行为控制。使用自然语言策略定义限制代理的工具、API、MCP 服务器访问。3种策略模板（安全优先、成本优先、灵活性优先）。PolicyEvaluationMiddleware（3秒超时、fail-open/fail-closed）。违规日志（EMF 格式）及 CloudWatch 仪表板集成。8种语言 i18n 支持。通过 `enableAgentPolicy=true` 启用 | WebAppStack |
+| 20 | FSx ONTAP 运维自动化 | 使用 Lambda + Step Functions 实现 FSx for ONTAP 运维自动化。SnapMirror 故障转移/恢复编排（ASL）、容量监控与自动扩展（EventBridge 5分钟间隔）、ONTAP REST API 通用执行器、AI/分析数据预处理（S3 Access Point 边界）。无事件驱动依赖、无 NFS 挂载。月费约 $2.60。详见 [automation/fsxn-ops/](automation/fsxn-ops/) | CloudFormation (standalone) |
 
 #### v4.0.0 技术说明
 

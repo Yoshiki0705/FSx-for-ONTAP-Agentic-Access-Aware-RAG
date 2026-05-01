@@ -56,3 +56,26 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 | Security Group | Port 443 inbound required (VPC CIDR or Lambda SG) |
 | Secrets Manager | fsxadmin password stored as plain text string |
 | ONTAP version | Verified on ONTAP 9.17.1P4 |
+
+---
+
+## Automatisation des opérations (Optionnel)
+
+Une suite d'automatisation autonome avec Lambda + Step Functions est disponible dans `automation/fsxn-ops/`.
+
+### Prérequis
+
+- VPC Endpoints (5 requis) : `secretsmanager`, `fsx`, `monitoring`, `sns` (Interface) + `s3` (Gateway)
+- Secrets Manager : format `{"username": "fsxadmin", "password": "xxx"}`
+- Le mot de passe fsxadmin doit correspondre entre Secrets Manager et FSx ONTAP
+
+### Fonctionnalités
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| Surveillance de capacité | EventBridge toutes les 5 min, auto-expansion + notification SNS |
+| SnapMirror DR | Orchestration failover/failback avec Step Functions |
+| Exécution API ONTAP | Exécution sécurisée de l'API REST ONTAP via Lambda |
+| Prétraitement de données | Prétraitement IA/analytique via FSx ONTAP S3 Access Point |
+
+Détails : [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md)

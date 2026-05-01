@@ -1,0 +1,279 @@
+{
+  "Comment": "FSx for NetApp ONTAP — SnapMirror Planned Failback Orchestration",
+  "StartAt": "ValidateInput",
+  "States": {
+    "ValidateInput": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "And": [
+            { "Variable": "$.prod_management_lif", "IsPresent": true },
+            { "Variable": "$.dr_management_lif", "IsPresent": true },
+            { "Variable": "$.prod_svm", "IsPresent": true },
+            { "Variable": "$.dr_svm", "IsPresent": true }
+          ],
+          "Next": "NotifyFailbackStart"
+        }
+      ],
+      "Default": "InputValidationFailed"
+    },
+
+    "InputValidationFailed": {
+      "Type": "Fail",
+      "Error": "InputValidationError",
+      "Cause": "必須パラメータが不足: prod_management_lif, dr_management_lif, prod_svm, dr_svm"
+    },
+
+    "NotifyFailbackStart": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn.$": "$.sns_topic_arn",
+        "Subject": "🔄 SnapMirror フェイルバック開始",
+        "Message.$": "States.Format('SnapMirror Planned Failback 開始\\nDR SVM: {} → Prod SVM: {}\\n実行者: {}', $.dr_svm, $.prod_svm, $.initiated_by)"
+      },
+      "ResultPath": "$.notification_result",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "DiscoverBrokenRelationships",
+          "ResultPath": "$.notification_error"
+        }
+      ],
+      "Next": "DiscoverBrokenRelationships"
+    },
+
+    "DiscoverBrokenRelationships": {
+      "Type": "Task",
+      "Resource": "${SnapMirrorOpsLambdaArn}",
+      "Parameters": {
+        "action": "discover",
+        "management_lif.$": "$.dr_management_lif",
+        "svm_name.$": "$.dr_svm"
+      },
+      "ResultPath": "$.discovery",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "FailbackFailed",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Next": "FilterBrokenRelationships"
+    },
+
+    "FilterBrokenRelationships": {
+      "Type": "Pass",
+      "Comment": "broken_off 状態の関係のみを対象にする (実際にはLambda側でフィルタ)",
+      "Next": "CheckBrokenRelationshipsExist"
+    },
+
+    "CheckBrokenRelationshipsExist": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.discovery.total_count",
+          "NumericGreaterThan": 0,
+          "Next": "ReverseResyncRelationships"
+        }
+      ],
+      "Default": "NoBrokenRelationshipsFound"
+    },
+
+    "NoBrokenRelationshipsFound": {
+      "Type": "Fail",
+      "Error": "NoBrokenRelationshipsError",
+      "Cause": "ブレーク状態の SnapMirror 関係が見つかりません"
+    },
+
+    "ReverseResyncRelationships": {
+      "Type": "Map",
+      "ItemsPath": "$.discovery.relationships",
+      "MaxConcurrency": 5,
+      "Parameters": {
+        "relationship.$": "$$.Map.Item.Value",
+        "prod_management_lif.$": "$.prod_management_lif",
+        "dr_management_lif.$": "$.dr_management_lif",
+        "prod_svm.$": "$.prod_svm"
+      },
+      "Iterator": {
+        "StartAt": "ResyncRelationship",
+        "States": {
+          "ResyncRelationship": {
+            "Type": "Task",
+            "Resource": "${SnapMirrorOpsLambdaArn}",
+            "Parameters": {
+              "action": "resync",
+              "management_lif.$": "$.dr_management_lif",
+              "relationship_uuid.$": "$.relationship.uuid"
+            },
+            "ResultPath": "$.resync_result",
+            "Retry": [
+              {
+                "ErrorEquals": ["Lambda.ServiceException"],
+                "IntervalSeconds": 10,
+                "MaxAttempts": 3,
+                "BackoffRate": 2
+              }
+            ],
+            "Catch": [
+              {
+                "ErrorEquals": ["States.ALL"],
+                "Next": "ResyncFailed",
+                "ResultPath": "$.resync_error"
+              }
+            ],
+            "Next": "WaitForResync"
+          },
+
+          "WaitForResync": {
+            "Type": "Wait",
+            "Seconds": 60,
+            "Next": "CheckResyncStatus"
+          },
+
+          "CheckResyncStatus": {
+            "Type": "Task",
+            "Resource": "${SnapMirrorOpsLambdaArn}",
+            "Parameters": {
+              "action": "check_transfer",
+              "management_lif.$": "$.dr_management_lif",
+              "relationship_uuid.$": "$.relationship.uuid"
+            },
+            "ResultPath": "$.resync_status",
+            "Next": "IsResyncComplete"
+          },
+
+          "IsResyncComplete": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.resync_status.is_transfer_complete",
+                "BooleanEquals": true,
+                "Next": "ValidateResync"
+              }
+            ],
+            "Default": "WaitForResync"
+          },
+
+          "ValidateResync": {
+            "Type": "Task",
+            "Resource": "${SnapMirrorOpsLambdaArn}",
+            "Parameters": {
+              "action": "validate",
+              "management_lif.$": "$.dr_management_lif",
+              "relationship_uuid.$": "$.relationship.uuid",
+              "expected_state": "snapmirrored"
+            },
+            "ResultPath": "$.validation",
+            "End": true
+          },
+
+          "ResyncFailed": {
+            "Type": "Pass",
+            "Result": { "status": "resync_failed" },
+            "ResultPath": "$.failure_info",
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.failback_results",
+      "Next": "RestoreProductionShares"
+    },
+
+    "RestoreProductionShares": {
+      "Type": "Task",
+      "Resource": "${SnapMirrorOpsLambdaArn}",
+      "Parameters": {
+        "action": "recreate_shares",
+        "management_lif.$": "$.prod_management_lif",
+        "svm_name.$": "$.prod_svm",
+        "shares_config.$": "$.shares_config"
+      },
+      "ResultPath": "$.shares_result",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "NotifyFailbackComplete",
+          "ResultPath": "$.shares_error"
+        }
+      ],
+      "Next": "CleanupDRShares"
+    },
+
+    "CleanupDRShares": {
+      "Type": "Task",
+      "Resource": "${SnapMirrorOpsLambdaArn}",
+      "Parameters": {
+        "action": "cleanup_shares",
+        "management_lif.$": "$.dr_management_lif",
+        "svm_name.$": "$.dr_svm"
+      },
+      "ResultPath": "$.cleanup_result",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "NotifyFailbackComplete",
+          "ResultPath": "$.cleanup_error"
+        }
+      ],
+      "Next": "NotifyFailbackComplete"
+    },
+
+    "NotifyFailbackComplete": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn.$": "$.sns_topic_arn",
+        "Subject": "✅ SnapMirror フェイルバック完了",
+        "Message.$": "States.Format('SnapMirror Planned Failback 完了\\nDR SVM: {} → Prod SVM: {}\\n処理関係数: {}\\n実行者: {}', $.dr_svm, $.prod_svm, $.discovery.total_count, $.initiated_by)"
+      },
+      "ResultPath": "$.final_notification",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "FailbackSuccess",
+          "ResultPath": "$.notification_error"
+        }
+      ],
+      "Next": "FailbackSuccess"
+    },
+
+    "FailbackSuccess": {
+      "Type": "Succeed"
+    },
+
+    "FailbackFailed": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn.$": "$.sns_topic_arn",
+        "Subject": "❌ SnapMirror フェイルバック失敗",
+        "Message.$": "States.Format('SnapMirror Planned Failback 失敗\\nエラー: {}', $.error)"
+      },
+      "ResultPath": "$.error_notification",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "FailbackFailedState",
+          "ResultPath": null
+        }
+      ],
+      "Next": "FailbackFailedState"
+    },
+
+    "FailbackFailedState": {
+      "Type": "Fail",
+      "Error": "FailbackError",
+      "Cause": "SnapMirror フェイルバックが失敗しました"
+    }
+  }
+}

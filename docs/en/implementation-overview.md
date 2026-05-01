@@ -862,6 +862,51 @@ Authentication Flow
 
 ---
 
+## 19. FSx ONTAP Ops Automation — Lambda + Step Functions
+
+### Overview
+
+Standalone automation suite for FSx for NetApp ONTAP operations using Lambda + Step Functions. No event-driven dependency — controlled via EventBridge Scheduler (periodic) or app-driven invocation. No NFS mount from Lambda — all operations via ONTAP REST API / FSx API.
+
+### Use Cases
+
+| # | Use Case | Lambda | Trigger |
+|---|----------|--------|---------|
+| 1 | SnapMirror Failover/Failback | snapmirror_ops (9 actions) | Step Functions |
+| 2 | Capacity Monitoring & Auto-Expansion | capacity_monitor | EventBridge (5-min) |
+| 3 | ONTAP Management API Execution | ontap_api_executor | API Gateway / Manual |
+| 4 | AI/Analytics Data Preprocessing | data_preprocessor | EventBridge / App |
+
+### VPC Endpoint Requirements
+
+Lambda in VPC requires these Interface VPC Endpoints:
+- `com.amazonaws.{region}.secretsmanager`
+- `com.amazonaws.{region}.fsx`
+- `com.amazonaws.{region}.monitoring`
+- `com.amazonaws.{region}.sns`
+- `com.amazonaws.{region}.s3` — **Gateway** (must be associated with Lambda subnet route table)
+
+### AWS Verification Results (2026-05-01)
+
+| Test | Result |
+|------|--------|
+| ONTAP REST API Connectivity | ✅ PASS (ONTAP 9.17.1P4D3, 5/5 tests) |
+| capacity_monitor | ✅ PASS (FS 1024 GiB + 3 volumes) |
+| ontap_api_executor | ✅ PASS (GET /cluster) |
+| snapmirror_ops | ✅ PASS (discover + discover_shares) |
+| Step Functions | ✅ PASS (SUCCEEDED) |
+| CFn Stack Deploy | ✅ PASS |
+| capacity_monitor (actual resize) | ✅ PASS (4 volumes × 20% expansion) |
+| SnapMirror E2E (break/resync) | ✅ PASS (11/11 tests) |
+| EventBridge Scheduler | ✅ PASS (5-min auto-execution confirmed) |
+| data_preprocessor (FSx ONTAP S3 AP) | ✅ PASS (scan, collect_metadata, generate_tasks) |
+
+### Cost: ~$2.60/month
+
+See [automation/fsxn-ops/](../../automation/fsxn-ops/) for details.
+
+---
+
 ## Overall System Architecture
 
 ```

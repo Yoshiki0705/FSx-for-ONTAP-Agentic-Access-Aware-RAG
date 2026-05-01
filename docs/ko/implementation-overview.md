@@ -861,6 +861,51 @@ Next.js API Routes
 
 ---
 
+## 19. FSx ONTAP 운영 자동화 — Lambda + Step Functions
+
+### 개요
+
+FSx for NetApp ONTAP 운영을 위한 독립형 자동화 스위트. Lambda + Step Functions 사용. 이벤트 기반 의존성 없음 — EventBridge Scheduler(주기적) 또는 앱 기반 호출로 제어. Lambda에서 NFS 마운트 없음 — 모든 작업은 ONTAP REST API / FSx API를 통해 수행.
+
+### 사용 사례
+
+| # | 사용 사례 | Lambda | 트리거 |
+|---|----------|--------|--------|
+| 1 | SnapMirror 페일오버/페일백 | snapmirror_ops (9개 액션) | Step Functions |
+| 2 | 용량 모니터링 및 자동 확장 | capacity_monitor | EventBridge (5분) |
+| 3 | ONTAP 관리 API 실행 | ontap_api_executor | API Gateway / 수동 |
+| 4 | AI/분석용 데이터 전처리 | data_preprocessor | EventBridge / 앱 |
+
+### VPC 엔드포인트 요구사항
+
+VPC 내 Lambda는 다음 Interface VPC Endpoints가 필요합니다:
+- `com.amazonaws.{region}.secretsmanager`
+- `com.amazonaws.{region}.fsx`
+- `com.amazonaws.{region}.monitoring`
+- `com.amazonaws.{region}.sns`
+- `com.amazonaws.{region}.s3` — **Gateway** (Lambda 서브넷 라우팅 테이블에 연결 필요)
+
+### AWS 검증 결과 (2026-05-01)
+
+| 테스트 | 결과 |
+|--------|------|
+| ONTAP REST API 연결 | ✅ 통과 (ONTAP 9.17.1P4D3, 5/5 테스트) |
+| capacity_monitor | ✅ 통과 (FS 1024 GiB + 3 볼륨) |
+| ontap_api_executor | ✅ 통과 (GET /cluster) |
+| snapmirror_ops | ✅ 통과 (discover + discover_shares) |
+| Step Functions | ✅ 통과 (SUCCEEDED) |
+| CFn Stack Deploy | ✅ 통과 |
+| capacity_monitor (실제 크기 조정) | ✅ 통과 (4 볼륨 × 20% 확장) |
+| SnapMirror E2E (break/resync) | ✅ 통과 (11/11 테스트) |
+| EventBridge Scheduler | ✅ 통과 (5분 자동 실행 확인) |
+| data_preprocessor (FSx ONTAP S3 AP) | ✅ 통과 (scan, collect_metadata, generate_tasks) |
+
+### 비용: ~$2.60/월
+
+자세한 내용은 [automation/fsxn-ops/](../../automation/fsxn-ops/)를 참조하세요.
+
+---
+
 ## 전체 시스템 아키텍처
 
 ```

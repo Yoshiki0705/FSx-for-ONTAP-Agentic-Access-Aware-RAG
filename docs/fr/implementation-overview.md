@@ -624,3 +624,48 @@ Flux d'authentification
 | `AGENTCORE_MEMORY_ID` | AgentCore Memory ID (sortie CDK) |
 | `ENABLE_AGENTCORE_MEMORY` | Indicateur d'activation de la fonctionnalité Memory |
 
+
+---
+
+## 19. Automatisation des opérations FSx ONTAP — Lambda + Step Functions
+
+### Vue d'ensemble
+
+Suite d'automatisation autonome pour les opérations FSx for NetApp ONTAP utilisant Lambda + Step Functions. Aucune dépendance événementielle — contrôlé via EventBridge Scheduler (périodique) ou invocation applicative. Pas de montage NFS depuis Lambda — toutes les opérations via ONTAP REST API / FSx API.
+
+### Cas d'utilisation
+
+| # | Cas d'utilisation | Lambda | Déclencheur |
+|---|-------------------|--------|-------------|
+| 1 | Failover/Failback SnapMirror | snapmirror_ops (9 actions) | Step Functions |
+| 2 | Surveillance de capacité et auto-expansion | capacity_monitor | EventBridge (5 min) |
+| 3 | Exécution API de gestion ONTAP | ontap_api_executor | API Gateway / Manuel |
+| 4 | Prétraitement de données IA/Analytique | data_preprocessor | EventBridge / App |
+
+### Exigences VPC Endpoints
+
+Lambda dans un VPC nécessite ces Interface VPC Endpoints :
+- `com.amazonaws.{region}.secretsmanager`
+- `com.amazonaws.{region}.fsx`
+- `com.amazonaws.{region}.monitoring`
+- `com.amazonaws.{region}.sns`
+- `com.amazonaws.{region}.s3` — **Gateway** (doit être associé à la table de routage du sous-réseau Lambda)
+
+### Résultats de vérification AWS (2026-05-01)
+
+| Test | Résultat |
+|------|----------|
+| Connectivité ONTAP REST API | ✅ RÉUSSI (ONTAP 9.17.1P4D3, 5/5 tests) |
+| capacity_monitor | ✅ RÉUSSI (FS 1024 Gio + 3 volumes) |
+| ontap_api_executor | ✅ RÉUSSI (GET /cluster) |
+| snapmirror_ops | ✅ RÉUSSI (discover + discover_shares) |
+| Step Functions | ✅ RÉUSSI (SUCCEEDED) |
+| CFn Stack Deploy | ✅ RÉUSSI |
+| capacity_monitor (redimensionnement réel) | ✅ RÉUSSI (4 volumes × 20% expansion) |
+| SnapMirror E2E (break/resync) | ✅ RÉUSSI (11/11 tests) |
+| EventBridge Scheduler | ✅ RÉUSSI (auto-exécution 5 min confirmée) |
+| data_preprocessor (FSx ONTAP S3 AP) | ✅ RÉUSSI (scan, collect_metadata, generate_tasks) |
+
+### Coût : ~2,60 $/mois
+
+Détails dans [automation/fsxn-ops/](../../automation/fsxn-ops/).

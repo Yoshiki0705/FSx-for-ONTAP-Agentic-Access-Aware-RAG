@@ -102,6 +102,7 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | 17 | Guardrails Organizational Safeguards | Bedrock Guardrails の拡張。`guardrailsConfig` CDK パラメータによるコンテンツフィルタ強度・トピックポリシー・PII 検出の詳細設定。AWS Organizations Organizational Safeguards の検出・表示。チャット応答への GuardrailsStatusBadge（✅ safe / ⚠️ filtered）表示。介入ログ（構造化 JSON）・EMF メトリクス・CloudWatch ダッシュボード統合。管理者向け GuardrailsAdminPanel（読み取り専用）。Fail-Open エラーハンドリング。`enableGuardrails=true` + `guardrailsConfig` で有効化 | AIStack, WebAppStack |
 | 18 | 音声チャット（Nova Sonic） | Amazon Nova Sonic による音声対話機能。ブラウザマイクから音声入力 → Nova Sonic（speech-to-speech）→ テキスト＋音声同時出力。既存 RAG パイプライン（Permission Filter 含む）と統合。KB/Agent 両モード対応。波形アニメーション、30秒無音タイムアウト、自動再接続（最大3回）、テキストフォールバック。8言語 i18n 対応。`enableVoiceChat=true` で有効化。推定月額: $70〜$100 | AIStack, WebAppStack |
 | 19 | AgentCore Policy | AgentCore Policy によるエージェント行動制御。自然言語ポリシー定義でエージェントのツール・API・MCP サーバーアクセスを制限。3 種類のポリシーテンプレート（セキュリティ重視・コスト重視・柔軟性重視）。PolicyEvaluationMiddleware（3 秒タイムアウト、fail-open/fail-closed）。違反ログ（EMF 形式）・CloudWatch ダッシュボード統合。8 言語 i18n 対応。`enableAgentPolicy=true` で有効化 | WebAppStack |
+| 20 | FSx ONTAP 運用自動化 | Lambda + Step Functions による FSx for ONTAP 運用自動化。SnapMirror フェイルオーバー/フェイルバック自動化（ASL 定義）、容量監視・自動拡張（EventBridge 5分間隔）、ONTAP REST API 汎用実行、AI/分析向けデータ前処理（S3 Access Point 境界）。イベント駆動不要・NFS マウント不要。月額 ~$2.60。詳細は [automation/fsxn-ops/](automation/fsxn-ops/) を参照 | CloudFormation (standalone) |
 
 #### v4.0.0 技術的注意事項
 

@@ -84,6 +84,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 | 17 | Guardrails Organizational Safeguards | Bedrock Guardrails 확장. `guardrailsConfig` CDK 파라미터를 통한 콘텐츠 필터 강도, 토픽 정책, PII 감지 상세 설정. AWS Organizations Organizational Safeguards 감지 및 표시. 채팅 응답에 GuardrailsStatusBadge(✅ safe / ⚠️ filtered) 표시. 개입 로그(구조화 JSON), EMF 메트릭, CloudWatch 대시보드 통합. 관리자용 GuardrailsAdminPanel(읽기 전용). Fail-Open 오류 처리. `enableGuardrails=true` + `guardrailsConfig`로 활성화 | AIStack, WebAppStack |
 | 18 | 음성 채팅 (Nova Sonic) | Amazon Nova Sonic을 통한 음성 대화 기능. 브라우저 마이크 입력 → Nova Sonic (speech-to-speech) → 텍스트 + 음성 동시 출력. 기존 RAG 파이프라인 (Permission Filter 포함) 통합. KB/Agent 모드 지원. 파형 애니메이션, 30초 무음 타임아웃, 자동 재연결 (최대 3회), 텍스트 폴백. 8개 언어 i18n 지원. `enableVoiceChat=true`로 활성화. 예상 월 비용: $70~$100 | AIStack, WebAppStack |
 | 19 | AgentCore Policy | AgentCore Policy를 통한 에이전트 행동 제어. 자연어 정책 정의로 에이전트의 도구, API, MCP 서버 접근을 제한. 3가지 정책 템플릿 (보안 중심, 비용 중심, 유연성 중심). PolicyEvaluationMiddleware (3초 타임아웃, fail-open/fail-closed). 위반 로그 (EMF 형식) 및 CloudWatch 대시보드 통합. 8개 언어 i18n 지원. `enableAgentPolicy=true`로 활성화 | WebAppStack |
+| 20 | FSx ONTAP 운영 자동화 | Lambda + Step Functions를 사용한 FSx for ONTAP 운영 자동화. SnapMirror 페일오버/페일백 오케스트레이션(ASL), 용량 모니터링 및 자동 확장(EventBridge 5분 간격), ONTAP REST API 범용 실행기, AI/분석 데이터 전처리(S3 Access Point 경계). 이벤트 기반 의존성 없음, NFS 마운트 없음. 월 ~$2.60. [automation/fsxn-ops/](automation/fsxn-ops/) 참조 | CloudFormation (standalone) |
 
 #### v4.0.0 기술 참고사항
 

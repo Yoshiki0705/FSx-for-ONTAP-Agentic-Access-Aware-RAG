@@ -24,6 +24,14 @@
 | [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD 통합, CIFS 공유, NTFS ACL 구성 (검증된 절차) |
 | [demo-environment-guide.md](demo-environment-guide.md) | 검증 환경 리소스 ID, 접속 정보, Embedding 서버 절차 |
 
+## FSx ONTAP 운영 자동화
+
+| 문서 | 설명 |
+|------|------|
+| [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | 운영 자동화 스위트 개요 (디렉토리 구조, 사용 사례) |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 이 아키텍처가 FSx ONTAP 운영을 단순화하는 이유 |
+| [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS 통합 검증 보고서 (2026-05-01, 모든 단계 통과) |
+
 ## Embedding 서버 (FlexCache CIFS 마운트 경유)
 
 | 문서 / 파일 | 설명 |

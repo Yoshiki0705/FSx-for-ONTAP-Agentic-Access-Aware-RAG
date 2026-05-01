@@ -1133,6 +1133,122 @@ Agent アクション実行前 → PolicyEvaluationMiddleware → AgentCore Poli
 
 ---
 
+## 19. FSx ONTAP 運用自動化 — Lambda + Step Functions による運用省力化
+
+### 概要
+
+FSx for NetApp ONTAP の運用を Lambda + Step Functions で自動化するスタンドアロン構成。
+イベント駆動は前提にせず、EventBridge Scheduler による定期実行またはアプリ主導で制御する。
+Lambda から NFS マウントは行わず、ONTAP REST API / FSx API のみで操作する。
+
+### アーキテクチャ
+
+```
+EventBridge Scheduler (5分間隔)
+  └→ Lambda: capacity_monitor
+       ├→ ONTAP REST API: ボリューム使用率取得
+       ├→ FSx API: ファイルシステム容量取得
+       └→ 閾値超過 → 自動拡張 + SNS 通知
+
+手動 / API Gateway
+  └→ Step Functions: snapmirror-failover
+       ├→ Lambda: discover (SnapMirror 関係検出)
+       ├→ Lambda: discover_shares (CIFS/NFS 共有検出)
+       ├→ Lambda: final_transfer → check_transfer (Map: 並列)
+       ├→ Lambda: break (SnapMirror ブレーク)
+       ├→ Lambda: recreate_shares (DR 側共有再作成)
+       └→ Lambda: validate (状態検証)
+
+手動 / アプリ
+  └→ Lambda: ontap_api_executor
+       └→ ONTAP REST API: 任意の管理操作 (セキュリティ制御付き)
+
+EventBridge / アプリ
+  └→ Lambda: data_preprocessor
+       ├→ S3 Access Point: ソースデータ一覧
+       ├→ ONTAP REST API: メタデータ (ACL等) 収集
+       └→ S3: 処理結果出力
+```
+
+### 実装ユースケース
+
+| # | ユースケース | Lambda | トリガー |
+|---|-------------|--------|---------|
+| 1 | SnapMirror フェイルオーバー/フェイルバック | snapmirror_ops (9 アクション) | Step Functions |
+| 2 | 容量監視・自動拡張 | capacity_monitor | EventBridge (5分) |
+| 3 | ONTAP 管理 API 実行 | ontap_api_executor | API Gateway / 手動 |
+| 4 | AI/分析向けデータ前処理 | data_preprocessor | EventBridge / アプリ |
+
+### 設計判断
+
+| 観点 | 選択 | 理由 |
+|------|------|------|
+| イベント駆動 | **不使用** | S3 Event Notification 不要、FPolicy 不要、実装がシンプル |
+| NFS マウント | **不使用** | ONTAP REST API で全管理操作が可能、コールドスタートが速い |
+| 認証情報 | **Secrets Manager** | fsxadmin パスワードを安全に管理、IAM ロール経由でアクセス |
+| S3 Access Point | **境界として使用** | データ前処理 Lambda は S3 AP 経由でのみデータにアクセス |
+
+### VPC エンドポイント要件
+
+VPC 内の Lambda から AWS API にアクセスするため、以下の VPC エンドポイントが必須:
+
+| サービス | エンドポイントタイプ |
+|---------|-------------------|
+| `com.amazonaws.{region}.secretsmanager` | Interface |
+| `com.amazonaws.{region}.fsx` | Interface |
+| `com.amazonaws.{region}.monitoring` | Interface |
+| `com.amazonaws.{region}.sns` | Interface |
+| `com.amazonaws.{region}.s3` | **Gateway** (Lambda サブネットのルートテーブルに関連付け必要) |
+
+### AWS 環境検証結果 (2026-05-01)
+
+| テスト | 結果 | 詳細 |
+|--------|------|------|
+| CFn スタックデプロイ | ✅ PASS | 全リソース作成成功 |
+| ONTAP REST API 疎通 | ✅ PASS | ONTAP 9.17.1P4D3, 5/5 API テスト通過 |
+| capacity_monitor (ドライラン) | ✅ PASS | FS 1024 GiB + ボリューム監視成功 |
+| capacity_monitor (実拡張) | ✅ PASS | 4 ボリューム × 20% 拡張確認 |
+| ontap_api_executor | ✅ PASS | GET /cluster 成功 |
+| snapmirror_ops (discover) | ✅ PASS | discover + discover_shares 成功 |
+| SnapMirror E2E (break/resync) | ✅ PASS | 11/11 テスト (create→transfer→break→resync→cleanup) |
+| Step Functions | ✅ PASS | Discover → DiscoverShares → Done: SUCCEEDED |
+| EventBridge Scheduler | ✅ PASS | 5 分間隔の自動実行確認 (CloudWatch Logs) |
+| data_preprocessor (FSx ONTAP S3 AP) | ✅ PASS | scan (5 .md ファイル)、collect_metadata、generate_tasks |
+
+### 検証で得た知見
+
+- **S3 Gateway VPC エンドポイント必須**: FSx ONTAP S3 Access Point 経由のアクセスに必要。Lambda サブネットのルートテーブルに関連付けること
+- **fsxadmin パスワード同期**: Secrets Manager の値と FSx ONTAP の実パスワードが一致している必要がある
+- **SnapMirror 初期転送**: 関係作成後に明示的に `/transfers` POST で初期転送を開始する必要がある
+- **CloudWatch メトリクス**: StorageCapacityUtilization が取得できない場合がある → ONTAP API にフォールバック
+
+### コスト
+
+| コンポーネント | 月額 |
+|--------------|------|
+| Lambda (全4関数) | ~$1.65 |
+| Step Functions | ~$0.05 |
+| EventBridge Scheduler | ~$0.00 |
+| Secrets Manager | ~$0.40 |
+| CloudWatch Logs | ~$0.50 |
+| **合計** | **~$2.60** |
+
+### 関連ファイル
+
+| ファイル | 内容 |
+|---------|------|
+| `automation/fsxn-ops/stepfunctions/snapmirror-failover.asl.json` | フェイルオーバー ASL |
+| `automation/fsxn-ops/stepfunctions/snapmirror-failback.asl.json` | フェイルバック ASL |
+| `automation/fsxn-ops/lambda/capacity_monitor/handler.py` | 容量監視 |
+| `automation/fsxn-ops/lambda/ontap_api_executor/handler.py` | API 汎用実行 |
+| `automation/fsxn-ops/lambda/snapmirror_ops/handler.py` | SnapMirror 操作 |
+| `automation/fsxn-ops/lambda/data_preprocessor/handler.py` | データ前処理 |
+| `automation/fsxn-ops/cfn/fsxn-ops-stack.yaml` | 統合 CFn テンプレート |
+| `automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md` | 楽になる理由 |
+| `automation/fsxn-ops/docs/aws-verification-report.md` | AWS 検証レポート |
+
+---
+
 ## API 実装ステータス
 
 | 機能 | バックエンド→AWS SDK | 実装方式 | GA 時の対応 |

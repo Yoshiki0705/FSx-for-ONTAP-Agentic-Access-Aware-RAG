@@ -1,0 +1,685 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  FSx for NetApp ONTAP 運用自動化 — 統合 CloudFormation テンプレート
+  Lambda, Step Functions, EventBridge Scheduler, IAM, SNS を一括デプロイする。
+
+Parameters:
+  # === FSx ONTAP 設定 ===
+  FsxFilesystemId:
+    Type: String
+    Description: "FSx for ONTAP ファイルシステム ID (例: fs-0123456789abcdef0)"
+
+  ManagementLif:
+    Type: String
+    Description: "ONTAP 管理 LIF IP アドレス (例: 10.0.1.100)"
+
+  OntapSecretId:
+    Type: String
+    Description: >
+      Secrets Manager シークレット ID (ONTAP fsxadmin 認証情報)
+      フォーマット: {"username": "fsxadmin", "password": "xxx"}
+
+  # === ネットワーク設定 ===
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Lambda を配置する VPC ID
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Lambda を配置するプライベートサブネット ID (カンマ区切り)
+
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Lambda 用セキュリティグループ ID (ONTAP 管理 LIF への HTTPS 許可)
+
+  # === 通知設定 ===
+  NotificationEmail:
+    Type: String
+    Description: 通知先メールアドレス
+    AllowedPattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+
+  # === 容量監視設定 ===
+  FsThresholdPct:
+    Type: Number
+    Default: 85
+    Description: ファイルシステム容量閾値 (%)
+
+  VolThresholdPct:
+    Type: Number
+    Default: 80
+    Description: ボリューム容量閾値 (%)
+
+  AutoResizeEnabled:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: 自動拡張の有効/無効
+
+  DryRun:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: ドライランモード
+
+  MonitoringIntervalMinutes:
+    Type: Number
+    Default: 5
+    AllowedValues: [1, 5, 10, 15, 30, 60]
+    Description: 容量監視の実行間隔 (分)
+
+  # === S3 設定 (データ前処理用、オプション) ===
+  S3AccessPointArn:
+    Type: String
+    Default: ""
+    Description: S3 Access Point ARN (データ前処理用、オプション)
+
+  OutputBucketName:
+    Type: String
+    Default: ""
+    Description: "前処理出力先 S3 バケット名 (オプション)"
+
+  CreateVpcEndpoints:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "VPC エンドポイントを作成するか (既存エンドポイントがある場合は false)"
+
+  RouteTableIds:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: "S3 Gateway エンドポイント用ルートテーブル ID (Lambda サブネットのルートテーブル)"
+
+Conditions:
+  HasS3AccessPoint: !Not [!Equals [!Ref S3AccessPointArn, ""]]
+  HasOutputBucket: !Not [!Equals [!Ref OutputBucketName, ""]]
+  ShouldCreateVpcEndpoints: !Equals [!Ref CreateVpcEndpoints, "true"]
+
+Resources:
+  # ============================================================
+  # VPC Endpoints (Lambda from VPC needs these to reach AWS APIs)
+  # ============================================================
+  SecretsManagerEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: ShouldCreateVpcEndpoints
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.secretsmanager"
+      VpcEndpointType: Interface
+      SubnetIds: !Ref SubnetIds
+      SecurityGroupIds:
+        - !Ref SecurityGroupId
+      PrivateDnsEnabled: true
+
+  FsxEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: ShouldCreateVpcEndpoints
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.fsx"
+      VpcEndpointType: Interface
+      SubnetIds: !Ref SubnetIds
+      SecurityGroupIds:
+        - !Ref SecurityGroupId
+      PrivateDnsEnabled: true
+
+  MonitoringEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: ShouldCreateVpcEndpoints
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.monitoring"
+      VpcEndpointType: Interface
+      SubnetIds: !Ref SubnetIds
+      SecurityGroupIds:
+        - !Ref SecurityGroupId
+      PrivateDnsEnabled: true
+
+  S3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: ShouldCreateVpcEndpoints
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds: !Ref RouteTableIds
+
+  SnsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: ShouldCreateVpcEndpoints
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sns"
+      VpcEndpointType: Interface
+      SubnetIds: !Ref SubnetIds
+      SecurityGroupIds:
+        - !Ref SecurityGroupId
+      PrivateDnsEnabled: true
+
+  # ============================================================
+  # SNS トピック
+  # ============================================================
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: fsxn-ops-notifications
+      DisplayName: FSx ONTAP Ops Notifications
+
+  NotificationSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref NotificationTopic
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+
+  # ============================================================
+  # Lambda Layer (共通モジュール)
+  # ============================================================
+  # 注: 実際のデプロイでは S3 にアップロードした ZIP を参照する。
+  # ここではインラインコードで Lambda を定義する。
+
+  # ============================================================
+  # Lambda: 容量監視
+  # ============================================================
+  CapacityMonitorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-capacity-monitor-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: CapacityMonitorPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - fsx:DescribeFileSystems
+                  - fsx:DescribeVolumes
+                  - fsx:DescribeStorageVirtualMachines
+                  - fsx:UpdateFileSystem
+                  - fsx:UpdateVolume
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:GetMetricData
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref OntapSecretId
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref NotificationTopic
+
+  CapacityMonitorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: fsxn-ops-capacity-monitor
+      Description: FSx for ONTAP 容量監視・自動拡張
+      Runtime: python3.12
+      Handler: capacity_monitor.handler.handler
+      Timeout: 300
+      MemorySize: 256
+      Role: !GetAtt CapacityMonitorRole.Arn
+      VpcConfig:
+        SubnetIds: !Ref SubnetIds
+        SecurityGroupIds:
+          - !Ref SecurityGroupId
+      Environment:
+        Variables:
+          FSX_FILESYSTEM_ID: !Ref FsxFilesystemId
+          ONTAP_SECRET_ID: !Ref OntapSecretId
+          MANAGEMENT_LIF: !Ref ManagementLif
+          SNS_TOPIC_ARN: !Ref NotificationTopic
+          FS_THRESHOLD_PCT: !Ref FsThresholdPct
+          VOL_THRESHOLD_PCT: !Ref VolThresholdPct
+          AUTO_RESIZE_ENABLED: !Ref AutoResizeEnabled
+          DRY_RUN: !Ref DryRun
+      Code:
+        ZipFile: |
+          # プレースホルダー: 実際のデプロイでは S3 から ZIP をデプロイする
+          # automation/fsxn-ops/lambda/capacity_monitor/handler.py を参照
+          def handler(event, context):
+              return {"message": "Deploy actual code from S3"}
+
+  # ============================================================
+  # Lambda: SnapMirror 操作
+  # ============================================================
+  SnapMirrorOpsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-snapmirror-ops-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: SnapMirrorOpsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref OntapSecretId
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref NotificationTopic
+
+  SnapMirrorOpsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: fsxn-ops-snapmirror-ops
+      Description: SnapMirror 操作 (Step Functions 用)
+      Runtime: python3.12
+      Handler: snapmirror_ops.handler.handler
+      Timeout: 300
+      MemorySize: 256
+      Role: !GetAtt SnapMirrorOpsRole.Arn
+      VpcConfig:
+        SubnetIds: !Ref SubnetIds
+        SecurityGroupIds:
+          - !Ref SecurityGroupId
+      Environment:
+        Variables:
+          ONTAP_SECRET_ID: !Ref OntapSecretId
+          SNS_TOPIC_ARN: !Ref NotificationTopic
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {"message": "Deploy actual code from S3"}
+
+  # ============================================================
+  # Lambda: ONTAP API Executor
+  # ============================================================
+  OntapApiExecutorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-ontap-api-executor-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: OntapApiExecutorPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref OntapSecretId
+
+  OntapApiExecutorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: fsxn-ops-ontap-api-executor
+      Description: ONTAP 管理 API 汎用実行
+      Runtime: python3.12
+      Handler: ontap_api_executor.handler.handler
+      Timeout: 60
+      MemorySize: 128
+      Role: !GetAtt OntapApiExecutorRole.Arn
+      VpcConfig:
+        SubnetIds: !Ref SubnetIds
+        SecurityGroupIds:
+          - !Ref SecurityGroupId
+      Environment:
+        Variables:
+          ONTAP_SECRET_ID: !Ref OntapSecretId
+          MANAGEMENT_LIF: !Ref ManagementLif
+          ALLOWED_OPERATIONS: "GET"
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {"message": "Deploy actual code from S3"}
+
+  # ============================================================
+  # Step Functions: SnapMirror Failover
+  # ============================================================
+  StepFunctionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-stepfunctions-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt SnapMirrorOpsFunction.Arn
+                  - !GetAtt OntapApiExecutorFunction.Arn
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref NotificationTopic
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
+                Resource: "*"
+
+  StepFunctionsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/states/fsxn-ops-snapmirror
+      RetentionInDays: 30
+
+  SnapMirrorFailoverStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: fsxn-ops-snapmirror-failover
+      StateMachineType: STANDARD
+      RoleArn: !GetAtt StepFunctionsRole.Arn
+      LoggingConfiguration:
+        Level: ALL
+        IncludeExecutionData: true
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StepFunctionsLogGroup.Arn
+      DefinitionSubstitutions:
+        SnapMirrorOpsLambdaArn: !GetAtt SnapMirrorOpsFunction.Arn
+      DefinitionString: |
+        {
+          "Comment": "SnapMirror Planned Failover — 詳細は stepfunctions/snapmirror-failover.asl.json を参照",
+          "StartAt": "DiscoverRelationships",
+          "States": {
+            "DiscoverRelationships": {
+              "Type": "Task",
+              "Resource": "${SnapMirrorOpsLambdaArn}",
+              "Parameters": {
+                "action": "discover",
+                "management_lif.$": "$.prod_management_lif",
+                "svm_name.$": "$.prod_svm"
+              },
+              "ResultPath": "$.discovery",
+              "Next": "ProcessRelationships"
+            },
+            "ProcessRelationships": {
+              "Type": "Map",
+              "ItemsPath": "$.discovery.relationships",
+              "MaxConcurrency": 5,
+              "Parameters": {
+                "relationship.$": "$$.Map.Item.Value",
+                "prod_management_lif.$": "$.prod_management_lif",
+                "dr_management_lif.$": "$.dr_management_lif"
+              },
+              "Iterator": {
+                "StartAt": "BreakRelationship",
+                "States": {
+                  "BreakRelationship": {
+                    "Type": "Task",
+                    "Resource": "${SnapMirrorOpsLambdaArn}",
+                    "Parameters": {
+                      "action": "break",
+                      "management_lif.$": "$.dr_management_lif",
+                      "relationship_uuid.$": "$.relationship.uuid"
+                    },
+                    "End": true
+                  }
+                }
+              },
+              "ResultPath": "$.failover_results",
+              "Next": "FailoverComplete"
+            },
+            "FailoverComplete": {
+              "Type": "Succeed"
+            }
+          }
+        }
+
+  # ============================================================
+  # EventBridge Scheduler: 容量監視
+  # ============================================================
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fsxn-ops-scheduler-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !GetAtt CapacityMonitorFunction.Arn
+
+  CapacityMonitorSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: fsxn-ops-capacity-monitor
+      Description: FSx for ONTAP 容量監視 (定期実行)
+      ScheduleExpression: !Sub "rate(${MonitoringIntervalMinutes} minutes)"
+      ScheduleExpressionTimezone: Asia/Tokyo
+      State: ENABLED
+      FlexibleTimeWindow:
+        Mode: FLEXIBLE
+        MaximumWindowInMinutes: 5
+      Target:
+        Arn: !GetAtt CapacityMonitorFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"source": "eventbridge-scheduler"}'
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 3600
+          MaximumRetryAttempts: 3
+
+  # ============================================================
+  # Lambda: データ前処理 (オプション)
+  # ============================================================
+  DataPreprocessorRole:
+    Type: AWS::IAM::Role
+    Condition: HasS3AccessPoint
+    Properties:
+      RoleName: fsxn-ops-data-preprocessor-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: DataPreprocessorPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:PutObject
+                Resource:
+                  - !Ref S3AccessPointArn
+                  - !Sub "${S3AccessPointArn}/*"
+                  - !Sub "arn:aws:s3:::${OutputBucketName}"
+                  - !Sub "arn:aws:s3:::${OutputBucketName}/*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref OntapSecretId
+
+  DataPreprocessorFunction:
+    Type: AWS::Lambda::Function
+    Condition: HasS3AccessPoint
+    Properties:
+      FunctionName: fsxn-ops-data-preprocessor
+      Description: AI/分析向けデータ前処理
+      Runtime: python3.12
+      Handler: data_preprocessor.handler.handler
+      Timeout: 900
+      MemorySize: 512
+      Role: !GetAtt DataPreprocessorRole.Arn
+      VpcConfig:
+        SubnetIds: !Ref SubnetIds
+        SecurityGroupIds:
+          - !Ref SecurityGroupId
+      Environment:
+        Variables:
+          S3_ACCESS_POINT_ARN: !Ref S3AccessPointArn
+          OUTPUT_BUCKET: !Ref OutputBucketName
+          OUTPUT_PREFIX: preprocessing
+          ONTAP_SECRET_ID: !Ref OntapSecretId
+          MANAGEMENT_LIF: !Ref ManagementLif
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {"message": "Deploy actual code from S3"}
+
+  # ============================================================
+  # Step Functions: SnapMirror Failback
+  # ============================================================
+  SnapMirrorFailbackStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: fsxn-ops-snapmirror-failback
+      StateMachineType: STANDARD
+      RoleArn: !GetAtt StepFunctionsRole.Arn
+      LoggingConfiguration:
+        Level: ALL
+        IncludeExecutionData: true
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StepFunctionsLogGroup.Arn
+      DefinitionSubstitutions:
+        SnapMirrorOpsLambdaArn: !GetAtt SnapMirrorOpsFunction.Arn
+      DefinitionString: |
+        {
+          "Comment": "SnapMirror Planned Failback — 詳細は stepfunctions/snapmirror-failback.asl.json を参照",
+          "StartAt": "DiscoverBrokenRelationships",
+          "States": {
+            "DiscoverBrokenRelationships": {
+              "Type": "Task",
+              "Resource": "${SnapMirrorOpsLambdaArn}",
+              "Parameters": {
+                "action": "discover",
+                "management_lif.$": "$.dr_management_lif",
+                "svm_name.$": "$.dr_svm"
+              },
+              "ResultPath": "$.discovery",
+              "Next": "ResyncRelationships"
+            },
+            "ResyncRelationships": {
+              "Type": "Map",
+              "ItemsPath": "$.discovery.relationships",
+              "MaxConcurrency": 5,
+              "Parameters": {
+                "relationship.$": "$$.Map.Item.Value",
+                "dr_management_lif.$": "$.dr_management_lif"
+              },
+              "Iterator": {
+                "StartAt": "ResyncRelationship",
+                "States": {
+                  "ResyncRelationship": {
+                    "Type": "Task",
+                    "Resource": "${SnapMirrorOpsLambdaArn}",
+                    "Parameters": {
+                      "action": "resync",
+                      "management_lif.$": "$.dr_management_lif",
+                      "relationship_uuid.$": "$.relationship.uuid"
+                    },
+                    "End": true
+                  }
+                }
+              },
+              "ResultPath": "$.failback_results",
+              "Next": "FailbackComplete"
+            },
+            "FailbackComplete": {
+              "Type": "Succeed"
+            }
+          }
+        }
+
+Outputs:
+  NotificationTopicArn:
+    Value: !Ref NotificationTopic
+    Description: SNS 通知トピック ARN
+
+  CapacityMonitorFunctionArn:
+    Value: !GetAtt CapacityMonitorFunction.Arn
+    Description: 容量監視 Lambda ARN
+
+  SnapMirrorOpsFunctionArn:
+    Value: !GetAtt SnapMirrorOpsFunction.Arn
+    Description: SnapMirror 操作 Lambda ARN
+
+  OntapApiExecutorFunctionArn:
+    Value: !GetAtt OntapApiExecutorFunction.Arn
+    Description: ONTAP API Executor Lambda ARN
+
+  FailoverStateMachineArn:
+    Value: !Ref SnapMirrorFailoverStateMachine
+    Description: SnapMirror フェイルオーバー Step Functions ARN
+
+  FailbackStateMachineArn:
+    Value: !Ref SnapMirrorFailbackStateMachine
+    Description: SnapMirror フェイルバック Step Functions ARN
+
+  DataPreprocessorFunctionArn:
+    Condition: HasS3AccessPoint
+    Value: !GetAtt DataPreprocessorFunction.Arn
+    Description: データ前処理 Lambda ARN
+
+  FailoverExecutionCommand:
+    Value: !Sub |
+      aws stepfunctions start-execution \
+        --state-machine-arn ${SnapMirrorFailoverStateMachine} \
+        --input '{
+          "prod_management_lif": "PROD_LIF_IP",
+          "dr_management_lif": "DR_LIF_IP",
+          "prod_svm": "prod-svm",
+          "dr_svm": "dr-svm",
+          "sns_topic_arn": "${NotificationTopic}",
+          "initiated_by": "operator@example.com"
+        }'
+    Description: フェイルオーバー実行コマンド例
