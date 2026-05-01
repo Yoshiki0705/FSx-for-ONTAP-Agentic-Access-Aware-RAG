@@ -159,3 +159,34 @@ class TestOntapClientRequests:
 
         with pytest.raises(OntapClientError, match="接続に失敗"):
             client.get("/cluster")
+
+
+class TestOntapClientTlsVerification:
+    """TLS 検証モードのテスト"""
+
+    def test_default_verify_ssl_true(self, mock_secrets_manager, mock_ontap_http):
+        """デフォルトは TLS 検証有効"""
+        client = OntapClient(
+            management_lif="10.0.1.100",
+            secret_id="fsxn/test",
+        )
+        assert client.verify_ssl is True
+
+    def test_explicit_verify_ssl_false(self, mock_secrets_manager, mock_ontap_http):
+        """明示的に TLS 検証を無効化"""
+        client = OntapClient(
+            management_lif="10.0.1.100",
+            secret_id="fsxn/test",
+            verify_ssl=False,
+        )
+        assert client.verify_ssl is False
+
+    def test_ca_cert_path(self, mock_secrets_manager, mock_ontap_http):
+        """CA バンドルパス指定"""
+        client = OntapClient(
+            management_lif="10.0.1.100",
+            secret_id="fsxn/test",
+            ca_cert_path="/path/to/ca-bundle.crt",
+        )
+        assert client.verify_ssl is True
+        assert client.ca_cert_path == "/path/to/ca-bundle.crt"

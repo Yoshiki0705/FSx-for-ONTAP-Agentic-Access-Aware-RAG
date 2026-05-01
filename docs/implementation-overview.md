@@ -1222,6 +1222,22 @@ VPC 内の Lambda から AWS API にアクセスするため、以下の VPC エ
 - **SnapMirror 初期転送**: 関係作成後に明示的に `/transfers` POST で初期転送を開始する必要がある
 - **CloudWatch メトリクス**: StorageCapacityUtilization が取得できない場合がある → ONTAP API にフォールバック
 
+### 容量監視ガードレール
+
+| パラメータ | デフォルト | 用途 |
+|-----------|-----------|------|
+| `DRY_RUN` | `true` | 安全なデフォルト — 実行せずログのみ |
+| `MAX_GROW_PER_ACTION_PCT` | 50% | 1 回あたりの最大拡張率 |
+| `MAX_GROW_PER_DAY_GIB` | 500 GiB | 1 日あたりの最大拡張量 |
+
+### TLS 検証
+
+TLS 証明書検証はデフォルトで有効 (`ONTAP_VERIFY_SSL=true`)。本番環境では `ONTAP_CA_CERT_PATH` で CA バンドルを指定。ラボ/PoC では `ONTAP_VERIFY_SSL=false` を明示的に設定。
+
+### テスト
+
+38 件のユニットテスト: TLS 検証モード、SnapMirror 二重初期化パス (10 アクション)、容量ガードレール、S3 AP 操作。
+
 ### コスト
 
 | コンポーネント | 月額 |

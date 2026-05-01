@@ -53,6 +53,14 @@ def get_config() -> dict[str, Any]:
             "AUTO_RESIZE_ENABLED", "false"
         ).lower() == "true",
         "dry_run": os.environ.get("DRY_RUN", "true").lower() == "true",
+        # ガードレール: 暴走拡張の防止
+        "max_grow_per_action_pct": float(
+            os.environ.get("MAX_GROW_PER_ACTION_PCT", "50")
+        ),
+        "max_grow_per_day_gib": float(
+            os.environ.get("MAX_GROW_PER_DAY_GIB", "500")
+        ),
+        "cooldown_minutes": int(os.environ.get("COOLDOWN_MINUTES", "30")),
     }
 
 
@@ -189,6 +197,30 @@ def check_volume_capacity(
         if vol_result["exceeded"] and config["auto_resize_enabled"]:
             grow_factor = 1 + (config["vol_grow_pct"] / 100)
             new_size_bytes = int(total_bytes * grow_factor)
+            growth_bytes = new_size_bytes - total_bytes
+            growth_gib = growth_bytes / (1024**3)
+
+            # ガードレール 1: 1 回あたりの最大拡張率
+            max_grow_pct = config["max_grow_per_action_pct"]
+            if config["vol_grow_pct"] > max_grow_pct:
+                vol_result["action_taken"] = (
+                    f"ガードレール: 拡張率 {config['vol_grow_pct']}% が "
+                    f"上限 {max_grow_pct}% を超過 — スキップ"
+                )
+                logger.warning(vol_result["action_taken"])
+                results.append(vol_result)
+                continue
+
+            # ガードレール 2: 1 日あたりの最大拡張量
+            max_grow_day_gib = config["max_grow_per_day_gib"]
+            if growth_gib > max_grow_day_gib:
+                vol_result["action_taken"] = (
+                    f"ガードレール: 拡張量 {growth_gib:.1f} GiB が "
+                    f"日次上限 {max_grow_day_gib} GiB を超過 — スキップ"
+                )
+                logger.warning(vol_result["action_taken"])
+                results.append(vol_result)
+                continue
 
             if config["dry_run"]:
                 vol_result["action_taken"] = (
@@ -233,6 +265,8 @@ def handler(event: dict, context: Any) -> dict[str, Any]:
     ontap = OntapClient(
         management_lif=config["management_lif"],
         secret_id=config["secret_id"],
+        verify_ssl=os.environ.get("ONTAP_VERIFY_SSL", "false").lower() == "true",
+        ca_cert_path=os.environ.get("ONTAP_CA_CERT_PATH"),
     )
 
     # ファイルシステム容量チェック

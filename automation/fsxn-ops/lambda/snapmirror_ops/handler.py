@@ -44,7 +44,12 @@ def get_ontap_client(event: dict) -> OntapClient:
     """イベントから ONTAP クライアントを生成"""
     management_lif = event["management_lif"]
     secret_id = event.get("secret_id", os.environ["ONTAP_SECRET_ID"])
-    return OntapClient(management_lif=management_lif, secret_id=secret_id)
+    return OntapClient(
+        management_lif=management_lif,
+        secret_id=secret_id,
+        verify_ssl=os.environ.get("ONTAP_VERIFY_SSL", "false").lower() == "true",
+        ca_cert_path=os.environ.get("ONTAP_CA_CERT_PATH"),
+    )
 
 
 # ============================================================
@@ -489,9 +494,67 @@ def validate_state(event: dict) -> dict[str, Any]:
 # ============================================================
 # ルーター (Lambda ハンドラー)
 # ============================================================
+
+def initialize_relationship(event: dict) -> dict[str, Any]:
+    """
+    SnapMirror 関係を作成し、初期転送を含めて初期化する。
+
+    ONTAP REST API では 2 つの初期化パスがある:
+    1. 関係作成 + 明示的 POST /transfers (final_transfer アクション)
+    2. 関係作成時に state="snapmirrored" を指定 (本アクション)
+
+    パス 2 は ONTAP がサポートするフローで、関係作成と初期転送を
+    1 回の API 呼び出しで実行する。ただし、検証環境 (ONTAP 9.17.1P4D3)
+    では関係作成のジョブが失敗し、別途 POST /transfers が必要だった。
+    この動作は ONTAP バージョンや構成に依存する可能性がある。
+
+    Input:
+        {
+            "action": "initialize",
+            "management_lif": "10.0.1.100",
+            "source_path": "svm1:vol_src",
+            "destination_path": "svm1:vol_dp",
+            "policy": "MirrorAllSnapshots"  # optional
+        }
+    """
+    ontap = get_ontap_client(event)
+    source_path = event["source_path"]
+    destination_path = event["destination_path"]
+    policy = event.get("policy")
+
+    logger.info("SnapMirror 初期化: %s → %s", source_path, destination_path)
+
+    body: dict[str, Any] = {
+        "source": {"path": source_path},
+        "destination": {"path": destination_path},
+        "state": "snapmirrored",
+    }
+    if policy:
+        body["policy"] = {"name": policy}
+
+    try:
+        result = ontap.post("/snapmirror/relationships", body=body)
+        sm_uuid = result.get("uuid", "")
+        return {
+            "relationship_uuid": sm_uuid,
+            "initialize_status": "initiated",
+            "source_path": source_path,
+            "destination_path": destination_path,
+        }
+    except OntapClientError as e:
+        logger.error("SnapMirror 初期化失敗: %s", e)
+        return {
+            "initialize_status": "failed",
+            "source_path": source_path,
+            "destination_path": destination_path,
+            "error": str(e),
+        }
+
+
 ACTION_MAP = {
     "discover": discover_relationships,
     "discover_shares": discover_shares,
+    "initialize": initialize_relationship,
     "final_transfer": execute_final_transfer,
     "check_transfer": check_transfer_status,
     "break": break_relationship,

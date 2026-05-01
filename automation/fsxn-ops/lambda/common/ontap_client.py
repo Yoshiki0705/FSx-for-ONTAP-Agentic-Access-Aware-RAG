@@ -40,12 +40,26 @@ class OntapClient:
     FSx for ONTAP の管理 LIF に対して REST API を実行する。
     認証情報は Secrets Manager から取得し、HTTPS で通信する。
 
+    TLS 検証:
+        デフォルトでは TLS 証明書検証が有効 (verify_ssl=True)。
+        FSx for ONTAP の管理 LIF は自己署名証明書を使用するため、
+        本番環境では ca_cert_path に CA バンドルを指定するか、
+        ラボ/PoC 環境でのみ verify_ssl=False を明示的に設定する。
+
     Usage:
+        # 本番環境 (CA バンドル指定)
         client = OntapClient(
             management_lif="10.0.1.100",
-            secret_id="fsxn/admin-credentials"
+            secret_id="fsxn/admin-credentials",
+            ca_cert_path="/path/to/ca-bundle.crt",
         )
-        volumes = client.get("/api/storage/volumes")
+
+        # ラボ/PoC 環境 (証明書検証を明示的に無効化)
+        client = OntapClient(
+            management_lif="10.0.1.100",
+            secret_id="fsxn/admin-credentials",
+            verify_ssl=False,  # ⚠️ ラボ/PoC 環境のみ
+        )
     """
 
     ONTAP_API_BASE = "/api"
@@ -55,23 +69,38 @@ class OntapClient:
         management_lif: str,
         secret_id: str,
         region: Optional[str] = None,
-        verify_ssl: bool = False,
+        verify_ssl: bool = True,
+        ca_cert_path: Optional[str] = None,
         timeout: float = 30.0,
     ):
         self.management_lif = management_lif
         self.base_url = f"https://{management_lif}"
         self.verify_ssl = verify_ssl
+        self.ca_cert_path = ca_cert_path
         self.timeout = timeout
+
+        if not verify_ssl:
+            logger.warning(
+                "TLS 証明書検証が無効です。本番環境では verify_ssl=True + "
+                "ca_cert_path を使用してください。"
+            )
 
         # Secrets Manager から認証情報を取得
         self._username, self._password = self._get_credentials(secret_id, region)
 
         # urllib3 HTTP プールマネージャ
-        self._http = urllib3.PoolManager(
-            cert_reqs="CERT_NONE" if not verify_ssl else "CERT_REQUIRED",
-            timeout=urllib3.Timeout(connect=10.0, read=timeout),
-            retries=urllib3.Retry(total=3, backoff_factor=0.5),
-        )
+        pool_kwargs: dict[str, Any] = {
+            "timeout": urllib3.Timeout(connect=10.0, read=timeout),
+            "retries": urllib3.Retry(total=3, backoff_factor=0.5),
+        }
+        if verify_ssl:
+            pool_kwargs["cert_reqs"] = "CERT_REQUIRED"
+            if ca_cert_path:
+                pool_kwargs["ca_certs"] = ca_cert_path
+        else:
+            pool_kwargs["cert_reqs"] = "CERT_NONE"
+
+        self._http = urllib3.PoolManager(**pool_kwargs)
 
     def _get_credentials(
         self, secret_id: str, region: Optional[str] = None

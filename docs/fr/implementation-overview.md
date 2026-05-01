@@ -666,6 +666,22 @@ Lambda dans un VPC nécessite ces Interface VPC Endpoints :
 | EventBridge Scheduler | ✅ RÉUSSI (auto-exécution 5 min confirmée) |
 | data_preprocessor (FSx ONTAP S3 AP) | ✅ RÉUSSI (scan, collect_metadata, generate_tasks) |
 
+### Garde-fous de surveillance de capacité
+
+| Paramètre | Défaut | Objectif |
+|-----------|--------|----------|
+| `DRY_RUN` | `true` | Défaut sûr — journalise sans exécuter |
+| `MAX_GROW_PER_ACTION_PCT` | 50% | Taux de croissance max par action |
+| `MAX_GROW_PER_DAY_GIB` | 500 Gio | Expansion quotidienne max totale |
+
+### Vérification TLS
+
+La vérification des certificats TLS est activée par défaut. Pour la production : bundle CA via `ONTAP_CA_CERT_PATH`. Pour lab/PoC : `ONTAP_VERIFY_SSL=false`.
+
+### Tests
+
+38 tests unitaires couvrant les modes de vérification TLS, les chemins d'initialisation SnapMirror doubles (10 actions), les garde-fous de capacité et les opérations S3 AP.
+
 ### Coût : ~2,60 $/mois
 
 Détails dans [automation/fsxn-ops/](../../automation/fsxn-ops/).

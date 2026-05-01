@@ -167,3 +167,42 @@ class TestCapacityMonitor:
         assert result["filesystem"]["exceeded"] is True
         assert "DRY RUN" in (result["filesystem"]["action_taken"] or "")
         mock_fsx.update_filesystem_storage_capacity.assert_not_called()
+
+
+    @patch("capacity_monitor.handler.FsxHelper")
+    @patch("capacity_monitor.handler.send_notification")
+    def test_guardrail_max_grow_per_action(self, mock_notify, mock_fsx_cls, monkeypatch):
+        """ガードレール: 拡張率が上限を超過した場合スキップ"""
+        monkeypatch.setenv("AUTO_RESIZE_ENABLED", "true")
+        monkeypatch.setenv("DRY_RUN", "false")
+        monkeypatch.setenv("VOL_GROW_PCT", "60")  # 60% > 上限 50%
+        monkeypatch.setenv("VOL_THRESHOLD_PCT", "0.001")
+
+        self.mock_http.request.return_value = self._make_response(
+            {"records": [
+                {
+                    "uuid": "vol-uuid-001",
+                    "name": "test_vol",
+                    "size": 107374182400,
+                    "type": "rw",
+                    "state": "online",
+                    "svm": {"name": "svm1"},
+                    "space": {"size": 107374182400, "used": 53687091200, "available": 53687091200},
+                }
+            ]}
+        )
+
+        mock_fsx = MagicMock()
+        mock_fsx_cls.return_value = mock_fsx
+        mock_fsx.describe_filesystem.return_value = {"StorageCapacity": 1024, "OntapConfiguration": {}}
+        mock_fsx.get_storage_capacity_metrics.return_value = {
+            "StorageCapacityUtilization": [{"Timestamp": datetime.now(timezone.utc), "Maximum": 50.0}]
+        }
+
+        from capacity_monitor.handler import handler
+
+        result = handler({"source": "test"}, None)
+
+        exceeded = result.get("exceeded_volumes", [])
+        assert len(exceeded) >= 1
+        assert "ガードレール" in (exceeded[0].get("action_taken") or "")

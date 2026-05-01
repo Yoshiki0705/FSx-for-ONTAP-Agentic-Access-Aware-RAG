@@ -263,7 +263,10 @@ def handler(event: dict, context: Any) -> dict[str, Any]:
     if management_lif and secret_id:
         try:
             ontap_client = OntapClient(
-                management_lif=management_lif, secret_id=secret_id
+                management_lif=management_lif,
+                secret_id=secret_id,
+                verify_ssl=os.environ.get("ONTAP_VERIFY_SSL", "false").lower() == "true",
+                ca_cert_path=os.environ.get("ONTAP_CA_CERT_PATH"),
             )
         except OntapClientError as e:
             logger.warning("ONTAP クライアント初期化失敗 (続行): %s", e)

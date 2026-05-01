@@ -233,3 +233,46 @@ class TestSnapMirrorOpsHandler:
         assert result["success"] is True
         assert "share1" in result["deleted_shares"]
         assert "c$" in result["skipped"]
+
+
+    def test_initialize_relationship(self):
+        """SnapMirror 関係の初期化 (state=snapmirrored パス)"""
+        self.mock_http.request.return_value = self._make_response(
+            {"uuid": "sm-uuid-new", "state": "snapmirrored"}
+        )
+
+        from snapmirror_ops.handler import handler
+
+        result = handler(
+            {
+                "action": "initialize",
+                "management_lif": "10.0.1.100",
+                "source_path": "svm1:vol_src",
+                "destination_path": "svm1:vol_dp",
+            },
+            None,
+        )
+
+        assert result["success"] is True
+        assert result["initialize_status"] == "initiated"
+
+    def test_final_transfer_already_current(self):
+        """転送不要 (409 already current)"""
+        from common.ontap_client import OntapClientError
+
+        resp_409 = self._make_response({"error": "already current"}, status=409)
+        self.mock_http.request.return_value = resp_409
+
+        from snapmirror_ops.handler import handler
+
+        result = handler(
+            {
+                "action": "final_transfer",
+                "management_lif": "10.0.1.100",
+                "relationship_uuid": "sm-uuid-001",
+            },
+            None,
+        )
+
+        assert result["success"] is True
+        assert result["transfer_status"] == "already_current"

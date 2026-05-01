@@ -900,6 +900,22 @@ VPC 내 Lambda는 다음 Interface VPC Endpoints가 필요합니다:
 | EventBridge Scheduler | ✅ 통과 (5분 자동 실행 확인) |
 | data_preprocessor (FSx ONTAP S3 AP) | ✅ 통과 (scan, collect_metadata, generate_tasks) |
 
+### 용량 모니터링 가드레일
+
+| 파라미터 | 기본값 | 목적 |
+|----------|--------|------|
+| `DRY_RUN` | `true` | 안전한 기본값 — 실행 없이 로그만 기록 |
+| `MAX_GROW_PER_ACTION_PCT` | 50% | 단일 작업당 최대 확장률 |
+| `MAX_GROW_PER_DAY_GIB` | 500 GiB | 일일 최대 총 확장량 |
+
+### TLS 검증
+
+TLS 인증서 검증이 기본적으로 활성화됩니다. 프로덕션: `ONTAP_CA_CERT_PATH`로 CA 번들 지정. 랩/PoC: `ONTAP_VERIFY_SSL=false`.
+
+### 테스트
+
+38개 단위 테스트: TLS 검증 모드, SnapMirror 이중 초기화 경로 (10개 액션), 용량 가드레일, S3 AP 작업.
+
 ### 비용: ~$2.60/월
 
 자세한 내용은 [automation/fsxn-ops/](../../automation/fsxn-ops/)를 참조하세요.
