@@ -30,6 +30,8 @@ export const useSmartRoutingStore = create<SmartRoutingState>((set) => ({
   isAutoMode: true,
   lightweightModelId: DEFAULT_SMART_ROUTER_CONFIG.lightweightModelId,
   powerfulModelId: DEFAULT_SMART_ROUTER_CONFIG.powerfulModelId,
+  heavyModelId: DEFAULT_SMART_ROUTER_CONFIG.heavyModelId!,
+  contextSizeThreshold: DEFAULT_SMART_ROUTER_CONFIG.contextSizeThreshold!,
   lastClassification: null,
 
   setEnabled: (enabled: boolean) => {
@@ -39,6 +41,9 @@ export const useSmartRoutingStore = create<SmartRoutingState>((set) => ({
   setAutoMode: (auto: boolean) => set({ isAutoMode: auto }),
   setLightweightModelId: (id: string) => set({ lightweightModelId: id }),
   setPowerfulModelId: (id: string) => set({ powerfulModelId: id }),
+  setHeavyModelId: (id: string) => set({ heavyModelId: id }),
+  setContextSizeThreshold: (threshold: number) =>
+    set({ contextSizeThreshold: threshold }),
   setLastClassification: (result: ClassificationResult | null) =>
     set({ lastClassification: result }),
 }));

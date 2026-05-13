@@ -12,7 +12,7 @@ set -euo pipefail
 #   - cdk.context.json に ontapNameMappingEnabled=true 追加済み
 ###############################################################################
 
-REGION="ap-northeast-1"
+REGION="${AWS_REGION:-ap-northeast-1}"
 STACK_PREFIX="perm-rag-demo-demo"
 PASS_COUNT=0
 FAIL_COUNT=0

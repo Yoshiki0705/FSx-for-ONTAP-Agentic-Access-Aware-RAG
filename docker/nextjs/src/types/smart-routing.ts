@@ -5,13 +5,13 @@
  * ComplexityClassifierの分類結果、SmartRouterのルーティング判断、
  * Zustandストアの状態管理インターフェースを含む。
  *
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 /** クエリ複雑度の分類結果 */
 export interface ClassificationResult {
-  /** クエリの分類: simple（単純）または complex（複雑） */
-  classification: 'simple' | 'complex';
+  /** クエリの分類: simple（単純）/ complex（複雑）/ full-context（全文脈） */
+  classification: 'simple' | 'complex' | 'full-context';
   /** 分類の信頼度スコア (0.0〜1.0) */
   confidence: number;
   /** 分類に使用された特徴量 */
@@ -20,6 +20,10 @@ export interface ClassificationResult {
     sentenceCount: number;
     hasAnalyticalKeywords: boolean;
     hasMultipleQuestions: boolean;
+    /** ドキュメント分析意図キーワードが検出されたか */
+    hasDocumentAnalysisIntent: boolean;
+    /** コンテキストの文字数 */
+    contextCharCount: number;
   };
 }
 
@@ -41,6 +45,10 @@ export interface SmartRouterConfig {
   lightweightModelId: string;
   /** 高性能モデルID（complex分類時に使用） */
   powerfulModelId: string;
+  /** 重量モデルID（full-context分類時に使用） */
+  heavyModelId?: string;
+  /** full-context分類のコンテキスト文字数閾値 */
+  contextSizeThreshold?: number;
 }
 
 /** Smart Routing Zustandストアの状態・アクション */
@@ -53,6 +61,10 @@ export interface SmartRoutingState {
   lightweightModelId: string;
   /** 高性能モデルID */
   powerfulModelId: string;
+  /** 重量モデルID */
+  heavyModelId: string;
+  /** コンテキスト文字数閾値 */
+  contextSizeThreshold: number;
   /** 最後の分類結果 */
   lastClassification: ClassificationResult | null;
   /** Smart Routingの有効/無効を設定 */
@@ -63,6 +75,10 @@ export interface SmartRoutingState {
   setLightweightModelId: (id: string) => void;
   /** 高性能モデルIDを設定 */
   setPowerfulModelId: (id: string) => void;
+  /** 重量モデルIDを設定 */
+  setHeavyModelId: (id: string) => void;
+  /** コンテキスト文字数閾値を設定 */
+  setContextSizeThreshold: (threshold: number) => void;
   /** 最後の分類結果を設定 */
   setLastClassification: (result: ClassificationResult | null) => void;
 }

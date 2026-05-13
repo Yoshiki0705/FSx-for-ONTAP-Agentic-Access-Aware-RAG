@@ -193,7 +193,22 @@
       "noResults": "没有可访问的搜索结果",
       "fallbackToText": "已切换至文本输入",
       "shortcut": "快捷键: {shortcut}",
-      "silenceTimeout": "检测到静音，录音已停止"
+      "silenceTimeout": "检测到静音，录音已停止",
+      "webrtc": {
+        "connecting": "正在建立实时连接...",
+        "connected": "已连接实时模式",
+        "disconnected": "连接已断开",
+        "fallbackNotice": "无法连接实时模式。将以标准模式继续",
+        "fallbackReason": "连接超时",
+        "qualityWarning": "连接质量正在下降",
+        "modeSwitch": "模式切换: {mode}",
+        "modeWebrtc": "实时",
+        "modeRest": "标准",
+        "reconnecting": "正在重新连接...",
+        "manualReconnect": "重新连接到实时模式",
+        "silenceTimeout": "检测到静音，传输已暂停",
+        "turnRelay": "正在通过中继服务器连接"
+      }
     },
     "introduction": {
       "welcome": "你好，{username}！",

@@ -150,7 +150,22 @@
       "noResults": "Aucun résultat de recherche accessible",
       "fallbackToText": "Basculé vers la saisie textuelle",
       "shortcut": "Raccourci : {shortcut}",
-      "silenceTimeout": "Enregistrement arrêté en raison du silence détecté"
+      "silenceTimeout": "Enregistrement arrêté en raison du silence détecté",
+      "webrtc": {
+        "connecting": "Établissement de la connexion en temps réel...",
+        "connected": "Connecté en mode temps réel",
+        "disconnected": "Connexion perdue",
+        "fallbackNotice": "Impossible de se connecter en mode temps réel. Poursuite en mode standard",
+        "fallbackReason": "Délai de connexion dépassé",
+        "qualityWarning": "La qualité de connexion se dégrade",
+        "modeSwitch": "Changement de mode : {mode}",
+        "modeWebrtc": "Temps réel",
+        "modeRest": "Standard",
+        "reconnecting": "Reconnexion en cours...",
+        "manualReconnect": "Reconnecter en mode temps réel",
+        "silenceTimeout": "Transmission suspendue en raison du silence détecté",
+        "turnRelay": "Connexion via le serveur relais"
+      }
     },
     "introduction": {
       "welcome": "Bonjour, {username} !",

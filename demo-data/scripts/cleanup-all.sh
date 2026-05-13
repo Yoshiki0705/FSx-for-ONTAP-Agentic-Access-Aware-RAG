@@ -160,8 +160,9 @@ echo ""
 echo "🧹 Step 2/12: 手動作成リソースの削除..."
 
 # ECRリポジトリ
-run_or_dry "ECR: permission-aware-rag-webapp" \
-  "aws ecr delete-repository --repository-name permission-aware-rag-webapp --force --region $REGION 2>/dev/null"
+ECR_REPO="${ECR_REPOSITORY_NAME:-permission-aware-rag-webapp}"
+run_or_dry "ECR: ${ECR_REPO}" \
+  "aws ecr delete-repository --repository-name ${ECR_REPO} --force --region $REGION 2>/dev/null"
 
 # CodeBuildプロジェクト + IAMロール
 run_or_dry "CodeBuild: webapp-docker-build" \

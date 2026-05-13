@@ -248,6 +248,49 @@
   // "agentLanguage": "auto"
 
   // ========================================================================
+  // KB Auto-Sync（オプション）
+  // FSx ONTAP S3 Access Point のファイル変更を定期ポーリングで検出し、
+  // Bedrock KB StartIngestionJob を自動トリガーする。
+  // Transfer Family の ingestion_trigger とは独立して動作する。
+  // ========================================================================
+  // "enableKbAutoSync": KB Auto-Sync 有効化フラグ（デフォルト: false）
+  // "s3AccessPointArn": FSx ONTAP S3 Access Point ARN（enableKbAutoSync=true 時に必須）
+  // "kbDataSourceId": Bedrock KB Data Source ID（enableKbAutoSync=true 時に必須）
+  // "kbAutoSyncIntervalMinutes": ポーリング間隔（分）。1〜1440。デフォルト: 5
+  // ⚠️ S3 AP と KB Data Source は事前に手動作成が必要（post-deploy-setup.sh 参照）
+  // ⚠️ KB Data Source の bucketArn には S3 AP alias を使用: arn:aws:s3:::{alias}
+  "enableKbAutoSync": false,
+  // "s3AccessPointArn": "",
+  // "kbDataSourceId": "",
+  // "kbAutoSyncIntervalMinutes": 5,
+
+  // ========================================================================
+  // Transfer Family FSx ONTAP Ingestion（オプション）
+  // AWS Transfer Family SFTP サーバーを FSx ONTAP S3 Access Point に接続し、
+  // ドキュメントアップロードから Bedrock KB 自動インジェスションを実行する。
+  // ========================================================================
+  // "enableTransferFamily": Transfer Family 統合有効化フラグ（デフォルト: false）
+  // "transferFamilyEndpointType": エンドポイントタイプ（"PUBLIC" | "VPC"、デフォルト: "PUBLIC"）
+  // "transferFamilyProtocols": 有効プロトコル（["SFTP"] | ["SFTP", "FTPS"]、デフォルト: ["SFTP"]）
+  // "transferFamilyAllowedCidrs": IP許可リスト（VPCエンドポイント時はSG、PUBLIC時は制限なし）
+  // "transferFamilyPollingIntervalMinutes": ポーリング間隔（分、デフォルト: 5）
+  // "transferFamilyTriggerMode": トリガーモード（"polling" | "cloudtrail"、デフォルト: "polling"）
+  // "transferFamilyDefaultPermissions": デフォルト権限セット
+  // "transferFamilyUsers": SFTPユーザー構成配列
+  //
+  // 使用例:
+  // "enableTransferFamily": true,
+  // "transferFamilyEndpointType": "PUBLIC",
+  // "transferFamilyTriggerMode": "polling",
+  // "transferFamilyPollingIntervalMinutes": 5,
+  // "transferFamilyDefaultPermissions": { "allowed_sids": [], "allowed_uids": ["1000"], "allowed_gids": ["1000"] },
+  // "transferFamilyUsers": [
+  //   { "userName": "partner-a", "sshPublicKey": "ssh-rsa AAAA..." },
+  //   { "userName": "partner-b", "sshPublicKey": "ssh-rsa BBBB...", "homeDirectoryPrefix": "/uploads/partner-b/" }
+  // ],
+  "enableTransferFamily": false,
+
+  // ========================================================================
   // Phase 2 拡張機能（オプション）
   // ========================================================================
 

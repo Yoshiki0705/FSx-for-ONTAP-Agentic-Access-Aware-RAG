@@ -13,7 +13,7 @@ set -euo pipefail
 #   - CDKスタック（Networking/Storage/Security）デプロイ済み
 ###############################################################################
 
-REGION="ap-northeast-1"
+REGION="${AWS_REGION:-ap-northeast-1}"
 STACK_PREFIX="perm-rag-demo-demo"
 
 # ========================================

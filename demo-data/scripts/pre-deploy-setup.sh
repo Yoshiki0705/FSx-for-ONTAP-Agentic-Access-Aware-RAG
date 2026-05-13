@@ -16,7 +16,7 @@ set -euo pipefail
 
 REGION="${AWS_REGION:-ap-northeast-1}"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-ECR_REPO="permission-aware-rag-webapp"
+ECR_REPO="${ECR_REPOSITORY_NAME:-permission-aware-rag-webapp}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
@@ -92,26 +92,58 @@ if command -v docker &> /dev/null && docker info &> /dev/null; then
     fi
 
     echo "  🐳 Building Docker image (prebuilt mode, x86_64 target)..."
-    docker build --no-cache \
+    # ⚠️ docker buildx build + --provenance=false --sbom=false を使用すること。
+    #    通常の docker build は OCI Image Index 形式を生成し、Lambda が拒否する。
+    #    --provenance=false --sbom=false で Docker V2 manifest 形式を保証する。
+    docker buildx build --no-cache \
+      --provenance=false --sbom=false \
+      --platform linux/amd64 \
       -t ${ECR_URI}:${IMAGE_TAG} \
+      -t ${ECR_URI}:latest \
       -f ${PROJECT_ROOT}/docker/nextjs/Dockerfile.prebuilt \
+      --push \
       ${PROJECT_ROOT}/docker/nextjs/
   else
     echo "  🖥️ x86_64 detected — using full Docker build"
-    docker build --no-cache \
+    # ⚠️ docker buildx build + --provenance=false --sbom=false を使用すること。
+    #    CodeBuild Standard 7.0 や BuildKit 有効環境では OCI Image Index 形式が
+    #    生成され、Lambda が "media type not supported" で拒否する。
+    #    --provenance=false --sbom=false で Docker V2 manifest 形式を保証する。
+    docker buildx build --no-cache \
+      --provenance=false --sbom=false \
+      --platform linux/amd64 \
       --build-arg NEXT_PUBLIC_VOICE_CHAT_ENABLED=true \
       --build-arg NEXT_PUBLIC_GUARDRAILS_ENABLED=true \
       --build-arg NEXT_PUBLIC_ENABLE_AGENT_REGISTRY=true \
       --build-arg NEXT_PUBLIC_AGENT_POLICY_ENABLED=true \
       --build-arg NEXT_PUBLIC_EPISODIC_MEMORY_ENABLED=true \
       -t ${ECR_URI}:${IMAGE_TAG} \
+      -t ${ECR_URI}:latest \
       -f ${PROJECT_ROOT}/docker/nextjs/Dockerfile \
+      --push \
       ${PROJECT_ROOT}/docker/nextjs/
   fi
 
-  docker tag ${ECR_URI}:${IMAGE_TAG} ${ECR_URI}:latest
-  docker push ${ECR_URI}:${IMAGE_TAG}
-  docker push ${ECR_URI}:latest
+  # マニフェスト形式の検証
+  # Lambda は Docker V2 manifest (application/vnd.docker.distribution.manifest.v2+json) のみ対応。
+  # OCI Image Index (application/vnd.oci.image.index.v1+json) は拒否される。
+  echo "  🔍 Verifying manifest format..."
+  MANIFEST_TYPE=$(aws ecr batch-get-image \
+    --repository-name ${ECR_REPO} \
+    --image-ids imageTag=${IMAGE_TAG} \
+    --region ${REGION} \
+    --query 'images[0].imageManifestMediaType' \
+    --output text 2>/dev/null || echo "UNKNOWN")
+  if [ "$MANIFEST_TYPE" = "application/vnd.docker.distribution.manifest.v2+json" ]; then
+    echo "  ✅ Manifest format verified: Docker V2 (Lambda compatible)"
+  elif [ "$MANIFEST_TYPE" = "application/vnd.oci.image.index.v1+json" ]; then
+    echo "  ❌ ERROR: OCI Image Index detected — Lambda will reject this image!"
+    echo "     Ensure docker buildx build --provenance=false --sbom=false is used."
+    exit 1
+  else
+    echo "  ⚠️ Could not verify manifest format (type: ${MANIFEST_TYPE}). Proceeding..."
+  fi
+
   echo "  ✅ Image pushed: ${IMAGE_TAG}"
 else
   echo "  Docker not available, using CodeBuild..."
@@ -160,12 +192,15 @@ phases:
       - ECR_URI=${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_REPO}
   build:
     commands:
-      - docker build --no-cache --build-arg NEXT_PUBLIC_VOICE_CHAT_ENABLED=true --build-arg NEXT_PUBLIC_GUARDRAILS_ENABLED=true --build-arg NEXT_PUBLIC_ENABLE_AGENT_REGISTRY=true --build-arg NEXT_PUBLIC_AGENT_POLICY_ENABLED=true --build-arg NEXT_PUBLIC_EPISODIC_MEMORY_ENABLED=true -t \${ECR_URI}:${IMAGE_TAG} -f Dockerfile .
-      - docker tag \${ECR_URI}:${IMAGE_TAG} \${ECR_URI}:latest
+      - docker buildx create --use --name lambda-builder || docker buildx use lambda-builder
+      - docker buildx build --no-cache --provenance=false --sbom=false --platform linux/amd64 --build-arg NEXT_PUBLIC_VOICE_CHAT_ENABLED=true --build-arg NEXT_PUBLIC_GUARDRAILS_ENABLED=true --build-arg NEXT_PUBLIC_ENABLE_AGENT_REGISTRY=true --build-arg NEXT_PUBLIC_AGENT_POLICY_ENABLED=true --build-arg NEXT_PUBLIC_EPISODIC_MEMORY_ENABLED=true -t \${ECR_URI}:${IMAGE_TAG} -t \${ECR_URI}:latest -f Dockerfile --push .
   post_build:
     commands:
-      - docker push \${ECR_URI}:${IMAGE_TAG}
-      - docker push \${ECR_URI}:latest" \
+      - echo 'Verifying manifest format...'
+      - MANIFEST_TYPE=\$(aws ecr batch-get-image --repository-name ${ECR_REPO} --image-ids imageTag=${IMAGE_TAG} --region ${REGION} --query 'images[0].imageManifestMediaType' --output text)
+      - echo \"Manifest type: \${MANIFEST_TYPE}\"
+      - if [ \"\${MANIFEST_TYPE}\" != 'application/vnd.docker.distribution.manifest.v2+json' ]; then echo 'ERROR: Expected Docker V2 manifest for Lambda compatibility'; exit 1; fi
+      - echo 'Manifest verified: Docker V2 (Lambda compatible)'" \
     --region $REGION --query 'build.id' --output text)
 
   echo "  ⏳ CodeBuild running: $BUILD_ID"

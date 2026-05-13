@@ -49,6 +49,7 @@ import { DemoStorageStack } from '../lib/stacks/demo/demo-storage-stack';
 import { DemoAIStack } from '../lib/stacks/demo/demo-ai-stack';
 import { DemoWebAppStack } from '../lib/stacks/demo/demo-webapp-stack';
 import { DemoEmbeddingStack } from '../lib/stacks/demo/demo-embedding-stack';
+import { DemoTransferFamilyStack } from '../lib/stacks/demo/demo-transfer-family-stack';
 
 const app = new cdk.App();
 
@@ -147,6 +148,7 @@ const multimodalKbMode: string | undefined = app.node.tryGetContext('multimodalK
 
 // 音声チャット（オプション）
 const enableVoiceChat = ctxBool('enableVoiceChat');
+const voiceChatMode = (app.node.tryGetContext('voiceChatMode') || 'rest') as 'rest' | 'webrtc';
 
 // AgentCore Policy（オプション）
 const enableAgentPolicy = ctxBool('enableAgentPolicy');
@@ -296,6 +298,7 @@ const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   embeddingModel,
   multimodalKbMode,
   enableVoiceChat,
+  voiceChatMode,
   env: primaryEnv,
   description: `[${projectName}] Bedrock KB, ${vectorStoreType === 'opensearch-serverless' ? 'OpenSearch Serverless' : 'S3 Vectors'}${enableAgent ? ', Bedrock Agent' : ''}${enableMultiAgent ? ', Multi-Agent Collaboration' : ''}${enableAgentSharing ? ', Agent Sharing' : ''}${enableAgentSchedules ? ', Agent Schedules' : ''}`,
 });
@@ -362,6 +365,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   guardrailVersion: enableGuardrails ? aiStack.guardrailVersion : undefined,
   // 音声チャット設定（オプション）
   enableVoiceChat,
+  voiceChatMode,
   // AgentCore Policy設定（オプション）
   enableAgentPolicy,
   policyFailureMode: enableAgentPolicy ? policyFailureMode : undefined,
@@ -396,6 +400,56 @@ if (enableEmbedding) {
   });
   embeddingStack.addDependency(storageStack);
   embeddingStack.addDependency(aiStack);
+}
+
+// Stack 8 (Optional): TransferFamilyStack
+const enableTransferFamily = ctxBool('enableTransferFamily');
+if (enableTransferFamily) {
+  const s3AccessPointArn = app.node.tryGetContext('s3AccessPointArn') as string;
+  const s3AccessPointAlias = app.node.tryGetContext('transferFamilyS3ApAlias') as string;
+  const kbDataSourceId = app.node.tryGetContext('kbDataSourceId') as string;
+  const transferFamilyUsers = app.node.tryGetContext('transferFamilyUsers') as Array<{
+    userName: string;
+    sshPublicKey: string;
+    homeDirectoryPrefix?: string;
+    permissions?: { allowed_sids?: string[]; allowed_uids?: string[]; allowed_gids?: string[] };
+  }> | undefined;
+
+  if (!s3AccessPointArn) {
+    throw new Error('s3AccessPointArn is required when enableTransferFamily=true.');
+  }
+  if (!s3AccessPointAlias) {
+    throw new Error('transferFamilyS3ApAlias is required when enableTransferFamily=true. Get it from: aws fsx describe-s3-access-point-attachments');
+  }
+  if (!kbDataSourceId) {
+    throw new Error('kbDataSourceId is required when enableTransferFamily=true.');
+  }
+
+  const transferFamilyStack = new DemoTransferFamilyStack(app, `${stackPrefix}-TransferFamily`, {
+    projectName, environment,
+    s3AccessPointArn,
+    s3AccessPointAlias,
+    fileSystemId: existingFileSystemId || '',
+    svmId: existingSvmId || '',
+    volumeId: existingVolumeId || '',
+    knowledgeBaseId: aiStack.knowledgeBaseId,
+    dataSourceId: kbDataSourceId,
+    enableMonitoring,
+    snsTopicArn: undefined, // SNS topic created within monitoring construct if enableMonitoring=true
+    transferFamilyUsers,
+    transferFamilyEndpointType: (app.node.tryGetContext('transferFamilyEndpointType') || 'PUBLIC') as 'PUBLIC' | 'VPC',
+    transferFamilyProtocols: app.node.tryGetContext('transferFamilyProtocols') as ('SFTP' | 'FTPS')[] | undefined,
+    transferFamilyAllowedCidrs: app.node.tryGetContext('transferFamilyAllowedCidrs') as string[] | undefined,
+    transferFamilyPollingIntervalMinutes: parseInt(app.node.tryGetContext('transferFamilyPollingIntervalMinutes'), 10) || 5,
+    transferFamilyTriggerMode: (app.node.tryGetContext('transferFamilyTriggerMode') || 'polling') as 'polling' | 'cloudtrail',
+    transferFamilyDefaultPermissions: app.node.tryGetContext('transferFamilyDefaultPermissions') as { allowed_sids?: string[]; allowed_uids?: string[]; allowed_gids?: string[] } | undefined,
+    vpc: networkingStack.vpc,
+    privateSubnets: networkingStack.privateSubnets,
+    env: primaryEnv,
+    description: `[${projectName}] Transfer Family SFTP + Ingestion Pipeline`,
+  });
+  transferFamilyStack.addDependency(storageStack);
+  transferFamilyStack.addDependency(aiStack);
 }
 
 // App-level tags (applied to all stacks and resources)

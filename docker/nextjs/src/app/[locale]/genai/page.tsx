@@ -28,6 +28,8 @@ import { CardGrid } from '../../../components/cards/CardGrid';
 import { CollapsiblePanel } from '../../../components/ui/CollapsiblePanel';
 import { resolveAgentForCard, findAgentByCategory } from '../../../services/cardAgentBindingService';
 import { useCardAgentMappingStore } from '../../../store/useCardAgentMappingStore';
+import { VoiceButton } from '../../../components/chat/VoiceButton';
+import { useVoiceSession } from '../../../hooks/useVoiceSession';
 import type { CardData } from '../../../constants/card-constants';
 import { getCardsByMode, AGENT_CATEGORY_MAP } from '../../../constants/card-constants';
 import { ImageUploadZone } from '@/components/chat/ImageUploadZone';
@@ -504,6 +506,9 @@ function ChatbotPageContent() {
   const [user, setUser] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
   const [messageCitations, setMessageCitations] = useState<Record<string, CitationItem[]>>({});
+  
+  // Voice Chat (Phase 1/2)
+  const { isRecording, startRecording, stopRecording } = useVoiceSession();
   
   // Image upload state (Task 11.1)
   const [attachedImage, setAttachedImage] = useState<ImageAttachment | null>(null);
@@ -1546,12 +1551,16 @@ function ChatbotPageContent() {
     }
 
     // Smart Routing (Task 11.2)
+    // contextSize: 会話コンテキスト長を使用（RAG検索はルーティング後に実行されるため、
+    // 直近の会話コンテキストの長さを代替指標として渡す）
+    const contextSize = conversationContext ? conversationContext.length : 0;
     const routingDecision = routeQuery(
       currentInput,
       smartRoutingEnabled,
       isAutoMode,
       selectedModelId,
-      DEFAULT_SMART_ROUTER_CONFIG
+      DEFAULT_SMART_ROUTER_CONFIG,
+      contextSize
     );
     if (routingDecision.classification) {
       setLastClassification(routingDecision.classification);
@@ -2451,6 +2460,12 @@ function ChatbotPageContent() {
                 placeholder={translations.inputPlaceholder}
                 className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                 disabled={isLoading}
+              />
+              <VoiceButton
+                disabled={isLoading}
+                isRecording={isRecording}
+                onRecordingStart={startRecording}
+                onRecordingStop={stopRecording}
               />
               <button
                 type="submit"

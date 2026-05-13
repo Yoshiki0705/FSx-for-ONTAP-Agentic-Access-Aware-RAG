@@ -37,9 +37,23 @@ export function useVoiceCapability(): UseVoiceCapabilityReturn {
     if (typeof navigator !== 'undefined' && navigator.permissions) {
       navigator.permissions.query({ name: 'microphone' as PermissionName })
         .then(status => {
-          setIsMicrophonePermitted(status.state === 'granted');
+          // 'granted' → true, 'denied' → false, 'prompt' → null (未確認)
+          if (status.state === 'granted') {
+            setIsMicrophonePermitted(true);
+          } else if (status.state === 'denied') {
+            setIsMicrophonePermitted(false);
+          } else {
+            // 'prompt' — ユーザーにまだ聞いていない状態。表示はする。
+            setIsMicrophonePermitted(null);
+          }
           status.onchange = () => {
-            setIsMicrophonePermitted(status.state === 'granted');
+            if (status.state === 'granted') {
+              setIsMicrophonePermitted(true);
+            } else if (status.state === 'denied') {
+              setIsMicrophonePermitted(false);
+            } else {
+              setIsMicrophonePermitted(null);
+            }
           };
         })
         .catch(() => {

@@ -136,10 +136,18 @@ class TestCapacityMonitor:
 
     @patch("capacity_monitor.handler.FsxHelper")
     @patch("capacity_monitor.handler.send_notification")
-    def test_dry_run_no_actual_resize(self, mock_notify, mock_fsx_cls, monkeypatch):
+    @patch("capacity_monitor.handler.evaluate_expansion")
+    def test_dry_run_no_actual_resize(self, mock_evaluate, mock_notify, mock_fsx_cls, monkeypatch):
         """ドライラン — 実際のリサイズは行わない"""
         monkeypatch.setenv("AUTO_RESIZE_ENABLED", "true")
         monkeypatch.setenv("DRY_RUN", "true")
+
+        from common.guardrails import Decision, GuardrailResult
+
+        mock_evaluate.return_value = GuardrailResult(
+            decision=Decision.DRY_RUN,
+            reason="All checks passed (dry-run mode)",
+        )
 
         self.mock_http.request.return_value = self._make_response(
             {"records": []}
@@ -201,8 +209,202 @@ class TestCapacityMonitor:
 
         from capacity_monitor.handler import handler
 
+        with patch("common.guardrails.boto3") as mock_boto3:
+            mock_ddb = MagicMock()
+            mock_ddb.get_item.return_value = {}
+            mock_cw = MagicMock()
+            mock_cw.put_metric_data.return_value = {}
+            mock_boto3.client.side_effect = lambda svc, **kw: mock_ddb if svc == "dynamodb" else mock_cw
+
+            result = handler({"source": "test"}, None)
+
+        exceeded = result.get("exceeded_volumes", [])
+        assert len(exceeded) >= 1
+        assert "ガードレール" in (exceeded[0].get("action_taken") or "")
+
+
+
+class TestCapacityMonitorGuardrailIntegration:
+    """ガードレール統合テスト — capacity_monitor が guardrails モジュールを正しく使用するか"""
+
+    @pytest.fixture(autouse=True)
+    def mock_deps(self, mock_secrets_manager, mock_ontap_http):
+        """依存のモック"""
+        self.mock_http = mock_ontap_http
+
+    def _make_response(self, data, status=200):
+        resp = MagicMock()
+        resp.status = status
+        resp.data = json.dumps(data).encode()
+        return resp
+
+    @patch("capacity_monitor.handler.FsxHelper")
+    @patch("capacity_monitor.handler.send_notification")
+    @patch("capacity_monitor.handler.evaluate_expansion")
+    @patch("capacity_monitor.handler.record_expansion")
+    def test_blocked_decision_skips_expansion(
+        self, mock_record, mock_evaluate, mock_notify, mock_fsx_cls, monkeypatch
+    ):
+        """Blocked 判定時は拡張をスキップし理由をログ"""
+        monkeypatch.setenv("AUTO_RESIZE_ENABLED", "true")
+        monkeypatch.setenv("DRY_RUN", "false")
+        monkeypatch.setenv("VOL_THRESHOLD_PCT", "0.001")
+
+        from common.guardrails import Decision, GuardrailResult
+
+        mock_evaluate.return_value = GuardrailResult(
+            decision=Decision.BLOCKED,
+            reason="Daily cap exceeded: test reason",
+        )
+
+        self.mock_http.request.return_value = self._make_response(
+            {"records": [
+                {
+                    "uuid": "vol-uuid-001",
+                    "name": "test_vol",
+                    "size": 107374182400,
+                    "type": "rw",
+                    "state": "online",
+                    "svm": {"name": "svm1"},
+                    "space": {"size": 107374182400, "used": 96636764160, "available": 10737418240},
+                }
+            ]}
+        )
+
+        mock_fsx = MagicMock()
+        mock_fsx_cls.return_value = mock_fsx
+        mock_fsx.describe_filesystem.return_value = {"StorageCapacity": 1024, "OntapConfiguration": {}}
+        mock_fsx.get_storage_capacity_metrics.return_value = {
+            "StorageCapacityUtilization": [{"Timestamp": datetime.now(timezone.utc), "Maximum": 50.0}]
+        }
+
+        from capacity_monitor.handler import handler
+
         result = handler({"source": "test"}, None)
 
         exceeded = result.get("exceeded_volumes", [])
         assert len(exceeded) >= 1
         assert "ガードレール" in (exceeded[0].get("action_taken") or "")
+        assert "ブロック" in (exceeded[0].get("action_taken") or "")
+        # record_expansion should NOT be called when blocked
+        mock_record.assert_not_called()
+
+    @patch("capacity_monitor.handler.FsxHelper")
+    @patch("capacity_monitor.handler.send_notification")
+    @patch("capacity_monitor.handler.evaluate_expansion")
+    @patch("capacity_monitor.handler.record_expansion")
+    def test_allowed_decision_executes_and_records(
+        self, mock_record, mock_evaluate, mock_notify, mock_fsx_cls, monkeypatch
+    ):
+        """Allowed 判定時は拡張を実行し record_expansion を呼ぶ"""
+        monkeypatch.setenv("AUTO_RESIZE_ENABLED", "true")
+        monkeypatch.setenv("DRY_RUN", "false")
+        monkeypatch.setenv("VOL_THRESHOLD_PCT", "0.001")
+
+        from common.guardrails import Decision, GuardrailResult
+
+        mock_evaluate.return_value = GuardrailResult(
+            decision=Decision.ALLOWED,
+            reason="All guardrail checks passed",
+        )
+
+        self.mock_http.request.return_value = self._make_response(
+            {"records": [
+                {
+                    "uuid": "vol-uuid-001",
+                    "name": "test_vol",
+                    "size": 107374182400,
+                    "type": "rw",
+                    "state": "online",
+                    "svm": {"name": "svm1"},
+                    "space": {"size": 107374182400, "used": 96636764160, "available": 10737418240},
+                }
+            ]}
+        )
+
+        # Mock the ONTAP resize call
+        resize_response = MagicMock()
+        resize_response.status = 200
+        resize_response.data = json.dumps({"uuid": "vol-uuid-001"}).encode()
+        # First call is list_volumes, second is resize
+        self.mock_http.request.side_effect = [
+            self._make_response({"records": [
+                {
+                    "uuid": "vol-uuid-001",
+                    "name": "test_vol",
+                    "size": 107374182400,
+                    "type": "rw",
+                    "state": "online",
+                    "svm": {"name": "svm1"},
+                    "space": {"size": 107374182400, "used": 96636764160, "available": 10737418240},
+                }
+            ]}),
+            self._make_response({"uuid": "vol-uuid-001"}),
+        ]
+
+        mock_fsx = MagicMock()
+        mock_fsx_cls.return_value = mock_fsx
+        mock_fsx.describe_filesystem.return_value = {"StorageCapacity": 1024, "OntapConfiguration": {}}
+        mock_fsx.get_storage_capacity_metrics.return_value = {
+            "StorageCapacityUtilization": [{"Timestamp": datetime.now(timezone.utc), "Maximum": 50.0}]
+        }
+
+        from capacity_monitor.handler import handler
+
+        result = handler({"source": "test"}, None)
+
+        exceeded = result.get("exceeded_volumes", [])
+        assert len(exceeded) >= 1
+        assert "拡張実行" in (exceeded[0].get("action_taken") or "")
+        # record_expansion should be called
+        mock_record.assert_called_once()
+
+    @patch("capacity_monitor.handler.FsxHelper")
+    @patch("capacity_monitor.handler.send_notification")
+    @patch("capacity_monitor.handler.evaluate_expansion")
+    @patch("capacity_monitor.handler.record_expansion")
+    def test_dryrun_decision_skips_expansion(
+        self, mock_record, mock_evaluate, mock_notify, mock_fsx_cls, monkeypatch
+    ):
+        """DryRun 判定時は拡張をスキップ"""
+        monkeypatch.setenv("AUTO_RESIZE_ENABLED", "true")
+        monkeypatch.setenv("DRY_RUN", "true")
+        monkeypatch.setenv("VOL_THRESHOLD_PCT", "0.001")
+
+        from common.guardrails import Decision, GuardrailResult
+
+        mock_evaluate.return_value = GuardrailResult(
+            decision=Decision.DRY_RUN,
+            reason="All checks passed (dry-run mode)",
+        )
+
+        self.mock_http.request.return_value = self._make_response(
+            {"records": [
+                {
+                    "uuid": "vol-uuid-001",
+                    "name": "test_vol",
+                    "size": 107374182400,
+                    "type": "rw",
+                    "state": "online",
+                    "svm": {"name": "svm1"},
+                    "space": {"size": 107374182400, "used": 96636764160, "available": 10737418240},
+                }
+            ]}
+        )
+
+        mock_fsx = MagicMock()
+        mock_fsx_cls.return_value = mock_fsx
+        mock_fsx.describe_filesystem.return_value = {"StorageCapacity": 1024, "OntapConfiguration": {}}
+        mock_fsx.get_storage_capacity_metrics.return_value = {
+            "StorageCapacityUtilization": [{"Timestamp": datetime.now(timezone.utc), "Maximum": 50.0}]
+        }
+
+        from capacity_monitor.handler import handler
+
+        result = handler({"source": "test"}, None)
+
+        exceeded = result.get("exceeded_volumes", [])
+        assert len(exceeded) >= 1
+        assert "DRY RUN" in (exceeded[0].get("action_taken") or "")
+        # record_expansion should NOT be called in dry-run
+        mock_record.assert_not_called()

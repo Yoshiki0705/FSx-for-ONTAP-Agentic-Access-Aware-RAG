@@ -1,5 +1,6 @@
 import { BedrockModel } from '../../config/bedrock-models';
 import { FALLBACK_MODEL_ID } from '@/config/model-defaults';
+import { GPT_5_5_MODEL_ID } from '@/lib/smart-router';
 
 /**
  * モデル検索・フィルタリング用ユーティリティ関数
@@ -50,17 +51,29 @@ export const FALLBACK_MODEL: ProcessedModel = {
   description: 'Amazonの高性能な汎用AIモデル'
 };
 
+// GPT-5.5 静的モデルエントリ（手動選択専用）
+export const GPT_5_5_MODEL: ProcessedModel = {
+  id: GPT_5_5_MODEL_ID,
+  name: 'GPT-5.5',
+  provider: 'OpenAI',
+  category: 'General',
+  available: true,
+  reason: undefined,
+  description: 'OpenAI GPT-5.5 — 手動選択専用モデル（利用時にアクセス検証を実施）'
+};
+
 /**
  * Bedrockリージョン情報からモデル一覧を処理
  * Unknownプロバイダーのモデルは除外する
+ * GPT-5.5は手動選択専用モデルとして常に含める
  */
 export function processModelsFromRegionInfo(regionInfo: BedrockRegionInfo | null): ProcessedModel[] {
   if (!regionInfo) {
-    return [FALLBACK_MODEL];
+    return [FALLBACK_MODEL, GPT_5_5_MODEL];
   }
 
   // 全モデルを表示（プロバイダー名がUnknownでも除外しない）
-  return [
+  const models: ProcessedModel[] = [
     ...regionInfo.availableModels
       .map(model => ({
         id: model.id,
@@ -82,6 +95,14 @@ export function processModelsFromRegionInfo(regionInfo: BedrockRegionInfo | null
         description: `${model.provider}の${model.modelName}モデル`
       }))
   ];
+
+  // GPT-5.5がAPIレスポンスに含まれていない場合のみ追加
+  const hasGpt55 = models.some(m => m.id === GPT_5_5_MODEL_ID);
+  if (!hasGpt55) {
+    models.push(GPT_5_5_MODEL);
+  }
+
+  return models;
 }
 
 /**

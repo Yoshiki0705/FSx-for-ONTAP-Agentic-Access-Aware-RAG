@@ -124,3 +124,98 @@ export function splitAudioIntoChunks(buffer: Float32Array): Float32Array[] {
 export function isSilent(amplitudes: number[], threshold: number = 0.01): boolean {
   return amplitudes.every(a => Math.abs(a) <= threshold);
 }
+
+
+// ============================================================
+// Phase 2: WebRTC (AgentCore Runtime) 型定義
+// ============================================================
+
+/** 音声チャット通信モード */
+export type VoiceChatMode = 'rest' | 'webrtc';
+
+/** WebRTC 接続状態（ICE 状態のサブセット） */
+export type WebRTCConnectionState =
+  | 'new'
+  | 'checking'
+  | 'connected'
+  | 'disconnected'
+  | 'failed'
+  | 'closed';
+
+/** Phase 2 追加エラーコード */
+export type VoiceErrorCodeV2 =
+  | VoiceErrorCode
+  | 'WEBRTC_NOT_SUPPORTED'
+  | 'SIGNALING_FAILED'
+  | 'ICE_FAILED'
+  | 'TURN_FAILED'
+  | 'QUALITY_DEGRADED'
+  | 'FALLBACK_ACTIVATED';
+
+/** WebRTC 接続統計情報 */
+export interface WebRTCStats {
+  rtt: number;
+  packetLoss: number;
+  jitter: number;
+  bytesReceived: number;
+  bytesSent: number;
+  timestamp: number;
+}
+
+/** 接続品質メトリクス */
+export interface ConnectionQuality {
+  rtt: number;
+  packetLoss: number;
+  jitter: number;
+  isWarning: boolean;
+}
+
+/** フォールバック設定 */
+export const WEBRTC_FALLBACK_CONFIG = {
+  connectionTimeoutMs: 15_000,
+  maxConsecutiveFallbacks: 3,
+  qualityWarningThresholds: {
+    packetLossRate: 0.05,
+    rttMs: 500,
+  },
+  statsPollingIntervalMs: 5_000,
+  silenceTimeoutMs: 30_000,
+} as const;
+
+/** KVS Signaling Client 設定 */
+export interface KVSSignalingConfig {
+  channelArn: string;
+  region: string;
+  role: 'MASTER' | 'VIEWER';
+  credentials: {
+    accessKeyId: string;
+    secretAccessKey: string;
+    sessionToken: string;
+  };
+}
+
+/** シグナリング設定レスポンス */
+export interface SignalingConfigResponse {
+  channelArn: string;
+  region: string;
+  iceServers: RTCIceServer[];
+  agentEndpoint: string;
+  mode: VoiceChatMode;
+}
+
+/** シグナリング資格情報レスポンス */
+export interface SignalingCredentialsResponse {
+  wssEndpoint: string;
+  turnServers: RTCIceServer[];
+  ttl: number;
+}
+
+/**
+ * 接続品質が警告閾値を超えているか判定する
+ */
+export function isQualityDegraded(stats: WebRTCStats): boolean {
+  return (
+    stats.packetLoss > WEBRTC_FALLBACK_CONFIG.qualityWarningThresholds.packetLossRate ||
+    stats.rtt > WEBRTC_FALLBACK_CONFIG.qualityWarningThresholds.rttMs
+  );
+}

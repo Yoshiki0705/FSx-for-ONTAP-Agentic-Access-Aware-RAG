@@ -1,0 +1,4 @@
+# Lambda ランタイム依存 (boto3, urllib3 は Lambda に同梱)
+# ローカル開発・テスト用
+boto3>=1.34.0
+urllib3>=2.0.0

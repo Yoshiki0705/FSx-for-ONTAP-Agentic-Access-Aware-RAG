@@ -78,6 +78,26 @@ Parameters:
     Default: ""
     Description: "前処理出力先 S3 バケット名 (オプション)"
 
+  # === ガードレール設定 ===
+  MaxGrowPerActionPct:
+    Type: Number
+    Default: 50
+    MinValue: 1
+    MaxValue: 100
+    Description: "1回あたりの最大拡張率 (%)"
+
+  MaxGrowPerDayGiB:
+    Type: Number
+    Default: 500
+    MinValue: 1
+    Description: "1日あたりの最大拡張量 (GiB)"
+
+  CooldownMinutes:
+    Type: Number
+    Default: 30
+    MinValue: 0
+    Description: "同一リソースの連続拡張間の最小待機時間 (分)"
+
   CreateVpcEndpoints:
     Type: String
     Default: "true"
@@ -143,6 +163,15 @@ Resources:
       VpcEndpointType: Gateway
       RouteTableIds: !Ref RouteTableIds
 
+  DynamoDBGatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: ShouldCreateVpcEndpoints
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.dynamodb"
+      VpcEndpointType: Gateway
+      RouteTableIds: !Ref RouteTableIds
+
   SnsEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Condition: ShouldCreateVpcEndpoints
@@ -154,6 +183,33 @@ Resources:
       SecurityGroupIds:
         - !Ref SecurityGroupId
       PrivateDnsEnabled: true
+
+  # ============================================================
+  # DynamoDB: ガードレール追跡テーブル
+  # ============================================================
+  GuardrailsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "fsxn-ops-guardrails-${AWS::StackName}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: resource_id
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: resource_id
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl_epoch
+        Enabled: true
+      Tags:
+        - Key: Application
+          Value: fsxn-ops
+        - Key: Component
+          Value: guardrails
 
   # ============================================================
   # SNS トピック
@@ -211,6 +267,7 @@ Resources:
                 Action:
                   - cloudwatch:GetMetricStatistics
                   - cloudwatch:GetMetricData
+                  - cloudwatch:PutMetricData
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -220,6 +277,12 @@ Resources:
                 Action:
                   - sns:Publish
                 Resource: !Ref NotificationTopic
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:PutItem
+                Resource: !GetAtt GuardrailsTable.Arn
 
   CapacityMonitorFunction:
     Type: AWS::Lambda::Function
@@ -245,6 +308,10 @@ Resources:
           VOL_THRESHOLD_PCT: !Ref VolThresholdPct
           AUTO_RESIZE_ENABLED: !Ref AutoResizeEnabled
           DRY_RUN: !Ref DryRun
+          GUARDRAILS_TABLE_NAME: !Ref GuardrailsTable
+          MAX_GROW_PER_ACTION_PCT: !Ref MaxGrowPerActionPct
+          MAX_GROW_PER_DAY_GIB: !Ref MaxGrowPerDayGiB
+          COOLDOWN_MINUTES: !Ref CooldownMinutes
       Code:
         ZipFile: |
           # プレースホルダー: 実際のデプロイでは S3 から ZIP をデプロイする
@@ -640,6 +707,74 @@ Resources:
           }
         }
 
+  # ============================================================
+  # CloudWatch Dashboard: ガードレール可視化
+  # ============================================================
+  GuardrailsDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: FSxNOps-Guardrails-Dashboard
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "title": "Decision Counts Over Time",
+                "metrics": [
+                  [ "FSxNOps/Guardrails", "GuardrailDecision", "Decision", "Allowed", { "stat": "Sum", "label": "Allowed" } ],
+                  [ "FSxNOps/Guardrails", "GuardrailDecision", "Decision", "Blocked", { "stat": "Sum", "label": "Blocked" } ],
+                  [ "FSxNOps/Guardrails", "GuardrailDecision", "Decision", "DryRun", { "stat": "Sum", "label": "DryRun" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "period": 300
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "title": "Daily Expansion Totals",
+                "metrics": [
+                  [ "FSxNOps/Guardrails", "GuardrailDecision", "Decision", "Allowed", "ResourceType", "filesystem", { "stat": "Sum", "label": "Filesystem Allowed" } ],
+                  [ "FSxNOps/Guardrails", "GuardrailDecision", "Decision", "Allowed", "ResourceType", "volume", { "stat": "Sum", "label": "Volume Allowed" } ]
+                ],
+                "view": "bar",
+                "stacked": true,
+                "region": "${AWS::Region}",
+                "period": 86400
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 12,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "title": "Blocked Actions by Reason",
+                "metrics": [
+                  [ "FSxNOps/Guardrails", "GuardrailDecision", "Decision", "Blocked", "ResourceType", "filesystem", { "stat": "Sum", "label": "Filesystem Blocked" } ],
+                  [ "FSxNOps/Guardrails", "GuardrailDecision", "Decision", "Blocked", "ResourceType", "volume", { "stat": "Sum", "label": "Volume Blocked" } ]
+                ],
+                "view": "timeSeries",
+                "stacked": true,
+                "region": "${AWS::Region}",
+                "period": 300
+              }
+            }
+          ]
+        }
+
 Outputs:
   NotificationTopicArn:
     Value: !Ref NotificationTopic
@@ -683,3 +818,15 @@ Outputs:
           "initiated_by": "operator@example.com"
         }'
     Description: フェイルオーバー実行コマンド例
+
+  GuardrailsTableName:
+    Value: !Ref GuardrailsTable
+    Description: ガードレール DynamoDB テーブル名
+
+  GuardrailsTableArn:
+    Value: !GetAtt GuardrailsTable.Arn
+    Description: ガードレール DynamoDB テーブル ARN
+
+  GuardrailsDashboardName:
+    Value: !Ref GuardrailsDashboard
+    Description: ガードレール CloudWatch ダッシュボード名

@@ -15,9 +15,11 @@ import * as opensearchserverless from 'aws-cdk-lib/aws-opensearchserverless';
 import * as bedrock from 'aws-cdk-lib/aws-bedrock';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as bedrockagentcore from 'aws-cdk-lib/aws-bedrockagentcore';
+import * as kinesisvideo from 'aws-cdk-lib/aws-kinesisvideo';
 import { Construct } from 'constructs';
 import { EmbeddingModelRegistry } from '../../config/embedding-model-registry';
 import { KBConfigStrategy } from '../../config/kb-config-strategy';
+import { KbAutoSyncConstruct } from '../../constructs/kb-auto-sync-construct';
 
 // ========================================
 // Guardrails Configuration Types
@@ -205,6 +207,14 @@ export interface DemoAIStackProps extends cdk.StackProps {
   multimodalKbMode?: string;
   /** 音声チャット（Nova Sonic）を有効化するか（デフォルト: false） */
   enableVoiceChat?: boolean;
+  /** 音声チャット通信モード（デフォルト: 'rest'）。'rest' = Phase 1 REST API、'webrtc' = AgentCore Runtime WebRTC */
+  voiceChatMode?: 'rest' | 'webrtc';
+  /** AgentCore Runtime Voice Agent スケーリング設定（voiceChatMode='webrtc' 時のみ有効） */
+  voiceAgentScaling?: {
+    minInstances?: number;
+    maxInstances?: number;
+    timeoutSeconds?: number;
+  };
 }
 
 export class DemoAIStack extends cdk.Stack {
@@ -2024,6 +2034,15 @@ ${langInstruction}`,
 
     // --- 音声チャット（Nova Sonic）（オプション: enableVoiceChat=true 時のみ） ---
     if (props.enableVoiceChat) {
+      // --- voiceChatMode バリデーション ---
+      const voiceChatMode = props.voiceChatMode || 'rest';
+      const validVoiceChatModes = ['rest', 'webrtc'];
+      if (!validVoiceChatModes.includes(voiceChatMode)) {
+        throw new Error(
+          `Invalid voiceChatMode: '${voiceChatMode}'. Valid values are: ${validVoiceChatModes.join(', ')}`
+        );
+      }
+
       new cdk.CfnOutput(this, 'VoiceChatEnabled', {
         value: 'true',
         description: 'Voice Chat (Nova Sonic) is enabled',
@@ -2036,11 +2055,103 @@ ${langInstruction}`,
         value: '$70-$100/month (input ~$0.0019/min, output ~$0.0076/min)',
         description: 'Estimated monthly cost for voice chat',
       });
+      new cdk.CfnOutput(this, 'VoiceChatMode', {
+        value: voiceChatMode,
+        description: 'Voice Chat communication mode (rest or webrtc)',
+      });
+
+      // --- WebRTC モード固有リソース（voiceChatMode === 'webrtc' 時のみ） ---
+      if (voiceChatMode === 'webrtc') {
+        // 1. KVS Signaling Channel
+        const signalingChannel = new kinesisvideo.CfnSignalingChannel(this, 'VoiceSignalingChannel', {
+          name: `${prefix}-voice-signaling`,
+          type: 'SINGLE_MASTER',
+          messageTtlSeconds: 60,
+        });
+
+        // 2. AgentCore Runtime Agent Definition
+        // NOTE: AWS::BedrockAgentCore::AgentRuntime is not yet supported in CloudFormation.
+        // The voice agent must be deployed separately via CLI/SDK after CDK deployment.
+        // See: docs/voice-chat-webrtc-setup.md for manual setup instructions.
+        const voiceAgentScaling = props.voiceAgentScaling || {};
+        const minInstances = voiceAgentScaling.minInstances ?? 1;
+        const maxInstances = voiceAgentScaling.maxInstances ?? 5;
+        const timeoutSeconds = voiceAgentScaling.timeoutSeconds ?? 300;
+
+        const voiceAgentRole = new iam.Role(this, 'VoiceAgentRole', {
+          roleName: `${prefix}-voice-agent-role`,
+          assumedBy: new iam.ServicePrincipal('bedrock.amazonaws.com'),
+        });
+
+        // 3. IAM Policies (least privilege)
+        voiceAgentRole.addToPolicy(new iam.PolicyStatement({
+          sid: 'BedrockModelInvoke',
+          actions: [
+            'bedrock:InvokeModel',
+            'bedrock:InvokeModelWithResponseStream',
+          ],
+          resources: [
+            `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/amazon.nova-sonic-v1:0`,
+            `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/anthropic.claude-sonnet-4-20250514`,
+          ],
+        }));
+
+        voiceAgentRole.addToPolicy(new iam.PolicyStatement({
+          sid: 'KVSSignalingAccess',
+          actions: [
+            'kinesisvideo:ConnectAsMaster',
+            'kinesisvideo:ConnectAsViewer',
+            'kinesisvideo:GetSignalingChannelEndpoint',
+            'kinesisvideo:GetIceServerConfig',
+          ],
+          resources: [signalingChannel.attrArn],
+        }));
+
+        // NOTE: AWS::KinesisVideo::SignalingChannelPolicy is not supported in CloudFormation.
+        // KVS channel access is controlled via IAM policies on the VoiceAgentRole above.
+
+        // CfnOutputs for WebRTC mode
+        new cdk.CfnOutput(this, 'VoiceSignalingChannelArn', {
+          value: signalingChannel.attrArn,
+          description: 'KVS Signaling Channel ARN for WebRTC voice chat',
+        });
+        new cdk.CfnOutput(this, 'VoiceAgentId', {
+          value: 'DEPLOY_MANUALLY_VIA_CLI',
+          description: 'AgentCore Runtime Voice Agent ID (deploy via CLI after CDK)',
+        });
+        new cdk.CfnOutput(this, 'VoiceAgentScaling', {
+          value: JSON.stringify({ minInstances, maxInstances, timeoutSeconds }),
+          description: 'Voice Agent scaling configuration',
+        });
+      }
     } else {
       new cdk.CfnOutput(this, 'VoiceChatEnabled', {
         value: 'false',
         description: 'Voice Chat (Nova Sonic) is disabled',
       });
+    }
+
+    // --- KB Auto Sync（オプション: enableKbAutoSync=true 時のみ） ---
+    const enableKbAutoSync =
+      this.node.tryGetContext('enableKbAutoSync') === true ||
+      this.node.tryGetContext('enableKbAutoSync') === 'true';
+
+    if (enableKbAutoSync) {
+      const s3AccessPointArn = this.node.tryGetContext('s3AccessPointArn');
+      const dataSourceId = this.node.tryGetContext('kbDataSourceId');
+      const intervalMinutes =
+        Number(this.node.tryGetContext('kbAutoSyncIntervalMinutes')) || 5;
+
+      if (s3AccessPointArn && dataSourceId) {
+        new KbAutoSyncConstruct(this, 'KbAutoSync', {
+          projectName,
+          environment,
+          knowledgeBaseId: this.knowledgeBaseId,
+          dataSourceId,
+          s3AccessPointArn,
+          intervalMinutes,
+        });
+      }
     }
   }
 
