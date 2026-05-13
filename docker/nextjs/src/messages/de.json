@@ -150,7 +150,22 @@
       "noResults": "Keine zugänglichen Suchergebnisse",
       "fallbackToText": "Auf Texteingabe umgeschaltet",
       "shortcut": "Tastenkürzel: {shortcut}",
-      "silenceTimeout": "Aufnahme wegen erkannter Stille gestoppt"
+      "silenceTimeout": "Aufnahme wegen erkannter Stille gestoppt",
+      "webrtc": {
+        "connecting": "Echtzeit-Verbindung wird hergestellt...",
+        "connected": "Im Echtzeit-Modus verbunden",
+        "disconnected": "Verbindung unterbrochen",
+        "fallbackNotice": "Echtzeit-Modus nicht verfügbar. Weiter im Standardmodus",
+        "fallbackReason": "Verbindungs-Timeout",
+        "qualityWarning": "Die Verbindungsqualität verschlechtert sich",
+        "modeSwitch": "Moduswechsel: {mode}",
+        "modeWebrtc": "Echtzeit",
+        "modeRest": "Standard",
+        "reconnecting": "Verbindung wird wiederhergestellt...",
+        "manualReconnect": "Erneut mit Echtzeit-Modus verbinden",
+        "silenceTimeout": "Übertragung wegen erkannter Stille pausiert",
+        "turnRelay": "Verbindung über Relay-Server"
+      }
     },
     "introduction": {
       "welcome": "Hallo, {username}!",

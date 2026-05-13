@@ -15,6 +15,8 @@ import {
 } from './modelUtils';
 import { MODEL_DISPLAY_LIMITS } from './constants';
 import { useSmartRoutingStore } from '@/store/useSmartRoutingStore';
+import { GPT_5_5_MODEL_ID } from '@/lib/smart-router';
+import { ModelAccessVerifier } from '@/lib/model-access-verifier';
 
 interface ModelSelectorProps {
   selectedModelId: string;
@@ -101,6 +103,10 @@ export function ModelSelector({
   const [showRegionInfo, setShowRegionInfo] = useState(false);
   const { regionInfo, isLoadingRegionInfo } = useBedrockRegionInfo(mode);
 
+  // GPT-5.5 availability check state
+  const [gpt55Error, setGpt55Error] = useState<string | null>(null);
+  const [isVerifyingGpt55, setIsVerifyingGpt55] = useState(false);
+
   // Smart Routing store
   const { isEnabled: isSmartRoutingEnabled, isAutoMode, setAutoMode } = useSmartRoutingStore();
 
@@ -132,8 +138,45 @@ export function ModelSelector({
   }, [allModels, selectedModelId]);
 
   // モデル選択ハンドラー（メモ化）
-  const handleModelChange = useCallback((modelId: string) => {
+  const handleModelChange = useCallback(async (modelId: string) => {
     const targetModel = allModels.find(m => m.id === modelId);
+
+    // GPT-5.5 availability verification flow
+    if (modelId === GPT_5_5_MODEL_ID) {
+      setGpt55Error(null);
+      setIsVerifyingGpt55(true);
+
+      try {
+        const region = typeof window !== 'undefined'
+          ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
+          : 'ap-northeast-1';
+
+        console.log(`🔍 [ModelSelector] Verifying GPT-5.5 access in region: ${region}`);
+        const status = await ModelAccessVerifier.verifyModelAccess(GPT_5_5_MODEL_ID, region);
+
+        if (!status.isAccessible) {
+          // Display inline error and revert to previous model
+          const errorMsg = status.errorMessage || 'GPT-5.5 is currently unavailable in this region.';
+          console.warn(`⚠️ [ModelSelector] GPT-5.5 unavailable: ${errorMsg}`);
+          setGpt55Error(errorMsg);
+          setIsVerifyingGpt55(false);
+          return; // Do not proceed with selection — revert
+        }
+
+        console.log(`✅ [ModelSelector] GPT-5.5 access verified successfully`);
+      } catch (error: any) {
+        console.error(`❌ [ModelSelector] GPT-5.5 verification error:`, error);
+        setGpt55Error(error.message || 'GPT-5.5 availability check failed.');
+        setIsVerifyingGpt55(false);
+        return; // Do not proceed with selection — revert
+      }
+
+      setIsVerifyingGpt55(false);
+    } else {
+      // Clear GPT-5.5 error when selecting a different model
+      setGpt55Error(null);
+    }
+
     handleModelSelection(targetModel, onModelChange, modelId);
 
     // Smart Routing ON時に手動でモデルを選択した場合、isAutoModeをfalseに設定
@@ -232,6 +275,36 @@ export function ModelSelector({
             )}
           </div>
         </button>
+      )}
+
+      {/* GPT-5.5 availability error display */}
+      {gpt55Error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md" role="alert" data-testid="gpt55-error">
+          <div className="flex items-start space-x-2">
+            <span className="text-red-600 font-medium">⚠️</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800">GPT-5.5 is unavailable</p>
+              <p className="text-xs text-red-600 mt-0.5">{gpt55Error}</p>
+            </div>
+            <button
+              onClick={() => setGpt55Error(null)}
+              className="text-red-400 hover:text-red-600 text-xs"
+              aria-label="Dismiss error"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* GPT-5.5 verification loading indicator */}
+      {isVerifyingGpt55 && (
+        <div className="p-2 bg-blue-50 border border-blue-200 rounded-md" data-testid="gpt55-verifying">
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+            <span className="text-xs text-blue-700">GPT-5.5 のアクセスを検証中...</span>
+          </div>
+        </div>
       )}
 
       {/* 利用可能なモデル一覧（選択中のモデルを除外してカテゴリ別グループ化） */}

@@ -19,7 +19,7 @@ set -euo pipefail
 #   bash demo-data/scripts/setup-mode-c-oidc-ldap.sh
 ###############################################################################
 
-REGION="ap-northeast-1"
+REGION="${AWS_REGION:-ap-northeast-1}"
 STACK_PREFIX="perm-rag-demo-demo"
 OIDC_PROVIDER_NAME="${OIDC_PROVIDER_NAME:-Auth0}"
 

@@ -76,9 +76,9 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
                                 +------------------+
 ```
 
-## 実装概要（16の観点）
+## 実装概要（22の観点）
 
-本システムの実装内容を16の観点で整理しています。各項目の詳細は [docs/implementation-overview.md](docs/implementation-overview.md) を参照してください。
+本システムの実装内容を22の観点で整理しています。各項目の詳細は [docs/implementation-overview.md](docs/implementation-overview.md) を参照してください。
 
 | # | 観点 | 概要 | 関連CDKスタック |
 |---|------|------|----------------|
@@ -92,7 +92,7 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | 8 | KB/Agentモード切替 | KBモード（文書検索）とAgentモード（多段階推論）をトグルで切替。Agent Directory（`/genai/agents`）でカタログ形式のAgent管理・テンプレート作成・編集・削除。動的Agent作成・カード紐付け。アウトプット指向ワークフロー（プレゼン資料、稟議書、議事録、レポート、契約書、オンボーディング）。8言語i18n対応。両モードでPermission-aware | WebAppStack |
 | 9 | 画像分析RAG | チャット入力に画像アップロード（ドラッグ＆ドロップ / ファイルピッカー）を追加。Bedrock Vision API（Claude Haiku 4.5）で画像を分析し、結果をKB検索コンテキストに統合。JPEG/PNG/GIF/WebP対応、3MB上限 | WebAppStack |
 | 10 | KB接続UI | Agent作成・編集時にBedrock Knowledge Baseの選択・接続・解除を行うUI。Agent詳細パネルに接続済みKB一覧表示 | WebAppStack |
-| 11 | Smart Routing | クエリ複雑度に基づく自動モデル選択。短い事実確認クエリは軽量モデル（Haiku）、長い分析的クエリは高性能モデル（Sonnet）へルーティング。サイドバーにON/OFFトグル | WebAppStack |
+| 11 | Smart Routing | クエリ複雑度に基づく3層自動モデル選択。simple（短い事実確認）→ Haiku、complex（長い分析的クエリ）→ Sonnet、full-context（ドキュメント分析意図 + 大量コンテキスト）→ Claude Opus 4.7。GPT-5.5 手動選択オプション（ModelAccessVerifier による可用性検証）。Document Analysis Intent 検出（JP/EN キーワード）。CloudWatch EMF メトリクス（`SmartRouting` 名前空間、`RoutingTier` ディメンション）。サイドバーにON/OFFトグル + 「⚡自動」ボタン | WebAppStack |
 | 12 | 監視・アラート | CloudWatchダッシュボード（Lambda/CloudFront/DynamoDB/Bedrock/WAF/Advanced RAG統合）、SNSアラート（エラー率・レイテンシ閾値超過通知）、EventBridge KB Ingestion Job失敗通知、EMFカスタムメトリクス。`enableMonitoring=true`で有効化 | WebAppStack (MonitoringConstruct) |
 | 13 | AgentCore Memory | AgentCore Memory（短期・長期メモリ）による会話コンテキスト維持。セッション内会話履歴（短期）+ セッション横断のユーザー嗜好・要約（長期）。`enableAgentCoreMemory=true`で有効化 | AIStack |
 | 13.1 | Episodic Memory | エピソード記憶（目標・推論ステップ・結果・振り返り）の記録・検索。類似エピソード自動参照によるエージェントパフォーマンス向上。`enableEpisodicMemory=true`で有効化（`enableAgentCoreMemory=true`が前提条件） | AIStack |
@@ -101,8 +101,11 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | 16 | マルチモーダル RAG 検索 | Amazon Nova Multimodal Embeddings によるテキスト・画像・動画・音声のクロスモーダル検索。Embedding Model Registry + KB Config Strategy パターンで拡張性を確保。Dual KB アーキテクチャ（テキスト専用 + マルチモーダル並行運用）対応。`embeddingModel: "nova-multimodal"` でオプトイン有効化。対応メディア: JPEG, PNG, GIF, WebP, MP4, MOV, MP3, WAV 等 | AIStack |
 | 17 | Guardrails Organizational Safeguards | Bedrock Guardrails の拡張。`guardrailsConfig` CDK パラメータによるコンテンツフィルタ強度・トピックポリシー・PII 検出の詳細設定。AWS Organizations Organizational Safeguards の検出・表示。チャット応答への GuardrailsStatusBadge（✅ safe / ⚠️ filtered）表示。介入ログ（構造化 JSON）・EMF メトリクス・CloudWatch ダッシュボード統合。管理者向け GuardrailsAdminPanel（読み取り専用）。Fail-Open エラーハンドリング。`enableGuardrails=true` + `guardrailsConfig` で有効化 | AIStack, WebAppStack |
 | 18 | 音声チャット（Nova Sonic） | Amazon Nova Sonic による音声対話機能。ブラウザマイクから音声入力 → Nova Sonic（speech-to-speech）→ テキスト＋音声同時出力。既存 RAG パイプライン（Permission Filter 含む）と統合。KB/Agent 両モード対応。波形アニメーション、30秒無音タイムアウト、自動再接続（最大3回）、テキストフォールバック。8言語 i18n 対応。`enableVoiceChat=true` で有効化。推定月額: $70〜$100 | AIStack, WebAppStack |
+| 18.1 | 音声チャット Phase 2（WebRTC） | AgentCore Runtime + Pipecat Voice Agent + KVS WebRTC による低レイテンシ音声対話。Strategy パターン（REST/WebRTC）で Phase 1 と切替可能。WebRTC 接続失敗時は REST に自動フォールバック。KVS Signaling Channel によるシグナリング。`useVoiceCapability` フックでマイク権限状態を正確にハンドリング。⚠️ AgentCore Runtime は CloudFormation 未サポートのため CLI/SDK で手動デプロイが必要 | WebAppStack |
 | 19 | AgentCore Policy | AgentCore Policy によるエージェント行動制御。自然言語ポリシー定義でエージェントのツール・API・MCP サーバーアクセスを制限。3 種類のポリシーテンプレート（セキュリティ重視・コスト重視・柔軟性重視）。PolicyEvaluationMiddleware（3 秒タイムアウト、fail-open/fail-closed）。違反ログ（EMF 形式）・CloudWatch ダッシュボード統合。8 言語 i18n 対応。`enableAgentPolicy=true` で有効化 | WebAppStack |
-| 20 | FSx ONTAP 運用自動化 | Lambda + Step Functions による FSx for ONTAP 運用自動化。SnapMirror フェイルオーバー/フェイルバック自動化（ASL 定義）、容量監視・自動拡張（EventBridge 5分間隔）、ONTAP REST API 汎用実行、AI/分析向けデータ前処理（S3 Access Point 境界）。イベント駆動不要・NFS マウント不要。月額 ~$2.60。詳細は [automation/fsxn-ops/](automation/fsxn-ops/) を参照 | CloudFormation (standalone) |
+| 20 | FSx ONTAP 運用自動化 | Lambda + Step Functions による FSx for ONTAP 運用自動化。SnapMirror フェイルオーバー/フェイルバック自動化（ASL 定義）、容量監視・自動拡張（EventBridge 5分間隔）、Capacity Guardrails（DynamoDB 永続追跡、日次上限、クールダウン、CloudWatch Dashboard）、ONTAP REST API 汎用実行、AI/分析向けデータ前処理（S3 Access Point 境界）。イベント駆動不要・NFS マウント不要。月額 ~$2.60。詳細は [automation/fsxn-ops/](automation/fsxn-ops/) を参照 | CloudFormation (standalone) |
+| 21 | KB Auto-Sync | EventBridge Scheduler ポーリングによる FSx ONTAP S3 AP ファイル変更検出 + Bedrock KB StartIngestionJob 自動トリガー。ListObjectsV2 → DynamoDB インベントリ差分比較 → 変更検出時のみインジェスション実行。CloudWatch EMF メトリクス（`KbAutoSync` 名前空間）+ 3回連続エラー Alarm。IN_PROGRESS ジョブ重複排除。`enableKbAutoSync=true` で有効化 | AIStack (KbAutoSyncConstruct) |
+| 22 | Transfer Family FSx ONTAP インジェスション | AWS Transfer Family SFTP サーバー経由のドキュメントアップロード → FSx ONTAP S3 AP → 自動 KB インジェスション。ポーリング/CloudTrail 2モード対応。権限メタデータ自動生成。`enableTransferFamily=true` で有効化 | DemoTransferFamilyStack |
 
 #### v4.0.0 技術的注意事項
 
@@ -112,17 +115,19 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | マルチモーダル RAG | GA（2025年11月） | AWS SDK v3（BedrockAgentRuntimeClient） | 完全実装。Nova Multimodal Embeddings は us-east-1, us-west-2 のみ対応 |
 | Guardrails Org Safeguards | GA（2026年4月） | AWS SDK v3（BedrockClient） | 完全実装。Organizational Safeguards は AWS Organizations 管理アカウントで設定 |
 | AgentCore Episodic Memory | GA（2025年12月） | AWS SDK v3（BedrockAgentCoreClient） | `episodicMemoryStrategy` に `reflectionConfiguration.namespaces` パラメータが必須。未指定時は "Invalid memory strategy input" エラー |
-| Nova Sonic 音声チャット | GA（2025年12月） | REST + Bedrock Converse API | Phase 1 実装（REST ベース）。リアルタイム双方向ストリーミングには API Gateway WebSocket（Phase 2）が必要 |
+| Nova Sonic 音声チャット | GA（2025年12月） | REST + Bedrock Converse API | Phase 1 実装（REST ベース）。Phase 2（WebRTC）は AgentCore Runtime + Pipecat + KVS で実装。AgentCore Runtime は CloudFormation 未サポートのため CLI/SDK で手動デプロイが必要 |
 | AgentCore Policy | GA（2026年3月） | SigV4 署名 HTTP（Policy Engine + Gateway モデル） | GA 版で Policy Engine + Gateway アーキテクチャに変更。ポリシーは Cedar 言語で記述。IAM アクションは `bedrock-agentcore:CreatePolicyEngine` 等に更新 |
 
 **音声チャットの Phase 1 / Phase 2 アーキテクチャ:**
 
-| 項目 | Phase 1（現在） | Phase 2（将来） |
+| 項目 | Phase 1（REST） | Phase 2（WebRTC） |
 |------|---------------|---------------|
-| 通信方式 | REST（POST /api/voice/stream） | WebSocket（API Gateway） |
-| 音声処理 | Bedrock Converse API で音声→テキスト変換後、RAG パイプラインに入力 | Nova Sonic InvokeModelWithBidirectionalStream で双方向ストリーミング |
+| 通信方式 | REST（POST /api/voice/stream） | WebRTC（KVS Signaling Channel） |
+| 音声処理 | Bedrock Converse API で音声→テキスト変換後、RAG パイプラインに入力 | AgentCore Runtime + Pipecat Voice Agent で双方向ストリーミング |
 | レイテンシ | 中（バッファリング + 一括処理） | 低（リアルタイムストリーミング） |
 | 権限フィルタリング | ✅ 既存 SID/UID/GID フィルタリングを適用 | ✅ 同一ロジックを適用 |
+| デプロイ方式 | CDK（CloudFormation） | CLI/SDK（AgentCore Runtime は CFn 未サポート） |
+| フォールバック | — | WebRTC 失敗時に Phase 1 REST に自動フォールバック |
 
 **v4.0.0 フィーチャーフラグ:**
 

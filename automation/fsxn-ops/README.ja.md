@@ -89,9 +89,10 @@ automation/fsxn-ops/
 ├── lambda/
 │   ├── common/
 │   │   ├── ontap_client.py            # ONTAP REST API クライアント共通
-│   │   └── fsx_helpers.py             # FSx API ヘルパー
+│   │   ├── fsx_helpers.py             # FSx API ヘルパー
+│   │   └── guardrails.py             # Capacity Guardrails モジュール
 │   ├── capacity_monitor/
-│   │   └── handler.py                 # 容量監視・自動拡張
+│   │   └── handler.py                 # 容量監視・自動拡張（guardrails 委譲）
 │   ├── ontap_api_executor/
 │   │   └── handler.py                 # ONTAP 管理 API 汎用実行
 │   ├── snapmirror_ops/
@@ -123,6 +124,108 @@ automation/fsxn-ops/
 | 2 | FSx ONTAP 容量監視・自動拡張 | Lambda | EventBridge (5分間隔) |
 | 3 | ONTAP 管理 API 実行 | Lambda | API Gateway / 手動 |
 | 4 | AI/分析向けデータ前処理 | Step Functions + Lambda | EventBridge / アプリ |
+| 5 | Capacity Guardrails（拡張安全制御） | Lambda + DynamoDB | 容量監視時に自動評価 |
+
+## Capacity Guardrails（拡張安全制御）
+
+### 概要
+
+自動拡張の暴走を防止する安全制御モジュール。3段階のチェックで拡張を制限する:
+
+1. **Per-Action Rate Limit**: 1回の拡張で現在容量の N% を超えない（デフォルト: 50%）
+2. **Daily Cumulative Cap**: 1日あたりのリソース別累積拡張量を制限（デフォルト: 500 GiB）
+3. **Cooldown Period**: 同一リソースへの連続拡張に最小間隔を設定（デフォルト: 30分）
+
+### 動作フロー
+
+```
+容量監視 Lambda 実行
+  → 閾値超過チェック
+    → 超過なし: ガードレール評価なし（正常終了）
+    → 超過あり AND auto_resize=true:
+      → guardrails.evaluate_expansion() 呼び出し
+        → Per-action check → Daily cap check → Cooldown check
+        → Allowed: 拡張実行 → record_expansion() で DynamoDB 記録
+        → Blocked: 拡張スキップ、理由をログ出力
+        → DryRun: 拡張スキップ、メトリクスのみ出力
+```
+
+### CloudFormation パラメータ
+
+| パラメータ | 型 | デフォルト | 範囲 | 説明 |
+|-----------|-----|-----------|------|------|
+| `MaxGrowPerActionPct` | Number | 50 | 1-100 | 1回の拡張で許可する最大割合（%） |
+| `MaxGrowPerDayGiB` | Number | 500 | 1以上 | 1日あたりのリソース別累積拡張上限（GiB） |
+| `CooldownMinutes` | Number | 30 | 0以上 | 同一リソースへの連続拡張の最小間隔（分） |
+
+### DynamoDB テーブルスキーマ
+
+テーブル名: `fsxn-ops-guardrails-{stack-name}`
+
+| 属性 | 型 | 説明 |
+|------|-----|------|
+| `resource_id` (PK) | String | ファイルシステム ID またはボリューム UUID |
+| `date` (SK) | String | UTC 日付 `YYYY-MM-DD` |
+| `daily_total_gib` | Number | 当日の累積拡張量（GiB） |
+| `last_action_timestamp` | String | 最終拡張の ISO 8601 UTC タイムスタンプ |
+| `action_count` | Number | 当日の拡張回数 |
+| `ttl_epoch` | Number | TTL = レコード日付 + 7日（エポック秒） |
+
+- **課金モード**: オンデマンド（PAY_PER_REQUEST）
+- **TTL**: `ttl_epoch` 属性で 7日後に自動削除
+
+### CloudWatch メトリクスとダッシュボード
+
+#### メトリクス
+
+- **名前空間**: `FSxNOps/Guardrails`
+- **メトリクス名**: `GuardrailDecision`
+- **ディメンション**:
+  - `Decision`: `Allowed` | `Blocked` | `DryRun`
+  - `ResourceType`: `filesystem` | `volume`
+  - `ResourceId`: リソース識別子
+
+> **注意**: メトリクスはガードレールが評価された場合のみ出力される。閾値未超過時（自動拡張が試行されない場合）はメトリクスは出力されない。
+
+#### ダッシュボード (`FSxNOps-Guardrails-Dashboard`)
+
+| ウィジェット | 内容 |
+|-------------|------|
+| Decision Counts | Allowed/Blocked/DryRun の時系列推移 |
+| Daily Expansion Totals | リソース別の日次累積拡張量 |
+| Blocked Actions | ブロック理由別（per-action-limit, daily-cap, cooldown）の推移 |
+
+### 検証方法
+
+```bash
+# 1. DynamoDB テーブル確認
+aws dynamodb describe-table \
+  --table-name fsxn-ops-guardrails-fsxn-ops \
+  --query "Table.{Status: TableStatus, ItemCount: ItemCount}"
+
+# 2. TTL 設定確認
+aws dynamodb describe-time-to-live \
+  --table-name fsxn-ops-guardrails-fsxn-ops
+
+# 3. CloudWatch Dashboard 確認
+aws cloudwatch get-dashboard \
+  --dashboard-name FSxNOps-Guardrails-Dashboard
+
+# 4. Lambda 環境変数確認
+aws lambda get-function-configuration \
+  --function-name fsxn-ops-capacity-monitor \
+  --query "Environment.Variables.{Table: GUARDRAILS_TABLE_NAME, MaxPct: MAX_GROW_PER_ACTION_PCT, MaxGiB: MAX_GROW_PER_DAY_GIB, Cooldown: COOLDOWN_MINUTES}"
+
+# 5. メトリクス確認（自動拡張試行後のみ）
+aws cloudwatch list-metrics --namespace FSxNOps/Guardrails
+```
+
+### 既知の制限事項
+
+- Lambda コードは CloudFormation の `ZipFile` プレースホルダーとは別に `aws lambda update-function-code --zip-file` でデプロイが必要
+- CloudWatch メトリクスは自動拡張が試行された場合のみ出力される（通常監視時は出力なし）
+- `rate(1 minutes)` 単数形問題は EventBridge Scheduler にも該当（デフォルト5分では問題なし）
+- フルフロー統合テスト（閾値超過 → ガードレール評価 → ブロック/許可 → DynamoDB 記録）の自動化は未実装
 
 ## 参考実装
 

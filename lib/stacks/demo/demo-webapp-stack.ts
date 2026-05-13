@@ -115,10 +115,14 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   guardrailVersion?: string;
   /** 音声チャット有効化フラグ（AIStackから） */
   enableVoiceChat?: boolean;
+  /** 音声チャット通信モード（デフォルト: 'rest'） */
+  voiceChatMode?: 'rest' | 'webrtc';
   /** AgentCore Policy 有効化フラグ（デフォルト: false） */
   enableAgentPolicy?: boolean;
   /** ポリシー評価失敗時の挙動（デフォルト: 'fail-open'） */
   policyFailureMode?: 'fail-open' | 'fail-closed';
+  /** ECRリポジトリ名（デフォルト: permission-aware-rag-webapp） */
+  ecrRepositoryName?: string;
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -155,7 +159,7 @@ export class DemoWebAppStack extends cdk.Stack {
     this.webAppFunction = new lambda.DockerImageFunction(this, 'WebAppFn', {
       functionName: `${prefix}-webapp`,
       code: lambda.DockerImageCode.fromEcr(
-        cdk.aws_ecr.Repository.fromRepositoryName(this, 'EcrRepo', 'permission-aware-rag-webapp'),
+        cdk.aws_ecr.Repository.fromRepositoryName(this, 'EcrRepo', props.ecrRepositoryName || 'permission-aware-rag-webapp'),
         { tagOrDigest: imageUri },
       ),
       memorySize: 1024,
@@ -225,6 +229,8 @@ export class DemoWebAppStack extends cdk.Stack {
         // 音声チャット設定（オプション）
         VOICE_CHAT_ENABLED: props.enableVoiceChat ? 'true' : 'false',
         ...(props.enableVoiceChat ? { NOVA_SONIC_MODEL_ID: 'amazon.nova-sonic-v1:0' } : {}),
+        ...(props.enableVoiceChat ? { VOICE_CHAT_MODE: props.voiceChatMode || 'rest' } : {}),
+        ...(props.enableVoiceChat ? { NEXT_PUBLIC_VOICE_CHAT_MODE: props.voiceChatMode || 'rest' } : {}),
         // AgentCore Policy設定（オプション）
         AGENT_POLICY_ENABLED: props.enableAgentPolicy ? 'true' : 'false',
         ...(props.enableAgentPolicy ? { POLICY_FAILURE_MODE: props.policyFailureMode ?? 'fail-open' } : {}),

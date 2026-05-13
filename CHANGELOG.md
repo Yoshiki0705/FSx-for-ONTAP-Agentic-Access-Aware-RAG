@@ -5,6 +5,145 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-06
+
+### Added
+- **Voice Chat Phase 2 (WebRTC)**: Amazon Bedrock AgentCore Runtime + Pipecat Voice Agent + KVS WebRTC による低レイテンシ音声対話
+  - KVS Signaling Channel: WebRTC シグナリング用 Amazon Kinesis Video Streams チャネル
+  - Strategy パターン（REST/WebRTC）: `VoiceChatStrategy` インターフェースで REST（Phase 1）と WebRTC（Phase 2）を切替可能
+  - Fallback メカニズム: WebRTC 接続失敗時に REST ベースの音声チャットに自動フォールバック
+  - Pipecat Voice Agent 定義: AgentCore Runtime 用の音声エージェント構成（Docker イメージ + エージェント定義）
+  - VoiceButton: `genai/page.tsx` に直接レンダリング（MessageInput.tsx は未使用）
+  - `useVoiceCapability` フック: マイク権限状態（granted/prompt/denied）の正確なマッピング
+  - Docker イメージ OCI 形式修正: `docker buildx build --provenance=false --sbom=false` で Docker V2 manifest を保証
+  - `cdk.context.json` `imageTag` パラメータ: 明示的タグによる CDK イメージ変更検出
+
+- **Transfer Family FSx ONTAP Ingestion**: AWS Transfer Family SFTP サーバーと FSx for ONTAP S3 Access Points を統合し、ドキュメントアップロードから Bedrock KB 自動インジェスションパイプラインを構築
+  - `DemoTransferFamilyStack`: 新規 CDK スタック。`enableTransferFamily=true` で有効化
+  - Transfer Family SFTP サーバー: `TransferSecurityPolicy-2024-01`、PUBLIC エンドポイント、SFTP プロトコル
+  - SFTP ユーザー管理: SSH 鍵認証、論理ホームディレクトリ（`/uploads/{userName}`）、スコープ IAM ロール
+  - Ingestion Trigger Lambda (Python 3.12): S3 AP ファイル変更検出 → Bedrock KB StartIngestionJob 自動トリガー（ポーリング / CloudTrail 2モード対応）
+  - Metadata Generator Lambda (Python 3.12): 権限メタデータ `.metadata.json` 自動生成（既存 RAG パイプライン互換）
+  - DynamoDB テーブル × 3: スキャン状態（TTL 30日）、ファイルインベントリ、権限マッピング
+  - EventBridge Scheduler（ポーリングモード、デフォルト5分間隔）/ EventBridge Rule（CloudTrail モード）
+  - IN_PROGRESS ジョブ重複排除: 既存ジョブ実行中は新規トリガーをスキップ
+  - CloudWatch EMF メトリクス: `TransferFamilyIngestion` 名前空間（DetectedFiles, ChangedFiles, IngestionJobTriggered, ScanDurationMs）
+  - CloudWatch アラーム + SNS 通知: Lambda エラー率、インジェスションジョブ失敗、SFTP ログイン失敗（`enableMonitoring=true` 時）
+  - CloudWatch ダッシュボード: Transfer Family + インジェスションパイプラインメトリクス（`enableMonitoring=true` 時）
+  - CDK パラメータ: `enableTransferFamily`, `transferFamilyEndpointType`, `transferFamilyProtocols`, `transferFamilyAllowedCidrs`, `transferFamilyUsers`, `transferFamilyPollingIntervalMinutes`, `transferFamilyTriggerMode`, `transferFamilyDefaultPermissions`
+  - テスト 60 件: CDK Assertion Tests 26 件 + Python Lambda Tests 34 件（うち Property-Based Tests 6 件、Hypothesis）
+  - CDK Property Test（fast-check）: ユーザーアクセススコーピング
+
+### Verified (Transfer Family FSx ONTAP Ingestion デプロイ検証 — ap-northeast-1)
+- **Transfer Family Server**: ONLINE 状態、PUBLIC エンドポイント、SFTP プロトコル、SecurityPolicy-2024-01
+- **サーバーエンドポイント**: `s-fb47244ef5ac43a28.server.transfer.ap-northeast-1.amazonaws.com`
+- **SFTP User**: demo-user、LOGICAL ホームディレクトリ、スコープ IAM ロール
+- **Ingestion Trigger Lambda**: 手動実行成功、0 ファイル検出（/uploads/ 配下にファイル未配置のため正常動作）
+- **EventBridge Scheduler**: ENABLED 状態、5分間隔ポーリング
+- **DynamoDB テーブル**: 3 テーブル正常作成（scan-state, file-inventory, permission-mapping）
+
+### Known Issues (Voice Chat WebRTC)
+- **AgentCore Runtime CloudFormation 未サポート**: `AWS::BedrockAgentCore::AgentRuntime` および `AWS::KinesisVideo::SignalingChannelPolicy` は CloudFormation リソースタイプとして未サポート。Voice Agent は CLI/SDK で手動デプロイが必要
+- **Pipecat Voice Agent Docker イメージ未ビルド**: AgentCore Runtime 用の Pipecat エージェント Docker イメージのビルド・プッシュが未実施
+- **WebRTC E2E フロー未検証**: AgentCore Runtime エージェントが稼働していないため、WebRTC 経由の音声対話フローは未テスト
+- **KVS TURN リレー未検証**: NAT/ファイアウォール環境での TURN リレー経由接続は未テスト
+- **Fallback メカニズム未検証**: WebRTC → REST フォールバックの本番環境での動作は未テスト
+- **音声 → 文字起こし → RAG 検索 → 音声応答フロー未検証**: エンドツーエンドの音声 RAG パイプラインは未テスト
+- **CloudWatch Dashboard 音声メトリクス未作成**: Voice Chat 関連メトリクスのダッシュボードウィジェットが未追加
+
+### Fixed (Voice Chat WebRTC)
+- **useVoiceCapability "prompt" 状態バグ**: マイク権限が "prompt"（未確認）状態のとき `canUseVoice` が `false` を返しマイクボタンが非表示になる問題を修正。"prompt" → `null`、"granted" → `true`、"denied" → `false` にマッピングし、`canUseVoice` 条件を `isMicrophonePermitted !== false` に変更
+- **Docker イメージ OCI 形式問題**: CodeBuild Standard 7.0 および BuildKit 有効環境で OCI Image Index 形式が生成され Lambda が拒否する問題を修正。`docker buildx build --provenance=false --sbom=false --push` を使用して Docker V2 manifest 形式を保証
+- **CDK イメージタグキャッシュ**: `latest` タグ使用時に CDK がイメージ変更を検出しない問題。`cdk.context.json` の `imageTag` パラメータで明示的タグを使用するよう変更
+- **VoiceButton ページ統合**: `genai/page.tsx` が MessageInput コンポーネントを使用せず直接 `<input>` をレンダリングしていたため VoiceButton が表示されない問題を修正。VoiceButton を `genai/page.tsx` に直接インポート・レンダリング
+
+### Known Issues (Transfer Family)
+- **StructuredLogDestinations EarlyValidation**: `AWS::Transfer::Server` の `StructuredLogDestinations` プロパティが `AWS::EarlyValidation::PropertyValidation` エラーを発生させるため削除。Transfer Family は `loggingRole` 経由で CloudWatch Logs に標準形式でログ出力（構造化 JSON ログは利用不可）
+- **HomeDirectoryMappings Target フォーマット**: Target は `/{ap-name}/prefix` 形式が必須。ARN 全体や末尾スラッシュ付きは拒否される。`homeDirectoryPrefix` のデフォルトを `/uploads/${userName}` に修正済み（末尾スラッシュなし）
+- **デモユーザー SSH 鍵**: プレースホルダー SSH 公開鍵を使用。実運用には Secrets Manager に実際の SSH 鍵を登録し Transfer Family ユーザーを更新する必要あり
+- **SFTP 接続テスト未実施**: 実際の SSH 鍵によるファイルアップロードフローは未検証
+- **エンドツーエンドフロー未検証**: Upload → detect → metadata → ingestion の完全フローは SSH 鍵 + ファイルアップロードが必要
+- **CloudTrail モード未検証**: ポーリングモードのみデプロイ・検証済み。CloudTrail データイベント検出モードは未テスト
+- **PUBLIC エンドポイント IP 制限**: Transfer Family PUBLIC エンドポイントは NLB なしでの IP 許可リストをネイティブサポートしない（制限事項として文書化済み）
+
+## [4.1.0] - 2026-05
+
+### Added
+- **KB Auto-Sync**: EventBridge Scheduler ポーリングによる FSx ONTAP S3 AP ファイル変更検出 + Bedrock KB StartIngestionJob 自動トリガー
+  - KbAutoSyncConstruct: CDK Construct（AIStack 内）。`enableKbAutoSync=true` で有効化
+  - EventBridge Scheduler: `rate(N minutes)` 定期ポーリング（デフォルト: 5分間隔）
+  - Lambda (Python 3.12): ListObjectsV2 → DynamoDB 差分比較 → StartIngestionJob
+  - DynamoDB インベントリテーブル: fileKey (PK), size, lastModified, eTag, firstDetectedAt, lastSyncedJobId
+  - CloudWatch EMF メトリクス: `KbAutoSync` 名前空間、`FunctionName` ディメンション（ScannedFileCount, ChangedFileCount, IngestionJobTriggered, ScanDurationMs）
+  - CloudWatch Alarm: 3回連続エラー閾値
+  - 構造化 JSON ログ: scannedFiles, addedFiles, updatedFiles, deletedFiles, ingestionJobId, durationMs
+  - IN_PROGRESS ジョブ重複排除: 既存ジョブ実行中は新規トリガーをスキップ
+  - 初回実行（空インベントリ）: フルスキャンとして全ファイルを検出しインジェスションジョブをトリガー
+  - CDK パラメータ: `enableKbAutoSync`, `s3AccessPointArn`, `kbDataSourceId`, `kbAutoSyncIntervalMinutes`
+  - 8 Property-Based Tests（hypothesis）: 差分検出正確性、トリガー判定、間隔バリデーション、インベントリ整合性、空インベントリ、ログ完全性、EMF 完全性、冪等リカバリ
+
+- **Capacity Guardrails**: FSx ONTAP 自動拡張に対する安全制御モジュール
+  - Guardrails モジュール (`lambda/common/guardrails.py`): per-action rate limit、daily cap、cooldown の3段階チェック
+  - DynamoDB 永続追跡: 日次拡張合計、最終アクションタイムスタンプ、アクション回数、TTL 7日自動クリーンアップ (`ttl_epoch`)
+  - CloudWatch カスタムメトリクス: `FSxNOps/Guardrails` 名前空間、`GuardrailDecision` メトリクス（Allowed/Blocked/DryRun × ResourceType × ResourceId）
+  - CloudWatch Dashboard (`FSxNOps-Guardrails-Dashboard`): Decision Counts、Daily Expansion Totals、Blocked Actions の3ウィジェット
+  - CloudFormation パラメータ: `MaxGrowPerActionPct`（デフォルト50%）、`MaxGrowPerDayGiB`（デフォルト500GiB）、`CooldownMinutes`（デフォルト30分）
+  - capacity_monitor リファクタリング: インライン制限ロジックを guardrails モジュールに委譲
+  - DynamoDB VPC Gateway Endpoint（`CreateVpcEndpoints=true` 時に作成）
+  - IAM ポリシー追加: `dynamodb:GetItem/UpdateItem/PutItem` + `cloudwatch:PutMetricData`
+  - Fail-safe 設計: DynamoDB 読み書きエラー時は Blocked を返却（未追跡の拡張を防止）
+  - 9 Property-Based Tests（hypothesis）: 決定出力ドメイン、無効設定検出、per-action 正確性、daily cap 正確性、cooldown 正確性、DynamoDB エラー fail-safe、dry-run マッピング、CloudWatch 障害耐性、独立リソース追跡
+
+### Verified (KB Auto-Sync デプロイ検証 — ap-northeast-1)
+- **初回スキャン**: 空 DynamoDB インベントリから 18 ファイル全検出 → ingestion job HDSUZI6JCC トリガー → COMPLETE
+- **2回目実行**: 0 変更検出 → インジェスションスキップ（正常動作）
+- **EMF メトリクス**: CloudWatch `KbAutoSync` 名前空間に全4メトリクス正常出力
+- **構造化ログ**: JSON 形式で全必須フィールド出力確認
+- **EventBridge Scheduler**: `rate(5 minutes)` ENABLED 状態
+- **CloudWatch Alarm**: OK 状態（3回連続エラー閾値）
+
+### Verified (Capacity Guardrails デプロイ検証 — ap-northeast-1)
+- **CloudFormation スタック**: `fsxn-ops` スタック正常デプロイ（全パラメータ反映）
+- **DynamoDB テーブル**: `fsxn-ops-guardrails-{stack-name}` 作成確認、TTL (`ttl_epoch`) ENABLED
+- **CloudWatch Dashboard**: `FSxNOps-Guardrails-Dashboard` 作成確認（3ウィジェット）
+- **Lambda 環境変数**: `GUARDRAILS_TABLE_NAME`, `MAX_GROW_PER_ACTION_PCT`, `MAX_GROW_PER_DAY_GIB`, `COOLDOWN_MINUTES` 設定確認
+- **ガードレール評価タイミング**: 閾値超過 AND `auto_resize=true` の場合のみ評価（正常動作）
+- **CloudWatch メトリクス**: 自動拡張試行時のみ `FSxNOps/Guardrails` 名前空間にメトリクス出力（閾値未超過時はメトリクスなし — 正常動作）
+- **VPC Endpoints**: `CreateVpcEndpoints=false` で CDK VPC 既存エンドポイントを利用
+- **Lambda コードデプロイ**: `aws lambda update-function-code --zip-file` による個別デプロイ確認
+- **DynamoDB インベントリ**: 全18アイテム正常格納（fileKey, size, lastModified, eTag, firstDetectedAt, lastSyncedJobId）
+
+- **Smart Routing 3-Tier Model Expansion**: 2層ルーティングを3層に拡張
+  - 3-tier分類: simple → Claude Haiku 4.5（軽量）、complex → Claude Sonnet 3.5（高性能）、full-context → Claude Opus 4（重量）
+  - Full-context分類条件: ドキュメント分析意図キーワード（JP/EN）AND contextSize > 4000文字
+  - GPT-5.5 手動選択オプション: ModelSelector に OpenAI カテゴリとして追加、ModelAccessVerifier による可用性検証
+  - CloudWatch EMF メトリクス: `SmartRouting` 名前空間、`RoutingTier` ディメンション（simple/complex/full-context/manual）
+  - Document Analysis Intent 検出: 日本語8キーワード + 英語7キーワード
+  - Zustand Store 拡張: `heavyModelId`, `contextSizeThreshold` 状態管理
+  - 11 Property-Based Tests（fast-check）: 分類出力ドメイン、full-context トリガー条件、GPT-5.5 自動ルーティング除外、後方互換性等
+
+### Verified (デプロイ検証で確認済み — ap-northeast-1)
+- **Smart Routing 3-Tier**: 全3層ルーティング正常動作確認
+- **CloudWatch EMF**: `SmartRouting` 名前空間に `RoutingTier` ディメンション付きメトリクス正常出力
+- **GPT-5.5 選択**: ModelSelector に表示、可用性検証（リージョン非対応時インラインエラー表示）
+- **Auto Mode UX**: Smart Routing ON + モデル手動選択時は "Manual override active" モード。「⚡自動」ボタンで自動ルーティング有効化
+
+### Known Issues
+- **contextSize 初回クエリ制限**: RAG検索はルーティング後に実行されるため、full-context分類は初回クエリでは発動しない。v4.1.0で会話コンテキスト長（AgentCore Memory）を代替指標として渡す修正を適用済み。AgentCore Memory 無効時は contextSize=0 のまま
+- **CloudFormation Guard Hook 干渉**: 別プロジェクトの `FSxNS3AP::Guard::Hook` がアカウント内でアクティブな場合、全リソース作成がブロックされる。デプロイ前に `aws cloudformation deactivate-type --type HOOK --type-name "FSxNS3AP::Guard::Hook"` で無効化が必要
+- **CloudWatch Dashboard 未対応**: RoutingTier / KbAutoSync メトリクスウィジェットが CloudWatch Dashboard に未追加（MonitoringConstruct の拡張が必要）
+- **KB Auto-Sync: rate(1 minutes) 単数形問題**: `kbAutoSyncIntervalMinutes=1` 設定時に `rate(1 minutes)` が生成される。EventBridge Scheduler は `rate(1 minute)` （単数形）を要求する。現在のデフォルト値（5分）では問題なし。修正予定: CDK Construct で `intervalMinutes === 1` の場合に `rate(1 minute)` を生成するよう条件分岐を追加
+- **KB Auto-Sync: S3 AP / Data Source 手動作成**: S3 Access Point と KB Data Source は CDK 外で手動作成が必要（`post-deploy-setup.sh` で自動化済み）。CDK 内での完全自動化は FSx S3 AP の CloudFormation 未サポートにより不可
+- **Capacity Guardrails: Lambda コード手動デプロイ**: CloudFormation テンプレートは `ZipFile` インラインプレースホルダーを使用。実際の Lambda コードは `aws lambda update-function-code --zip-file` で個別デプロイが必要（fsxn-ops スタンドアロンスタックの既知パターン）
+- **Capacity Guardrails: メトリクス出力条件**: CloudWatch `FSxNOps/Guardrails` メトリクスは自動拡張が試行された場合のみ出力される。閾値未超過時（通常監視）はガードレール評価自体が行われないためメトリクスなし
+- **Capacity Guardrails: rate(1 minutes) 単数形問題**: EventBridge Scheduler の `rate(1 minutes)` 単数形問題は fsxn-ops スタックにも該当（デフォルト5分では問題なし）
+- **Capacity Guardrails: フルフロー統合テスト未実装**: 閾値超過 → ガードレール評価 → ブロック/許可 → DynamoDB 記録の自動化された統合テストが未実装。現在は手動検証のみ
+
+### Fixed
+- **contextSize パラメータ連携**: `routeQuery()` 呼び出し時に会話コンテキスト長を `contextSize` として渡すよう修正。AgentCore Memory 有効時、直近の会話履歴が4000文字を超えた状態でドキュメント分析意図クエリを送信すると full-context ルーティングが発動する
+
+---
+
 ## [4.0.0] - 2026-04
 
 ### Verified (2026-04-25)

@@ -53,6 +53,7 @@ cdk.context.json
 __pycache__/
 *.pyc
 .pytest_cache/
+.hypothesis/
 
 # Kiro IDE設定（開発環境固有）
 .kiro/

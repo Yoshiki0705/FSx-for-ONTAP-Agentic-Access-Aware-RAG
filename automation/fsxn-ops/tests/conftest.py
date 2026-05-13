@@ -27,6 +27,7 @@ def env_vars(monkeypatch):
     monkeypatch.setenv("MAX_GROW_PER_ACTION_PCT", "50")
     monkeypatch.setenv("MAX_GROW_PER_DAY_GIB", "500")
     monkeypatch.setenv("COOLDOWN_MINUTES", "30")
+    monkeypatch.setenv("GUARDRAILS_TABLE_NAME", "test-guardrails-table")
     monkeypatch.setenv("ONTAP_VERIFY_SSL", "false")
     monkeypatch.setenv("S3_ACCESS_POINT_ARN", "arn:aws:s3:ap-northeast-1:123456789012:accesspoint/test-ap")
     monkeypatch.setenv("OUTPUT_BUCKET", "test-output-bucket")

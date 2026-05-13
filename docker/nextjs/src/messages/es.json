@@ -150,7 +150,22 @@
       "noResults": "No hay resultados de búsqueda accesibles",
       "fallbackToText": "Se cambió a entrada de texto",
       "shortcut": "Atajo: {shortcut}",
-      "silenceTimeout": "Grabación detenida por silencio detectado"
+      "silenceTimeout": "Grabación detenida por silencio detectado",
+      "webrtc": {
+        "connecting": "Estableciendo conexión en tiempo real...",
+        "connected": "Conectado en modo tiempo real",
+        "disconnected": "Conexión perdida",
+        "fallbackNotice": "No se puede conectar en modo tiempo real. Continuando en modo estándar",
+        "fallbackReason": "Tiempo de conexión agotado",
+        "qualityWarning": "La calidad de conexión está degradándose",
+        "modeSwitch": "Cambio de modo: {mode}",
+        "modeWebrtc": "Tiempo real",
+        "modeRest": "Estándar",
+        "reconnecting": "Reconectando...",
+        "manualReconnect": "Reconectar en modo tiempo real",
+        "silenceTimeout": "Transmisión pausada por silencio detectado",
+        "turnRelay": "Conectando a través del servidor de retransmisión"
+      }
     },
     "introduction": {
       "welcome": "¡Hola, {username}!",

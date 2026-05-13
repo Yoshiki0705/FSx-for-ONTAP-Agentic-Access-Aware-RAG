@@ -1,0 +1,3 @@
+# boto3 is already available in the Lambda runtime
+# Listed here for local development reference
+boto3>=1.34.0

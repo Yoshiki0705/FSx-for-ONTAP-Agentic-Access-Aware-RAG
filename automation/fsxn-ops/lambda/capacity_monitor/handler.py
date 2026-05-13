@@ -4,20 +4,24 @@ FSx for NetApp ONTAP 容量監視・自動拡張 Lambda
 EventBridge Scheduler (5分間隔) でトリガーされ、以下を実行する:
 1. FSx ONTAP ファイルシステムのストレージ容量使用率を監視
 2. 各ボリュームの使用率を監視
-3. 閾値超過時に自動拡張を実行
+3. 閾値超過時に自動拡張を実行 (ガードレールモジュールで安全性を担保)
 4. SNS 通知を送信
 
 環境変数:
-    FSX_FILESYSTEM_ID   : FSx ファイルシステム ID
-    ONTAP_SECRET_ID     : Secrets Manager シークレット ID (ONTAP 認証情報)
-    MANAGEMENT_LIF      : ONTAP 管理 LIF IP アドレス
-    SNS_TOPIC_ARN       : 通知先 SNS トピック ARN
-    FS_THRESHOLD_PCT    : ファイルシステム容量閾値 (デフォルト: 85)
-    VOL_THRESHOLD_PCT   : ボリューム容量閾値 (デフォルト: 80)
-    FS_GROW_PCT         : ファイルシステム拡張率 (デフォルト: 20)
-    VOL_GROW_PCT        : ボリューム拡張率 (デフォルト: 20)
-    AUTO_RESIZE_ENABLED : 自動拡張有効化 (デフォルト: false)
-    DRY_RUN             : ドライラン (デフォルト: true)
+    FSX_FILESYSTEM_ID      : FSx ファイルシステム ID
+    ONTAP_SECRET_ID        : Secrets Manager シークレット ID (ONTAP 認証情報)
+    MANAGEMENT_LIF         : ONTAP 管理 LIF IP アドレス
+    SNS_TOPIC_ARN          : 通知先 SNS トピック ARN
+    FS_THRESHOLD_PCT       : ファイルシステム容量閾値 (デフォルト: 85)
+    VOL_THRESHOLD_PCT      : ボリューム容量閾値 (デフォルト: 80)
+    FS_GROW_PCT            : ファイルシステム拡張率 (デフォルト: 20)
+    VOL_GROW_PCT           : ボリューム拡張率 (デフォルト: 20)
+    AUTO_RESIZE_ENABLED    : 自動拡張有効化 (デフォルト: false)
+    DRY_RUN                : ドライラン (デフォルト: true)
+    GUARDRAILS_TABLE_NAME  : ガードレール DynamoDB テーブル名
+    MAX_GROW_PER_ACTION_PCT: 1回あたり最大拡張率 (デフォルト: 50)
+    MAX_GROW_PER_DAY_GIB   : 1日あたり最大拡張量 GiB (デフォルト: 500)
+    COOLDOWN_MINUTES       : クールダウン期間 分 (デフォルト: 30)
 """
 
 import json
@@ -33,6 +37,13 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from common.ontap_client import OntapClient, OntapClientError
 from common.fsx_helpers import FsxHelper, FsxHelperError
+from common.guardrails import (
+    Decision,
+    GuardrailConfig,
+    GuardrailResult,
+    evaluate_expansion,
+    record_expansion,
+)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -53,7 +64,8 @@ def get_config() -> dict[str, Any]:
             "AUTO_RESIZE_ENABLED", "false"
         ).lower() == "true",
         "dry_run": os.environ.get("DRY_RUN", "true").lower() == "true",
-        # ガードレール: 暴走拡張の防止
+        # ガードレール設定
+        "guardrails_table_name": os.environ.get("GUARDRAILS_TABLE_NAME", ""),
         "max_grow_per_action_pct": float(
             os.environ.get("MAX_GROW_PER_ACTION_PCT", "50")
         ),
@@ -62,6 +74,17 @@ def get_config() -> dict[str, Any]:
         ),
         "cooldown_minutes": int(os.environ.get("COOLDOWN_MINUTES", "30")),
     }
+
+
+def _build_guardrail_config(config: dict[str, Any]) -> GuardrailConfig:
+    """設定辞書から GuardrailConfig を構築"""
+    return GuardrailConfig(
+        max_grow_per_action_pct=config["max_grow_per_action_pct"],
+        max_grow_per_day_gib=config["max_grow_per_day_gib"],
+        cooldown_minutes=config["cooldown_minutes"],
+        dry_run=config["dry_run"],
+        table_name=config["guardrails_table_name"],
+    )
 
 
 def send_notification(
@@ -98,14 +121,9 @@ def check_filesystem_capacity(
     utilization_points = metrics.get("StorageCapacityUtilization", [])
 
     if utilization_points:
-        # 最新のデータポイントを使用
         latest = max(utilization_points, key=lambda x: x["Timestamp"])
         utilization_pct = latest.get("Maximum", latest.get("Average", 0))
     else:
-        # CloudWatch メトリクスが取得できない場合
-        # 注: FSx ONTAP の StorageCapacityUtilization メトリクスは
-        # ファイルシステム作成直後やデータが少ない場合に取得できないことがある。
-        # この場合は 0% として扱い、ボリュームレベルの監視に委ねる。
         logger.warning(
             "CloudWatch StorageCapacityUtilization メトリクス取得不可 — "
             "FS レベル使用率は 0%% として扱います (ボリュームレベルは ONTAP API で監視)"
@@ -130,23 +148,54 @@ def check_filesystem_capacity(
         if new_capacity_gib - storage_capacity_gib < min_increase:
             new_capacity_gib = storage_capacity_gib + min_increase
 
-        if config["dry_run"]:
+        proposed_growth_gib = float(new_capacity_gib - storage_capacity_gib)
+
+        # ガードレール評価
+        guardrail_config = _build_guardrail_config(config)
+        guardrail_result = evaluate_expansion(
+            resource_id=fs_id,
+            resource_type="filesystem",
+            current_size_gib=float(storage_capacity_gib),
+            proposed_growth_gib=proposed_growth_gib,
+            config=guardrail_config,
+        )
+
+        if guardrail_result.decision == Decision.BLOCKED:
+            result["action_taken"] = (
+                f"ガードレール: ブロック — {guardrail_result.reason}"
+            )
+            logger.warning(result["action_taken"])
+            return result
+
+        if guardrail_result.decision == Decision.DRY_RUN:
             result["action_taken"] = (
                 f"[DRY RUN] ファイルシステム拡張: "
+                f"{storage_capacity_gib} GiB → {new_capacity_gib} GiB "
+                f"({guardrail_result.reason})"
+            )
+            logger.info(result["action_taken"])
+            return result
+
+        # Decision.ALLOWED — 実際に拡張を実行
+        try:
+            fsx.update_filesystem_storage_capacity(fs_id, new_capacity_gib)
+            result["action_taken"] = (
+                f"ファイルシステム拡張実行: "
                 f"{storage_capacity_gib} GiB → {new_capacity_gib} GiB"
             )
             logger.info(result["action_taken"])
-        else:
+            # 拡張成功を記録
             try:
-                fsx.update_filesystem_storage_capacity(fs_id, new_capacity_gib)
-                result["action_taken"] = (
-                    f"ファイルシステム拡張実行: "
-                    f"{storage_capacity_gib} GiB → {new_capacity_gib} GiB"
+                record_expansion(
+                    resource_id=fs_id,
+                    growth_gib=proposed_growth_gib,
+                    config=guardrail_config,
                 )
-                logger.info(result["action_taken"])
-            except FsxHelperError as e:
-                result["action_taken"] = f"拡張失敗: {e}"
-                logger.error(result["action_taken"])
+            except Exception as e:
+                logger.error("ガードレール記録失敗: %s", e)
+        except FsxHelperError as e:
+            result["action_taken"] = f"拡張失敗: {e}"
+            logger.error(result["action_taken"])
 
     return result
 
@@ -162,6 +211,8 @@ def check_volume_capacity(
     except OntapClientError as e:
         logger.error("ボリューム一覧取得失敗: %s", e)
         return [{"error": str(e)}]
+
+    guardrail_config = _build_guardrail_config(config)
 
     for vol in volumes:
         vol_name = vol.get("name", "unknown")
@@ -199,48 +250,57 @@ def check_volume_capacity(
             new_size_bytes = int(total_bytes * grow_factor)
             growth_bytes = new_size_bytes - total_bytes
             growth_gib = growth_bytes / (1024**3)
+            current_size_gib = total_bytes / (1024**3)
 
-            # ガードレール 1: 1 回あたりの最大拡張率
-            max_grow_pct = config["max_grow_per_action_pct"]
-            if config["vol_grow_pct"] > max_grow_pct:
+            # ガードレール評価
+            guardrail_result = evaluate_expansion(
+                resource_id=vol_uuid,
+                resource_type="volume",
+                current_size_gib=current_size_gib,
+                proposed_growth_gib=growth_gib,
+                config=guardrail_config,
+            )
+
+            if guardrail_result.decision == Decision.BLOCKED:
                 vol_result["action_taken"] = (
-                    f"ガードレール: 拡張率 {config['vol_grow_pct']}% が "
-                    f"上限 {max_grow_pct}% を超過 — スキップ"
+                    f"ガードレール: ブロック — {guardrail_result.reason}"
                 )
                 logger.warning(vol_result["action_taken"])
                 results.append(vol_result)
                 continue
 
-            # ガードレール 2: 1 日あたりの最大拡張量
-            max_grow_day_gib = config["max_grow_per_day_gib"]
-            if growth_gib > max_grow_day_gib:
-                vol_result["action_taken"] = (
-                    f"ガードレール: 拡張量 {growth_gib:.1f} GiB が "
-                    f"日次上限 {max_grow_day_gib} GiB を超過 — スキップ"
-                )
-                logger.warning(vol_result["action_taken"])
-                results.append(vol_result)
-                continue
-
-            if config["dry_run"]:
+            if guardrail_result.decision == Decision.DRY_RUN:
                 vol_result["action_taken"] = (
                     f"[DRY RUN] ボリューム拡張: {vol_name} "
+                    f"{vol_result['total_gib']} GiB → "
+                    f"{round(new_size_bytes / (1024**3), 2)} GiB "
+                    f"({guardrail_result.reason})"
+                )
+                logger.info(vol_result["action_taken"])
+                results.append(vol_result)
+                continue
+
+            # Decision.ALLOWED — 実際に拡張を実行
+            try:
+                ontap.resize_volume(vol_uuid, new_size_bytes)
+                vol_result["action_taken"] = (
+                    f"ボリューム拡張実行: {vol_name} "
                     f"{vol_result['total_gib']} GiB → "
                     f"{round(new_size_bytes / (1024**3), 2)} GiB"
                 )
                 logger.info(vol_result["action_taken"])
-            else:
+                # 拡張成功を記録
                 try:
-                    ontap.resize_volume(vol_uuid, new_size_bytes)
-                    vol_result["action_taken"] = (
-                        f"ボリューム拡張実行: {vol_name} "
-                        f"{vol_result['total_gib']} GiB → "
-                        f"{round(new_size_bytes / (1024**3), 2)} GiB"
+                    record_expansion(
+                        resource_id=vol_uuid,
+                        growth_gib=growth_gib,
+                        config=guardrail_config,
                     )
-                    logger.info(vol_result["action_taken"])
-                except OntapClientError as e:
-                    vol_result["action_taken"] = f"拡張失敗: {e}"
-                    logger.error(vol_result["action_taken"])
+                except Exception as e:
+                    logger.error("ガードレール記録失敗: %s", e)
+            except OntapClientError as e:
+                vol_result["action_taken"] = f"拡張失敗: {e}"
+                logger.error(vol_result["action_taken"])
 
         results.append(vol_result)
 

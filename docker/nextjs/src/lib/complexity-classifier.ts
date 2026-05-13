@@ -22,6 +22,29 @@ const ENGLISH_ANALYTICAL_KEYWORDS = [
   'discuss',
 ];
 
+/** ドキュメント分析意図キーワード（日本語） */
+const JAPANESE_DOCUMENT_INTENT_KEYWORDS = [
+  'この文書を要約',
+  'レポート全体を分析',
+  '文書全体',
+  'ドキュメントを要約',
+  '全文を分析',
+  '資料全体',
+  '報告書を要約',
+  'ファイル全体',
+];
+
+/** ドキュメント分析意図キーワード（英語） */
+const ENGLISH_DOCUMENT_INTENT_KEYWORDS = [
+  'summarize this document',
+  'analyze the full report',
+  'summarize the entire',
+  'analyze the whole',
+  'full document analysis',
+  'review the complete',
+  'process the entire',
+];
+
 /**
  * 文の数をカウントする。
  * 日本語: 「。」「？」で分割
@@ -63,23 +86,70 @@ function hasAnalyticalKeywords(query: string): boolean {
 }
 
 /**
+ * ドキュメント分析意図キーワードが含まれているかチェックする。
+ * 日本語・英語両方のキーワードリストを検索。
+ * 英語キーワードはcase-insensitiveで比較。
+ */
+export function hasDocumentAnalysisIntent(query: string): boolean {
+  const lowerQuery = query.toLowerCase();
+
+  for (const keyword of JAPANESE_DOCUMENT_INTENT_KEYWORDS) {
+    if (query.includes(keyword)) return true;
+  }
+
+  for (const keyword of ENGLISH_DOCUMENT_INTENT_KEYWORDS) {
+    if (lowerQuery.includes(keyword)) return true;
+  }
+
+  return false;
+}
+
+/** デフォルトのコンテキスト文字数閾値 */
+const DEFAULT_CONTEXT_SIZE_THRESHOLD = 4000;
+
+/**
  * クエリテキストの複雑度を分類する純粋関数。
  *
  * 分類アルゴリズム:
- * 1. 文字数: ≤100 → simple +0.3, >100 → complex +0.3
- * 2. 文の数: 1文 → simple +0.2, 複数文 → complex +0.2
- * 3. 分析的キーワード: 存在 → complex +0.3
- * 4. 複数質問: 疑問符2つ以上 → complex +0.2
+ * 1. Full-context判定: ドキュメント分析意図 AND コンテキスト > 閾値 → full-context
+ * 2. 文字数: ≤100 → simple +0.3, >100 → complex +0.3
+ * 3. 文の数: 1文 → simple +0.2, 複数文 → complex +0.2
+ * 4. 分析的キーワード: 存在 → complex +0.3
+ * 5. 複数質問: 疑問符2つ以上 → complex +0.2
  *
  * スコア合算: <0.5 → simple, ≥0.5 → complex
  * 信頼度 = |score - 0.5| * 2
  *
  * @param query - 分類対象のクエリテキスト
+ * @param contextSize - コンテキストの文字数（オプション、デフォルト0）
+ * @param contextSizeThreshold - full-context閾値（オプション、デフォルト4000）
  * @returns ClassificationResult
  */
-export function classifyQuery(query: string): ClassificationResult {
+export function classifyQuery(
+  query: string,
+  contextSize: number = 0,
+  contextSizeThreshold: number = DEFAULT_CONTEXT_SIZE_THRESHOLD
+): ClassificationResult {
   const trimmed = query.trim();
+  const documentIntent = hasDocumentAnalysisIntent(trimmed);
 
+  // Full-context classification: intent + context above threshold
+  if (documentIntent && contextSize > contextSizeThreshold) {
+    return {
+      classification: 'full-context',
+      confidence: 0.9,
+      features: {
+        charCount: trimmed.length,
+        sentenceCount: countSentences(trimmed),
+        hasAnalyticalKeywords: hasAnalyticalKeywords(trimmed),
+        hasMultipleQuestions: countQuestionMarks(trimmed) >= 2,
+        hasDocumentAnalysisIntent: true,
+        contextCharCount: contextSize,
+      },
+    };
+  }
+
+  // Existing simple/complex classification logic
   const charCount = trimmed.length;
   const sentenceCount = countSentences(trimmed);
   const analyticalKeywordsFound = hasAnalyticalKeywords(trimmed);
@@ -128,6 +198,8 @@ export function classifyQuery(query: string): ClassificationResult {
       sentenceCount,
       hasAnalyticalKeywords: analyticalKeywordsFound,
       hasMultipleQuestions: multipleQuestions,
+      hasDocumentAnalysisIntent: documentIntent,
+      contextCharCount: contextSize,
     },
   };
 }

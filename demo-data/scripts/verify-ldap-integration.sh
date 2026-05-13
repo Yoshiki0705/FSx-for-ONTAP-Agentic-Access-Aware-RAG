@@ -13,7 +13,7 @@ set -euo pipefail
 #   - CDKデプロイ済み（Security Stack更新）
 ###############################################################################
 
-REGION="ap-northeast-1"
+REGION="${AWS_REGION:-ap-northeast-1}"
 STACK_PREFIX="perm-rag-demo-demo"
 USER_ACCESS_TABLE="${STACK_PREFIX//-demo/}-demo-user-access"
 PASS_COUNT=0

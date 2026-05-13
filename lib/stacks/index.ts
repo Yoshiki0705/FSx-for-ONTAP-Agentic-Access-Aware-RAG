@@ -14,3 +14,5 @@ export { DemoStorageStack } from './demo/demo-storage-stack';
 export { DemoAIStack } from './demo/demo-ai-stack';
 export { DemoWebAppStack } from './demo/demo-webapp-stack';
 export { DemoEmbeddingStack } from './demo/demo-embedding-stack';
+export { DemoTransferFamilyStack } from './demo/demo-transfer-family-stack';
+export type { DemoTransferFamilyStackProps, TransferFamilyUserConfig, PermissionSet } from './demo/demo-transfer-family-stack';

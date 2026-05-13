@@ -170,7 +170,22 @@
       "noResults": "접근 가능한 검색 결과가 없습니다",
       "fallbackToText": "텍스트 입력으로 전환되었습니다",
       "shortcut": "단축키: {shortcut}",
-      "silenceTimeout": "무음이 감지되어 녹음이 중지되었습니다"
+      "silenceTimeout": "무음이 감지되어 녹음이 중지되었습니다",
+      "webrtc": {
+        "connecting": "실시간 연결을 설정 중...",
+        "connected": "실시간 모드로 연결됨",
+        "disconnected": "연결이 끊어졌습니다",
+        "fallbackNotice": "실시간 모드에 연결할 수 없습니다. 표준 모드로 계속합니다",
+        "fallbackReason": "연결 시간 초과",
+        "qualityWarning": "연결 품질이 저하되고 있습니다",
+        "modeSwitch": "모드 전환: {mode}",
+        "modeWebrtc": "실시간",
+        "modeRest": "표준",
+        "reconnecting": "재연결 중...",
+        "manualReconnect": "실시간 모드로 재연결",
+        "silenceTimeout": "무음이 감지되어 전송이 일시 중지되었습니다",
+        "turnRelay": "릴레이 서버를 통해 연결 중"
+      }
     },
     "introduction": {
       "welcome": "안녕하세요, {username}님!",

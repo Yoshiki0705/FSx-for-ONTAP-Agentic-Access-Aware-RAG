@@ -150,7 +150,22 @@
       "noResults": "沒有可存取的搜尋結果",
       "fallbackToText": "已切換至文字輸入",
       "shortcut": "快捷鍵: {shortcut}",
-      "silenceTimeout": "偵測到靜音，錄音已停止"
+      "silenceTimeout": "偵測到靜音，錄音已停止",
+      "webrtc": {
+        "connecting": "正在建立即時連線...",
+        "connected": "已連接即時模式",
+        "disconnected": "連線已中斷",
+        "fallbackNotice": "無法連接即時模式。將以標準模式繼續",
+        "fallbackReason": "連線逾時",
+        "qualityWarning": "連線品質正在下降",
+        "modeSwitch": "模式切換: {mode}",
+        "modeWebrtc": "即時",
+        "modeRest": "標準",
+        "reconnecting": "正在重新連線...",
+        "manualReconnect": "重新連接到即時模式",
+        "silenceTimeout": "偵測到靜音，傳輸已暫停",
+        "turnRelay": "正在透過中繼伺服器連線"
+      }
     },
     "introduction": {
       "welcome": "你好，{username}！",

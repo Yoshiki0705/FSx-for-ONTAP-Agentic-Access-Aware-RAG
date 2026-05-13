@@ -241,7 +241,22 @@
       "noResults": "No accessible search results",
       "fallbackToText": "Switched to text input",
       "shortcut": "Shortcut: {shortcut}",
-      "silenceTimeout": "Recording stopped due to silence detected"
+      "silenceTimeout": "Recording stopped due to silence detected",
+      "webrtc": {
+        "connecting": "Establishing real-time connection...",
+        "connected": "Connected in real-time mode",
+        "disconnected": "Connection lost",
+        "fallbackNotice": "Cannot connect in real-time mode. Continuing in standard mode",
+        "fallbackReason": "Connection timeout",
+        "qualityWarning": "Connection quality is degraded",
+        "modeSwitch": "Mode switch: {mode}",
+        "modeWebrtc": "Real-time",
+        "modeRest": "Standard",
+        "reconnecting": "Reconnecting...",
+        "manualReconnect": "Reconnect to real-time mode",
+        "silenceTimeout": "Transmission paused due to silence detected",
+        "turnRelay": "Connecting via relay server"
+      }
     }
   },
   "introduction": {

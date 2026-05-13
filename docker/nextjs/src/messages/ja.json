@@ -241,7 +241,22 @@
       "noResults": "アクセス可能な検索結果がありません",
       "fallbackToText": "テキスト入力に切り替えました",
       "shortcut": "ショートカット: {shortcut}",
-      "silenceTimeout": "無音が検出されたため録音を停止しました"
+      "silenceTimeout": "無音が検出されたため録音を停止しました",
+      "webrtc": {
+        "connecting": "リアルタイム接続を確立中...",
+        "connected": "リアルタイムモードで接続中",
+        "disconnected": "接続が切断されました",
+        "fallbackNotice": "リアルタイムモードに接続できません。標準モードで継続します",
+        "fallbackReason": "接続タイムアウト",
+        "qualityWarning": "接続品質が低下しています",
+        "modeSwitch": "モード切替: {mode}",
+        "modeWebrtc": "リアルタイム",
+        "modeRest": "標準",
+        "reconnecting": "再接続中...",
+        "manualReconnect": "リアルタイムモードに再接続",
+        "silenceTimeout": "無音が検出されたため送信を一時停止しました",
+        "turnRelay": "リレーサーバー経由で接続中"
+      }
     }
   },
   "introduction": {

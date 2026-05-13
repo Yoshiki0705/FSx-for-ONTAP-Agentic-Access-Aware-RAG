@@ -19,7 +19,8 @@ const PROVIDER_CATEGORIES = {
   'Cohere': { name: 'Cohere', color: 'bg-green-50 border-green-200 text-green-800' },
   'AI21': { name: 'AI21', color: 'bg-indigo-50 border-indigo-200 text-indigo-800' },
   'Stability AI': { name: 'Stability AI', color: 'bg-pink-50 border-pink-200 text-pink-800' },
-  'Mistral AI': { name: 'Mistral AI', color: 'bg-yellow-50 border-yellow-200 text-yellow-800' }
+  'Mistral AI': { name: 'Mistral AI', color: 'bg-yellow-50 border-yellow-200 text-yellow-800' },
+  'OpenAI': { name: 'OpenAI', color: 'bg-emerald-50 border-emerald-200 text-emerald-800' }
 } as const;
 
 export function AvailableModelsList({ 
