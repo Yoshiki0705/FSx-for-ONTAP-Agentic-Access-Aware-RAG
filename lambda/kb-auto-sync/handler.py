@@ -64,7 +64,11 @@ def lambda_handler(event: dict, context: Any) -> dict:
             kb_id, ds_id, diff, bedrock_client=bedrock_agent
         )
         if job_id:
-            # 5. インベントリ更新（成功時のみ）
+            # 5. インベントリ更新（StartIngestionJob 受理後）
+            # NOTE: 現在は job_id が返った時点（API受理）で更新する。
+            # ジョブが後で FAILED になった場合、次回スキャンで差分が隠れる可能性がある。
+            # TODO: pending/commit モデルへ移行 — mark_inventory_pending() で仮更新し、
+            #       ジョブが SUCCEEDED に到達した後に commit_inventory() で確定する。
             update_inventory(table, current_files, previous_files, job_id)
     else:
         logger.info("No changes detected, skipping ingestion")

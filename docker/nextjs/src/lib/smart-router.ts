@@ -43,7 +43,14 @@ export function emitRoutingMetric(decision: RoutingDecision): void {
   );
 }
 
-/** GPT-5.5 モデルID（手動選択専用、自動ルーティング対象外） */
+/**
+ * GPT-5.5 モデルID（手動選択専用、自動ルーティング対象外）
+ *
+ * NOTE: OpenAI models on Amazon Bedrock are available in limited preview.
+ * The exact model ID, Region availability, inference profile, and access
+ * status may vary by account. Verify in your AWS account before enabling.
+ * See: https://aws.amazon.com/bedrock/
+ */
 export const GPT_5_5_MODEL_ID = 'openai.gpt-5-5';
 
 /** デフォルトのSmartRouter設定 */

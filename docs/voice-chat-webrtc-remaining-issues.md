@@ -17,6 +17,8 @@
   - `docker/pipecat-agent/` ディレクトリのイメージをビルドして ECR にプッシュ
   - `docker buildx build --provenance=false --sbom=false --platform linux/amd64 --push` を使用すること
   - AgentCore Runtime エージェント作成の前提条件
+  - **本番前に対応必須**: 認証、rate limiting、CORS tightening、sanitized logging、input validation
+    - 参考: [Pipecat AgentCore WebRTC KVS Example](https://github.com/pipecat-ai/pipecat-examples/tree/main/deployment/aws-agentcore-webrtc-kvs)
 
 ---
 
@@ -79,3 +81,9 @@
 - [デプロイメント トラブルシューティング](deployment-troubleshooting.md) — Section 16-19
 - [CHANGELOG](../CHANGELOG.md) — [4.2.0] Voice Chat Phase 2 セクション
 - [README 実装概要](../README.md) — Row 18.1
+
+## 🔗 外部リファレンス
+
+- [Pipecat AgentCore WebRTC KVS Example](https://github.com/pipecat-ai/pipecat-examples/tree/main/deployment/aws-agentcore-webrtc-kvs) — KVS managed TURN、production-readiness concerns（認証、rate limiting、CORS、ログ、入力検証）
+- [Deploy voice agents with Pipecat and Amazon Bedrock AgentCore Runtime – Part 1](https://aws.amazon.com/blogs/machine-learning/deploy-voice-agents-with-pipecat-and-amazon-bedrock-agentcore-runtime-part-1/) — WebSocket/WebRTC/telephony transport の解説
+- [AWS Transfer Family + FSx for ONTAP S3 Access Points](https://docs.aws.amazon.com/transfer/latest/userguide/fsx-s3-access-points.html) — 前提条件、制限事項
