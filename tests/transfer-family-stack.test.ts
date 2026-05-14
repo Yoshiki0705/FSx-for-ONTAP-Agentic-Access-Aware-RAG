@@ -118,6 +118,32 @@ describe('DemoTransferFamilyStack', () => {
         Description: Match.stringLikeRegexp('Demo SFTP user SSH key'),
       });
     });
+
+    test('SFTP user IAM policy denies .metadata.json write/delete', () => {
+      const template = createStack({
+        transferFamilyUsers: [{
+          userName: 'partner-a',
+          sshPublicKey: 'ssh-rsa AAAA... partner-a@test',
+        }],
+      });
+
+      template.hasResourceProperties('AWS::IAM::Role', {
+        Policies: Match.arrayWith([
+          Match.objectLike({
+            PolicyName: 's3Access',
+            PolicyDocument: Match.objectLike({
+              Statement: Match.arrayWith([
+                Match.objectLike({
+                  Effect: 'Deny',
+                  Action: ['s3:PutObject', 's3:DeleteObject'],
+                  Resource: Match.stringLikeRegexp('.*\\.metadata\\.json'),
+                }),
+              ]),
+            }),
+          }),
+        ]),
+      });
+    });
   });
 
   describe('DynamoDB Tables', () => {

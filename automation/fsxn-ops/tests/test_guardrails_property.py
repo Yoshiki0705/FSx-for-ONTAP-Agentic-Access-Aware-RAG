@@ -555,3 +555,130 @@ class TestProperty9IndependentResourceTracking:
 
         # Resource B allowed (no prior state)
         assert result_b.decision == Decision.ALLOWED
+
+
+# ---------------------------------------------------------------------------
+# Property 10: Conditional write rejects when daily action limit reached
+# ---------------------------------------------------------------------------
+
+
+class TestProperty10ConditionalWriteRejectsAtLimit:
+    """Property 10: record_expansion raises ClientError when daily action limit is reached."""
+
+    def test_conditional_check_failed_raises(self):
+        """record_expansion raises ClientError with ConditionalCheckFailedException."""
+        config = GuardrailConfig(
+            max_grow_per_action_pct=50.0,
+            max_grow_per_day_gib=999999.0,
+            cooldown_minutes=0,
+            dry_run=False,
+            table_name="test-table",
+            daily_max_actions=10,
+        )
+
+        mock_ddb = MagicMock()
+        mock_ddb.update_item.side_effect = ClientError(
+            {"Error": {"Code": "ConditionalCheckFailedException", "Message": "Condition not met"}},
+            "UpdateItem",
+        )
+
+        now = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+
+        with pytest.raises(ClientError) as exc_info:
+            record_expansion(
+                resource_id="test-resource",
+                growth_gib=5.0,
+                config=config,
+                dynamodb_client=mock_ddb,
+                now=now,
+            )
+
+        assert exc_info.value.response['Error']['Code'] == 'ConditionalCheckFailedException'
+
+    def test_record_expansion_passes_max_actions_to_condition(self):
+        """record_expansion includes ConditionExpression and :max_actions in the DynamoDB call."""
+        config = GuardrailConfig(
+            max_grow_per_action_pct=50.0,
+            max_grow_per_day_gib=999999.0,
+            cooldown_minutes=0,
+            dry_run=False,
+            table_name="test-table",
+            daily_max_actions=25,
+        )
+
+        mock_ddb = MagicMock()
+        mock_ddb.update_item.return_value = {}
+
+        now = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+
+        record_expansion(
+            resource_id="test-resource",
+            growth_gib=5.0,
+            config=config,
+            dynamodb_client=mock_ddb,
+            now=now,
+        )
+
+        # Verify the update_item call includes ConditionExpression
+        call_kwargs = mock_ddb.update_item.call_args[1]
+        assert "ConditionExpression" in call_kwargs
+        assert "attribute_not_exists(action_count) OR action_count < :max_actions" == call_kwargs["ConditionExpression"]
+        assert ":max_actions" in call_kwargs["ExpressionAttributeValues"]
+        assert call_kwargs["ExpressionAttributeValues"][":max_actions"] == {"N": "25"}
+
+    def test_record_expansion_success_without_limit(self):
+        """record_expansion succeeds when under the daily action limit."""
+        config = GuardrailConfig(
+            max_grow_per_action_pct=50.0,
+            max_grow_per_day_gib=999999.0,
+            cooldown_minutes=0,
+            dry_run=False,
+            table_name="test-table",
+            daily_max_actions=50,
+        )
+
+        mock_ddb = MagicMock()
+        mock_ddb.update_item.return_value = {}
+
+        now = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+
+        # Should not raise
+        record_expansion(
+            resource_id="test-resource",
+            growth_gib=5.0,
+            config=config,
+            dynamodb_client=mock_ddb,
+            now=now,
+        )
+
+        mock_ddb.update_item.assert_called_once()
+
+    def test_other_client_error_still_raises(self):
+        """record_expansion re-raises non-conditional ClientErrors."""
+        config = GuardrailConfig(
+            max_grow_per_action_pct=50.0,
+            max_grow_per_day_gib=999999.0,
+            cooldown_minutes=0,
+            dry_run=False,
+            table_name="test-table",
+            daily_max_actions=50,
+        )
+
+        mock_ddb = MagicMock()
+        mock_ddb.update_item.side_effect = ClientError(
+            {"Error": {"Code": "InternalServerError", "Message": "DDB failure"}},
+            "UpdateItem",
+        )
+
+        now = datetime(2024, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+
+        with pytest.raises(ClientError) as exc_info:
+            record_expansion(
+                resource_id="test-resource",
+                growth_gib=5.0,
+                config=config,
+                dynamodb_client=mock_ddb,
+                now=now,
+            )
+
+        assert exc_info.value.response['Error']['Code'] == 'InternalServerError'

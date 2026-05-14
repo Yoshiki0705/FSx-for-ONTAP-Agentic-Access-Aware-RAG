@@ -62,6 +62,7 @@ class GuardrailConfig:
     dry_run: bool
     table_name: str
     cloudwatch_namespace: str = "FSxNOps/Guardrails"
+    daily_max_actions: int = 50  # Max number of expansion actions per resource per day
 
 
 # ---------------------------------------------------------------------------
@@ -299,11 +300,15 @@ def record_expansion(
                 "ADD daily_total_gib :growth, action_count :one "
                 "SET last_action_timestamp = :ts, ttl_epoch = :ttl"
             ),
+            ConditionExpression=(
+                "attribute_not_exists(action_count) OR action_count < :max_actions"
+            ),
             ExpressionAttributeValues={
                 ":growth": {"N": str(growth_gib)},
                 ":one": {"N": "1"},
                 ":ts": {"S": timestamp_str},
                 ":ttl": {"N": str(ttl_epoch)},
+                ":max_actions": {"N": str(config.daily_max_actions)},
             },
         )
         logger.info(
@@ -312,7 +317,18 @@ def record_expansion(
             growth_gib,
             today_str,
         )
-    except (ClientError, Exception) as e:
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+            logger.warning(
+                "Conditional write rejected for resource_id=%s: daily action limit reached",
+                resource_id,
+            )
+            raise
+        logger.error(
+            "DynamoDB write failed for resource_id=%s: %s", resource_id, e
+        )
+        raise
+    except Exception as e:
         logger.error(
             "DynamoDB write failed for resource_id=%s: %s", resource_id, e
         )
