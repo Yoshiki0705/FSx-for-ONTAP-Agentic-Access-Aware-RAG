@@ -37,6 +37,9 @@
 | [docs/governance-and-audit.md](governance-and-audit.md) | ガバナンス・監査設計（監査ログスキーマ、Responsible AI、Guardrailsポリシー、業種別ユースケース） |
 | [docs/evaluation.md](evaluation.md) | RAG / Agent 評価メトリクス（ビジネスKPI、RAG品質、権限制御、Agent性能の4軸評価、PoC評価テンプレート） |
 | [docs/safe-experimentation-guide.md](safe-experimentation-guide.md) | 安全な実験ガイド（試行範囲定義、禁止事項、実データ投入チェックリスト、ロールバック手順） |
+| [docs/threat-model.md](threat-model.md) | 脅威モデル（10の脅威カテゴリ、攻撃経路、既存緩和策、追加推奨、脅威→対策マッピング表） |
+| [docs/cloudwatch-dashboard-guide.md](cloudwatch-dashboard-guide.md) | CloudWatch ダッシュボード運用ガイド（メトリクス一覧、アラーム定義、トラブルシューティングパターン） |
+| [docs/poc-workshop-guide.md](poc-workshop-guide.md) | PoC ワークショップガイド（90分、デプロイ→テスト→評価→クリーンアップ） |
 | [tests/permission-matrix/](../tests/permission-matrix/) | 権限マトリクステスト（ACLエッジケース31シナリオ: Fail-Closed、グループネスティング、継承権限、緊急剥奪） |
 
 ## FSx ONTAP 運用自動化
