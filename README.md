@@ -90,7 +90,22 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | [RAG / Agent 評価フレームワーク](docs/evaluation.md) | ビジネス KPI、RAG 品質、権限制御、Agent 性能の 4 軸評価テンプレート |
 | [安全な実験ガイド](docs/safe-experimentation-guide.md) | 安全に試せる範囲、禁止事項、実データ投入前チェックリスト、ロールバック手順 |
 
+| [脅威モデル](docs/threat-model.md) | 10 の脅威カテゴリ、攻撃経路、既存緩和策、脅威→対策マッピング表 |
+| [CloudWatch ダッシュボードガイド](docs/cloudwatch-dashboard-guide.md) | 運用監視メトリクス、アラーム定義、トラブルシューティングパターン |
+| [PoC ワークショップガイド](docs/poc-workshop-guide.md) | 90 分で体験できるハンズオン（デプロイ→テスト→評価→クリーンアップ） |
+
 > 権限制御の正しさは [tests/permission-matrix/](tests/permission-matrix/) の 31 テストシナリオ（ACL エッジケース、Fail-Closed、グループネスティング、継承権限）で検証しています。
+
+---
+
+## Roadmap
+
+今後のリリースで以下の強化を予定しています:
+
+- Athena テーブル定義（監査ログ分析用）
+- ベンチマークシナリオ（10K / 100K / 1M ファイル）
+- コスト見積もりワークシート
+- Architecture Decision Records（ベクトルストア、ID 連携の意思決定記録）
 
 ---
 

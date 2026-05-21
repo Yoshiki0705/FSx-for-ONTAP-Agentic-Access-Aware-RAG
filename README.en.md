@@ -76,8 +76,22 @@ This sample includes additional guides for evaluating and operating access-aware
 | [Governance & Audit Design](docs/en/governance-and-audit.md) | Audit log schema, Responsible AI, Guardrails policy, industry use cases |
 | [RAG / Agent Evaluation Framework](docs/en/evaluation.md) | 4-axis evaluation template: Business KPI, RAG quality, permissions, Agent performance |
 | [Safe Experimentation Guide](docs/en/safe-experimentation-guide.md) | Safe scope, prohibited actions, real data checklist, rollback procedures |
+| [Threat Model](docs/en/threat-model.md) | 10 threat categories, attack paths, existing mitigations, threat-to-control mapping |
+| [CloudWatch Dashboard Guide](docs/en/cloudwatch-dashboard-guide.md) | Operations metrics, alarm definitions, troubleshooting patterns |
+| [PoC Workshop Guide](docs/en/poc-workshop-guide.md) | 90-minute hands-on (deploy → test → evaluate → cleanup) |
 
 > Permission control correctness is verified by [31 test scenarios](tests/permission-matrix/) covering ACL edge cases, Fail-Closed behavior, group nesting, inherited permissions, and emergency revocation.
+
+---
+
+## Roadmap
+
+The following enhancements are planned for future releases:
+
+- Athena table definitions for audit log analysis
+- Benchmark scenarios for 10K / 100K / 1M files
+- Cost estimation worksheet
+- Architecture Decision Records (vector store, identity integration)
 
 ---
 
