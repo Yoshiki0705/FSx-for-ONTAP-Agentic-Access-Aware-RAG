@@ -59,6 +59,24 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+## Guía de diseño y operación empresarial
+
+Este ejemplo proporciona las siguientes guías adicionales para la evaluación desde PoC hasta producción:
+
+| Guía | Descripción |
+|------|-------------|
+| [Lista de verificación de producción](docs/es/production-readiness-checklist.md) | Niveles de madurez Demo → PoC → Production y listas de verificación de migración |
+| [Modelo de consistencia de permisos](docs/es/permission-consistency.md) | Flujo de propagación de cambios ACL, retraso máximo, procedimiento de revocación de emergencia |
+| [Dimensionamiento y rendimiento de FSx for ONTAP](docs/es/fsxn-sizing-and-performance.md) | Configuraciones recomendadas por escala, consideraciones S3 AP, QoS, selección de vector store |
+| [Patrones de despliegue para socios](docs/es/partner-deployment-patterns.md) | Diseño multi-tenant (aislamiento de cuenta / SVM / híbrido), estimación de costos |
+| [Gobernanza y auditoría](docs/es/governance-and-audit.md) | Esquema de logs de auditoría, IA responsable, política de Guardrails, casos de uso por industria |
+| [Framework de evaluación RAG / Agent](docs/es/evaluation.md) | Plantilla de evaluación de 4 ejes: KPI de negocio, calidad RAG, control de permisos, rendimiento Agent |
+| [Guía de experimentación segura](docs/es/safe-experimentation-guide.md) | Alcance seguro, acciones prohibidas, checklist pre-datos reales, procedimientos de rollback |
+
+> La corrección del control de permisos se verifica mediante [31 escenarios de prueba](tests/permission-matrix/) que cubren casos límite de ACL, comportamiento Fail-Closed, anidamiento de grupos y permisos heredados.
+
+---
+
 ## Descripción general de la implementación (15 perspectivas)
 
 La implementación de este sistema está organizada en 15 perspectivas. Para detalles de cada elemento, consulte [docs/implementation-overview.md](docs/implementation-overview.md).

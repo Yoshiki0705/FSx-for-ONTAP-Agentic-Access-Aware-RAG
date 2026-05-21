@@ -59,6 +59,24 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+## 엔터프라이즈 설계 및 운영 가이드
+
+본 샘플은 PoC에서 프로덕션 검토까지 지원하기 위해 다음 추가 가이드를 제공합니다.
+
+| 가이드 | 내용 |
+|--------|------|
+| [프로덕션 준비 체크리스트](docs/ko/production-readiness-checklist.md) | Demo → PoC → Production 성숙도 레벨 정의 및 마이그레이션 체크리스트 |
+| [권한 정합성 모델](docs/ko/permission-consistency.md) | ACL 변경 전파 흐름, 최대 지연, 긴급 권한 박탈 절차 |
+| [FSx for ONTAP 사이징 및 성능 설계](docs/ko/fsxn-sizing-and-performance.md) | 규모별 구성 권장, S3 AP 고려사항, QoS, 벡터 스토어 선정 |
+| [파트너 배포 패턴](docs/ko/partner-deployment-patterns.md) | 멀티테넌트 설계(계정 분리 / SVM 분리 / 하이브리드), 비용 견적 |
+| [거버넌스 및 감사 설계](docs/ko/governance-and-audit.md) | 감사 로그 스키마, Responsible AI, Guardrails 정책, 업종별 유스케이스 |
+| [RAG / Agent 평가 프레임워크](docs/ko/evaluation.md) | 비즈니스 KPI, RAG 품질, 권한 제어, Agent 성능의 4축 평가 템플릿 |
+| [안전한 실험 가이드](docs/ko/safe-experimentation-guide.md) | 안전한 실험 범위, 금지 사항, 실데이터 투입 전 체크리스트, 롤백 절차 |
+
+> 권한 제어의 정확성은 [tests/permission-matrix/](tests/permission-matrix/)의 31개 테스트 시나리오(ACL 엣지 케이스, Fail-Closed, 그룹 네스팅, 상속 권한)로 검증됩니다.
+
+---
+
 ## 구현 개요 (15가지 관점)
 
 이 시스템의 구현은 15가지 관점으로 구성되어 있습니다. 각 항목의 상세 내용은 [docs/implementation-overview.md](docs/implementation-overview.md)를 참조하세요.

@@ -59,6 +59,24 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+## Guide de conception et d'exploitation entreprise
+
+Cet exemple fournit les guides supplémentaires suivants pour l'évaluation du PoC à la production :
+
+| Guide | Description |
+|-------|-------------|
+| [Liste de contrôle de production](docs/fr/production-readiness-checklist.md) | Niveaux de maturité Demo → PoC → Production et listes de contrôle de migration |
+| [Modèle de cohérence des permissions](docs/fr/permission-consistency.md) | Flux de propagation des changements ACL, délai maximum, procédure de révocation d'urgence |
+| [Dimensionnement et performance FSx for ONTAP](docs/fr/fsxn-sizing-and-performance.md) | Configurations recommandées par échelle, considérations S3 AP, QoS, sélection du vector store |
+| [Modèles de déploiement partenaire](docs/fr/partner-deployment-patterns.md) | Conception multi-tenant (isolation compte / SVM / hybride), estimation des coûts |
+| [Gouvernance et audit](docs/fr/governance-and-audit.md) | Schéma de logs d'audit, IA responsable, politique Guardrails, cas d'usage par secteur |
+| [Framework d'évaluation RAG / Agent](docs/fr/evaluation.md) | Modèle d'évaluation à 4 axes : KPI métier, qualité RAG, contrôle des permissions, performance Agent |
+| [Guide d'expérimentation sécurisée](docs/fr/safe-experimentation-guide.md) | Périmètre sûr, actions interdites, checklist pré-données réelles, procédures de rollback |
+
+> La validité du contrôle des permissions est vérifiée par [31 scénarios de test](tests/permission-matrix/) couvrant les cas limites ACL, le comportement Fail-Closed, l'imbrication de groupes et les permissions héritées.
+
+---
+
 ## Vue d'ensemble de l'implémentation (15 perspectives)
 
 L'implémentation de ce système est organisée en 15 perspectives. Pour les détails de chaque élément, consultez [docs/implementation-overview.md](docs/implementation-overview.md).

@@ -59,6 +59,24 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+## Enterprise-Design- und Betriebsleitfaden
+
+Dieses Beispiel enthält zusätzliche Leitfäden für die Bewertung und den Betrieb von zugriffsbewusstem RAG in Unternehmensumgebungen:
+
+| Leitfaden | Beschreibung |
+|-----------|-------------|
+| [Produktionsbereitschafts-Checkliste](docs/de/production-readiness-checklist.md) | Demo → PoC → Production Reifegrade und Migrations-Checklisten |
+| [Berechtigungskonsistenzmodell](docs/de/permission-consistency.md) | ACL-Änderungspropagationsfluss, maximale Verzögerung, Notfall-Berechtigungsentzug |
+| [FSx for ONTAP Dimensionierung und Leistung](docs/de/fsxn-sizing-and-performance.md) | Skalenbasierte Konfigurationen, S3 AP Überlegungen, QoS, Vector Store Auswahl |
+| [Partner-Bereitstellungsmuster](docs/de/partner-deployment-patterns.md) | Multi-Tenant-Design (Konto- / SVM- / Hybrid-Isolation), Kostenschätzung |
+| [Governance und Audit-Design](docs/de/governance-and-audit.md) | Audit-Log-Schema, Verantwortungsvolle KI, Guardrails-Richtlinien, Branchenanwendungsfälle |
+| [RAG / Agent Bewertungsframework](docs/de/evaluation.md) | 4-Achsen-Bewertungsvorlage: Business-KPI, RAG-Qualität, Berechtigungskontrolle, Agent-Leistung |
+| [Leitfaden für sicheres Experimentieren](docs/de/safe-experimentation-guide.md) | Sicherer Umfang, verbotene Aktionen, Checkliste vor Echtdaten, Rollback-Verfahren |
+
+> Die Korrektheit der Berechtigungskontrolle wird durch [31 Testszenarien](tests/permission-matrix/) verifiziert, die ACL-Grenzfälle, Fail-Closed-Verhalten, Gruppenverschachtelung und vererbte Berechtigungen abdecken.
+
+---
+
 ## Implementierungsübersicht (15 Perspektiven)
 
 Die Implementierung dieses Systems ist in 15 Perspektiven organisiert. Details zu jedem Punkt finden Sie unter [docs/implementation-overview.md](docs/implementation-overview.md).
