@@ -26,6 +26,19 @@
 | [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD連携・CIFS共有・NTFS ACL設定・Name-Mapping設定（検証済み手順） |
 | [docs/demo-environment-guide.md](demo-environment-guide.md) | 検証環境のリソースID・アクセス情報・Embeddingサーバー手順 |
 
+## エンタープライズ設計・運用ガイド
+
+| ドキュメント | 内容 |
+|-------------|------|
+| [docs/production-readiness-checklist.md](production-readiness-checklist.md) | 本番化チェックリスト（Demo → PoC → Production の成熟度レベル定義、セキュリティ・監査・DR・運用の確認項目） |
+| [docs/permission-consistency.md](permission-consistency.md) | 権限変更時の整合性モデル（ACL変更→メタデータ再生成→KB再同期→キャッシュ無効化のフロー、最大遅延、緊急権限剥奪手順） |
+| [docs/fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP 性能・容量設計ガイド（規模別構成、S3 AP考慮点、QoS、ベクトルストア選定） |
+| [docs/partner-deployment-patterns.md](partner-deployment-patterns.md) | マルチテナント・パートナー展開パターン（アカウント分離/SVM分離/ハイブリッド、コスト見積もりテンプレート） |
+| [docs/governance-and-audit.md](governance-and-audit.md) | ガバナンス・監査設計（監査ログスキーマ、Responsible AI、Guardrailsポリシー、業種別ユースケース） |
+| [docs/evaluation.md](evaluation.md) | RAG / Agent 評価メトリクス（ビジネスKPI、RAG品質、権限制御、Agent性能の4軸評価、PoC評価テンプレート） |
+| [docs/safe-experimentation-guide.md](safe-experimentation-guide.md) | 安全な実験ガイド（試行範囲定義、禁止事項、実データ投入チェックリスト、ロールバック手順） |
+| [tests/permission-matrix/](../tests/permission-matrix/) | 権限マトリクステスト（ACLエッジケース31シナリオ: Fail-Closed、グループネスティング、継承権限、緊急剥奪） |
+
 ## FSx ONTAP 運用自動化
 
 | ドキュメント | 内容 |
@@ -72,13 +85,26 @@
 
 ## 推奨読書順序
 
+### 初回セットアップ
+
 1. **README.md** — システム全体像とデプロイ手順
 2. **auth-and-user-management.md** — 認証モード選択とユーザー管理
-3. **implementation-overview.md** — 13の観点での実装内容詳細
+3. **implementation-overview.md** — 22の観点での実装内容詳細
 4. **SID-Filtering-Architecture.md** — コア機能の技術詳細
-4. **demo-recording-guide.md** — 検証デモ動画撮影手順書
-5. **ontap-setup-guide.md** — FSx ONTAP AD連携・CIFS共有設定
-6. **README.md#AD SAMLフェデレーション** — AD SAMLフェデレーション セットアップ（オプション）
-7. **demo-environment-guide.md** — 検証環境セットアップ（Embeddingサーバー含む）
-8. **demo-scenario.md** — 検証シナリオの実行（AD SSOサインイン含む）
-9. **verification-report.md** — API レベルの検証手順
+5. **safe-experimentation-guide.md** — 安全な実験ガイド（PoC開始前に必読）
+
+### 検証・評価
+
+6. **demo-recording-guide.md** — 検証デモ動画撮影手順書
+7. **ontap-setup-guide.md** — FSx ONTAP AD連携・CIFS共有設定
+8. **demo-environment-guide.md** — 検証環境セットアップ
+9. **demo-scenario.md** — 検証シナリオの実行
+10. **evaluation.md** — PoC評価テンプレート
+
+### 本番化・エンタープライズ設計
+
+11. **production-readiness-checklist.md** — 本番化チェックリスト
+12. **permission-consistency.md** — 権限変更時の整合性モデル
+13. **fsxn-sizing-and-performance.md** — FSx for ONTAP 性能・容量設計
+14. **governance-and-audit.md** — ガバナンス・監査設計
+15. **partner-deployment-patterns.md** — マルチテナント展開パターン
