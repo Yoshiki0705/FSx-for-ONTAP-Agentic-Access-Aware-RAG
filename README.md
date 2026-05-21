@@ -76,6 +76,24 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
                                 +------------------+
 ```
 
+## エンタープライズ設計・運用ガイド
+
+本サンプルは、PoC から本番検討までを支援するため、以下の追加ガイドを提供しています。
+
+| ガイド | 内容 |
+|--------|------|
+| [本番化チェックリスト](docs/production-readiness-checklist.md) | Demo → PoC → Production の成熟度レベル定義と移行チェックリスト |
+| [権限整合性モデル](docs/permission-consistency.md) | ACL 変更の伝播フロー、最大遅延、緊急権限剥奪手順 |
+| [FSx for ONTAP サイジング・性能設計](docs/fsxn-sizing-and-performance.md) | 規模別構成推奨、S3 AP 考慮点、QoS、ベクトルストア選定 |
+| [パートナー展開パターン](docs/partner-deployment-patterns.md) | マルチテナント設計（アカウント分離 / SVM 分離 / ハイブリッド）、コスト見積もり |
+| [ガバナンス・監査設計](docs/governance-and-audit.md) | 監査ログスキーマ、Responsible AI、Guardrails ポリシー、業種別ユースケース |
+| [RAG / Agent 評価フレームワーク](docs/evaluation.md) | ビジネス KPI、RAG 品質、権限制御、Agent 性能の 4 軸評価テンプレート |
+| [安全な実験ガイド](docs/safe-experimentation-guide.md) | 安全に試せる範囲、禁止事項、実データ投入前チェックリスト、ロールバック手順 |
+
+> 権限制御の正しさは [tests/permission-matrix/](tests/permission-matrix/) の 31 テストシナリオ（ACL エッジケース、Fail-Closed、グループネスティング、継承権限）で検証しています。
+
+---
+
 ## 実装概要（22の観点）
 
 本システムの実装内容を22の観点で整理しています。各項目の詳細は [docs/implementation-overview.md](docs/implementation-overview.md) を参照してください。

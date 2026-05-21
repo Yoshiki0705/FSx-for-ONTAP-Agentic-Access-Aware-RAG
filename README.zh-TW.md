@@ -59,6 +59,24 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+## 企業設計與維運指南
+
+本範例提供以下附加指南，支援從 PoC 到正式環境的評估：
+
+| 指南 | 內容 |
+|------|------|
+| [正式環境準備檢查清單](docs/zh-TW/production-readiness-checklist.md) | Demo → PoC → Production 成熟度等級定義和遷移檢查清單 |
+| [權限一致性模型](docs/zh-TW/permission-consistency.md) | ACL 變更傳播流程、最大延遲、緊急權限撤銷程序 |
+| [FSx for ONTAP 容量與效能設計](docs/zh-TW/fsxn-sizing-and-performance.md) | 按規模推薦配置、S3 AP 注意事項、QoS、向量儲存選擇 |
+| [合作夥伴部署模式](docs/zh-TW/partner-deployment-patterns.md) | 多租戶設計（帳戶隔離 / SVM 隔離 / 混合）、成本估算 |
+| [治理與稽核設計](docs/zh-TW/governance-and-audit.md) | 稽核日誌架構、負責任 AI、Guardrails 政策、產業用例 |
+| [RAG / Agent 評估框架](docs/zh-TW/evaluation.md) | 業務 KPI、RAG 品質、權限控制、Agent 效能的 4 軸評估範本 |
+| [安全實驗指南](docs/zh-TW/safe-experimentation-guide.md) | 安全實驗範圍、禁止事項、真實資料匯入前檢查清單、回復程序 |
+
+> 權限控制的正確性透過 [tests/permission-matrix/](tests/permission-matrix/) 中的 31 個測試情境（ACL 邊緣情況、Fail-Closed、群組巢狀、繼承權限）進行驗證。
+
+---
+
 ## 實作概覽（15 個面向）
 
 本系統的實作分為 13 個面向。各項目的詳細資訊請參閱 [docs/implementation-overview.md](docs/implementation-overview.md)。

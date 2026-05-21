@@ -63,6 +63,24 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+## Enterprise Readiness
+
+This sample includes additional guides for evaluating and operating access-aware RAG in enterprise environments:
+
+| Guide | Description |
+|-------|-------------|
+| [Production Readiness Checklist](docs/en/production-readiness-checklist.md) | Demo → PoC → Production maturity levels and migration checklists |
+| [Permission Consistency Model](docs/en/permission-consistency.md) | ACL change propagation flow, max delay, emergency revocation procedure |
+| [FSx for ONTAP Sizing & Performance](docs/en/fsxn-sizing-and-performance.md) | Scale-based configurations, S3 AP considerations, QoS, vector store selection |
+| [Partner Deployment Patterns](docs/en/partner-deployment-patterns.md) | Multi-tenant design (account / SVM / hybrid isolation), cost estimation |
+| [Governance & Audit Design](docs/en/governance-and-audit.md) | Audit log schema, Responsible AI, Guardrails policy, industry use cases |
+| [RAG / Agent Evaluation Framework](docs/en/evaluation.md) | 4-axis evaluation template: Business KPI, RAG quality, permissions, Agent performance |
+| [Safe Experimentation Guide](docs/en/safe-experimentation-guide.md) | Safe scope, prohibited actions, real data checklist, rollback procedures |
+
+> Permission control correctness is verified by [31 test scenarios](tests/permission-matrix/) covering ACL edge cases, Fail-Closed behavior, group nesting, inherited permissions, and emergency revocation.
+
+---
+
 ## Implementation Overview (16 Perspectives)
 
 The implementation of this system is organized into 16 perspectives. For details on each item, see [docs/implementation-overview.md](docs/implementation-overview.md).

@@ -59,6 +59,24 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+## 企业设计与运维指南
+
+本示例提供以下附加指南，支持从 PoC 到生产环境的评估：
+
+| 指南 | 内容 |
+|------|------|
+| [生产就绪检查清单](docs/zh-CN/production-readiness-checklist.md) | Demo → PoC → Production 成熟度级别定义和迁移检查清单 |
+| [权限一致性模型](docs/zh-CN/permission-consistency.md) | ACL 变更传播流程、最大延迟、紧急权限撤销程序 |
+| [FSx for ONTAP 容量与性能设计](docs/zh-CN/fsxn-sizing-and-performance.md) | 按规模推荐配置、S3 AP 注意事项、QoS、向量存储选择 |
+| [合作伙伴部署模式](docs/zh-CN/partner-deployment-patterns.md) | 多租户设计（账户隔离 / SVM 隔离 / 混合）、成本估算 |
+| [治理与审计设计](docs/zh-CN/governance-and-audit.md) | 审计日志架构、负责任 AI、Guardrails 策略、行业用例 |
+| [RAG / Agent 评估框架](docs/zh-CN/evaluation.md) | 业务 KPI、RAG 质量、权限控制、Agent 性能的 4 轴评估模板 |
+| [安全实验指南](docs/zh-CN/safe-experimentation-guide.md) | 安全实验范围、禁止事项、真实数据导入前检查清单、回滚程序 |
+
+> 权限控制的正确性通过 [tests/permission-matrix/](tests/permission-matrix/) 中的 31 个测试场景（ACL 边缘情况、Fail-Closed、组嵌套、继承权限）进行验证。
+
+---
+
 ## 实现概览（15 个视角）
 
 本系统的实现从 13 个视角进行组织。各项详情请参阅 [docs/implementation-overview.md](docs/implementation-overview.md)。
