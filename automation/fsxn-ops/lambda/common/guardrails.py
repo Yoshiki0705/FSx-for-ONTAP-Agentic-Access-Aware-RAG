@@ -36,6 +36,15 @@ class Decision(Enum):
     ALLOWED = "Allowed"
     BLOCKED = "Blocked"
     DRY_RUN = "DryRun"
+    BREAK_GLASS = "BreakGlass"
+
+
+class GuardrailMode(Enum):
+    """Guardrail operating mode."""
+
+    ENFORCE = "enforce"
+    DRY_RUN = "dry_run"
+    BREAK_GLASS = "break_glass"
 
 
 class GuardrailConfigError(Exception):
@@ -59,10 +68,39 @@ class GuardrailConfig:
     max_grow_per_action_pct: float  # Range: [1, 100]
     max_grow_per_day_gib: float  # Range: (0, ∞)
     cooldown_minutes: int  # Range: [0, ∞)
-    dry_run: bool
+    mode: GuardrailMode  # Operating mode
     table_name: str
     cloudwatch_namespace: str = "FSxNOps/Guardrails"
     daily_max_actions: int = 50  # Max number of expansion actions per resource per day
+    sns_topic_arn: Optional[str] = None  # Required for BREAK_GLASS mode
+
+    @property
+    def dry_run(self) -> bool:
+        """Backward-compatible property: True if mode is DRY_RUN."""
+        return self.mode == GuardrailMode.DRY_RUN
+
+
+def get_guardrail_mode() -> GuardrailMode:
+    """
+    Read guardrail mode from GUARDRAIL_MODE environment variable.
+
+    Valid values: "enforce", "dry_run", "break_glass"
+    Default: ENFORCE (when env var is unset or invalid)
+    """
+    import os
+
+    mode_str = os.environ.get("GUARDRAIL_MODE", "").lower().strip()
+
+    if not mode_str:
+        return GuardrailMode.ENFORCE
+
+    try:
+        return GuardrailMode(mode_str)
+    except ValueError:
+        logger.warning(
+            "Invalid GUARDRAIL_MODE '%s', defaulting to ENFORCE", mode_str
+        )
+        return GuardrailMode.ENFORCE
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +117,7 @@ def validate_config(config: GuardrailConfig) -> None:
     - max_grow_per_day_gib <= 0
     - cooldown_minutes < 0
     - table_name is empty
+    - mode is BREAK_GLASS but sns_topic_arn is empty
     """
     errors: list[str] = []
 
@@ -99,6 +138,9 @@ def validate_config(config: GuardrailConfig) -> None:
 
     if not config.table_name:
         errors.append("table_name must not be empty")
+
+    if config.mode == GuardrailMode.BREAK_GLASS and not config.sns_topic_arn:
+        errors.append("sns_topic_arn must be set when mode is BREAK_GLASS")
 
     if errors:
         raise GuardrailConfigError("; ".join(errors))
@@ -133,6 +175,17 @@ def evaluate_expansion(
     """
     # Validate config — raises GuardrailConfigError if invalid
     validate_config(config)
+
+    # --- BREAK_GLASS mode: skip all checks ---
+    if config.mode == GuardrailMode.BREAK_GLASS:
+        result = GuardrailResult(
+            decision=Decision.BREAK_GLASS,
+            reason="BREAK_GLASS mode active: all guardrail checks bypassed",
+        )
+        _emit_metric(result, resource_id, resource_type, config, cloudwatch_client)
+        _emit_audit_log(resource_id, resource_type, current_size_gib, proposed_growth_gib, config)
+        _publish_break_glass_notification(resource_id, resource_type, proposed_growth_gib, config)
+        return result
 
     # Guard against invalid inputs
     if current_size_gib <= 0:
@@ -232,7 +285,7 @@ def evaluate_expansion(
             )
 
     # --- All checks passed ---
-    if config.dry_run:
+    if config.mode == GuardrailMode.DRY_RUN:
         result = GuardrailResult(
             decision=Decision.DRY_RUN,
             reason=(
@@ -365,6 +418,7 @@ def _emit_metric(
                         {"Name": "Decision", "Value": result.decision.value},
                         {"Name": "ResourceType", "Value": resource_type},
                         {"Name": "ResourceId", "Value": resource_id},
+                        {"Name": "Mode", "Value": config.mode.value},
                     ],
                     "Value": 1,
                     "Unit": "Count",
@@ -373,3 +427,73 @@ def _emit_metric(
         )
     except Exception as e:
         logger.warning("CloudWatch PutMetricData failed: %s", e)
+
+
+# ---------------------------------------------------------------------------
+# BREAK_GLASS Support
+# ---------------------------------------------------------------------------
+
+
+def _publish_break_glass_notification(
+    resource_id: str,
+    resource_type: str,
+    proposed_growth_gib: float,
+    config: GuardrailConfig,
+) -> None:
+    """
+    Publish SNS notification for BREAK_GLASS mode activation.
+
+    Failures are logged but do not prevent BREAK_GLASS from proceeding.
+    """
+    if not config.sns_topic_arn:
+        return
+
+    try:
+        sns_client = boto3.client("sns")
+        sns_client.publish(
+            TopicArn=config.sns_topic_arn,
+            Subject="[BREAK_GLASS] FSx ONTAP Guardrail Bypassed",
+            Message=(
+                f"BREAK_GLASS mode activated.\n\n"
+                f"Resource ID: {resource_id}\n"
+                f"Resource Type: {resource_type}\n"
+                f"Proposed Growth: {proposed_growth_gib:.2f} GiB\n"
+                f"Timestamp: {datetime.now(timezone.utc).isoformat()}\n\n"
+                f"All guardrail checks were bypassed. "
+                f"Review the action and disable BREAK_GLASS mode when the emergency is resolved."
+            ),
+        )
+        logger.info(
+            "BREAK_GLASS SNS notification sent for resource_id=%s", resource_id
+        )
+    except Exception as e:
+        logger.error(
+            "Failed to publish BREAK_GLASS SNS notification: %s (proceeding anyway)", e
+        )
+
+
+def _emit_audit_log(
+    resource_id: str,
+    resource_type: str,
+    current_size_gib: float,
+    proposed_growth_gib: float,
+    config: GuardrailConfig,
+) -> None:
+    """
+    Emit structured audit log for BREAK_GLASS activation.
+
+    This log entry is always emitted regardless of SNS success.
+    """
+    import json
+
+    audit_entry = {
+        "event": "BREAK_GLASS_ACTIVATED",
+        "resource_id": resource_id,
+        "resource_type": resource_type,
+        "current_size_gib": current_size_gib,
+        "proposed_growth_gib": proposed_growth_gib,
+        "mode": config.mode.value,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "sns_topic_arn": config.sns_topic_arn,
+    }
+    logger.warning(json.dumps(audit_entry))

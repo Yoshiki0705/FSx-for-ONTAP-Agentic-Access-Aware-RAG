@@ -21,6 +21,7 @@ from common.guardrails import (
     Decision,
     GuardrailConfig,
     GuardrailConfigError,
+    GuardrailMode,
     GuardrailResult,
     evaluate_expansion,
     record_expansion,
@@ -37,7 +38,7 @@ valid_config_strategy = st.builds(
     max_grow_per_action_pct=st.floats(min_value=1.0, max_value=100.0),
     max_grow_per_day_gib=st.floats(min_value=0.01, max_value=10000.0),
     cooldown_minutes=st.integers(min_value=0, max_value=1440),
-    dry_run=st.booleans(),
+    mode=st.sampled_from([GuardrailMode.ENFORCE, GuardrailMode.DRY_RUN]),
     table_name=st.just("test-guardrails-table"),
     cloudwatch_namespace=st.just("FSxNOps/Guardrails"),
 )
@@ -52,7 +53,7 @@ invalid_config_strategy = st.one_of(
         ),
         max_grow_per_day_gib=st.floats(min_value=0.01, max_value=10000.0),
         cooldown_minutes=st.integers(min_value=0, max_value=1440),
-        dry_run=st.booleans(),
+        mode=st.sampled_from([GuardrailMode.ENFORCE, GuardrailMode.DRY_RUN]),
         table_name=st.just("test-table"),
     ),
     # max_grow_per_day_gib <= 0
@@ -61,7 +62,7 @@ invalid_config_strategy = st.one_of(
         max_grow_per_action_pct=st.floats(min_value=1.0, max_value=100.0),
         max_grow_per_day_gib=st.floats(max_value=0.0),
         cooldown_minutes=st.integers(min_value=0, max_value=1440),
-        dry_run=st.booleans(),
+        mode=st.sampled_from([GuardrailMode.ENFORCE, GuardrailMode.DRY_RUN]),
         table_name=st.just("test-table"),
     ),
     # cooldown_minutes < 0
@@ -70,7 +71,7 @@ invalid_config_strategy = st.one_of(
         max_grow_per_action_pct=st.floats(min_value=1.0, max_value=100.0),
         max_grow_per_day_gib=st.floats(min_value=0.01, max_value=10000.0),
         cooldown_minutes=st.integers(min_value=-1000, max_value=-1),
-        dry_run=st.booleans(),
+        mode=st.sampled_from([GuardrailMode.ENFORCE, GuardrailMode.DRY_RUN]),
         table_name=st.just("test-table"),
     ),
     # table_name empty
@@ -79,7 +80,7 @@ invalid_config_strategy = st.one_of(
         max_grow_per_action_pct=st.floats(min_value=1.0, max_value=100.0),
         max_grow_per_day_gib=st.floats(min_value=0.01, max_value=10000.0),
         cooldown_minutes=st.integers(min_value=0, max_value=1440),
-        dry_run=st.booleans(),
+        mode=st.sampled_from([GuardrailMode.ENFORCE, GuardrailMode.DRY_RUN]),
         table_name=st.just(""),
     ),
 )
@@ -214,7 +215,7 @@ class TestProperty3PerActionRateLimit:
             max_grow_per_action_pct=max_grow_pct,
             max_grow_per_day_gib=999999.0,  # effectively unlimited
             cooldown_minutes=0,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
         )
 
@@ -265,7 +266,7 @@ class TestProperty4DailyCapEnforcement:
             max_grow_per_action_pct=100.0,  # effectively unlimited
             max_grow_per_day_gib=max_grow_per_day_gib,
             cooldown_minutes=0,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
         )
 
@@ -316,7 +317,7 @@ class TestProperty5CooldownEnforcement:
             max_grow_per_action_pct=100.0,
             max_grow_per_day_gib=999999.0,
             cooldown_minutes=cooldown_minutes,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
         )
 
@@ -368,7 +369,7 @@ class TestProperty6FailSafeDynamoDB:
             max_grow_per_action_pct=50.0,
             max_grow_per_day_gib=999999.0,
             cooldown_minutes=0,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
         )
 
@@ -399,17 +400,17 @@ class TestProperty6FailSafeDynamoDB:
 
 
 class TestProperty7DryRunMode:
-    """Property 7: When all checks pass, dry_run=True → DryRun, dry_run=False → Allowed."""
+    """Property 7: When all checks pass, mode=DRY_RUN → DryRun, mode=ENFORCE → Allowed."""
 
-    @given(dry_run=st.booleans())
+    @given(mode=st.sampled_from([GuardrailMode.ENFORCE, GuardrailMode.DRY_RUN]))
     @settings(max_examples=50)
-    def test_dry_run_mapping(self, dry_run):
-        """Dry-run mode correctly maps to DryRun or Allowed."""
+    def test_dry_run_mapping(self, mode):
+        """Mode correctly maps to DryRun or Allowed decision."""
         config = GuardrailConfig(
             max_grow_per_action_pct=100.0,
             max_grow_per_day_gib=999999.0,
             cooldown_minutes=0,
-            dry_run=dry_run,
+            mode=mode,
             table_name="test-table",
         )
 
@@ -428,7 +429,7 @@ class TestProperty7DryRunMode:
             now=now,
         )
 
-        if dry_run:
+        if mode == GuardrailMode.DRY_RUN:
             assert result.decision == Decision.DRY_RUN
         else:
             assert result.decision == Decision.ALLOWED
@@ -458,7 +459,7 @@ class TestProperty8CloudWatchResilience:
             max_grow_per_action_pct=100.0,
             max_grow_per_day_gib=999999.0,
             cooldown_minutes=0,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
         )
 
@@ -498,7 +499,7 @@ class TestProperty9IndependentResourceTracking:
             max_grow_per_action_pct=50.0,
             max_grow_per_day_gib=100.0,
             cooldown_minutes=30,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
         )
 
@@ -571,7 +572,7 @@ class TestProperty10ConditionalWriteRejectsAtLimit:
             max_grow_per_action_pct=50.0,
             max_grow_per_day_gib=999999.0,
             cooldown_minutes=0,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
             daily_max_actions=10,
         )
@@ -601,7 +602,7 @@ class TestProperty10ConditionalWriteRejectsAtLimit:
             max_grow_per_action_pct=50.0,
             max_grow_per_day_gib=999999.0,
             cooldown_minutes=0,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
             daily_max_actions=25,
         )
@@ -632,7 +633,7 @@ class TestProperty10ConditionalWriteRejectsAtLimit:
             max_grow_per_action_pct=50.0,
             max_grow_per_day_gib=999999.0,
             cooldown_minutes=0,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
             daily_max_actions=50,
         )
@@ -659,7 +660,7 @@ class TestProperty10ConditionalWriteRejectsAtLimit:
             max_grow_per_action_pct=50.0,
             max_grow_per_day_gib=999999.0,
             cooldown_minutes=0,
-            dry_run=False,
+            mode=GuardrailMode.ENFORCE,
             table_name="test-table",
             daily_max_actions=50,
         )

@@ -78,11 +78,19 @@ def get_config() -> dict[str, Any]:
 
 def _build_guardrail_config(config: dict[str, Any]) -> GuardrailConfig:
     """設定辞書から GuardrailConfig を構築"""
+    from common.guardrails import GuardrailMode, get_guardrail_mode
+
+    # dry_run 環境変数からモードを推定（後方互換）
+    if config.get("dry_run", False):
+        mode = GuardrailMode.DRY_RUN
+    else:
+        mode = get_guardrail_mode()
+
     return GuardrailConfig(
         max_grow_per_action_pct=config["max_grow_per_action_pct"],
         max_grow_per_day_gib=config["max_grow_per_day_gib"],
         cooldown_minutes=config["cooldown_minutes"],
-        dry_run=config["dry_run"],
+        mode=mode,
         table_name=config["guardrails_table_name"],
     )
 
