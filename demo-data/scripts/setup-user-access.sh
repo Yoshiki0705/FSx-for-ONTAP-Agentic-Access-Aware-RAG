@@ -105,6 +105,105 @@ echo "     グループ: S-1-1-0 (Everyone)"
 echo ""
 
 # ========================================
+# エンジニアリングユーザー（engineer@example.com）
+# ========================================
+# SID割り当て:
+#   - 個人SID: S-1-5-21-...-1501 (Engineer)
+#   - グループ: S-1-5-21-...-1100 (Engineering)
+#   - グループ: S-1-1-0 (Everyone)
+# → public + restricted（Engineering）ドキュメントにアクセス可能
+echo "📝 エンジニアリングユーザーのSIDデータを登録中..."
+aws dynamodb put-item \
+  --table-name "${TABLE_NAME}" \
+  --region "${REGION}" \
+  --item '{
+    "userId": {"S": "engineer@example.com"},
+    "userSID": {"S": "'"${DOMAIN_SID}-1501"'"},
+    "groupSIDs": {"L": [
+      {"S": "'"${DOMAIN_SID}-1100"'"},
+      {"S": "S-1-1-0"}
+    ]},
+    "displayName": {"S": "Engineer User"},
+    "email": {"S": "engineer@example.com"},
+    "source": {"S": "Demo"},
+    "createdAt": {"S": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"},
+    "updatedAt": {"S": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}
+  }'
+
+echo "  ✅ engineer@example.com"
+echo "     個人SID: ${DOMAIN_SID}-1501 (Engineer)"
+echo "     グループ: ${DOMAIN_SID}-1100 (Engineering), S-1-1-0 (Everyone)"
+echo ""
+
+# ========================================
+# 財務ユーザー（finance@example.com）
+# ========================================
+# SID割り当て:
+#   - 個人SID: S-1-5-21-...-1502 (Finance Staff)
+#   - グループ: S-1-5-21-...-1200 (Finance)
+#   - グループ: S-1-1-0 (Everyone)
+# → public + finance ドキュメントにアクセス可能
+echo "📝 財務ユーザーのSIDデータを登録中..."
+aws dynamodb put-item \
+  --table-name "${TABLE_NAME}" \
+  --region "${REGION}" \
+  --item '{
+    "userId": {"S": "finance@example.com"},
+    "userSID": {"S": "'"${DOMAIN_SID}-1502"'"},
+    "groupSIDs": {"L": [
+      {"S": "'"${DOMAIN_SID}-1200"'"},
+      {"S": "S-1-1-0"}
+    ]},
+    "displayName": {"S": "Finance User"},
+    "email": {"S": "finance@example.com"},
+    "source": {"S": "Demo"},
+    "createdAt": {"S": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"},
+    "updatedAt": {"S": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}
+  }'
+
+echo "  ✅ finance@example.com"
+echo "     個人SID: ${DOMAIN_SID}-1502 (Finance Staff)"
+echo "     グループ: ${DOMAIN_SID}-1200 (Finance), S-1-1-0 (Everyone)"
+echo ""
+
+# ========================================
+# 監査ユーザー（auditor@example.com）
+# ========================================
+# SID割り当て:
+#   - 個人SID: S-1-5-21-...-1503 (Auditor)
+#   - グループ: S-1-5-21-...-1900 (Auditors — 全ドキュメント読み取り可)
+#   - グループ: S-1-5-21-...-512 (Domain Admins)
+#   - グループ: S-1-5-21-...-1100 (Engineering)
+#   - グループ: S-1-5-21-...-1200 (Finance)
+#   - グループ: S-1-1-0 (Everyone)
+# → 全ドキュメントにアクセス可能（監査目的の読み取り専用）
+echo "📝 監査ユーザーのSIDデータを登録中..."
+aws dynamodb put-item \
+  --table-name "${TABLE_NAME}" \
+  --region "${REGION}" \
+  --item '{
+    "userId": {"S": "auditor@example.com"},
+    "userSID": {"S": "'"${DOMAIN_SID}-1503"'"},
+    "groupSIDs": {"L": [
+      {"S": "'"${DOMAIN_SID}-1900"'"},
+      {"S": "'"${DOMAIN_SID}-512"'"},
+      {"S": "'"${DOMAIN_SID}-1100"'"},
+      {"S": "'"${DOMAIN_SID}-1200"'"},
+      {"S": "S-1-1-0"}
+    ]},
+    "displayName": {"S": "Auditor User"},
+    "email": {"S": "auditor@example.com"},
+    "source": {"S": "Demo"},
+    "createdAt": {"S": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"},
+    "updatedAt": {"S": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}
+  }'
+
+echo "  ✅ auditor@example.com"
+echo "     個人SID: ${DOMAIN_SID}-1503 (Auditor)"
+echo "     グループ: ${DOMAIN_SID}-1900 (Auditors), -512 (DA), -1100 (Eng), -1200 (Fin), S-1-1-0 (Everyone)"
+echo ""
+
+# ========================================
 # 登録結果の確認
 # ========================================
 echo "=========================================="
@@ -149,9 +248,11 @@ echo "✅ ユーザーアクセスデータセットアップ完了"
 echo "=========================================="
 echo ""
 echo "SIDとドキュメントの対応関係:"
-echo "  public/     → allowed_group_sids: [S-1-1-0 (Everyone)]"
-echo "               → admin: ✅  user: ✅"
+echo "  public/       → allowed_group_sids: [S-1-1-0 (Everyone)]"
+echo "                 → admin: ✅  engineer: ✅  finance: ✅  user: ✅  auditor: ✅"
 echo "  confidential/ → allowed_group_sids: [${DOMAIN_SID}-512 (Domain Admins)]"
-echo "               → admin: ✅  user: ❌"
-echo "  restricted/ → allowed_group_sids: [${DOMAIN_SID}-1100 (Engineering), ${DOMAIN_SID}-512 (Domain Admins)]"
-echo "               → admin: ✅  user: ❌"
+echo "                 → admin: ✅  engineer: ❌  finance: ❌  user: ❌  auditor: ✅"
+echo "  restricted/   → allowed_group_sids: [${DOMAIN_SID}-1100 (Engineering), ${DOMAIN_SID}-512 (Domain Admins)]"
+echo "                 → admin: ✅  engineer: ✅  finance: ❌  user: ❌  auditor: ✅"
+echo "  finance/      → allowed_group_sids: [${DOMAIN_SID}-1200 (Finance), ${DOMAIN_SID}-512 (Domain Admins)]"
+echo "                 → admin: ✅  engineer: ❌  finance: ✅  user: ❌  auditor: ✅"
