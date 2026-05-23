@@ -194,6 +194,12 @@
 
 ## CDK による自動展開
 
+### パートナーオンボーディング: Transfer Family SFTP インジェスション
+
+パートナー企業が Web UI を使用できない場合（法務事務所、監査法人、規制当局など）、AWS Transfer Family SFTP サーバー経由でドキュメントを投入できます。`enableTransferFamily=true` で有効化すると、SFTP アップロード → FSx ONTAP S3 AP → 権限メタデータ自動生成 → Bedrock KB 自動同期のパイプラインが構築されます。
+
+詳細は [README.md の Transfer Family セクション](../README.md) を参照してください。
+
 ### StackSets パターン（パターン A 向け）
 
 ```typescript
@@ -258,6 +264,8 @@ for (const tenant of tenants) {
 ---
 
 ## コスト見積もりテンプレート
+
+> **⚠️ コスト注記**: 以下の見積もりは 2026 年 5 月時点の ap-northeast-1 リージョンの公開料金に基づく参考値です。実際のコストはリージョン、利用量、割引（Savings Plans / Reserved Instances）、料金改定により変動します。最新の料金は [AWS Pricing](https://aws.amazon.com/pricing/) を参照してください。
 
 ### 月額概算（小規模 PoC）
 

@@ -22,7 +22,7 @@ on:
           - ROLLING
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   AWS_REGION: ap-northeast-1
   PROJECT_NAME: permission-aware-rag
 
