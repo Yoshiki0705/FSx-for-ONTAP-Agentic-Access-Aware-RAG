@@ -201,6 +201,28 @@ aws dynamodb update-item \
 
 ---
 
+## 3.6 オプション: Transfer Family SFTP インジェスション
+
+> **前提**: `enableTransferFamily=true` でデプロイ済みの場合のみ実施可能
+
+### デモ: SFTP でファイルをアップロードし、数分後に検索可能になる
+
+```bash
+# 1. SFTP でファイルをアップロード
+sftp -i partner-key.pem partner-a@${TRANSFER_FAMILY_ENDPOINT}
+sftp> put new-document.md /uploads/partner-a/
+sftp> exit
+
+# 2. 数分待機（KB Auto-Sync がファイル変更を検出）
+
+# 3. チャットで「new-document の内容を教えてください」と質問
+# → アップロードしたドキュメントが検索結果に表示される
+```
+
+> **ポイント**: パートナー企業が SFTP でドキュメントを投入するだけで、権限メタデータが自動生成され、AI 検索に反映されます。Web UI を使えない外部組織との連携に最適です。
+
+---
+
 ## 4. エンタープライズガイド確認（10 分）
 
 以下のドキュメントを参加者に紹介:
