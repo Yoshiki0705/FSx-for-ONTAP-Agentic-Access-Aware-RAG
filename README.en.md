@@ -79,6 +79,11 @@ This sample includes additional guides for evaluating and operating access-aware
 | [Threat Model](docs/en/threat-model.md) | 10 threat categories, attack paths, existing mitigations, threat-to-control mapping |
 | [CloudWatch Dashboard Guide](docs/en/cloudwatch-dashboard-guide.md) | Operations metrics, alarm definitions, troubleshooting patterns |
 | [PoC Workshop Guide](docs/en/poc-workshop-guide.md) | 90-minute hands-on (deploy → test → evaluate → cleanup) |
+| [Cost Estimation Worksheet](docs/en/cost-estimation-worksheet.md) | Monthly cost templates (PoC $430 / Mid $3,626 / Enterprise $8,512) |
+| [Architecture Decision Records](docs/en/architecture-decision-records.md) | 6 key decisions (vector store, permission filter, auth, frontend, sync, routing) |
+| [Benchmark Scenarios](docs/en/benchmark-scenarios.md) | 10K/100K/1M file performance measurement framework |
+| [Industry Demo Packs](demo-data/industry-packs/) | 8 industries × 5 documents with permission metadata |
+| [S3AP Serverless Patterns Integration](docs/s3ap-serverless-patterns-integration.md) | Integration with 17-UC serverless processing patterns |
 
 > Permission control correctness is verified by [31 test scenarios](tests/permission-matrix/) covering ACL edge cases, Fail-Closed behavior, group nesting, inherited permissions, and emergency revocation.
 
