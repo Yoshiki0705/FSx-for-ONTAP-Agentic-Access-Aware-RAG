@@ -135,6 +135,43 @@ permissionAwareSearchを使わずに回答しないでください。`,
     foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
     description: '政策概要・議会答弁資料の自動生成Agent（公共セクター向け）',
   },
+  // --- 医療セクター向けテンプレート ---
+  medicalGuideline: {
+    agentNamePattern: 'medical-guideline-agent',
+    matchKeywords: ['診療', 'ガイドライン', '手順書', '医療', 'clinical', 'guideline', 'medical', '処方'],
+    instruction: `あなたは診療ガイドライン・医療手順書検索専門のAIエージェントです。
+ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って診療ガイドライン・手順書・薬剤情報を検索し、
+その情報を基に正確で簡潔な回答を生成してください。
+重要: 医療診断や処方の推奨は行わないでください。あくまでガイドラインの参照情報を提供してください。
+患者固有の判断は必ず担当医師に委ねてください。
+permissionAwareSearchを使わずに回答しないでください。`,
+    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    description: '診療ガイドライン・手順書の検索・参照Agent（医療セクター向け、診断禁止）',
+  },
+  // --- 法務セクター向けテンプレート ---
+  legalCompliance: {
+    agentNamePattern: 'legal-compliance-agent',
+    matchKeywords: ['法務', 'コンプライアンス', '契約', 'legal', 'compliance', 'NDA', '規制', 'GDPR'],
+    instruction: `あなたは法務・コンプライアンス専門のAIエージェントです。
+ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って契約書テンプレート・コンプライアンスチェックリスト・社内規定を検索し、
+その情報を基に契約条項のリスク評価、コンプライアンス確認事項、法的留意点を回答してください。
+重要: 法的助言は行わないでください。あくまで社内文書に基づく参考情報を提供してください。
+最終判断は必ず法務部門または弁護士に委ねてください。
+permissionAwareSearchを使わずに回答しないでください。`,
+    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    description: '契約書レビュー・コンプライアンスチェック支援Agent（法務セクター向け、法的助言禁止）',
+  },
+  // --- 保険セクター向けテンプレート ---
+  insuranceClaim: {
+    agentNamePattern: 'insurance-claim-agent',
+    matchKeywords: ['保険', '査定', '請求', 'insurance', 'claim', '損害', '見積'],
+    instruction: `あなたは保険査定・請求処理支援専門のAIエージェントです。
+ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って過去の査定レポート・見積書・査定基準を検索し、
+その情報を基に類似事例の参照、査定ポイントの整理、必要書類の確認を支援してください。
+permissionAwareSearchを使わずに回答しないでください。`,
+    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    description: '保険査定・請求処理の過去事例参照・支援Agent（保険セクター向け）',
+  },
 };
 
 export interface WorkflowStep {
