@@ -288,6 +288,54 @@ aws fsx update-file-system \
 
 ---
 
+## FlexCache + S3 Access Point の制約と代替パス
+
+### 現状の制約（2026年5月時点）
+
+| 項目 | 状態 | 影響 |
+|------|------|------|
+| FlexCache Cache ボリュームでの S3 AP | **未対応** | FlexCache 経由のデータに S3 API でアクセスできない |
+| FlexCache Origin ボリュームでの S3 AP | **対応** | Origin ボリュームに直接 S3 AP をアタッチ可能 |
+| S3 AP 経由のファイルサイズ上限 | **5 GB** | 大容量ファイルは分割が必要 |
+| S3 AP 経由の rename / append | **未対応** | PutObject で新規作成のみ |
+
+### 代替パス
+
+FlexCache Cache ボリュームのデータを RAG に取り込む場合:
+
+```
+パターン A: Embedding サーバー経由（CIFS マウント）
+  FlexCache Cache Volume → CIFS マウント → Embedding EC2 → OpenSearch Serverless
+  ✅ FlexCache の読み取り高速化を活用
+  ❌ OpenSearch Serverless 構成が必要（月 $700+）
+
+パターン B: Origin ボリュームに S3 AP をアタッチ
+  Origin Volume → S3 Access Point → Bedrock KB
+  ✅ S3 Vectors（低コスト）が使用可能
+  ❌ FlexCache の読み取り高速化は RAG パスでは不使用
+
+パターン C: DataSync で S3 に同期
+  FlexCache Cache Volume → DataSync → S3 Bucket → Bedrock KB
+  ✅ 任意のベクトルストアが使用可能
+  ❌ データの二重管理、同期遅延
+```
+
+### S3 AP パフォーマンス特性
+
+> **注記**: 以下は特定のテスト環境（ap-northeast-1、128 MB/s throughput、SINGLE_AZ_1）での参考値です。実際のパフォーマンスはファイルシステム構成、ネットワーク条件、同時アクセス数により変動します。本番環境では必ず実測に基づいて設計してください。
+
+| 操作 | オブジェクトサイズ | 参考レイテンシ（P50） | 備考 |
+|------|-----------------|---------------------|------|
+| ListObjectsV2 | — | 100-300ms | プレフィックス内のオブジェクト数に依存 |
+| GetObject | 1 KB | 50-150ms | 小ファイルはオーバーヘッドが相対的に大きい |
+| GetObject | 1 MB | 100-300ms | throughput capacity に依存 |
+| PutObject | 1 KB | 100-200ms | メタデータ書き込み含む |
+| PutObject | 100 MB | 1-5s | throughput capacity に依存 |
+
+**NFS/SMB との共有スループット**: S3 AP 経由のアクセスは FSx ONTAP の throughput capacity を NFS/SMB と共有します。大量の S3 AP アクセスが NFS/SMB のパフォーマンスに影響する可能性があるため、ピーク時の同時アクセスパターンを考慮して throughput capacity を設計してください。
+
+---
+
 ## 関連ドキュメント
 
 | ドキュメント | 内容 |

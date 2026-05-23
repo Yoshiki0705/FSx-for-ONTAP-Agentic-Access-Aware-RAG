@@ -121,5 +121,6 @@ github-repo-snapshot.txt
 
 # Dev.to記事（ローカル作業用）
 devto-article.md
+devto-article-*.md
 docs/presentation-brief.md
 docs/screenshots/debug-oidc-result.png

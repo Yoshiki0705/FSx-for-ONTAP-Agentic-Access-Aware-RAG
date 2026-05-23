@@ -30,8 +30,11 @@
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [docs/production-readiness-checklist.md](production-readiness-checklist.md) | 本番化チェックリスト（Demo → PoC → Production の成熟度レベル定義、セキュリティ・監査・DR・運用の確認項目） |
-| [docs/permission-consistency.md](permission-consistency.md) | 権限変更時の整合性モデル（ACL変更→メタデータ再生成→KB再同期→キャッシュ無効化のフロー、最大遅延、緊急権限剥奪手順） |
+| [docs/production-readiness-checklist.md](production-readiness-checklist.md) | 本番化チェックリスト（Demo → PoC → Production の成熟度レベル定義、セキュリティ・監査・DR・運用の確認項目、承認者列付き） |
+| [docs/poc-success-criteria-template.md](poc-success-criteria-template.md) | PoC 成功基準テンプレート（ステークホルダー定義、Go/No-Go 判定基準、次フェーズ条件、完了レポートテンプレート） |
+| [docs/data-readiness-assessment.md](data-readiness-assessment.md) | データレディネス評価テンプレート（データ所在・分類・権限構造・品質・コンプライアンス確認、承認フロー） |
+| [docs/partner-faq.md](partner-faq.md) | パートナー FAQ（顧客提案時の12の質問と回答、提案リソース一覧） |
+| [docs/permission-consistency.md](permission-consistency.md) | 権限変更時の整合性モデル（ACL 変更の伝播フロー、最大遅延、緊急権限剥奪手順） |
 | [docs/fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP 性能・容量設計ガイド（規模別構成、S3 AP考慮点、QoS、ベクトルストア選定） |
 | [docs/partner-deployment-patterns.md](partner-deployment-patterns.md) | マルチテナント・パートナー展開パターン（アカウント分離/SVM分離/ハイブリッド、コスト見積もりテンプレート） |
 | [docs/governance-and-audit.md](governance-and-audit.md) | ガバナンス・監査設計（監査ログスキーマ、Responsible AI、Guardrailsポリシー、業種別ユースケース） |
@@ -57,6 +60,15 @@
 | [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | この構成で楽になる理由（設計判断、コスト見積もり、セキュリティ設計） |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../automation/fsxn-ops/docs/aws-verification-report.md) | AWS 環境統合検証レポート（2026-05-01実施、全Phase PASS） |
 | [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | 統合 CloudFormation テンプレート（VPC エンドポイント含む） |
+
+## Transfer Family インジェスション
+
+| ドキュメント | 内容 |
+|-------------|------|
+| [docs/transfer-family-e2e-verification.md](transfer-family-e2e-verification.md) | E2E検証レポート（SFTP接続→アップロード→KB取り込み完了、全ステップPASS） |
+| [docs/transfer-family-partner-onboarding.md](transfer-family-partner-onboarding.md) | パートナーオンボーディングガイド（SSH鍵設定、SFTP接続、ファイル命名規則、トラブルシューティング） |
+| [docs/transfer-family-networking-prerequisites.md](transfer-family-networking-prerequisites.md) | ネットワーキング前提条件（VPCエンドポイント、IP許可リスト、セキュリティグループ） |
+| [docs/v4.2-demo-verification-supplement.md](v4.2-demo-verification-supplement.md) | v4.2 デモ検証補足ガイド（全ユースケースのテスト手順、期待結果、ログ取得方法） |
 
 ## サンプル構成ファイル
 

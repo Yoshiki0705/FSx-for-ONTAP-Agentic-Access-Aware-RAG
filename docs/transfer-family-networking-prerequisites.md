@@ -126,6 +126,71 @@ Transfer Family → FSx ONTAP S3 Access Point 間の通信:
 - VPC Endpoint for S3 は不要（Transfer Family が直接 S3 AP にアクセス）
 - IAM ロールベースの認証（SFTP ユーザーロール）
 
+### データフロー全体図
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          AWS Cloud                                         │
+│                                                                            │
+│  ┌─────────────┐                                                          │
+│  │ Partner     │ SFTP (Port 22)                                           │
+│  │ (External)  │─────────────────┐                                        │
+│  └─────────────┘                 │                                        │
+│                                  ▼                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐    │
+│  │ Transfer Family Server (PUBLIC or VPC Endpoint)                    │    │
+│  │ • SecurityPolicy-2024-01                                          │    │
+│  │ • HomeDirectoryMappings: /{s3-ap-alias}/uploads/{user}            │    │
+│  └──────────────────────────────┬───────────────────────────────────┘    │
+│                                  │ S3 API (PutObject)                     │
+│                                  │ IAM Role: sftp-{user}-role            │
+│                                  ▼                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐    │
+│  │ S3 Access Point (v4testkbsync-...-ext-s3alias)                    │    │
+│  │ • S3 互換 API インターフェース                                      │    │
+│  │ • データは FSx ONTAP 上に存在（S3 にコピーされない）                 │    │
+│  └──────────────────────────────┬───────────────────────────────────┘    │
+│                                  │ FSx ONTAP Data Plane                   │
+│                                  ▼                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐    │
+│  │ FSx for ONTAP (VPC: vpc-xxx)                                      │    │
+│  │ ┌────────────────────────────────────────────────────────────┐   │    │
+│  │ │ SVM: FSxN_OnPre                                             │   │    │
+│  │ │ Volume: /s3ap_headobj_test (UNIX security style)            │   │    │
+│  │ │ ENI: 10.0.4.209, 10.0.12.245 (SG: sg-xxx)                  │   │    │
+│  │ └────────────────────────────────────────────────────────────┘   │    │
+│  └──────────────────────────────────────────────────────────────────┘    │
+│                                                                            │
+│  ┌──────────────────────────────────────────────────────────────────┐    │
+│  │ Lambda Functions (同一 VPC 内に配置)                               │    │
+│  │                                                                    │    │
+│  │  ┌─────────────────────┐    ┌─────────────────────────────┐      │    │
+│  │  │ Ingestion Trigger   │    │ Metadata Generator          │      │    │
+│  │  │ • ListObjectsV2     │    │ • PutObject (.metadata.json)│      │    │
+│  │  │ • StartIngestionJob │    │ • DynamoDB GetItem           │      │    │
+│  │  └──────────┬──────────┘    └─────────────────────────────┘      │    │
+│  │             │                                                      │    │
+│  │             │ S3 Gateway VPC Endpoint (vpce-xxx)                   │    │
+│  │             ▼                                                      │    │
+│  │  ┌─────────────────────┐                                          │    │
+│  │  │ Bedrock KB          │                                          │    │
+│  │  │ StartIngestionJob   │                                          │    │
+│  │  └─────────────────────┘                                          │    │
+│  └──────────────────────────────────────────────────────────────────┘    │
+│                                                                            │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Lambda → S3 AP 通信要件
+
+| 要件 | 設定 |
+|------|------|
+| Lambda VPC 配置 | FSx ONTAP と同じ VPC のプライベートサブネット |
+| S3 Gateway VPC Endpoint | Lambda サブネットのルートテーブルに関連付け |
+| Lambda Security Group | アウトバウンド全許可（S3 AP + DynamoDB + Bedrock） |
+| FSx Security Group | Lambda SG からの HTTPS (443) インバウンド許可 |
+| IAM | Lambda ロールに `s3:ListBucket`, `s3:GetObject`, `s3:PutObject` (S3 AP ARN) |
+
 ---
 
 ## チェックリスト
@@ -134,10 +199,14 @@ Transfer Family → FSx ONTAP S3 Access Point 間の通信:
 - [ ] PUBLIC エンドポイントで十分か確認
 - [ ] パートナーのSFTPクライアントが `{server-id}.server.transfer.{region}.amazonaws.com` に接続可能か確認
 - [ ] SSH鍵ペアの準備
+- [ ] Lambda が FSx ONTAP と同じ VPC に配置されているか確認
+- [ ] S3 Gateway VPC Endpoint が Lambda サブネットのルートテーブルに含まれているか確認
 
 ### 本番環境
 - [ ] VPC エンドポイントタイプの選択
 - [ ] パートナーIP CIDR の確認と `transferFamilyAllowedCidrs` 設定
+- [ ] FSx Security Group のインバウンドルール最小化
+- [ ] Lambda Security Group のアウトバウンドルール最小化
 - [ ] VPN / Direct Connect 経路の確認
 - [ ] Security Group ルールのレビュー
 - [ ] DNS解決の確認（パートナー側）
