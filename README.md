@@ -95,6 +95,7 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | [PoC ワークショップガイド](docs/poc-workshop-guide.md) | 90 分で体験できるハンズオン（デプロイ→テスト→評価→クリーンアップ） |
 | [コスト見積もりワークシート](docs/cost-estimation-worksheet.md) | 構成別月額概算テンプレート（PoC $430 / 中規模 $3,626 / 大規模 $8,512） |
 | [Architecture Decision Records](docs/architecture-decision-records.md) | 6 つの主要意思決定の根拠（ベクトルストア、権限フィルタ、認証、フロントエンド、同期、ルーティング） |
+| [ベンチマークシナリオ](docs/benchmark-scenarios.md) | 10K / 100K / 1M ファイル規模の性能計測フレームワーク、理論的ベースライン推定値 |
 
 > 権限制御の正しさは [tests/permission-matrix/](tests/permission-matrix/) の 31 テストシナリオ（ACL エッジケース、Fail-Closed、グループネスティング、継承権限）で検証しています。
 
@@ -102,9 +103,7 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 
 ## Roadmap
 
-今後のリリースで以下の強化を予定しています:
-
-- ベンチマークシナリオ（10K / 100K / 1M ファイル実測）
+全ての計画項目が実装されました。今後の改善は [GitHub Issues](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues) で管理します。
 
 ---
 

@@ -43,6 +43,8 @@
 | [docs/cost-estimation-worksheet.md](cost-estimation-worksheet.md) | コスト見積もりワークシート（構成別月額概算テンプレート、計算式、最適化ポイント） |
 | [docs/architecture-decision-records.md](architecture-decision-records.md) | Architecture Decision Records（6つの主要意思決定: ベクトルストア、権限フィルタ、認証、フロントエンド、同期、ルーティング） |
 | [monitoring/athena-audit-tables.sql](../monitoring/athena-audit-tables.sql) | Athena テーブル定義（監査ログ分析用 DDL + サンプルクエリ） |
+| [docs/benchmark-scenarios.md](benchmark-scenarios.md) | ベンチマークシナリオ（10K/100K/1M ファイル、5 計測シナリオ、理論的ベースライン推定値） |
+| [benchmarks/](../benchmarks/) | ベンチマークフレームワーク（テストデータ生成、実行スクリプト、結果テンプレート） |
 | [tests/permission-matrix/](../tests/permission-matrix/) | 権限マトリクステスト（ACLエッジケース31シナリオ: Fail-Closed、グループネスティング、継承権限、緊急剥奪） |
 
 ## FSx ONTAP 運用自動化
