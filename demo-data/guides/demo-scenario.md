@@ -36,7 +36,10 @@ Permission-aware RAGシステムの動作検証手順です。NTFS ACLのSID（S
 | ユーザー | メール | パスワード | 個人SID | グループSID | アクセス可能 |
 |---------|--------|-----------|---------|------------|------------|
 | 管理者 | admin@example.com | DemoAdmin123! | ...-500 (Administrator) | ...-512 (Domain Admins), S-1-1-0 (Everyone) | 全ドキュメント |
+| エンジニア | engineer@example.com | DemoEngineer123! | ...-1501 (Engineer) | ...-1100 (Engineering), S-1-1-0 (Everyone) | public + restricted |
+| 財務 | finance@example.com | DemoFinance123! | ...-1502 (Finance Staff) | ...-1200 (Finance), S-1-1-0 (Everyone) | public + finance |
 | 一般ユーザー | user@example.com | DemoUser123! | ...-1001 (Regular User) | S-1-1-0 (Everyone) | publicのみ |
+| 監査 | auditor@example.com | DemoAuditor123! | ...-1503 (Auditor) | ...-1900 (Auditors), ...-512, ...-1100, ...-1200, S-1-1-0 | 全ドキュメント |
 
 ## ドキュメントとSIDの対応
 

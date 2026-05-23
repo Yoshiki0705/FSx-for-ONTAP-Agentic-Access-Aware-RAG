@@ -65,11 +65,84 @@ aws cognito-idp admin-set-user-password \
 
 echo "  ✅ user@example.com (パスワード: DemoUser123!)"
 
+# engineerユーザー作成
+echo "📝 engineerユーザーを作成中..."
+aws cognito-idp admin-create-user \
+  --user-pool-id "${USER_POOL_ID}" \
+  --username "engineer@example.com" \
+  --user-attributes \
+    Name=email,Value="engineer@example.com" \
+    Name=email_verified,Value=true \
+  --temporary-password "TempPass123!" \
+  --message-action SUPPRESS \
+  --region "${REGION}" || echo "  ⚠️ engineerユーザーは既に存在します"
+
+aws cognito-idp admin-set-user-password \
+  --user-pool-id "${USER_POOL_ID}" \
+  --username "engineer@example.com" \
+  --password "DemoEngineer123!" \
+  --permanent \
+  --region "${REGION}" 2>/dev/null || true
+
+echo "  ✅ engineer@example.com (パスワード: DemoEngineer123!)"
+
+# financeユーザー作成
+echo "📝 financeユーザーを作成中..."
+aws cognito-idp admin-create-user \
+  --user-pool-id "${USER_POOL_ID}" \
+  --username "finance@example.com" \
+  --user-attributes \
+    Name=email,Value="finance@example.com" \
+    Name=email_verified,Value=true \
+  --temporary-password "TempPass123!" \
+  --message-action SUPPRESS \
+  --region "${REGION}" || echo "  ⚠️ financeユーザーは既に存在します"
+
+aws cognito-idp admin-set-user-password \
+  --user-pool-id "${USER_POOL_ID}" \
+  --username "finance@example.com" \
+  --password "DemoFinance123!" \
+  --permanent \
+  --region "${REGION}" 2>/dev/null || true
+
+echo "  ✅ finance@example.com (パスワード: DemoFinance123!)"
+
+# auditorユーザー作成
+echo "📝 auditorユーザーを作成中..."
+aws cognito-idp admin-create-user \
+  --user-pool-id "${USER_POOL_ID}" \
+  --username "auditor@example.com" \
+  --user-attributes \
+    Name=email,Value="auditor@example.com" \
+    Name=email_verified,Value=true \
+  --temporary-password "TempPass123!" \
+  --message-action SUPPRESS \
+  --region "${REGION}" || echo "  ⚠️ auditorユーザーは既に存在します"
+
+aws cognito-idp admin-set-user-password \
+  --user-pool-id "${USER_POOL_ID}" \
+  --username "auditor@example.com" \
+  --password "DemoAuditor123!" \
+  --permanent \
+  --region "${REGION}" 2>/dev/null || true
+
+echo "  ✅ auditor@example.com (パスワード: DemoAuditor123!)"
+
 echo ""
 echo "=========================================="
 echo "✅ テストユーザー作成完了"
 echo "=========================================="
 echo ""
 echo "ログイン情報:"
-echo "  admin: admin@example.com / DemoAdmin123!"
-echo "  user:  user@example.com / DemoUser123!"
+echo "  admin:    admin@example.com / DemoAdmin123!"
+echo "  user:     user@example.com / DemoUser123!"
+echo "  engineer: engineer@example.com / DemoEngineer123!"
+echo "  finance:  finance@example.com / DemoFinance123!"
+echo "  auditor:  auditor@example.com / DemoAuditor123!"
+echo ""
+echo "権限マトリクス:"
+echo "  admin    → 全ドキュメント（Domain Admins）"
+echo "  engineer → public + restricted（Engineering グループ）"
+echo "  finance  → public + finance（Finance グループ）"
+echo "  user     → public のみ（Everyone）"
+echo "  auditor  → 全ドキュメント（監査用、全グループ所属）"

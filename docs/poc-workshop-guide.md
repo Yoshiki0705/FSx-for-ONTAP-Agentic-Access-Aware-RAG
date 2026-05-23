@@ -174,6 +174,33 @@ aws cloudformation describe-stacks \
 
 ---
 
+## 3.5 Wow Moment: 権限変更のリアルタイム反映（5 分）
+
+### デモ: DynamoDB の SID 変更で検索結果が即座に変わる
+
+1. `user@example.com` でサインイン
+2. 「プロジェクトのロードマップを教えてください」と質問
+3. **期待結果**: アクセス拒否（restricted ドキュメントは表示されない）
+
+4. **権限を追加**（別ターミナルで実行）:
+```bash
+# user に Engineering グループを追加
+aws dynamodb update-item \
+  --table-name ${USER_ACCESS_TABLE} \
+  --key '{"userId": {"S": "user@example.com"}}' \
+  --update-expression "SET groupSIDs = list_append(groupSIDs, :newSid)" \
+  --expression-attribute-values '{":newSid": {"L": [{"S": "S-1-5-21-0000000000-0000000000-0000000000-1100"}]}}' \
+  --region ap-northeast-1
+```
+
+5. 5 分待機（キャッシュ TTL 期限切れ）、または権限キャッシュを手動クリア
+6. 同じ質問を再度入力
+7. **期待結果**: Engineering ドキュメント（ロードマップ）が表示される！
+
+> **ポイント**: ファイルサーバーの権限変更が AI の検索結果にリアルタイムで反映されることを体験できます。
+
+---
+
 ## 4. エンタープライズガイド確認（10 分）
 
 以下のドキュメントを参加者に紹介:
