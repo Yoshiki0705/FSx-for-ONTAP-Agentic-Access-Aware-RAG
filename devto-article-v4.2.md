@@ -418,3 +418,21 @@ Based on feedback from AWS solution architecture perspectives (storage, partner/
 I also added a **[permission test suite](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/tree/main/tests/permission-matrix)** (31 scenarios) covering ACL filtering, group nesting, inherited permissions, fail-closed behavior, permission propagation, and edge cases — all passing.
 
 All documentation is available in 8 languages (Japanese, English, Korean, Simplified Chinese, Traditional Chinese, French, German, Spanish).
+
+---
+
+## Update: Industry Demo Data Packs
+
+I also added **[industry-specific demo data packs](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/tree/main/demo-data/industry-packs)** covering 8 sectors (35 documents with permission metadata):
+
+| Sector | Documents | Permission Groups | S3AP UC |
+|--------|-----------|-------------------|---------|
+| Government | 5 | 政策企画課, 財政課, 危機管理課 | UC16 |
+| Healthcare | 5 | 内科, 看護部, 薬剤部 | UC5 |
+| Legal | 5 | 法務部 | UC1 |
+| Manufacturing | 5 | 品質管理部, 生産管理部 | UC3 |
+| Construction | 5 | 設計部, 工事管理部 | UC10 |
+| Education | 5 | 研究室, 教務課 | UC13 |
+| Insurance | 5 | 損害査定部, 不正対策室 | UC14 |
+
+Each pack demonstrates department-level access control with realistic Japanese business documents. The packs integrate with the [FSx for ONTAP S3AP Serverless Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) repository — processing results from those 17 UCs can be used as RAG search sources in this project.
