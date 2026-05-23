@@ -93,6 +93,8 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | [脅威モデル](docs/threat-model.md) | 10 の脅威カテゴリ、攻撃経路、既存緩和策、脅威→対策マッピング表 |
 | [CloudWatch ダッシュボードガイド](docs/cloudwatch-dashboard-guide.md) | 運用監視メトリクス、アラーム定義、トラブルシューティングパターン |
 | [PoC ワークショップガイド](docs/poc-workshop-guide.md) | 90 分で体験できるハンズオン（デプロイ→テスト→評価→クリーンアップ） |
+| [コスト見積もりワークシート](docs/cost-estimation-worksheet.md) | 構成別月額概算テンプレート（PoC $430 / 中規模 $3,626 / 大規模 $8,512） |
+| [Architecture Decision Records](docs/architecture-decision-records.md) | 6 つの主要意思決定の根拠（ベクトルストア、権限フィルタ、認証、フロントエンド、同期、ルーティング） |
 
 > 権限制御の正しさは [tests/permission-matrix/](tests/permission-matrix/) の 31 テストシナリオ（ACL エッジケース、Fail-Closed、グループネスティング、継承権限）で検証しています。
 
@@ -102,10 +104,7 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 
 今後のリリースで以下の強化を予定しています:
 
-- Athena テーブル定義（監査ログ分析用）
-- ベンチマークシナリオ（10K / 100K / 1M ファイル）
-- コスト見積もりワークシート
-- Architecture Decision Records（ベクトルストア、ID 連携の意思決定記録）
+- ベンチマークシナリオ（10K / 100K / 1M ファイル実測）
 
 ---
 
