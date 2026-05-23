@@ -62,6 +62,58 @@ export interface GuardrailsConfig {
 }
 
 /**
+ * kbChunkingStrategy を Bedrock DataSource ChunkingConfiguration に変換する。
+ * setup-kb-datasource.sh で使用される JSON を生成する。
+ *
+ * ⚠️ チャンキング戦略を変更した場合、DataSource の再同期（re-ingestion）が必要です。
+ */
+export function buildChunkingConfiguration(strategy: string): Record<string, any> {
+  switch (strategy.toUpperCase()) {
+    case 'FIXED_SIZE':
+      return {
+        chunkingStrategy: 'FIXED_SIZE',
+        fixedSizeChunkingConfiguration: {
+          maxTokens: 300,
+          overlapPercentage: 10,
+        },
+      };
+    case 'HIERARCHICAL':
+      return {
+        chunkingStrategy: 'HIERARCHICAL',
+        hierarchicalChunkingConfiguration: {
+          levelConfigurations: [
+            { maxTokens: 1500 },  // parent
+            { maxTokens: 300 },   // child
+          ],
+          overlapTokens: 60,
+        },
+      };
+    case 'SEMANTIC':
+      return {
+        chunkingStrategy: 'SEMANTIC',
+        semanticChunkingConfiguration: {
+          maxTokens: 300,
+          bufferSize: 1,
+          breakpointPercentileThreshold: 95,
+        },
+      };
+    case 'NONE':
+      return {
+        chunkingStrategy: 'NONE',
+      };
+    default:
+      // Default to FIXED_SIZE for unknown values
+      return {
+        chunkingStrategy: 'FIXED_SIZE',
+        fixedSizeChunkingConfiguration: {
+          maxTokens: 300,
+          overlapPercentage: 10,
+        },
+      };
+  }
+}
+
+/**
  * guardrailsConfig を CfnGuardrail プロパティに変換する純粋関数。
  * guardrailsConfig 未設定時はデフォルト構成（全カテゴリ HIGH）を返す。
  */
@@ -815,6 +867,23 @@ exports.handler = async (event) => {
     new cdk.CfnOutput(this, 'DataSourceType', {
       value: 'S3_ACCESS_POINT (post-deploy)',
       description: 'KB data source: FSx ONTAP S3 AP. Run setup-kb-datasource.sh after SVM AD join + S3 AP creation.',
+    });
+
+    // --- Chunking Strategy Configuration (v4.3 Feature 7) ---
+    // チャンキング戦略は DataSource 作成時に指定する。
+    // CDK ではデータソースを作成しないため、コンテキストパラメータとして定義し
+    // setup-kb-datasource.sh に渡す。
+    // ⚠️ チャンキング戦略を変更した場合、DataSource の再同期が必要です。
+    const kbChunkingStrategy = this.node.tryGetContext('kbChunkingStrategy') || 'FIXED_SIZE';
+
+    new cdk.CfnOutput(this, 'KbChunkingStrategy', {
+      value: kbChunkingStrategy,
+      description: 'KB chunking strategy (FIXED_SIZE|HIERARCHICAL|SEMANTIC|NONE). Changing requires DataSource re-sync.',
+    });
+
+    new cdk.CfnOutput(this, 'KbChunkingConfig', {
+      value: JSON.stringify(buildChunkingConfiguration(kbChunkingStrategy)),
+      description: 'Chunking configuration JSON for setup-kb-datasource.sh',
     });
 
     // --- Bedrock Guardrails（オプション） ---
