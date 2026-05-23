@@ -175,6 +175,8 @@ export class DemoWebAppStack extends cdk.Stack {
         // Bedrock KB設定
         BEDROCK_KB_ID: knowledgeBaseId,
         BEDROCK_REGION: cdk.Aws.REGION,
+        // Hybrid Search (v4.3 Feature 5): SEMANTIC | HYBRID
+        SEARCH_TYPE: this.node.tryGetContext('kbSearchType') || 'SEMANTIC',
         // SIDベース権限フィルタリング: 有効化
         ENABLE_PERMISSION_CHECK: 'true',
         PERMISSION_CACHE_TABLE: permissionCacheTable.tableName,

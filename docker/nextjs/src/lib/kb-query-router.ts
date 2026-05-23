@@ -77,3 +77,33 @@ export function buildRouterConfigFromEnv(): KBRouterConfig {
     mode: dualMode ? 'dual' : 'replace',
   };
 }
+
+// --- Hybrid Search Support (v4.3 Feature 5) ---
+
+export type SearchType = 'SEMANTIC' | 'HYBRID';
+
+/**
+ * Read SEARCH_TYPE from environment variable.
+ * Valid values: "SEMANTIC" | "HYBRID"
+ * Default: "SEMANTIC"
+ */
+export function getSearchTypeFromEnv(): SearchType {
+  const raw = (process.env.SEARCH_TYPE || '').toUpperCase().trim();
+  if (raw === 'HYBRID') return 'HYBRID';
+  if (raw === 'SEMANTIC') return 'SEMANTIC';
+  if (raw) {
+    console.warn(`[KBQueryRouter] Invalid SEARCH_TYPE "${raw}", falling back to SEMANTIC`);
+  }
+  return 'SEMANTIC';
+}
+
+/**
+ * Build vectorSearchConfiguration for Bedrock Retrieve API.
+ * Includes overrideSearchType when searchType is specified.
+ */
+export function buildVectorSearchConfig(searchType?: SearchType): Record<string, any> {
+  const effectiveType = searchType || getSearchTypeFromEnv();
+  return {
+    overrideSearchType: effectiveType,
+  };
+}

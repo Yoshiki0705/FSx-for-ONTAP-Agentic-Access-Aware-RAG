@@ -1,0 +1,62 @@
+[
+  {
+    "question": "会社の売上はいくらですか？",
+    "ground_truth": "年間売上は5億円です。",
+    "contexts": ["confidential/financial-report.md"],
+    "required_permission": "Domain Admins"
+  },
+  {
+    "question": "リモートワークのポリシーを教えてください",
+    "ground_truth": "週3日までリモートワークが可能です。事前申請が必要です。",
+    "contexts": ["confidential/hr-policy.md"],
+    "required_permission": "Domain Admins"
+  },
+  {
+    "question": "製品の主な特徴は何ですか？",
+    "ground_truth": "高性能、低コスト、スケーラブルの3つが主な特徴です。",
+    "contexts": ["public/product-catalog.md"],
+    "required_permission": "Everyone"
+  },
+  {
+    "question": "会社の設立年はいつですか？",
+    "ground_truth": "2010年に設立されました。",
+    "contexts": ["public/company-overview.md"],
+    "required_permission": "Everyone"
+  },
+  {
+    "question": "プロジェクトの次のマイルストーンは？",
+    "ground_truth": "Q2末までにベータ版リリースを予定しています。",
+    "contexts": ["restricted/project-plan.md"],
+    "required_permission": "Engineering"
+  },
+  {
+    "question": "セキュリティインシデントの対応手順は？",
+    "ground_truth": "発見者は即座にセキュリティチームに報告し、影響範囲を特定します。",
+    "contexts": ["restricted/security-incident-report.md"],
+    "required_permission": "Engineering"
+  },
+  {
+    "question": "第4四半期の予算実績は？",
+    "ground_truth": "予算4.5億円に対し実績4.2億円、達成率93%です。",
+    "contexts": ["finance/budget-report-q4.md"],
+    "required_permission": "Finance"
+  },
+  {
+    "question": "投資戦略の方針は？",
+    "ground_truth": "成長分野への重点投資と既存事業の効率化を両立する方針です。",
+    "contexts": ["finance/investment-strategy.md"],
+    "required_permission": "Finance"
+  },
+  {
+    "question": "経費精算のルールは？",
+    "ground_truth": "月末締め翌月15日払い。5万円以上は部長承認が必要です。",
+    "contexts": ["finance/expense-policy.md"],
+    "required_permission": "Finance"
+  },
+  {
+    "question": "エンジニアリングロードマップの概要は？",
+    "ground_truth": "Q1: 基盤整備、Q2: 新機能開発、Q3: パフォーマンス最適化、Q4: セキュリティ強化",
+    "contexts": ["restricted/engineering-roadmap.md"],
+    "required_permission": "Engineering"
+  }
+]
