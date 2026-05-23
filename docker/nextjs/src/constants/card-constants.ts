@@ -112,6 +112,29 @@ permissionAwareSearchを使わずに回答しないでください。`,
     foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
     description: '新入社員向けの部署別ガイド・FAQ資料を自動生成するAgent',
   },
+  // --- 公共セクター向けテンプレート ---
+  publicDocument: {
+    agentNamePattern: 'public-document-agent',
+    matchKeywords: ['公文書', '通達', '通知', '公共', 'official', 'government', '行政'],
+    instruction: `あなたは公文書・行政文書作成専門のAIエージェントです。
+ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って関連する規定・過去の通達・法令情報を検索し、
+その情報を基に公文書のドラフト（件名、宛先、本文、根拠法令、施行日、担当部署）を生成してください。
+行政文書の形式・用語に準拠した構造化された日本語の文書を出力してください。
+permissionAwareSearchを使わずに回答しないでください。`,
+    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    description: '規定・法令に基づく公文書・通達のドラフト自動生成Agent（公共セクター向け）',
+  },
+  policyBrief: {
+    agentNamePattern: 'policy-brief-agent',
+    matchKeywords: ['政策', '概要', 'policy', 'brief', '要約', '議会', '答弁'],
+    instruction: `あなたは政策概要・議会答弁資料作成専門のAIエージェントです。
+ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って関連する政策文書・統計データ・過去の答弁を検索し、
+その情報を基に政策概要（背景、課題、施策内容、期待効果、予算、スケジュール）または
+議会答弁資料（質問要旨、回答案、根拠データ、補足説明）を生成してください。
+permissionAwareSearchを使わずに回答しないでください。`,
+    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    description: '政策概要・議会答弁資料の自動生成Agent（公共セクター向け）',
+  },
 };
 
 export interface WorkflowStep {
