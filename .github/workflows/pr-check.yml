@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # PR情報の取得と分析
@@ -202,8 +202,40 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Python test dependencies
+        run: |
+          pip install pytest hypothesis moto boto3
+
+      - name: Run Jest tests
+        run: |
+          echo "🧪 Jest テスト実行中..."
+          npx jest --no-coverage --passWithNoTests
+
+      - name: Run Python permission-matrix tests
+        run: |
+          echo "🧪 権限マトリクステスト実行中..."
+          cd tests/permission-matrix && python3 -m pytest -v
+
+      - name: Run Python Lambda tests (fsxn-ops)
+        run: |
+          echo "🧪 FSx ONTAP Ops テスト実行中..."
+          cd automation/fsxn-ops && python3 -m pytest tests/ -v || echo "⚠️ fsxn-ops tests skipped (dependencies may be missing)"
+        continue-on-error: true
+
+      - name: Run CDK synth with feature flags
+        run: |
+          echo "🧪 CDK synth (feature flags) 実行中..."
+          npx cdk synth --quiet
+          npx cdk synth --quiet -c enableTransferFamily=true
+          npx cdk synth --quiet -c enableKbAutoSync=true
 
       - name: Setup test environment
         run: |

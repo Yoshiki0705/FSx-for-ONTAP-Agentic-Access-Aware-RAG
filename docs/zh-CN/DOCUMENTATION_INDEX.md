@@ -7,7 +7,8 @@
 | 文档 | 说明 |
 |------|------|
 | [README.md](../../README.zh-CN.md) | 系统概述、架构、部署步骤、WAF/Geo 设置 |
-| [implementation-overview.md](implementation-overview.md) | 详细实现（14个方面：图像分析 RAG、KB 连接 UI、Smart Routing、监控与告警） |
+| [auth-and-user-management.md](auth-and-user-management.md) | 认证与用户管理指南（认证模式选择、AD Federation、自动 SID 注册、故障排除） |
+| [implementation-overview.md](implementation-overview.md) | 详细实现（22个方面：图像分析 RAG、KB 连接 UI、Smart Routing、监控与告警、OIDC/LDAP Federation） |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | 基于 SID 的权限过滤详细设计 |
 | [verification-report.md](verification-report.md) | 部署后验证流程和测试用例 |
 | [ui-specification.md](ui-specification.md) | Chatbot UI 规格（KB/Agent 模式、Agent Directory、企业级 Agent 功能、侧边栏设计） |
@@ -20,17 +21,45 @@
 
 | 文档 | 说明 |
 |------|------|
-| [demo-scenario.md](../../demo-data/guides/demo-scenario.md) | 验证场景（管理员与普通用户权限差异、AD SSO 登录） |
-| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD 集成、CIFS 共享、NTFS ACL 配置（已验证流程） |
+| [auth-mode-setup-guide.md](../../demo-data/guides/auth-mode-setup-guide.md) | 认证模式演示环境搭建指南（5种模式，附带示例配置文件） |
+| [demo-scenario.md](../../demo-data/guides/demo-scenario.md) | 验证场景（管理员与普通用户权限差异、AD SSO 登录、OIDC/LDAP 登录） |
+| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD 集成、CIFS 共享、NTFS ACL 配置、Name-Mapping 设置（已验证流程） |
 | [demo-environment-guide.md](demo-environment-guide.md) | 验证环境资源 ID、访问信息、Embedding 服务器流程 |
+
+## 企业设计与运维指南
+
+| 文档 | 说明 |
+|------|------|
+| [production-readiness-checklist.md](production-readiness-checklist.md) | 生产就绪检查清单（Demo → PoC → Production 成熟度级别定义、安全/审计/DR/运维确认项） |
+| [permission-consistency.md](permission-consistency.md) | 权限变更一致性模型（ACL 变更 → 元数据再生成 → KB 重新同步 → 缓存失效流程、最大延迟、紧急权限撤销流程） |
+| [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP 性能与容量设计指南（按规模配置、S3 AP 考虑事项、QoS、向量存储选型） |
+| [partner-deployment-patterns.md](partner-deployment-patterns.md) | 多租户与合作伙伴部署模式（账户隔离/SVM 隔离/混合、成本估算模板） |
+| [governance-and-audit.md](governance-and-audit.md) | 治理与审计设计（审计日志模式、Responsible AI、Guardrails 策略、行业特定用例） |
+| [evaluation.md](evaluation.md) | RAG / Agent 评估指标（4轴评估：业务 KPI、RAG 质量、权限控制、Agent 性能；PoC 评估模板） |
+| [safe-experimentation-guide.md](safe-experimentation-guide.md) | 安全实验指南（范围定义、禁止事项、真实数据导入检查清单、回滚流程） |
+| [threat-model.md](threat-model.md) | 威胁模型（10个威胁类别、攻击路径、现有缓解措施、额外建议、威胁→对策映射表） |
+| [cloudwatch-dashboard-guide.md](cloudwatch-dashboard-guide.md) | CloudWatch 仪表板运维指南（指标列表、告警定义、故障排除模式） |
+| [poc-workshop-guide.md](poc-workshop-guide.md) | PoC 工作坊指南（90分钟：部署 → 测试 → 评估 → 清理） |
+| [tests/permission-matrix/](../../tests/permission-matrix/) | 权限矩阵测试（31个 ACL 边缘场景：Fail-Closed、组嵌套、继承权限、紧急撤销） |
 
 ## FSx ONTAP 运维自动化
 
 | 文档 | 说明 |
 |------|------|
 | [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | 运维自动化套件概述（目录结构、用例） |
-| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 此架构如何简化 FSx ONTAP 运维 |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 此架构如何简化 FSx ONTAP 运维（设计决策、成本估算、安全设计） |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS 集成验证报告（2026-05-01，所有阶段通过） |
+| [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | 集成 CloudFormation 模板（含 VPC 端点） |
+
+## 示例配置文件
+
+| 文件 | 认证模式 | 说明 |
+|------|----------|------|
+| `demo-data/configs/mode-a-email-password.json` | 邮箱/密码 | 最小配置，手动 SID 注册 |
+| `demo-data/configs/mode-b-saml-ad-federation.json` | SAML AD Federation | Managed AD + IAM Identity Center |
+| `demo-data/configs/mode-c-oidc-ldap.json` | OIDC + LDAP | Auth0/Keycloak + OpenLDAP + ONTAP name-mapping |
+| `demo-data/configs/mode-d-oidc-claims-only.json` | OIDC Claims Only | Okta/Auth0（无 LDAP） |
+| `demo-data/configs/mode-e-saml-oidc-hybrid.json` | SAML + OIDC | AD Federation + OIDC IdP 同时启用 |
 
 ## Embedding 服务器（通过 FlexCache CIFS 挂载）
 
@@ -51,20 +80,34 @@
 | `demo-data/scripts/setup-user-access.sh` | 在 DynamoDB 中注册 SID 数据 |
 | `demo-data/scripts/upload-demo-data.sh` | 上传测试文档到 S3 |
 | `demo-data/scripts/sync-kb-datasource.sh` | 同步 Bedrock KB 数据源 |
+| `demo-data/scripts/setup-openldap.sh` | OpenLDAP 服务器设置（VPC 内 EC2，测试用户/组） |
+| `demo-data/scripts/setup-ontap-namemapping.sh` | ONTAP REST API name-mapping 规则设置 |
+| `demo-data/scripts/verify-ldap-integration.sh` | LDAP 集成验证（Lambda → LDAP → DynamoDB） |
+| `demo-data/scripts/verify-ontap-namemapping.sh` | ONTAP name-mapping 验证（REST API 连接与规则获取） |
+| `demo-data/scripts/setup-mode-c-oidc-ldap.sh` | 模式 C（OIDC+LDAP）一键设置（全阶段自动执行） |
 
-| `demo-data/scripts/setup-openldap.sh` | OpenLDAP server setup (EC2 in VPC, test users/groups) |
-| `demo-data/scripts/setup-ontap-namemapping.sh` | ONTAP REST API name-mapping rule setup |
-| `demo-data/scripts/verify-ldap-integration.sh` | LDAP integration verification |
-| `demo-data/scripts/verify-ontap-namemapping.sh` | ONTAP name-mapping verification |
-| `demo-data/scripts/setup-mode-c-oidc-ldap.sh` | Mode C (OIDC+LDAP) one-shot setup |
 ## 推荐阅读顺序
 
+### 第一阶段：初始设置
+
 1. **README.md** — 系统概述和部署步骤
-2. **implementation-overview.md** — 8个方面的详细实现
-3. **SID-Filtering-Architecture.md** — 核心功能技术详情
-4. **demo-recording-guide.md** — 演示视频录制指南
-5. **ontap-setup-guide.md** — FSx ONTAP AD 集成、CIFS 共享设置
-6. **README.md - AD SAML Federation** — AD SAML federation 设置（可选）
-7. **demo-environment-guide.md** — 验证环境设置（包含 Embedding 服务器）
-8. **demo-scenario.md** — 执行验证场景（AD SSO 登录）
-9. **verification-report.md** — API 级别验证流程
+2. **auth-and-user-management.md** — 认证模式选择与用户管理
+3. **implementation-overview.md** — 22个方面的详细实现
+4. **SID-Filtering-Architecture.md** — 核心功能技术详情
+5. **safe-experimentation-guide.md** — 安全实验指南（PoC 开始前必读）
+
+### 第二阶段：验证与评估
+
+6. **demo-recording-guide.md** — 演示视频录制指南
+7. **ontap-setup-guide.md** — FSx ONTAP AD 集成、CIFS 共享设置
+8. **demo-environment-guide.md** — 验证环境设置
+9. **demo-scenario.md** — 执行验证场景
+10. **evaluation.md** — PoC 评估模板
+
+### 第三阶段：生产与企业设计
+
+11. **production-readiness-checklist.md** — 生产就绪检查清单
+12. **permission-consistency.md** — 权限变更一致性模型
+13. **fsxn-sizing-and-performance.md** — FSx for ONTAP 性能与容量设计
+14. **governance-and-audit.md** — 治理与审计设计
+15. **partner-deployment-patterns.md** — 多租户部署模式

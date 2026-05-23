@@ -7,7 +7,7 @@ on:
 
 env:
   PROJECT_NAME: permission-aware-rag-system
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # テスト実行ジョブ

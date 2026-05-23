@@ -7,7 +7,8 @@
 | Dokument | Beschreibung |
 |----------|--------------|
 | [README.md](../../README.de.md) | Systemübersicht, Architektur, Bereitstellungsschritte, WAF/Geo-Einstellungen |
-| [implementation-overview.md](implementation-overview.md) | Detaillierte Implementierung (12 Aspekte: Bildanalyse RAG, KB-Verbindungs-UI, Smart Routing, Überwachung und Warnungen) |
+| [auth-and-user-management.md](auth-and-user-management.md) | Authentifizierungs- und Benutzerverwaltungshandbuch (Authentifizierungsmodus-Auswahl, AD Federation, automatische SID-Registrierung, Fehlerbehebung) |
+| [implementation-overview.md](implementation-overview.md) | Detaillierte Implementierung (22 Aspekte: Bildanalyse RAG, KB-Verbindungs-UI, Smart Routing, Überwachung und Warnungen, OIDC/LDAP Federation) |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Detailliertes Design der SID-basierten Berechtigungsfilterung |
 | [verification-report.md](verification-report.md) | Verifizierungsverfahren und Testfälle nach der Bereitstellung |
 | [ui-specification.md](ui-specification.md) | Chatbot-UI-Spezifikation (KB/Agent-Modus, Agent Directory, Enterprise-Agent-Funktionen, Seitenleisten-Design) |
@@ -20,17 +21,45 @@
 
 | Dokument | Beschreibung |
 |----------|--------------|
-| [demo-scenario.md](../../demo-data/guides/demo-scenario.md) | Verifizierungsszenarien (Berechtigungsunterschiede Admin vs. Standardbenutzer, AD SSO-Anmeldung) |
-| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD-Integration, CIFS-Freigabe, NTFS ACL-Konfiguration (verifizierte Verfahren) |
+| [auth-mode-setup-guide.md](../../demo-data/guides/auth-mode-setup-guide.md) | Leitfaden zur Demo-Umgebungseinrichtung nach Authentifizierungsmodus (5 Modi, mit Beispielkonfigurationsdateien) |
+| [demo-scenario.md](../../demo-data/guides/demo-scenario.md) | Verifizierungsszenarien (Berechtigungsunterschiede Admin vs. Standardbenutzer, AD SSO-Anmeldung, OIDC/LDAP-Anmeldung) |
+| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD-Integration, CIFS-Freigabe, NTFS ACL-Konfiguration, Name-Mapping-Konfiguration (verifizierte Verfahren) |
 | [demo-environment-guide.md](demo-environment-guide.md) | Ressourcen-IDs der Verifizierungsumgebung, Zugangsinformationen, Embedding-Server-Verfahren |
+
+## Enterprise-Design- und Betriebsleitfaden
+
+| Dokument | Beschreibung |
+|----------|--------------|
+| [production-readiness-checklist.md](production-readiness-checklist.md) | Produktionsbereitschafts-Checkliste (Demo → PoC → Production Reifegraddefinitionen, Sicherheits-/Audit-/DR-/Betriebsprüfpunkte) |
+| [permission-consistency.md](permission-consistency.md) | Konsistenzmodell für Berechtigungsänderungen (ACL-Änderung → Metadaten-Neugenerierung → KB-Neusynchronisierung → Cache-Invalidierung, maximale Latenz, Notfall-Berechtigungsentzugsverfahren) |
+| [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP Dimensionierungs- und Leistungsleitfaden (skalenbasierte Konfigurationen, S3 AP-Überlegungen, QoS, Vektorspeicher-Auswahl) |
+| [partner-deployment-patterns.md](partner-deployment-patterns.md) | Multi-Tenant- und Partner-Bereitstellungsmuster (Kontoisolierung/SVM-Isolierung/Hybrid, Kostenschätzungsvorlagen) |
+| [governance-and-audit.md](governance-and-audit.md) | Governance- und Audit-Design (Audit-Log-Schema, Responsible AI, Guardrails-Richtlinien, branchenspezifische Anwendungsfälle) |
+| [evaluation.md](evaluation.md) | RAG / Agent Bewertungsmetriken (4-Achsen-Bewertung: Business-KPIs, RAG-Qualität, Berechtigungskontrolle, Agent-Leistung; PoC-Bewertungsvorlage) |
+| [safe-experimentation-guide.md](safe-experimentation-guide.md) | Leitfaden für sicheres Experimentieren (Umfangsdefinition, verbotene Aktionen, Checkliste für Echtdaten-Einspeisung, Rollback-Verfahren) |
+| [threat-model.md](threat-model.md) | Bedrohungsmodell (10 Bedrohungskategorien, Angriffspfade, bestehende Gegenmaßnahmen, zusätzliche Empfehlungen, Bedrohungs-Gegenmaßnahmen-Zuordnungstabelle) |
+| [cloudwatch-dashboard-guide.md](cloudwatch-dashboard-guide.md) | CloudWatch-Dashboard-Betriebsleitfaden (Metrikliste, Alarmdefinitionen, Fehlerbehebungsmuster) |
+| [poc-workshop-guide.md](poc-workshop-guide.md) | PoC-Workshop-Leitfaden (90 Minuten: Bereitstellung → Test → Bewertung → Bereinigung) |
+| [tests/permission-matrix/](../../tests/permission-matrix/) | Berechtigungsmatrix-Tests (31 ACL-Grenzfallszenarien: Fail-Closed, Gruppenverschachtelung, vererbte Berechtigungen, Notfallentzug) |
 
 ## FSx ONTAP Betriebsautomatisierung
 
 | Dokument | Beschreibung |
 |----------|--------------|
 | [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | Übersicht der Betriebsautomatisierungssuite (Verzeichnisstruktur, Anwendungsfälle) |
-| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | Warum diese Architektur FSx ONTAP-Operationen vereinfacht |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | Warum diese Architektur FSx ONTAP-Operationen vereinfacht (Designentscheidungen, Kostenschätzungen, Sicherheitsdesign) |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS-Integrationsverifizierungsbericht (2026-05-01, alle Phasen BESTANDEN) |
+| [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | Integrierte CloudFormation-Vorlage (inkl. VPC-Endpunkte) |
+
+## Beispielkonfigurationsdateien
+
+| Datei | Authentifizierungsmodus | Beschreibung |
+|-------|------------------------|--------------|
+| `demo-data/configs/mode-a-email-password.json` | E-Mail/Passwort | Minimalkonfiguration, manuelle SID-Registrierung |
+| `demo-data/configs/mode-b-saml-ad-federation.json` | SAML AD Federation | Managed AD + IAM Identity Center |
+| `demo-data/configs/mode-c-oidc-ldap.json` | OIDC + LDAP | Auth0/Keycloak + OpenLDAP + ONTAP Name-Mapping |
+| `demo-data/configs/mode-d-oidc-claims-only.json` | OIDC Claims Only | Okta/Auth0 (ohne LDAP) |
+| `demo-data/configs/mode-e-saml-oidc-hybrid.json` | SAML + OIDC | AD Federation + OIDC IdP gleichzeitige Aktivierung |
 
 ## Embedding-Server (über FlexCache CIFS-Einbindung)
 
@@ -51,20 +80,34 @@
 | `demo-data/scripts/setup-user-access.sh` | SID-Daten in DynamoDB registrieren |
 | `demo-data/scripts/upload-demo-data.sh` | Testdokumente nach S3 hochladen |
 | `demo-data/scripts/sync-kb-datasource.sh` | Bedrock KB-Datenquelle synchronisieren |
+| `demo-data/scripts/setup-openldap.sh` | OpenLDAP-Server-Einrichtung (EC2 in VPC, Testbenutzer/-gruppen) |
+| `demo-data/scripts/setup-ontap-namemapping.sh` | ONTAP REST API Name-Mapping-Regeleinrichtung |
+| `demo-data/scripts/verify-ldap-integration.sh` | LDAP-Integrationsverifizierung (Lambda → LDAP → DynamoDB) |
+| `demo-data/scripts/verify-ontap-namemapping.sh` | ONTAP Name-Mapping-Verifizierung (REST API-Verbindung und Regelabruf) |
+| `demo-data/scripts/setup-mode-c-oidc-ldap.sh` | Modus C (OIDC+LDAP) One-Shot-Einrichtung (alle Phasen automatisch ausgeführt) |
 
-| `demo-data/scripts/setup-openldap.sh` | OpenLDAP server setup (EC2 in VPC, test users/groups) |
-| `demo-data/scripts/setup-ontap-namemapping.sh` | ONTAP REST API name-mapping rule setup |
-| `demo-data/scripts/verify-ldap-integration.sh` | LDAP integration verification |
-| `demo-data/scripts/verify-ontap-namemapping.sh` | ONTAP name-mapping verification |
-| `demo-data/scripts/setup-mode-c-oidc-ldap.sh` | Mode C (OIDC+LDAP) one-shot setup |
 ## Empfohlene Lesereihenfolge
 
+### Phase 1: Ersteinrichtung
+
 1. **README.md** — Systemübersicht und Bereitstellungsschritte
-2. **implementation-overview.md** — Detaillierte Implementierung über 8 Aspekte
-3. **SID-Filtering-Architecture.md** — Technische Details der Kernfunktion
-4. **demo-recording-guide.md** — Leitfaden zur Demo-Videoaufzeichnung
-5. **ontap-setup-guide.md** — FSx ONTAP AD-Integration, CIFS-Freigabe-Einrichtung
-6. **README.md - AD SAML Federation** — AD SAML Federation-Einrichtung (optional)
-7. **demo-environment-guide.md** — Einrichtung der Verifizierungsumgebung (einschließlich Embedding-Server)
-8. **demo-scenario.md** — Verifizierungsszenarien ausführen (AD SSO-Anmeldung)
-9. **verification-report.md** — Verifizierungsverfahren auf API-Ebene
+2. **auth-and-user-management.md** — Authentifizierungsmodus-Auswahl und Benutzerverwaltung
+3. **implementation-overview.md** — Detaillierte Implementierung über 22 Aspekte
+4. **SID-Filtering-Architecture.md** — Technische Details der Kernfunktion
+5. **safe-experimentation-guide.md** — Leitfaden für sicheres Experimentieren (Pflichtlektüre vor PoC-Start)
+
+### Phase 2: Verifizierung und Bewertung
+
+6. **demo-recording-guide.md** — Leitfaden zur Demo-Videoaufzeichnung
+7. **ontap-setup-guide.md** — FSx ONTAP AD-Integration, CIFS-Freigabe-Einrichtung
+8. **demo-environment-guide.md** — Einrichtung der Verifizierungsumgebung
+9. **demo-scenario.md** — Verifizierungsszenarien ausführen
+10. **evaluation.md** — PoC-Bewertungsvorlage
+
+### Phase 3: Produktion und Enterprise-Design
+
+11. **production-readiness-checklist.md** — Produktionsbereitschafts-Checkliste
+12. **permission-consistency.md** — Konsistenzmodell für Berechtigungsänderungen
+13. **fsxn-sizing-and-performance.md** — FSx for ONTAP Dimensionierung und Leistung
+14. **governance-and-audit.md** — Governance- und Audit-Design
+15. **partner-deployment-patterns.md** — Multi-Tenant-Bereitstellungsmuster
