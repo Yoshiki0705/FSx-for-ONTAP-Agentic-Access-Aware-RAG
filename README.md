@@ -96,6 +96,8 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | [コスト見積もりワークシート](docs/cost-estimation-worksheet.md) | 構成別月額概算テンプレート（PoC $430 / 中規模 $3,626 / 大規模 $8,512） |
 | [Architecture Decision Records](docs/architecture-decision-records.md) | 6 つの主要意思決定の根拠（ベクトルストア、権限フィルタ、認証、フロントエンド、同期、ルーティング） |
 | [ベンチマークシナリオ](docs/benchmark-scenarios.md) | 10K / 100K / 1M ファイル規模の性能計測フレームワーク、理論的ベースライン推定値 |
+| [業種別デモデータパック](demo-data/industry-packs/) | 7 業種（行政・医療・法務・製造・建設・教育・保険）× 各 5 ドキュメント + 権限メタデータ |
+| [S3AP Serverless Patterns 連携](docs/s3ap-serverless-patterns-integration.md) | 17 UC サーバーレス処理パターンとの連携アーキテクチャ（3 パターン） |
 
 > 権限制御の正しさは [tests/permission-matrix/](tests/permission-matrix/) の 31 テストシナリオ（ACL エッジケース、Fail-Closed、グループネスティング、継承権限）で検証しています。
 
