@@ -209,11 +209,13 @@ export class DemoStorageStack extends cdk.Stack {
     });
 
     // ユーザーアクセステーブル（userId → SIDリストのマッピング）
+    // DynamoDB Streams 有効化: 権限変更時のキャッシュ自動無効化に使用 (#13)
     this.userAccessTable = new dynamodb.Table(this, 'UserAccessTable', {
       tableName: `${prefix}-user-access`,
       partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
       ...(kmsKey ? { encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED, encryptionKey: kmsKey } : {}),
     });
 
