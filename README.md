@@ -410,6 +410,27 @@ aws cognito-idp list-user-pools --max-results 10 --region ap-northeast-1
 
 > **推奨**: 本番環境やチーム共有環境では、専用のAWSアカウントまたはサンドボックス環境でデプロイすることを強く推奨します。
 
+#### v4.3 アップグレード時の注意事項（DynamoDB Streams）
+
+v4.3 では `user-access` テーブルに DynamoDB Streams（`NEW_AND_OLD_IMAGES`）が追加されました。**既存環境でこの変更を適用すると、テーブルの置換（再作成）が発生する可能性があります。**
+
+```bash
+# 事前確認: テーブル置換が発生するか確認
+npx cdk diff ${STACK_PREFIX}-Storage 2>&1 | grep -A2 "UserAccessTable"
+
+# 置換が発生する場合の対応:
+# 1. 既存データのバックアップ
+aws dynamodb scan --table-name ${PREFIX}-user-access --region ap-northeast-1 > backup-user-access.json
+
+# 2. デプロイ実行
+npx cdk deploy ${STACK_PREFIX}-Storage --require-approval never
+
+# 3. データ復元（必要な場合）
+# バックアップからの復元スクリプトを使用
+```
+
+> **注意**: DynamoDB Streams の追加は通常テーブル置換を伴いません（CDK/CloudFormation がインプレース更新をサポート）。ただし、他のテーブル設定（キースキーマ変更等）と同時に変更する場合は置換が発生する可能性があります。`cdk diff` で事前確認してください。
+
 #### v3.5.0 UI/UX最適化アップグレード時の注意事項
 
 v3.5.0ではヘッダーUI、サイドバー構成、モード切替ロジックが大幅に変更されています。既存環境からアップグレードする場合、以下を確認してください。
