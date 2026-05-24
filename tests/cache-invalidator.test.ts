@@ -68,4 +68,12 @@ describe('CacheInvalidatorConstruct', () => {
       StartingPosition: 'TRIM_HORIZON',
     });
   });
+
+  test('creates DLQ for failed stream processing', () => {
+    const template = createStack();
+    template.hasResourceProperties('AWS::SQS::Queue', {
+      QueueName: 'test-dev-cache-invalidator-dlq',
+      MessageRetentionPeriod: 1209600, // 14 days
+    });
+  });
 });

@@ -10,6 +10,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 
 export interface CacheInvalidatorConstructProps {
@@ -46,13 +47,20 @@ export class CacheInvalidatorConstruct extends Construct {
     // Grant permission to delete from cache table
     props.permissionCacheTable.grantReadWriteData(this.function);
 
-    // DynamoDB Streams event source
+    // DLQ for failed stream processing
+    const dlq = new sqs.Queue(this, 'DLQ', {
+      queueName: `${prefix}-cache-invalidator-dlq`,
+      retentionPeriod: cdk.Duration.days(14),
+    });
+
+    // DynamoDB Streams event source with DLQ
     this.function.addEventSource(
       new lambdaEventSources.DynamoEventSource(props.userAccessTable, {
         startingPosition: lambda.StartingPosition.TRIM_HORIZON,
         batchSize: 10,
         maxBatchingWindow: cdk.Duration.seconds(5),
         retryAttempts: 3,
+        onFailure: new lambdaEventSources.SqsDlq(dlq),
       })
     );
   }

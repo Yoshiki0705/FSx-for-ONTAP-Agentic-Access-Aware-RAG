@@ -21,7 +21,7 @@ export interface AlertEscalationConstructProps {
   environment: string;
   /** 既存の SNS トピック（オプション、未指定時は新規作成） */
   snsTopicArn?: string;
-  /** Webhook URL (Slack Incoming Webhook or PagerDuty Events API) */
+  /** Webhook URL (Secrets Manager ARN containing Slack/PagerDuty webhook URL) */
   webhookUrl?: string;
   /** Guardrails 違反閾値（1時間あたり、デフォルト: 5） */
   guardrailBlockThreshold?: number;
@@ -61,9 +61,15 @@ export class AlertEscalationConstruct extends Construct {
 import json
 import urllib.request
 import os
+import boto3
 
 def handler(event, context):
-    webhook_url = os.environ['WEBHOOK_URL']
+    # Retrieve webhook URL from Secrets Manager (not env var)
+    secret_arn = os.environ['WEBHOOK_SECRET_ARN']
+    sm = boto3.client('secretsmanager')
+    secret = sm.get_secret_value(SecretId=secret_arn)
+    webhook_url = secret['SecretString']
+    
     for record in event.get('Records', []):
         message = record.get('Sns', {}).get('Message', '')
         subject = record.get('Sns', {}).get('Subject', 'Alert')
@@ -85,10 +91,16 @@ def handler(event, context):
         timeout: cdk.Duration.seconds(10),
         memorySize: 128,
         environment: {
-          WEBHOOK_URL: props.webhookUrl,
+          WEBHOOK_SECRET_ARN: props.webhookUrl,  // Now expects a Secrets Manager ARN
         },
         logRetention: logs.RetentionDays.ONE_WEEK,
       });
+
+      // Grant Secrets Manager read access
+      webhookFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+        actions: ['secretsmanager:GetSecretValue'],
+        resources: [props.webhookUrl],
+      }));
 
       this.topic.addSubscription(
         new sns_subscriptions.LambdaSubscription(webhookFn)
