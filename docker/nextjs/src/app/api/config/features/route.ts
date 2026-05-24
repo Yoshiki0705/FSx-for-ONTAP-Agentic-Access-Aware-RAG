@@ -18,5 +18,10 @@ export async function GET() {
       (process.env.ENABLE_AGENTCORE_MEMORY === 'true' && process.env.AGENTCORE_MEMORY_ID),
     agentCoreMemoryEnabled: process.env.ENABLE_AGENTCORE_MEMORY === 'true',
     multiAgentEnabled: !!process.env.SUPERVISOR_AGENT_ID,
+    // v4.3 features
+    feedbackEnabled: process.env.FEEDBACK_FUNCTION_NAME ? true : false,
+    provenanceEnabled: process.env.PROVENANCE_FUNCTION_NAME ? true : false,
+    policyConsentRequired: process.env.POLICY_CONSENT_REQUIRED === 'true',
+    hybridSearchEnabled: (process.env.SEARCH_TYPE || '').toUpperCase() === 'HYBRID',
   });
 }
