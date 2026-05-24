@@ -75,6 +75,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     total_tokens = event.get("totalTokens", 0)
     response_time_ms = event.get("responseTimeMs", 0)
 
+    # PII対策: queryフィールドをハッシュ化して保存（原文は保存しない）
+    import hashlib
+    query_hash = hashlib.sha256(query.encode()).hexdigest()[:16] if query else ""
+    # 短縮版のみ保存（監査目的では十分、PII漏えいリスクを低減）
+    query_preview = query[:50] + "..." if len(query) > 50 else query
+
     now = datetime.now(timezone.utc)
     ttl_epoch = int(now.timestamp()) + (ttl_days * 24 * 60 * 60)
 
@@ -84,7 +90,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         "timestamp": now.isoformat(),
         "userId": user_id,
         "eventType": "RAG_RESPONSE_GENERATED",
-        "query": query[:500],  # クエリは500文字まで保存
+        "queryHash": query_hash,
+        "queryPreview": query_preview,  # 先頭50文字のみ（PII対策）
         "modelId": model_id,
         "routingTier": routing_tier,
         "citationCount": len(citations),
