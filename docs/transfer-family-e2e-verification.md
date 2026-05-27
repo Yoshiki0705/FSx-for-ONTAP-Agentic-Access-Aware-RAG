@@ -92,6 +92,8 @@ sftp -i /path/to/private-key \
   USERNAME@SERVER_ID.server.transfer.REGION.amazonaws.com
 ```
 
+> **⚠️ 本番環境での注意**: 上記の `StrictHostKeyChecking=no` は初回検証用です。本番環境では Transfer Family サーバーの HostKey を `~/.ssh/known_hosts` に登録し、`StrictHostKeyChecking=yes`（デフォルト）で運用してください。HostKey は `aws transfer describe-server --server-id <ID> --query 'Server.HostKeyFingerprint'` で取得できます。
+
 ### 8. FSx ONTAP ファイルシステム権限
 
 Transfer Family ユーザーがファイルを読み書きするには、FSx ONTAP ボリューム上で S3 Access Point のファイルシステムユーザー（例: `root`）がアップロード先ディレクトリに対する読み書き権限を持っている必要がある。
