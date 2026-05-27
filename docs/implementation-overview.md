@@ -2,8 +2,8 @@
 
 **🌐 Language:** **日本語** | [English](en/implementation-overview.md) | [한국어](ko/implementation-overview.md) | [简体中文](zh-CN/implementation-overview.md) | [繁體中文](zh-TW/implementation-overview.md) | [Français](fr/implementation-overview.md) | [Deutsch](de/implementation-overview.md) | [Español](es/implementation-overview.md)
 
-**作成日**: 2026-03-25  
-**バージョン**: 4.0.0
+**作成日**: 2026-03-25（v4.2.0 更新: 2026-05-28）  
+**バージョン**: 4.2.0
 
 ---
 
