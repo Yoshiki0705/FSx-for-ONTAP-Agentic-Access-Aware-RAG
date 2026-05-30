@@ -175,9 +175,59 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 
 ---
 
+## FSx for ONTAP S3 Access Points — 制約と検証済みパターン
+
+本プロジェクトは FSx for ONTAP S3 Access Points を使用しています。包括的な互換性マトリクス、検証済みパターン、既知の制約（2026年5月 AWS サポート確認済み）については以下を参照してください:
+
+📋 **[FSx for ONTAP S3 AP 互換性マトリクス](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)**
+
+本プロジェクトに関連する主要な制約:
+
+| 制約 | 影響 | 回避策 |
+|------|------|--------|
+| 条件付き書き込み非対応（If-None-Match） | Delta Lake/Iceberg/Hudi のトランザクショナル書き込みがブロック | 読み取り専用分析、または DataSync → S3 で書き込みワークロード対応 |
+| S3 Event Notifications 非対応 | Snowpipe 自動取り込み、Auto Loader ファイル通知モード利用不可 | FPolicy → Lambda、スケジュールポーリング、または Snowpipe REST API |
+| SnapMirror S3 非対応 | ONTAP S3 バケットから AWS S3 へのレプリケーション不可 | DataSync（NFS → S3）を検証済み同期メカニズムとして使用 |
+| ListObjectsV2 高レイテンシ | 小規模ディレクトリでネイティブ S3 比 30-80 倍遅い | ファイルリスト事前生成、大きいファイルサイズ使用、結果キャッシュ |
+| SSE-FSX 暗号化のみ | SSE-S3、SSE-KMS、SSE-C 非対応 | デフォルト SSE-FSX を使用（透過的、AWS KMS マネージド） |
+| オブジェクトバージョニング非対応 | S3 バージョニング利用不可 | ポイントインタイムリカバリには ONTAP Snapshot を使用 |
+| 署名付き URL: 公式未サポート | 実際には動作するが保証なし | 非クリティカルパスのみで使用、IAM ベースアクセスを推奨 |
+| ONTAP 9.17.1 以上必須 | S3 Access Points の最小バージョン要件 | デプロイ前に FSx ファイルシステムの ONTAP バージョンを確認 |
+
+プラットフォーム別互換性（Athena、Glue、EMR、Databricks、Snowflake、Bedrock）を含む完全なマトリクスは[完全版ドキュメント](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)を参照してください。
+
+---
+
 ## Roadmap
 
 全ての計画項目が実装されました。今後の改善は [GitHub Issues](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues) で管理します。
+
+---
+
+## 関連リポジトリ（FSx for ONTAP エコシステム）
+
+本リポジトリは FSx for ONTAP S3 Access Points を活用したソリューション群の一部です。用途に応じて以下のリポジトリも参照してください。
+
+| リポジトリ | 用途 | 概要 |
+|-----------|------|------|
+| **[本リポジトリ] Agentic Access-Aware RAG** | AI / RAG | 権限フィルタリング付き RAG + Agentic AI。FSx for ONTAP の ACL を検索に自動反映 |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自動化 | 17業種別サーバーレスパターン集。S3 AP 経由の AI/ML 処理（FPolicy イベント駆動対応） |
+| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | FSx for ONTAP S3 AP 経由で Athena, Glue, EMR, SageMaker 等と統合する検証フレームワーク |
+| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / 監査 | FSx for ONTAP 監査ログ・メトリクスを Datadog, Splunk, Grafana 等へ EC2 不要で配信 |
+
+**共通アーキテクチャ**: 3つのリポジトリは全て **FSx for ONTAP S3 Access Points** を共通基盤として使用し、既存の NFS/SMB ワークロードを中断せずにデータ活用を拡張します。
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │       FSx for NetApp ONTAP              │
+                    │  (NFS/SMB + S3 Access Points)           │
+                    └──────────┬──────────┬──────────┬────────┘
+                               │          │          │
+                    ┌──────────▼──┐ ┌─────▼─────┐ ┌─▼──────────────┐
+                    │ RAG (本リポ) │ │ Lakehouse │ │ Observability  │
+                    │ 権限付きAI検索│ │ 分析・ML   │ │ 監査・監視      │
+                    └─────────────┘ └───────────┘ └────────────────┘
+```
 
 ---
 

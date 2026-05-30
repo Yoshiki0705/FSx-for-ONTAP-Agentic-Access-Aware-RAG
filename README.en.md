@@ -89,14 +89,60 @@ This sample includes additional guides for evaluating and operating access-aware
 
 ---
 
+## FSx for ONTAP S3 Access Points — Constraints & Validated Patterns
+
+This project uses FSx for ONTAP S3 Access Points. For the comprehensive compatibility matrix, validated patterns, and known constraints (confirmed with AWS Support, May 2026), refer to:
+
+📋 **[FSx for ONTAP S3 AP Compatibility Matrix](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)**
+
+Key constraints relevant to this project:
+
+| Constraint | Impact | Workaround |
+|-----------|--------|-----------|
+| No conditional writes (If-None-Match) | Delta Lake/Iceberg/Hudi transactional writes blocked | Read-only analytics or DataSync → S3 for write workloads |
+| No S3 Event Notifications | Snowpipe auto-ingest, Auto Loader file notification mode unavailable | FPolicy → Lambda, scheduled polling, or Snowpipe REST API |
+| No SnapMirror S3 | Cannot replicate ONTAP S3 bucket to AWS S3 | Use DataSync (NFS → S3) as validated sync mechanism |
+| ListObjectsV2 higher latency | 30-80x slower than native S3 for small directories | Pre-generate file lists, use larger file sizes, or cache results |
+| SSE-FSX encryption only | SSE-S3, SSE-KMS, SSE-C not supported | Use default SSE-FSX (transparent, AWS KMS managed) |
+| No Object Versioning | S3 versioning not available | Use ONTAP Snapshot for point-in-time recovery |
+| Presigned URLs: Not officially supported | Works in practice but not guaranteed | Use for non-critical paths only; prefer IAM-based access |
+| ONTAP 9.17.1+ required | Minimum version for S3 Access Points | Verify FSx file system ONTAP version before deployment |
+
+For the full matrix including platform-specific compatibility (Athena, Glue, EMR, Databricks, Snowflake, Bedrock), see the [complete document](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md).
+
+---
+
 ## Roadmap
 
-The following enhancements are planned for future releases:
+All planned items have been implemented. Future improvements are tracked in [GitHub Issues](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues).
 
-- Athena table definitions for audit log analysis
-- Benchmark scenarios for 10K / 100K / 1M files
-- Cost estimation worksheet
-- Architecture Decision Records (vector store, identity integration)
+---
+
+## Related Repositories (FSx for ONTAP Ecosystem)
+
+This repository is part of a suite of solutions leveraging FSx for ONTAP S3 Access Points. See the following repositories for complementary use cases.
+
+| Repository | Use Case | Description |
+|-----------|----------|-------------|
+| **[This repo] Agentic Access-Aware RAG** | AI / RAG | Permission-aware RAG + Agentic AI. Automatically enforces FSx ONTAP ACLs in search results |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless Automation | 17 industry-specific serverless patterns via S3 AP (FPolicy event-driven support) |
+| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | Validation framework for Athena, Glue, EMR, SageMaker integration via FSx ONTAP S3 AP |
+| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / Audit | EC2-free delivery of FSx ONTAP audit logs and metrics to Datadog, Splunk, Grafana, etc. |
+
+**Common architecture**: All three repositories use **FSx for ONTAP S3 Access Points** as a shared foundation, extending data utilization without disrupting existing NFS/SMB workloads.
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │       FSx for NetApp ONTAP              │
+                    │  (NFS/SMB + S3 Access Points)           │
+                    └──────────┬──────────┬──────────┬────────┘
+                               │          │          │
+                    ┌──────────▼──┐ ┌─────▼─────┐ ┌─▼──────────────┐
+                    │ RAG (this)  │ │ Lakehouse │ │ Observability  │
+                    │ Permission- │ │ Analytics │ │ Audit & Monitor│
+                    │ aware AI    │ │ & ML      │ │                │
+                    └─────────────┘ └───────────┘ └────────────────┘
+```
 
 ---
 
