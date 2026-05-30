@@ -236,7 +236,7 @@ Dieses System bietet drei Datenaufnahmepfade. Da S3 Access Point für FlexCache 
 
 | # | Pfad | Methode | CDK-Aktivierung | Anwendungsfall |
 |---|------|---------|-----------------|----------------|
-| 1 | Haupt | FSx ONTAP Volume → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Standard-Volumes (S3 AP unterstützt) |
+| 1 | Haupt | FSx for ONTAP Volume → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Standard-Volumes (S3 AP unterstützt) |
 | 2 | Fallback | Manueller Upload in S3-Bucket → Bedrock KB | `upload-demo-data.sh` | FlexCache-Volumes und andere nicht von S3 AP unterstützte Fälle |
 | 3 | Alternativ | CIFS-Mount → Embedding-Server → Direktes Schreiben in AOSS | `-c enableEmbeddingServer=true` | FlexCache-Volumes + Fälle, die direkte AOSS-Kontrolle erfordern |
 

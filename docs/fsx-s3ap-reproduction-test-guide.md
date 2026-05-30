@@ -1,8 +1,8 @@
-# FSx ONTAP S3 Access Point 再現試験ガイド
+# FSx for ONTAP S3 Access Point 再現試験ガイド
 
 **🌐 Language:** **日本語** | [English](en/fsx-s3ap-reproduction-test-guide.md) | [한국어](ko/fsx-s3ap-reproduction-test-guide.md) | [简体中文](zh-CN/fsx-s3ap-reproduction-test-guide.md) | [繁體中文](zh-TW/fsx-s3ap-reproduction-test-guide.md) | [Français](fr/fsx-s3ap-reproduction-test-guide.md) | [Deutsch](de/fsx-s3ap-reproduction-test-guide.md) | [Español](es/fsx-s3ap-reproduction-test-guide.md)
 
-**目的**: FSx ONTAP S3 APのAccessDenied問題がOrganization SCP固有の問題か、FSx ONTAP S3 APの仕様上の問題かを切り分ける
+**目的**: FSx for ONTAP S3 APのAccessDenied問題がOrganization SCP固有の問題か、FSx for ONTAP S3 APの仕様上の問題かを切り分ける
 
 ---
 
@@ -14,7 +14,7 @@
 
 ## 再現手順
 
-### Step 1: FSx ONTAP + Managed AD デプロイ
+### Step 1: FSx for ONTAP + Managed AD デプロイ
 
 ```bash
 # CDKブートストラップ（CloudFormation Hookがある場合は--method=directで回避）
@@ -65,7 +65,7 @@ watch -n 10 "aws fsx describe-storage-virtual-machines --storage-virtual-machine
 
 > **注意**: OU指定なしだとMISCONFIGUREDになる。FSx SGにADポート（636, 135, 464, 3268-3269, 1024-65535）が必要（CDKコードに反映済み）。
 
-### Step 3: FSx ONTAP管理パスワード設定 + CIFS共有作成
+### Step 3: FSx for ONTAP管理パスワード設定 + CIFS共有作成
 
 ```bash
 # FSx管理パスワード設定
@@ -181,7 +181,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 - Step 7の全テストがAccessDenied
 - 別アカウント（SCP制限なし）では成功
 
-### FSx ONTAP S3 APの仕様上の問題の場合
+### FSx for ONTAP S3 APの仕様上の問題の場合
 - 別アカウントでも同じAccessDenied
 
 ## 確認済みの設定（問題ではないことが確認済み）
@@ -226,13 +226,13 @@ npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" \
 
 ### 結論
 
-**FSx ONTAP S3 APのAccessDenied問題はOrganization SCPが原因。**
+**FSx for ONTAP S3 APのAccessDenied問題はOrganization SCPが原因。**
 
 旧アカウント（Organization未参加）では同じS3 APアクセスパターンが正常に動作することを確認。新アカウント（Organization参加、SCP制限あり）でのみAccessDeniedが発生。
 
 ### 対処方法
 
 Organization管理アカウントで以下のいずれかを実施：
-1. SCPにFSx ONTAP S3 APへのアクセスを許可するステートメントを追加
+1. SCPにFSx for ONTAP S3 APへのアクセスを許可するステートメントを追加
 2. 該当アカウントをSCP制限の対象外にする
 3. SCPでブロックしているS3アクション/リソースパターンを特定し、FSx S3 APのARNパターン（`arn:aws:s3:<region>:<account>:accesspoint/*`）を除外

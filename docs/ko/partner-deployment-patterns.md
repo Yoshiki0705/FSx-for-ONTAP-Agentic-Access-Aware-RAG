@@ -44,7 +44,7 @@
     │ 고객 A      │      │ 고객 B      │      │ 고객 C       │
     │ 계정        │      │ 계정        │      │ 계정         │
     │             │      │             │      │              │
-    │ ・FSx ONTAP │      │ ・FSx ONTAP │      │ ・FSx ONTAP  │
+    │ ・FSx for ONTAP │      │ ・FSx for ONTAP │      │ ・FSx for ONTAP  │
     │ ・Bedrock KB│      │ ・Bedrock KB│      │ ・Bedrock KB │
     │ ・Cognito   │      │ ・Cognito   │      │ ・Cognito    │
     │ ・DynamoDB  │      │ ・DynamoDB  │      │ ・DynamoDB   │

@@ -490,4 +490,4 @@ Chat page after Auth0 OIDC sign-in:
 - [README.md — AD SAML Federation](../../README.en.md#ad-saml-federation-option) — CDK deployment instructions
 - [docs/implementation-overview.md — Section 3: IAM Authentication](../en/implementation-overview.md#3-iam-authentication--lambda-function-url-iam-auth--cloudfront-oac) — Infrastructure-layer authentication design
 - [docs/SID-Filtering-Architecture.md](../en/SID-Filtering-Architecture.md) — Detailed SID filtering design
-- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) — FSx ONTAP AD integration setup
+- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) — FSx for ONTAP AD integration setup

@@ -434,4 +434,4 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 - [README.md — AD SAML 페더레이션](../../README.ko.md#ad-saml-페더레이션-옵션) — CDK 배포 절차
 - [docs/implementation-overview.md — 섹션 3: IAM 인증](../ko/implementation-overview.md#3-iam-인증--lambda-function-url-iam-auth--cloudfront-oac) — 인프라 계층의 인증 설계
 - [docs/SID-Filtering-Architecture.md](../ko/SID-Filtering-Architecture.md) — SID 필터링 상세 설계
-- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) — FSx ONTAP AD 연동 설정
+- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) — FSx for ONTAP AD 연동 설정

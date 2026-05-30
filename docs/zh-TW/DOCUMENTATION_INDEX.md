@@ -23,7 +23,7 @@
 |------|------|
 | [auth-mode-setup-guide.md](../../demo-data/guides/auth-mode-setup-guide.md) | 認證模式示範環境建置指南（5種模式，附帶範例設定檔） |
 | [demo-scenario.md](../../demo-data/guides/demo-scenario.md) | 驗證情境（管理員與一般使用者權限差異、AD SSO 登入、OIDC/LDAP 登入） |
-| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD 整合、CIFS 共用、NTFS ACL 設定、Name-Mapping 設定（已驗證程序） |
+| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx for ONTAP + AD 整合、CIFS 共用、NTFS ACL 設定、Name-Mapping 設定（已驗證程序） |
 | [demo-environment-guide.md](demo-environment-guide.md) | 驗證環境資源 ID、存取資訊、Embedding 伺服器程序 |
 
 ## 企業設計與維運指南
@@ -42,12 +42,12 @@
 | [poc-workshop-guide.md](poc-workshop-guide.md) | PoC 工作坊指南（90分鐘：部署 → 測試 → 評估 → 清理） |
 | [tests/permission-matrix/](../../tests/permission-matrix/) | 權限矩陣測試（31個 ACL 邊緣情境：Fail-Closed、群組巢狀、繼承權限、緊急撤銷） |
 
-## FSx ONTAP 維運自動化
+## FSx for ONTAP 維運自動化
 
 | 文件 | 說明 |
 |------|------|
 | [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | 維運自動化套件概述（目錄結構、使用案例） |
-| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 此架構如何簡化 FSx ONTAP 維運（設計決策、成本估算、安全設計） |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 此架構如何簡化 FSx for ONTAP 維運（設計決策、成本估算、安全設計） |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS 整合驗證報告（2026-05-01，所有階段通過） |
 | [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | 整合 CloudFormation 範本（含 VPC 端點） |
 
@@ -99,7 +99,7 @@
 ### 第二階段：驗證與評估
 
 6. **demo-recording-guide.md** — 示範影片錄製指南
-7. **ontap-setup-guide.md** — FSx ONTAP AD 整合、CIFS 共用設定
+7. **ontap-setup-guide.md** — FSx for ONTAP AD 整合、CIFS 共用設定
 8. **demo-environment-guide.md** — 驗證環境設定
 9. **demo-scenario.md** — 執行驗證情境
 10. **evaluation.md** — PoC 評估範本

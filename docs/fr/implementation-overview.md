@@ -189,7 +189,7 @@ Raisons du choix de S3 Vectors par défaut :
 
 ---
 
-## 5. Serveur d'Embedding — Montage CIFS FSx ONTAP + écriture dans la base vectorielle
+## 5. Serveur d'Embedding — Montage CIFS FSx for ONTAP + écriture dans la base vectorielle
 
 ### Détails d'implémentation
 
@@ -203,7 +203,7 @@ Sur une instance EC2 avec un volume Amazon FSx for NetApp ONTAP monté via CIFS/
 | Option B (optionnel) | Serveur d'Embedding (montage CIFS) → Écriture directe dans le vector store | `-c enableEmbeddingServer=true` | ✅ (configuration AOSS uniquement) |
 | Option C (optionnel) | S3 Access Point → Bedrock KB | Configuration manuelle après déploiement | ✅ SnapMirror supporté, FlexCache bientôt |
 
-> **À propos du S3 Access Point** : StorageStack crée automatiquement un S3 Access Point pour le volume FSx ONTAP. Selon le style de sécurité du volume (NTFS/UNIX) et l'état d'adhésion AD, un S3 AP de type utilisateur WINDOWS ou UNIX est créé. Cela peut être contrôlé explicitement via les paramètres de contexte CDK `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`.
+> **À propos du S3 Access Point** : StorageStack crée automatiquement un S3 Access Point pour le volume FSx for ONTAP. Selon le style de sécurité du volume (NTFS/UNIX) et l'état d'adhésion AD, un S3 AP de type utilisateur WINDOWS ou UNIX est créé. Cela peut être contrôlé explicitement via les paramètres de contexte CDK `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`.
 
 #### Conception du type d'utilisateur S3 Access Point
 
@@ -627,7 +627,7 @@ Flux d'authentification
 
 ---
 
-## 19. Automatisation des opérations FSx ONTAP — Lambda + Step Functions
+## 19. Automatisation des opérations FSx for ONTAP — Lambda + Step Functions
 
 ### Vue d'ensemble
 
@@ -664,7 +664,7 @@ Lambda dans un VPC nécessite ces Interface VPC Endpoints :
 | capacity_monitor (redimensionnement réel) | ✅ RÉUSSI (4 volumes × 20% expansion) |
 | SnapMirror E2E (break/resync) | ✅ RÉUSSI (11/11 tests) |
 | EventBridge Scheduler | ✅ RÉUSSI (auto-exécution 5 min confirmée) |
-| data_preprocessor (FSx ONTAP S3 AP) | ✅ RÉUSSI (scan, collect_metadata, generate_tasks) |
+| data_preprocessor (FSx for ONTAP S3 AP) | ✅ RÉUSSI (scan, collect_metadata, generate_tasks) |
 
 ### Garde-fous de surveillance de capacité
 

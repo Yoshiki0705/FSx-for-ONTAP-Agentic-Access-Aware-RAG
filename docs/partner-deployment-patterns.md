@@ -44,7 +44,7 @@
     │ 顧客A       │      │ 顧客B       │      │ 顧客C        │
     │ アカウント   │      │ アカウント   │      │ アカウント    │
     │             │      │             │      │              │
-    │ ・FSx ONTAP │      │ ・FSx ONTAP │      │ ・FSx ONTAP  │
+    │ ・FSx for ONTAP │      │ ・FSx for ONTAP │      │ ・FSx for ONTAP  │
     │ ・Bedrock KB│      │ ・Bedrock KB│      │ ・Bedrock KB │
     │ ・Cognito   │      │ ・Cognito   │      │ ・Cognito    │
     │ ・DynamoDB  │      │ ・DynamoDB  │      │ ・DynamoDB   │
@@ -196,7 +196,7 @@
 
 ### パートナーオンボーディング: Transfer Family SFTP インジェスション
 
-パートナー企業が Web UI を使用できない場合（法務事務所、監査法人、規制当局など）、AWS Transfer Family SFTP サーバー経由でドキュメントを投入できます。`enableTransferFamily=true` で有効化すると、SFTP アップロード → FSx ONTAP S3 AP → 権限メタデータ自動生成 → Bedrock KB 自動同期のパイプラインが構築されます。
+パートナー企業が Web UI を使用できない場合（法務事務所、監査法人、規制当局など）、AWS Transfer Family SFTP サーバー経由でドキュメントを投入できます。`enableTransferFamily=true` で有効化すると、SFTP アップロード → FSx for ONTAP S3 AP → 権限メタデータ自動生成 → Bedrock KB 自動同期のパイプラインが構築されます。
 
 詳細は [README.md の Transfer Family セクション](../README.md) を参照してください。
 

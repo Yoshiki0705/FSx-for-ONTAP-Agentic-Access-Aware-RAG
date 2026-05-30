@@ -137,7 +137,7 @@ Permission filtering is applied throughout the entire flow: voice input → text
 | Amazon EventBridge | KB auto-sync scheduling |
 | AWS Transfer Family | SFTP ingestion |
 | Amazon CloudWatch | Monitoring, alerts, dashboards |
-| AWS Step Functions | FSx ONTAP operations automation |
+| AWS Step Functions | FSx for ONTAP operations automation |
 
 ---
 

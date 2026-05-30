@@ -23,7 +23,7 @@
 │  ① ACL変更          ② メタデータ再生成      ③ KB再同期           ④ キャッシュ  │
 │                                                                    無効化    │
 │  ┌──────────┐      ┌──────────────┐      ┌──────────────┐      ┌────────┐  │
-│  │ FSx ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
+│  │ FSx for ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
 │  │ NTFS ACL │─────▶│ .json 更新   │─────▶│ StartIngest  │─────▶│perm-   │  │
 │  │ 変更     │      │              │      │ ionJob       │      │cache   │  │
 │  └──────────┘      └──────────────┘      └──────────────┘      │TTL期限 │  │

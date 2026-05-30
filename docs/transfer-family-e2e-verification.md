@@ -1,4 +1,4 @@
-# Transfer Family FSx ONTAP E2E 検証レポート
+# Transfer Family FSx for ONTAP E2E 検証レポート
 
 **検証日**: 2026-05-13
 **リージョン**: ap-northeast-1
@@ -94,9 +94,9 @@ sftp -i /path/to/private-key \
 
 > **⚠️ 本番環境での注意**: 上記の `StrictHostKeyChecking=no` は初回検証用です。本番環境では Transfer Family サーバーの HostKey を `~/.ssh/known_hosts` に登録し、`StrictHostKeyChecking=yes`（デフォルト）で運用してください。HostKey は `aws transfer describe-server --server-id <ID> --query 'Server.HostKeyFingerprint'` で取得できます。
 
-### 8. FSx ONTAP ファイルシステム権限
+### 8. FSx for ONTAP ファイルシステム権限
 
-Transfer Family ユーザーがファイルを読み書きするには、FSx ONTAP ボリューム上で S3 Access Point のファイルシステムユーザー（例: `root`）がアップロード先ディレクトリに対する読み書き権限を持っている必要がある。
+Transfer Family ユーザーがファイルを読み書きするには、FSx for ONTAP ボリューム上で S3 Access Point のファイルシステムユーザー（例: `root`）がアップロード先ディレクトリに対する読み書き権限を持っている必要がある。
 
 ---
 

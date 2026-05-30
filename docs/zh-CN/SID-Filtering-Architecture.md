@@ -232,7 +232,7 @@ FSx for ONTAP                    S3 Access Point              Bedrock KB
 
 | # | 路径 | 方法 | CDK 激活方式 | 使用场景 |
 |---|------|--------|----------------|----------|
-| 1 | 主路径 | FSx ONTAP Volume → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 标准卷（支持 S3 AP） |
+| 1 | 主路径 | FSx for ONTAP Volume → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 标准卷（支持 S3 AP） |
 | 2 | 备用路径 | 手动上传到 S3 存储桶 → Bedrock KB | `upload-demo-data.sh` | FlexCache 卷及其他不支持 S3 AP 的情况 |
 | 3 | 替代路径 | CIFS 挂载 → Embedding 服务器 → 直接写入 AOSS | `-c enableEmbeddingServer=true` | FlexCache 卷 + 需要直接 AOSS 控制的情况 |
 

@@ -23,7 +23,7 @@
 │  ① ACL 变更       ② 元数据重新生成    ③ KB 重新同步       ④ 缓存失效          │
 │                                                                              │
 │  ┌──────────┐      ┌──────────────┐      ┌──────────────┐      ┌────────┐  │
-│  │ FSx ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
+│  │ FSx for ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
 │  │ NTFS ACL │─────▶│ .json 更新   │─────▶│ StartIngest  │─────▶│perm-   │  │
 │  │ 变更     │      │              │      │ ionJob       │      │cache   │  │
 │  └──────────┘      └──────────────┘      └──────────────┘      │TTL     │  │

@@ -35,7 +35,7 @@ All CDK stacks are consolidated under `lib/stacks/demo/`. The sole entry point i
 
 | Path | Method | Activation | Use Case |
 |------|--------|------------|----------|
-| Main | FSx ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Standard volumes |
+| Main | FSx for ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Standard volumes |
 | Fallback | Direct S3 bucket upload → Bedrock KB | `upload-demo-data.sh` | When S3 AP is unavailable |
 | Alternative | CIFS mount → Embedding server → Direct vector store write | `enableEmbeddingServer=true` | FlexCache volumes (AOSS configuration only) |
 
@@ -43,7 +43,7 @@ All CDK stacks are consolidated under `lib/stacks/demo/`. The sole entry point i
 
 ## Bedrock KB Ingestion Job — Quotas and Design Considerations
 
-Bedrock KB Ingestion Job is a managed service that handles document retrieval, chunking, vectorization, and storage. It reads data directly from FSx ONTAP via S3 Access Point and processes only changed files through incremental sync. No custom Embedding pipeline (such as AWS Batch) is required.
+Bedrock KB Ingestion Job is a managed service that handles document retrieval, chunking, vectorization, and storage. It reads data directly from FSx for ONTAP via S3 Access Point and processes only changed files through incremental sync. No custom Embedding pipeline (such as AWS Batch) is required.
 
 ### Service Quotas (As of March 2026, All Non-Adjustable)
 
@@ -83,12 +83,12 @@ aws scheduler create-schedule \
   --flexible-time-window '{"Mode":"OFF"}'
 ```
 
-Alternatively, you can detect file changes on FSx ONTAP via S3 event notifications and trigger an Ingestion Job. However, be aware of the StartIngestionJob API rate limit (once every 10 seconds).
+Alternatively, you can detect file changes on FSx for ONTAP via S3 event notifications and trigger an Ingestion Job. However, be aware of the StartIngestionJob API rate limit (once every 10 seconds).
 
 ### Design Recommendations
 
 1. **Sync frequency**: Real-time sync is not possible. Minimum interval is 10 seconds; practically, 15 minutes to 1 hour is recommended
-2. **Large-scale data**: Data sources exceeding 100GB should be split across multiple FSx ONTAP volumes (= multiple S3 APs = multiple data sources)
+2. **Large-scale data**: Data sources exceeding 100GB should be split across multiple FSx for ONTAP volumes (= multiple S3 APs = multiple data sources)
 3. **Parallel processing**: Parallel sync to the same KB is not possible. Sync multiple data sources sequentially
 4. **Error handling**: Implement retry logic for job failures (monitor status with `GetIngestionJob`)
 5. **No custom Embedding pipeline needed**: Since Bedrock KB manages chunking, vectorization, and storage, custom pipelines such as AWS Batch are unnecessary
@@ -102,14 +102,14 @@ Alternatively, you can detect file changes on FSx ONTAP via S3 event notificatio
 | 1 | WafStack | Required | WAF for CloudFront (us-east-1) |
 | 2 | NetworkingStack | Required | VPC, Subnets, SG |
 | 3 | SecurityStack | Required | Cognito User Pool |
-| 4 | StorageStack | Required | FSx ONTAP + SVM + Volume (or existing reference), S3, DynamoDB×2 |
+| 4 | StorageStack | Required | FSx for ONTAP + SVM + Volume (or existing reference), S3, DynamoDB×2 |
 | 5 | AIStack | Required | Bedrock KB, S3 Vectors or OpenSearch Serverless, Agent (optional) |
 | 6 | WebAppStack | Required | Lambda Web Adapter + CloudFront |
 | 7 | EmbeddingStack | Optional | FlexCache CIFS mount + Embedding server |
 
 ### Existing FSx for ONTAP Reference Mode
 
-StorageStack can reference existing FSx ONTAP resources using the `existingFileSystemId`/`existingSvmId`/`existingVolumeId` parameters. In this case:
+StorageStack can reference existing FSx for ONTAP resources using the `existingFileSystemId`/`existingSvmId`/`existingVolumeId` parameters. In this case:
 - Skips creation of new FSx/SVM/Volume (reduces deployment time by 30-40 minutes)
 - Also skips Managed AD creation (uses existing environment's AD configuration)
 - S3 buckets, DynamoDB tables, and S3 AP custom resources are created as usual

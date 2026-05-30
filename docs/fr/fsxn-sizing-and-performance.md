@@ -254,7 +254,7 @@ volume modify -vserver svm1 -volume kb_data \
 | Utilisation IOPS | > 80 % | Augmenter la capacité de débit |
 | Utilisation de la bande passante réseau | > 70 % | Augmenter la capacité de débit |
 
-### Expansion automatique (FSx ONTAP Ops)
+### Expansion automatique (FSx for ONTAP Ops)
 
 Le Lambda de surveillance de capacité inclus dans `automation/fsxn-ops/` effectue l'expansion automatique :
 
@@ -295,4 +295,4 @@ Pour les environnements de petite à moyenne taille, utilisez S3 Vectors (quelqu
 | [permission-consistency.md](permission-consistency.md) | Modèle de cohérence des changements de permissions |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | Architecture S3 Vectors + SID |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | Comparaison des 3 configurations |
-| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | Automatisation des opérations FSx ONTAP |
+| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | Automatisation des opérations FSx for ONTAP |

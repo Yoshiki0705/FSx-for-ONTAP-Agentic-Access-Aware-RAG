@@ -254,7 +254,7 @@ volume modify -vserver svm1 -volume kb_data \
 | IOPS-Auslastung | > 80% | Durchsatzkapazität erhöhen |
 | Netzwerkbandbreitenauslastung | > 70% | Durchsatzkapazität erhöhen |
 
-### Automatische Erweiterung (FSx ONTAP Ops)
+### Automatische Erweiterung (FSx for ONTAP Ops)
 
 Die in `automation/fsxn-ops/` enthaltene Kapazitätsüberwachungs-Lambda führt die automatische Erweiterung durch:
 
@@ -295,4 +295,4 @@ Für kleine bis mittlere Umgebungen verwenden Sie S3 Vectors (wenige Dollar/Mona
 | [permission-consistency.md](permission-consistency.md) | Konsistenzmodell für Berechtigungsänderungen |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | S3 Vectors + SID-Architektur |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3-Konfigurationen-Vergleich |
-| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx ONTAP Betriebsautomatisierung |
+| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx for ONTAP Betriebsautomatisierung |

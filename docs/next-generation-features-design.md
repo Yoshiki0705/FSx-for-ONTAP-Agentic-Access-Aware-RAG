@@ -60,7 +60,7 @@ CloudWatch Dashboard (顧客向け読み取り専用):
 **設計**:
 ```python
 # benchmarks/s3ap-benchmark.py
-# Lambda 内から実行（VPC内、FSx ONTAP と同じサブネット）
+# Lambda 内から実行（VPC内、FSx for ONTAP と同じサブネット）
 
 テストマトリクス:
   object_sizes: [1KB, 10KB, 100KB, 1MB, 10MB, 100MB]
@@ -153,7 +153,7 @@ CloudWatch Custom Metrics:
 **アーキテクチャ**:
 ```
 ACL変更イベント検出:
-  Option A: FPolicy (FSx ONTAP) → SQS → Lambda
+  Option A: FPolicy (FSx for ONTAP) → SQS → Lambda
   Option B: CloudTrail S3 Data Events → EventBridge → Lambda
   Option C: 定期スキャン（現行、最大5分遅延）
 

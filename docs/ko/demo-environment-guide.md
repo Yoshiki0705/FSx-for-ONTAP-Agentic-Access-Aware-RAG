@@ -43,7 +43,7 @@ aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-WebApp \
 | `${prefix}-Waf` | us-east-1 | CloudFront용 WAF WebACL |
 | `${prefix}-Networking` | ap-northeast-1 | VPC, Subnets, Security Groups |
 | `${prefix}-Security` | ap-northeast-1 | Cognito User Pool, 인증 |
-| `${prefix}-Storage` | ap-northeast-1 | FSx ONTAP + SVM + Volume + S3 + DynamoDB + AD |
+| `${prefix}-Storage` | ap-northeast-1 | FSx for ONTAP + SVM + Volume + S3 + DynamoDB + AD |
 | `${prefix}-AI` | ap-northeast-1 | Bedrock KB + S3 Vectors / OpenSearch Serverless (`vectorStoreType`으로 선택) |
 | `${prefix}-WebApp` | ap-northeast-1 | Lambda Web Adapter (Next.js) + CloudFront |
 | `${prefix}-Embedding` (선택 사항) | ap-northeast-1 | Embedding EC2 + ECR (FlexCache CIFS 마운트) |
@@ -238,13 +238,13 @@ FlexCache Cache 볼륨을 CIFS로 마운트하고 Embedding 서버로 문서를 
 
 ### 개요
 
-EmbeddingStack (7번째 CDK 스택)은 FSx ONTAP의 CIFS 공유 문서를 직접 읽고, Amazon Bedrock Titan Embed Text v2로 벡터화하여 OpenSearch Serverless (AOSS)에 인덱싱하는 EC2 기반 서버입니다. AOSS 구성(`vectorStoreType=opensearch-serverless`)에서만 사용 가능합니다.
+EmbeddingStack (7번째 CDK 스택)은 FSx for ONTAP의 CIFS 공유 문서를 직접 읽고, Amazon Bedrock Titan Embed Text v2로 벡터화하여 OpenSearch Serverless (AOSS)에 인덱싱하는 EC2 기반 서버입니다. AOSS 구성(`vectorStoreType=opensearch-serverless`)에서만 사용 가능합니다.
 
 ### 아키텍처
 
 ```
 ┌──────────────────┐     CIFS/SMB      ┌──────────────────┐
-│ FSx ONTAP        │◀──────────────────│ Embedding EC2    │
+│ FSx for ONTAP        │◀──────────────────│ Embedding EC2    │
 │ (SVM + Volume)   │    Mount          │ (m5.large)       │
 │ /data            │                   │                  │
 └──────────────────┘                   │ Docker Container │
@@ -321,7 +321,7 @@ docker push ${ECR_URI}:latest
 
 #### 단계 4: CIFS 공유 생성
 
-FSx ONTAP 관리자 비밀번호를 설정하고 REST API를 통해 CIFS 공유를 생성합니다.
+FSx for ONTAP 관리자 비밀번호를 설정하고 REST API를 통해 CIFS 공유를 생성합니다.
 
 ```bash
 # FSx 관리자 비밀번호 설정

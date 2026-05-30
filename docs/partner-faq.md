@@ -137,7 +137,7 @@
 | Amazon EventBridge | KB 自動同期スケジューリング |
 | AWS Transfer Family | SFTP インジェスション |
 | Amazon CloudWatch | 監視・アラート・ダッシュボード |
-| AWS Step Functions | FSx ONTAP 運用自動化 |
+| AWS Step Functions | FSx for ONTAP 運用自動化 |
 
 ---
 

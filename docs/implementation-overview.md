@@ -226,7 +226,7 @@ AOSS構成（`vectorStoreType=opensearch-serverless`）:
 
 ---
 
-## 5. Embedding Server — FSx ONTAP CIFSマウント + ベクトルDB書き込み
+## 5. Embedding Server — FSx for ONTAP CIFSマウント + ベクトルDB書き込み
 
 ### 実装内容
 
@@ -240,7 +240,7 @@ Amazon FSx for NetApp ONTAPのボリュームをCIFS/SMBでマウントしたEC2
 | Option B（オプション） | Embeddingサーバー（CIFSマウント）→ ベクトルストア直接書き込み | `-c enableEmbeddingServer=true` | ✅（AOSS構成時のみ） |
 | Option C（オプション） | S3 Access Point → Bedrock KB | デプロイ後に手動設定 | ✅ SnapMirror対応、FlexCache近日対応 |
 
-> **S3 Access Pointについて**: StorageStackはFSx ONTAPボリュームにS3 Access Pointを自動作成します。ボリュームのセキュリティスタイル（NTFS/UNIX）とAD参加状況に応じて、WINDOWSまたはUNIXユーザータイプのS3 APが作成されます。CDKコンテキストパラメータ `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` で明示的に制御可能です。
+> **S3 Access Pointについて**: StorageStackはFSx for ONTAPボリュームにS3 Access Pointを自動作成します。ボリュームのセキュリティスタイル（NTFS/UNIX）とAD参加状況に応じて、WINDOWSまたはUNIXユーザータイプのS3 APが作成されます。CDKコンテキストパラメータ `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` で明示的に制御可能です。
 
 #### S3 Access Point ユーザータイプ設計
 
@@ -257,7 +257,7 @@ SIDフィルタリングは全パターンで同一ロジック（`.metadata.jso
 
 ```
 +------------------+     CIFS/SMB      +------------------+
-| FSx ONTAP        |<-----------------| Embedding EC2    |
+| FSx for ONTAP        |<-----------------| Embedding EC2    |
 | (SVM + Volume)   |    Mount         | (m5.large)       |
 | /data            |                  |                  |
 +------------------+                  | Docker Container |
@@ -1133,7 +1133,7 @@ Agent アクション実行前 → PolicyEvaluationMiddleware → AgentCore Poli
 
 ---
 
-## 19. FSx ONTAP 運用自動化 — Lambda + Step Functions による運用省力化
+## 19. FSx for ONTAP 運用自動化 — Lambda + Step Functions による運用省力化
 
 ### 概要
 
@@ -1213,12 +1213,12 @@ VPC 内の Lambda から AWS API にアクセスするため、以下の VPC エ
 | SnapMirror E2E (break/resync) | ✅ PASS | 11/11 テスト (create→transfer→break→resync→cleanup) |
 | Step Functions | ✅ PASS | Discover → DiscoverShares → Done: SUCCEEDED |
 | EventBridge Scheduler | ✅ PASS | 5 分間隔の自動実行確認 (CloudWatch Logs) |
-| data_preprocessor (FSx ONTAP S3 AP) | ✅ PASS | scan (5 .md ファイル)、collect_metadata、generate_tasks |
+| data_preprocessor (FSx for ONTAP S3 AP) | ✅ PASS | scan (5 .md ファイル)、collect_metadata、generate_tasks |
 
 ### 検証で得た知見
 
-- **S3 Gateway VPC エンドポイント必須**: FSx ONTAP S3 Access Point 経由のアクセスに必要。Lambda サブネットのルートテーブルに関連付けること
-- **fsxadmin パスワード同期**: Secrets Manager の値と FSx ONTAP の実パスワードが一致している必要がある
+- **S3 Gateway VPC エンドポイント必須**: FSx for ONTAP S3 Access Point 経由のアクセスに必要。Lambda サブネットのルートテーブルに関連付けること
+- **fsxadmin パスワード同期**: Secrets Manager の値と FSx for ONTAP の実パスワードが一致している必要がある
 - **SnapMirror 初期転送**: 関係作成後に明示的に `/transfers` POST で初期転送を開始する必要がある
 - **CloudWatch メトリクス**: StorageCapacityUtilization が取得できない場合がある → ONTAP API にフォールバック
 
@@ -1313,7 +1313,7 @@ TLS 証明書検証はデフォルトで有効 (`ONTAP_VERIFY_SSL=true`)。本�
 | 1 | WafStack | us-east-1 | WAF WebACL, IPセット |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, サブネット, セキュリティグループ, VPCエンドポイント（オプション） |
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + Cognito Domain（AD Federation有効時）, AD Sync Lambda（オプション） |
-| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, AD, KMS暗号化（オプション）, CloudTrail（オプション） |
+| 4 | StorageStack | ap-northeast-1 | FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, AD, KMS暗号化（オプション）, CloudTrail（オプション） |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless（`vectorStoreType`で選択）, Bedrock Guardrails（オプション） |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker), CloudFront, Permission Filter Lambda（オプション）, MonitoringConstruct（オプション） |
 | 7 | EmbeddingStack（任意） | ap-northeast-1 | EC2, ECR, ONTAP ACL自動取得（オプション） |

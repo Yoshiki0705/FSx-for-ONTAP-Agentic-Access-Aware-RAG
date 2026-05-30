@@ -37,7 +37,7 @@ Introduction Message 顯示三种類型的目錄資訊。
 
 | 项目 | 圖標 | 資料源 | 說明 |
 |------|------|------------|-------------|
-| FSx 可存取目錄 | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | FSx ONTAP 上文件級別可存取的目錄 |
+| FSx 可存取目錄 | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | FSx for ONTAP 上文件級別可存取的目錄 |
 | RAG 可搜尋目錄 | 🔍 | S3 `.metadata.json` 中的 SID 匹配 | KB 搜尋中 SID 匹配的文件目錄 |
 | Embedding 目標目錄 | 📚 | S3 儲存桶中所有 `.metadata.json` | KB 中索引的所有目錄 |
 

@@ -44,7 +44,7 @@ Este documento organiza los patrones de arquitectura para empresas socias que de
     │ Cliente A   │      │ Cliente B   │      │ Cliente C    │
     │ Cuenta      │      │ Cuenta      │      │ Cuenta       │
     │             │      │             │      │              │
-    │ ・FSx ONTAP │      │ ・FSx ONTAP │      │ ・FSx ONTAP  │
+    │ ・FSx for ONTAP │      │ ・FSx for ONTAP │      │ ・FSx for ONTAP  │
     │ ・Bedrock KB│      │ ・Bedrock KB│      │ ・Bedrock KB │
     │ ・Cognito   │      │ ・Cognito   │      │ ・Cognito    │
     │ ・DynamoDB  │      │ ・DynamoDB  │      │ ・DynamoDB   │

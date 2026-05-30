@@ -1,8 +1,8 @@
-# FSx ONTAP S3 Access Point 재현 테스트 가이드
+# FSx for ONTAP S3 Access Point 재현 테스트 가이드
 
 **🌐 Language:** [日本語](../fsx-s3ap-reproduction-test-guide.md) | [English](../en/fsx-s3ap-reproduction-test-guide.md) | **한국어** | [简体中文](../zh-CN/fsx-s3ap-reproduction-test-guide.md) | [繁體中文](../zh-TW/fsx-s3ap-reproduction-test-guide.md) | [Français](../fr/fsx-s3ap-reproduction-test-guide.md) | [Deutsch](../de/fsx-s3ap-reproduction-test-guide.md) | [Español](../es/fsx-s3ap-reproduction-test-guide.md)
 
-**목적**: FSx ONTAP S3 AP AccessDenied 문제가 Organization SCP에 특정된 것인지, FSx ONTAP S3 AP의 본질적 제한인지 분리
+**목적**: FSx for ONTAP S3 AP AccessDenied 문제가 Organization SCP에 특정된 것인지, FSx for ONTAP S3 AP의 본질적 제한인지 분리
 
 ---
 
@@ -14,7 +14,7 @@
 
 ## 재현 단계
 
-### 단계 1: FSx ONTAP + Managed AD 배포
+### 단계 1: FSx for ONTAP + Managed AD 배포
 
 ```bash
 # CDK bootstrap (CloudFormation Hook이 있는 경우 --method=direct로 우회)
@@ -65,7 +65,7 @@ watch -n 10 "aws fsx describe-storage-virtual-machines --storage-virtual-machine
 
 > **참고**: OU 지정 없이는 상태가 MISCONFIGURED가 됩니다. FSx SG에 AD 포트(636, 135, 464, 3268-3269, 1024-65535)가 필요합니다 (CDK 코드에 이미 반영됨).
 
-### 단계 3: FSx ONTAP 관리자 비밀번호 설정 + CIFS 공유 생성
+### 단계 3: FSx for ONTAP 관리자 비밀번호 설정 + CIFS 공유 생성
 
 ```bash
 # FSx 관리자 비밀번호 설정
@@ -181,7 +181,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 - 단계 7의 모든 테스트가 AccessDenied 반환
 - 다른 계정(SCP 제한 없음)에서는 성공
 
-### 문제가 FSx ONTAP S3 AP의 본질적 제한인 경우
+### 문제가 FSx for ONTAP S3 AP의 본질적 제한인 경우
 - 다른 계정에서도 동일한 AccessDenied 발생
 
 ## 검증된 설정 (원인이 아님을 확인)
@@ -226,13 +226,13 @@ npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" \
 
 ### 결론
 
-**FSx ONTAP S3 AP AccessDenied 문제는 Organization SCP에 의해 발생합니다.**
+**FSx for ONTAP S3 AP AccessDenied 문제는 Organization SCP에 의해 발생합니다.**
 
 이전 계정(Organization에 속하지 않음)에서 동일한 S3 AP 접근 패턴이 정상적으로 작동하는 것을 확인했습니다. AccessDenied는 새 계정(SCP 제한이 있는 Organization에 속함)에서만 발생합니다.
 
 ### 해결 방법
 
 Organization 관리 계정에서 다음 중 하나를 수행하세요:
-1. FSx ONTAP S3 AP에 대한 접근을 허용하는 문을 SCP에 추가
+1. FSx for ONTAP S3 AP에 대한 접근을 허용하는 문을 SCP에 추가
 2. 대상 계정을 SCP 제한에서 제외
 3. SCP에서 차단하는 S3 액션/리소스 패턴을 식별하고 FSx S3 AP ARN 패턴(`arn:aws:s3:<region>:<account>:accesspoint/*`)을 제외

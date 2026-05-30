@@ -27,7 +27,7 @@ This document is a threat model that organizes the major threats, attack vectors
 │ Trust Boundary 3: Lambda → Bedrock / DynamoDB / FSx                      │
 │  Attackers: Insider threats, misconfigurations, supply chain              │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ Trust Boundary 4: FSx ONTAP → S3 Access Point → Bedrock KB               │
+│ Trust Boundary 4: FSx for ONTAP → S3 Access Point → Bedrock KB               │
 │  Attackers: Privilege escalation, metadata tampering                     │
 └─────────────────────────────────────────────────────────────────────────┘
 ```

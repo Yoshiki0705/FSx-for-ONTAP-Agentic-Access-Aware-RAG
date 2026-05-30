@@ -43,7 +43,7 @@ L'authentification est gérée par Amazon Cognito.
 | `${prefix}-Waf` | us-east-1 | WAF WebACL pour CloudFront |
 | `${prefix}-Networking` | ap-northeast-1 | VPC, sous-réseaux, groupes de sécurité |
 | `${prefix}-Security` | ap-northeast-1 | Cognito User Pool, authentification |
-| `${prefix}-Storage` | ap-northeast-1 | FSx ONTAP + SVM + Volume + S3 + DynamoDB + AD |
+| `${prefix}-Storage` | ap-northeast-1 | FSx for ONTAP + SVM + Volume + S3 + DynamoDB + AD |
 | `${prefix}-AI` | ap-northeast-1 | Bedrock KB + S3 Vectors / OpenSearch Serverless (sélectionné via `vectorStoreType`) |
 | `${prefix}-WebApp` | ap-northeast-1 | Lambda Web Adapter (Next.js) + CloudFront |
 | `${prefix}-Embedding` (optionnel) | ap-northeast-1 | Embedding EC2 + ECR (montage CIFS FlexCache) |
@@ -237,13 +237,13 @@ Pour plus de détails, voir [6. Serveur d'Embedding](#6-serveur-dembedding-optio
 
 ### Vue d'ensemble
 
-EmbeddingStack (le 7ème stack CDK) est un serveur basé sur EC2 qui lit directement les documents partagés via CIFS sur FSx ONTAP, les vectorise avec Amazon Bedrock Titan Embed Text v2 et les indexe dans OpenSearch Serverless (AOSS). Disponible uniquement avec la configuration AOSS (`vectorStoreType=opensearch-serverless`).
+EmbeddingStack (le 7ème stack CDK) est un serveur basé sur EC2 qui lit directement les documents partagés via CIFS sur FSx for ONTAP, les vectorise avec Amazon Bedrock Titan Embed Text v2 et les indexe dans OpenSearch Serverless (AOSS). Disponible uniquement avec la configuration AOSS (`vectorStoreType=opensearch-serverless`).
 
 ### Architecture
 
 ```
 ┌──────────────────┐     CIFS/SMB      ┌──────────────────┐
-│ FSx ONTAP        │◀──────────────────│ Embedding EC2    │
+│ FSx for ONTAP        │◀──────────────────│ Embedding EC2    │
 │ (SVM + Volume)   │    Mount          │ (m5.large)       │
 │ /data            │                   │                  │
 └──────────────────┘                   │ Docker Container │

@@ -23,7 +23,7 @@
 │  ① ACL 變更        ② 中繼資料重新產生   ③ KB 重新同步       ④ 快取           │
 │                                                                    失效      │
 │  ┌──────────┐      ┌──────────────┐      ┌──────────────┐      ┌────────┐  │
-│  │ FSx ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
+│  │ FSx for ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
 │  │ NTFS ACL │─────▶│ .json update │─────▶│ StartIngest  │─────▶│perm-   │  │
 │  │ Change   │      │              │      │ ionJob       │      │cache   │  │
 │  └──────────┘      └──────────────┘      └──────────────┘      │TTL     │  │

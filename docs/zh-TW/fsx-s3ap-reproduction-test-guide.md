@@ -1,8 +1,8 @@
-# FSx ONTAP S3 Access Point 重現測試指南
+# FSx for ONTAP S3 Access Point 重現測試指南
 
 **🌐 Language:** [日本語](../fsx-s3ap-reproduction-test-guide.md) | [English](../en/fsx-s3ap-reproduction-test-guide.md) | [한국어](../ko/fsx-s3ap-reproduction-test-guide.md) | [简体中文](../zh-CN/fsx-s3ap-reproduction-test-guide.md) | **繁體中文** | [Français](../fr/fsx-s3ap-reproduction-test-guide.md) | [Deutsch](../de/fsx-s3ap-reproduction-test-guide.md) | [Español](../es/fsx-s3ap-reproduction-test-guide.md)
 
-**目的**: 隔離 FSx ONTAP S3 AP AccessDenied 問題是 Organization SCP 特有的還是 FSx ONTAP S3 AP 的固有限制
+**目的**: 隔離 FSx for ONTAP S3 AP AccessDenied 問題是 Organization SCP 特有的還是 FSx for ONTAP S3 AP 的固有限制
 
 ---
 
@@ -14,7 +14,7 @@
 
 ## 重現步驟
 
-### 步驟 1：FSx ONTAP + Managed AD 部署
+### 步驟 1：FSx for ONTAP + Managed AD 部署
 
 ```bash
 # CDK bootstrap（如有 CloudFormation Hook，使用 --method=direct 繞過）
@@ -65,7 +65,7 @@ watch -n 10 "aws fsx describe-storage-virtual-machines --storage-virtual-machine
 
 > **注意**：未指定 OU 時狀態會變為 MISCONFIGURED。FSx SG 中需要 AD 連接埠（636、135、464、3268-3269、1024-65535）（已反映在 CDK 程式碼中）。
 
-### 步驟 3：FSx ONTAP 管理員密碼設定 + CIFS 共用建立
+### 步驟 3：FSx for ONTAP 管理員密碼設定 + CIFS 共用建立
 
 ```bash
 # 設定 FSx 管理員密碼
@@ -181,7 +181,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 - 步驟 7 中的所有測試回傳 AccessDenied
 - 在不同帳戶（無 SCP 限制）中成功
 
-### 如果問題是 FSx ONTAP S3 AP 的固有限制
+### 如果問題是 FSx for ONTAP S3 AP 的固有限制
 - 在不同帳戶中也發生相同的 AccessDenied
 
 ## 已驗證的設定（已確認非原因）
@@ -226,13 +226,13 @@ npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" \
 
 ### 結論
 
-**FSx ONTAP S3 AP AccessDenied 問題是由 Organization SCP 造成的。**
+**FSx for ONTAP S3 AP AccessDenied 問題是由 Organization SCP 造成的。**
 
 已確認相同的 S3 AP 存取模式在舊帳戶（非 Organization 成員）中正常運作。AccessDenied 僅在新帳戶（具有 SCP 限制的 Organization 成員）中發生。
 
 ### 修復方式
 
 在 Organization 管理帳戶中執行以下其中一項：
-1. 在 SCP 中新增允許存取 FSx ONTAP S3 AP 的陳述
+1. 在 SCP 中新增允許存取 FSx for ONTAP S3 AP 的陳述
 2. 將目標帳戶從 SCP 限制中排除
 3. 識別 SCP 阻擋的 S3 動作/資源模式，並排除 FSx S3 AP ARN 模式（`arn:aws:s3:<region>:<account>:accesspoint/*`）

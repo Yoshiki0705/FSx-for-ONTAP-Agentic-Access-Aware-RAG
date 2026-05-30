@@ -35,7 +35,7 @@
 
 | 路径 | 方法 | 激活方式 | 使用场景 |
 |------|--------|------------|----------|
-| 主路径 | FSx ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 标准卷 |
+| 主路径 | FSx for ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 标准卷 |
 | 备用路径 | 直接上传到 S3 存储桶 → Bedrock KB | `upload-demo-data.sh` | S3 AP 不可用时 |
 | 替代路径 | CIFS 挂载 → Embedding 服务器 → 直接向量存储写入 | `enableEmbeddingServer=true` | FlexCache 卷（仅 AOSS 配置） |
 
@@ -43,7 +43,7 @@
 
 ## Bedrock KB Ingestion Job — 配额与设计考量
 
-Bedrock KB Ingestion Job 是一项托管服务，负责文档检索、分块、向量化和存储。它通过 S3 Access Point 直接从 FSx ONTAP 读取数据，并通过增量同步仅处理已更改的文件。无需自定义 Embedding 管道（如 AWS Batch）。
+Bedrock KB Ingestion Job 是一项托管服务，负责文档检索、分块、向量化和存储。它通过 S3 Access Point 直接从 FSx for ONTAP 读取数据，并通过增量同步仅处理已更改的文件。无需自定义 Embedding 管道（如 AWS Batch）。
 
 ### 服务配额（截至 2026 年 3 月，均不可调整）
 
@@ -83,12 +83,12 @@ aws scheduler create-schedule \
   --flexible-time-window '{"Mode":"OFF"}'
 ```
 
-或者，您可以通过 S3 事件通知检测 FSx ONTAP 上的文件变更并触发 Ingestion Job。但请注意 StartIngestionJob API 的速率限制（每 10 秒一次）。
+或者，您可以通过 S3 事件通知检测 FSx for ONTAP 上的文件变更并触发 Ingestion Job。但请注意 StartIngestionJob API 的速率限制（每 10 秒一次）。
 
 ### 设计建议
 
 1. **同步频率**：无法实现实时同步。最小间隔为 10 秒；实际建议 15 分钟到 1 小时
-2. **大规模数据**：超过 100GB 的数据源应拆分到多个 FSx ONTAP 卷（= 多个 S3 AP = 多个数据源）
+2. **大规模数据**：超过 100GB 的数据源应拆分到多个 FSx for ONTAP 卷（= 多个 S3 AP = 多个数据源）
 3. **并行处理**：无法对同一 KB 进行并行同步。多个数据源需顺序同步
 4. **错误处理**：实现作业失败的重试逻辑（通过 `GetIngestionJob` 监控状态）
 5. **无需自定义 Embedding 管道**：由于 Bedrock KB 管理分块、向量化和存储，因此不需要 AWS Batch 等自定义管道
@@ -102,14 +102,14 @@ aws scheduler create-schedule \
 | 1 | WafStack | 必需 | CloudFront 的 WAF（us-east-1） |
 | 2 | NetworkingStack | 必需 | VPC、子网、安全组 |
 | 3 | SecurityStack | 必需 | Cognito User Pool |
-| 4 | StorageStack | 必需 | FSx ONTAP + SVM + Volume（或引用现有资源）、S3、DynamoDB×2 |
+| 4 | StorageStack | 必需 | FSx for ONTAP + SVM + Volume（或引用现有资源）、S3、DynamoDB×2 |
 | 5 | AIStack | 必需 | Bedrock KB、S3 Vectors 或 OpenSearch Serverless、Agent（可选） |
 | 6 | WebAppStack | 必需 | Lambda Web Adapter + CloudFront |
 | 7 | EmbeddingStack | 可选 | FlexCache CIFS 挂载 + Embedding 服务器 |
 
 ### 现有 FSx for ONTAP 引用模式
 
-StorageStack 可以通过 `existingFileSystemId`/`existingSvmId`/`existingVolumeId` 参数引用现有的 FSx ONTAP 资源。在这种情况下：
+StorageStack 可以通过 `existingFileSystemId`/`existingSvmId`/`existingVolumeId` 参数引用现有的 FSx for ONTAP 资源。在这种情况下：
 - 跳过创建新的 FSx/SVM/Volume（减少 30-40 分钟的部署时间）
 - 同时跳过 Managed AD 创建（使用现有环境的 AD 配置）
 - S3 存储桶、DynamoDB 表和 S3 AP 自定义资源照常创建

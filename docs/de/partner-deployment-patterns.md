@@ -44,7 +44,7 @@ Dieses Dokument organisiert Architekturmuster für Partnerunternehmen, die das P
     │ Kunde A     │      │ Kunde B     │      │ Kunde C      │
     │ Konto       │      │ Konto       │      │ Konto        │
     │             │      │             │      │              │
-    │ ・FSx ONTAP │      │ ・FSx ONTAP │      │ ・FSx ONTAP  │
+    │ ・FSx for ONTAP │      │ ・FSx for ONTAP │      │ ・FSx for ONTAP  │
     │ ・Bedrock KB│      │ ・Bedrock KB│      │ ・Bedrock KB │
     │ ・Cognito   │      │ ・Cognito   │      │ ・Cognito    │
     │ ・DynamoDB  │      │ ・DynamoDB  │      │ ・DynamoDB   │

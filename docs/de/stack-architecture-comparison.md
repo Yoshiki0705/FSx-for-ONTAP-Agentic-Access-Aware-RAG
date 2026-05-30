@@ -35,7 +35,7 @@ Alle CDK-Stacks sind unter `lib/stacks/demo/` konsolidiert. Der einzige Einstieg
 
 | Pfad | Methode | Aktivierung | Anwendungsfall |
 |------|---------|-------------|----------------|
-| Haupt | FSx ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Standard-Volumes |
+| Haupt | FSx for ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Standard-Volumes |
 | Fallback | Direkter S3-Bucket-Upload → Bedrock KB | `upload-demo-data.sh` | Wenn S3 AP nicht verfügbar ist |
 | Alternativ | CIFS-Mount → Embedding-Server → Direktes Schreiben in den Vektorspeicher | `enableEmbeddingServer=true` | FlexCache-Volumes (nur AOSS-Konfiguration) |
 
@@ -43,7 +43,7 @@ Alle CDK-Stacks sind unter `lib/stacks/demo/` konsolidiert. Der einzige Einstieg
 
 ## Bedrock KB Ingestion Job — Kontingente und Designüberlegungen
 
-Bedrock KB Ingestion Job ist ein verwalteter Dienst, der Dokumentenabruf, Chunking, Vektorisierung und Speicherung übernimmt. Er liest Daten direkt von FSx ONTAP über S3 Access Point und verarbeitet nur geänderte Dateien durch inkrementelle Synchronisierung. Keine benutzerdefinierte Embedding-Pipeline (wie AWS Batch) ist erforderlich.
+Bedrock KB Ingestion Job ist ein verwalteter Dienst, der Dokumentenabruf, Chunking, Vektorisierung und Speicherung übernimmt. Er liest Daten direkt von FSx for ONTAP über S3 Access Point und verarbeitet nur geänderte Dateien durch inkrementelle Synchronisierung. Keine benutzerdefinierte Embedding-Pipeline (wie AWS Batch) ist erforderlich.
 
 ### Service-Kontingente (Stand März 2026, alle nicht anpassbar)
 
@@ -83,12 +83,12 @@ aws scheduler create-schedule \
   --flexible-time-window '{"Mode":"OFF"}'
 ```
 
-Alternativ können Sie Dateiänderungen auf FSx ONTAP über S3-Ereignisbenachrichtigungen erkennen und einen Ingestion Job auslösen. Beachten Sie jedoch das StartIngestionJob API Rate-Limit (einmal alle 10 Sekunden).
+Alternativ können Sie Dateiänderungen auf FSx for ONTAP über S3-Ereignisbenachrichtigungen erkennen und einen Ingestion Job auslösen. Beachten Sie jedoch das StartIngestionJob API Rate-Limit (einmal alle 10 Sekunden).
 
 ### Designempfehlungen
 
 1. **Sync-Häufigkeit**: Echtzeit-Synchronisierung ist nicht möglich. Mindestintervall beträgt 10 Sekunden; praktisch werden 15 Minuten bis 1 Stunde empfohlen
-2. **Große Datenmengen**: Datenquellen über 100GB sollten auf mehrere FSx ONTAP-Volumes aufgeteilt werden (= mehrere S3 APs = mehrere Datenquellen)
+2. **Große Datenmengen**: Datenquellen über 100GB sollten auf mehrere FSx for ONTAP-Volumes aufgeteilt werden (= mehrere S3 APs = mehrere Datenquellen)
 3. **Parallele Verarbeitung**: Parallele Synchronisierung zur gleichen KB nicht möglich. Mehrere Datenquellen sequentiell synchronisieren
 4. **Fehlerbehandlung**: Retry-Logik für Job-Fehler implementieren (Status mit `GetIngestionJob` überwachen)
 5. **Keine benutzerdefinierte Embedding-Pipeline erforderlich**: Da Bedrock KB Chunking, Vektorisierung und Speicherung verwaltet, sind benutzerdefinierte Pipelines wie AWS Batch unnötig
@@ -102,14 +102,14 @@ Alternativ können Sie Dateiänderungen auf FSx ONTAP über S3-Ereignisbenachric
 | 1 | WafStack | Erforderlich | WAF für CloudFront (us-east-1) |
 | 2 | NetworkingStack | Erforderlich | VPC, Subnetze, SG |
 | 3 | SecurityStack | Erforderlich | Cognito User Pool |
-| 4 | StorageStack | Erforderlich | FSx ONTAP + SVM + Volume (oder bestehende Referenz), S3, DynamoDB×2 |
+| 4 | StorageStack | Erforderlich | FSx for ONTAP + SVM + Volume (oder bestehende Referenz), S3, DynamoDB×2 |
 | 5 | AIStack | Erforderlich | Bedrock KB, S3 Vectors oder OpenSearch Serverless, Agent (optional) |
 | 6 | WebAppStack | Erforderlich | Lambda Web Adapter + CloudFront |
 | 7 | EmbeddingStack | Optional | FlexCache CIFS-Mount + Embedding-Server |
 
 ### Referenzmodus für bestehende FSx for ONTAP
 
-StorageStack kann bestehende FSx ONTAP-Ressourcen über die Parameter `existingFileSystemId`/`existingSvmId`/`existingVolumeId` referenzieren. In diesem Fall:
+StorageStack kann bestehende FSx for ONTAP-Ressourcen über die Parameter `existingFileSystemId`/`existingSvmId`/`existingVolumeId` referenzieren. In diesem Fall:
 - Überspringt die Erstellung neuer FSx/SVM/Volume (reduziert die Deployment-Zeit um 30-40 Minuten)
 - Überspringt auch die Managed AD-Erstellung (verwendet die AD-Konfiguration der bestehenden Umgebung)
 - S3-Buckets, DynamoDB-Tabellen und S3 AP Custom Resources werden wie gewohnt erstellt

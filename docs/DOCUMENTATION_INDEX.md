@@ -23,7 +23,7 @@
 |-------------|------|
 | [demo-data/guides/auth-mode-setup-guide.md](../demo-data/guides/auth-mode-setup-guide.md) | 認証モード別デモ環境構築ガイド（5モード、サンプル構成ファイル付き） |
 | [demo-data/guides/demo-scenario.md](../demo-data/guides/demo-scenario.md) | 検証シナリオ（管理者 vs 一般ユーザーの権限差異確認、AD SSOサインイン、OIDC/LDAPサインイン） |
-| [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD連携・CIFS共有・NTFS ACL設定・Name-Mapping設定（検証済み手順） |
+| [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) | FSx for ONTAP + AD連携・CIFS共有・NTFS ACL設定・Name-Mapping設定（検証済み手順） |
 | [docs/demo-environment-guide.md](demo-environment-guide.md) | 検証環境のリソースID・アクセス情報・Embeddingサーバー手順 |
 
 ## エンタープライズ設計・運用ガイド
@@ -52,7 +52,7 @@
 | [benchmarks/](../benchmarks/) | ベンチマークフレームワーク（テストデータ生成、実行スクリプト、結果テンプレート） |
 | [tests/permission-matrix/](../tests/permission-matrix/) | 権限マトリクステスト（ACLエッジケース31シナリオ: Fail-Closed、グループネスティング、継承権限、緊急剥奪） |
 
-## FSx ONTAP 運用自動化
+## FSx for ONTAP 運用自動化
 
 | ドキュメント | 内容 |
 |-------------|------|
@@ -118,7 +118,7 @@
 ### 検証・評価
 
 6. **demo-recording-guide.md** — 検証デモ動画撮影手順書
-7. **ontap-setup-guide.md** — FSx ONTAP AD連携・CIFS共有設定
+7. **ontap-setup-guide.md** — FSx for ONTAP AD連携・CIFS共有設定
 8. **demo-environment-guide.md** — 検証環境セットアップ
 9. **demo-scenario.md** — 検証シナリオの実行
 10. **evaluation.md** — PoC評価テンプレート

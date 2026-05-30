@@ -23,7 +23,7 @@
 |------|------|
 | [auth-mode-setup-guide.md](../../demo-data/guides/auth-mode-setup-guide.md) | 인증 모드별 데모 환경 구축 가이드 (5가지 모드, 샘플 구성 파일 포함) |
 | [demo-scenario.md](../../demo-data/guides/demo-scenario.md) | 검증 시나리오 (관리자 vs. 일반 사용자 권한 차이, AD SSO 로그인, OIDC/LDAP 로그인) |
-| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD 통합, CIFS 공유, NTFS ACL 구성, Name-Mapping 설정 (검증된 절차) |
+| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx for ONTAP + AD 통합, CIFS 공유, NTFS ACL 구성, Name-Mapping 설정 (검증된 절차) |
 | [demo-environment-guide.md](demo-environment-guide.md) | 검증 환경 리소스 ID, 접속 정보, Embedding 서버 절차 |
 
 ## 엔터프라이즈 설계 및 운영 가이드
@@ -42,12 +42,12 @@
 | [poc-workshop-guide.md](poc-workshop-guide.md) | PoC 워크숍 가이드 (90분: 배포 → 테스트 → 평가 → 정리) |
 | [tests/permission-matrix/](../../tests/permission-matrix/) | 권한 매트릭스 테스트 (ACL 엣지 케이스 31개 시나리오: Fail-Closed, 그룹 중첩, 상속 권한, 긴급 박탈) |
 
-## FSx ONTAP 운영 자동화
+## FSx for ONTAP 운영 자동화
 
 | 문서 | 설명 |
 |------|------|
 | [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | 운영 자동화 스위트 개요 (디렉토리 구조, 사용 사례) |
-| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 이 아키텍처가 FSx ONTAP 운영을 단순화하는 이유 (설계 결정, 비용 추정, 보안 설계) |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 이 아키텍처가 FSx for ONTAP 운영을 단순화하는 이유 (설계 결정, 비용 추정, 보안 설계) |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS 통합 검증 보고서 (2026-05-01, 모든 단계 통과) |
 | [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | 통합 CloudFormation 템플릿 (VPC 엔드포인트 포함) |
 
@@ -99,7 +99,7 @@
 ### 2단계: 검증 및 평가
 
 6. **demo-recording-guide.md** — 데모 영상 녹화 가이드
-7. **ontap-setup-guide.md** — FSx ONTAP AD 통합, CIFS 공유 설정
+7. **ontap-setup-guide.md** — FSx for ONTAP AD 통합, CIFS 공유 설정
 8. **demo-environment-guide.md** — 검증 환경 설정
 9. **demo-scenario.md** — 검증 시나리오 실행
 10. **evaluation.md** — PoC 평가 템플릿

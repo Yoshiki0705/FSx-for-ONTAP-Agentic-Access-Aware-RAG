@@ -23,7 +23,7 @@ This document clarifies when and how changes to file ACLs on FSx for ONTAP are r
 │  ① ACL Change       ② Metadata Regeneration  ③ KB Re-sync        ④ Cache    │
 │                                                                    Invalidation│
 │  ┌──────────┐      ┌──────────────┐      ┌──────────────┐      ┌────────┐  │
-│  │ FSx ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
+│  │ FSx for ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
 │  │ NTFS ACL │─────▶│ .json update │─────▶│ StartIngest  │─────▶│perm-   │  │
 │  │ Change   │      │              │      │ ionJob       │      │cache   │  │
 │  └──────────┘      └──────────────┘      └──────────────┘      │TTL     │  │

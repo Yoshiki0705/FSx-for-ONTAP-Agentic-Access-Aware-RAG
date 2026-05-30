@@ -14,7 +14,7 @@
 |---|------|------|
 | (1) | RAG 기반 AI 챗봇 플랫폼 구축 | 아키텍처 설명 |
 | (2) | AWS CDK를 사용한 챗봇 플랫폼 배포 | CDK 배포 절차 |
-| (3) | FSx ONTAP 볼륨에 스토리지 데이터 배치 | S3 Access Point를 통한 데이터 수집 |
+| (3) | FSx for ONTAP 볼륨에 스토리지 데이터 배치 | S3 Access Point를 통한 데이터 수집 |
 | (4) | 접근 권한 정보 반영 | `.metadata.json`의 SID 정보 설정 및 검증 |
 | (5) | 사용자별 권한에 따른 데이터 접근 판정 | SID 필터링 검증 |
 | (6) | 초기 검증 | 카드 UI, KB/Agent 모드, Citation 표시 검증 |
@@ -98,7 +98,7 @@ npm install
 2. **AWS WAF** — 속도 제한, IP 평판, OWASP 준수 규칙, SQLi 보호
 3. **IAM 인증** — Lambda Function URL IAM Auth + CloudFront OAC (SigV4)
 4. **벡터 스토어** — S3 Vectors (기본값, 저비용) / OpenSearch Serverless (고성능, `vectorStoreType`으로 선택)
-5. **FSx ONTAP + S3 Access Point** — S3 AP를 통해 Bedrock KB에 직접 문서 제공
+5. **FSx for ONTAP + S3 Access Point** — S3 AP를 통해 Bedrock KB에 직접 문서 제공
 6. **Titan Embed Text v2** — Amazon Bedrock 텍스트 벡터화 모델 (1024차원)
 7. **SID 필터링** — NTFS ACL SID 정보를 사용한 문서 수준 접근 제어
 8. **KB/Agent 모드 전환** — KB 모드 (문서 검색)와 Agent 모드 (동적 Agent 생성 + 다단계 추론)
@@ -134,7 +134,7 @@ npx cdk deploy --all \
   --require-approval never
 ```
 
-> **예상 소요 시간**: 약 30~40분 (FSx ONTAP 생성에 20~30분)
+> **예상 소요 시간**: 약 30~40분 (FSx for ONTAP 생성에 20~30분)
 
 ### 단계 3: 배포 후 설정 (단일 명령)
 
@@ -144,7 +144,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 자동 실행되는 작업:
 1. S3 Access Point 생성 + 정책 구성
-2. FSx ONTAP에 데모 데이터 업로드 (S3 AP 경유)
+2. FSx for ONTAP에 데모 데이터 업로드 (S3 AP 경유)
 3. Bedrock KB 데이터 소스 추가 + 동기화
 4. DynamoDB에 사용자 SID 데이터 등록
 5. Cognito에 데모 사용자 생성
@@ -164,7 +164,7 @@ bash demo-data/scripts/verify-deployment.sh
 
 ---
 
-## 증거 (3): FSx ONTAP 볼륨에 스토리지 데이터 배치
+## 증거 (3): FSx for ONTAP 볼륨에 스토리지 데이터 배치
 
 **녹화 내용**: S3 Access Point를 통한 데이터 수집 검증
 

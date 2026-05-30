@@ -1,8 +1,8 @@
-# FSx ONTAP S3 Access Point 复现测试指南
+# FSx for ONTAP S3 Access Point 复现测试指南
 
 **🌐 Language:** [日本語](../fsx-s3ap-reproduction-test-guide.md) | [English](../en/fsx-s3ap-reproduction-test-guide.md) | [한국어](../ko/fsx-s3ap-reproduction-test-guide.md) | **简体中文** | [繁體中文](../zh-TW/fsx-s3ap-reproduction-test-guide.md) | [Français](../fr/fsx-s3ap-reproduction-test-guide.md) | [Deutsch](../de/fsx-s3ap-reproduction-test-guide.md) | [Español](../es/fsx-s3ap-reproduction-test-guide.md)
 
-**目的**: 隔离 FSx ONTAP S3 AP AccessDenied 问题是 Organization SCP 特有的还是 FSx ONTAP S3 AP 的固有限制
+**目的**: 隔离 FSx for ONTAP S3 AP AccessDenied 问题是 Organization SCP 特有的还是 FSx for ONTAP S3 AP 的固有限制
 
 ---
 
@@ -14,7 +14,7 @@
 
 ## 复现步骤
 
-### 步骤 1：FSx ONTAP + Managed AD 部署
+### 步骤 1：FSx for ONTAP + Managed AD 部署
 
 ```bash
 # CDK bootstrap (use --method=direct to bypass CloudFormation Hook if present)
@@ -65,7 +65,7 @@ watch -n 10 "aws fsx describe-storage-virtual-machines --storage-virtual-machine
 
 > **注意**：不指定 OU 时，状态会变为 MISCONFIGURED。FSx 安全组中需要 AD 端口（636、135、464、3268-3269、1024-65535）（已在 CDK 代码中反映）。
 
-### 步骤 3：FSx ONTAP 管理员密码设置 + CIFS 共享创建
+### 步骤 3：FSx for ONTAP 管理员密码设置 + CIFS 共享创建
 
 ```bash
 # Set FSx admin password
@@ -181,7 +181,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 - 步骤 7 中的所有测试返回 AccessDenied
 - 在不同账户（无 SCP 限制）中成功
 
-### 如果问题是 FSx ONTAP S3 AP 的固有限制
+### 如果问题是 FSx for ONTAP S3 AP 的固有限制
 - 在不同账户中也出现相同的 AccessDenied
 
 ## 已验证的设置（已确认不是原因）
@@ -226,13 +226,13 @@ npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" \
 
 ### 结论
 
-**FSx ONTAP S3 AP AccessDenied 问题是由 Organization SCP 引起的。**
+**FSx for ONTAP S3 AP AccessDenied 问题是由 Organization SCP 引起的。**
 
 已确认相同的 S3 AP 访问模式在旧账户（不属于 Organization）中正常工作。AccessDenied 仅在新账户（属于有 SCP 限制的 Organization）中发生。
 
 ### 修复方案
 
 在 Organization 管理账户中执行以下操作之一：
-1. 在 SCP 中添加允许访问 FSx ONTAP S3 AP 的语句
+1. 在 SCP 中添加允许访问 FSx for ONTAP S3 AP 的语句
 2. 将目标账户从 SCP 限制中排除
 3. 识别 SCP 阻止的 S3 操作/资源模式，并排除 FSx S3 AP ARN 模式（`arn:aws:s3:<region>:<account>:accesspoint/*`）

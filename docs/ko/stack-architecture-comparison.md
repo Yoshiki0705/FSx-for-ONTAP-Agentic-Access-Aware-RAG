@@ -35,7 +35,7 @@
 
 | 경로 | 방법 | 활성화 | 사용 사례 |
 |------|------|--------|----------|
-| 메인 | FSx ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 표준 볼륨 |
+| 메인 | FSx for ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 표준 볼륨 |
 | 대체 | S3 버킷 직접 업로드 → Bedrock KB | `upload-demo-data.sh` | S3 AP 사용 불가 시 |
 | 대안 | CIFS 마운트 → Embedding 서버 → 벡터 스토어 직접 쓰기 | `enableEmbeddingServer=true` | FlexCache 볼륨 (AOSS 구성만 해당) |
 
@@ -43,7 +43,7 @@
 
 ## Bedrock KB Ingestion Job — 할당량 및 설계 고려사항
 
-Bedrock KB Ingestion Job은 문서 검색, 청크 분할, 벡터화, 저장을 처리하는 관리형 서비스입니다. S3 Access Point를 통해 FSx ONTAP에서 직접 데이터를 읽고, 증분 동기화를 통해 변경된 파일만 처리합니다. 커스텀 Embedding 파이프라인(AWS Batch 등)은 필요하지 않습니다.
+Bedrock KB Ingestion Job은 문서 검색, 청크 분할, 벡터화, 저장을 처리하는 관리형 서비스입니다. S3 Access Point를 통해 FSx for ONTAP에서 직접 데이터를 읽고, 증분 동기화를 통해 변경된 파일만 처리합니다. 커스텀 Embedding 파이프라인(AWS Batch 등)은 필요하지 않습니다.
 
 ### 서비스 할당량 (2026년 3월 기준, 모두 조정 불가)
 
@@ -83,12 +83,12 @@ aws scheduler create-schedule \
   --flexible-time-window '{"Mode":"OFF"}'
 ```
 
-또는 FSx ONTAP의 파일 변경을 S3 이벤트 알림으로 감지하여 Ingestion Job을 트리거할 수 있습니다. 단, StartIngestionJob API 속도 제한(10초에 1회)에 주의하세요.
+또는 FSx for ONTAP의 파일 변경을 S3 이벤트 알림으로 감지하여 Ingestion Job을 트리거할 수 있습니다. 단, StartIngestionJob API 속도 제한(10초에 1회)에 주의하세요.
 
 ### 설계 권장 사항
 
 1. **동기화 빈도**: 실시간 동기화는 불가능합니다. 최소 간격은 10초이며, 실질적으로 15분~1시간을 권장합니다
-2. **대규모 데이터**: 100GB를 초과하는 데이터 소스는 여러 FSx ONTAP 볼륨(= 여러 S3 AP = 여러 데이터 소스)으로 분할해야 합니다
+2. **대규모 데이터**: 100GB를 초과하는 데이터 소스는 여러 FSx for ONTAP 볼륨(= 여러 S3 AP = 여러 데이터 소스)으로 분할해야 합니다
 3. **병렬 처리**: 동일 KB에 대한 병렬 동기화는 불가능합니다. 여러 데이터 소스를 순차적으로 동기화하세요
 4. **오류 처리**: 작업 실패 시 재시도 로직을 구현하세요 (`GetIngestionJob`으로 상태 모니터링)
 5. **커스텀 Embedding 파이프라인 불필요**: Bedrock KB가 청크 분할, 벡터화, 저장을 관리하므로 AWS Batch 등의 커스텀 파이프라인은 불필요합니다
@@ -102,14 +102,14 @@ aws scheduler create-schedule \
 | 1 | WafStack | 필수 | CloudFront용 WAF (us-east-1) |
 | 2 | NetworkingStack | 필수 | VPC, Subnets, SG |
 | 3 | SecurityStack | 필수 | Cognito User Pool |
-| 4 | StorageStack | 필수 | FSx ONTAP + SVM + Volume (또는 기존 참조), S3, DynamoDB×2 |
+| 4 | StorageStack | 필수 | FSx for ONTAP + SVM + Volume (또는 기존 참조), S3, DynamoDB×2 |
 | 5 | AIStack | 필수 | Bedrock KB, S3 Vectors 또는 OpenSearch Serverless, Agent (선택 사항) |
 | 6 | WebAppStack | 필수 | Lambda Web Adapter + CloudFront |
 | 7 | EmbeddingStack | 선택 | FlexCache CIFS 마운트 + Embedding 서버 |
 
 ### 기존 FSx for ONTAP 참조 모드
 
-StorageStack은 `existingFileSystemId`/`existingSvmId`/`existingVolumeId` 파라미터를 사용하여 기존 FSx ONTAP 리소스를 참조할 수 있습니다. 이 경우:
+StorageStack은 `existingFileSystemId`/`existingSvmId`/`existingVolumeId` 파라미터를 사용하여 기존 FSx for ONTAP 리소스를 참조할 수 있습니다. 이 경우:
 - 새 FSx/SVM/Volume 생성을 건너뜀 (배포 시간 30~40분 단축)
 - Managed AD 생성도 건너뜀 (기존 환경의 AD 구성 사용)
 - S3 버킷, DynamoDB 테이블, S3 AP 커스텀 리소스는 정상적으로 생성

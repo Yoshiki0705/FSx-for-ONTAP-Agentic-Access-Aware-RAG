@@ -254,7 +254,7 @@ volume modify -vserver svm1 -volume kb_data \
 | IOPS 使用率 | > 80% | throughput capacity 引き上げ |
 | ネットワーク帯域使用率 | > 70% | throughput capacity 引き上げ |
 
-### 自動拡張（FSx ONTAP Ops）
+### 自動拡張（FSx for ONTAP Ops）
 
 本プロジェクトの `automation/fsxn-ops/` に含まれる容量監視 Lambda が自動拡張を実行します:
 
@@ -332,7 +332,7 @@ FlexCache Cache ボリュームのデータを RAG に取り込む場合:
 | PutObject | 1 KB | 100-200ms | メタデータ書き込み含む |
 | PutObject | 100 MB | 1-5s | throughput capacity に依存 |
 
-**NFS/SMB との共有スループット**: S3 AP 経由のアクセスは FSx ONTAP の throughput capacity を NFS/SMB と共有します。大量の S3 AP アクセスが NFS/SMB のパフォーマンスに影響する可能性があるため、ピーク時の同時アクセスパターンを考慮して throughput capacity を設計してください。
+**NFS/SMB との共有スループット**: S3 AP 経由のアクセスは FSx for ONTAP の throughput capacity を NFS/SMB と共有します。大量の S3 AP アクセスが NFS/SMB のパフォーマンスに影響する可能性があるため、ピーク時の同時アクセスパターンを考慮して throughput capacity を設計してください。
 
 ### データ鮮度と SnapMirror RPO
 
@@ -365,4 +365,4 @@ RAG 検索結果に反映されるまでの最大遅延は以下の合計です:
 | [permission-consistency.md](permission-consistency.md) | 権限変更時の整合性モデル |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | S3 Vectors + SID アーキテクチャ |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3 構成比較表 |
-| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx ONTAP 運用自動化 |
+| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx for ONTAP 運用自動化 |

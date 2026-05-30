@@ -226,7 +226,7 @@ AOSS 配置（`vectorStoreType=opensearch-serverless`）：
 
 ---
 
-## 5. Embedding 服务器 — FSx ONTAP CIFS 挂载 + 向量数据库写入
+## 5. Embedding 服务器 — FSx for ONTAP CIFS 挂载 + 向量数据库写入
 
 ### 实现详情
 
@@ -240,7 +240,7 @@ AOSS 配置（`vectorStoreType=opensearch-serverless`）：
 | 选项 B（可选） | Embedding 服务器（CIFS 挂载）→ 直接向量存储写入 | `-c enableEmbeddingServer=true` | ✅（仅 AOSS 配置） |
 | 选项 C（可选） | S3 Access Point → Bedrock KB | 部署后手动设置 | ✅ SnapMirror 支持，FlexCache 即将支持 |
 
-> **关于 S3 Access Point**：StorageStack 自动为 FSx ONTAP 卷创建 S3 Access Point。根据卷的安全样式（NTFS/UNIX）和 AD 加入状态，将创建 WINDOWS 或 UNIX 用户类型的 S3 AP。可通过 CDK 上下文参数 `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` 进行显式控制。
+> **关于 S3 Access Point**：StorageStack 自动为 FSx for ONTAP 卷创建 S3 Access Point。根据卷的安全样式（NTFS/UNIX）和 AD 加入状态，将创建 WINDOWS 或 UNIX 用户类型的 S3 AP。可通过 CDK 上下文参数 `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` 进行显式控制。
 
 #### S3 Access Point 用户类型设计
 
@@ -511,7 +511,7 @@ User            Next.js API         DynamoDB        Bedrock KB      Converse API
 
 ---
 
-## 19. FSx ONTAP 运维自动化 — Lambda + Step Functions
+## 19. FSx for ONTAP 运维自动化 — Lambda + Step Functions
 
 ### 概述
 
@@ -548,7 +548,7 @@ VPC 中的 Lambda 需要以下 Interface VPC Endpoints：
 | capacity_monitor（实际扩容） | ✅ 通过（4 卷 × 20% 扩展） |
 | SnapMirror E2E（break/resync） | ✅ 通过（11/11 测试） |
 | EventBridge Scheduler | ✅ 通过（5 分钟自动执行已确认） |
-| data_preprocessor（FSx ONTAP S3 AP） | ✅ 通过（scan、collect_metadata、generate_tasks） |
+| data_preprocessor（FSx for ONTAP S3 AP） | ✅ 通过（scan、collect_metadata、generate_tasks） |
 
 ### 容量监控防护措施
 
@@ -609,7 +609,7 @@ TLS 证书验证默认启用。生产环境：通过 `ONTAP_CA_CERT_PATH` 指定
 | 1 | WafStack | us-east-1 | WAF WebACL、IP Set |
 | 2 | NetworkingStack | ap-northeast-1 | VPC、子网、安全组、VPC Endpoints（可选） |
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool、Client、SAML IdP + Cognito Domain（AD Federation 启用时）、AD Sync Lambda（可选） |
-| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume、S3、DynamoDB×2、AD、KMS 加密（可选）、CloudTrail（可选） |
+| 4 | StorageStack | ap-northeast-1 | FSx for ONTAP + SVM + Volume、S3、DynamoDB×2、AD、KMS 加密（可选）、CloudTrail（可选） |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB、S3 Vectors / OpenSearch Serverless（通过 `vectorStoreType` 选择）、Bedrock Guardrails（可选） |
 | 6 | WebAppStack | ap-northeast-1 | Lambda（Docker）、CloudFront、Permission Filter Lambda（可选）、MonitoringConstruct（可选） |
 | 7 | EmbeddingStack（可选） | ap-northeast-1 | EC2、ECR、ONTAP ACL 自动获取（可选） |

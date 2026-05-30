@@ -232,7 +232,7 @@ FSx for ONTAP                    S3 Access Point              Bedrock KB
 
 | # | 경로 | 방법 | CDK 활성화 | 사용 사례 |
 |---|------|------|-----------|----------|
-| 1 | 메인 | FSx ONTAP Volume → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 표준 볼륨 (S3 AP 지원) |
+| 1 | 메인 | FSx for ONTAP Volume → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | 표준 볼륨 (S3 AP 지원) |
 | 2 | 대체 | S3 버킷에 수동 업로드 → Bedrock KB | `upload-demo-data.sh` | FlexCache 볼륨 및 기타 S3 AP 미지원 사례 |
 | 3 | 대안 | CIFS 마운트 → Embedding 서버 → AOSS에 직접 쓰기 | `-c enableEmbeddingServer=true` | FlexCache 볼륨 + AOSS 직접 제어가 필요한 경우 |
 

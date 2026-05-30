@@ -43,7 +43,7 @@ Die Authentifizierung wird von Amazon Cognito verwaltet.
 | `${prefix}-Waf` | us-east-1 | WAF WebACL for CloudFront |
 | `${prefix}-Networking` | ap-northeast-1 | VPC, Subnets, Security Groups |
 | `${prefix}-Security` | ap-northeast-1 | Cognito User Pool, Authentication |
-| `${prefix}-Storage` | ap-northeast-1 | FSx ONTAP + SVM + Volume + S3 + DynamoDB + AD |
+| `${prefix}-Storage` | ap-northeast-1 | FSx for ONTAP + SVM + Volume + S3 + DynamoDB + AD |
 | `${prefix}-AI` | ap-northeast-1 | Bedrock KB + S3 Vectors / OpenSearch Serverless (selected via `vectorStoreType`) |
 | `${prefix}-WebApp` | ap-northeast-1 | Lambda Web Adapter (Next.js) + CloudFront |
 | `${prefix}-Embedding` (optional) | ap-northeast-1 | Embedding EC2 + ECR (FlexCache CIFS mount) |
@@ -238,13 +238,13 @@ For details, see [6. Embedding Server](#6-embedding-server-optional).
 
 ### Overview
 
-EmbeddingStack (the 7th CDK stack) is an EC2-based server that directly reads CIFS-shared documents on FSx ONTAP, vectorizes them with Amazon Bedrock Titan Embed Text v2, and indexes them in OpenSearch Serverless (AOSS). Only available with AOSS configuration (`vectorStoreType=opensearch-serverless`).
+EmbeddingStack (the 7th CDK stack) is an EC2-based server that directly reads CIFS-shared documents on FSx for ONTAP, vectorizes them with Amazon Bedrock Titan Embed Text v2, and indexes them in OpenSearch Serverless (AOSS). Only available with AOSS configuration (`vectorStoreType=opensearch-serverless`).
 
 ### Architecture
 
 ```
 ┌──────────────────┐     CIFS/SMB      ┌──────────────────┐
-│ FSx ONTAP        │◀──────────────────│ Embedding EC2    │
+│ FSx for ONTAP        │◀──────────────────│ Embedding EC2    │
 │ (SVM + Volume)   │    Mount          │ (m5.large)       │
 │ /data            │                   │                  │
 └──────────────────┘                   │ Docker Container │
@@ -321,7 +321,7 @@ docker push ${ECR_URI}:latest
 
 #### Step 4: Create CIFS Share
 
-Set the FSx ONTAP admin password and create a CIFS share via REST API.
+Set the FSx for ONTAP admin password and create a CIFS share via REST API.
 
 ```bash
 # Set FSx admin password

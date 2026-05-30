@@ -202,13 +202,13 @@ Agentモードの知見：
 | 2 | SVM AD参加にはVPCセキュリティグループでADポート開放が必要 | FSx SGに636, 135, 464, 3268-3269, 1024-65535ポートの追加が必要。CDKのNetworkingStackで対応要 |
 | 3 | `@aws-sdk/client-scheduler`の依存関係が不足 | 他スレッドの機能追加による。package.jsonに追加で解決 |
 | 4 | SVM AD参加にはOU指定が必要 | AWS Managed ADの場合、`OrganizationalUnitDistinguishedName`に`OU=Computers,OU=<ShortName>,DC=<domain>,DC=<tld>`を指定する必要がある |
-| 5 | FSx ONTAP S3 APのアクセスにはバケットポリシー設定が必要 | SSO assumed roleではデフォルトでS3 APにアクセスできない。S3 APポリシー（`s3:*`）+ IAM identity-based policy（S3 AP ARNパターン）の両方が必要。さらにボリュームにファイルが存在し、NTFS ACLでアクセスが許可されている必要がある（dual-layer authorization） |
-| 6 | FSx ONTAP S3 APはdual-layer authorizationモデル | IAM認証（S3 APポリシー + identity-based policy）とファイルシステム認証（NTFS ACL）の両方が必要。ボリュームが空の場合やCIFS共有未作成の場合もAccessDeniedになる |
-| 7 | FSx ONTAP管理パスワードはCDK ADパスワードとは別 | FSx ONTAPの`fsxadmin`パスワードはファイルシステム作成時に自動生成される。ONTAP REST API経由のCIFS共有作成にはこのパスワードが必要。CDKで`FsxAdminPassword`を設定するか、`update-file-system`で後から設定する |
-| 8 | FSx ONTAP S3 APのAccessDenied問題 | **原因特定済み: Organization SCP**。旧アカウント（Organization SCP制限なし）ではS3 APアクセス成功。新アカウント（Organization SCP制限あり）ではAccessDenied。Organization管理アカウントでSCPの修正が必要 |
+| 5 | FSx for ONTAP S3 APのアクセスにはバケットポリシー設定が必要 | SSO assumed roleではデフォルトでS3 APにアクセスできない。S3 APポリシー（`s3:*`）+ IAM identity-based policy（S3 AP ARNパターン）の両方が必要。さらにボリュームにファイルが存在し、NTFS ACLでアクセスが許可されている必要がある（dual-layer authorization） |
+| 6 | FSx for ONTAP S3 APはdual-layer authorizationモデル | IAM認証（S3 APポリシー + identity-based policy）とファイルシステム認証（NTFS ACL）の両方が必要。ボリュームが空の場合やCIFS共有未作成の場合もAccessDeniedになる |
+| 7 | FSx for ONTAP管理パスワードはCDK ADパスワードとは別 | FSx for ONTAPの`fsxadmin`パスワードはファイルシステム作成時に自動生成される。ONTAP REST API経由のCIFS共有作成にはこのパスワードが必要。CDKで`FsxAdminPassword`を設定するか、`update-file-system`で後から設定する |
+| 8 | FSx for ONTAP S3 APのAccessDenied問題 | **原因特定済み: Organization SCP**。旧アカウント（Organization SCP制限なし）ではS3 APアクセス成功。新アカウント（Organization SCP制限あり）ではAccessDenied。Organization管理アカウントでSCPの修正が必要 |
 | 9 | S3 Vectorsのfilterable metadata 2KB制限 | Bedrock KB + S3 Vectorsの場合、カスタムメタデータは**1KB**まで（S3 Vectors単体の2KBではなく、Bedrock KB内部メタデータが残り1KBを消費）。さらに、Bedrock KBが自動付与するメタデータキー（`x-amz-bedrock-kb-chunk-id`、`x-amz-bedrock-kb-data-source-id`、`x-amz-bedrock-kb-source-file-modality`、`x-amz-bedrock-kb-document-page-number`等）がfilterable扱いになり、PDFファイルのページ番号メタデータ等で2KB制限を超える。`nonFilterableMetadataKeys`（最大10キー）に全メタデータキーを指定しても、Bedrock KB自動付与キーの数が多い場合は対応不可。**対処**: (1) メタデータキーを最小限にする（`sids`のみ、短い値）、(2) PDFファイルはメタデータなしで使用、(3) S3バケットフォールバックパスでは新アカウントで検証済みで問題なし（AOSS構成では2KB制限なし） |
 
-#### FSx ONTAP S3 APパスの検証状況
+#### FSx for ONTAP S3 APパスの検証状況
 
 | ステップ | 状態 | 備考 |
 |---------|------|------|

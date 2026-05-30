@@ -202,13 +202,13 @@ Agent 모드 교훈:
 | 2 | SVM AD 가입에 VPC 보안 그룹의 AD 포트 개방 필요 | FSx SG에 포트 636, 135, 464, 3268-3269, 1024-65535 추가 필요. CDK NetworkingStack 업데이트 필요 |
 | 3 | `@aws-sdk/client-scheduler` 의존성 누락 | 다른 스레드의 기능 추가로 인해 발생. package.json에 추가하여 해결 |
 | 4 | SVM AD 가입에 OU 지정 필요 | AWS Managed AD의 경우 `OrganizationalUnitDistinguishedName`에 `OU=Computers,OU=<ShortName>,DC=<domain>,DC=<tld>` 지정 필요 |
-| 5 | FSx ONTAP S3 AP 접근에 버킷 정책 구성 필요 | SSO assumed role은 기본적으로 S3 AP에 접근 불가. S3 AP 정책(`s3:*`) + IAM ID 기반 정책(S3 AP ARN 패턴) 모두 필요. 또한 볼륨에 파일이 존재하고 NTFS ACL이 접근을 허용해야 함 (이중 인가) |
-| 6 | FSx ONTAP S3 AP는 이중 인가 모델 사용 | IAM 인증(S3 AP 정책 + ID 기반 정책)과 파일 시스템 인증(NTFS ACL) 모두 필요. 볼륨이 비어 있거나 CIFS 공유가 생성되지 않은 경우에도 AccessDenied 발생 |
-| 7 | FSx ONTAP 관리자 비밀번호는 CDK AD 비밀번호와 별도 | FSx ONTAP `fsxadmin` 비밀번호는 파일 시스템 생성 시 자동 생성됨. ONTAP REST API를 통한 CIFS 공유 생성에 이 비밀번호 필요. CDK에서 `FsxAdminPassword` 설정 또는 `update-file-system`으로 나중에 설정 |
-| 8 | FSx ONTAP S3 AP AccessDenied 문제 | **근본 원인 확인: Organization SCP**. 이전 계정(Organization SCP 제한 없음)에서 S3 AP 접근 성공. 새 계정(Organization SCP 제한 있음)에서 AccessDenied. Organization 관리 계정에서 SCP 수정 필요 |
+| 5 | FSx for ONTAP S3 AP 접근에 버킷 정책 구성 필요 | SSO assumed role은 기본적으로 S3 AP에 접근 불가. S3 AP 정책(`s3:*`) + IAM ID 기반 정책(S3 AP ARN 패턴) 모두 필요. 또한 볼륨에 파일이 존재하고 NTFS ACL이 접근을 허용해야 함 (이중 인가) |
+| 6 | FSx for ONTAP S3 AP는 이중 인가 모델 사용 | IAM 인증(S3 AP 정책 + ID 기반 정책)과 파일 시스템 인증(NTFS ACL) 모두 필요. 볼륨이 비어 있거나 CIFS 공유가 생성되지 않은 경우에도 AccessDenied 발생 |
+| 7 | FSx for ONTAP 관리자 비밀번호는 CDK AD 비밀번호와 별도 | FSx for ONTAP `fsxadmin` 비밀번호는 파일 시스템 생성 시 자동 생성됨. ONTAP REST API를 통한 CIFS 공유 생성에 이 비밀번호 필요. CDK에서 `FsxAdminPassword` 설정 또는 `update-file-system`으로 나중에 설정 |
+| 8 | FSx for ONTAP S3 AP AccessDenied 문제 | **근본 원인 확인: Organization SCP**. 이전 계정(Organization SCP 제한 없음)에서 S3 AP 접근 성공. 새 계정(Organization SCP 제한 있음)에서 AccessDenied. Organization 관리 계정에서 SCP 수정 필요 |
 | 9 | S3 Vectors filterable 메타데이터 2KB 제한 | Bedrock KB + S3 Vectors 사용 시 커스텀 메타데이터는 **1KB**로 제한 (독립 S3 Vectors의 2KB가 아님, Bedrock KB 내부 메타데이터가 나머지 1KB 소비). 또한 Bedrock KB가 자동 추가하는 메타데이터 키(`x-amz-bedrock-kb-chunk-id`, `x-amz-bedrock-kb-data-source-id`, `x-amz-bedrock-kb-source-file-modality`, `x-amz-bedrock-kb-document-page-number` 등)가 filterable로 처리되어 PDF 페이지 번호 메타데이터가 2KB 제한을 초과할 수 있음. 모든 메타데이터 키를 `nonFilterableMetadataKeys`(최대 10개 키)에 지정해도 Bedrock KB 자동 추가 키가 많은 경우 충분하지 않을 수 있음. **완화 방법**: (1) 메타데이터 키 최소화 (`sids`만, 짧은 값), (2) 메타데이터 없는 PDF 파일 사용, (3) S3 버킷 대체 경로는 새 계정에서 문제 없이 검증됨 (AOSS 구성에서는 2KB 제한 없음) |
 
-#### FSx ONTAP S3 AP 경로 검증 상태
+#### FSx for ONTAP S3 AP 경로 검증 상태
 
 | 단계 | 상태 | 비고 |
 |------|------|------|

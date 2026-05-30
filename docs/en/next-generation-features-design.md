@@ -62,7 +62,7 @@ Access method:
 **Design**:
 ```python
 # benchmarks/s3ap-benchmark.py
-# Executed from within Lambda (in VPC, same subnet as FSx ONTAP)
+# Executed from within Lambda (in VPC, same subnet as FSx for ONTAP)
 
 Test matrix:
   object_sizes: [1KB, 10KB, 100KB, 1MB, 10MB, 100MB]
@@ -155,7 +155,7 @@ Constraints:
 **Architecture**:
 ```
 ACL change event detection:
-  Option A: FPolicy (FSx ONTAP) → SQS → Lambda
+  Option A: FPolicy (FSx for ONTAP) → SQS → Lambda
   Option B: CloudTrail S3 Data Events → EventBridge → Lambda
   Option C: Periodic scan (current approach, up to 5-minute delay)
 

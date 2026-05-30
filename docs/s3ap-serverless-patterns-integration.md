@@ -47,14 +47,14 @@
 S3AP Serverless Patterns で処理・分析された結果を、RAG の検索対象ドキュメントとして活用します。
 
 ```
-FSx ONTAP (生データ: DICOM画像、契約書PDF、IoTログ)
+FSx for ONTAP (生データ: DICOM画像、契約書PDF、IoTログ)
   ↓ S3 AP (読み取り)
 S3AP Serverless Patterns
   ├─ UC5: DICOM → メタデータ抽出・匿名化
   ├─ UC1: 契約書 → エンティティ抽出・分類
   └─ UC3: IoTログ → 異常検知・レポート生成
   ↓ S3 AP (書き戻し) or S3 バケット
-FSx ONTAP (処理済みデータ + .metadata.json)
+FSx for ONTAP (処理済みデータ + .metadata.json)
   ↓ S3 AP (読み取り)
 Permission-aware RAG (Bedrock KB)
   ↓ SID フィルタリング
@@ -64,7 +64,7 @@ Permission-aware RAG (Bedrock KB)
 **メリット**:
 - 生データ（画像、バイナリ）を AI が理解可能なテキストに変換してから RAG に投入
 - 処理結果に権限メタデータを付与し、部門別アクセス制御を維持
-- 2 つのシステムが同じ FSx ONTAP ボリュームを共有（データコピー不要）
+- 2 つのシステムが同じ FSx for ONTAP ボリュームを共有（データコピー不要）
 
 ### パターン B: RAG から処理パイプラインをトリガーする
 
@@ -119,7 +119,7 @@ AWS Account
 ├── S3AP Serverless Patterns (CloudFormation)
 │   └── UC1 / UC3 / UC5 (選択デプロイ)
 └── Permission-aware RAG (CDK)
-    └── Bedrock KB → S3 AP → FSx ONTAP
+    └── Bedrock KB → S3 AP → FSx for ONTAP
 ```
 
 ### エンタープライズ構成（マルチアカウント）
