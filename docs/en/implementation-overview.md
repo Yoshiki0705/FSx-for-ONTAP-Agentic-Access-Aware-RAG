@@ -226,7 +226,7 @@ AOSS configuration (`vectorStoreType=opensearch-serverless`):
 
 ---
 
-## 5. Embedding Server — FSx ONTAP CIFS Mount + Vector DB Write
+## 5. Embedding Server — FSx for ONTAP CIFS Mount + Vector DB Write
 
 ### Implementation Details
 
@@ -240,7 +240,7 @@ On an EC2 instance with an Amazon FSx for NetApp ONTAP volume mounted via CIFS/S
 | Option B (optional) | Embedding server (CIFS mount) → Direct vector store write | `-c enableEmbeddingServer=true` | ✅ (AOSS configuration only) |
 | Option C (optional) | S3 Access Point → Bedrock KB | Manual setup after deployment | ✅ SnapMirror supported, FlexCache coming soon |
 
-> **About S3 Access Point**: StorageStack automatically creates an S3 Access Point for the FSx ONTAP volume. Depending on the volume's security style (NTFS/UNIX) and AD join status, an S3 AP with either WINDOWS or UNIX user type is created. This can be explicitly controlled via CDK context parameters `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`.
+> **About S3 Access Point**: StorageStack automatically creates an S3 Access Point for the FSx for ONTAP volume. Depending on the volume's security style (NTFS/UNIX) and AD join status, an S3 AP with either WINDOWS or UNIX user type is created. This can be explicitly controlled via CDK context parameters `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`.
 
 #### S3 Access Point User Type Design
 
@@ -257,7 +257,7 @@ SID filtering operates with the same logic (`.metadata.json` metadata-based) acr
 
 ```
 ┌──────────────────┐     CIFS/SMB      ┌──────────────────┐
-│ FSx ONTAP        │◀──────────────────│ Embedding EC2    │
+│ FSx for ONTAP        │◀──────────────────│ Embedding EC2    │
 │ (SVM + Volume)   │    Mount          │ (m5.large)       │
 │ /data            │                   │                  │
 └──────────────────┘                   │ Docker Container │
@@ -862,7 +862,7 @@ Authentication Flow
 
 ---
 
-## 19. FSx ONTAP Ops Automation — Lambda + Step Functions
+## 19. FSx for ONTAP Ops Automation — Lambda + Step Functions
 
 ### Overview
 
@@ -899,7 +899,7 @@ Lambda in VPC requires these Interface VPC Endpoints:
 | capacity_monitor (actual resize) | ✅ PASS (4 volumes × 20% expansion) |
 | SnapMirror E2E (break/resync) | ✅ PASS (11/11 tests) |
 | EventBridge Scheduler | ✅ PASS (5-min auto-execution confirmed) |
-| data_preprocessor (FSx ONTAP S3 AP) | ✅ PASS (scan, collect_metadata, generate_tasks) |
+| data_preprocessor (FSx for ONTAP S3 AP) | ✅ PASS (scan, collect_metadata, generate_tasks) |
 
 ### Capacity Monitoring Guardrails
 
@@ -960,7 +960,7 @@ See [automation/fsxn-ops/](../../automation/fsxn-ops/) for details.
 | 1 | WafStack | us-east-1 | WAF WebACL, IP Set |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups, VPC Endpoints (optional) |
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + Cognito Domain (when AD Federation enabled), AD Sync Lambda (optional) |
-| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, AD, KMS Encryption (optional), CloudTrail (optional) |
+| 4 | StorageStack | ap-northeast-1 | FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, AD, KMS Encryption (optional), CloudTrail (optional) |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless (selected via `vectorStoreType`), Bedrock Guardrails (optional) |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker), CloudFront, Permission Filter Lambda (optional), MonitoringConstruct (optional) |
 | 7 | EmbeddingStack (optional) | ap-northeast-1 | EC2, ECR, ONTAP ACL auto-retrieval (optional) |

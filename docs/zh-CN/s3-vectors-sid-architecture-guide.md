@@ -202,13 +202,13 @@ Agent 模式经验教训：
 | 2 | SVM AD 加入需要在 VPC 安全组中开放 AD 端口 | 需要在 FSx SG 中添加端口 636、135、464、3268-3269、1024-65535。需要在 CDK NetworkingStack 中更新 |
 | 3 | 缺少 `@aws-sdk/client-scheduler` 依赖 | 由其他线程的功能添加引起。通过添加到 package.json 解决 |
 | 4 | SVM AD 加入需要指定 OU | 对于 AWS Managed AD，`OrganizationalUnitDistinguishedName` 必须指定 `OU=Computers,OU=<ShortName>,DC=<domain>,DC=<tld>` |
-| 5 | FSx ONTAP S3 AP 访问需要存储桶策略配置 | SSO 假设角色默认无法访问 S3 AP。需要 S3 AP 策略（`s3:*`）+ IAM 基于身份的策略（S3 AP ARN 模式）。此外，卷上必须存在文件且 NTFS ACL 必须允许访问（双层授权） |
-| 6 | FSx ONTAP S3 AP 使用双层授权模型 | 需要 IAM 认证（S3 AP 策略 + 基于身份的策略）和文件系统认证（NTFS ACL）。当卷为空或未创建 CIFS 共享时也会出现 AccessDenied |
-| 7 | FSx ONTAP 管理员密码与 CDK AD 密码分开 | FSx ONTAP `fsxadmin` 密码在文件系统创建时自动生成。通过 ONTAP REST API 创建 CIFS 共享需要此密码。可在 CDK 中设置 `FsxAdminPassword` 或稍后使用 `update-file-system` 设置 |
-| 8 | FSx ONTAP S3 AP AccessDenied 问题 | **根本原因已确定：Organization SCP**。S3 AP 访问在旧账户（无 Organization SCP 限制）中成功。在新账户（有 Organization SCP 限制）中出现 AccessDenied。需要在 Organization 管理账户中修改 SCP |
+| 5 | FSx for ONTAP S3 AP 访问需要存储桶策略配置 | SSO 假设角色默认无法访问 S3 AP。需要 S3 AP 策略（`s3:*`）+ IAM 基于身份的策略（S3 AP ARN 模式）。此外，卷上必须存在文件且 NTFS ACL 必须允许访问（双层授权） |
+| 6 | FSx for ONTAP S3 AP 使用双层授权模型 | 需要 IAM 认证（S3 AP 策略 + 基于身份的策略）和文件系统认证（NTFS ACL）。当卷为空或未创建 CIFS 共享时也会出现 AccessDenied |
+| 7 | FSx for ONTAP 管理员密码与 CDK AD 密码分开 | FSx for ONTAP `fsxadmin` 密码在文件系统创建时自动生成。通过 ONTAP REST API 创建 CIFS 共享需要此密码。可在 CDK 中设置 `FsxAdminPassword` 或稍后使用 `update-file-system` 设置 |
+| 8 | FSx for ONTAP S3 AP AccessDenied 问题 | **根本原因已确定：Organization SCP**。S3 AP 访问在旧账户（无 Organization SCP 限制）中成功。在新账户（有 Organization SCP 限制）中出现 AccessDenied。需要在 Organization 管理账户中修改 SCP |
 | 9 | S3 Vectors 可过滤元数据 2KB 限制 | 使用 Bedrock KB + S3 Vectors 时，自定义元数据限制为 **1KB**（不是独立 S3 Vectors 的 2KB，因为 Bedrock KB 内部元数据消耗了剩余的 1KB）。此外，Bedrock KB 自动添加的元数据键（`x-amz-bedrock-kb-chunk-id`、`x-amz-bedrock-kb-data-source-id`、`x-amz-bedrock-kb-source-file-modality`、`x-amz-bedrock-kb-document-page-number` 等）被视为可过滤，PDF 页码元数据可能超过 2KB 限制。即使在 `nonFilterableMetadataKeys`（最多 10 个键）中指定所有元数据键，当 Bedrock KB 自动添加的键较多时也可能不够。**缓解措施**：(1) 最小化元数据键（仅 `sids`，短值），(2) 使用不带元数据的 PDF 文件，(3) S3 存储桶备用路径在新账户中验证无问题（AOSS 配置无 2KB 限制） |
 
-#### FSx ONTAP S3 AP 路径验证状态
+#### FSx for ONTAP S3 AP 路径验证状态
 
 | 步骤 | 状态 | 备注 |
 |------|--------|-------|

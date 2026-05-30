@@ -174,7 +174,7 @@ Este sistema proporciona tres rutas de ingesta de datos. Dado que S3 Access Poin
 
 | # | Ruta | Método | Activación CDK | Caso de uso |
 |---|------|--------|----------------|-------------|
-| 1 | Principal | FSx ONTAP Volume → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Volúmenes estándar (S3 AP soportado) |
+| 1 | Principal | FSx for ONTAP Volume → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Volúmenes estándar (S3 AP soportado) |
 | 2 | Respaldo | Carga manual a bucket S3 → Bedrock KB | `upload-demo-data.sh` | Volúmenes FlexCache y otros casos no soportados por S3 AP |
 | 3 | Alternativa | Montaje CIFS → Servidor de Embedding → Escritura directa a AOSS | `-c enableEmbeddingServer=true` | Volúmenes FlexCache + casos que requieren control directo de AOSS |
 

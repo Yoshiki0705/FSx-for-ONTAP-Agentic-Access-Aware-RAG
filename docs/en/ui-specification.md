@@ -37,7 +37,7 @@ The Introduction Message displays three types of directory information.
 
 | Item | Icon | Data Source | Description |
 |------|------|------------|-------------|
-| FSx Accessible Directories | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | Directories accessible at the file level on FSx ONTAP |
+| FSx Accessible Directories | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | Directories accessible at the file level on FSx for ONTAP |
 | RAG Searchable Directories | 🔍 | SID matching in S3 `.metadata.json` | Directories of documents matching SID in KB search |
 | Embedding Target Directories | 📚 | All `.metadata.json` in S3 bucket | All directories indexed in KB |
 

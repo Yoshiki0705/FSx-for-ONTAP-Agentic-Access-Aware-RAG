@@ -254,7 +254,7 @@ volume modify -vserver svm1 -volume kb_data \
 | IOPS 使用率 | > 80% | 增加吞吐量容量 |
 | 網路頻寬使用率 | > 70% | 增加吞吐量容量 |
 
-### 自動擴展（FSx ONTAP Ops）
+### 自動擴展（FSx for ONTAP Ops）
 
 `automation/fsxn-ops/` 中包含的容量監控 Lambda 執行自動擴展：
 
@@ -295,4 +295,4 @@ aws fsx update-file-system \
 | [permission-consistency.md](permission-consistency.md) | 權限變更一致性模型 |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | S3 Vectors + SID 架構 |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3 種設定比較 |
-| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx ONTAP 維運自動化 |
+| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx for ONTAP 維運自動化 |

@@ -237,7 +237,7 @@ aws opensearchserverless list-collections --region ap-northeast-1
 |--------|-----|
 | GitHub Issues | 리포지토리 Issues 탭 |
 | AWS 문서 (Bedrock) | https://docs.aws.amazon.com/bedrock/ |
-| AWS 문서 (FSx ONTAP) | https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/ |
+| AWS 문서 (FSx for ONTAP) | https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/ |
 
 ---
 

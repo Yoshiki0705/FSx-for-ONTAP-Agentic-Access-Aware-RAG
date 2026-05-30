@@ -37,7 +37,7 @@ Le message d'introduction affiche trois types d'informations de répertoire.
 
 | Élément | Icône | Source de données | Description |
 |------|------|------------|-------------|
-| Répertoires accessibles FSx | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | Répertoires accessibles au niveau fichier sur FSx ONTAP |
+| Répertoires accessibles FSx | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | Répertoires accessibles au niveau fichier sur FSx for ONTAP |
 | Répertoires recherchables RAG | 🔍 | Correspondance SID dans `.metadata.json` S3 | Répertoires de documents correspondant au SID dans la recherche KB |
 | Répertoires cibles d'Embedding | 📚 | Tous les `.metadata.json` dans le bucket S3 | Tous les répertoires indexés dans la KB |
 

@@ -48,14 +48,14 @@ This document describes the integration architecture between [FSx for ONTAP S3 A
 Results processed and analyzed by S3AP Serverless Patterns are used as searchable documents in RAG.
 
 ```
-FSx ONTAP (Raw Data: DICOM images, Contract PDFs, IoT logs)
+FSx for ONTAP (Raw Data: DICOM images, Contract PDFs, IoT logs)
   ↓ S3 AP (read)
 S3AP Serverless Patterns
   ├─ UC5: DICOM → Metadata extraction & anonymization
   ├─ UC1: Contracts → Entity extraction & classification
   └─ UC3: IoT logs → Anomaly detection & report generation
   ↓ S3 AP (write-back) or S3 bucket
-FSx ONTAP (Processed data + .metadata.json)
+FSx for ONTAP (Processed data + .metadata.json)
   ↓ S3 AP (read)
 Permission-aware RAG (Bedrock KB)
   ↓ SID filtering
@@ -65,7 +65,7 @@ User: "Which products had quality inspection anomalies last month?"
 **Benefits**:
 - Raw data (images, binaries) is converted to AI-readable text before RAG ingestion
 - Permission metadata is attached to processing results, maintaining department-level access control
-- Both systems share the same FSx ONTAP volume (no data copying required)
+- Both systems share the same FSx for ONTAP volume (no data copying required)
 
 ### Pattern B: Triggering Processing Pipelines from RAG
 
@@ -120,7 +120,7 @@ AWS Account
 ├── S3AP Serverless Patterns (CloudFormation)
 │   └── UC1 / UC3 / UC5 (selective deployment)
 └── Permission-aware RAG (CDK)
-    └── Bedrock KB → S3 AP → FSx ONTAP
+    └── Bedrock KB → S3 AP → FSx for ONTAP
 ```
 
 ### Enterprise Configuration (Multi-Account)

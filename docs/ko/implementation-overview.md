@@ -226,7 +226,7 @@ AOSS 구성 (`vectorStoreType=opensearch-serverless`):
 
 ---
 
-## 5. Embedding 서버 — FSx ONTAP CIFS 마운트 + 벡터 DB 쓰기
+## 5. Embedding 서버 — FSx for ONTAP CIFS 마운트 + 벡터 DB 쓰기
 
 ### 구현 상세
 
@@ -240,7 +240,7 @@ Amazon FSx for NetApp ONTAP 볼륨이 CIFS/SMB로 마운트된 EC2 인스턴스�
 | 옵션 B (선택 사항) | Embedding 서버 (CIFS 마운트) → 벡터 스토어 직접 쓰기 | `-c enableEmbeddingServer=true` | ✅ (AOSS 구성만 해당) |
 | 옵션 C (선택 사항) | S3 Access Point → Bedrock KB | 배포 후 수동 설정 | ✅ SnapMirror 지원, FlexCache 곧 지원 예정 |
 
-> **S3 Access Point에 대해**: StorageStack은 FSx ONTAP 볼륨에 S3 Access Point를 자동으로 생성합니다. 볼륨의 보안 스타일(NTFS/UNIX)과 AD 참가 상태에 따라 WINDOWS 또는 UNIX 사용자 유형의 S3 AP가 생성됩니다. CDK 컨텍스트 파라미터 `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`으로 명시적으로 제어할 수 있습니다.
+> **S3 Access Point에 대해**: StorageStack은 FSx for ONTAP 볼륨에 S3 Access Point를 자동으로 생성합니다. 볼륨의 보안 스타일(NTFS/UNIX)과 AD 참가 상태에 따라 WINDOWS 또는 UNIX 사용자 유형의 S3 AP가 생성됩니다. CDK 컨텍스트 파라미터 `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`으로 명시적으로 제어할 수 있습니다.
 
 #### S3 Access Point 사용자 유형 설계
 
@@ -257,7 +257,7 @@ SID 필터링은 모든 패턴에서 동일한 로직(`.metadata.json` 메타데
 
 ```
 ┌──────────────────┐     CIFS/SMB      ┌──────────────────┐
-│ FSx ONTAP        │◀──────────────────│ Embedding EC2    │
+│ FSx for ONTAP        │◀──────────────────│ Embedding EC2    │
 │ (SVM + Volume)   │    Mount          │ (m5.large)       │
 │ /data            │                   │                  │
 └──────────────────┘                   │ Docker Container │
@@ -861,7 +861,7 @@ Next.js API Routes
 
 ---
 
-## 19. FSx ONTAP 운영 자동화 — Lambda + Step Functions
+## 19. FSx for ONTAP 운영 자동화 — Lambda + Step Functions
 
 ### 개요
 
@@ -898,7 +898,7 @@ VPC 내 Lambda는 다음 Interface VPC Endpoints가 필요합니다:
 | capacity_monitor (실제 크기 조정) | ✅ 통과 (4 볼륨 × 20% 확장) |
 | SnapMirror E2E (break/resync) | ✅ 통과 (11/11 테스트) |
 | EventBridge Scheduler | ✅ 통과 (5분 자동 실행 확인) |
-| data_preprocessor (FSx ONTAP S3 AP) | ✅ 통과 (scan, collect_metadata, generate_tasks) |
+| data_preprocessor (FSx for ONTAP S3 AP) | ✅ 통과 (scan, collect_metadata, generate_tasks) |
 
 ### 용량 모니터링 가드레일
 
@@ -959,7 +959,7 @@ TLS 인증서 검증이 기본적으로 활성화됩니다. 프로덕션: `ONTAP
 | 1 | WafStack | us-east-1 | WAF WebACL, IP Set |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups, VPC Endpoints (선택 사항) |
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + Cognito Domain (AD Federation 활성화 시), AD Sync Lambda (선택 사항) |
-| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, AD, KMS 암호화 (선택 사항), CloudTrail (선택 사항) |
+| 4 | StorageStack | ap-northeast-1 | FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, AD, KMS 암호화 (선택 사항), CloudTrail (선택 사항) |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless (`vectorStoreType`으로 선택), Bedrock Guardrails (선택 사항) |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker), CloudFront, Permission Filter Lambda (선택 사항), MonitoringConstruct (선택 사항) |
 | 7 | EmbeddingStack (선택 사항) | ap-northeast-1 | EC2, ECR, ONTAP ACL 자동 취득 (선택 사항) |

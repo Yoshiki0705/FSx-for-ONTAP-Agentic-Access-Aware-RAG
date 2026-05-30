@@ -35,7 +35,7 @@ Tous les stacks CDK sont consolidés sous `lib/stacks/demo/`. Le seul point d'en
 
 | Chemin | Méthode | Activation | Cas d'utilisation |
 |--------|---------|------------|-------------------|
-| Principal | FSx ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Volumes standard |
+| Principal | FSx for ONTAP → S3 Access Point → Bedrock KB | `post-deploy-setup.sh` | Volumes standard |
 | Repli | Upload direct dans le bucket S3 → Bedrock KB | `upload-demo-data.sh` | Lorsque S3 AP n'est pas disponible |
 | Alternatif | Montage CIFS → Serveur d'Embedding → Écriture directe dans le vector store | `enableEmbeddingServer=true` | Volumes FlexCache (configuration AOSS uniquement) |
 
@@ -43,7 +43,7 @@ Tous les stacks CDK sont consolidés sous `lib/stacks/demo/`. Le seul point d'en
 
 ## Bedrock KB Ingestion Job — Quotas et considérations de conception
 
-Bedrock KB Ingestion Job est un service géré qui prend en charge la récupération de documents, le découpage, la vectorisation et le stockage. Il lit les données directement depuis FSx ONTAP via S3 Access Point et ne traite que les fichiers modifiés grâce à la synchronisation incrémentielle. Aucun pipeline d'Embedding personnalisé (tel qu'AWS Batch) n'est nécessaire.
+Bedrock KB Ingestion Job est un service géré qui prend en charge la récupération de documents, le découpage, la vectorisation et le stockage. Il lit les données directement depuis FSx for ONTAP via S3 Access Point et ne traite que les fichiers modifiés grâce à la synchronisation incrémentielle. Aucun pipeline d'Embedding personnalisé (tel qu'AWS Batch) n'est nécessaire.
 
 ### Quotas de service (en date de mars 2026, tous non ajustables)
 
@@ -83,12 +83,12 @@ aws scheduler create-schedule \
   --flexible-time-window '{"Mode":"OFF"}'
 ```
 
-Alternativement, vous pouvez détecter les modifications de fichiers sur FSx ONTAP via les notifications d'événements S3 et déclencher un Ingestion Job. Cependant, soyez conscient de la limite de débit de l'API StartIngestionJob (une fois toutes les 10 secondes).
+Alternativement, vous pouvez détecter les modifications de fichiers sur FSx for ONTAP via les notifications d'événements S3 et déclencher un Ingestion Job. Cependant, soyez conscient de la limite de débit de l'API StartIngestionJob (une fois toutes les 10 secondes).
 
 ### Recommandations de conception
 
 1. **Fréquence de synchronisation** : La synchronisation en temps réel n'est pas possible. L'intervalle minimum est de 10 secondes ; en pratique, 15 minutes à 1 heure est recommandé
-2. **Données à grande échelle** : Les sources de données dépassant 100 Go doivent être réparties sur plusieurs volumes FSx ONTAP (= plusieurs S3 AP = plusieurs sources de données)
+2. **Données à grande échelle** : Les sources de données dépassant 100 Go doivent être réparties sur plusieurs volumes FSx for ONTAP (= plusieurs S3 AP = plusieurs sources de données)
 3. **Traitement parallèle** : La synchronisation parallèle vers la même KB n'est pas possible. Synchronisez les sources de données multiples séquentiellement
 4. **Gestion des erreurs** : Implémentez une logique de réessai pour les échecs de jobs (surveillez le statut avec `GetIngestionJob`)
 5. **Pas besoin de pipeline d'Embedding personnalisé** : Comme Bedrock KB gère le découpage, la vectorisation et le stockage, les pipelines personnalisés tels qu'AWS Batch sont inutiles
@@ -102,14 +102,14 @@ Alternativement, vous pouvez détecter les modifications de fichiers sur FSx ONT
 | 1 | WafStack | Requis | WAF pour CloudFront (us-east-1) |
 | 2 | NetworkingStack | Requis | VPC, Sous-réseaux, SG |
 | 3 | SecurityStack | Requis | Cognito User Pool |
-| 4 | StorageStack | Requis | FSx ONTAP + SVM + Volume (ou référence existante), S3, DynamoDB×2 |
+| 4 | StorageStack | Requis | FSx for ONTAP + SVM + Volume (ou référence existante), S3, DynamoDB×2 |
 | 5 | AIStack | Requis | Bedrock KB, S3 Vectors ou OpenSearch Serverless, Agent (optionnel) |
 | 6 | WebAppStack | Requis | Lambda Web Adapter + CloudFront |
 | 7 | EmbeddingStack | Optionnel | Montage CIFS FlexCache + serveur d'Embedding |
 
 ### Mode de référence FSx for ONTAP existant
 
-StorageStack peut référencer des ressources FSx ONTAP existantes en utilisant les paramètres `existingFileSystemId`/`existingSvmId`/`existingVolumeId`. Dans ce cas :
+StorageStack peut référencer des ressources FSx for ONTAP existantes en utilisant les paramètres `existingFileSystemId`/`existingSvmId`/`existingVolumeId`. Dans ce cas :
 - La création de nouveaux FSx/SVM/Volume est ignorée (réduit le temps de déploiement de 30-40 minutes)
 - La création de Managed AD est également ignorée (utilise la configuration AD de l'environnement existant)
 - Les buckets S3, les tables DynamoDB et les ressources personnalisées S3 AP sont créés normalement

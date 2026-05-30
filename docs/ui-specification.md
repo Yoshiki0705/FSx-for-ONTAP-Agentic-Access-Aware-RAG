@@ -37,7 +37,7 @@ Introduction Messageには3種類のディレクトリ情報が表示されま�
 
 | 項目 | アイコン | データソース | 説明 |
 |------|---------|------------|------|
-| FSxアクセス可能ディレクトリ | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | FSx ONTAP上でファイルレベルでアクセス可能なディレクトリ |
+| FSxアクセス可能ディレクトリ | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | FSx for ONTAP上でファイルレベルでアクセス可能なディレクトリ |
 | RAG検索可能ディレクトリ | 🔍 | S3 `.metadata.json` のSID照合 | KB検索でSIDマッチするドキュメントのディレクトリ |
 | Embedding対象ディレクトリ | 📚 | S3バケット内の全`.metadata.json` | KBにインデックスされている全ディレクトリ |
 

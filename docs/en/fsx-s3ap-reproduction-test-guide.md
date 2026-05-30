@@ -1,8 +1,8 @@
-# FSx ONTAP S3 Access Point Reproduction Test Guide
+# FSx for ONTAP S3 Access Point Reproduction Test Guide
 
 **🌐 Language:** [日本語](../fsx-s3ap-reproduction-test-guide.md) | **English** | [한국어](../ko/fsx-s3ap-reproduction-test-guide.md) | [简体中文](../zh-CN/fsx-s3ap-reproduction-test-guide.md) | [繁體中文](../zh-TW/fsx-s3ap-reproduction-test-guide.md) | [Français](../fr/fsx-s3ap-reproduction-test-guide.md) | [Deutsch](../de/fsx-s3ap-reproduction-test-guide.md) | [Español](../es/fsx-s3ap-reproduction-test-guide.md)
 
-**Purpose**: Isolate whether the FSx ONTAP S3 AP AccessDenied issue is specific to Organization SCP or an inherent limitation of FSx ONTAP S3 AP
+**Purpose**: Isolate whether the FSx for ONTAP S3 AP AccessDenied issue is specific to Organization SCP or an inherent limitation of FSx for ONTAP S3 AP
 
 ---
 
@@ -14,7 +14,7 @@
 
 ## Reproduction Steps
 
-### Step 1: FSx ONTAP + Managed AD Deployment
+### Step 1: FSx for ONTAP + Managed AD Deployment
 
 ```bash
 # CDK bootstrap (use --method=direct to bypass CloudFormation Hook if present)
@@ -65,7 +65,7 @@ watch -n 10 "aws fsx describe-storage-virtual-machines --storage-virtual-machine
 
 > **Note**: Without OU specification, the status becomes MISCONFIGURED. AD ports (636, 135, 464, 3268-3269, 1024-65535) are required in the FSx SG (already reflected in CDK code).
 
-### Step 3: FSx ONTAP Admin Password Setup + CIFS Share Creation
+### Step 3: FSx for ONTAP Admin Password Setup + CIFS Share Creation
 
 ```bash
 # Set FSx admin password
@@ -181,7 +181,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 - All tests in Step 7 return AccessDenied
 - Succeeds in a different account (without SCP restrictions)
 
-### If the Issue Is an Inherent FSx ONTAP S3 AP Limitation
+### If the Issue Is an Inherent FSx for ONTAP S3 AP Limitation
 - Same AccessDenied occurs in a different account as well
 
 ## Verified Settings (Confirmed Not to Be the Cause)
@@ -226,13 +226,13 @@ npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" \
 
 ### Conclusion
 
-**The FSx ONTAP S3 AP AccessDenied issue is caused by Organization SCP.**
+**The FSx for ONTAP S3 AP AccessDenied issue is caused by Organization SCP.**
 
 Confirmed that the same S3 AP access pattern works correctly in the old account (not part of an Organization). AccessDenied only occurs in the new account (part of an Organization with SCP restrictions).
 
 ### Remediation
 
 Perform one of the following in the Organization management account:
-1. Add a statement to the SCP that allows access to FSx ONTAP S3 AP
+1. Add a statement to the SCP that allows access to FSx for ONTAP S3 AP
 2. Exclude the target account from SCP restrictions
 3. Identify the S3 actions/resource patterns being blocked by the SCP and exclude the FSx S3 AP ARN pattern (`arn:aws:s3:<region>:<account>:accesspoint/*`)

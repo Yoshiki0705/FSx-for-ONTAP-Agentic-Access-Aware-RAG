@@ -19,7 +19,7 @@
 
 > **S3 Vectors (default): this document is for reference only.** Bedrock KB Ingestion Job handles all processing automatically.
 
-This server reads documents on FSx ONTAP via CIFS/SMB mount, vectorizes them with Amazon Bedrock Titan Embed Text v2, and indexes them into OpenSearch Serverless (AOSS).
+This server reads documents on FSx for ONTAP via CIFS/SMB mount, vectorizes them with Amazon Bedrock Titan Embed Text v2, and indexes them into OpenSearch Serverless (AOSS).
 
 > **Note**: The Embedding server is only available when configured with AOSS (`vectorStoreType=opensearch-serverless`). With the S3 Vectors configuration (default), Bedrock KB automatically manages Embedding, so the Embedding server is not needed.
 
@@ -30,7 +30,7 @@ It is used as an alternative path (Option B) when the Bedrock KB S3 data source 
 ## Architecture
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   │ CIFS/SMB Mount
   ▼
 EC2 (m5.large) /tmp/data
@@ -214,7 +214,7 @@ The demo stack does not use the above automation and sets up SID data through th
 |--------|-------------|
 | AD Sync Lambda | Automatically retrieves AD user SIDs via SSM and stores them in DynamoDB (implemented) |
 | FSx Permission Service | Retrieves NTFS ACL via Get-Acl through SSM (implemented) |
-| ONTAP REST API | Directly retrieves ACL via FSx ONTAP management endpoint (implemented: `ENV_AUTO_METADATA=true`) |
+| ONTAP REST API | Directly retrieves ACL via FSx for ONTAP management endpoint (implemented: `ENV_AUTO_METADATA=true`) |
 | S3 Access Point | NTFS ACL is automatically applied when accessing files via S3 AP (CDK supported: `useS3AccessPoint=true`) |
 
 #### When Using S3 Access Point (Option C)

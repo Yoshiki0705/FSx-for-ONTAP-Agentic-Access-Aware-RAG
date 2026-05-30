@@ -23,7 +23,7 @@ aws cloudformation list-stacks \
 | WafStack | us-east-1 | WebACL（6 条规则）、IP Set |
 | NetworkingStack | ap-northeast-1 | VPC、子网、安全组 |
 | SecurityStack | ap-northeast-1 | Cognito User Pool、Client |
-| StorageStack | ap-northeast-1 | FSx ONTAP、S3、DynamoDB×2、AWS Managed AD |
+| StorageStack | ap-northeast-1 | FSx for ONTAP、S3、DynamoDB×2、AWS Managed AD |
 | AIStack | ap-northeast-1 | Bedrock KB、S3 Vectors / OpenSearch Serverless（通过 `vectorStoreType` 选择）、Bedrock Agent（可选） |
 | WebAppStack | ap-northeast-1 | Lambda（Web Adapter）、CloudFront |
 

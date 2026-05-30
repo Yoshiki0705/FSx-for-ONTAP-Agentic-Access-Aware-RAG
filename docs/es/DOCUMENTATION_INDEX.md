@@ -23,7 +23,7 @@
 |-----------|-------------|
 | [auth-mode-setup-guide.md](../../demo-data/guides/auth-mode-setup-guide.md) | Guía de configuración del entorno de demostración por modo de autenticación (5 modos, con archivos de configuración de ejemplo) |
 | [demo-scenario.md](../../demo-data/guides/demo-scenario.md) | Escenarios de verificación (diferencias de permisos admin vs. usuario estándar, inicio de sesión AD SSO, inicio de sesión OIDC/LDAP) |
-| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | Integración FSx ONTAP + AD, recurso compartido CIFS, configuración NTFS ACL, configuración Name-Mapping (procedimientos verificados) |
+| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | Integración FSx for ONTAP + AD, recurso compartido CIFS, configuración NTFS ACL, configuración Name-Mapping (procedimientos verificados) |
 | [demo-environment-guide.md](demo-environment-guide.md) | IDs de recursos del entorno de verificación, información de acceso, procedimientos del servidor Embedding |
 
 ## Guía de diseño y operaciones empresariales
@@ -42,12 +42,12 @@
 | [poc-workshop-guide.md](poc-workshop-guide.md) | Guía de taller PoC (90 minutos: despliegue → prueba → evaluación → limpieza) |
 | [tests/permission-matrix/](../../tests/permission-matrix/) | Pruebas de matriz de permisos (31 escenarios de casos límite ACL: Fail-Closed, anidamiento de grupos, permisos heredados, revocación de emergencia) |
 
-## Automatización de Operaciones FSx ONTAP
+## Automatización de Operaciones FSx for ONTAP
 
 | Documento | Descripción |
 |-----------|-------------|
 | [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | Descripción general de la suite de automatización (estructura de directorios, casos de uso) |
-| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | Por qué esta arquitectura simplifica las operaciones de FSx ONTAP (decisiones de diseño, estimaciones de costos, diseño de seguridad) |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | Por qué esta arquitectura simplifica las operaciones de FSx for ONTAP (decisiones de diseño, estimaciones de costos, diseño de seguridad) |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | Informe de verificación de integración AWS (2026-05-01, todas las fases APROBADAS) |
 | [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | Plantilla CloudFormation integrada (incluye puntos de enlace VPC) |
 
@@ -99,7 +99,7 @@
 ### Fase 2: Verificación y evaluación
 
 6. **demo-recording-guide.md** — Guía de grabación de video de demostración
-7. **ontap-setup-guide.md** — Integración FSx ONTAP AD, configuración de recurso compartido CIFS
+7. **ontap-setup-guide.md** — Integración FSx for ONTAP AD, configuración de recurso compartido CIFS
 8. **demo-environment-guide.md** — Configuración del entorno de verificación
 9. **demo-scenario.md** — Ejecutar escenarios de verificación
 10. **evaluation.md** — Plantilla de evaluación PoC

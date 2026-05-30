@@ -432,4 +432,4 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 - [README.md — Federación AD SAML](../../README.es.md#federación-ad-saml-opción) — Instrucciones de despliegue CDK
 - [docs/implementation-overview.md — Sección 3: Autenticación IAM](../es/implementation-overview.md#3-autenticación-iam--lambda-function-url-iam-auth--cloudfront-oac) — Diseño de autenticación a nivel de infraestructura
 - [docs/SID-Filtering-Architecture.md](../es/SID-Filtering-Architecture.md) — Diseño detallado del filtrado SID
-- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) — Configuración de integración AD de FSx ONTAP
+- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) — Configuración de integración AD de FSx for ONTAP

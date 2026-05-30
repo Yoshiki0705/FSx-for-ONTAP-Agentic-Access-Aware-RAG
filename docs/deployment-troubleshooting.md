@@ -17,7 +17,7 @@ Reason: ruleLocation contains invalid extension type"
 
 ### 原因
 
-別プロジェクト（FSx ONTAP S3 Access Point 検証等）で登録された CloudFormation Guard Hook `FSxNS3AP::Guard::Hook` がアカウント内でアクティブになっている。このフックは全 CloudFormation リソース作成に対して評価が実行されるが、ルール定義に問題があるため全リソースをブロックする。
+別プロジェクト（FSx for ONTAP S3 Access Point 検証等）で登録された CloudFormation Guard Hook `FSxNS3AP::Guard::Hook` がアカウント内でアクティブになっている。このフックは全 CloudFormation リソース作成に対して評価が実行されるが、ルール定義に問題があるため全リソースをブロックする。
 
 ### 解決方法
 

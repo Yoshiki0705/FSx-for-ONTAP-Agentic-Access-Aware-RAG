@@ -1,7 +1,7 @@
 # Transfer Family Networking Prerequisites
 
 **作成日**: 2026-05  
-**対象**: Transfer Family FSx ONTAP Ingestion (`enableTransferFamily=true`)
+**対象**: Transfer Family FSx for ONTAP Ingestion (`enableTransferFamily=true`)
 
 ---
 
@@ -70,7 +70,7 @@ VPCエンドポイントタイプを選択した場合の要件:
            │
            ▼
 ┌─────────────────────┐
-│ FSx ONTAP           │
+│ FSx for ONTAP           │
 │ S3 Access Point     │
 └─────────────────────┘
 ```
@@ -99,7 +99,7 @@ VPCエンドポイントタイプを選択した場合の要件:
            │
            ▼
 ┌─────────────────────┐
-│ FSx ONTAP           │
+│ FSx for ONTAP           │
 │ S3 Access Point     │
 └─────────────────────┘
 ```
@@ -121,7 +121,7 @@ VPCエンドポイントタイプを選択した場合の要件:
 
 ## S3 Access Point 経路
 
-Transfer Family → FSx ONTAP S3 Access Point 間の通信:
+Transfer Family → FSx for ONTAP S3 Access Point 間の通信:
 - AWS内部ネットワーク経由（インターネットを経由しない）
 - VPC Endpoint for S3 は不要（Transfer Family が直接 S3 AP にアクセス）
 - IAM ロールベースの認証（SFTP ユーザーロール）
@@ -148,9 +148,9 @@ Transfer Family → FSx ONTAP S3 Access Point 間の通信:
 │  ┌──────────────────────────────────────────────────────────────────┐    │
 │  │ S3 Access Point (v4testkbsync-...-ext-s3alias)                    │    │
 │  │ • S3 互換 API インターフェース                                      │    │
-│  │ • データは FSx ONTAP 上に存在（S3 にコピーされない）                 │    │
+│  │ • データは FSx for ONTAP 上に存在（S3 にコピーされない）                 │    │
 │  └──────────────────────────────┬───────────────────────────────────┘    │
-│                                  │ FSx ONTAP Data Plane                   │
+│                                  │ FSx for ONTAP Data Plane                   │
 │                                  ▼                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐    │
 │  │ FSx for ONTAP (VPC: vpc-xxx)                                      │    │
@@ -185,7 +185,7 @@ Transfer Family → FSx ONTAP S3 Access Point 間の通信:
 
 | 要件 | 設定 |
 |------|------|
-| Lambda VPC 配置 | FSx ONTAP と同じ VPC のプライベートサブネット |
+| Lambda VPC 配置 | FSx for ONTAP と同じ VPC のプライベートサブネット |
 | S3 Gateway VPC Endpoint | Lambda サブネットのルートテーブルに関連付け |
 | Lambda Security Group | アウトバウンド全許可（S3 AP + DynamoDB + Bedrock） |
 | FSx Security Group | Lambda SG からの HTTPS (443) インバウンド許可 |
@@ -199,7 +199,7 @@ Transfer Family → FSx ONTAP S3 Access Point 間の通信:
 - [ ] PUBLIC エンドポイントで十分か確認
 - [ ] パートナーのSFTPクライアントが `{server-id}.server.transfer.{region}.amazonaws.com` に接続可能か確認
 - [ ] SSH鍵ペアの準備
-- [ ] Lambda が FSx ONTAP と同じ VPC に配置されているか確認
+- [ ] Lambda が FSx for ONTAP と同じ VPC に配置されているか確認
 - [ ] S3 Gateway VPC Endpoint が Lambda サブネットのルートテーブルに含まれているか確認
 
 ### 本番環境

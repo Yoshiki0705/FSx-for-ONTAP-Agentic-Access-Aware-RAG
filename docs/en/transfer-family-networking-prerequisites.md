@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../transfer-family-networking-prerequisites.md) | **English**
 
 **Created**: 2026-05  
-**Scope**: Transfer Family FSx ONTAP Ingestion (`enableTransferFamily=true`)
+**Scope**: Transfer Family FSx for ONTAP Ingestion (`enableTransferFamily=true`)
 
 ---
 
@@ -72,7 +72,7 @@ External Partner
            │
            ▼
 ┌─────────────────────┐
-│ FSx ONTAP           │
+│ FSx for ONTAP           │
 │ S3 Access Point     │
 └─────────────────────┘
 ```
@@ -101,7 +101,7 @@ External Partner
            │
            ▼
 ┌─────────────────────┐
-│ FSx ONTAP           │
+│ FSx for ONTAP           │
 │ S3 Access Point     │
 └─────────────────────┘
 ```
@@ -123,7 +123,7 @@ External Partner
 
 ## S3 Access Point Path
 
-Communication between Transfer Family and FSx ONTAP S3 Access Point:
+Communication between Transfer Family and FSx for ONTAP S3 Access Point:
 - Routed via AWS internal network (does not traverse the internet)
 - VPC Endpoint for S3 is not required (Transfer Family accesses S3 AP directly)
 - IAM role-based authentication (SFTP user role)
@@ -150,9 +150,9 @@ Communication between Transfer Family and FSx ONTAP S3 Access Point:
 │  ┌──────────────────────────────────────────────────────────────────┐    │
 │  │ S3 Access Point (v4testkbsync-...-ext-s3alias)                    │    │
 │  │ • S3-compatible API interface                                      │    │
-│  │ • Data resides on FSx ONTAP (not copied to S3)                    │    │
+│  │ • Data resides on FSx for ONTAP (not copied to S3)                    │    │
 │  └──────────────────────────────┬───────────────────────────────────┘    │
-│                                  │ FSx ONTAP Data Plane                   │
+│                                  │ FSx for ONTAP Data Plane                   │
 │                                  ▼                                        │
 │  ┌──────────────────────────────────────────────────────────────────┐    │
 │  │ FSx for ONTAP (VPC: vpc-xxx)                                      │    │
@@ -187,7 +187,7 @@ Communication between Transfer Family and FSx ONTAP S3 Access Point:
 
 | Requirement | Configuration |
 |-------------|--------------|
-| Lambda VPC placement | Private subnet in the same VPC as FSx ONTAP |
+| Lambda VPC placement | Private subnet in the same VPC as FSx for ONTAP |
 | S3 Gateway VPC Endpoint | Associated with the Lambda subnet's route table |
 | Lambda Security Group | All outbound allowed (S3 AP + DynamoDB + Bedrock) |
 | FSx Security Group | Allow HTTPS (443) inbound from Lambda SG |
@@ -201,7 +201,7 @@ Communication between Transfer Family and FSx ONTAP S3 Access Point:
 - [ ] Confirm PUBLIC endpoint is sufficient
 - [ ] Confirm partner's SFTP client can connect to `{server-id}.server.transfer.{region}.amazonaws.com`
 - [ ] Prepare SSH key pair
-- [ ] Confirm Lambda is deployed in the same VPC as FSx ONTAP
+- [ ] Confirm Lambda is deployed in the same VPC as FSx for ONTAP
 - [ ] Confirm S3 Gateway VPC Endpoint is included in the Lambda subnet's route table
 
 ### Production Environment

@@ -24,7 +24,7 @@ Este documento aclara cuándo y cómo los cambios en las ACL de archivos en FSx 
 │                       metadatos              de KB               de caché    │
 │                                                                              │
 │  ┌──────────┐      ┌──────────────┐      ┌──────────────┐      ┌────────┐  │
-│  │ FSx ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
+│  │ FSx for ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
 │  │ NTFS ACL │─────▶│ .json update │─────▶│ StartIngest  │─────▶│perm-   │  │
 │  │ Change   │      │              │      │ ionJob       │      │cache   │  │
 │  └──────────┘      └──────────────┘      └──────────────┘      │TTL     │  │

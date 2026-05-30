@@ -19,7 +19,7 @@
 
 > **S3 Vectors (default): this document is for reference only.** Bedrock KB Ingestion Job handles all processing automatically.
 
-이 서버는 CIFS/SMB 마운트를 통해 FSx ONTAP의 문서를 읽고, Amazon Bedrock Titan Embed Text v2로 벡터화한 후, OpenSearch Serverless (AOSS)에 인덱싱합니다.
+이 서버는 CIFS/SMB 마운트를 통해 FSx for ONTAP의 문서를 읽고, Amazon Bedrock Titan Embed Text v2로 벡터화한 후, OpenSearch Serverless (AOSS)에 인덱싱합니다.
 
 > **참고**: Embedding 서버는 AOSS 구성(`vectorStoreType=opensearch-serverless`)에서만 사용 가능합니다. S3 Vectors 구성(기본값)에서는 Bedrock KB가 자동으로 Embedding을 관리하므로 Embedding 서버가 필요하지 않습니다.
 
@@ -30,7 +30,7 @@ Bedrock KB S3 데이터 소스(옵션 A) 또는 S3 Access Point(옵션 C)를 사
 ## 아키텍처
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   │ CIFS/SMB Mount
   ▼
 EC2 (m5.large) /tmp/data
@@ -214,7 +214,7 @@ AOSS 인덱스는 `dynamic: false`로 생성됩니다. 이는 다음을 의미�
 |------|------|
 | AD Sync Lambda | SSM을 통해 AD 사용자 SID를 자동 취득하여 DynamoDB에 저장 (구현 완료) |
 | FSx Permission Service | SSM을 통해 Get-Acl로 NTFS ACL 취득 (구현 완료) |
-| ONTAP REST API | FSx ONTAP 관리 엔드포인트를 통해 직접 ACL 취득 (구현 완료: `ENV_AUTO_METADATA=true`) |
+| ONTAP REST API | FSx for ONTAP 관리 엔드포인트를 통해 직접 ACL 취득 (구현 완료: `ENV_AUTO_METADATA=true`) |
 | S3 Access Point | S3 AP를 통한 파일 접근 시 NTFS ACL이 자동 적용 (CDK 지원: `useS3AccessPoint=true`) |
 
 #### S3 Access Point 사용 시 (옵션 C)

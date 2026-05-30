@@ -10,7 +10,7 @@
 
 ## Überblick
 
-Dieser Server liest Dokumente auf FSx ONTAP über CIFS/SMB-Mount, vektorisiert sie mit Amazon Bedrock Titan Embed Text v2 und indexiert sie in OpenSearch Serverless (AOSS).
+Dieser Server liest Dokumente auf FSx for ONTAP über CIFS/SMB-Mount, vektorisiert sie mit Amazon Bedrock Titan Embed Text v2 und indexiert sie in OpenSearch Serverless (AOSS).
 
 ### Vector Store & Embedding Server
 
@@ -28,7 +28,7 @@ Er wird als alternativer Pfad (Option B) verwendet, wenn die Bedrock KB S3-Daten
 ## Architektur
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   │ CIFS/SMB Mount
   ▼
 EC2 (m5.large) /tmp/data
@@ -212,7 +212,7 @@ Der Demo-Stack verwendet die oben genannte Automatisierung nicht und richtet SID
 |---------|-------------|
 | AD Sync Lambda | Ruft automatisch AD-Benutzer-SIDs über SSM ab und speichert sie in DynamoDB (implementiert) |
 | FSx Permission Service | Ruft NTFS ACL über Get-Acl durch SSM ab (implementiert) |
-| ONTAP REST API | Ruft ACL direkt über den FSx ONTAP-Management-Endpunkt ab (implementiert: `ENV_AUTO_METADATA=true`) |
+| ONTAP REST API | Ruft ACL direkt über den FSx for ONTAP-Management-Endpunkt ab (implementiert: `ENV_AUTO_METADATA=true`) |
 | S3 Access Point | NTFS ACL wird automatisch angewendet, wenn auf Dateien über S3 AP zugegriffen wird (CDK-unterstützt: `useS3AccessPoint=true`) |
 
 #### Bei Verwendung von S3 Access Point (Option C)

@@ -14,7 +14,7 @@ This guide covers how external partners can upload documents via SFTP using AWS 
 ### Architecture
 
 ```
-Partner (SFTP) → Transfer Family → FSx ONTAP S3 AP → Metadata Generator → Bedrock KB
+Partner (SFTP) → Transfer Family → FSx for ONTAP S3 AP → Metadata Generator → Bedrock KB
 ```
 
 Partners only need an SFTP client. No web UI or AWS console access is required.
@@ -26,7 +26,7 @@ Partners only need an SFTP client. No web UI or AWS console access is required.
 ### System Administrator
 
 - [x] CDK deployed with `enableTransferFamily=true`
-- [x] S3 Access Point attached to FSx ONTAP volume
+- [x] S3 Access Point attached to FSx for ONTAP volume
 - [x] Partner permission mapping registered in DynamoDB
 
 ### Partner

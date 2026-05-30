@@ -28,7 +28,7 @@ Este documento es un modelo de amenazas que organiza las principales amenazas, v
 │  Atacantes: Amenazas internas, errores de configuración, cadena de      │
 │             suministro                                                   │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ Límite de confianza 4: FSx ONTAP → S3 Access Point → Bedrock KB         │
+│ Límite de confianza 4: FSx for ONTAP → S3 Access Point → Bedrock KB         │
 │  Atacantes: Escalada de privilegios, manipulación de metadatos          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```

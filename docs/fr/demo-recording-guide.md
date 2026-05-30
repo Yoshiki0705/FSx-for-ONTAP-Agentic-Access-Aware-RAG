@@ -14,7 +14,7 @@
 |---|--------|---------|
 | (1) | Construction d'une plateforme de chatbot IA basée sur RAG | Explication de l'architecture |
 | (2) | Déploiement de la plateforme de chatbot avec AWS CDK | Procédure de déploiement CDK |
-| (3) | Placement des données de stockage sur les volumes FSx ONTAP | Ingestion de données via S3 Access Point |
+| (3) | Placement des données de stockage sur les volumes FSx for ONTAP | Ingestion de données via S3 Access Point |
 | (4) | Reflet des informations de permissions d'accès | Configuration et vérification des informations SID dans `.metadata.json` |
 | (5) | Détermination de l'accès aux données basée sur les permissions par utilisateur | Vérification du filtrage SID |
 | (6) | Vérification initiale | Vérification de l'interface carte, du mode KB/Agent et de l'affichage des citations |
@@ -98,7 +98,7 @@ npm install
 2. **AWS WAF** — Limitation de débit, réputation IP, règles conformes OWASP, protection SQLi
 3. **Authentification IAM** — Lambda Function URL IAM Auth + CloudFront OAC (SigV4)
 4. **Vector Store** — S3 Vectors (par défaut, faible coût) / OpenSearch Serverless (haute performance, sélectionné via `vectorStoreType`)
-5. **FSx ONTAP + S3 Access Point** — Fournit les documents directement à Bedrock KB via S3 AP
+5. **FSx for ONTAP + S3 Access Point** — Fournit les documents directement à Bedrock KB via S3 AP
 6. **Titan Embed Text v2** — Modèle de vectorisation de texte Amazon Bedrock (1024 dimensions)
 7. **Filtrage SID** — Contrôle d'accès au niveau du document utilisant les informations SID des ACL NTFS
 8. **Basculement mode KB/Agent** — Mode KB (recherche de documents) et mode Agent (création dynamique d'Agent + raisonnement multi-étapes)
@@ -134,7 +134,7 @@ npx cdk deploy --all \
   --require-approval never
 ```
 
-> **Temps estimé** : Environ 30 à 40 minutes (20 à 30 minutes pour la création de FSx ONTAP)
+> **Temps estimé** : Environ 30 à 40 minutes (20 à 30 minutes pour la création de FSx for ONTAP)
 
 ### Étape 3 : Configuration post-déploiement (commande unique)
 
@@ -144,7 +144,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 Tâches exécutées automatiquement :
 1. Création du S3 Access Point + configuration de la politique
-2. Upload des données de démonstration vers FSx ONTAP (via S3 AP)
+2. Upload des données de démonstration vers FSx for ONTAP (via S3 AP)
 3. Ajout de la source de données Bedrock KB + synchronisation
 4. Enregistrement des données SID des utilisateurs dans DynamoDB
 5. Création des utilisateurs de démonstration dans Cognito
@@ -164,7 +164,7 @@ bash demo-data/scripts/verify-deployment.sh
 
 ---
 
-## Preuve (3) : Placement des données de stockage sur les volumes FSx ONTAP
+## Preuve (3) : Placement des données de stockage sur les volumes FSx for ONTAP
 
 **Contenu de l'enregistrement** : Vérification de l'ingestion de données via S3 Access Point
 

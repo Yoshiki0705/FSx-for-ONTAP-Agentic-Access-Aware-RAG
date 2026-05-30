@@ -49,8 +49,8 @@
 **本プロジェクトに関連するファンドカテゴリ**:
 | ファンド | 適用シナリオ | 備考 |
 |---------|------------|------|
-| **POC Fund** | 顧客環境での PoC 実施 | デプロイ費用（FSx ONTAP + Bedrock）をカバー |
-| **MAP** | オンプレ NAS → FSx ONTAP 移行 | 大規模移行案件向け |
+| **POC Fund** | 顧客環境での PoC 実施 | デプロイ費用（FSx for ONTAP + Bedrock）をカバー |
+| **MAP** | オンプレ NAS → FSx for ONTAP 移行 | 大規模移行案件向け |
 | **SCA (Strategic Collaboration Agreement)** | 年間コミット案件 | NetApp-AWS 共同 GTM |
 | **ISV Accelerate** | ISV ソリューション拡販 | NetApp ソリューションとしての提案時 |
 
@@ -65,13 +65,13 @@
 - 顧客は製造業で、設計図面・技術文書が部門間で散在している
 - 現在は共有フォルダを手動検索（平均15分/件）
 - 権限管理が検索システムと分離しており情報漏えいリスクがある
-- 本ソリューション: FSx ONTAP + Bedrock RAG で権限付き AI 検索を実現
+- 本ソリューション: FSx for ONTAP + Bedrock RAG で権限付き AI 検索を実現
 - 期待効果: 検索時間50%以上削減、権限違反0件
 ```
 
 ### 4. パイプライン分析
 
-FSx ONTAP RAG 関連の案件パイプラインを俯瞰的に分析できます。
+FSx for ONTAP RAG 関連の案件パイプラインを俯瞰的に分析できます。
 
 **プロンプト例**:
 ```

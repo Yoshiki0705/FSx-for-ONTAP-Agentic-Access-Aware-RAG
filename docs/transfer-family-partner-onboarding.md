@@ -14,7 +14,7 @@
 ### アーキテクチャ
 
 ```
-パートナー (SFTP) → Transfer Family → FSx ONTAP S3 AP → Metadata Generator → Bedrock KB
+パートナー (SFTP) → Transfer Family → FSx for ONTAP S3 AP → Metadata Generator → Bedrock KB
 ```
 
 パートナーはSFTPクライアントのみで操作可能です。Web UIやAWSコンソールへのアクセスは不要です。
@@ -26,7 +26,7 @@
 ### システム管理者側
 
 - [x] `enableTransferFamily=true` でCDKデプロイ済み
-- [x] S3 Access Point が FSx ONTAP ボリュームにアタッチ済み
+- [x] S3 Access Point が FSx for ONTAP ボリュームにアタッチ済み
 - [x] DynamoDB 権限マッピングテーブルにパートナーの権限設定を登録済み
 
 ### パートナー側

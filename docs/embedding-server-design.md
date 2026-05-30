@@ -11,7 +11,7 @@
 
 ## 概要
 
-FSx ONTAP上のドキュメントをCIFS/SMBマウント経由で読み取り、Amazon Bedrock Titan Embed Text v2でベクトル化し、OpenSearch Serverless（AOSS）にインデックスするサーバーです。
+FSx for ONTAP上のドキュメントをCIFS/SMBマウント経由で読み取り、Amazon Bedrock Titan Embed Text v2でベクトル化し、OpenSearch Serverless（AOSS）にインデックスするサーバーです。
 
 ### ベクトルストア構成とEmbeddingサーバーの関係
 
@@ -28,15 +28,15 @@ FSx ONTAP上のドキュメントをCIFS/SMBマウント経由で読み取り、
 
 ```
 Option A: S3 Vectors構成（デフォルト・推奨）
-  FSx ONTAP → S3 Access Point → Bedrock KB Ingestion Job → S3 Vectors
+  FSx for ONTAP → S3 Access Point → Bedrock KB Ingestion Job → S3 Vectors
   ※ Embeddingサーバー不要。post-deploy-setup.sh で自動セットアップ
 
 Option B: AOSS構成 + Embeddingサーバー（本ドキュメントの対象）
-  FSx ONTAP → CIFS/SMBマウント → EC2 Embeddingサーバー → AOSS直接書き込み
+  FSx for ONTAP → CIFS/SMBマウント → EC2 Embeddingサーバー → AOSS直接書き込み
   ※ S3 APが使えない場合（FlexCache Cacheボリューム等）の代替パス
 
 Option C: AOSS構成 + S3 Access Point
-  FSx ONTAP → S3 Access Point → Bedrock KB Ingestion Job → AOSS
+  FSx for ONTAP → S3 Access Point → Bedrock KB Ingestion Job → AOSS
   ※ Option Aと同じフローだがベクトルストアがAOSS
 ```
 
@@ -45,7 +45,7 @@ Option C: AOSS構成 + S3 Access Point
 ## アーキテクチャ
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   │ CIFS/SMB マウント
   ▼
 EC2 (m5.large) /tmp/data
@@ -229,7 +229,7 @@ AOSSインデックスは`dynamic: false`で作成されています。これに
 |------|------|
 | AD同期Lambda | SSM経由でADユーザーのSIDを自動取得しDynamoDBに保存（実装済み） |
 | FSx権限サービス | SSM経由でGet-AclでNTFS ACLを取得（実装済み） |
-| ONTAP REST API | FSx ONTAP管理エンドポイント経由でACLを直接取得（実装済み: `ENV_AUTO_METADATA=true`） |
+| ONTAP REST API | FSx for ONTAP管理エンドポイント経由でACLを直接取得（実装済み: `ENV_AUTO_METADATA=true`） |
 | S3 Access Point | S3 AP経由でファイルアクセス時にNTFS ACLが自動適用される（CDK対応済み: `useS3AccessPoint=true`） |
 
 #### S3 Access Point利用時（Option C）

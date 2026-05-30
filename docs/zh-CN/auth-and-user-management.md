@@ -434,4 +434,4 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 - [README.md — AD SAML 联合认证](../../README.zh-CN.md#ad-saml-联合认证选项) — CDK 部署步骤
 - [docs/implementation-overview.md — 第 3 节：IAM 认证](../zh-CN/implementation-overview.md#3-iam-认证--lambda-function-url-iam-auth--cloudfront-oac) — 基础设施层认证设计
 - [docs/SID-Filtering-Architecture.md](../zh-CN/SID-Filtering-Architecture.md) — SID 过滤详细设计
-- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) — FSx ONTAP AD 集成设置
+- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) — FSx for ONTAP AD 集成设置

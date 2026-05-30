@@ -44,7 +44,7 @@ Ce document organise les modèles d'architecture pour les entreprises partenaire
     │ Client A    │      │ Client B    │      │ Client C     │
     │ Compte      │      │ Compte      │      │ Compte       │
     │             │      │             │      │              │
-    │ ・FSx ONTAP │      │ ・FSx ONTAP │      │ ・FSx ONTAP  │
+    │ ・FSx for ONTAP │      │ ・FSx for ONTAP │      │ ・FSx for ONTAP  │
     │ ・Bedrock KB│      │ ・Bedrock KB│      │ ・Bedrock KB │
     │ ・Cognito   │      │ ・Cognito   │      │ ・Cognito    │
     │ ・DynamoDB  │      │ ・DynamoDB  │      │ ・DynamoDB   │

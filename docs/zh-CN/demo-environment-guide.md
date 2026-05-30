@@ -43,7 +43,7 @@ aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-WebApp \
 | `${prefix}-Waf` | us-east-1 | CloudFront 的 WAF WebACL |
 | `${prefix}-Networking` | ap-northeast-1 | VPC、子网、安全组 |
 | `${prefix}-Security` | ap-northeast-1 | Cognito User Pool、认证 |
-| `${prefix}-Storage` | ap-northeast-1 | FSx ONTAP + SVM + Volume + S3 + DynamoDB + AD |
+| `${prefix}-Storage` | ap-northeast-1 | FSx for ONTAP + SVM + Volume + S3 + DynamoDB + AD |
 | `${prefix}-AI` | ap-northeast-1 | Bedrock KB + S3 Vectors / OpenSearch Serverless（通过 `vectorStoreType` 选择） |
 | `${prefix}-WebApp` | ap-northeast-1 | Lambda Web Adapter（Next.js）+ CloudFront |
 | `${prefix}-Embedding`（可选） | ap-northeast-1 | Embedding EC2 + ECR（FlexCache CIFS 挂载） |
@@ -238,13 +238,13 @@ aws fsx describe-storage-virtual-machines \
 
 ### 概述
 
-EmbeddingStack（第 7 个 CDK 堆栈）是一个基于 EC2 的服务器，直接读取 FSx ONTAP 上 CIFS 共享的文档，使用 Amazon Bedrock Titan Embed Text v2 进行向量化，并索引到 OpenSearch Serverless（AOSS）。仅在 AOSS 配置（`vectorStoreType=opensearch-serverless`）下可用。
+EmbeddingStack（第 7 个 CDK 堆栈）是一个基于 EC2 的服务器，直接读取 FSx for ONTAP 上 CIFS 共享的文档，使用 Amazon Bedrock Titan Embed Text v2 进行向量化，并索引到 OpenSearch Serverless（AOSS）。仅在 AOSS 配置（`vectorStoreType=opensearch-serverless`）下可用。
 
 ### 架构
 
 ```
 ┌──────────────────┐     CIFS/SMB      ┌──────────────────┐
-│ FSx ONTAP        │◀──────────────────│ Embedding EC2    │
+│ FSx for ONTAP        │◀──────────────────│ Embedding EC2    │
 │ (SVM + Volume)   │    Mount          │ (m5.large)       │
 │ /data            │                   │                  │
 └──────────────────┘                   │ Docker Container │
@@ -321,7 +321,7 @@ docker push ${ECR_URI}:latest
 
 #### 步骤 4：创建 CIFS 共享
 
-设置 FSx ONTAP 管理员密码并通过 REST API 创建 CIFS 共享。
+设置 FSx for ONTAP 管理员密码并通过 REST API 创建 CIFS 共享。
 
 ```bash
 # Set FSx admin password

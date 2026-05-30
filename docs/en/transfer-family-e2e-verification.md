@@ -1,4 +1,4 @@
-# Transfer Family FSx ONTAP E2E Verification Report
+# Transfer Family FSx for ONTAP E2E Verification Report
 
 **🌐 Language:** [日本語](../transfer-family-e2e-verification.md) | **English**
 
@@ -94,9 +94,9 @@ sftp -i /path/to/private-key \
   USERNAME@SERVER_ID.server.transfer.REGION.amazonaws.com
 ```
 
-### 8. FSx ONTAP File System Permissions
+### 8. FSx for ONTAP File System Permissions
 
-For Transfer Family users to read and write files, the S3 Access Point's file system user (e.g., `root`) on the FSx ONTAP volume must have read/write permissions on the upload destination directory.
+For Transfer Family users to read and write files, the S3 Access Point's file system user (e.g., `root`) on the FSx for ONTAP volume must have read/write permissions on the upload destination directory.
 
 ---
 

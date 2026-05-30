@@ -254,7 +254,7 @@ volume modify -vserver svm1 -volume kb_data \
 | IOPS 사용률 | > 80% | 처리량 용량 증가 |
 | 네트워크 대역폭 사용률 | > 70% | 처리량 용량 증가 |
 
-### 자동 확장 (FSx ONTAP Ops)
+### 자동 확장 (FSx for ONTAP Ops)
 
 `automation/fsxn-ops/`에 포함된 용량 모니터링 Lambda가 자동 확장을 수행합니다:
 
@@ -295,4 +295,4 @@ aws fsx update-file-system \
 | [permission-consistency.md](permission-consistency.md) | 권한 변경 일관성 모델 |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | S3 Vectors + SID 아키텍처 |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3구성 비교 |
-| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx ONTAP 운영 자동화 |
+| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx for ONTAP 운영 자동화 |

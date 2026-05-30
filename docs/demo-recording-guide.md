@@ -14,7 +14,7 @@
 |---|------|------|
 | (1) | RAGベースAIチャットボット基盤の構築 | アーキテクチャ説明 |
 | (2) | AWS CDKを用いたチャットボット基盤のデプロイ | CDKデプロイ手順 |
-| (3) | ストレージデータをFSx ONTAPボリュームに配置 | S3 Access Point経由でデータ投入 |
+| (3) | ストレージデータをFSx for ONTAPボリュームに配置 | S3 Access Point経由でデータ投入 |
 | (4) | アクセス権情報の反映 | `.metadata.json` SID情報の設定・確認 |
 | (5) | ユーザーごとのアクセス権に基づいたデータ参照可否の判定 | SIDフィルタリング検証 |
 | (6) | 初期検証 | カードUI・KB/Agentモード・Citation表示の動作確認 |
@@ -98,7 +98,7 @@ npm install
 2. **AWS WAF** — レートリミット、IP Reputation、OWASP準拠ルール、SQLi防御
 3. **IAM認証** — Lambda Function URL IAM Auth + CloudFront OAC (SigV4)
 4. **ベクトルストア** — S3 Vectors（デフォルト、低コスト）/ OpenSearch Serverless（高パフォーマンス、`vectorStoreType`で選択）
-5. **FSx ONTAP + S3 Access Point** — S3 AP経由でBedrock KBにドキュメントを直接提供
+5. **FSx for ONTAP + S3 Access Point** — S3 AP経由でBedrock KBにドキュメントを直接提供
 6. **Titan Embed Text v2** — Amazon Bedrockのテキストベクトル化モデル（1024次元）
 7. **SIDフィルタリング** — NTFS ACLのSID情報でドキュメントレベルのアクセス制御
 8. **KB/Agentモード切替** — KBモード（文書検索）とAgentモード（動的Agent作成 + 多段階推論）
@@ -134,7 +134,7 @@ npx cdk deploy --all \
   --require-approval never
 ```
 
-> **所要時間**: 約30〜40分（FSx ONTAP作成に20〜30分）
+> **所要時間**: 約30〜40分（FSx for ONTAP作成に20〜30分）
 
 ### Step 3: ポストデプロイセットアップ（1コマンド）
 
@@ -144,7 +144,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 自動実行内容:
 1. S3 Access Point作成 + ポリシー設定
-2. FSx ONTAPにデモデータアップロード（S3 AP経由）
+2. FSx for ONTAPにデモデータアップロード（S3 AP経由）
 3. Bedrock KBデータソース追加 + 同期
 4. DynamoDBにユーザーSIDデータ登録
 5. Cognitoにデモユーザー作成
@@ -164,7 +164,7 @@ bash demo-data/scripts/verify-deployment.sh
 
 ---
 
-## 証跡(3): ストレージデータをFSx ONTAPボリュームに配置
+## 証跡(3): ストレージデータをFSx for ONTAPボリュームに配置
 
 **撮影内容**: S3 Access Point経由でのデータ投入確認
 

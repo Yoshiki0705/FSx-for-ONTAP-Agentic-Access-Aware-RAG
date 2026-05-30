@@ -27,7 +27,7 @@ Dieses Dokument ist ein Bedrohungsmodell, das die wichtigsten Bedrohungen, Angri
 │ Vertrauensgrenze 3: Lambda → Bedrock / DynamoDB / FSx                   │
 │  Angreifer: Interne Bedrohungen, Fehlkonfigurationen, Lieferkette       │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ Vertrauensgrenze 4: FSx ONTAP → S3 Access Point → Bedrock KB            │
+│ Vertrauensgrenze 4: FSx for ONTAP → S3 Access Point → Bedrock KB            │
 │  Angreifer: Privilegieneskalation, Metadaten-Manipulation               │
 └─────────────────────────────────────────────────────────────────────────┘
 ```

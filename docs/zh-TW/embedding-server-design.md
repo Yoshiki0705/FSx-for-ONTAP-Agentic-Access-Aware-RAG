@@ -19,7 +19,7 @@
 
 > **S3 Vectors (default): this document is for reference only.** Bedrock KB Ingestion Job handles all processing automatically.
 
-此伺服器透過 CIFS/SMB 掛載讀取 FSx ONTAP 上的文件，使用 Amazon Bedrock Titan Embed Text v2 進行向量化，並索引至 OpenSearch Serverless (AOSS)。
+此伺服器透過 CIFS/SMB 掛載讀取 FSx for ONTAP 上的文件，使用 Amazon Bedrock Titan Embed Text v2 進行向量化，並索引至 OpenSearch Serverless (AOSS)。
 
 > **注意**：Embedding 伺服器僅在 AOSS 設定（`vectorStoreType=opensearch-serverless`）下可用。使用 S3 Vectors 設定（預設）時，Bedrock KB 會自動管理 Embedding，因此不需要 Embedding 伺服器。
 
@@ -30,7 +30,7 @@
 ## 架構
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   │ CIFS/SMB Mount
   ▼
 EC2 (m5.large) /tmp/data
@@ -214,7 +214,7 @@ demo 堆疊不使用上述自動化，而是透過以下手動步驟設定 SID �
 |------|------|
 | AD Sync Lambda | 透過 SSM 自動擷取 AD 使用者 SID 並儲存至 DynamoDB（已實作） |
 | FSx Permission Service | 透過 SSM 的 Get-Acl 擷取 NTFS ACL（已實作） |
-| ONTAP REST API | 透過 FSx ONTAP 管理端點直接擷取 ACL（已實作：`ENV_AUTO_METADATA=true`） |
+| ONTAP REST API | 透過 FSx for ONTAP 管理端點直接擷取 ACL（已實作：`ENV_AUTO_METADATA=true`） |
 | S3 Access Point | 透過 S3 AP 存取檔案時自動套用 NTFS ACL（CDK 支援：`useS3AccessPoint=true`） |
 
 #### 使用 S3 Access Point 時（選項 C）

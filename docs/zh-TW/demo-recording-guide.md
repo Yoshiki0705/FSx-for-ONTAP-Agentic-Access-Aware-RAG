@@ -14,7 +14,7 @@
 |---|------|------|
 | (1) | 建構基於 RAG 的 AI 聊天機器人平台 | 架構說明 |
 | (2) | 使用 AWS CDK 部署聊天機器人平台 | CDK 部署流程 |
-| (3) | 將儲存資料放置於 FSx ONTAP 磁碟區 | 透過 S3 Access Point 進行資料匯入 |
+| (3) | 將儲存資料放置於 FSx for ONTAP 磁碟區 | 透過 S3 Access Point 進行資料匯入 |
 | (4) | 反映存取權限資訊 | 在 `.metadata.json` 中設定並驗證 SID 資訊 |
 | (5) | 根據每位使用者的權限判斷資料存取 | SID 過濾驗證 |
 | (6) | 初始驗證 | 驗證卡片 UI、KB/Agent 模式及引用顯示 |
@@ -98,7 +98,7 @@ npm install
 2. **AWS WAF** — 速率限制、IP 信譽、OWASP 合規規則、SQLi 防護
 3. **IAM 認證** — Lambda Function URL IAM Auth + CloudFront OAC (SigV4)
 4. **向量儲存** — S3 Vectors（預設，低成本）/ OpenSearch Serverless（高效能，透過 `vectorStoreType` 選擇）
-5. **FSx ONTAP + S3 Access Point** — 透過 S3 AP 直接向 Bedrock KB 提供文件
+5. **FSx for ONTAP + S3 Access Point** — 透過 S3 AP 直接向 Bedrock KB 提供文件
 6. **Titan Embed Text v2** — Amazon Bedrock 文字向量化模型（1024 維度）
 7. **SID 過濾** — 使用 NTFS ACL SID 資訊進行文件層級存取控制
 8. **KB/Agent 模式切換** — KB 模式（文件搜尋）和 Agent 模式（動態 Agent 建立 + 多步驟推理）
@@ -134,7 +134,7 @@ npx cdk deploy --all \
   --require-approval never
 ```
 
-> **預估時間**：約 30-40 分鐘（FSx ONTAP 建立需 20-30 分鐘）
+> **預估時間**：約 30-40 分鐘（FSx for ONTAP 建立需 20-30 分鐘）
 
 ### 步驟 3：部署後設定（單一指令）
 
@@ -144,7 +144,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 自動執行的任務：
 1. S3 Access Point 建立 + 政策設定
-2. 透過 S3 AP 上傳示範資料至 FSx ONTAP
+2. 透過 S3 AP 上傳示範資料至 FSx for ONTAP
 3. Bedrock KB 資料來源新增 + 同步
 4. 在 DynamoDB 中註冊使用者 SID 資料
 5. 在 Cognito 中建立示範使用者
@@ -164,7 +164,7 @@ bash demo-data/scripts/verify-deployment.sh
 
 ---
 
-## 證據 (3)：將儲存資料放置於 FSx ONTAP 磁碟區
+## 證據 (3)：將儲存資料放置於 FSx for ONTAP 磁碟區
 
 **錄製內容**：驗證透過 S3 Access Point 進行的資料匯入
 

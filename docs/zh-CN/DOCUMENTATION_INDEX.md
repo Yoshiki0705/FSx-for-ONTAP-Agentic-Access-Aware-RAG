@@ -23,7 +23,7 @@
 |------|------|
 | [auth-mode-setup-guide.md](../../demo-data/guides/auth-mode-setup-guide.md) | 认证模式演示环境搭建指南（5种模式，附带示例配置文件） |
 | [demo-scenario.md](../../demo-data/guides/demo-scenario.md) | 验证场景（管理员与普通用户权限差异、AD SSO 登录、OIDC/LDAP 登录） |
-| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD 集成、CIFS 共享、NTFS ACL 配置、Name-Mapping 设置（已验证流程） |
+| [ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) | FSx for ONTAP + AD 集成、CIFS 共享、NTFS ACL 配置、Name-Mapping 设置（已验证流程） |
 | [demo-environment-guide.md](demo-environment-guide.md) | 验证环境资源 ID、访问信息、Embedding 服务器流程 |
 
 ## 企业设计与运维指南
@@ -42,12 +42,12 @@
 | [poc-workshop-guide.md](poc-workshop-guide.md) | PoC 工作坊指南（90分钟：部署 → 测试 → 评估 → 清理） |
 | [tests/permission-matrix/](../../tests/permission-matrix/) | 权限矩阵测试（31个 ACL 边缘场景：Fail-Closed、组嵌套、继承权限、紧急撤销） |
 
-## FSx ONTAP 运维自动化
+## FSx for ONTAP 运维自动化
 
 | 文档 | 说明 |
 |------|------|
 | [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | 运维自动化套件概述（目录结构、用例） |
-| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 此架构如何简化 FSx ONTAP 运维（设计决策、成本估算、安全设计） |
+| [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 此架构如何简化 FSx for ONTAP 运维（设计决策、成本估算、安全设计） |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS 集成验证报告（2026-05-01，所有阶段通过） |
 | [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | 集成 CloudFormation 模板（含 VPC 端点） |
 
@@ -99,7 +99,7 @@
 ### 第二阶段：验证与评估
 
 6. **demo-recording-guide.md** — 演示视频录制指南
-7. **ontap-setup-guide.md** — FSx ONTAP AD 集成、CIFS 共享设置
+7. **ontap-setup-guide.md** — FSx for ONTAP AD 集成、CIFS 共享设置
 8. **demo-environment-guide.md** — 验证环境设置
 9. **demo-scenario.md** — 执行验证场景
 10. **evaluation.md** — PoC 评估模板

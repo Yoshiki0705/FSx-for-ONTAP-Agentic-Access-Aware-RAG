@@ -454,7 +454,7 @@ bash demo-data/scripts/setup-ontap-namemapping.sh
 bash demo-data/scripts/verify-ontap-namemapping.sh
 ```
 
-詳細は [FSx ONTAP設定ガイド](../demo-data/guides/ontap-setup-guide.md#10-ontap-name-mapping設定unixwindowsユーザー対応付け) を参照してください。
+詳細は [FSx for ONTAP設定ガイド](../demo-data/guides/ontap-setup-guide.md#10-ontap-name-mapping設定unixwindowsユーザー対応付け) を参照してください。
 
 ---
 
@@ -573,4 +573,4 @@ Auth0 OIDCサインイン成功後のチャット画面:
 - [README.md — AD SAMLフェデレーション](../README.md#ad-samlフェデレーションオプション) — CDKデプロイ手順
 - [docs/implementation-overview.md — セクション3: IAM認証](implementation-overview.md#3-iam認証--lambda-function-url-iam-auth--cloudfront-oac) — インフラ層の認証設計
 - [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) — SIDフィルタリングの詳細設計
-- [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) — FSx ONTAP AD連携設定
+- [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) — FSx for ONTAP AD連携設定

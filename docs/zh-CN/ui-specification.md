@@ -37,7 +37,7 @@ Introduction Message 显示三种类型的目录信息。
 
 | 项目 | 图标 | 数据源 | 说明 |
 |------|------|------------|-------------|
-| FSx 可访问目录 | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | FSx ONTAP 上文件级别可访问的目录 |
+| FSx 可访问目录 | 📁 | DynamoDB SID → SID_DIRECTORY_MAP | FSx for ONTAP 上文件级别可访问的目录 |
 | RAG 可搜索目录 | 🔍 | S3 `.metadata.json` 中的 SID 匹配 | KB 搜索中 SID 匹配的文档目录 |
 | Embedding 目标目录 | 📚 | S3 存储桶中所有 `.metadata.json` | KB 中索引的所有目录 |
 
