@@ -158,8 +158,15 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // === Step 3: SID Permission Filtering (delegated to rag-pipeline) ===
-    let { allowed, filterLog } = await filterByPermissions(userId, parsedResults);
+    // === Step 3 & 5 (parallel): SID Filtering + Conversation History ===
+    // These are independent operations — run in parallel (MOCA Promise.all pattern)
+    const [filterResult, conversationHistory] = await Promise.all([
+      filterByPermissions(userId, parsedResults),
+      ENABLE_AGENTCORE_MEMORY
+        ? fetchConversationHistory(body.memorySessionId, userId)
+        : Promise.resolve([]),
+    ]);
+    let { allowed, filterLog } = filterResult;
     console.log('[SID] Done:', (filterLog as Record<string, unknown>).allowedDocuments, '/', (filterLog as Record<string, unknown>).totalDocuments);
 
     // === Step 4: Advanced Permissions (time-based + audit) ===
@@ -204,11 +211,6 @@ export async function POST(request: NextRequest) {
         writeAuditLog(record).catch(err => console.error('[AuditLog] Write failed:', err));
       }
     }
-
-    // === Step 5: Conversation history (parallel with Step 3 in future) ===
-    const conversationHistory = ENABLE_AGENTCORE_MEMORY
-      ? await fetchConversationHistory(body.memorySessionId, userId)
-      : [];
 
     // === Step 6: Converse API (answer generation) ===
     const converseModelId = resolveConverseModelId(rawModelId);
