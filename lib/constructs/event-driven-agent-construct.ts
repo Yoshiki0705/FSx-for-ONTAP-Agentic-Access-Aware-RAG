@@ -259,11 +259,19 @@ exports.handler = async (event) => {
     sessionId = 'trigger-' + executionId;
 
     // Invoke Bedrock Agent (fire-and-forget pattern)
+    // SECURITY: Pass triggerOwnerId so the Agent executes with the
+    // trigger owner's SID permissions, not a Machine User's.
     const command = new InvokeAgentCommand({
       agentId: process.env.AGENT_ID,
       agentAliasId: process.env.AGENT_ALIAS_ID,
       sessionId,
       inputText: prompt,
+      sessionState: {
+        sessionAttributes: {
+          triggerOwnerId: event.detail?.triggerOwnerId || 'system',
+          triggerType: triggerType,
+        },
+      },
     });
 
     const response = await agentClient.send(command);

@@ -7,16 +7,23 @@
  * Actions:
  * - listTriggers: List configured triggers (derived from environment)
  * - listExecutions: List execution history for a trigger
- * - toggleTrigger: Enable/disable a trigger (future: EventBridge rule enable/disable)
+ * - toggleTrigger: Enable/disable a trigger (admin only)
+ *
+ * Security: All actions require authenticated session. toggleTrigger requires admin role.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient, QueryCommand, ScanCommand } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { jwtVerify } from 'jose';
 
 const EXECUTION_TABLE_NAME = process.env.AGENT_TRIGGER_EXECUTION_TABLE || '';
 const AGENT_ID = process.env.BEDROCK_AGENT_ID || '';
 const ENABLE_EVENT_DRIVEN_TRIGGER = process.env.ENABLE_EVENT_DRIVEN_AGENT_TRIGGER === 'true';
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
+);
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').filter(Boolean);
 
 const dynamoClient = EXECUTION_TABLE_NAME
   ? new DynamoDBClient({ region: process.env.AWS_REGION || 'ap-northeast-1' })
@@ -28,9 +35,40 @@ interface TriggerAction {
   enabled?: boolean;
 }
 
+/**
+ * Verify JWT and extract user info. Returns null if invalid.
+ */
+async function verifyAuth(request: NextRequest): Promise<{ userId: string; isAdmin: boolean } | null> {
+  const token = request.cookies.get('session-token')?.value
+    || request.headers.get('authorization')?.replace('Bearer ', '');
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const userId = (payload.email as string) || (payload.sub as string) || '';
+    const isAdmin = ADMIN_EMAILS.includes(userId) || (payload.role === 'admin');
+    return { userId, isAdmin };
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
+  // Authentication check
+  const auth = await verifyAuth(request);
+  if (!auth) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body: TriggerAction = await request.json();
+
+    // Admin-only actions
+    if (body.action === 'toggleTrigger' && !auth.isAdmin) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: admin role required for trigger management' },
+        { status: 403 },
+      );
+    }
 
     switch (body.action) {
       case 'listTriggers':
@@ -142,19 +180,40 @@ async function handleListExecutions(triggerId?: string) {
 }
 
 /**
- * Toggle a trigger's enabled state.
- * Future: This will enable/disable the EventBridge rule via API.
- * Currently returns success (state is managed by CDK).
+ * Toggle a trigger's enabled state via EventBridge Rule enable/disable.
  */
 async function handleToggleTrigger(triggerId?: string, enabled?: boolean) {
   if (!triggerId) {
     return NextResponse.json({ success: false, error: 'triggerId required' }, { status: 400 });
   }
 
-  // TODO: Implement EventBridge rule enable/disable via SDK
-  // const client = new EventBridgeClient({ region: ... });
-  // await client.send(new EnableRuleCommand/DisableRuleCommand({ Name: ruleName }));
+  const { EventBridgeClient, EnableRuleCommand, DisableRuleCommand } = await import(
+    '@aws-sdk/client-eventbridge'
+  );
 
-  console.log(`[AgentTriggers] Toggle trigger ${triggerId}: enabled=${enabled}`);
-  return NextResponse.json({ success: true, triggerId, enabled });
+  const prefix = process.env.CDK_PREFIX || 'perm-rag-demo';
+  const ruleNameMap: Record<string, string> = {
+    'KB_INGESTION_COMPLETE': `${prefix}-kb-ingestion-agent-trigger`,
+    'BREAK_GLASS': `${prefix}-break-glass-agent-trigger`,
+  };
+
+  const ruleName = ruleNameMap[triggerId];
+  if (!ruleName) {
+    console.log(`[AgentTriggers] No EventBridge rule mapped for triggerId: ${triggerId}`);
+    return NextResponse.json({ success: true, triggerId, enabled, note: 'No rule to toggle' });
+  }
+
+  try {
+    const ebClient = new EventBridgeClient({ region: process.env.AWS_REGION || 'ap-northeast-1' });
+    const Command = enabled ? EnableRuleCommand : DisableRuleCommand;
+    await ebClient.send(new Command({ Name: ruleName }));
+    console.log(`[AgentTriggers] Rule ${ruleName} ${enabled ? 'enabled' : 'disabled'}`);
+    return NextResponse.json({ success: true, triggerId, enabled });
+  } catch (error) {
+    console.error(`[AgentTriggers] Failed to toggle rule ${ruleName}:`, error);
+    return NextResponse.json({
+      success: false,
+      error: `Failed to toggle EventBridge rule: ${error instanceof Error ? error.message : String(error)}`,
+    }, { status: 500 });
+  }
 }

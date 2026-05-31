@@ -126,7 +126,57 @@ npm install @strands-agents/sdk zod
 
 ---
 
+## ストリーミングレスポンス統合設計
+
+Strands SDK は Async Iterator でストリーミングをサポート。UI 統合の設計:
+
+```typescript
+// API Route (Next.js) — SSE 変換
+export async function POST(request: NextRequest) {
+  const agent = createRagAgent({ userId, modelId });
+
+  // Strands Async Iterator → ReadableStream (SSE)
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      for await (const event of agent.stream(query)) {
+        if (event.type === 'text') {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.data })}\n\n`));
+        } else if (event.type === 'tool_use') {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ tool: event.name, status: 'running' })}\n\n`));
+        }
+      }
+      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+  });
+}
+```
+
+UI 側は既存の `useChat` フックを拡張し、SSE イベントを処理:
+- `text` イベント → チャットバブルにインクリメンタル表示
+- `tool_use` イベント → 「🔍 検索中...」インジケーター表示
+- `[DONE]` → ストリーム完了、Citation 表示
+
+---
+
 ## 関連ドキュメント
+
+### マルチテナント環境での Strands Agent 分離
+
+| パターン | 分離レベル | コスト | 適用シナリオ |
+|---------|-----------|--------|------------|
+| **Shared Agent + userId 分離** | 論理分離（SID フィルタリング） | 低 | 単一組織内の部門分離 |
+| **Per-tenant Agent インスタンス** | Agent インスタンス分離 | 中 | マルチテナント SaaS |
+| **Per-tenant AgentCore Runtime** | ランタイム分離 | 高 | 規制要件（医療、金融） |
+
+推奨: 本プロジェクトの SID フィルタリングは「Shared Agent + userId 分離」パターンで設計されている。`permission_aware_search` ツールが userId に基づいてドキュメントアクセスを制御するため、Agent インスタンスを分離する必要はない。ただし、テナント間でモデル選択やプロンプトを変えたい場合は Per-tenant Agent インスタンスを検討する。
+
+---
 
 | ドキュメント | 内容 |
 |-------------|------|
