@@ -158,7 +158,8 @@ CloudWatch:
 | DynamoDB | オンデマンド | $5 |
 | Cognito | ~50 MAU | $0 |
 | CloudWatch | 基本 | $10 |
-| **合計** | | **~$430/月** |
+| Event-Driven Agent Trigger | Lambda + DynamoDB (KB Ingestion のみ) | $1 |
+| **合計** | | **~$431/月** |
 
 ### テンプレート B: 中規模本番
 
@@ -173,7 +174,8 @@ CloudWatch:
 | DynamoDB | プロビジョンド | $30 |
 | Cognito | ~500 MAU | $0 |
 | CloudWatch | ログ + メトリクス + アラート | $50 |
-| **合計** | | **~$3,626/月** |
+| Event-Driven Agent Trigger | Lambda + DynamoDB + Scheduler (3 triggers) | $5 |
+| **合計** | | **~$3,631/月** |
 
 ### テンプレート C: 大規模エンタープライズ
 
@@ -188,7 +190,8 @@ CloudWatch:
 | DynamoDB | プロビジョンド + DAX | $100 |
 | Cognito | ~2,000 MAU | $0 |
 | CloudWatch | フル監視 | $100 |
-| **合計** | | **~$8,512/月** |
+| Event-Driven Agent Trigger | Lambda + DynamoDB + Scheduler (全 triggers + 日次レポート) | $15 |
+| **合計** | | **~$8,527/月** |
 
 ---
 

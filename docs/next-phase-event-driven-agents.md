@@ -156,6 +156,21 @@ export interface EventDrivenAgentProps {
 - 実行履歴に prompt 内容は保存しない（PII リスク回避）
 - BREAK_GLASS トリガーは SNS 通知と併用（Agent 失敗時のフォールバック）
 
+### Agent 出力の保存と PII 制御
+
+| 項目 | 設計 | 根拠 |
+|------|------|------|
+| Agent 回答の保存先 | DynamoDB（execution テーブル）に**保存しない** | PII 混入リスク回避。Agent 回答はセッション内でのみ参照可能 |
+| 日次レポートの保存 | S3（暗号化、TTL 90日）に保存 | 運用レポートは監査対象。PII を含まないプロンプト設計が前提 |
+| Guardrails 統合 | Agent 出力に Bedrock Guardrails を適用 | PII 検出・マスキング。`enableGuardrails=true` 時に自動適用 |
+| ログ出力 | CloudWatch Logs に Agent 回答を**記録しない** | `prompt` フィールドはログに含めない設計（MOCA パターン準拠） |
+| 医療・公共セクター | Agent 出力の保持期間を顧客ポリシーに合わせて設定 | DynamoDB TTL または S3 Lifecycle で制御 |
+
+**規制対象ワークロードでの追加推奨:**
+- Guardrails の PII 検出を `HIGH` 感度に設定
+- Agent 出力を VPC 内の S3 バケットに保存（パブリックアクセス不可）
+- CloudTrail でデータイベントを有効化し、Agent 出力へのアクセスを監査
+
 ---
 
 ## 関連ドキュメント
