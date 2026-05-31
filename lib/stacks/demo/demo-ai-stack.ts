@@ -2240,6 +2240,7 @@ ${langInstruction}`,
           this.node.tryGetContext('enableBreakGlassTrigger') === 'true',
         kbIngestionPrompt: this.node.tryGetContext('kbIngestionAgentPrompt') as string | undefined,
         breakGlassPrompt: this.node.tryGetContext('breakGlassAgentPrompt') as string | undefined,
+        agentLocale: (this.node.tryGetContext('agentLocale') as string) || 'ja',
       });
     }
   }
