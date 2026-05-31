@@ -21,6 +21,7 @@ import * as events from 'aws-cdk-lib/aws-events';
 import * as eventsTargets from 'aws-cdk-lib/aws-events-targets';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as scheduler from 'aws-cdk-lib/aws-scheduler';
 import { Construct } from 'constructs';
 
 export interface EventDrivenAgentProps {
@@ -36,10 +37,16 @@ export interface EventDrivenAgentProps {
   enableKbIngestionTrigger?: boolean;
   /** Enable BREAK_GLASS trigger */
   enableBreakGlassTrigger?: boolean;
+  /** Enable scheduled trigger (daily report, etc.) */
+  enableScheduledTrigger?: boolean;
+  /** Schedule expression for scheduled trigger (default: daily 09:00 JST) */
+  scheduleExpression?: string;
   /** Default prompt for KB Ingestion trigger */
   kbIngestionPrompt?: string;
   /** Default prompt for BREAK_GLASS trigger */
   breakGlassPrompt?: string;
+  /** Default prompt for scheduled trigger */
+  scheduledPrompt?: string;
   /** AWS Region */
   region?: string;
 }
@@ -79,6 +86,7 @@ export class EventDrivenAgentConstruct extends Construct {
         AWS_REGION_OVERRIDE: region,
         KB_INGESTION_PROMPT: props.kbIngestionPrompt || 'New documents have been ingested into the knowledge base. Please summarize the key changes and notify relevant stakeholders.',
         BREAK_GLASS_PROMPT: props.breakGlassPrompt || 'A BREAK_GLASS capacity override has been activated. Please review the action, assess risk, and generate an incident summary.',
+        SCHEDULED_PROMPT: props.scheduledPrompt || 'Generate a daily summary report of RAG system usage, including query counts, model routing distribution, and any permission-denied events.',
       },
       logRetention: logs.RetentionDays.TWO_WEEKS,
     });
@@ -137,6 +145,36 @@ export class EventDrivenAgentConstruct extends Construct {
           time: events.EventField.fromPath('$.time'),
         }),
       }));
+    }
+
+    // === EventBridge Scheduler: Scheduled Agent Trigger ===
+    if (props.enableScheduledTrigger) {
+      const schedulerRole = new iam.Role(this, 'SchedulerRole', {
+        roleName: `${prefix}-agent-trigger-scheduler-role`,
+        assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
+      });
+
+      schedulerRole.addToPolicy(new iam.PolicyStatement({
+        actions: ['lambda:InvokeFunction'],
+        resources: [this.triggerFunction.functionArn],
+      }));
+
+      new scheduler.CfnSchedule(this, 'DailyReportSchedule', {
+        name: `${prefix}-daily-report-agent`,
+        scheduleExpression: props.scheduleExpression || 'cron(0 0 * * ? *)', // 09:00 JST = 00:00 UTC
+        scheduleExpressionTimezone: 'Asia/Tokyo',
+        flexibleTimeWindow: { mode: 'OFF' },
+        target: {
+          arn: this.triggerFunction.functionArn,
+          roleArn: schedulerRole.roleArn,
+          input: JSON.stringify({
+            triggerType: 'SCHEDULE',
+            time: '${aws:CurrentTime}',
+            detail: { scheduleType: 'daily-report' },
+          }),
+        },
+        state: 'ENABLED',
+      });
     }
 
     // === Outputs ===
@@ -203,6 +241,10 @@ exports.handler = async (event) => {
       prompt = process.env.BREAK_GLASS_PROMPT +
         ' Action: ' + action +
         '. Reason: ' + reason + '.';
+      break;
+    case 'SCHEDULE':
+      prompt = process.env.SCHEDULED_PROMPT +
+        ' Execution time: ' + (event.time || new Date().toISOString()) + '.';
       break;
     default:
       prompt = 'An event occurred: ' + JSON.stringify(event).substring(0, 500);

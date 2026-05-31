@@ -23,6 +23,7 @@ import { TeamCreateWizard } from './TeamCreateWizard';
 import { useAgentTeamStore } from '@/store/useAgentTeamStore';
 import type { AgentTeamTemplate } from '@/types/multi-agent';
 import { RegistryPanel } from './registry/RegistryPanel';
+import { TriggersTab } from './TriggersTab';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
 interface AgentDirectoryProps { locale: string; initialCreateCategory?: string; }
@@ -50,7 +51,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
-      if (tabParam && ['agents', 'teams', 'shared', 'schedules', 'registry'].includes(tabParam)) {
+      if (tabParam && ['agents', 'teams', 'shared', 'schedules', 'triggers', 'registry'].includes(tabParam)) {
         setActiveTab(tabParam as typeof activeTab);
       }
     }
@@ -130,6 +131,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
     { key: 'teams', label: '👥 Teams' },
     { key: 'shared', label: t('tabs.shared') },
     { key: 'schedules', label: t('tabs.schedules') },
+    { key: 'triggers', label: '⚡ Triggers' },
     ...(enableRegistry ? [{ key: 'registry' as const, label: `Registry (${registryRegion})` }] : []),
   ];
 
@@ -282,6 +284,10 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
             </div>
           ))}</div>
         )}</div>
+      )}
+
+      {viewMode === 'grid' && activeTab === 'triggers' && (
+        <TriggersTab locale={locale} />
       )}
 
       {viewMode === 'grid' && activeTab === 'registry' && enableRegistry && (
