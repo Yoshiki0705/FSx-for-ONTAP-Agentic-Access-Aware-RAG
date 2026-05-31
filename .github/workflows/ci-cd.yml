@@ -127,7 +127,7 @@ jobs:
           fi
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: quick-test-results
@@ -239,7 +239,7 @@ jobs:
           fi
 
       - name: Upload full test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: full-test-results
@@ -282,7 +282,7 @@ jobs:
           npx cdk synth --quiet
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: |
@@ -403,7 +403,7 @@ jobs:
           EOF
 
       - name: Upload quality report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: quality-report
           path: quality-report.md
