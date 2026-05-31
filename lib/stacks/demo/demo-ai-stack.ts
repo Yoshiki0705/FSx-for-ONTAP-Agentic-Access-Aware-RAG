@@ -2222,6 +2222,26 @@ ${langInstruction}`,
         });
       }
     }
+
+    // --- Event-Driven Agent Trigger（オプション: enableAgent=true + enableEventDrivenAgentTrigger=true 時のみ） ---
+    const enableEventDrivenAgentTrigger =
+      this.node.tryGetContext('enableEventDrivenAgentTrigger') === true ||
+      this.node.tryGetContext('enableEventDrivenAgentTrigger') === 'true';
+
+    if (enableAgent && enableEventDrivenAgentTrigger && this.agentId && this.agentAliasId) {
+      const { EventDrivenAgentConstruct } = require('../../../lib/constructs/event-driven-agent-construct');
+      new EventDrivenAgentConstruct(this, 'EventDrivenAgent', {
+        prefix,
+        agentId: this.agentId,
+        agentAliasId: this.agentAliasId,
+        knowledgeBaseId: this.knowledgeBaseId,
+        enableKbIngestionTrigger: true,
+        enableBreakGlassTrigger: this.node.tryGetContext('enableBreakGlassTrigger') === true ||
+          this.node.tryGetContext('enableBreakGlassTrigger') === 'true',
+        kbIngestionPrompt: this.node.tryGetContext('kbIngestionAgentPrompt') as string | undefined,
+        breakGlassPrompt: this.node.tryGetContext('breakGlassAgentPrompt') as string | undefined,
+      });
+    }
   }
 
   /** インデックス作成Lambda のインラインコード */
