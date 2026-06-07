@@ -51,6 +51,8 @@ export interface ClaudePlatformResponse {
 // ─── Configuration ─────────────────────────────────────────
 
 let cachedApiKey: string | undefined;
+let cachedApiKeyTimestamp: number = 0;
+const API_KEY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes — allows Secrets Manager rotation
 
 /**
  * Build Claude Platform configuration from environment variables.
@@ -65,11 +67,13 @@ export function buildClaudePlatformConfig(): ClaudePlatformConfig {
 
 /**
  * Resolve API key (from env var or Secrets Manager).
- * Caches the key after first resolution.
+ * Caches the key with 5-minute TTL to support Secrets Manager rotation.
  */
 async function resolveApiKey(): Promise<string | undefined> {
-  if (cachedApiKey) return cachedApiKey;
-
+  // TTL-based cache: re-fetch if expired
+  if (cachedApiKey && (Date.now() - cachedApiKeyTimestamp) < API_KEY_CACHE_TTL_MS) {
+    return cachedApiKey;
+  }
   const keyOrArn = process.env.CLAUDE_PLATFORM_API_KEY;
   if (!keyOrArn) return undefined;
 
@@ -81,6 +85,7 @@ async function resolveApiKey(): Promise<string | undefined> {
         new GetSecretValueCommand({ SecretId: keyOrArn })
       );
       cachedApiKey = response.SecretString;
+      cachedApiKeyTimestamp = Date.now();
       return cachedApiKey;
     } catch (error) {
       console.error('[ClaudePlatform] Failed to resolve API key from Secrets Manager:', error);
@@ -90,6 +95,7 @@ async function resolveApiKey(): Promise<string | undefined> {
 
   // Direct key value
   cachedApiKey = keyOrArn;
+  cachedApiKeyTimestamp = Date.now();
   return cachedApiKey;
 }
 
@@ -126,6 +132,10 @@ export async function callWithWebSearch(
   }
 
   try {
+    // 10-second timeout to prevent hanging on API outage
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
     const response = await fetch(`${config.baseUrl}/v1/messages`, {
       method: 'POST',
       headers: {
@@ -148,11 +158,16 @@ export async function callWithWebSearch(
           { role: 'user', content: query },
         ],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
+      // Note: API key is NEVER included in error responses or logs
       console.error('[ClaudePlatform] API error:', response.status, errorText.substring(0, 200));
+      emitClaudePlatformError('api_error', response.status);
       return null;
     }
 
@@ -182,9 +197,36 @@ export async function callWithWebSearch(
       },
     };
   } catch (error) {
+    const errorType = error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'network';
     console.error('[ClaudePlatform] Request failed:', error instanceof Error ? error.message : error);
+    emitClaudePlatformError(errorType);
     return null;
   }
+}
+
+/**
+ * Emit Claude Platform error metric (EMF format).
+ */
+function emitClaudePlatformError(errorType: string, statusCode?: number): void {
+  console.log(
+    JSON.stringify({
+      _aws: {
+        Timestamp: Date.now(),
+        CloudWatchMetrics: [
+          {
+            Namespace: 'RAG/ClaudePlatform',
+            Dimensions: [['ErrorType']],
+            Metrics: [
+              { Name: 'Errors', Unit: 'Count' },
+            ],
+          },
+        ],
+      },
+      ErrorType: errorType,
+      Errors: 1,
+      ...(statusCode ? { StatusCode: statusCode } : {}),
+    })
+  );
 }
 
 /**
