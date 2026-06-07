@@ -126,6 +126,7 @@ Prompt Caching あり（キャッシュヒット率 70% 想定）:
 > - **ヒット率が低くなるケース**: スパース利用（1日1-2クエリ/ユーザー）、日跨ぎ利用、バッチ的利用
 > - **測定方法**: CloudWatch メトリクス `RAG/TokenUsage` の `CacheStatus` ディメンションで実測可能
 > - Bedrock Prompt Cache TTL: 5分（ephemeral）。5分以上間隔が空くと必ず cache miss
+> - ⚠️ **モデル制限**: Prompt Caching は **Anthropic Claude モデルのみ** 対応。Amazon Nova、OpenAI、その他プロバイダーのモデルでは効果なし。Smart Routing で Claude 以外のモデル（Nova 2 Lite fallback等）に振り分けられた場合、キャッシュは動作しません。
 
 ### 5. Lambda
 
