@@ -7,6 +7,12 @@
  * These rules are verified mathematically by Bedrock's Automated Reasoning engine.
  * Violations result in blocked responses with a safe fallback message.
  *
+ * IMPORTANT DISCLAIMER:
+ * This policy provides TECHNICAL access control enforcement only.
+ * It does NOT replace legal, compliance, or regulatory assessments.
+ * For regulated workloads (healthcare, finance, public sector),
+ * customer-specific legal/compliance evaluation is required independently.
+ *
  * @see docs/design/2026q2-ai-update-roadmap.md — Phase 1: Guardrails
  * @see .kiro/specs/guardrails-automated-reasoning/requirements.md
  */
