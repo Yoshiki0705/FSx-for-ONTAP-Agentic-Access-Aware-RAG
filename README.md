@@ -216,8 +216,8 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | Phase 1 | Prompt Caching + Automated Reasoning Guardrails | ✅ 完了 |
 | Phase 2 | AgentCore Gateway + Permission Interceptor | ✅ 完了 |
 | Phase 3 | Claude Platform on AWS（Web Search, Citations）+ Strands Agent MVP | ✅ 完了 |
-| Phase 4 | マルチモーダルKB + Strands Multi-Agent Full | 🔜 計画中 |
-| Phase 5 | Graph RAG（Neptune Analytics）+ Model Distillation | 🔜 計画中 |
+| Phase 4 | マルチモーダルKB + Strands Multi-Agent Full | ✅ 完了 |
+| Phase 5 | Graph RAG（Neptune Analytics）+ Model Distillation | ✅ 完了 |
 
 > **現在のデフォルトモデル（v4.3.0+）**: Smart Routerは Claude Haiku 4.5（lightweight）/ Claude Sonnet 4.6（powerful）/ Claude Opus 4.8（heavy）を使用しています。旧モデルID（Sonnet 3.5 v2, Opus 4.0, Nova Pro v1）は自動的に新モデルにリダイレクトされます（`DEPRECATED_MODEL_MAP`）。
 

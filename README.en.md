@@ -126,8 +126,8 @@ Integration of AWS AI updates from March–June 2026 is planned. See [2026 Q2 AI
 | Phase 1 | Prompt Caching + Automated Reasoning Guardrails | ✅ Done |
 | Phase 2 | AgentCore Gateway + Permission Interceptor | ✅ Done |
 | Phase 3 | Claude Platform on AWS (Web Search, Citations) + Strands Agent MVP | ✅ Done |
-| Phase 4 | Multimodal KB + Strands Multi-Agent Full | 🔜 Planned |
-| Phase 5 | Graph RAG (Neptune Analytics) + Model Distillation | 🔜 Planned |
+| Phase 4 | Multimodal KB + Strands Multi-Agent Full | ✅ Done |
+| Phase 5 | Graph RAG (Neptune Analytics) + Model Distillation | ✅ Done |
 
 > **Current default models (v4.3.0+)**: Smart Router uses Claude Haiku 4.5 (lightweight) / Claude Sonnet 4.6 (powerful) / Claude Opus 4.8 (heavy). Legacy model IDs (Sonnet 3.5 v2, Opus 4.0, Nova Pro v1) are automatically redirected to current models via `DEPRECATED_MODEL_MAP`.
 
