@@ -1,6 +1,6 @@
 # .metadata.json 正式スキーマ仕様
 
-**🌐 Language:** **日本語** | [English](en/metadata-json-schema.md)
+**🌐 Language:** **日本語** | [English](en/metadata-json-schema.md) | [한국어](ko/metadata-json-schema.md) | [简体中文](zh-CN/metadata-json-schema.md) | [繁體中文](zh-TW/metadata-json-schema.md) | [Français](fr/metadata-json-schema.md) | [Deutsch](de/metadata-json-schema.md) | [Español](es/metadata-json-schema.md)
 
 **作成日**: 2026-06-08  
 **ステータス**: 正式仕様  
