@@ -9,9 +9,11 @@
  */
 
 // リージョンから地域プレフィックスへのマッピング
+// NOTE: 2026年以降、ap-northeast-1 では jp.* プレフィックスが推奨。
+// apac.* は旧形式だが一部モデルでは利用可能。
 const REGION_TO_PROFILE_PREFIX: Record<string, string> = {
-  // APAC リージョン
-  'ap-northeast-1': 'apac',  // 東京
+  // APAC リージョン（日本は jp プレフィックス優先）
+  'ap-northeast-1': 'jp',    // 東京（jp.* 優先）
   'ap-northeast-2': 'apac',  // ソウル
   'ap-northeast-3': 'apac',  // 大阪
   'ap-south-1': 'apac',      // ムンバイ
@@ -43,11 +45,15 @@ const INFERENCE_PROFILE_MODELS = [
   'amazon.nova-pro',
   'amazon.nova-lite',
   'amazon.nova-micro',
+  'amazon.nova-2-lite',
   'anthropic.claude-3-5-sonnet',
   'anthropic.claude-3-5-haiku',
   'anthropic.claude-3-opus',
   'anthropic.claude-3-sonnet',
   'anthropic.claude-3-haiku',
+  'anthropic.claude-sonnet-4',
+  'anthropic.claude-opus-4',
+  'anthropic.claude-haiku-4',
 ];
 
 /**
@@ -92,7 +98,7 @@ export function resolveInferenceProfile(modelId: string, region: string): string
   console.log('🔍 Inference Profile解決開始:', { modelId, region });
   
   // 既にinference profileが付いている場合はそのまま返す
-  if (modelId.match(/^(us|eu|apac)\./i)) {
+  if (modelId.match(/^(us|eu|apac|jp|global)\./i)) {
     console.log('✅ 既にinference profileが付いています:', modelId);
     return modelId;
   }
@@ -114,7 +120,7 @@ export function resolveInferenceProfile(modelId: string, region: string): string
   const baseId = extractBaseModelId(modelId);
   const version = extractVersion(modelId);
   
-  // 1. 地域別inference profile（APAC, EU等）
+  // 1. 地域別inference profile（APAC, EU, JP等）
   if (regionalPrefix && regionalPrefix !== 'us') {
     const regionalProfileId = `${regionalPrefix}.${baseId}${version}`;
     console.log('✅ 地域別inference profileを使用:', regionalProfileId);
@@ -158,7 +164,7 @@ export function getInferenceProfilePriority(
   const profiles: string[] = [];
   
   // 既にinference profileが付いている場合はそのまま返す
-  if (modelId.match(/^(us|eu|apac)\./i)) {
+  if (modelId.match(/^(us|eu|apac|jp|global)\./i)) {
     return [modelId];
   }
   
@@ -195,5 +201,5 @@ export function getRegionalPrefix(region: string): string {
 /**
  * 利用可能なinference profileプレフィックスのリスト
  */
-export const AVAILABLE_PROFILE_PREFIXES = ['apac', 'eu', 'us'] as const;
+export const AVAILABLE_PROFILE_PREFIXES = ['jp', 'apac', 'eu', 'us', 'global'] as const;
 export type InferenceProfilePrefix = typeof AVAILABLE_PROFILE_PREFIXES[number];
