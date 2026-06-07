@@ -226,6 +226,20 @@ CloudWatch:
 
 ---
 
+## コスト構成パターン比較
+
+| 項目 | デフォルト構成 | 推奨構成（Smart Routing ON） |
+|------|-------------|--------------------------|
+| モデル選択 | Nova 2 Lite（fallback） | Haiku(simple) / Sonnet 4.6(complex) / Opus 4.8(full-context) |
+| Prompt Caching | ❌ 効果なし（Nova非対応） | ✅ 30-90%入力トークン削減（Claude対応） |
+| Smart Routing | OFF | ON（60-80% lightweightモデル利用） |
+| 月額見積もり(100q/日) | ~$12/月（Nova 2 Lite固定） | ~$26/月（Prompt Caching後、Smart Routing込み） |
+| 応答品質 | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+
+> **推奨**: Smart Routing を ON にし、Claude モデルを使用することで、Prompt Caching のコスト効果と高品質な応答の両方を得られます。
+
+---
+
 ## コスト最適化のポイント
 
 | 手法 | 削減効果 | 適用条件 |
