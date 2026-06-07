@@ -1568,6 +1568,17 @@ El Supervisor Agent no puede crearse con `AgentCollaboration=SUPERVISOR_ROUTER` 
 
 > Facturación basada en solicitudes — sin costo adicional si no se utiliza.
 
+## Repositorios Relacionados (Ecosistema FSx for ONTAP)
+
+| Repositorio | Caso de Uso | Descripción |
+|------------|-------------|-------------|
+| **[Este repo] Agentic Access-Aware RAG** | AI / RAG | RAG con permisos + Agentic AI. Aplica automáticamente las ACL de FSx ONTAP en los resultados de búsqueda |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Automatización Serverless | 17 patrones serverless por industria vía S3 AP (soporte FPolicy event-driven) |
+| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | Framework de validación para integración con Athena, Glue, EMR, SageMaker vía FSx ONTAP S3 AP |
+| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / Auditoría | Entrega sin EC2 de logs de auditoría y métricas de FSx ONTAP a Datadog, Splunk, Grafana, etc. |
+
+---
+
 ## Licencia
 
 [Apache License 2.0](LICENSE)

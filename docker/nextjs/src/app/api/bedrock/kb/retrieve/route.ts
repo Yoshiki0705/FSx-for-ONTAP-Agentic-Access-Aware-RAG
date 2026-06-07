@@ -24,7 +24,8 @@ import {
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { KBQueryRouter, buildRouterConfigFromEnv, buildVectorSearchConfig } from '@/lib/kb-query-router';
 import { emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
-import { DEFAULT_REGION } from '@/config/model-defaults';
+import { DEFAULT_REGION, resolveModelId } from '@/config/model-defaults';
+import { RAG_SYSTEM_PROMPT_KB, RAG_SYSTEM_PROMPT_AGENT, buildSearchContextSegment } from '@/config/prompt-templates';
 import type { MediaType, ActiveKBType } from '@/types/multimodal';
 
 // RAG Pipeline modules (facade pattern)
@@ -58,7 +59,13 @@ export async function POST(request: NextRequest) {
     const { query, userId } = body;
     const knowledgeBaseId = body.knowledgeBaseId || process.env.BEDROCK_KB_ID || '';
     const region = body.region || process.env.BEDROCK_REGION || DEFAULT_REGION;
-    const rawModelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-haiku-4-5-20251001-v1:0';
+    const requestedModelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-haiku-4-5-20251001-v1:0';
+
+    // Resolve deprecated model IDs to current equivalents
+    const { modelId: rawModelId, isDeprecated } = resolveModelId(requestedModelId);
+    if (isDeprecated) {
+      console.warn(`[KB] Deprecated model "${requestedModelId}" resolved to "${rawModelId}"`);
+    }
 
     // === Validation ===
     if (!query?.trim()) return NextResponse.json({ success: false, error: 'empty' }, { status: 400 });
@@ -212,7 +219,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // === Step 6: Converse API (answer generation) ===
+    // === Step 6: Converse API (answer generation with Prompt Caching) ===
     const converseModelId = resolveConverseModelId(rawModelId);
 
     if (allowed.length > 0) {
@@ -220,12 +227,19 @@ export async function POST(request: NextRequest) {
       const converseClient = new BedrockRuntimeClient({ region });
       const isAgentMode = body.agentMode === true;
 
-      const systemPrompt = isAgentMode
-        ? 'Answer the following question based on the provided documents. Respond in the same language as the question. As an AI agent, use multi-step reasoning and document search to provide your answer. If the information is not found in the documents, respond with "No relevant information was found."'
-        : 'Answer the following question based on the provided documents. Respond in the same language as the question. If the information is not found in the documents, respond with "No relevant information was found."';
+      // System prompt (static, cacheable) — top-level import from config/prompt-templates.ts
+      const systemPrompt = isAgentMode ? RAG_SYSTEM_PROMPT_AGENT : RAG_SYSTEM_PROMPT_KB;
 
-      const prompt = `${systemPrompt}\n\n${ctx}\n\n${imageAnalysisUsed && imageAnalysisResult ? `Image analysis result:\n${imageAnalysisResult}\n\n` : ''}Question: ${query}`;
-      const result = await callConverse(converseClient, converseModelId, prompt, conversationHistory);
+      // User prompt (dynamic, per-request) — search results + query
+      const userPrompt = buildSearchContextSegment({
+        searchResults: ctx,
+        imageAnalysisResult: imageAnalysisUsed ? imageAnalysisResult : undefined,
+        query,
+      });
+
+      // callConverse with separate systemPrompt enables Prompt Caching
+      // System prompt is cached (5-min TTL), user prompt changes per request
+      const result = await callConverse(converseClient, converseModelId, userPrompt, conversationHistory, systemPrompt);
 
       // === Step 7: Guardrails ===
       const guardrailResult: GuardrailResult | undefined = GUARDRAILS_ENABLED

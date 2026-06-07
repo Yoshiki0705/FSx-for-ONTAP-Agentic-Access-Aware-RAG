@@ -17,7 +17,7 @@ describe('Feature: smart-routing-model-expansion, Property 9: Store Actions Upda
   beforeEach(() => {
     // Reset store to default state before each test
     const store = useSmartRoutingStore.getState();
-    store.setHeavyModelId('anthropic.claude-opus-4-0-20250514-v1:0');
+    store.setHeavyModelId('anthropic.claude-opus-4-8');
     store.setContextSizeThreshold(4000);
   });
 

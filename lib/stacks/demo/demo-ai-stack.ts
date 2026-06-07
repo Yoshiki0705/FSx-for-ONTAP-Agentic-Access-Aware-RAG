@@ -59,6 +59,10 @@ export interface GuardrailsConfig {
   groundingThreshold?: number;
   /** 関連性チェック閾値（0.0-1.0、デフォルト: 0.7） */
   relevanceThreshold?: number;
+  /** Automated Reasoning を有効化（デフォルト: false） */
+  enableAutomatedReasoning?: boolean;
+  /** Automated Reasoning の信頼度閾値（0.0-1.0、デフォルト: 0.8） */
+  automatedReasoningThreshold?: number;
 }
 
 /**
@@ -253,6 +257,8 @@ export interface DemoAIStackProps extends cdk.StackProps {
   enableAgentRegistry?: boolean;
   /** Agent Registry API 呼び出しに使用するリージョン（デフォルト: デプロイリージョン） */
   agentRegistryRegion?: string;
+  /** AgentCore Gateway を有効化するか（デフォルト: false、enableAgentPolicy=true時に自動有効化） */
+  enableAgentCoreGateway?: boolean;
   /** 埋め込みモデル（デフォルト: 'titan-text-v2'） */
   embeddingModel?: string;
   /** マルチモーダルKBモード（デフォルト: 'replace'） */
@@ -332,6 +338,10 @@ export class DemoAIStack extends cdk.Stack {
   public readonly enableAgentRegistry?: boolean;
   /** Agent Registry リージョン */
   public readonly agentRegistryRegion?: string;
+  /** AgentCore Gateway ID */
+  public readonly gatewayId?: string;
+  /** AgentCore Gateway ARN */
+  public readonly gatewayArn?: string;
   /** マルチモーダル KB ID（Dual KB モード時のみ） */
   public readonly multimodalKnowledgeBaseId?: string;
   /** テキスト専用 KB ID（Dual KB モード時のみ） */
@@ -888,17 +898,53 @@ exports.handler = async (event) => {
 
     // --- Bedrock Guardrails（オプション） ---
     // コンテンツ安全性フィルタリング: 有害コンテンツ、PII、プロンプトインジェクション対策
+    // + Automated Reasoning: Permission-aware RAG のFail-Closed原則を形式検証
     if (enableGuardrails) {
       const guardrailProps = buildGuardrailProps(props.guardrailsConfig);
+
+      // --- Automated Reasoning Policy (optional) ---
+      // Permission-Aware RAGのFail-Closed原則とSIDマッチングを数学的に検証する
+      let automatedReasoningPolicyArn: string | undefined;
+      if (props.guardrailsConfig?.enableAutomatedReasoning) {
+        const {
+          PERMISSION_REASONING_RULES,
+          PERMISSION_POLICY_DESCRIPTION,
+        } = require('../../guardrails/permission-reasoning-policy');
+
+        const reasoningPolicy = new bedrock.CfnAutomatedReasoningPolicy(this, 'PermissionReasoningPolicy', {
+          name: `${prefix}-permission-reasoning`,
+          description: PERMISSION_POLICY_DESCRIPTION,
+          policyDefinition: {
+            rules: PERMISSION_REASONING_RULES.map((rule: string, idx: number) => ({
+              id: `permission-rule-${idx + 1}`,
+              expression: rule,
+            })),
+          },
+        });
+
+        automatedReasoningPolicyArn = reasoningPolicy.automatedReasoningPolicyRef.policyArn;
+
+        new cdk.CfnOutput(this, 'AutomatedReasoningPolicyArn', {
+          value: reasoningPolicy.automatedReasoningPolicyRef.policyArn,
+          description: 'Automated Reasoning Policy ARN for Permission-Aware RAG',
+        });
+      }
 
       const guardrail = new bedrock.CfnGuardrail(this, 'Guardrail', {
         name: `${prefix}-guardrail`,
         blockedInputMessaging: 'この入力はセキュリティポリシーにより拒否されました。',
-        blockedOutputsMessaging: 'この回答はセキュリティポリシーにより制限されました。',
+        blockedOutputsMessaging: 'この回答はセキュリティポリシーにより制限されました。権限範囲外の情報が含まれている可能性があります。',
         contentPolicyConfig: guardrailProps.contentPolicyConfig,
         sensitiveInformationPolicyConfig: guardrailProps.sensitiveInformationPolicyConfig,
         ...(guardrailProps.topicPolicyConfig ? { topicPolicyConfig: guardrailProps.topicPolicyConfig } : {}),
         ...(guardrailProps.contextualGroundingPolicyConfig ? { contextualGroundingPolicyConfig: guardrailProps.contextualGroundingPolicyConfig } : {}),
+        // Automated Reasoning: Permission形式検証
+        ...(automatedReasoningPolicyArn ? {
+          automatedReasoningPolicyConfig: {
+            policies: [automatedReasoningPolicyArn],
+            confidenceThreshold: props.guardrailsConfig?.automatedReasoningThreshold ?? 0.8,
+          },
+        } : {}),
       });
 
       this.guardrailId = guardrail.attrGuardrailId;
@@ -918,10 +964,29 @@ exports.handler = async (event) => {
           categories: enabledCategories,
           hasTopicPolicies: !!guardrailProps.topicPolicyConfig,
           hasContextualGrounding: !!guardrailProps.contextualGroundingPolicyConfig,
+          hasAutomatedReasoning: !!automatedReasoningPolicyArn,
           customConfig: !!props.guardrailsConfig,
         }),
         description: 'Guardrails configuration summary',
       });
+    }
+
+    // --- AgentCore Gateway + Permission Interceptor（オプション） ---
+    // enableAgentPolicy=true または enableAgentCoreGateway=true で有効化
+    const enableGateway = props.enableAgentCoreGateway || false;
+    if (enableGateway && props.userAccessTableArn) {
+      const { AgentCoreGatewayConstruct } = require('../../constructs/agentcore-gateway-construct');
+      const userAccessTableForGateway = dynamodb.Table.fromTableArn(
+        this, 'GatewayUserAccessTable', props.userAccessTableArn
+      );
+      const gateway = new AgentCoreGatewayConstruct(this, 'AgentCoreGateway', {
+        projectName,
+        environment,
+        userAccessTable: userAccessTableForGateway,
+        description: `Permission-aware tool gateway for ${projectName}`,
+      });
+      this.gatewayId = gateway.gatewayId;
+      this.gatewayArn = gateway.gatewayArn;
     }
 
     // --- Bedrock Agent + Permission-aware Action Group（オプション） ---
@@ -1557,7 +1622,7 @@ ${langInstruction}`,
         // --- Vision Agent（オプション: enableVisionAgent=true 時のみ） ---
         if (props.enableVisionAgent) {
           const visionModel = props.collaboratorModels?.['vision']
-            || 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+            || 'anthropic.claude-sonnet-4-6';
 
           // IAMロール: bedrock:InvokeModel のみ（KB/DynamoDBアクセスなし）
           const visionAgentRole = new iam.Role(this, 'VisionAgentRole', {

@@ -157,6 +157,33 @@
 - [ ] 権限変更反映テスト（ACL 変更 → 検索結果反映の確認）
 - [ ] 脅威モデルレビュー（[threat-model.md](threat-model.md) の 10 脅威カテゴリに対する対策確認）
 
+### 9. モデルライフサイクル管理
+
+- [ ] 使用中モデルの EOL（End of Life）日程を把握（AWS Health Dashboard購読）
+- [ ] モデル更新時の品質ゲートプロセス定義:
+  - Permission-matrix 31シナリオ回帰テスト（100% pass required）
+  - RAGAS評価（Faithfulness ≥ 0.85, Answer Relevancy ≥ 0.80, Context Precision ≥ 0.75）
+  - ベースライン比較（5%以上の品質低下がないこと）
+- [ ] `model-defaults.ts` の変更を検知するCI/CDパイプラインの設定
+- [ ] モデル更新時の Deprecated Model 互換マッピング定義
+- [ ] 月次モデル棚卸し: 使用中モデルの利用可能状態・コスト・性能の確認
+- [ ] Prompt Caching 有効時: モデル変更後のキャッシュ自動無効化を確認
+- [ ] Smart Routing 各Tierのモデルが想定リージョン（ap-northeast-1）で利用可能なことを確認
+- [ ] モデル緊急切り替え手順書の作成（API障害時のフォールバックモデルへの切替）
+
+### 10. AgentCore Gateway 運用（`enableAgentCoreGateway=true` 時）
+
+- [ ] Gateway Interceptor Lambda のレイテンシ監視設定（P99 < 200ms アラーム）
+- [ ] Permission 拒否率の閾値アラーム設定（DENY率 > 30% で異常通知 — 大量の不正アクセス試行を検知）
+- [ ] Interceptor Fail-safe 発動アラーム（DynamoDBエラーによる全DENY — 即時対応必要）
+- [ ] Gateway CloudWatch Logs のクエリパターン定義:
+  - `fields @timestamp, toolName, userId, decision | filter decision = "DENY"` — 拒否されたリクエスト一覧
+  - `stats count(*) by toolName, decision | sort count desc` — ツール別利用統計
+- [ ] Interceptor Lambda の同時実行数制限設定（DynamoDB への過負荷防止）
+- [ ] `TOOL_PERMISSION_RULES` の定期レビュー（新ツール追加時にルール更新漏れ防止）
+- [ ] Gateway 障害時の回避策: Gateway バイパス手順（緊急時のみ、監査ログ必須）
+- [ ] Interceptor Lambda のデッドレターキュー設定（タイムアウト時のイベント記録）
+
 ---
 
 ## 本番デプロイ前の最終確認

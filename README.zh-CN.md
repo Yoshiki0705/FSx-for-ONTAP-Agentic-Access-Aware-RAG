@@ -2071,6 +2071,17 @@ Supervisor Agent 无法在单次 CloudFormation 操作中同时创建 `AgentColl
 
 > 按请求计费 — 不使用则不产生额外费用。
 
+## 相关仓库（FSx for ONTAP 生态系统）
+
+| 仓库 | 用途 | 概述 |
+|------|------|------|
+| **[本仓库] Agentic Access-Aware RAG** | AI / RAG | 权限感知 RAG + Agentic AI。自动将 FSx ONTAP ACL 应用于搜索 |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自动化 | 17个行业无服务器模式集（通过 S3 AP 的 AI/ML 处理，支持 FPolicy 事件驱动） |
+| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | 通过 FSx ONTAP S3 AP 与 Athena、Glue、EMR、SageMaker 集成的验证框架 |
+| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / 审计 | 无需 EC2 将 FSx ONTAP 审计日志和指标传送到 Datadog、Splunk、Grafana 等 |
+
+---
+
 ## 许可证
 
 [Apache License 2.0](LICENSE)

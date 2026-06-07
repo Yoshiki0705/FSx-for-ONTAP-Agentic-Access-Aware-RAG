@@ -116,6 +116,21 @@ For the full matrix including platform-specific compatibility (Athena, Glue, EMR
 
 All planned items have been implemented. Future improvements are tracked in [GitHub Issues](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues).
 
+### 2026 Q2 AI Update Integration (Planned)
+
+Integration of AWS AI updates from March–June 2026 is planned. See [2026 Q2 AI Update Roadmap](docs/design/2026q2-ai-update-roadmap.md) for details.
+
+| Phase | Content | Status |
+|-------|---------|--------|
+| Phase 0 | Model ID update (Opus 4.8, Sonnet 4.6, Nova 2 Lite, GPT-5.5 GA) + Quality Gate | ✅ Done |
+| Phase 1 | Prompt Caching + Automated Reasoning Guardrails | ✅ Done |
+| Phase 2 | AgentCore Gateway + Permission Interceptor | ✅ Done |
+| Phase 3 | Claude Platform on AWS (Web Search, Citations) + Strands Agent MVP | 🔜 Planned |
+| Phase 4 | Multimodal KB + Strands Multi-Agent Full | 🔜 Planned |
+| Phase 5 | Graph RAG (Neptune Analytics) + Model Distillation | 🔜 Planned |
+
+> **Current default models (v4.3.0+)**: Smart Router uses Claude Haiku 4.5 (lightweight) / Claude Sonnet 4.6 (powerful) / Claude Opus 4.8 (heavy). Legacy model IDs (Sonnet 3.5 v2, Opus 4.0, Nova Pro v1) are automatically redirected to current models via `DEPRECATED_MODEL_MAP`.
+
 ---
 
 ## Related Repositories (FSx for ONTAP Ecosystem)

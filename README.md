@@ -11,10 +11,12 @@
 | **文書検索** | 共有フォルダを手動で探索（平均15分/件） | AIが権限範囲内で即座に回答（数秒） |
 | **権限管理** | 検索システムと権限管理が分離、情報漏えいリスク | NTFS ACL / UNIX権限がRAG検索に自動反映 |
 | **パートナー連携** | メール添付でのファイル授受、手動KB更新 | SFTP→自動インジェスション→即座にRAG検索可能 |
-| **コスト** | 全クエリに高性能モデルを使用 | Smart Routingで90%のクエリを低コストモデルに自動振り分け |
+| **コスト** | 全クエリに高性能モデルを使用 | Smart Routingで軽量クエリを低コストモデルに自動振り分け |
 | **多言語対応** | 日本語のみ、または英語のみ | 8言語対応UI、ユーザーの言語で自動回答 |
 
 **定量効果（PoC実績ベース）**: 検索時間50%以上削減、一次回答率60%以上、権限違反0件
+
+> **Note**: Smart Routingのコスト削減効果はクエリパターンに依存します。デモ環境での測定では、60-80%のクエリがsimple分類（Haiku使用）となり、トークンコスト約40-60%削減を確認しています。本番環境での効果は [RAG/Agent評価フレームワーク](docs/evaluation.md) に従い実測してください。
 
 ---
 
@@ -164,6 +166,8 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 
 | [脅威モデル](docs/threat-model.md) | 10 の脅威カテゴリ、攻撃経路、既存緩和策、脅威→対策マッピング表 |
 | [CloudWatch ダッシュボードガイド](docs/cloudwatch-dashboard-guide.md) | 運用監視メトリクス、アラーム定義、トラブルシューティングパターン |
+| [KB Auto-Sync エラーハンドリング](docs/kb-auto-sync-error-handling.md) | インジェスション失敗時のリトライ戦略、手動復旧手順、Fail-Closed原則との関係 |
+| [チャンキング戦略選定ガイド](docs/chunking-strategy-guide.md) | FIXED_SIZE / HIERARCHICAL / SEMANTIC / NONE の選択基準、業種別推奨、パフォーマンス比較 |
 | [PoC ワークショップガイド](docs/poc-workshop-guide.md) | 90 分で体験できるハンズオン（デプロイ→テスト→評価→クリーンアップ） |
 | [コスト見積もりワークシート](docs/cost-estimation-worksheet.md) | 構成別月額概算テンプレート（PoC $430 / 中規模 $3,626 / 大規模 $8,512） |
 | [Architecture Decision Records](docs/architecture-decision-records.md) | 6 つの主要意思決定の根拠（ベクトルストア、権限フィルタ、認証、フロントエンド、同期、ルーティング） |
@@ -201,6 +205,21 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 ## Roadmap
 
 全ての計画項目が実装されました。今後の改善は [GitHub Issues](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues) で管理します。
+
+### 2026 Q2 AI Update Integration（計画中）
+
+2026年3月〜6月のAWS AIアップデート統合を計画しています。詳細は [2026 Q2 AI Update Roadmap](docs/design/2026q2-ai-update-roadmap.md) を参照してください。
+
+| Phase | 内容 | ステータス |
+|-------|------|-----------|
+| Phase 0 | モデルID更新（Opus 4.8, Sonnet 4.6, Nova 2 Lite, GPT-5.5 GA）+ 品質ゲート | ✅ 完了 |
+| Phase 1 | Prompt Caching + Automated Reasoning Guardrails | ✅ 完了 |
+| Phase 2 | AgentCore Gateway + Permission Interceptor | ✅ 完了 |
+| Phase 3 | Claude Platform on AWS（Web Search, Citations）+ Strands Agent MVP | 🔜 計画中 |
+| Phase 4 | マルチモーダルKB + Strands Multi-Agent Full | 🔜 計画中 |
+| Phase 5 | Graph RAG（Neptune Analytics）+ Model Distillation | 🔜 計画中 |
+
+> **現在のデフォルトモデル（v4.3.0+）**: Smart Routerは Claude Haiku 4.5（lightweight）/ Claude Sonnet 4.6（powerful）/ Claude Opus 4.8（heavy）を使用しています。旧モデルID（Sonnet 3.5 v2, Opus 4.0, Nova Pro v1）は自動的に新モデルにリダイレクトされます（`DEPRECATED_MODEL_MAP`）。
 
 ---
 

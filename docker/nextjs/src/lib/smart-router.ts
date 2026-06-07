@@ -46,18 +46,18 @@ export function emitRoutingMetric(decision: RoutingDecision): void {
 /**
  * GPT-5.5 モデルID（手動選択専用、自動ルーティング対象外）
  *
- * NOTE: OpenAI models on Amazon Bedrock are available in limited preview.
- * The exact model ID, Region availability, inference profile, and access
- * status may vary by account. Verify in your AWS account before enabling.
- * See: https://aws.amazon.com/bedrock/
+ * NOTE: GPT-5.5 is GA on Amazon Bedrock (June 2026) but NOT available
+ * in ap-northeast-1. Requires Cross-Region Inference via us-east-1.
+ * The exact model ID format and regional availability should be verified
+ * in your AWS account. Manual selection only with ModelAccessVerifier.
  */
 export const GPT_5_5_MODEL_ID = 'openai.gpt-5-5';
 
 /** デフォルトのSmartRouter設定 */
 export const DEFAULT_SMART_ROUTER_CONFIG: SmartRouterConfig = {
   lightweightModelId: 'anthropic.claude-haiku-4-5-20251001-v1:0',
-  powerfulModelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
-  heavyModelId: 'anthropic.claude-opus-4-0-20250514-v1:0',
+  powerfulModelId: 'anthropic.claude-sonnet-4-6',
+  heavyModelId: 'anthropic.claude-opus-4-8',
   contextSizeThreshold: 4000,
 };
 
