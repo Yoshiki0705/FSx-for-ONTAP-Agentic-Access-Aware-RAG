@@ -157,6 +157,10 @@ const policyFailureMode = (app.node.tryGetContext('policyFailureMode') || 'fail-
 // AgentCore Gateway（オプション — enableAgentPolicy時は自動有効化）
 const enableAgentCoreGateway = ctxBool('enableAgentCoreGateway') || enableAgentPolicy;
 
+// Graph RAG（オプション — Neptune Analytics）
+const enableGraphRAG = ctxBool('enableGraphRAG');
+const graphRAGMemory = parseInt(app.node.tryGetContext('graphRAGMemory'), 10) || 32;
+
 // マルチエージェント協調（enableAgent=true 時はデフォルト有効）
 // enableMultiAgent を明示的に false に設定した場合のみ無効化
 // Bedrock Agent は待機コストゼロのため、有効化しても追加ランニングコストは発生しない
@@ -299,6 +303,10 @@ const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   enableAgentRegistry,
   agentRegistryRegion,
   enableAgentCoreGateway,
+  enableGraphRAG,
+  graphRAGMemory,
+  vpc: enableGraphRAG ? networkingStack.vpc : undefined,
+  privateSubnets: enableGraphRAG ? networkingStack.privateSubnets : undefined,
   embeddingModel,
   multimodalKbMode,
   enableVoiceChat,

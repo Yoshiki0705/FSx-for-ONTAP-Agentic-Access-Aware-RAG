@@ -9,6 +9,7 @@
  */
 
 import * as cdk from 'aws-cdk-lib';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as opensearchserverless from 'aws-cdk-lib/aws-opensearchserverless';
@@ -259,6 +260,14 @@ export interface DemoAIStackProps extends cdk.StackProps {
   agentRegistryRegion?: string;
   /** AgentCore Gateway を有効化するか（デフォルト: false、enableAgentPolicy=true時に自動有効化） */
   enableAgentCoreGateway?: boolean;
+  /** Graph RAG（Neptune Analytics）を有効化するか（デフォルト: false） */
+  enableGraphRAG?: boolean;
+  /** Graph RAG プロビジョンドメモリ（m-NCU、デフォルト: 32） */
+  graphRAGMemory?: number;
+  /** VPC（Graph RAG用、NetworkingStackから） */
+  vpc?: ec2.IVpc;
+  /** プライベートサブネット（Graph RAG用） */
+  privateSubnets?: ec2.ISubnet[];
   /** 埋め込みモデル（デフォルト: 'titan-text-v2'） */
   embeddingModel?: string;
   /** マルチモーダルKBモード（デフォルト: 'replace'） */
@@ -342,6 +351,10 @@ export class DemoAIStack extends cdk.Stack {
   public readonly gatewayId?: string;
   /** AgentCore Gateway ARN */
   public readonly gatewayArn?: string;
+  /** Graph RAG endpoint (Neptune Analytics) */
+  public readonly graphEndpoint?: string;
+  /** Graph RAG ID */
+  public readonly graphId?: string;
   /** マルチモーダル KB ID（Dual KB モード時のみ） */
   public readonly multimodalKnowledgeBaseId?: string;
   /** テキスト専用 KB ID（Dual KB モード時のみ） */
@@ -987,6 +1000,23 @@ exports.handler = async (event) => {
       });
       this.gatewayId = gateway.gatewayId;
       this.gatewayArn = gateway.gatewayArn;
+    }
+
+    // --- Graph RAG — Neptune Analytics（オプション） ---
+    // enableGraphRAG=true で有効化。ドキュメント関連性グラフを構築し、
+    // KB検索結果のコンテキスト拡張に使用する。
+    if (props.enableGraphRAG && props.vpc && props.privateSubnets) {
+      const { GraphRAGConstruct } = require('../../constructs/graph-rag-construct');
+      const graphRag = new GraphRAGConstruct(this, 'GraphRAG', {
+        projectName,
+        environment,
+        vpc: props.vpc,
+        privateSubnets: props.privateSubnets,
+        provisionedMemory: props.graphRAGMemory ?? 32,
+        deletionProtection: false, // Demo environment
+      });
+      this.graphEndpoint = graphRag.graphEndpoint;
+      this.graphId = graphRag.graphId;
     }
 
     // --- Bedrock Agent + Permission-aware Action Group（オプション） ---

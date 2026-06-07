@@ -137,6 +137,7 @@ bash demo-data/scripts/test-transfer-family-e2e.sh --stack-prefix perm-rag-demo 
 | `enableEpisodicMemory` | `false` | Episodic Memory (requires AgentCoreMemory) |
 | `enableAgentPolicy` | `false` | AgentCore Policy (agent behavior control) |
 | `enableAgentCoreGateway` | `false` | AgentCore Gateway + Permission Interceptor (auto-enabled with enableAgentPolicy) |
+| `enableGraphRAG` | `false` | Graph RAG with Neptune Analytics (document relationship graph) |
 | `enableAgentRegistry` | `false` | Agent Registry integration |
 | `enableAdvancedPermissions` | `false` | Time-based access control + audit logging |
 | `enableAdFederation` | `false` | AD SAML federation for Cognito |
