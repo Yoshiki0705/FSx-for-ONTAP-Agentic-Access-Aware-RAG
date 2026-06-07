@@ -226,7 +226,7 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
-          "S3Key": "019933fc4bb779678a3ed1021f27f2ec07342f84cf8335644f54b6ef0df609e2.zip",
+          "S3Key": "ASSET_HASH_NORMALIZED.zip",
         },
         "Environment": {
           "Variables": {
@@ -694,7 +694,7 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
-          "S3Key": "019933fc4bb779678a3ed1021f27f2ec07342f84cf8335644f54b6ef0df609e2.zip",
+          "S3Key": "ASSET_HASH_NORMALIZED.zip",
         },
         "Environment": {
           "Variables": {

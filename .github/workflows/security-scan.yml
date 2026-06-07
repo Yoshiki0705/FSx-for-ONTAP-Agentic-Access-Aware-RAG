@@ -35,6 +35,11 @@ env:
   SCAN_TYPE: ${{ github.event.inputs.scan_type || 'full' }}
   NOTIFICATION_LEVEL: ${{ github.event.inputs.notification_level || 'normal' }}
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   # 静的コード解析
   static-analysis:

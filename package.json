@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
+    "lint": "tsc --noEmit",
     "test": "jest",
     "test:integration": "jest tests/integration --verbose --detectOpenHandles --forceExit",
     "test:integration:full-stack": "jest tests/integration/full-stack-integration.test.ts --verbose --detectOpenHandles --forceExit",
