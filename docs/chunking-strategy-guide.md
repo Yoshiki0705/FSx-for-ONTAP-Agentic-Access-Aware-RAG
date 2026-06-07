@@ -1,6 +1,6 @@
 # チャンキング戦略選定ガイド
 
-**🌐 Language:** **日本語** | [English](en/chunking-strategy-guide.md)
+**🌐 Language:** **日本語** | [English](en/chunking-strategy-guide.md) | [한국어](ko/chunking-strategy-guide.md) | [简体中文](zh-CN/chunking-strategy-guide.md) | [繁體中文](zh-TW/chunking-strategy-guide.md) | [Français](fr/chunking-strategy-guide.md) | [Deutsch](de/chunking-strategy-guide.md) | [Español](es/chunking-strategy-guide.md)
 
 **作成日**: 2026-06-07  
 **ステータス**: 初版  
@@ -91,6 +91,8 @@ npx cdk synth --quiet -c kbChunkingStrategy=NONE
 ## Permission-Aware RAG との関係
 
 **重要**: チャンキング戦略に関わらず、Permission filtering は常に**ドキュメント単位**で適用される。
+
+> ⚠️ **検索タイプの制約**: `kbSearchType=HYBRID` を設定しても、S3 Vectors ベクトルストアでは HYBRID 検索はサポートされていません。S3 Vectors 使用時は自動的に SEMANTIC 検索にフォールバックします。HYBRID 検索を使用するには `vectorStoreType=opensearch-serverless` が必要です。
 
 ```
 文書A (SID: [Admin, Engineering])

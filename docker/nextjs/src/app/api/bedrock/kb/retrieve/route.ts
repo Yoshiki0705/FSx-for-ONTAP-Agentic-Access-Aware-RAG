@@ -24,7 +24,7 @@ import {
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { KBQueryRouter, buildRouterConfigFromEnv, buildVectorSearchConfig } from '@/lib/kb-query-router';
 import { emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
-import { DEFAULT_REGION, resolveModelId } from '@/config/model-defaults';
+import { DEFAULT_REGION, resolveModelId, DEFAULT_CHAT_MODEL } from '@/config/model-defaults';
 import { RAG_SYSTEM_PROMPT_KB, RAG_SYSTEM_PROMPT_AGENT, buildSearchContextSegment } from '@/config/prompt-templates';
 import type { MediaType, ActiveKBType } from '@/types/multimodal';
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     const { query, userId } = body;
     const knowledgeBaseId = body.knowledgeBaseId || process.env.BEDROCK_KB_ID || '';
     const region = body.region || process.env.BEDROCK_REGION || DEFAULT_REGION;
-    const requestedModelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-haiku-4-5-20251001-v1:0';
+    const requestedModelId = body.modelId || process.env.BEDROCK_MODEL_ID || DEFAULT_CHAT_MODEL;
 
     // Resolve deprecated model IDs to current equivalents
     const { modelId: rawModelId, isDeprecated } = resolveModelId(requestedModelId);
