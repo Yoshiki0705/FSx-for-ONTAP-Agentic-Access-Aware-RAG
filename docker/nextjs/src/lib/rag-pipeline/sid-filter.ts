@@ -116,6 +116,10 @@ function parseDocumentSIDs(metadata: Record<string, unknown>): string[] {
     try {
       return (JSON.parse(raw) as string[]).map(s => typeof s === 'string' ? s.replace(/^"|"$/g, '') : s);
     } catch {
+      // Support comma-separated format: "S-1-1-0,S-1-5-21-xxx-512"
+      if (raw.includes(',')) {
+        return raw.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+      }
       return [raw.replace(/^"|"$/g, '')];
     }
   }

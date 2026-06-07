@@ -97,6 +97,10 @@ describe('SID Filter — parseDocumentSIDs logic', () => {
       try {
         return (JSON.parse(raw) as string[]).map(s => typeof s === 'string' ? s.replace(/^"|"$/g, '') : s);
       } catch {
+        // Support comma-separated format: "S-1-1-0,S-1-5-21-xxx-512"
+        if (raw.includes(',')) {
+          return raw.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+        }
         return [raw.replace(/^"|"$/g, '')];
       }
     }
@@ -116,6 +120,16 @@ describe('SID Filter — parseDocumentSIDs logic', () => {
   it('parses single string format', () => {
     const metadata = { allowed_group_sids: 'S-1-1-0' };
     expect(parseDocumentSIDs(metadata)).toEqual(['S-1-1-0']);
+  });
+
+  it('parses comma-separated string format', () => {
+    const metadata = { allowed_group_sids: 'S-1-1-0,S-1-5-21-000-512,S-1-5-21-000-513' };
+    expect(parseDocumentSIDs(metadata)).toEqual(['S-1-1-0', 'S-1-5-21-000-512', 'S-1-5-21-000-513']);
+  });
+
+  it('parses comma-separated with spaces', () => {
+    const metadata = { allowed_group_sids: 'S-1-1-0, S-1-5-21-000-512' };
+    expect(parseDocumentSIDs(metadata)).toEqual(['S-1-1-0', 'S-1-5-21-000-512']);
   });
 
   it('handles nested metadataAttributes format', () => {
