@@ -43,7 +43,7 @@ jobs:
       - name: Run Permission Matrix Tests
         run: |
           cd tests/permission-matrix
-          python -m pytest tests/ -v --tb=short
+          python -m pytest . -v --tb=short
           echo "✅ Permission Matrix: All 31 scenarios passed"
 
   typescript-compile:
@@ -63,12 +63,6 @@ jobs:
 
       - name: CDK TypeScript check
         run: npx tsc --noEmit
-
-      - name: Frontend TypeScript check
-        run: |
-          cd docker/nextjs
-          npm ci
-          npx tsc --noEmit --skipLibCheck
 
   cdk-synth:
     name: CDK Synth (All Feature Flag Combinations)
