@@ -48,7 +48,7 @@ const piiEntityArb: fc.Arbitrary<PiiEntityConfig> = fc.record({
 
 const guardrailsConfigArb: fc.Arbitrary<GuardrailsConfig> = fc.record({
   contentFilters: fc.option(fc.array(contentFilterArb, { minLength: 1, maxLength: 6 }), { nil: undefined }),
-  topicPolicies: fc.option(fc.array(topicPolicyArb, { minLength: 0, maxLength: 3 }), { nil: undefined }),
+  topicPolicies: fc.option(fc.uniqueArray(topicPolicyArb, { minLength: 0, maxLength: 3, selector: (t) => t.name }), { nil: undefined }),
   piiConfig: fc.option(fc.array(piiEntityArb, { minLength: 1, maxLength: 5 }), { nil: undefined }),
   contextualGrounding: fc.option(fc.boolean(), { nil: undefined }),
   groundingThreshold: fc.option(fc.double({ min: 0, max: 1, noNaN: true }), { nil: undefined }),
