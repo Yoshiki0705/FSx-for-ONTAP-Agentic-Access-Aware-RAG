@@ -19,7 +19,8 @@
     "metadataDocumentsScanned": 49,
     "newDocumentsIndexed": 4,
     "documentsFailed": 31,
-    "note": "31 failures likely due to already-indexed docs (incremental sync). Total indexed across all jobs: ~58 docs.",
+    "failureReason": "S3 Vectors filterable metadata 2048 bytes limit exceeded. Documents with long SID lists (multiple domain SIDs) fail to index.",
+    "resolution": "Reduce metadata size by shortening SID list or using group-level SIDs instead of individual user SIDs",
     "industryPacks": ["construction", "education", "government", "healthcare", "insurance", "legal", "manufacturing"],
     "totalFilesUploaded": 70
   },

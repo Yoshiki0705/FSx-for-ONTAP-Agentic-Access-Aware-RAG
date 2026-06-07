@@ -1185,3 +1185,102 @@ if (raw.includes(',')) {
 1. Bedrock KB のメタデータ格納形式は `.metadata.json` の定義とは異なる場合がある
 2. 全フォーマット（配列、カンマ区切り、JSON文字列、単一値）を網羅的にパースする
 3. Property-based test でフォーマットのバリエーションを網羅する
+
+
+---
+
+## 22. S3 Vectors Filterable Metadata 2048 Bytes 制限（2026-06-08 発見）
+
+### 症状
+
+KB Ingestion Job が `COMPLETE` になるが、`numberOfDocumentsFailed` が多数報告される。ingestion は成功扱いだが、一部のドキュメントがインデックスに追加されない。
+
+### エラーメッセージ
+
+```
+Encountered error: Invalid record for key '<chunk-id>': 
+Filterable metadata must have at most 2048 bytes 
+(Service: S3Vectors, Status Code: 400)
+```
+
+### 原因
+
+Amazon S3 Vectors は、各チャンクに付与できる **filterable metadata の合計サイズが 2048 bytes** に制限されている。以下の要因でこの制限を超える:
+
+1. `allowed_group_sids` に多数の長い SID（例: `S-1-5-21-1234567890-1234567890-1234567890-512`）を含む
+2. `category`、`owner`、`classification` など複数のメタデータフィールドを同時に付与
+3. Bedrock KB が内部的に追加するメタデータ（`x-amz-bedrock-kb-chunk-id` 等）も合計に含まれる
+
+### 影響
+
+- 影響を受けるドキュメントは検索結果に表示されない
+- Permission filter で「アクセス可能なドキュメントがない」と誤判定される可能性
+- ingestion ジョブ自体は `COMPLETE` になるため、気づきにくい
+
+### 解決方法
+
+#### 方法 A: メタデータサイズの削減
+
+```json
+// ❌ 2048 bytes を超える可能性がある（長いSID × 多数）
+{
+  "metadataAttributes": {
+    "allowed_group_sids": [
+      "S-1-5-21-1234567890-1234567890-1234567890-512",
+      "S-1-5-21-1234567890-1234567890-1234567890-1001",
+      "S-1-5-21-1234567890-1234567890-1234567890-2200",
+      "S-1-5-21-1234567890-1234567890-1234567890-8100",
+      "S-1-1-0"
+    ],
+    "category": "healthcare",
+    "owner": "medical-department-team-alpha",
+    "classification": "confidential"
+  }
+}
+
+// ✅ グループSIDのみに限定し、サイズを抑える
+{
+  "metadataAttributes": {
+    "allowed_group_sids": ["S-1-1-0", "S-1-5-21-xxx-512"],
+    "category": "healthcare"
+  }
+}
+```
+
+#### 方法 B: OpenSearch Serverless への切り替え
+
+S3 Vectors の制限が問題になる場合、`vectorStoreType` を `opensearch-serverless` に変更する。OpenSearch Serverless にはこの制限がない。
+
+```bash
+# CDK context で切り替え
+npx cdk deploy --all -c vectorStoreType=opensearch-serverless
+```
+
+> **注意**: ベクトルストアの切り替えは KB 再作成が必要。既存データの再ingestion が発生する。
+
+### 確認方法
+
+```bash
+# Ingestion ジョブの失敗理由を確認
+aws bedrock-agent get-ingestion-job \
+  --knowledge-base-id $KB_ID \
+  --data-source-id $DS_ID \
+  --ingestion-job-id $JOB_ID \
+  --region ap-northeast-1 \
+  --query 'ingestionJob.failureReasons'
+
+# 失敗数の確認
+aws bedrock-agent get-ingestion-job \
+  --knowledge-base-id $KB_ID \
+  --data-source-id $DS_ID \
+  --ingestion-job-id $JOB_ID \
+  --region ap-northeast-1 \
+  --query 'ingestionJob.statistics.numberOfDocumentsFailed'
+```
+
+### 予防策
+
+1. `.metadata.json` の合計サイズを計算してから ingestion を実行する
+2. `allowed_group_sids` は最大 3-5 グループに制限する
+3. Metadata Schema Validation (`lib/schemas/metadata-schema.ts`) の `validateMetadata()` にサイズチェックを追加検討
+4. ingestion 後に `numberOfDocumentsFailed > 0` をアラート対象にする
