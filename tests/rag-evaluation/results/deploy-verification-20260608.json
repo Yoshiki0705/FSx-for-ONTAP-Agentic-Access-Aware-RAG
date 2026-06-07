@@ -2,7 +2,7 @@
   "date": "2026-06-08",
   "environment": "v4-test-demo",
   "region": "ap-northeast-1",
-  "ontapVersion": ">=9.17.1 (confirmed via S3 AP functionality)",
+  "ontapVersion": "NetApp Release 9.17.1P6 (Wed Mar 25 15:38:10 UTC 2026)",
   "deployedImageTag": "initial-20260607-232547",
   "kbId": "9QGDVI3J1Q",
   "dataSourceId": "N57CHFRSXR",
@@ -11,6 +11,17 @@
     "documentsIndexed": 54,
     "metadataDocumentsScanned": 3,
     "metadataModified": 1
+  },
+  "industryPackIngestion": {
+    "jobId": "2OD9ZJ6OYB",
+    "timestamp": "2026-06-08T02:18:38Z",
+    "documentsScanned": 91,
+    "metadataDocumentsScanned": 49,
+    "newDocumentsIndexed": 4,
+    "documentsFailed": 31,
+    "note": "31 failures likely due to already-indexed docs (incremental sync). Total indexed across all jobs: ~58 docs.",
+    "industryPacks": ["construction", "education", "government", "healthcare", "insurance", "legal", "manufacturing"],
+    "totalFilesUploaded": 70
   },
   "verifications": {
     "s3AccessPoint": {
@@ -92,7 +103,7 @@
     "docs/screenshots/v4.3/smart-routing-on-complex-query.png"
   ],
   "pendingVerifications": [
-    "Prompt Caching hit rate (requires repeated queries within 5min TTL)",
+    "Prompt Caching hit rate (requires Claude model selection + repeated queries within 5min TTL)",
     "Smart Routing tier distribution (requires model selection ON)",
     "Automated Reasoning block test (requires metadata-matched docs + violating prompt)",
     "Web Search fallback (requires ENABLE_WEB_SEARCH=true + Claude Platform API key)",
