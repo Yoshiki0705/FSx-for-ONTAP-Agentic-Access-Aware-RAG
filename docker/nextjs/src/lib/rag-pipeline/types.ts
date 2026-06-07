@@ -22,6 +22,8 @@ export interface RetrieveRequest {
   activeKbType?: ActiveKBType;
   mediaTypeFilter?: string;
   searchType?: 'SEMANTIC' | 'HYBRID';
+  /** User explicitly requests web search fallback */
+  useWebSearch?: boolean;
 }
 
 export interface ConversationMessage {
