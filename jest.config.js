@@ -19,7 +19,8 @@ module.exports = {
     '/.next/',
     '/backup-.*/',
     '/archive/',
-    '/backups/'
+    '/backups/',
+    '/e2e-.*\\.test\\.ts$'
   ],
   modulePathIgnorePatterns: [
     '<rootDir>/backup-.*',

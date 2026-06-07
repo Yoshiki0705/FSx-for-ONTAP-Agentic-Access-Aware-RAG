@@ -32,10 +32,8 @@ describe('Voice Chat WebRTC CDK Snapshot Tests', () => {
         MessageTtlSeconds: 60,
       });
 
-      // AgentCore Runtime Agent
-      template.hasResource('AWS::BedrockAgentCore::AgentRuntime', {});
-
-      // IAM Role for Voice Agent
+      // AgentCore Runtime Agent (deployed via CLI/SDK, not CloudFormation)
+      // Verify IAM Role for Voice Agent instead
       template.hasResourceProperties('AWS::IAM::Role', {
         RoleName: 'test-dev-voice-agent-role',
       });

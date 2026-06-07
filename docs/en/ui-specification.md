@@ -193,7 +193,7 @@ The Converse API call method varies depending on the selected model ID when usin
 ### Fallback Chain
 
 ```
-Selected model → (failure) → apac.amazon.nova-lite-v1:0 → (failure) → anthropic.claude-3-haiku-20240307-v1:0
+Selected model → (failure) → apac.amazon.nova-lite-v1:0 → (failure) → anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 Automatically tries the next model when Legacy model errors, on-demand unavailable errors, or ValidationException occur.

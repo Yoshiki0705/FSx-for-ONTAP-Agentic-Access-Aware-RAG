@@ -62,7 +62,7 @@ exports[`Federation disabled - snapshot (backward compatibility) テンプレー
         },
         "Schema": [
           {
-            "Mutable": false,
+            "Mutable": true,
             "Name": "email",
             "Required": true,
           },
@@ -226,7 +226,7 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
-          "S3Key": "7b5685401d34171edcd423e9ea15b089c6c5e0341ac493dcf7e2e851b54fd060.zip",
+          "S3Key": "019933fc4bb779678a3ed1021f27f2ec07342f84cf8335644f54b6ef0df609e2.zip",
         },
         "Environment": {
           "Variables": {
@@ -473,7 +473,7 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
         },
         "Schema": [
           {
-            "Mutable": false,
+            "Mutable": true,
             "Name": "email",
             "Required": true,
           },
@@ -486,6 +486,11 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
             "AttributeDataType": "String",
             "Mutable": true,
             "Name": "role",
+          },
+          {
+            "AttributeDataType": "String",
+            "Mutable": true,
+            "Name": "oidc_groups",
           },
         ],
         "SmsVerificationMessage": "The verification code to your new account is {####}",
@@ -689,7 +694,7 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
       "Properties": {
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-ap-northeast-1",
-          "S3Key": "7b5685401d34171edcd423e9ea15b089c6c5e0341ac493dcf7e2e851b54fd060.zip",
+          "S3Key": "019933fc4bb779678a3ed1021f27f2ec07342f84cf8335644f54b6ef0df609e2.zip",
         },
         "Environment": {
           "Variables": {
@@ -967,7 +972,7 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
         },
         "Schema": [
           {
-            "Mutable": false,
+            "Mutable": true,
             "Name": "email",
             "Required": true,
           },
@@ -980,6 +985,11 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
             "AttributeDataType": "String",
             "Mutable": true,
             "Name": "role",
+          },
+          {
+            "AttributeDataType": "String",
+            "Mutable": true,
+            "Name": "oidc_groups",
           },
         ],
         "SmsVerificationMessage": "The verification code to your new account is {####}",

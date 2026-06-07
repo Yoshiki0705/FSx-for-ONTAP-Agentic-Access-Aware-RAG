@@ -257,9 +257,9 @@ Bedrock KB `RetrieveAndGenerate` API는 Anthropic 모델만 지원합니다. KB 
 
 | 전송된 모델 | 변환 대상 | 이유 |
 |------------|----------|------|
-| `apac.amazon.nova-pro-v1:0` | `anthropic.claude-3-haiku-20240307-v1:0` | Nova 모델은 KB API에서 지원되지 않음 |
+| `apac.amazon.nova-pro-v1:0` | `anthropic.claude-haiku-4-5-20251001-v1:0` | Nova 모델은 KB API에서 지원되지 않음 |
 | `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | `anthropic.claude-3-5-sonnet-20241022-v2:0` | 추론 프로파일 프레픽스 제거 |
-| `anthropic.claude-3-haiku-20240307-v1:0` | 그대로 | 변환 불필요 |
+| `anthropic.claude-haiku-4-5-20251001-v1:0` | 그대로 | 변환 불필요 |
 
 구현: `docker/nextjs/src/app/api/bedrock/kb/retrieve/route.ts`
 

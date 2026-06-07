@@ -17,7 +17,7 @@ export const AGENT_CATEGORY_MAP: Record<string, AgentCategoryConfig> = {
 ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って文書を検索してから回答してください。
 財務レポート、予算、経費に関する質問に正確で簡潔な日本語の回答を生成してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '財務レポート分析・予算管理専門Agent',
   },
   project: {
@@ -27,7 +27,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って文書を検索してから回答してください。
 プロジェクト進捗、マイルストーン、タスク管理に関する質問に正確で簡潔な日本語の回答を生成してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: 'プロジェクト進捗管理・マイルストーン追跡Agent',
   },
   hr: {
@@ -37,7 +37,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って文書を検索してから回答してください。
 人事規定、コンプライアンス、福利厚生に関する質問に正確で簡潔な日本語の回答を生成してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '人事ポリシー・コンプライアンス確認Agent',
   },
   search: {
@@ -47,7 +47,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って文書を検索してから回答してください。
 複数文書にまたがる情報を統合し、正確で簡潔な日本語の回答を生成してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '文書横断検索・データ分析Agent',
   },
   presentation: {
@@ -58,7 +58,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 その情報を基にプレゼンテーション資料の構成案（タイトル、各スライドの見出し・要点・話者ノート）を生成してください。
 Markdown形式で出力し、各スライドを## で区切ってください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '社内データを基にプレゼンテーション構成案を自動生成するAgent',
   },
   approval: {
@@ -69,7 +69,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 その情報を基に稟議書のドラフト（件名、申請理由、予算、期待効果、リスク、承認者）を生成してください。
 社内フォーマットに準拠した構造化された日本語の文書を出力してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '社内規定に基づく稟議書・申請書類のドラフト自動生成Agent',
   },
   minutes: {
@@ -79,7 +79,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って関連する会議資料・プロジェクト文書を検索し、
 その情報を基に構造化された議事録（日時、参加者、議題、決定事項、アクションアイテム、次回予定）を生成してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '会議内容を構造化して議事録・サマリーを自動生成するAgent',
   },
   report: {
@@ -89,7 +89,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って社内データ・過去のレポートを検索し、
 その情報を基に構造化されたレポート（エグゼクティブサマリー、主要指標、分析、課題、推奨アクション）を生成してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '社内データから定期レポート・報告書を自動生成するAgent',
   },
   contract: {
@@ -99,7 +99,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って既存の契約テンプレート・社内規定を検索し、
 その情報を基に契約書のドラフト作成またはリスク指摘（条項ごとのリスク評価、修正提案）を行ってください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '契約テンプレートを基にドラフト作成・リスク指摘を行うAgent',
   },
   onboarding: {
@@ -109,7 +109,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って社内規定・部署情報・FAQ文書を検索し、
 その情報を基に新入社員向けのガイド資料（部署概要、業務フロー、ツール一覧、FAQ、連絡先）を生成してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '新入社員向けの部署別ガイド・FAQ資料を自動生成するAgent',
   },
   // --- 公共セクター向けテンプレート ---
@@ -121,7 +121,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 その情報を基に公文書のドラフト（件名、宛先、本文、根拠法令、施行日、担当部署）を生成してください。
 行政文書の形式・用語に準拠した構造化された日本語の文書を出力してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '規定・法令に基づく公文書・通達のドラフト自動生成Agent（公共セクター向け）',
   },
   policyBrief: {
@@ -132,7 +132,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 その情報を基に政策概要（背景、課題、施策内容、期待効果、予算、スケジュール）または
 議会答弁資料（質問要旨、回答案、根拠データ、補足説明）を生成してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '政策概要・議会答弁資料の自動生成Agent（公共セクター向け）',
   },
   // --- 医療セクター向けテンプレート ---
@@ -145,7 +145,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 重要: 医療診断や処方の推奨は行わないでください。あくまでガイドラインの参照情報を提供してください。
 患者固有の判断は必ず担当医師に委ねてください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '診療ガイドライン・手順書の検索・参照Agent（医療セクター向け、診断禁止）',
   },
   // --- 法務セクター向けテンプレート ---
@@ -158,7 +158,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 重要: 法的助言は行わないでください。あくまで社内文書に基づく参考情報を提供してください。
 最終判断は必ず法務部門または弁護士に委ねてください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '契約書レビュー・コンプライアンスチェック支援Agent（法務セクター向け、法的助言禁止）',
   },
   // --- 保険セクター向けテンプレート ---
@@ -169,7 +169,7 @@ permissionAwareSearchを使わずに回答しないでください。`,
 ユーザーの質問に対して、必ずpermissionAwareSearch機能を使って過去の査定レポート・見積書・査定基準を検索し、
 その情報を基に類似事例の参照、査定ポイントの整理、必要書類の確認を支援してください。
 permissionAwareSearchを使わずに回答しないでください。`,
-    foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
+    foundationModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     description: '保険査定・請求処理の過去事例参照・支援Agent（保険セクター向け）',
   },
 };

@@ -193,7 +193,7 @@ KB Retrieve API 사용 시 선택된 모델 ID에 따라 Converse API 호출 방
 ### 폴백 체인
 
 ```
-선택된 모델 → (실패) → apac.amazon.nova-lite-v1:0 → (실패) → anthropic.claude-3-haiku-20240307-v1:0
+선택된 모델 → (실패) → apac.amazon.nova-lite-v1:0 → (실패) → anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 레거시 모델 오류, 온디맨드 미사용 오류, ValidationException 발생 시 자동으로 다음 모델을 시도합니다.

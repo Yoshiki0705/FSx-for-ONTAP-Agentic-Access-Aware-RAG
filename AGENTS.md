@@ -278,3 +278,54 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | WebRTC connection timeout | Network/TURN failure | Auto-fallback to REST after 15s |
 | Smart Routing returns wrong model | Context size not passed | Ensure `contextSize` parameter is provided |
 | Hybrid Search not working | `SEARCH_TYPE` env not set | Set via `kbSearchType` CDK context |
+| Jest tests hang/timeout in CI | CDK property test `numRuns: 100` × VPC stacks | Use `numRuns: 5` for CDK stack property tests |
+| Snapshot test fails after unrelated change | CDK asset hash or schema drift | Run `npx jest --updateSnapshot` after reviewing diff |
+| Test imports `vitest` in Jest directory | Wrong test runner dependency | Remove vitest import; use Jest globals (`describe/it/expect`) |
+| E2E test fails in CI | Real AWS resources required | Prefix with `e2e-`; excluded via `jest.config.js` |
+| Property test TS error on private method | Method visibility changed | Use correct public API in test |
+| Missing `await` on async in fc.property | Returns Promise instead of value | Use `fc.asyncProperty` + `async` callback |
+| New required prop breaks test compile | Props interface extended | Add new prop to ALL test constructor calls |
+
+## CI/Test Reliability
+
+### Test Architecture
+
+| Directory | Framework | Runner | Scope |
+|-----------|-----------|--------|-------|
+| `tests/` | Jest + fast-check | `npx jest --no-coverage` | CDK assertion + property tests |
+| `docker/nextjs/src/__tests__/` | Vitest + fast-check | `npx vitest run` | Frontend property + unit tests |
+| `lambda/permissions/__tests__/` | Jest | `npx jest --no-coverage` | Permission logic unit tests |
+| `lambda/permissions/__tests__/e2e-*` | Jest (manual) | Excluded from CI | E2E (requires real AWS) |
+| `automation/*/tests/` | pytest + hypothesis | `python3 -m pytest tests/ -v` | Python Lambda unit tests |
+
+### Property Test numRuns Guidelines
+
+| Test Target | Recommended numRuns | Rationale |
+|-------------|-------------------|-----------|
+| CDK stack synthesis | 5-10 | Each run takes 1-3s due to full synth |
+| Lambda handler (with mocks) | 20-50 | Moderate I/O overhead |
+| Pure functions / utils | 100 | Millisecond-order execution |
+| Type validation / parsing | 100 | Lightweight, needs broad coverage |
+
+### Bedrock Model ID Update Procedure
+
+When updating model IDs (AWS Health notifications, EOL):
+
+1. **Scan**: `grep -r "OLD_ID" --include="*.ts" --include="*.tsx" --include="*.json" --include="*.md" | grep -v node_modules`
+2. **Central config first**: `docker/nextjs/src/config/model-defaults.ts`
+3. **Backend**: route.ts fallbacks, converse-client.ts, demo-ai-stack.ts
+4. **Frontend**: components (select options, FOUNDATION_MODELS arrays, card-constants)
+5. **Compatibility system**: model database entry, patterns, regional availability
+6. **Tests**: property test `constantFrom`, discovery route entries
+7. **Docs**: all language versions via `find docs/ -name "*.md" -exec ...`
+8. **Verify**: `npx tsc --noEmit` → `npx cdk synth --quiet` → `npx jest --no-coverage --forceExit` → `cd docker/nextjs && npx vitest run`
+
+### CI Execution Time Budget
+
+| Stage | Target | Action if exceeded |
+|-------|--------|-------------------|
+| TypeScript compile | < 30s | Check for unnecessary includes |
+| CDK synth | < 60s | Minimize context flags |
+| Jest (all tests) | < 120s | Reduce numRuns, isolate E2E |
+| Vitest (all tests) | < 30s | Verify parallel execution |
+| Total pipeline | < 5min | Review test architecture |

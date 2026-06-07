@@ -30,7 +30,7 @@ const CONVERSE_FALLBACK_MODELS = [...KB_CONVERSE_FALLBACK_MODELS];
  */
 export function resolveConverseModelId(rawModelId: string): string {
   if (/^(apac|us|eu)\./i.test(rawModelId)) return rawModelId;
-  if (ON_DEMAND_BLOCKED.has(rawModelId)) return 'anthropic.claude-3-haiku-20240307-v1:0';
+  if (ON_DEMAND_BLOCKED.has(rawModelId)) return 'anthropic.claude-haiku-4-5-20251001-v1:0';
   return rawModelId;
 }
 

@@ -138,17 +138,18 @@ describe('Feature: agent-directory-ui, Property 6: Template card displays requir
     );
   });
 
-  it('there are exactly 10 template categories', () => {
-    expect(categoryKeys.length).toBe(10);
+  it('there are exactly 15 template categories', () => {
+    expect(categoryKeys.length).toBe(15);
   });
 
-  it('each category key is a non-empty lowercase string', () => {
+  it('each category key is a non-empty camelCase string', () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...categoryKeys),
         (category) => {
           expect(category.length).toBeGreaterThan(0);
-          expect(category).toBe(category.toLowerCase());
+          // Keys are camelCase (start with lowercase, may contain uppercase)
+          expect(category[0]).toBe(category[0].toLowerCase());
         }
       ),
       { numRuns: 100 }

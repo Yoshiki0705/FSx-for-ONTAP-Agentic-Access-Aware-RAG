@@ -9,7 +9,7 @@
  */
 export declare enum BedrockModel {
     CLAUDE_3_SONNET = "anthropic.claude-3-sonnet-20240229-v1:0",
-    CLAUDE_3_HAIKU = "anthropic.claude-3-haiku-20240307-v1:0",
+    CLAUDE_HAIKU_4_5 = "anthropic.claude-haiku-4-5-20251001-v1:0",
     CLAUDE_3_OPUS = "anthropic.claude-3-opus-20240229-v1:0",
     CLAUDE_3_5_SONNET = "anthropic.claude-3-5-sonnet-20241022-v2:0",
     CLAUDE_3_5_HAIKU = "anthropic.claude-3-5-haiku-20241022-v1:0",

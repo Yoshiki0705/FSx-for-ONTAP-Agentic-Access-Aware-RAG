@@ -81,7 +81,7 @@ describe('Feature: enterprise-agent-enhancements, Property 19: Backward compatib
           agentName: fc.string({ minLength: 3, maxLength: 50 }),
           description: fc.string({ maxLength: 200 }),
           instruction: fc.string({ minLength: 1, maxLength: 500 }),
-          foundationModel: fc.constantFrom('anthropic.claude-3-haiku-20240307-v1:0'),
+          foundationModel: fc.constantFrom('anthropic.claude-haiku-4-5-20251001-v1:0'),
         }),
         (baseParams) => {
           // When new optional params are omitted, the base params should be unchanged
@@ -108,7 +108,7 @@ describe('Feature: enterprise-agent-enhancements, Property 19: Backward compatib
           agentName: fc.string({ minLength: 3, maxLength: 50 }),
           description: fc.string({ maxLength: 200 }),
           instruction: fc.string({ minLength: 1, maxLength: 500 }),
-          foundationModel: fc.constantFrom('anthropic.claude-3-haiku-20240307-v1:0'),
+          foundationModel: fc.constantFrom('anthropic.claude-haiku-4-5-20251001-v1:0'),
         }),
         (baseParams) => {
           const requestBody = { action: 'update', ...baseParams };

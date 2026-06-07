@@ -24,7 +24,7 @@ export const FALLBACK_MODEL_ID_APAC = 'apac.amazon.nova-pro-v1:0';
 /** KB Converse API フォールバックチェーン */
 export const KB_CONVERSE_FALLBACK_MODELS = [
   'apac.amazon.nova-lite-v1:0',
-  'anthropic.claude-3-haiku-20240307-v1:0',
+  'anthropic.claude-haiku-4-5-20251001-v1:0',
 ] as const;
 
 // ─── 推奨モデル ────────────────────────────────────────────

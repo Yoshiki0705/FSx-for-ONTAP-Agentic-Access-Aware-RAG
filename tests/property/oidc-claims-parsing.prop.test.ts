@@ -53,14 +53,14 @@ describe('Property 15: OIDCグループクレーム解析', () => {
 
   it('extracts groups from custom:{claimName} as JSON array', async () => {
     await fc.assert(
-      fc.property(
+      fc.asyncProperty(
         fc.array(groupNameArb, { minLength: 1, maxLength: 5 }),
         claimNameArb,
-        (groups: string[], claimName: string) => {
+        async (groups: string[], claimName: string) => {
           const event = makeCognitoEvent({
             [`custom:${claimName}`]: JSON.stringify(groups),
           });
-          const result = parseOidcClaims(event, claimName);
+          const result = await parseOidcClaims(event, claimName);
           expect(result.groups).toEqual(groups);
         }
       ),
@@ -70,14 +70,14 @@ describe('Property 15: OIDCグループクレーム解析', () => {
 
   it('extracts groups from {claimName} when custom: prefix is absent', async () => {
     await fc.assert(
-      fc.property(
+      fc.asyncProperty(
         fc.array(groupNameArb, { minLength: 1, maxLength: 5 }),
         claimNameArb,
-        (groups: string[], claimName: string) => {
+        async (groups: string[], claimName: string) => {
           const event = makeCognitoEvent({
             [claimName]: JSON.stringify(groups),
           });
-          const result = parseOidcClaims(event, claimName);
+          const result = await parseOidcClaims(event, claimName);
           expect(result.groups).toEqual(groups);
         }
       ),
@@ -87,15 +87,15 @@ describe('Property 15: OIDCグループクレーム解析', () => {
 
   it('parses comma-separated groups when JSON parse fails', async () => {
     await fc.assert(
-      fc.property(
+      fc.asyncProperty(
         fc.array(groupNameArb, { minLength: 1, maxLength: 5 }),
         claimNameArb,
-        (groups: string[], claimName: string) => {
+        async (groups: string[], claimName: string) => {
           const csvGroups = groups.join(',');
           const event = makeCognitoEvent({
             [`custom:${claimName}`]: csvGroups,
           });
-          const result = parseOidcClaims(event, claimName);
+          const result = await parseOidcClaims(event, claimName);
           expect(result.groups).toEqual(groups);
         }
       ),
@@ -105,9 +105,9 @@ describe('Property 15: OIDCグループクレーム解析', () => {
 
   it('returns empty groups when claim is missing', async () => {
     await fc.assert(
-      fc.property(claimNameArb, (claimName: string) => {
+      fc.asyncProperty(claimNameArb, async (claimName: string) => {
         const event = makeCognitoEvent({});
-        const result = parseOidcClaims(event, claimName);
+        const result = await parseOidcClaims(event, claimName);
         expect(result.groups).toEqual([]);
       }),
       { numRuns: 20 }
@@ -116,14 +116,14 @@ describe('Property 15: OIDCグループクレーム解析', () => {
 
   it('uses default "groups" claim name when not specified', async () => {
     await fc.assert(
-      fc.property(
+      fc.asyncProperty(
         fc.array(groupNameArb, { minLength: 1, maxLength: 5 }),
-        (groups: string[]) => {
+        async (groups: string[]) => {
           const event = makeCognitoEvent({
             'custom:groups': JSON.stringify(groups),
           });
           // Call without explicit claimName — defaults to 'groups'
-          const result = parseOidcClaims(event);
+          const result = await parseOidcClaims(event);
           expect(result.groups).toEqual(groups);
         }
       ),
