@@ -252,14 +252,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         answer: result.text,
-        citations: allowed.map(r => ({
+        citations: allowed.map((r, i) => ({
+          index: i + 1,
           fileName: r.fileName, s3Uri: r.s3Uri, content: r.content.substring(0, 500), metadata: r.metadata,
+          boundaryType: 'verified' as const, // KB results are always permission-verified
+          permissionVerified: true,
           ...(MULTIMODAL_ENABLED ? { mediaType: (r as AllowedDocument & { mediaType?: MediaType }).mediaType || 'text' } : {}),
         })),
         filterLog,
         ...(guardrailResult ? { guardrailResult } : {}),
         metadata: {
           knowledgeBaseId: effectiveKbId, modelId: result.usedModel, region, timestamp: new Date().toISOString(),
+          boundaryTypes: ['verified'],
           ...(imageAnalysisUsed ? { imageAnalysis: true } : {}),
           ...(conversationHistory.length > 0 ? { memoryContextUsed: true, memoryMessageCount: conversationHistory.length } : {}),
           ...(MULTIMODAL_ENABLED ? { multimodalEnabled: true, routeDecision: routeDecision.reason } : {}),
