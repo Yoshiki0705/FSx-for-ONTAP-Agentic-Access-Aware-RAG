@@ -379,8 +379,15 @@ jobs:
           MIN_SUCCESS_RATE=95
           MAX_EXECUTION_TIME=30000  # 30秒
           
-          # クイックテスト結果の取得
-          quick_success_rate="${{ needs.quick-tests.outputs.success-rate || '0' }}"
+          # クイックテスト結果の取得（outputs が空の場合はジョブ結果で判定）
+          quick_success_rate="${{ needs.quick-tests.outputs.success-rate }}"
+          if [[ -z "$quick_success_rate" || "$quick_success_rate" == "0" ]]; then
+            if [[ "${{ needs.quick-tests.result }}" == "success" ]]; then
+              quick_success_rate="100"
+            else
+              quick_success_rate="0"
+            fi
+          fi
           quick_execution_time="${{ needs.quick-tests.outputs.execution-time || '0' }}"
           
           # フルテスト結果の取得（実行された場合）
