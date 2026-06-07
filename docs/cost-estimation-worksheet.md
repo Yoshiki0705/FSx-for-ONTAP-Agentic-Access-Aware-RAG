@@ -220,7 +220,8 @@ CloudWatch:
 | Cognito | ~2,000 MAU | $0 |
 | CloudWatch | フル監視 | $100 |
 | Event-Driven Agent Trigger | Lambda + DynamoDB + Scheduler (全 triggers + 日次レポート) | $15 |
-| **合計** | | **~$8,527/月** |
+| Neptune Analytics (Graph RAG) | 32 m-NCU（`enableGraphRAG=true` 時のみ） | $200 |
+| **合計** | | **~$8,727/月** |
 
 ---
 

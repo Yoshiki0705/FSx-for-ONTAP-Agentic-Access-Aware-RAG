@@ -65,6 +65,25 @@ export interface GraphRAGConstructProps {
  *   3. Batch write to Neptune Analytics (Lambda, chunked)
  *   4. Verify graph consistency (Lambda)
  *   5. Update DynamoDB inventory (Lambda)
+ *
+ * FSx I/O Impact Note (Storage Specialist review):
+ *   Graph construction involves ListObjectsV2 + GetObject calls via S3 AP.
+ *   For large document sets, this can consume FSx throughput capacity.
+ *   Recommendations:
+ *   - Schedule graph construction during off-peak hours
+ *   - Consider reading from FlexClone/Snapshot for burst ingestion
+ *   - Monitor FSx throughput utilization during graph builds
+ *   - Set concurrency limits on graph construction Lambda
+ *
+ * Observability Metrics (SRE review):
+ *   Graph RAG Lambda should emit the following EMF metrics:
+ *   - Namespace: GraphRAG
+ *   - Metrics:
+ *     - GraphQueryLatency (ms) — P50/P90/P99
+ *     - GraphNodeCount (count) — total nodes in graph
+ *     - GraphEdgeCount (count) — total edges in graph
+ *     - GraphExpansionResults (count) — documents returned per expansion
+ *     - PermissionFilteredExpansion (count) — documents filtered by SID check
  */
 export const GRAPH_SCHEMA = {
   nodeTypes: ['Document', 'Project', 'Team', 'Entity'],

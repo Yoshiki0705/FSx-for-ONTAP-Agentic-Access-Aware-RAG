@@ -231,6 +231,20 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 4. **Graph RAGデプロイ（オプション）** — `enableGraphRAG=true` でNeptune Analytics起動、ドキュメント関連性グラフ構築
 5. **Model Distillation実行（オプション）** — Nova 2 Lite の Permission filtering精度が≥95%ならlightweight tierに採用
 
+> **Graph RAG 障害時**: Neptune Analytics が利用不可能な場合、システムはGraph展開をスキップしKB直接検索結果のみを返します（graceful degradation）。Graph RAG はオプション拡張であり、コア RAG 機能の可用性には影響しません。
+
+#### Expected Business Impact
+
+Phase 0-5 の統合により期待される効果:
+
+| 指標 | 改善内容 | 期待効果 |
+|------|---------|---------|
+| **応答品質** | 最新モデル（Opus 4.8/Sonnet 4.6）+ Automated Reasoning | ハルシネーション削減、Permission違反0件の保証強化 |
+| **コスト** | Prompt Caching + Smart Routing最適化 | トークンコスト30-60%削減（セッション利用パターン依存） |
+| **セキュリティ** | Gateway Interceptor + Automated Reasoning 5ルール | ツールレベル + 応答レベルの二重Permission制御 |
+| **運用性** | EMFメトリクス + model-quality-gate CI | 品質劣化の自動検知、モデル更新時の回帰テスト自動化 |
+| **拡張性** | Graph RAG + Permission Boundary Classification | ドキュメント関連性検索、データソース信頼度の構造的管理 |
+
 ---
 
 ## 関連リポジトリ（FSx for ONTAP エコシステム）

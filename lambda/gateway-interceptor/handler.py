@@ -38,13 +38,19 @@ dynamodb = boto3.resource(
 # Each tool maps to required permission level and optional scope constraints.
 # Permission levels: read < write < admin
 TOOL_PERMISSION_RULES: dict[str, dict[str, Any]] = {
-    # FSx ONTAP Operations
+    # FSx ONTAP Operations — Read
     "list_volumes": {"required_level": "read"},
     "get_capacity": {"required_level": "read"},
     "list_files": {"required_level": "read", "scope": "sid_matched_directory"},
     "get_file_metadata": {"required_level": "read", "scope": "sid_matched_file"},
+    # FSx ONTAP Operations — Write
+    "upload_file": {"required_level": "write", "scope": "sid_matched_directory"},
+    "rename_file": {"required_level": "write", "scope": "sid_matched_file"},
+    "update_metadata": {"required_level": "write", "scope": "sid_matched_file"},
+    # FSx ONTAP Operations — Admin
     "expand_volume": {"required_level": "admin"},
     "delete_file": {"required_level": "admin", "scope": "owner_only"},
+    "modify_acl": {"required_level": "admin"},
     # KB Query Tools
     "search_kb": {"required_level": "read"},
     "get_document_meta": {"required_level": "read"},
@@ -62,17 +68,23 @@ def get_user_permission_level(user_sids: list[str]) -> str:
     """
     SIDリストからユーザーの権限レベルを判定する。
 
-    - Domain Admins SID パターン → admin
+    - Domain Admins SID パターン (-512) → admin
+    - Power Users / Account Operators (-547, -548) → write
     - 有効なSIDが存在 → read (デフォルト)
     - SIDなし → deny
     """
     if not user_sids:
         return "deny"
 
-    # Domain Admins: SID ending in -512
     for sid in user_sids:
+        # Domain Admins: SID ending in -512
         if sid.endswith("-512"):
             return "admin"
+
+    for sid in user_sids:
+        # Power Users (-547) or Account Operators (-548)
+        if sid.endswith("-547") or sid.endswith("-548"):
+            return "write"
 
     # Any valid SID → at least read access
     return "read"
