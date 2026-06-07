@@ -17,7 +17,7 @@ import {
   type ConverseCommandInput,
   type ConverseCommandOutput,
 } from '@aws-sdk/client-bedrock-runtime';
-import { KB_CONVERSE_FALLBACK_MODELS, ON_DEMAND_BLOCKED_MODELS } from '@/config/model-defaults';
+import { KB_CONVERSE_FALLBACK_MODELS, ON_DEMAND_BLOCKED_MODELS, INFERENCE_PROFILE_MAP } from '@/config/model-defaults';
 import type { ConversationMessage, ConverseResult } from './types';
 
 const CONVERSE_FALLBACK_MODELS = [...KB_CONVERSE_FALLBACK_MODELS];
@@ -28,11 +28,20 @@ const PROMPT_CACHING_ENABLED = process.env.ENABLE_PROMPT_CACHING !== 'false'; //
 /**
  * Resolve model ID for Converse API.
  * - Cross-region inference profiles (jp.*, global.*, apac.*, us.*, eu.*) pass through
+ * - Base model IDs are mapped to regional inference profiles (required for ap-northeast-1)
  * - On-demand blocked models fall back to Haiku
  */
 export function resolveConverseModelId(rawModelId: string): string {
+  // Already an inference profile — pass through
   if (/^(jp|global|apac|us|eu)\./i.test(rawModelId)) return rawModelId;
+  // On-demand blocked — fall back
   if (ON_DEMAND_BLOCKED_MODELS.has(rawModelId)) return 'anthropic.claude-haiku-4-5-20251001-v1:0';
+  // Map base model ID to regional inference profile
+  const profileId = INFERENCE_PROFILE_MAP[rawModelId];
+  if (profileId) {
+    console.log(`[Converse] Resolved inference profile: ${rawModelId} → ${profileId}`);
+    return profileId;
+  }
   return rawModelId;
 }
 

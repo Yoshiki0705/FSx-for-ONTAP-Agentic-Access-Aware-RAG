@@ -73,6 +73,33 @@ export const ON_DEMAND_BLOCKED_MODELS = new Set([
   'nvidia.nemotron-super-3-120b',
 ]);
 
+// ─── Inference Profile 解決マップ ─────────────────────────
+/**
+ * ベースモデルID → リージョナル Inference Profile ID のマッピング。
+ * ap-northeast-1 では多くの Anthropic Claude モデルが on-demand 呼び出し不可。
+ * Inference Profile (jp.* / apac.*) 経由での呼び出しが必須。
+ *
+ * @see https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles.html
+ */
+export const INFERENCE_PROFILE_MAP: Record<string, string> = {
+  // Claude Sonnet 4.6
+  'anthropic.claude-sonnet-4-6': 'jp.anthropic.claude-sonnet-4-6',
+  // Claude Opus 4.8
+  'anthropic.claude-opus-4-8': 'jp.anthropic.claude-opus-4-8',
+  // Claude Sonnet 4.5
+  'anthropic.claude-sonnet-4-5-20250929-v1:0': 'jp.anthropic.claude-sonnet-4-5-20250929-v1:0',
+  // Claude Opus 4.5
+  'anthropic.claude-opus-4-5-20250929-v1:0': 'jp.anthropic.claude-opus-4-5-20250929-v1:0',
+  // Claude Sonnet 4 (base)
+  'anthropic.claude-sonnet-4-20250514-v1:0': 'apac.anthropic.claude-sonnet-4-20250514-v1:0',
+  // Claude Opus 4 (base)
+  'anthropic.claude-opus-4-0-20250514-v1:0': 'apac.anthropic.claude-opus-4-0-20250514-v1:0',
+  // Claude Haiku 4.5
+  'anthropic.claude-haiku-4-5-20251001-v1:0': 'apac.anthropic.claude-haiku-4-5-20251001-v1:0',
+  // Nova 2 Lite
+  'amazon.nova-2-lite-v1:0': 'jp.amazon.nova-2-lite-v1:0',
+};
+
 // ─── Deprecated Model 互換マッピング ──────────────────────
 /**
  * 旧モデルID → 新モデルIDのマッピング。
