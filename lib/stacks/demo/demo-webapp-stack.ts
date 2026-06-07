@@ -313,6 +313,16 @@ export class DemoWebAppStack extends cdk.Stack {
       resources: ['*'],
     }));
 
+    // AWS Marketplace 権限（Anthropic Claude inference profile 利用に必須）
+    this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+      sid: 'MarketplaceModelAccess',
+      actions: [
+        'aws-marketplace:ViewSubscriptions',
+        'aws-marketplace:Subscribe',
+      ],
+      resources: ['*'],
+    }));
+
     // Guardrails API 権限（enableGuardrails=true 時のみ）
     if (props.guardrailId) {
       this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
