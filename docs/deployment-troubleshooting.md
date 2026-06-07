@@ -1093,3 +1093,95 @@ new cdk.CfnOutput(this, 'VpcSubnetIds', { value: vpc.privateSubnets.map(s => s.s
 
 - CloudFormation サポートが追加され次第、CDK コンストラクトに移行する
 - それまでは `post-deploy-setup.sh` に Voice Agent デプロイステップを追加することを検討
+
+
+---
+
+## 20. Docker Layer Cache によるソース変更未反映（2026-06-08 知見）
+
+### 症状
+
+ソースコード（`docker/nextjs/src/` 配下）を変更してリビルド・デプロイしたが、動作が変わらない。Lambda の環境変数やイメージ URI は更新されているのに、実行時の挙動が古いコードのまま。
+
+### 原因
+
+`docker buildx build` がレイヤーキャッシュを使い回し、`COPY . .` ステップで古いソースファイルを含むレイヤーを再利用している。特に以下の条件で発生しやすい:
+
+1. `Dockerfile` の `COPY package*.json ./` + `npm install` レイヤーが変わらない場合
+2. ローカルの Docker キャッシュに前回ビルドのレイヤーが残っている場合
+3. `.dockerignore` で除外されていないキャッシュファイルが干渉する場合
+
+### 解決方法
+
+```bash
+# ✅ --no-cache フラグ付きでリビルド（デフォルト推奨）
+docker buildx build --platform linux/amd64 \
+  --provenance=false --sbom=false --output type=docker \
+  --no-cache \
+  -t ${ECR_REGISTRY}/${ECR_REPO}:latest \
+  -f docker/nextjs/Dockerfile docker/nextjs
+```
+
+### deploy-webapp.sh の改善（2026-06-08 適用済み）
+
+`development/scripts/deploy-webapp.sh` はデフォルトで `--no-cache` を使用するよう変更済み:
+
+- デフォルト: `--no-cache`（ソース変更を確実に反映）
+- `--use-cache` オプション: 依存関係のみの更新時に高速ビルド
+- デプロイ後に ECR image digest を出力（追跡用）
+- Lambda に反映されたイメージ URI を確認出力
+
+### 予防策
+
+1. ソースコード変更時は常に `--no-cache` を使用する
+2. `docker/nextjs/.next/` キャッシュを事前削除する
+3. デプロイ後に CloudFront URL でブラウザのハードリロード（Ctrl+Shift+R）を実行する
+4. Lambda のログで実行コードのバージョンを確認する（EMF メトリクスのタイムスタンプ等）
+
+---
+
+## 21. SID Filter のカンマ区切りフォーマット問題（2026-06-08 修正済み）
+
+### 症状
+
+Permission-aware RAG で検索すると、メタデータが付与されているドキュメントでも「アクセス不可」として除外され、空の回答が返る。
+
+### 原因
+
+Bedrock Knowledge Base がメタデータを格納する際、`.metadata.json` で配列として定義した `allowed_group_sids` をカンマ区切りの単一文字列として返す場合がある:
+
+```json
+// .metadata.json で定義した形式:
+{"metadataAttributes": {"allowed_group_sids": ["S-1-1-0", "S-1-5-21-xxx-512"]}}
+
+// KB が返すメタデータの形式:
+{"allowed_group_sids": "S-1-1-0,S-1-5-21-xxx-512"}
+```
+
+修正前の `parseDocumentSIDs()` はこのカンマ区切り形式をパースできず、文字列全体を1つのSIDとして扱っていた。
+
+### 修正内容
+
+`docker/nextjs/src/lib/rag-pipeline/sid-filter.ts` の `parseDocumentSIDs()` に以下のフォールバックを追加:
+
+```typescript
+// カンマ区切りフォーマットのサポート
+if (raw.includes(',')) {
+  return raw.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+}
+```
+
+### 修正コミット
+
+- `578435b` — `fix: SID filter — support comma-separated allowed_group_sids format`
+
+### テスト
+
+- `docker/nextjs/src/__tests__/rag-pipeline/sid-filter.test.ts` にカンマ区切り形式のテストケース追加済み
+- `lib/schemas/metadata-schema.ts` に正式スキーマ定義＋正規化関数を追加済み
+
+### 教訓
+
+1. Bedrock KB のメタデータ格納形式は `.metadata.json` の定義とは異なる場合がある
+2. 全フォーマット（配列、カンマ区切り、JSON文字列、単一値）を網羅的にパースする
+3. Property-based test でフォーマットのバリエーションを網羅する
