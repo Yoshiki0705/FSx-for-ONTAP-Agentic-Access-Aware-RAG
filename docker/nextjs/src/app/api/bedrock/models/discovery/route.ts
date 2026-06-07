@@ -342,15 +342,15 @@ function getFallbackModels(): BedrockModel[] {
       description: 'Claude 3.5 Sonnet v2 - Advanced reasoning and analysis'
     },
     {
-      id: 'anthropic.claude-3-haiku-20240307-v1:0',
-      name: 'Claude 3 Haiku',
+      id: 'anthropic.claude-haiku-4-5-20251001-v1:0',
+      name: 'Claude Haiku 4.5',
       provider: 'anthropic',
       modality: 'text',
       maxTokens: 200000,
-      costPer1kTokens: { input: 0.25, output: 1.25 },
+      costPer1kTokens: { input: 0.80, output: 4.00 },
       availableRegions: ['ap-northeast-1', 'us-east-1', 'us-west-2'],
-      capabilities: ['text'],
-      description: 'Claude 3 Haiku - Fast and efficient'
+      capabilities: ['text', 'image'],
+      description: 'Claude Haiku 4.5 - Fast, intelligent, and cost-effective'
     }
   ];
 }

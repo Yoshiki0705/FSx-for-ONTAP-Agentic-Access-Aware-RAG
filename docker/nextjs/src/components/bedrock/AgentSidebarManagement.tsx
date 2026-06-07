@@ -388,7 +388,7 @@ function AgentCreateFormMini({ onSubmit, onCancel, loading, locale }: AgentCreat
               className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="anthropic.claude-3-sonnet-20240229-v1:0">Claude 3 Sonnet</option>
-              <option value="anthropic.claude-3-haiku-20240307-v1:0">Claude 3 Haiku</option>
+              <option value="anthropic.claude-haiku-4-5-20251001-v1:0">Claude Haiku 4.5</option>
               <option value="anthropic.claude-3-opus-20240229-v1:0">Claude 3 Opus</option>
             </select>
           </div>

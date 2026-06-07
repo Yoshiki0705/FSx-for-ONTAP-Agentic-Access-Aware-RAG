@@ -88,22 +88,20 @@ describe('E2E: Share レベル権限チェック', () => {
       const testPath = '/test-share';
 
       try {
-        const permissions = await service.buildUnifiedPermissions(
-          testUserId,
-          testPath,
-          'smb'
-        );
+        const permissions = await service.checkPermissionsByProtocol({
+          userId: testUserId,
+          path: testPath,
+          protocol: 'SMB',
+        });
 
         expect(permissions).toBeDefined();
         expect(permissions.userId).toBe(testUserId);
-        expect(permissions.path).toBe(testPath);
-        expect(permissions.protocol).toBe('smb');
-        expect(permissions.permissions.smb).toBeDefined();
+        expect(permissions.overallAccess).toBeDefined();
 
         console.log('✅ ONTAP REST APIから権限情報を取得:', {
           userId: permissions.userId,
-          path: permissions.path,
-          hasPermissions: !!permissions.permissions.smb,
+          canRead: permissions.overallAccess.canRead,
+          hasPermissions: permissions.accessibleDirectories.length > 0,
         });
       } catch (error) {
         // ONTAP接続情報が設定されていない場合はスキップ

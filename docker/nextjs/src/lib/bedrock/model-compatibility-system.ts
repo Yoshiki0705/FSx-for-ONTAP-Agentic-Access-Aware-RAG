@@ -92,10 +92,10 @@ export class ModelCompatibilitySystem {
       outputModalities: ['Text'],
     });
 
-    // Anthropic Claude 3.5 Sonnet v1 (廃止済み - 2026-03-01)
+    // Anthropic Claude 3.5 Sonnet v1 (廃止済み - 2026-07-30)
     this.modelDatabase.set('anthropic.claude-3-5-sonnet-20240620-v1:0', {
       modelId: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
-      modelName: 'Claude 3.5 Sonnet (Deprecated)',
+      modelName: 'Claude 3.5 Sonnet v1 (Deprecated)',
       provider: 'Anthropic',
       family: 'claude-3-5-sonnet',
       version: '20240620-v1',
@@ -111,8 +111,8 @@ export class ModelCompatibilitySystem {
       supportedRegions: [],
       inputModalities: ['Text'],
       outputModalities: ['Text'],
-      deprecationDate: '2026-03-01',
-      replacementModel: 'anthropic.claude-sonnet-4-20250514-v1:0',
+      deprecationDate: '2026-07-30',
+      replacementModel: 'anthropic.claude-sonnet-4-5-20250929-v1:0',
     });
 
     // Anthropic Claude 3.5 Sonnet v2 (問題のある版)
@@ -138,14 +138,14 @@ export class ModelCompatibilitySystem {
       replacementModel: 'anthropic.claude-sonnet-4-20250514-v1:0',
     });
 
-    // Anthropic Claude 3 Haiku
-    this.modelDatabase.set('anthropic.claude-3-haiku-20240307-v1:0', {
-      modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
-      modelName: 'Claude 3 Haiku',
+    // Anthropic Claude Haiku 4.5
+    this.modelDatabase.set('anthropic.claude-haiku-4-5-20251001-v1:0', {
+      modelId: 'anthropic.claude-haiku-4-5-20251001-v1:0',
+      modelName: 'Claude Haiku 4.5',
       provider: 'Anthropic',
-      family: 'claude-3-haiku',
-      version: '20240307-v1',
-      releaseDate: '2024-03-07',
+      family: 'claude-haiku-4-5',
+      version: '20251001-v1',
+      releaseDate: '2025-10-01',
       isStable: true,
       isDeprecated: false,
       supportedFeatures: {
@@ -158,8 +158,34 @@ export class ModelCompatibilitySystem {
         'us-east-1', 'us-west-2', 'ap-northeast-1', 'eu-west-1', 
         'ap-southeast-1', 'ap-southeast-2', 'eu-central-1'
       ],
+      inputModalities: ['Text', 'Image'],
+      outputModalities: ['Text'],
+    });
+
+    // Anthropic Claude 3 Haiku (Legacy → EOL 2026-09-10)
+    this.modelDatabase.set('anthropic.claude-3-haiku-20240307-v1:0', {
+      modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
+      modelName: 'Claude 3 Haiku (Legacy)',
+      provider: 'Anthropic',
+      family: 'claude-3-haiku',
+      version: '20240307-v1',
+      releaseDate: '2024-03-07',
+      isStable: false,
+      isDeprecated: true,
+      supportedFeatures: {
+        onDemand: true,
+        provisioned: false,
+        streaming: true,
+        crossRegion: true,
+      },
+      supportedRegions: [
+        'us-east-1', 'us-west-2', 'ap-northeast-1', 'eu-west-1', 
+        'ap-southeast-1', 'ap-southeast-2', 'eu-central-1'
+      ],
       inputModalities: ['Text'],
       outputModalities: ['Text'],
+      deprecationDate: '2026-09-10',
+      replacementModel: 'anthropic.claude-haiku-4-5-20251001-v1:0',
     });
 
     // Amazon Nova Pro
@@ -247,10 +273,16 @@ export class ModelCompatibilitySystem {
           deprecatedVersions: ['anthropic.claude-3-5-sonnet-20240620-v1:0', 'anthropic.claude-3-5-sonnet-20241022-v2:0'],
           namingConvention: 'anthropic.claude-3-5-sonnet-YYYYMMDD-v{revision}:0',
         },
-        'claude-3-haiku': {
-          stableVersions: ['anthropic.claude-3-haiku-20240307-v1:0'],
-          latestVersions: ['anthropic.claude-3-haiku-20240307-v1:0'],
+        'claude-haiku-4-5': {
+          stableVersions: ['anthropic.claude-haiku-4-5-20251001-v1:0'],
+          latestVersions: ['anthropic.claude-haiku-4-5-20251001-v1:0'],
           deprecatedVersions: [],
+          namingConvention: 'anthropic.claude-haiku-4-5-YYYYMMDD-v{revision}:0',
+        },
+        'claude-3-haiku': {
+          stableVersions: [],
+          latestVersions: [],
+          deprecatedVersions: ['anthropic.claude-3-haiku-20240307-v1:0'],
           namingConvention: 'anthropic.claude-3-haiku-YYYYMMDD-v{revision}:0',
         },
         'claude-3-sonnet': {
@@ -302,7 +334,7 @@ export class ModelCompatibilitySystem {
     // 主要リージョンでの利用可能モデル
     this.regionalAvailability.set('us-east-1', [
       'anthropic.claude-sonnet-4-20250514-v1:0',
-      'anthropic.claude-3-haiku-20240307-v1:0',
+      'anthropic.claude-haiku-4-5-20251001-v1:0',
       'amazon.nova-pro-v1:0',
       'amazon.nova-lite-v1:0',
       'amazon.titan-text-express-v1',
@@ -310,7 +342,7 @@ export class ModelCompatibilitySystem {
 
     this.regionalAvailability.set('us-west-2', [
       'anthropic.claude-sonnet-4-20250514-v1:0',
-      'anthropic.claude-3-haiku-20240307-v1:0',
+      'anthropic.claude-haiku-4-5-20251001-v1:0',
       'amazon.nova-pro-v1:0',
       'amazon.nova-lite-v1:0',
       'amazon.titan-text-express-v1',
@@ -318,7 +350,7 @@ export class ModelCompatibilitySystem {
 
     this.regionalAvailability.set('ap-northeast-1', [
       'anthropic.claude-sonnet-4-20250514-v1:0',
-      'anthropic.claude-3-haiku-20240307-v1:0',
+      'anthropic.claude-haiku-4-5-20251001-v1:0',
       'amazon.nova-pro-v1:0',
       'amazon.nova-lite-v1:0',
       'amazon.titan-text-express-v1',
@@ -326,7 +358,7 @@ export class ModelCompatibilitySystem {
 
     this.regionalAvailability.set('eu-west-1', [
       'anthropic.claude-sonnet-4-20250514-v1:0',
-      'anthropic.claude-3-haiku-20240307-v1:0',
+      'anthropic.claude-haiku-4-5-20251001-v1:0',
       'amazon.nova-lite-v1:0',
       'amazon.titan-text-express-v1',
     ]);

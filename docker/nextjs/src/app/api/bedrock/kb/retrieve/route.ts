@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const { query, userId } = body;
     const knowledgeBaseId = body.knowledgeBaseId || process.env.BEDROCK_KB_ID || '';
     const region = body.region || process.env.BEDROCK_REGION || DEFAULT_REGION;
-    const rawModelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0';
+    const rawModelId = body.modelId || process.env.BEDROCK_MODEL_ID || 'anthropic.claude-haiku-4-5-20251001-v1:0';
 
     // === Validation ===
     if (!query?.trim()) return NextResponse.json({ success: false, error: 'empty' }, { status: 400 });

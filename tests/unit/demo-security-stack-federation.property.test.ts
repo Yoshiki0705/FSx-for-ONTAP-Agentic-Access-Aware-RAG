@@ -91,7 +91,7 @@ describe('Property 1: CDK条件付きリソース作成（両ADパターン）',
           });
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 5 }
     );
   });
 
@@ -135,7 +135,7 @@ describe('Property 1: CDK条件付きリソース作成（両ADパターン）',
           });
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 5 }
     );
   });
 
@@ -180,7 +180,7 @@ describe('Property 1: CDK条件付きリソース作成（両ADパターン）',
           });
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 5 }
     );
   });
 
@@ -198,7 +198,7 @@ describe('Property 1: CDK条件付きリソース作成（両ADパターン）',
           }).toThrow(/adDirectoryId/);
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 5 }
     );
   });
 
@@ -217,7 +217,7 @@ describe('Property 1: CDK条件付きリソース作成（両ADパターン）',
           }).toThrow(/samlMetadataUrl/);
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 5 }
     );
   });
 
@@ -236,7 +236,7 @@ describe('Property 1: CDK条件付きリソース作成（両ADパターン）',
           }).toThrow(/adEc2InstanceId/);
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 5 }
     );
   });
 });

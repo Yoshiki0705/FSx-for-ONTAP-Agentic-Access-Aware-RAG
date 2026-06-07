@@ -42,6 +42,17 @@ function createTestSecurityStack(overrides: Partial<DemoSecurityStackProps> = {}
   return { app, stack, template };
 }
 
+/**
+ * CDK Asset S3Key ハッシュを正規化する。
+ * Lambda Code の S3Key はバンドル環境（OS）により変動するため、
+ * スナップショット比較時に固定値に置換する。
+ */
+function normalizeTemplate(templateJson: Record<string, any>): Record<string, any> {
+  const str = JSON.stringify(templateJson);
+  const normalized = str.replace(/"S3Key":\s*"[a-f0-9]{64}\.zip"/g, '"S3Key": "ASSET_HASH_NORMALIZED.zip"');
+  return JSON.parse(normalized);
+}
+
 // ========================================
 // 1. Managed ADフェデレーション有効時 — スナップショットテスト
 // Validates: Requirements 1.1, 1.2, 1.3, 1.5
@@ -57,7 +68,7 @@ describe('Managed AD federation enabled - snapshot', () => {
       cloudFrontUrl: 'https://d111111abcdef8.cloudfront.net',
     });
 
-    expect(template.toJSON()).toMatchSnapshot();
+    expect(normalizeTemplate(template.toJSON())).toMatchSnapshot();
   });
 });
 
@@ -76,9 +87,10 @@ describe('Self-managed AD federation enabled - snapshot', () => {
       cloudFrontUrl: 'https://d222222abcdef8.cloudfront.net',
     });
 
-    expect(template.toJSON()).toMatchSnapshot();
+    expect(normalizeTemplate(template.toJSON())).toMatchSnapshot();
   });
 });
+
 
 // ========================================
 // 3. フェデレーション無効時 — スナップショットテスト（後方互換性）
@@ -110,7 +122,7 @@ describe('Federation disabled - snapshot (backward compatibility)', () => {
       GenerateSecret: false,
     });
 
-    expect(template.toJSON()).toMatchSnapshot();
+    expect(normalizeTemplate(template.toJSON())).toMatchSnapshot();
   });
 });
 

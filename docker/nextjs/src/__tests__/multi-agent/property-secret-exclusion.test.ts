@@ -96,7 +96,7 @@ const safeStringArb = fc.stringMatching(/^[a-z][a-z0-9 -]{0,18}[a-z0-9]$/);
 
 const foundationModelArb = fc.constantFrom(
   'anthropic.claude-3-sonnet-20240229-v1:0',
-  'anthropic.claude-3-haiku-20240307-v1:0',
+  'anthropic.claude-haiku-4-5-20251001-v1:0',
 );
 
 // ===== Config Generator with Injected Secrets =====

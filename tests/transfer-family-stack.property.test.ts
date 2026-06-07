@@ -48,6 +48,7 @@ describe('Property 3: User Access Scoping', () => {
             projectName: 'test',
             environment: 'test',
             s3AccessPointArn: s3ApArn,
+            s3AccessPointAlias: 'test-ap-s3alias',
             fileSystemId: 'fs-12345',
             svmId: 'svm-12345',
             volumeId: 'fsvol-12345',

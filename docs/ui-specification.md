@@ -193,7 +193,7 @@ KB Retrieve APIでは、選択されたモデルIDに応じてConverse APIの呼
 ### フォールバックチェーン
 
 ```
-選択モデル → (失敗) → apac.amazon.nova-lite-v1:0 → (失敗) → anthropic.claude-3-haiku-20240307-v1:0
+選択モデル → (失敗) → apac.amazon.nova-lite-v1:0 → (失敗) → anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 Legacyモデルエラー、on-demand不可エラー、ValidationExceptionが発生した場合に自動的に次のモデルを試行します。

@@ -57,7 +57,14 @@ runs:
         SLACK_ICON_EMOJI: ${{ inputs.icon-emoji }}
       run: |
         # Slack通知スクリプトの実行
-        if python scripts/ci/slack-notifier.py --type "${{ inputs.type }}" --data '${{ inputs.data }}'; then
+        SCRIPT_PATH="${GITHUB_WORKSPACE}/scripts/ci/slack-notifier.py"
+        if [ ! -f "$SCRIPT_PATH" ]; then
+          echo "⚠️ Slack通知スクリプトが見つかりません: $SCRIPT_PATH"
+          echo "success=false" >> $GITHUB_OUTPUT
+          echo "message=Slack notifier script not found (skipped)" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        if python "$SCRIPT_PATH" --type "${{ inputs.type }}" --data '${{ inputs.data }}'; then
           echo "success=true" >> $GITHUB_OUTPUT
           echo "message=Slack notification sent successfully" >> $GITHUB_OUTPUT
           echo "✅ Slack通知送信成功"

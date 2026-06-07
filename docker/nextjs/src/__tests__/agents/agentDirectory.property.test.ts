@@ -194,7 +194,7 @@ describe('Feature: agent-directory-ui, Property 7: Editor pre-populates with cur
             agentName: agent.agentName,
             description: agent.description || '',
             instruction: agent.instruction || '',
-            foundationModel: agent.foundationModel || 'anthropic.claude-3-haiku-20240307-v1:0',
+            foundationModel: agent.foundationModel || 'anthropic.claude-haiku-4-5-20251001-v1:0',
           };
 
           expect(formData.agentName).toBe(agent.agentName);
@@ -221,7 +221,7 @@ describe('Feature: agent-directory-ui, Property 9: Form preserves input on save 
           description: fc.string({ maxLength: 200 }),
           instruction: fc.string({ maxLength: 500 }),
           foundationModel: fc.constantFrom(
-            'anthropic.claude-3-haiku-20240307-v1:0',
+            'anthropic.claude-haiku-4-5-20251001-v1:0',
             'anthropic.claude-3-sonnet-20240229-v1:0'
           ),
         }),
