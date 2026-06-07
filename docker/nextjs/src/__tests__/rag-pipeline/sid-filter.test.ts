@@ -132,6 +132,20 @@ describe('SID Filter — parseDocumentSIDs logic', () => {
     expect(parseDocumentSIDs(metadata)).toEqual(['S-1-1-0', 'S-1-5-21-000-512']);
   });
 
+  it('parses comma-separated from Bedrock KB metadata format', () => {
+    // This is the actual format returned by Bedrock KB after ingestion
+    // of .metadata.json with metadataAttributes.allowed_group_sids
+    const metadata = {
+      'x-amz-bedrock-kb-chunk-id': 'abc-123',
+      'x-amz-bedrock-kb-data-source-id': 'DS123',
+      allowed_group_sids: 'S-1-1-0,S-1-5-21-1234567890-1234567890-1234567890-512,S-1-5-21-1234567890-1234567890-1234567890-513',
+    };
+    const sids = parseDocumentSIDs(metadata);
+    expect(sids).toHaveLength(3);
+    expect(sids).toContain('S-1-1-0');
+    expect(sids).toContain('S-1-5-21-1234567890-1234567890-1234567890-512');
+  });
+
   it('handles nested metadataAttributes format', () => {
     const metadata = { metadataAttributes: { allowed_group_sids: ['S-1-5-21-000-512'] } };
     expect(parseDocumentSIDs(metadata)).toEqual(['S-1-5-21-000-512']);
