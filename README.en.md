@@ -125,7 +125,7 @@ Integration of AWS AI updates from March–June 2026 is planned. See [2026 Q2 AI
 | Phase 0 | Model ID update (Opus 4.8, Sonnet 4.6, Nova 2 Lite, GPT-5.5 GA) + Quality Gate | ✅ Done |
 | Phase 1 | Prompt Caching + Automated Reasoning Guardrails | ✅ Done |
 | Phase 2 | AgentCore Gateway + Permission Interceptor | ✅ Done |
-| Phase 3 | Claude Platform on AWS (Web Search, Citations) + Strands Agent MVP | 🔜 Planned |
+| Phase 3 | Claude Platform on AWS (Web Search, Citations) + Strands Agent MVP | ✅ Done |
 | Phase 4 | Multimodal KB + Strands Multi-Agent Full | 🔜 Planned |
 | Phase 5 | Graph RAG (Neptune Analytics) + Model Distillation | 🔜 Planned |
 

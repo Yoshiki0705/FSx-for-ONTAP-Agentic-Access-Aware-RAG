@@ -215,7 +215,7 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 | Phase 0 | モデルID更新（Opus 4.8, Sonnet 4.6, Nova 2 Lite, GPT-5.5 GA）+ 品質ゲート | ✅ 完了 |
 | Phase 1 | Prompt Caching + Automated Reasoning Guardrails | ✅ 完了 |
 | Phase 2 | AgentCore Gateway + Permission Interceptor | ✅ 完了 |
-| Phase 3 | Claude Platform on AWS（Web Search, Citations）+ Strands Agent MVP | 🔜 計画中 |
+| Phase 3 | Claude Platform on AWS（Web Search, Citations）+ Strands Agent MVP | ✅ 完了 |
 | Phase 4 | マルチモーダルKB + Strands Multi-Agent Full | 🔜 計画中 |
 | Phase 5 | Graph RAG（Neptune Analytics）+ Model Distillation | 🔜 計画中 |
 
