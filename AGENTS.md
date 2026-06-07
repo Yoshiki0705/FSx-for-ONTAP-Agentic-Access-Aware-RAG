@@ -287,6 +287,9 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Property test TS error on private method | Method visibility changed | Use correct public API in test |
 | Missing `await` on async in fc.property | Returns Promise instead of value | Use `fc.asyncProperty` + `async` callback |
 | New required prop breaks test compile | Props interface extended | Add new prop to ALL test constructor calls |
+| Docker cache — source changes not reflected | Docker layer cache reuses old source | Always use `--no-cache` for source changes |
+| SID filter returns empty (permission deny all) | KB returns comma-separated SIDs | Fixed in `578435b`; parseDocumentSIDs handles all formats |
+| ONTAP version cannot be retrieved via AWS API | `describe-file-systems` lacks version | Use SSM + ONTAP REST API (see operations-runbook.md) |
 
 ## CI/Test Reliability
 
