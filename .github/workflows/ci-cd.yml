@@ -75,6 +75,12 @@ jobs:
   quick-tests:
     runs-on: ubuntu-latest
     needs: setup
+    outputs:
+      success-rate: ${{ steps.parse-results.outputs.success-rate }}
+      total-tests: ${{ steps.parse-results.outputs.total-tests }}
+      passed-tests: ${{ steps.parse-results.outputs.passed-tests }}
+      failed-tests: ${{ steps.parse-results.outputs.failed-tests }}
+      execution-time: ${{ steps.parse-results.outputs.execution-time }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
