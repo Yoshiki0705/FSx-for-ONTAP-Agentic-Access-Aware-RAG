@@ -181,6 +181,12 @@ export class DemoWebAppStack extends cdk.Stack {
         ENABLE_PERMISSION_CHECK: 'true',
         // Prompt Caching: システムプロンプトのキャッシュ（デフォルト有効）
         ENABLE_PROMPT_CACHING: 'true',
+        // Claude Platform on AWS: Web Search + Citations（デフォルト無効）
+        CLAUDE_PLATFORM_MODE: (this.node.tryGetContext('claudePlatformMode') as string) || 'disabled',
+        ENABLE_WEB_SEARCH: this.node.tryGetContext('enableWebSearch') === 'true' ? 'true' : 'false',
+        ...(this.node.tryGetContext('claudePlatformApiKeyArn') ? {
+          CLAUDE_PLATFORM_API_KEY: this.node.tryGetContext('claudePlatformApiKeyArn') as string,
+        } : {}),
         PERMISSION_CACHE_TABLE: permissionCacheTable.tableName,
         USER_ACCESS_TABLE_NAME: userAccessTable.tableName,
         // KBデータソースS3バケット（ディレクトリ情報取得用、オプション）
