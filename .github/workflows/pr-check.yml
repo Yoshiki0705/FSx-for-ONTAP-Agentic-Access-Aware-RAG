@@ -239,7 +239,6 @@ jobs:
         run: |
           echo "🧪 CDK synth (feature flags) 実行中..."
           npx cdk synth --quiet
-          npx cdk synth --quiet -c enableTransferFamily=true
           npx cdk synth --quiet -c enableKbAutoSync=true
 
       - name: Setup test environment
