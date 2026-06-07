@@ -440,6 +440,8 @@
     "description": "管理应用程序设置",
     "language": "语言",
     "lightTheme": "浅色主题",
+    "searchType": "搜索类型",
+    "searchTypeDescription": "Hybrid: 结合语义搜索和关键词搜索",
     "theme": "主题",
     "title": "设置"
   },

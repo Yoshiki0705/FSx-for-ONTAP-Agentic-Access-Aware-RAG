@@ -132,10 +132,11 @@ bash demo-data/scripts/test-transfer-family-e2e.sh --stack-prefix perm-rag-demo 
 | `enableVoiceChat` | `false` | Voice chat (Phase 1: REST, Phase 2: WebRTC) |
 | `voiceChatMode` | `"rest"` | Voice chat mode (`"rest"` \| `"webrtc"`) |
 | `enableMonitoring` | `false` | CloudWatch alarms + dashboard + SNS alerts |
-| `enableGuardrails` | `false` | Bedrock Guardrails (content filter, topic policy, PII) |
+| `enableGuardrails` | `false` | Bedrock Guardrails (content filter, topic policy, PII, Automated Reasoning) |
 | `enableAgentCoreMemory` | `false` | AgentCore Memory (short-term + long-term) |
 | `enableEpisodicMemory` | `false` | Episodic Memory (requires AgentCoreMemory) |
 | `enableAgentPolicy` | `false` | AgentCore Policy (agent behavior control) |
+| `enableAgentCoreGateway` | `false` | AgentCore Gateway + Permission Interceptor (auto-enabled with enableAgentPolicy) |
 | `enableAgentRegistry` | `false` | Agent Registry integration |
 | `enableAdvancedPermissions` | `false` | Time-based access control + audit logging |
 | `enableAdFederation` | `false` | AD SAML federation for Cognito |

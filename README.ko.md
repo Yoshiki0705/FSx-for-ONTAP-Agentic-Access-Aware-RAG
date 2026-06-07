@@ -2078,6 +2078,17 @@ Supervisor Agent는 `AgentCollaboration=SUPERVISOR_ROUTER`와 `AgentCollaborator
 
 > 요청 기반 과금 — 사용하지 않으면 추가 비용이 발생하지 않습니다.
 
+## 관련 리포지토리 (FSx for ONTAP 에코시스템)
+
+| 리포지토리 | 용도 | 개요 |
+|-----------|------|------|
+| **[본 리포지토리] Agentic Access-Aware RAG** | AI / RAG | 권한 필터링 RAG + Agentic AI. FSx ONTAP ACL을 검색에 자동 반영 |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 자동화 | 17개 업종별 서버리스 패턴 (S3 AP 경유 AI/ML 처리, FPolicy 이벤트 구동 지원) |
+| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | FSx ONTAP S3 AP를 통한 Athena, Glue, EMR, SageMaker 통합 검증 프레임워크 |
+| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / 감사 | FSx ONTAP 감사 로그·메트릭을 Datadog, Splunk, Grafana 등에 EC2 없이 전달 |
+
+---
+
 ## 라이선스
 
 [Apache License 2.0](LICENSE)

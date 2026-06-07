@@ -5,6 +5,7 @@ import { useCustomTranslations } from '@/hooks/useCustomTranslations';
 import { useLocale } from 'next-intl';
 import { X, Settings, Moon, Sun, Globe, Save } from 'lucide-react';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import type { SearchType } from '@/lib/kb-query-router';
 import * as Dialog from '@radix-ui/react-dialog';
 
 export function SettingsPanel() {
@@ -129,6 +130,38 @@ export function SettingsPanel() {
                   English
                 </button>
               </div>
+            </div>
+
+            {/* 検索タイプ設定 (Hybrid Search) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                {t('settings.searchType') || '検索タイプ'}
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => updateChat({ searchType: 'SEMANTIC' })}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    chat.searchType === 'SEMANTIC'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Semantic
+                </button>
+                <button
+                  onClick={() => updateChat({ searchType: 'HYBRID' })}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    chat.searchType === 'HYBRID'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Hybrid
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">
+                {t('settings.searchTypeDescription') || 'Hybrid: セマンティック検索 + キーワード検索を組み合わせます'}
+              </p>
             </div>
           </div>
 

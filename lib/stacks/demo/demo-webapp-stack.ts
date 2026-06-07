@@ -179,6 +179,8 @@ export class DemoWebAppStack extends cdk.Stack {
         SEARCH_TYPE: this.node.tryGetContext('kbSearchType') || 'SEMANTIC',
         // SIDベース権限フィルタリング: 有効化
         ENABLE_PERMISSION_CHECK: 'true',
+        // Prompt Caching: システムプロンプトのキャッシュ（デフォルト有効）
+        ENABLE_PROMPT_CACHING: 'true',
         PERMISSION_CACHE_TABLE: permissionCacheTable.tableName,
         USER_ACCESS_TABLE_NAME: userAccessTable.tableName,
         // KBデータソースS3バケット（ディレクトリ情報取得用、オプション）

@@ -13,6 +13,8 @@ export interface ChatSettings {
   retentionDays: number;
   /** 最大セッション数 */
   maxSessions: number;
+  /** 検索タイプ (SEMANTIC | HYBRID) */
+  searchType: 'SEMANTIC' | 'HYBRID';
 }
 
 /**
@@ -49,6 +51,7 @@ const defaultSettings: AppSettings = {
     autoSave: true,
     retentionDays: 30,
     maxSessions: 100,
+    searchType: 'SEMANTIC',
   },
   theme: 'system',
   language: 'ja',

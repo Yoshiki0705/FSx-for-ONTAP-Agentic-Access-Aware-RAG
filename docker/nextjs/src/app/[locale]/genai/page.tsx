@@ -28,6 +28,7 @@ import { CardGrid } from '../../../components/cards/CardGrid';
 import { CollapsiblePanel } from '../../../components/ui/CollapsiblePanel';
 import { resolveAgentForCard, findAgentByCategory } from '../../../services/cardAgentBindingService';
 import { useCardAgentMappingStore } from '../../../store/useCardAgentMappingStore';
+import { useSettingsStore } from '../../../store/useSettingsStore';
 import { VoiceButton } from '../../../components/chat/VoiceButton';
 import { useVoiceSession } from '../../../hooks/useVoiceSession';
 import type { CardData } from '../../../constants/card-constants';
@@ -1196,6 +1197,8 @@ function ChatbotPageContent() {
             } : {}),
             // AgentCore Memory: KBモード会話コンテキスト用セッションID (Task 11)
             ...(agentCoreMemoryEnabled && memorySessionId ? { memorySessionId } : {}),
+            // Hybrid Search: ユーザー選択の検索タイプ (v4.3 Feature 5)
+            searchType: useSettingsStore.getState().chat.searchType,
           }),
         });
 

@@ -231,7 +231,7 @@ export class ErrorHandler {
       condition: (error) => error.category === ErrorCategory.MODEL_CONFIG,
       execute: async () => {
         // デフォルトモデルに戻す
-        return { modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0', fallback: true };
+        return { modelId: 'anthropic.claude-sonnet-4-6', fallback: true };
       }
     });
 

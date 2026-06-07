@@ -1,0 +1,162 @@
+# Model Quality Gate — RAGAS + Permission Matrix Regression Test
+#
+# Triggered when model-defaults.ts is modified in a PR.
+# Ensures model updates don't degrade Permission filtering quality.
+#
+# Requirements:
+# - .kiro/specs/model-lifecycle-2026q2/requirements.md — Requirement 6
+# - Faithfulness ≥ 0.85, Answer Relevancy ≥ 0.80, Context Precision ≥ 0.75
+# - Permission-matrix 31 scenarios: 100% pass
+#
+# Note: This workflow requires deployed Bedrock KB for RAGAS evaluation.
+# If KB is not available (e.g., PR from fork), only Permission-matrix unit tests run.
+
+name: Model Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - 'docker/nextjs/src/config/model-defaults.ts'
+      - 'docker/nextjs/src/lib/smart-router.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  permission-matrix-test:
+    name: Permission Matrix Regression (31 scenarios)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies
+        run: |
+          cd tests/permission-matrix
+          pip install pytest
+
+      - name: Run Permission Matrix Tests
+        run: |
+          cd tests/permission-matrix
+          python -m pytest . -v --tb=short
+          echo "✅ Permission Matrix: All 31 scenarios passed"
+
+  typescript-compile:
+    name: TypeScript Compilation Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: CDK TypeScript check
+        run: npx tsc --noEmit
+
+  cdk-synth:
+    name: CDK Synth (All Feature Flag Combinations)
+    runs-on: ubuntu-latest
+    needs: typescript-compile
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: CDK Synth (default)
+        run: npx cdk synth --quiet
+
+      - name: CDK Synth (Guardrails + Automated Reasoning)
+        run: |
+          npx cdk synth --quiet \
+            -c enableGuardrails=true \
+            -c 'guardrailsConfig={"enableAutomatedReasoning":true,"contextualGrounding":true}'
+
+      - name: CDK Synth (AgentCore Gateway)
+        run: npx cdk synth --quiet -c enableAgentCoreGateway=true
+
+  jest-tests:
+    name: Jest Tests (CDK + Property)
+    runs-on: ubuntu-latest
+    needs: typescript-compile
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Jest
+        run: npx jest --no-coverage --forceExit
+
+  vitest-tests:
+    name: Vitest Tests (Frontend Property)
+    runs-on: ubuntu-latest
+    needs: typescript-compile
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: |
+          cd docker/nextjs
+          npm ci
+
+      - name: Run Vitest
+        run: |
+          cd docker/nextjs
+          npx vitest run
+
+  # RAGAS evaluation requires deployed KB — only runs if AWS credentials available
+  ragas-evaluation:
+    name: RAGAS Quality Evaluation (Optional)
+    runs-on: ubuntu-latest
+    needs: [permission-matrix-test, jest-tests]
+    if: github.event.pull_request.head.repo.full_name == github.repository  # Skip for forks
+    # This job requires AWS credentials via OIDC or secrets
+    # Uncomment when RAGAS evaluation infrastructure is deployed
+    # environment: quality-gate
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: RAGAS Evaluation (Placeholder)
+        run: |
+          echo "⚠️ RAGAS evaluation requires deployed Bedrock KB."
+          echo "   Configure AWS credentials and KB_ID to enable."
+          echo "   See: tests/rag-evaluation/README.md"
+          echo ""
+          echo "Quality thresholds:"
+          echo "  - Faithfulness ≥ 0.85"
+          echo "  - Answer Relevancy ≥ 0.80"
+          echo "  - Context Precision ≥ 0.75"
+          echo ""
+          echo "Skipping RAGAS evaluation (KB not configured)."
