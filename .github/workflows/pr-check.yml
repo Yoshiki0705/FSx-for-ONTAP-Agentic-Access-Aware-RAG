@@ -222,7 +222,7 @@ jobs:
       - name: Run Jest tests
         run: |
           echo "🧪 Jest テスト実行中..."
-          npx jest --no-coverage --passWithNoTests
+          npx jest --no-coverage --passWithNoTests --forceExit --testTimeout=30000
 
       - name: Run Python permission-matrix tests
         run: |

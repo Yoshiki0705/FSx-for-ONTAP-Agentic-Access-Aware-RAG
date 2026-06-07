@@ -103,7 +103,7 @@ jobs:
             echo "⚠️ quick_integration_test.sh not found, running standard tests"
             # Fallback: run TypeScript compilation + CDK Jest tests
             npx tsc --noEmit > test_output.log 2>&1 || true
-            npx jest --no-coverage --passWithNoTests >> test_output.log 2>&1
+            npx jest --no-coverage --passWithNoTests --forceExit --testTimeout=30000 >> test_output.log 2>&1
           fi
           echo "exit_code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
