@@ -79,12 +79,12 @@ export function insertCitationMarkers(
   // Strategy: ドキュメント名の言及箇所に [N] を挿入
   for (const citation of citations) {
     const docNamePattern = citation.sourceName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${docNamePattern})`, 'g');
-
-    if (regex.test(annotatedText)) {
-      // ドキュメント名が本文中に存在する場合、最初の出現に [N] を付与
-      annotatedText = annotatedText.replace(regex, `$1 [${citation.index}]`);
-    }
+    // Use replace directly — avoid test() + replace() with g flag (lastIndex side effect)
+    const replaced = annotatedText.replace(
+      new RegExp(`(${docNamePattern})`, 'g'),
+      `$1 [${citation.index}]`,
+    );
+    annotatedText = replaced;
   }
 
   return annotatedText;
