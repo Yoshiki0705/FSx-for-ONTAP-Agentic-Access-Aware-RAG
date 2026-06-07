@@ -94,6 +94,9 @@ export class AgentCoreGatewayConstruct extends Construct {
       roleArn: gatewayRole.roleArn,
       exceptionLevel: 'DEBUG',
       // Lambda Interceptor: ツール実行前にPermission checkを適用
+      // TODO (Phase future): Add AFTER_TOOL_INVOCATION interception point
+      // to scan tool results for PII/sensitive data before returning to the model.
+      // Currently only pre-execution permission check is implemented.
       interceptorConfigurations: [
         {
           interceptionPoints: ['BEFORE_TOOL_INVOCATION'],

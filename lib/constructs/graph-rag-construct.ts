@@ -51,6 +51,20 @@ export interface GraphRAGConstructProps {
  *   - Document -[AUTHORED_BY]-> Team
  *   - Document -[MENTIONS]-> Entity
  *   - Team -[OWNS]-> Project
+ *
+ * Scaling guide (m-NCU recommendations):
+ *   - 10K documents: 32 m-NCU (default)
+ *   - 50K documents: 64 m-NCU
+ *   - 100K documents: 128 m-NCU
+ *   - 500K+ documents: 256+ m-NCU (contact AWS for guidance)
+ *
+ * TODO (Future): For large-scale graph construction (>10K documents),
+ * implement as Step Functions workflow:
+ *   1. Scan S3 AP for new/modified documents (Lambda)
+ *   2. Extract entities and relationships (Bedrock batch)
+ *   3. Batch write to Neptune Analytics (Lambda, chunked)
+ *   4. Verify graph consistency (Lambda)
+ *   5. Update DynamoDB inventory (Lambda)
  */
 export const GRAPH_SCHEMA = {
   nodeTypes: ['Document', 'Project', 'Team', 'Entity'],

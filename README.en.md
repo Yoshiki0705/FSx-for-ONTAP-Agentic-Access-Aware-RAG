@@ -131,6 +131,16 @@ Integration of AWS AI updates from March–June 2026 is planned. See [2026 Q2 AI
 
 > **Current default models (v4.3.0+)**: Smart Router uses Claude Haiku 4.5 (lightweight) / Claude Sonnet 4.6 (powerful) / Claude Opus 4.8 (heavy). Legacy model IDs (Sonnet 3.5 v2, Opus 4.0, Nova Pro v1) are automatically redirected to current models via `DEPRECATED_MODEL_MAP`.
 
+#### Next Steps (Deploy, Evaluate, Production)
+
+Code integration for Phase 0-5 is complete. To apply to production:
+
+1. **Run RAGAS quality gate on deployed environment** — Opus 4.8 / Sonnet 4.6 Permission-matrix 31 scenarios + RAGAS evaluation
+2. **Measure Prompt Caching hit rate** — Check CloudWatch `RAG/TokenUsage` metrics for 5-min TTL hit rate
+3. **Load test Gateway Interceptor** — Confirm P99 latency < 200ms under production traffic
+4. **Deploy Graph RAG (optional)** — `enableGraphRAG=true` for Neptune Analytics document relationship graph
+5. **Run Model Distillation (optional)** — Adopt Nova 2 Lite for lightweight tier if Permission filtering accuracy ≥95%
+
 ---
 
 ## Related Repositories (FSx for ONTAP Ecosystem)

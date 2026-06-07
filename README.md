@@ -221,6 +221,16 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 
 > **現在のデフォルトモデル（v4.3.0+）**: Smart Routerは Claude Haiku 4.5（lightweight）/ Claude Sonnet 4.6（powerful）/ Claude Opus 4.8（heavy）を使用しています。旧モデルID（Sonnet 3.5 v2, Opus 4.0, Nova Pro v1）は自動的に新モデルにリダイレクトされます（`DEPRECATED_MODEL_MAP`）。
 
+#### Next Steps（デプロイ・評価・本番化）
+
+上記Phase 0-5のコード統合は完了しています。本番環境への適用には以下の手順が必要です:
+
+1. **デプロイ環境でのRAGAS品質ゲート実行** — Opus 4.8 / Sonnet 4.6 でPermission-matrix 31シナリオ + RAGAS評価
+2. **Prompt Cachingヒット率の実測** — CloudWatch `RAG/TokenUsage` メトリクスで5分TTL内のヒット率を確認
+3. **Gateway Interceptor本番負荷テスト** — P99レイテンシ < 200ms を確認
+4. **Graph RAGデプロイ（オプション）** — `enableGraphRAG=true` でNeptune Analytics起動、ドキュメント関連性グラフ構築
+5. **Model Distillation実行（オプション）** — Nova 2 Lite の Permission filtering精度が≥95%ならlightweight tierに採用
+
 ---
 
 ## 関連リポジトリ（FSx for ONTAP エコシステム）
