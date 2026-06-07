@@ -41,6 +41,8 @@ grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defau
 
 ## Step 2: Prompt Caching 効果確認（10分）
 
+> **前提条件**: Prompt Caching は **Anthropic Claude モデルのみ** 対応です。デフォルト構成（モデル未選択 → Nova 2 Lite fallback）ではキャッシュが効きません。以下の手順の前に、サイドバーの「AIモデル選択」で **Claude Sonnet 4.6** または **Claude Opus 4.8** を選択してください。
+
 同一セッション内で連続クエリを送信し、キャッシュヒットを確認します。
 
 ```bash
