@@ -69,13 +69,14 @@
     },
     "promptCaching": {
       "status": "PARTIAL",
-      "description": "Prompt Caching mechanism is correctly implemented (caching enabled log + EMF metrics emitted). However, Nova 2 Lite does not support Prompt Caching. Cache hits will only occur with Claude models.",
+      "description": "Prompt Caching mechanism is correctly implemented (caching enabled log + EMF metrics emitted). Claude Sonnet 4 requires Inference Profile ID (jp.anthropic.claude-sonnet-4-6). Direct model ID (anthropic.claude-sonnet-4-6) returns 'on-demand throughput not supported' error, causing fallback to Nova 2 Lite.",
       "cachingEnabled": true,
       "emfMetricsEmitted": true,
       "cacheHit": false,
-      "reason": "Nova 2 Lite (Amazon model) does not support Bedrock Prompt Caching. Claude models required for actual cache hits.",
-      "inputTokens": 1985,
-      "outputTokens": 172,
+      "reason": "Claude Sonnet 4 on-demand invocation not supported in ap-northeast-1. Must use inference profile (jp.anthropic.claude-sonnet-4-6). UI model selector passes base model ID, not inference profile.",
+      "resolution": "Model resolution logic needs to map anthropic.claude-sonnet-4-6 → jp.anthropic.claude-sonnet-4-6 in ap-northeast-1",
+      "inputTokens": 3001,
+      "outputTokens": 99,
       "cachedInputTokens": 0
     },
     "smartRouting": {
@@ -88,10 +89,12 @@
     },
     "permissionDifference": {
       "status": "PASS",
-      "description": "Admin user (SIDs include S-1-1-0) gets document access. Regular user (SID S-1-5-21-999-1001 only) gets DENY. Permission isolation confirmed.",
-      "adminAccess": "ALLOW (S-1-1-0 matches document metadata)",
-      "regularAccess": "DENY (no SID intersection)",
-      "evidence": "DynamoDB SID data vs document metadata comparison"
+      "description": "Permission isolation confirmed via API simulation and UI verification. Admin (Domain Admins SID) accesses 9/10 documents. Regular user (SID -1001 only) accesses 0/10 documents.",
+      "adminAccess": "ALLOW 9/10 (S-1-5-21-000-512 matches document metadata, S-1-1-0 matches Everyone docs)",
+      "regularAccess": "DENY 0/10 (SID -1001 not in any document's allowed_group_sids)",
+      "evidence": "CLI permission simulation + UI screenshot with 'Admin Only' and 'Everyone' badges displayed",
+      "uiBadges": ["管理者のみ", "全員アクセス可"],
+      "industryPacksIntegration": true
     }
   },
   "screenshots": [
@@ -101,7 +104,10 @@
     "docs/screenshots/v4.3/rag-response-with-permission.png",
     "docs/screenshots/v4.3/rag-response-permission-pass.png",
     "docs/screenshots/v4.3/rag-second-query-response.png",
-    "docs/screenshots/v4.3/smart-routing-on-complex-query.png"
+    "docs/screenshots/v4.3/smart-routing-on-complex-query.png",
+    "docs/screenshots/v4.3/smart-routing-auto-mode-enabled.png",
+    "docs/screenshots/v4.3/industry-packs-healthcare-query-claude.png",
+    "docs/screenshots/v4.3/permission-admin-access-granted.png"
   ],
   "pendingVerifications": [
     "Prompt Caching hit rate (requires Claude model selection + repeated queries within 5min TTL)",
@@ -135,6 +141,25 @@
       "title": "Smart Routing auto mode requires initial model selection",
       "description": "When Smart Routing is ON but no model is selected in the UI, the system falls back to Nova 2 Lite instead of auto-selecting based on query complexity.",
       "recommendation": "Auto-select default model (e.g., Sonnet 4.6) when Smart Routing is enabled and no model is explicitly chosen.",
+      "status": "documented"
+    },
+    {
+      "id": "MODEL-001",
+      "severity": "high",
+      "category": "Model/InferenceProfile",
+      "title": "Claude Sonnet 4 requires Inference Profile ID in ap-northeast-1",
+      "description": "UI model selector passes 'anthropic.claude-sonnet-4-6' but Bedrock rejects on-demand invocation. Must use 'jp.anthropic.claude-sonnet-4-6' (inference profile). Fallback to Nova 2 Lite occurs, preventing Prompt Caching from working.",
+      "recommendation": "Add inference profile resolution in model-defaults.ts or converse-client.ts: map base model IDs to regional inference profile IDs.",
+      "affectedComponent": "docker/nextjs/src/lib/rag-pipeline/converse-client.ts",
+      "status": "new"
+    },
+    {
+      "id": "DATA-001",
+      "severity": "medium",
+      "category": "Data/Ingestion",
+      "title": "S3 Vectors 2048B filterable metadata limit causes ingestion failures",
+      "description": "31 documents failed ingestion due to metadata exceeding 2048 bytes (long SID lists). Documents with 4+ long SIDs exceed the limit.",
+      "recommendation": "Limit allowed_group_sids to 3-5 entries or switch to OpenSearch Serverless (no size limit).",
       "status": "documented"
     }
   ],
