@@ -271,6 +271,61 @@ export async function POST(request: NextRequest) {
         },
       });
     } else {
+      // === Web Search Fallback ===
+      // KB results are empty — check if Web Search can provide reference information
+      const { routeInvocation, emitRoutingDecisionMetric } = await import('@/lib/claude-platform');
+      const { sanitizeWebSearchQuery } = await import('@/lib/web-search/sanitizer');
+
+      const kbScores = parsedResults.map(r => r.score ?? 0);
+      const queryHasWebPrefix = query.trim().toLowerCase().startsWith('web:');
+      const userRequestedWebSearch = body.useWebSearch === true;
+
+      const invocationDecision = routeInvocation(kbScores, userRequestedWebSearch, queryHasWebPrefix);
+      emitRoutingDecisionMetric(invocationDecision);
+
+      if (invocationDecision.useWebSearch) {
+        // Sanitize query before sending to external service
+        const sanitizedQuery = sanitizeWebSearchQuery(queryHasWebPrefix ? query.replace(/^web:\s*/i, '') : query);
+        console.log('[KB] Web Search fallback:', { reason: invocationDecision.reason, sanitizedQuery: sanitizedQuery.substring(0, 80) });
+
+        const { callWithWebSearch } = await import('@/lib/claude-platform');
+        const { RAG_SYSTEM_PROMPT_KB: webSystemPrompt } = await import('@/config/prompt-templates');
+
+        const webResult = await callWithWebSearch(
+          sanitizedQuery,
+          webSystemPrompt + '\n\nIMPORTANT: You are providing reference information from public web sources. Clearly indicate these are external references, not internal verified documents.',
+        );
+
+        if (webResult && webResult.text) {
+          // Web Search succeeded — return with 'reference' boundary type
+          const webCitations = (webResult.citations || []).map((c, i) => ({
+            index: i + 1,
+            fileName: c.title,
+            s3Uri: c.url,
+            content: c.snippet.substring(0, 500),
+            metadata: {},
+            boundaryType: 'reference' as const,
+            permissionVerified: false,
+          }));
+
+          return NextResponse.json({
+            success: true,
+            answer: webResult.text,
+            citations: webCitations,
+            filterLog,
+            metadata: {
+              knowledgeBaseId: effectiveKbId, modelId: webResult.model, region,
+              timestamp: new Date().toISOString(),
+              webSearchUsed: true,
+              boundaryTypes: ['reference'],
+              invocationPath: 'claude-platform',
+              invocationReason: invocationDecision.reason,
+            },
+          });
+        }
+      }
+
+      // No Web Search or Web Search failed — return standard "no results" message
       return NextResponse.json({
         success: true,
         answer: 'アクセス権限のあるドキュメントが見つかりませんでした。この情報へのアクセス権限がない可能性があります。',
@@ -280,6 +335,7 @@ export async function POST(request: NextRequest) {
           ...(imageAnalysisUsed ? { imageAnalysis: true } : {}),
           ...(MULTIMODAL_ENABLED ? { multimodalEnabled: true } : {}),
           ...(multimodalFallback ? { multimodalFallback: true } : {}),
+          ...(invocationDecision.useWebSearch ? { webSearchAttempted: true, webSearchFailed: true } : {}),
         },
       });
     }
