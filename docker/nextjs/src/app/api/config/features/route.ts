@@ -23,5 +23,9 @@ export async function GET() {
     provenanceEnabled: process.env.PROVENANCE_FUNCTION_NAME ? true : false,
     policyConsentRequired: process.env.POLICY_CONSENT_REQUIRED === 'true',
     hybridSearchEnabled: (process.env.SEARCH_TYPE || '').toUpperCase() === 'HYBRID',
+    // Agent defaults (for auto-selection when no agent explicitly chosen)
+    defaultAgentId: process.env.BEDROCK_AGENT_ID || null,
+    defaultAgentAliasId: process.env.BEDROCK_AGENT_ALIAS_ID || null,
+    supervisorAgentId: process.env.SUPERVISOR_AGENT_ID || null,
   });
 }

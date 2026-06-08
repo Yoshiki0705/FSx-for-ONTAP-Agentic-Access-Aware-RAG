@@ -647,6 +647,21 @@ function ChatbotPageContent() {
   }, [searchParams]);
   const { selectedAgentId } = useAgentStore();
 
+  // Auto-select default agent when entering Agent Mode with no agent selected
+  useEffect(() => {
+    if (agentMode && !selectedAgentId) {
+      fetch('/api/config/features')
+        .then(r => r.json())
+        .then(data => {
+          if (data.defaultAgentId && !useAgentStore.getState().selectedAgentId) {
+            console.log('[AgentAutoSelect] Setting default agent:', data.defaultAgentId);
+            useAgentStore.getState().setSelectedAgentId(data.defaultAgentId);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [agentMode, selectedAgentId]);
+
   // === AgentCore Memory統合 (Task 10) ===
   // ENABLE_AGENTCORE_MEMORY はサーバーサイド環境変数のため、APIプローブで検出
   const [agentCoreMemoryEnabled, setAgentCoreMemoryEnabled] = useState(false);

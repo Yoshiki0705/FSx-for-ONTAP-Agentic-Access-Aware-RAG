@@ -16,6 +16,9 @@ export interface FeatureFlags {
   episodicMemoryEnabled: boolean;
   agentCoreMemoryEnabled: boolean;
   multiAgentEnabled: boolean;
+  defaultAgentId: string | null;
+  defaultAgentAliasId: string | null;
+  supervisorAgentId: string | null;
 }
 
 const DEFAULT_FLAGS: FeatureFlags = {
@@ -27,6 +30,9 @@ const DEFAULT_FLAGS: FeatureFlags = {
   episodicMemoryEnabled: false,
   agentCoreMemoryEnabled: false,
   multiAgentEnabled: false,
+  defaultAgentId: null,
+  defaultAgentAliasId: null,
+  supervisorAgentId: null,
 };
 
 let cachedFlags: FeatureFlags | null = null;
