@@ -239,7 +239,6 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 
 - [ ] Agent Mode デモ検証（`enableAgent=true`）
 - [ ] Guardrails + Automated Reasoning 本番テスト
-- [ ] S3 Vectors → OpenSearch Serverless 切替（HYBRID検索 + 2048B制限回避）
 - [ ] Gateway Interceptor P99 レイテンシ計測
 
 #### Expected Business Impact
