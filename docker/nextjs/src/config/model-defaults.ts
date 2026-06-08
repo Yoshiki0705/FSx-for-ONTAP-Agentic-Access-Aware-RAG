@@ -94,7 +94,7 @@ export const INFERENCE_PROFILE_MAP: Record<string, string> = {
   // Claude Opus 4 (base)
   'anthropic.claude-opus-4-0-20250514-v1:0': 'apac.anthropic.claude-opus-4-0-20250514-v1:0',
   // Claude Haiku 4.5
-  'anthropic.claude-haiku-4-5-20251001-v1:0': 'apac.anthropic.claude-haiku-4-5-20251001-v1:0',
+  'anthropic.claude-haiku-4-5-20251001-v1:0': 'jp.anthropic.claude-haiku-4-5-20251001-v1:0',
   // Nova 2 Lite
   'amazon.nova-2-lite-v1:0': 'jp.amazon.nova-2-lite-v1:0',
 };

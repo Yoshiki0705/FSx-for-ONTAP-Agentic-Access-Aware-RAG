@@ -1024,7 +1024,11 @@ exports.handler = async (event) => {
       // Foundation Model shared by the existing single agent and used as the
       // default fallback for all multi-agent Collaborators/Supervisor when
       // `collaboratorModels` is not specified (Requirement 12.5).
-      const singleAgentModel = 'anthropic.claude-haiku-4-5-20251001-v1:0';
+      // NOTE: Bedrock Agent's foundationModel parameter only accepts base model IDs,
+      // not inference profiles. In ap-northeast-1, Claude Haiku 4.5 requires inference
+      // profile for direct invocation, but Agent internally handles the routing.
+      // Use Claude 3 Haiku (on-demand available) as the agent orchestration model.
+      const singleAgentModel = 'anthropic.claude-3-haiku-20240307-v1:0';
       // Action Group Lambda: Permission-aware KB検索
       const actionGroupFn = new lambda.Function(this, 'PermSearchFn', {
         functionName: `${prefix}-perm-search`,
