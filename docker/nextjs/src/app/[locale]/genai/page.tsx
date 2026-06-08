@@ -1164,9 +1164,11 @@ function ChatbotPageContent() {
   //   // 実装は将来の拡張時に追加
   // };
 
-  const generateRAGResponse = async (query: string, imageData?: string, imageMimeType?: string, routing?: { isAutoRouted: boolean; classification?: { classification: 'simple' | 'complex' } | null }): Promise<{ answer: string; citations: CitationItem[] }> => {
+  const generateRAGResponse = async (query: string, imageData?: string, imageMimeType?: string, routing?: { isAutoRouted: boolean; modelId?: string; classification?: { classification: 'simple' | 'complex' } | null }): Promise<{ answer: string; citations: CitationItem[] }> => {
     try {
-      console.log('📚 [KB] Sending request to Bedrock KB API:', { query: query.substring(0, 100), user: user.username, modelId: selectedModelId });
+      // Smart Routing: use routed modelId if auto-routed, otherwise use selectedModelId
+      const effectiveModelId = (routing?.isAutoRouted && routing.modelId) ? routing.modelId : selectedModelId;
+      console.log('📚 [KB] Sending request to Bedrock KB API:', { query: query.substring(0, 100), user: user.username, modelId: effectiveModelId, autoRouted: routing?.isAutoRouted });
       
       const currentRegion = typeof window !== 'undefined' 
         ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
@@ -1186,7 +1188,7 @@ function ChatbotPageContent() {
           body: JSON.stringify({
             query,
             ...(knowledgeBaseId ? { knowledgeBaseId } : {}),
-            modelId: selectedModelId,
+            modelId: effectiveModelId,
             userId: user.username,
             region: currentRegion,
             ...(imageData ? { imageData, imageMimeType } : {}),
@@ -1579,7 +1581,7 @@ function ChatbotPageContent() {
       // モードに応じてRAG処理またはAgent処理を実行
       const { answer: responseText, citations, multiAgentTrace } = agentMode
         ? await generateAgentResponse(currentInput)
-        : { ...await generateRAGResponse(currentInput, currentImageData, currentImageMimeType, routingDecision), multiAgentTrace: undefined };
+        : { ...await generateRAGResponse(currentInput, currentImageData, currentImageMimeType, { isAutoRouted: routingDecision.isAutoRouted, modelId: routingDecision.modelId, classification: routingDecision.classification }), multiAgentTrace: undefined };
 
       const botMessageId = `bot-${Date.now()}`;
       const botResponse: Message & { multiAgentTrace?: MultiAgentTraceResult } = {
