@@ -1284,3 +1284,57 @@ aws bedrock-agent get-ingestion-job \
 2. `allowed_group_sids` は最大 3-5 グループに制限する
 3. Metadata Schema Validation (`lib/schemas/metadata-schema.ts`) の `validateMetadata()` にサイズチェックを追加検討
 4. ingestion 後に `numberOfDocumentsFailed > 0` をアラート対象にする
+
+
+---
+
+## 23. Bedrock Agent foundationModel と Inference Profile の非互換（2026-06-08 発見）
+
+### 症状
+
+CDK で Agent の `foundationModel` に inference profile ID（`jp.anthropic.claude-haiku-4-5-20251001-v1:0` 等）を設定すると、Agent 呼び出し時に以下のエラーが発生する:
+
+```
+The provided model identifier is invalid.
+```
+
+または base model ID（`anthropic.claude-haiku-4-5-20251001-v1:0`）を設定すると:
+
+```
+Invocation of model ID anthropic.claude-haiku-4-5-20251001-v1:0 with on-demand throughput isn't supported.
+```
+
+### 原因
+
+Bedrock Agent の `foundationModel` パラメータは **base model ID のみ**を受け付ける。inference profile ID は無効。しかし ap-northeast-1 では一部のモデル（Claude Haiku 4.5 等）が on-demand で利用不可のため、Agent の foundationModel に設定すると呼び出し時にエラーになる。
+
+### 解決方法
+
+ap-northeast-1 で on-demand 利用可能なモデルを Agent の foundationModel に使用する:
+
+```typescript
+// ✅ on-demand available in ap-northeast-1
+const singleAgentModel = 'anthropic.claude-3-haiku-20240307-v1:0';
+
+// ❌ inference profile — Agent does NOT accept these
+// 'jp.anthropic.claude-haiku-4-5-20251001-v1:0'
+// 'apac.anthropic.claude-haiku-4-5-20251001-v1:0'
+
+// ❌ base ID but NOT on-demand available in ap-northeast-1
+// 'anthropic.claude-haiku-4-5-20251001-v1:0'
+```
+
+### Agent Alias バージョン問題
+
+Agent の `foundationModel` を CDK で変更しても、Alias が古い versioned agent を参照している場合は変更が反映されない。
+
+```
+Agent DRAFT: model updated ✅
+Agent Version 1: old model ❌ (Alias points here)
+```
+
+Alias を新バージョンに更新するには:
+1. `create_agent_version` で新バージョンを作成（AWS Console or 最新 SDK）
+2. `update_agent_alias` の `routingConfiguration` を新バージョンに変更
+
+> **注意**: ローカルの boto3/AWS CLI が古い場合、`create_agent_version` API が未対応の場合がある。AWS Console での操作または SDK アップグレードが必要。
