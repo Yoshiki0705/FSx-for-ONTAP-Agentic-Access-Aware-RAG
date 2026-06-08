@@ -4,15 +4,16 @@ import { DEFAULT_SMART_ROUTER_CONFIG } from '@/lib/smart-router';
 
 const STORAGE_KEY = 'smart-routing-enabled';
 
-/** Read isEnabled from localStorage, fallback to false on any error */
+/** Read isEnabled from localStorage, fallback to true (default ON) */
 function readPersistedEnabled(): boolean {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'true') return true;
     if (stored === 'false') return false;
-    return false;
+    // No stored value — default to enabled for best UX
+    return true;
   } catch {
-    return false;
+    return true;
   }
 }
 
