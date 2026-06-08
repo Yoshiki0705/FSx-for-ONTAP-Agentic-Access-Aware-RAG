@@ -204,34 +204,43 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
 
 ## Roadmap
 
-全ての計画項目が実装されました。今後の改善は [GitHub Issues](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues) で管理します。
+### 2026 Q2 AI Update Integration — v4.3.0 ✅ 完了
 
-### 2026 Q2 AI Update Integration（計画中）
-
-2026年3月〜6月のAWS AIアップデート統合を計画しています。詳細は [2026 Q2 AI Update Roadmap](docs/design/2026q2-ai-update-roadmap.md) を参照してください。
+2026年3月〜6月のAWS AIアップデート統合が完了し、本番環境で動作検証済みです。詳細は [2026 Q2 AI Update Roadmap](docs/design/2026q2-ai-update-roadmap.md) および [CHANGELOG](CHANGELOG.md) を参照してください。
 
 | Phase | 内容 | ステータス |
 |-------|------|-----------|
-| Phase 0 | モデルID更新（Opus 4.8, Sonnet 4.6, Nova 2 Lite, GPT-5.5 GA）+ 品質ゲート | ✅ 完了 |
-| Phase 1 | Prompt Caching + Automated Reasoning Guardrails | ✅ 完了 |
+| Phase 0 | モデルID更新（Opus 4.8, Sonnet 4.6, Nova 2 Lite）+ Inference Profile 自動解決 | ✅ 完了・検証済み |
+| Phase 1 | Prompt Caching（Messages API）+ System Prompt 1161 tokens | ✅ 完了・Cache Hit 確認済み |
 | Phase 2 | AgentCore Gateway + Permission Interceptor | ✅ 完了 |
-| Phase 3 | Claude Platform on AWS（Web Search, Citations）+ Strands Agent MVP | ✅ 完了 |
-| Phase 4 | マルチモーダルKB + Strands Multi-Agent Full | ✅ 完了 |
-| Phase 5 | Graph RAG（Neptune Analytics）+ Model Distillation | ✅ 完了 |
+| Phase 3 | Claude Platform on AWS（Web Search, Citations）+ Permission Badges | ✅ 完了・UX-001修正済み |
+| Phase 4 | マルチモーダルKB + Graph RAG（Neptune Analytics） | ✅ 完了 |
+| Phase 5 | Model Distillation Pipeline Design | ✅ 完了 |
 
-> **現在のデフォルトモデル（v4.3.0+）**: Smart Routerは Claude Haiku 4.5（lightweight）/ Claude Sonnet 4.6（powerful）/ Claude Opus 4.8（heavy）を使用しています。旧モデルID（Sonnet 3.5 v2, Opus 4.0, Nova Pro v1）は自動的に新モデルにリダイレクトされます（`DEPRECATED_MODEL_MAP`）。
+#### デプロイ検証結果（2026-06-08 ap-northeast-1）
 
-#### Next Steps（デプロイ・評価・本番化）
+| 検証項目 | 結果 |
+|---------|------|
+| Permission-Aware RAG | ✅ Admin 25/25 ALLOW, User 0/25 DENY |
+| Prompt Caching (Messages API) | ✅ Cache write 1161 + Cache hit 1161 tokens (33%) |
+| Smart Routing Auto Mode | ✅ Haiku/Sonnet/Opus 自動振り分け動作 |
+| Hallucination Rejection | ✅ 3/3 negative テスト正常拒否 |
+| ONTAP Version | 9.17.1P6 (REST API 確認) |
+| Permission Matrix | 31/31 ロジックテスト + E2E 通過 |
+| KB Retrieval Score | Avg 0.6814 (10 industry queries) |
 
-上記Phase 0-5のコード統合は完了しています。本番環境への適用には以下の手順が必要です:
+> **重要な知見**: Bedrock Converse API は `cacheControl` を無視します。Prompt Caching は Messages API (InvokeModel) でのみ動作します。本実装ではClaude → Messages API、Non-Claude → Converse API のハイブリッド方式を採用しています。
 
-1. **デプロイ環境でのRAGAS品質ゲート実行** — Opus 4.8 / Sonnet 4.6 でPermission-matrix 31シナリオ + RAGAS評価
-2. **Prompt Cachingヒット率の実測** — CloudWatch `RAG/TokenUsage` メトリクスで5分TTL内のヒット率を確認
-3. **Gateway Interceptor本番負荷テスト** — P99レイテンシ < 200ms を確認
-4. **Graph RAGデプロイ（オプション）** — `enableGraphRAG=true` でNeptune Analytics起動、ドキュメント関連性グラフ構築
-5. **Model Distillation実行（オプション）** — Nova 2 Lite の Permission filtering精度が≥95%ならlightweight tierに採用
+> **現在のデフォルト（v4.3.0+）**: Smart Routing はデフォルトON。Claude Haiku 4.5（simple）/ Sonnet 4.6（complex）/ Opus 4.8（full-context）を自動選択。旧モデルIDは `DEPRECATED_MODEL_MAP` で透過的にリダイレクト。
 
-> **Graph RAG 障害時**: Neptune Analytics が利用不可能な場合、システムはGraph展開をスキップしKB直接検索結果のみを返します（graceful degradation）。Graph RAG はオプション拡張であり、コア RAG 機能の可用性には影響しません。
+#### 今後の改善
+
+今後の改善は [GitHub Issues](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues) で管理します。
+
+- [ ] Agent Mode デモ検証（`enableAgent=true`）
+- [ ] Guardrails + Automated Reasoning 本番テスト
+- [ ] S3 Vectors → OpenSearch Serverless 切替（HYBRID検索 + 2048B制限回避）
+- [ ] Gateway Interceptor P99 レイテンシ計測
 
 #### Expected Business Impact
 
