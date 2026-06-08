@@ -1,0 +1,72 @@
+[
+  {
+    "question": "BIMモデルの改訂管理手順について教えてください",
+    "ground_truth": "BIMモデルの改訂はバージョン管理システムで追跡され、各改訂には承認プロセスが必要です。",
+    "contexts": ["industry-packs/construction/bim-model-revision-log.md"],
+    "required_permission": "Domain Admins",
+    "industry": "construction"
+  },
+  {
+    "question": "現場の安全管理チェックリストの内容は？",
+    "ground_truth": "安全帯の着用確認、足場の点検、作業開始前のKY活動が含まれます。",
+    "contexts": ["industry-packs/construction/safety-compliance-checklist.md"],
+    "required_permission": "Domain Admins",
+    "industry": "construction"
+  },
+  {
+    "question": "AI基礎のシラバス概要を教えてください",
+    "ground_truth": "機械学習の基礎、ニューラルネットワーク、自然言語処理、コンピュータビジョンをカバーします。",
+    "contexts": ["industry-packs/education/syllabus-ai-fundamentals.md"],
+    "required_permission": "Domain Admins",
+    "industry": "education"
+  },
+  {
+    "question": "研究助成金の申請要件は？",
+    "ground_truth": "研究計画書、予算計画、業績リスト、倫理審査承認が必要です。",
+    "contexts": ["industry-packs/education/research-grant-proposal.md"],
+    "required_permission": "Domain Admins",
+    "industry": "education"
+  },
+  {
+    "question": "デジタル変革推進政策の主要目標は？",
+    "ground_truth": "行政サービスのデジタル化率向上、市民のオンライン利用促進、業務効率化が目標です。",
+    "contexts": ["industry-packs/government/policy-digital-transformation.md"],
+    "required_permission": "Domain Admins",
+    "industry": "government"
+  },
+  {
+    "question": "市民サービス窓口の対応マニュアルについて教えてください",
+    "ground_truth": "来庁者への挨拶、用件確認、適切な窓口への案内、待ち時間の説明が基本手順です。",
+    "contexts": ["industry-packs/government/citizen-service-manual.md"],
+    "required_permission": "Everyone",
+    "industry": "government"
+  },
+  {
+    "question": "不正請求検知パターンにはどのようなものがありますか？",
+    "ground_truth": "同一事故での複数回請求、修理費の水増し、架空事故の報告などのパターンがあります。",
+    "contexts": ["industry-packs/insurance/fraud-detection-patterns.md"],
+    "required_permission": "Domain Admins",
+    "industry": "insurance"
+  },
+  {
+    "question": "契約レビューのガイドラインについて教えてください",
+    "ground_truth": "契約書の条項確認、リスク評価、法的コンプライアンスチェック、承認フローが含まれます。",
+    "contexts": ["industry-packs/legal/contract-review-guidelines.md"],
+    "required_permission": "Domain Admins",
+    "industry": "legal"
+  },
+  {
+    "question": "品質検査レポートの内容は？",
+    "ground_truth": "検査項目、合格/不合格基準、不良率、是正措置が記載されています。",
+    "contexts": ["industry-packs/manufacturing/quality-inspection-report-line3.md"],
+    "required_permission": "Domain Admins",
+    "industry": "manufacturing"
+  },
+  {
+    "question": "設備保全ログの管理方法は？",
+    "ground_truth": "定期点検日、保守内容、交換部品、次回点検予定日を記録します。",
+    "contexts": ["industry-packs/manufacturing/equipment-maintenance-log.md"],
+    "required_permission": "Domain Admins",
+    "industry": "manufacturing"
+  }
+]
