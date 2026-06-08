@@ -1,1 +1,7 @@
-{"metadataAttributes":{"allowed_group_sids":["S-1-1-0"],"access_level":"public","doc_type":"checklist"}}
+{
+  "metadataAttributes": {
+    "allowed_group_sids": [
+      "S-1-1-0"
+    ]
+  }
+}

@@ -1,1 +1,8 @@
-{"metadataAttributes":{"allowed_group_sids":["S-1-5-21-0000000000-0000000000-0000000000-8100","S-1-1-0"],"access_level":"internal","doc_type":"manual"}}
+{
+  "metadataAttributes": {
+    "allowed_group_sids": [
+      "S-1-5-21-0000000000-0000000000-0000000000-8100",
+      "S-1-1-0"
+    ]
+  }
+}
