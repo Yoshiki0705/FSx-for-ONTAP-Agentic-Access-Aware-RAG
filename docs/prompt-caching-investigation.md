@@ -158,11 +158,12 @@ Bedrock Prompt Caching（ephemeral）の実装・検証を通じて得られた�
 
 ## 現時点の結論
 
-1. **Prompt Caching は Messages API (InvokeModel) で正常に動作する** — system prompt 1661 tokens で cache write + cache hit 確認済み
+1. **Prompt Caching は Messages API (InvokeModel) で正常に動作する** — system prompt 1161 tokens で cache write + cache hit 確認済み
 2. **Converse API では cache hit が得られない** — `cacheControl` フィールドを設定しても Bedrock Converse API 内部で処理されない（2026-06-08 検証結果）
 3. **根本原因確定**: Converse API は `cacheControl` フィールドを透過的に無視している。Messages API 形式（InvokeModel）でのみ Prompt Caching が有効
-4. **対策**: 高頻度利用ユースケースでは Converse API → Messages API (InvokeModel) への切り替えを検討。または Converse API での Prompt Caching サポートを AWS に確認/リクエスト
-5. **コスト効果（Messages API 使用時）**: 1661 tokens のキャッシュにより、2回目以降の input token コストが大幅削減（cache read は通常の 1/10 コスト）
+4. **実装済み対策**: Claude → Messages API、Non-Claude → Converse API のハイブリッド方式。Messages API 失敗時は Converse API にフォールバック（`converse-client.ts`）
+5. **コスト効果（Messages API 使用時）**: 1161 tokens のキャッシュにより、2回目以降の input token コストが大幅削減（cache read は通常の 1/10 コスト）
+6. **最小トークン要件**: system prompt ≥ 1024 tokens（Claude tokenizer 計測）。3836 chars = 824 tokens（不足）→ 5579 chars ≈ 1161 tokens（動作確認）
 
 ---
 

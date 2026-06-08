@@ -164,16 +164,20 @@
     }
   ],
   "summary": {
-    "totalVerifications": 20,
-    "passed": 18,
+    "totalVerifications": 22,
+    "passed": 20,
     "partial": 0,
     "pendingDeployEnv": 2,
-    "bugsFound": 3,
-    "bugsFixed": 3,
+    "bugsFound": 4,
+    "bugsFixed": 4,
     "uxFindings": 4,
     "promptCachingVerified": true,
     "permissionMatrix31": "31/31 passed",
     "hallucinationRejection": "3/3 passed",
-    "deployE2EPermission": "admin 25/25 ALLOW, user 0/25 ALLOW"
+    "deployE2EPermission": "admin 25/25 ALLOW, user 0/25 ALLOW",
+    "agentModeSingleVerified": true,
+    "agentModeMultiVerified": true,
+    "guardrailsTopicPolicies": 3,
+    "guardrailsContentFilters": 6
   }
 }

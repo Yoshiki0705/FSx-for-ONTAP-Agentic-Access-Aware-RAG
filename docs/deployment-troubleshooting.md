@@ -1338,3 +1338,89 @@ Alias を新バージョンに更新するには:
 2. `update_agent_alias` の `routingConfiguration` を新バージョンに変更
 
 > **注意**: ローカルの boto3/AWS CLI が古い場合、`create_agent_version` API が未対応の場合がある。AWS Console での操作または SDK アップグレードが必要。
+
+
+---
+
+## 24. Agent Alias ルーティング更新（create_agent_version 不要のワークアラウンド）
+
+### 症状
+
+Agent の `foundationModel` を API で更新後、Alias 経由で呼び出すと旧モデルで実行される。`create_agent_version` API が boto3/AWS CLI で利用不可。
+
+### 原因
+
+Agent Alias は特定のバージョン番号（例: v1）を参照する。DRAFT のモデルを更新しても、Alias のルーティングは既存バージョンを指し続ける。
+
+### 解決方法
+
+`update_agent_alias` に **空の `routingConfiguration`** を渡すと、Bedrock が自動的に DRAFT から新バージョンを作成し、Alias に紐付ける:
+
+```python
+import boto3
+
+client = boto3.client('bedrock-agent', region_name='ap-northeast-1')
+
+# Step 1: Agent の foundationModel を更新
+agent = client.get_agent(agentId='AGENT_ID')['agent']
+client.update_agent(
+    agentId='AGENT_ID',
+    agentName=agent['agentName'],
+    foundationModel='anthropic.claude-3-haiku-20240307-v1:0',  # 新モデル
+    instruction=agent['instruction'],
+    agentResourceRoleArn=agent['agentResourceRoleArn'],
+    # Supervisor の場合: agentCollaboration='SUPERVISOR_ROUTER' を保持
+)
+client.prepare_agent(agentId='AGENT_ID')
+
+# Step 2: Alias のルーティングを空にする（自動バージョン作成）
+alias = client.get_agent_alias(agentId='AGENT_ID', agentAliasId='ALIAS_ID')
+client.update_agent_alias(
+    agentId='AGENT_ID',
+    agentAliasId='ALIAS_ID',
+    agentAliasName=alias['agentAlias']['agentAliasName'],
+    routingConfiguration=[]  # 空 → Bedrock が DRAFT から新バージョンを作成
+)
+
+# 確認: 新バージョンが routing に反映される
+import time
+time.sleep(10)
+updated = client.get_agent_alias(agentId='AGENT_ID', agentAliasId='ALIAS_ID')
+print(updated['agentAlias']['routingConfiguration'])
+# → [{'agentVersion': '2'}] (新バージョン番号)
+```
+
+### 注意事項
+
+- `routingConfiguration=['DRAFT']` は拒否される（Alias に DRAFT は設定不可）
+- 空リスト `[]` は受理され、自動的に最新バージョンが作成される
+- Multi-Agent の場合、各 Collaborator の Alias も同様に更新が必要
+- Collaborator の Alias が使用中（Supervisor に関連付いている）場合、削除は不可（ConflictException）
+
+---
+
+## 25. CDK synth が古いコンパイル結果を使用する問題
+
+### 症状
+
+`.ts` ファイルを修正して `cdk synth` を実行しても、テンプレートに古い値が出力される。
+
+### 原因
+
+CDK は `ts-node` を使って TypeScript を直接実行するが、`.js` ファイルが存在する場合はそちらを優先する場合がある。`npx tsc` でコンパイルした `.js` が古い状態で残っていると、`cdk synth` がそれを読み込む。
+
+### 解決方法
+
+```bash
+# TypeScript を再コンパイルしてから synth
+npx tsc && rm -rf cdk.out && npx cdk synth --quiet
+
+# 確認: テンプレートに正しい値が反映されているか
+grep "FoundationModel" cdk.out/<stack-name>.template.json | sort -u
+```
+
+### 予防策
+
+- `cdk synth` の前に必ず `npx tsc` を実行する
+- CI/CD パイプラインでは `npx tsc && npx cdk synth` をセットで実行する
+- `.js` ファイルのタイムスタンプと `.ts` ファイルのタイムスタンプを比較する
