@@ -158,11 +158,11 @@ Bedrock Prompt Caching（ephemeral）の実装・検証を通じて得られた�
 
 ## 現時点の結論
 
-1. **Prompt Caching は正常に動作する** — Messages API (InvokeModel) で `cache_control: { type: 'ephemeral' }` を使用し、system prompt が 1024 tokens 以上であれば cache write + cache hit が確認された
-2. **実測結果**: system prompt 1661 tokens → 1回目で cache write、2回目で 1661 tokens 全量 cache hit（100%）
-3. **以前 cache miss だった原因**: system prompt が 824 tokens（1024 未満）だったため Bedrock がキャッシュ対象外と判断していた
-4. **Converse API でも同様に動作する見込み** — `cacheControl` フィールドは Converse API でもサポートされており、system prompt サイズ拡大後は動作するはず
-5. **コスト効果**: 1661 tokens のキャッシュにより、2回目以降の input token コストが大幅削減（cache read は cache write の 1/10 のコスト）
+1. **Prompt Caching は Messages API (InvokeModel) で正常に動作する** — system prompt 1661 tokens で cache write + cache hit 確認済み
+2. **Converse API では cache hit が得られない** — `cacheControl` フィールドを設定しても Bedrock Converse API 内部で処理されない（2026-06-08 検証結果）
+3. **根本原因確定**: Converse API は `cacheControl` フィールドを透過的に無視している。Messages API 形式（InvokeModel）でのみ Prompt Caching が有効
+4. **対策**: 高頻度利用ユースケースでは Converse API → Messages API (InvokeModel) への切り替えを検討。または Converse API での Prompt Caching サポートを AWS に確認/リクエスト
+5. **コスト効果（Messages API 使用時）**: 1661 tokens のキャッシュにより、2回目以降の input token コストが大幅削減（cache read は通常の 1/10 コスト）
 
 ---
 
