@@ -158,10 +158,11 @@ Bedrock Prompt Caching（ephemeral）の実装・検証を通じて得られた�
 
 ## 現時点の結論
 
-1. **コード実装は正しい** — `cacheControl: { type: 'ephemeral' }` は正しく設定され、Claude モデルが正常に応答を返している
-2. **Cache hit が得られない原因は Bedrock サーバーサイドの条件にある** — system prompt サイズ、inference profile 対応、Lambda stateless 環境のいずれか（または複合）
-3. **機能自体は「Ready」状態** — Bedrock 側の条件が明確になり次第、コード変更なしで cache hit が得られる設計になっている
-4. **代替策としてアプリケーション層キャッシュも検討可能** — 同一クエリへの応答を DynamoDB にキャッシュする方が確実性が高い
+1. **Prompt Caching は正常に動作する** — Messages API (InvokeModel) で `cache_control: { type: 'ephemeral' }` を使用し、system prompt が 1024 tokens 以上であれば cache write + cache hit が確認された
+2. **実測結果**: system prompt 1661 tokens → 1回目で cache write、2回目で 1661 tokens 全量 cache hit（100%）
+3. **以前 cache miss だった原因**: system prompt が 824 tokens（1024 未満）だったため Bedrock がキャッシュ対象外と判断していた
+4. **Converse API でも同様に動作する見込み** — `cacheControl` フィールドは Converse API でもサポートされており、system prompt サイズ拡大後は動作するはず
+5. **コスト効果**: 1661 tokens のキャッシュにより、2回目以降の input token コストが大幅削減（cache read は cache write の 1/10 のコスト）
 
 ---
 
