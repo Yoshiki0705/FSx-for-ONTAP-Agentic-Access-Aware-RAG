@@ -220,9 +220,15 @@ export async function callConverse(
       // Use Converse API for non-Claude models (Nova, etc.)
       if (isClaudeModel(mid) && systemPrompt && PROMPT_CACHING_ENABLED) {
         console.log('[Messages] Trying:', mid, '(Messages API + Prompt Caching)');
-        const { text, usage } = await callMessagesAPI(client, mid, prompt, conversationHistory || [], systemPrompt);
-        emitMessagesAPIMetrics(usage, mid);
-        return { text, usedModel: mid };
+        try {
+          const { text, usage } = await callMessagesAPI(client, mid, prompt, conversationHistory || [], systemPrompt);
+          emitMessagesAPIMetrics(usage, mid);
+          return { text, usedModel: mid };
+        } catch (messagesErr: unknown) {
+          const errMsg = messagesErr instanceof Error ? messagesErr.message : String(messagesErr);
+          console.warn('[Messages] Failed, falling back to Converse API:', errMsg.substring(0, 100));
+          // Fall through to Converse API below
+        }
       }
 
       console.log('[Converse] Trying:', mid, PROMPT_CACHING_ENABLED ? '(caching enabled)' : '');

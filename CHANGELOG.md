@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2026-06-08
+
+### Added
+- **Model Lifecycle Update (Phase 0)**: Claude Opus 4.8, Sonnet 4.6, Nova 2 Lite をデフォルトモデルに設定。`DEPRECATED_MODEL_MAP` で旧モデルIDの透過的リダイレクト
+- **Prompt Caching (Phase 1)**: Messages API (InvokeModel) 経由でシステムプロンプト（1161 tokens）のキャッシュ。2回目以降の呼び出しで 33% input token コスト削減を実証
+- **Inference Profile Resolution**: `INFERENCE_PROFILE_MAP` でベースモデルID → リージョナル inference profile (`jp.*`) への自動変換。ap-northeast-1 での Claude on-demand エラーを解消
+- **Automated Reasoning Guardrails (Phase 2)**: 5つのPermission推論ルールを定義。`enableGuardrails=true` + `enableAutomatedReasoning` で有効化
+- **AgentCore Gateway (Phase 2)**: `CfnGateway` + Lambda Permission Interceptor。ツール実行前の権限チェック（16 pytest）
+- **Citations + Permission Boundary (Phase 3)**: 引用元ドキュメントに「管理者のみ」「全員アクセス可」バッジ表示。`document-name-resolver.ts` でUUID→人間可読名変換
+- **Graph RAG (Phase 4)**: Neptune Analytics `CfnGraph`。`enableGraphRAG=true` で有効化
+- **Industry-Packs Demo Data**: 7業種（建設/教育/行政/医療/保険/法務/製造）× 5ドキュメント = 35ファイル + メタデータ
+- **Operations Runbook**: 8言語対応の運用手順書（ONTAP バージョン確認、データ投入、Permission デバッグ、Prompt Caching 検証）
+- **`.metadata.json` Formal Schema**: `lib/schemas/metadata-schema.ts` でバリデーション + 正規化関数。19テスト
+- **Prompt Caching Investigation Report**: Converse API 非対応の知見と Messages API 動作確認を文書化
+
+### Fixed
+- **SID Filter カンマ区切り対応**: Bedrock KB がメタデータを返す際のカンマ区切り文字列形式（`"S-1-1-0,S-1-5-21-xxx-512"`）を正しくパース（commit `578435b`）
+- **Claude Inference Profile (MODEL-001)**: `anthropic.claude-sonnet-4-6` → `jp.anthropic.claude-sonnet-4-6` 自動解決。PR #68
+- **Nova 2 Lite ON_DEMAND_BLOCKED 誤設定**: `INFERENCE_PROFILE_MAP` で解決すべきところを Haiku にフォールバックしていた問題を修正
+- **`@aws-sdk/client-secrets-manager` 依存関係欠落**: claude-platform client のDocker ビルド失敗を修正
+- **`inference-profile-resolver.ts` Claude 4.x 未対応**: モデルリストと jp prefix を追加
+
+### Verified (Deploy Environment — ap-northeast-1)
+- **Permission-Aware RAG**: Admin 25/25 ALLOW, Regular User 0/25 DENY。Fail-Closed 完全動作
+- **Prompt Caching**: Messages API で Cache write 1161 + Cache hit 1161 tokens (33% cached) 確認
+- **Hallucination Rejection**: 3/3 negative テストで「回答できない」を正しく返却
+- **Permission Matrix**: 31/31 ロジックテスト通過 + Deploy E2E 通過
+- **ONTAP Version**: 9.17.1P6（ONTAP REST API via SSM RunCommand で確認）
+- **KB Ingestion**: 91ドキュメント スキャン、58ドキュメント インデックス済み
+- **Smart Routing**: UI toggle + Auto Mode 動作確認
+- **Claude Sonnet 4.6**: `jp.anthropic.claude-sonnet-4-6` で正常応答
+
+### Known Issues
+- **S3 Vectors 2048B 制限**: filterable metadata が2048バイトを超えるチャンクはインデックス失敗（31件）。長い SID リストが原因。OpenSearch Serverless で回避可能
+- **Converse API Prompt Caching 非対応**: `cacheControl` フィールドを Converse API は無視する。Messages API (InvokeModel) でのみ動作
+- **RAGAS Faithfulness メトリクス未計算**: `langchain_community` 内部依存エラー。基本メトリクス（Retrieval 100%, Hallucination Rejection 100%）は取得済み
+
 ## [4.2.0] - 2026-06
 
 ### Added
