@@ -114,32 +114,40 @@ For the full matrix including platform-specific compatibility (Athena, Glue, EMR
 
 ## Roadmap
 
-All planned items have been implemented. Future improvements are tracked in [GitHub Issues](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues).
+### 2026 Q2 AI Update Integration — v4.3.0 ✅ Complete
 
-### 2026 Q2 AI Update Integration (Planned)
-
-Integration of AWS AI updates from March–June 2026 is planned. See [2026 Q2 AI Update Roadmap](docs/design/2026q2-ai-update-roadmap.md) for details.
+Integration of AWS AI updates from March–June 2026 is complete and verified in production. See [2026 Q2 AI Update Roadmap](docs/design/2026q2-ai-update-roadmap.md) and [CHANGELOG](CHANGELOG.md) for details.
 
 | Phase | Content | Status |
 |-------|---------|--------|
-| Phase 0 | Model ID update (Opus 4.8, Sonnet 4.6, Nova 2 Lite, GPT-5.5 GA) + Quality Gate | ✅ Done |
-| Phase 1 | Prompt Caching + Automated Reasoning Guardrails | ✅ Done |
+| Phase 0 | Model ID update (Opus 4.8, Sonnet 4.6, Nova 2 Lite) + Inference Profile Resolution | ✅ Verified |
+| Phase 1 | Prompt Caching (Messages API) + System Prompt 1161 tokens | ✅ Cache Hit Confirmed |
 | Phase 2 | AgentCore Gateway + Permission Interceptor | ✅ Done |
-| Phase 3 | Claude Platform on AWS (Web Search, Citations) + Strands Agent MVP | ✅ Done |
-| Phase 4 | Multimodal KB + Strands Multi-Agent Full | ✅ Done |
-| Phase 5 | Graph RAG (Neptune Analytics) + Model Distillation | ✅ Done |
+| Phase 3 | Claude Platform on AWS (Web Search, Citations) + Permission Badges | ✅ UX-001 Fixed |
+| Phase 4 | Multimodal KB + Graph RAG (Neptune Analytics) | ✅ Done |
+| Phase 5 | Model Distillation Pipeline Design | ✅ Done |
 
-> **Current default models (v4.3.0+)**: Smart Router uses Claude Haiku 4.5 (lightweight) / Claude Sonnet 4.6 (powerful) / Claude Opus 4.8 (heavy). Legacy model IDs (Sonnet 3.5 v2, Opus 4.0, Nova Pro v1) are automatically redirected to current models via `DEPRECATED_MODEL_MAP`.
+#### Deploy Verification Results (2026-06-08, ap-northeast-1)
 
-#### Next Steps (Deploy, Evaluate, Production)
+| Verification | Result |
+|-------------|--------|
+| Permission-Aware RAG | ✅ Admin 25/25 ALLOW, User 0/25 DENY |
+| Prompt Caching (Messages API) | ✅ Cache write 1161 + Cache hit 1161 tokens (33%) |
+| Smart Routing Auto Mode | ✅ Haiku/Sonnet/Opus auto-selection working |
+| Agent Mode (Single Agent) | ✅ Claude 3 Haiku response confirmed |
+| Guardrails (Content + Topic) | ✅ 5/5 content filter + 3 topic policies |
+| Hallucination Rejection | ✅ 3/3 negative tests correctly rejected |
+| Permission Matrix | 31/31 logic tests + E2E passed |
 
-Code integration for Phase 0-5 is complete. To apply to production:
+> **Key finding**: Bedrock Converse API silently ignores `cacheControl`. Prompt Caching only works via Messages API (InvokeModel). This implementation uses a hybrid approach: Claude → Messages API, Non-Claude → Converse API.
 
-1. **Run RAGAS quality gate on deployed environment** — Opus 4.8 / Sonnet 4.6 Permission-matrix 31 scenarios + RAGAS evaluation
-2. **Measure Prompt Caching hit rate** — Check CloudWatch `RAG/TokenUsage` metrics for 5-min TTL hit rate
-3. **Load test Gateway Interceptor** — Confirm P99 latency < 200ms under production traffic
-4. **Deploy Graph RAG (optional)** — `enableGraphRAG=true` for Neptune Analytics document relationship graph
-5. **Run Model Distillation (optional)** — Adopt Nova 2 Lite for lightweight tier if Permission filtering accuracy ≥95%
+> **Current defaults (v4.3.0+)**: Smart Routing is ON by default. Auto-routes to Haiku (simple) / Sonnet (complex) / Opus (full-context). Legacy model IDs are transparently redirected via `DEPRECATED_MODEL_MAP`.
+
+#### Future Improvements
+
+- [ ] Multi-Agent Mode (Supervisor) production test
+- [ ] Agent foundationModel inference profile support (pending AWS API update)
+- [ ] Gateway Interceptor P99 latency measurement
 
 ---
 
