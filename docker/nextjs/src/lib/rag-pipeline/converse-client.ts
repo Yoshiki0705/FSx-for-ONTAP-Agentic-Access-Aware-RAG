@@ -14,6 +14,7 @@
 import {
   BedrockRuntimeClient,
   ConverseCommand,
+  InvokeModelCommand,
   type ConverseCommandInput,
   type ConverseCommandOutput,
 } from '@aws-sdk/client-bedrock-runtime';
@@ -85,6 +86,101 @@ function emitTokenMetrics(response: ConverseCommandOutput, modelId: string): voi
 }
 
 /**
+ * Check if a model ID is a Claude model (supports Messages API + Prompt Caching).
+ */
+function isClaudeModel(modelId: string): boolean {
+  return modelId.includes('anthropic.claude');
+}
+
+/**
+ * Call Claude via Messages API (InvokeModel) with Prompt Caching support.
+ * This is required because Converse API does not process cacheControl.
+ */
+async function callMessagesAPI(
+  client: BedrockRuntimeClient,
+  modelId: string,
+  prompt: string,
+  conversationHistory: ConversationMessage[],
+  systemPrompt: string,
+): Promise<{ text: string; usage: Record<string, number> }> {
+  const messages: Array<{ role: string; content: string }> = [];
+  for (const m of conversationHistory) {
+    messages.push({ role: m.role, content: m.content });
+  }
+  messages.push({ role: 'user', content: prompt });
+
+  const body: Record<string, unknown> = {
+    anthropic_version: 'bedrock-2023-05-31',
+    max_tokens: 2000,
+    temperature: 0.1,
+    messages,
+  };
+
+  // Apply Prompt Caching via system block with cache_control
+  if (PROMPT_CACHING_ENABLED) {
+    body.system = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
+  } else {
+    body.system = [{ type: 'text', text: systemPrompt }];
+  }
+
+  const resp = await client.send(new InvokeModelCommand({
+    modelId,
+    contentType: 'application/json',
+    accept: 'application/json',
+    body: JSON.stringify(body),
+  }));
+
+  const result = JSON.parse(new TextDecoder().decode(resp.body));
+  const text = result.content?.[0]?.text || '';
+  const usage = result.usage || {};
+
+  return { text, usage };
+}
+
+/**
+ * Emit token usage metrics in CloudWatch EMF format (Messages API response).
+ */
+function emitMessagesAPIMetrics(usage: Record<string, number>, modelId: string): void {
+  const inputTokens = usage.input_tokens ?? 0;
+  const outputTokens = usage.output_tokens ?? 0;
+  const cacheCreate = usage.cache_creation_input_tokens ?? 0;
+  const cacheRead = usage.cache_read_input_tokens ?? 0;
+  const cacheStatus = cacheRead > 0 ? 'hit' : cacheCreate > 0 ? 'write' : 'miss';
+
+  console.log(
+    JSON.stringify({
+      _aws: {
+        Timestamp: Date.now(),
+        CloudWatchMetrics: [
+          {
+            Namespace: 'RAG/TokenUsage',
+            Dimensions: [['ModelId', 'CacheStatus']],
+            Metrics: [
+              { Name: 'InputTokens', Unit: 'Count' },
+              { Name: 'OutputTokens', Unit: 'Count' },
+              { Name: 'CachedInputTokens', Unit: 'Count' },
+              { Name: 'CacheCreationTokens', Unit: 'Count' },
+            ],
+          },
+        ],
+      },
+      ModelId: modelId,
+      CacheStatus: cacheStatus,
+      InputTokens: inputTokens,
+      OutputTokens: outputTokens,
+      CachedInputTokens: cacheRead,
+      CacheCreationTokens: cacheCreate,
+    })
+  );
+
+  if (cacheRead > 0) {
+    console.log(`[Messages] Cache hit: ${cacheRead} tokens read from cache (${Math.round(cacheRead / (inputTokens + cacheRead) * 100)}% cached)`);
+  } else if (cacheCreate > 0) {
+    console.log(`[Messages] Cache write: ${cacheCreate} tokens written (available for 5min)`);
+  }
+}
+
+/**
  * Call Converse API with Prompt Caching and model fallback chain.
  *
  * When ENABLE_PROMPT_CACHING=true (default), the system prompt is sent
@@ -120,6 +216,15 @@ export async function callConverse(
 
   for (const mid of modelsToTry) {
     try {
+      // Use Messages API for Claude models (supports Prompt Caching)
+      // Use Converse API for non-Claude models (Nova, etc.)
+      if (isClaudeModel(mid) && systemPrompt && PROMPT_CACHING_ENABLED) {
+        console.log('[Messages] Trying:', mid, '(Messages API + Prompt Caching)');
+        const { text, usage } = await callMessagesAPI(client, mid, prompt, conversationHistory || [], systemPrompt);
+        emitMessagesAPIMetrics(usage, mid);
+        return { text, usedModel: mid };
+      }
+
       console.log('[Converse] Trying:', mid, PROMPT_CACHING_ENABLED ? '(caching enabled)' : '');
 
       const input: ConverseCommandInput = {
