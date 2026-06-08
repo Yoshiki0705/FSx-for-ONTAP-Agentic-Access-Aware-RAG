@@ -69,7 +69,6 @@ export const DEFAULT_REGION = 'ap-northeast-1';
 export const ON_DEMAND_BLOCKED_MODELS = new Set([
   'amazon.nova-pro-v1:0',
   'amazon.nova-micro-v1:0',
-  'amazon.nova-2-lite-v1:0',
   'nvidia.nemotron-super-3-120b',
 ]);
 

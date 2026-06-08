@@ -68,5 +68,29 @@
     "contexts": ["industry-packs/manufacturing/equipment-maintenance-log.md"],
     "required_permission": "Domain Admins",
     "industry": "manufacturing"
+  },
+  {
+    "question": "量子コンピュータの最新の研究動向について教えてください",
+    "ground_truth": "NEGATIVE_TEST: KBにこの情報は存在しないため「回答できない」と返すべき",
+    "contexts": [],
+    "required_permission": "Everyone",
+    "industry": "negative_test",
+    "test_type": "hallucination_check"
+  },
+  {
+    "question": "2030年の宇宙開発予算の見通しは？",
+    "ground_truth": "NEGATIVE_TEST: KBにこの情報は存在しないため「回答できない」と返すべき",
+    "contexts": [],
+    "required_permission": "Everyone",
+    "industry": "negative_test",
+    "test_type": "hallucination_check"
+  },
+  {
+    "question": "東京オリンピック2024の開催結果を教えてください",
+    "ground_truth": "NEGATIVE_TEST: KBにこの情報は存在しないため「回答できない」と返すべき",
+    "contexts": [],
+    "required_permission": "Everyone",
+    "industry": "negative_test",
+    "test_type": "hallucination_check"
   }
 ]
