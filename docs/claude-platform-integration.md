@@ -126,7 +126,29 @@ lam.update_function_configuration(FunctionName='<function-name>', Environment={'
 
 - KB 結果が不十分な場合のみ Web Search をフォールバックとして使用
 - Web 結果は `boundary: 'reference'` として明示（内部文書と区別）
-- 追加コスト: Claude Platform API 利用料（クエリあたり数セント）
+- 追加コスト: Claude Platform API 利用料（下記参照）
+
+### コスト見積もり
+
+Claude Platform on AWS の料金は Anthropic API と同一（[aws.amazon.com/claude-platform](https://aws.amazon.com/claude-platform/)参照）。AWS Marketplace 経由で課金され、EDP/PPA コミットメントから引き落とし可能。
+
+| モデル | Input (per 1M tokens) | Output (per 1M tokens) |
+|--------|----------------------|----------------------|
+| Claude Haiku 4.5 | $1.00 | $5.00 |
+| Claude Sonnet 4.6 | $3.00 | $15.00 |
+| Claude Opus 4.7/4.8 | $5.00 | $25.00 |
+
+> ⚠️ 上記は2026年5月時点の公開情報に基づく参考値です。最新料金は [Anthropic Pricing](https://www.anthropic.com/pricing) および [AWS Claude Platform](https://aws.amazon.com/claude-platform/) を参照してください。
+
+**Web Search fallback の追加コスト**:
+- Web Search tool 自体に追加料金なし（通常のトークン課金のみ）
+- 1回の Web Search で +2,000-5,000 input tokens（取得した Web コンテンツ分）
+- Sonnet 4.6 使用時: 約 $0.02/回
+
+**月間想定（100 queries/日、10% が Web Search fallback）**:
+```
+10 queries/日 × 30日 × $0.02 = ~$6/月
+```
 
 ### `full`（将来拡張）
 
