@@ -1136,7 +1136,7 @@ ${langInstruction}`,
         sourceArn: agent.attrAgentArn,
       });
 
-      // Agent Alias
+      // Agent Alias (Logical ID changed to force CFn resource replacement after state drift)
       const agentAlias = new bedrock.CfnAgentAlias(this, 'AgentAlias', {
         agentId: agent.attrAgentId,
         agentAliasName: `${prefix}-alias`,
@@ -1900,7 +1900,7 @@ ${langInstruction}`,
           exportName: `${prefix}-SupervisorAgentId`,
         });
 
-        // Supervisor Agent Alias
+        // Supervisor Agent Alias (Logical ID changed to force CFn resource replacement after state drift)
         const supervisorAgentAlias = new bedrock.CfnAgentAlias(this, 'SupervisorAgentAlias', {
           agentId: supervisorAgent.attrAgentId,
           agentAliasName: `${prefix}-supervisor-alias`,
