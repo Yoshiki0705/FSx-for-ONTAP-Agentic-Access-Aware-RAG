@@ -1,70 +1,70 @@
 [
   {
     "question": "BIMモデルの改訂管理手順について教えてください",
-    "ground_truth": "BIMモデルの改訂はバージョン管理システムで追跡され、各改訂には承認プロセスが必要です。",
+    "ground_truth": "改訂時は必ず前バージョンをアーカイブし、干渉チェックはRevit Navisworks連携で週次実施する。各専門分野のモデルは毎週金曜17時までに統合モデルへ反映し、LODは実施設計段階でLOD350を基準とする。",
     "contexts": ["industry-packs/construction/bim-model-revision-log.md"],
     "required_permission": "Domain Admins",
     "industry": "construction"
   },
   {
     "question": "現場の安全管理チェックリストの内容は？",
-    "ground_truth": "安全帯の着用確認、足場の点検、作業開始前のKY活動が含まれます。",
+    "ground_truth": "作業開始前に朝礼・KY活動の実施、保護具（ヘルメット、安全帯、安全靴）の着用確認、足場・手すりの固定状態確認、重機の始業前点検記録の確認を行う。作業中は高所作業での墜落防止措置、酸素欠乏危険場所での測定を実施する。",
     "contexts": ["industry-packs/construction/safety-compliance-checklist.md"],
     "required_permission": "Domain Admins",
     "industry": "construction"
   },
   {
     "question": "AI基礎のシラバス概要を教えてください",
-    "ground_truth": "機械学習の基礎、ニューラルネットワーク、自然言語処理、コンピュータビジョンをカバーします。",
+    "ground_truth": "人工知能の基礎理論から最新の応用事例までを体系的に学ぶ。探索アルゴリズム、機械学習、深層学習、自然言語処理、生成AIの基本原理を理解し、実社会での活用方法を考察する。学部3年生以上対象、前期2単位。",
     "contexts": ["industry-packs/education/syllabus-ai-fundamentals.md"],
     "required_permission": "Domain Admins",
     "industry": "education"
   },
   {
     "question": "研究助成金の申請要件は？",
-    "ground_truth": "研究計画書、予算計画、業績リスト、倫理審査承認が必要です。",
+    "ground_truth": "基盤研究(B)、3年間、総額1,850万円の申請。Permission-Aware Embeddingによる権限制御型知識検索基盤の研究。初年度は基盤技術の確立、2年目はシステム実装と評価を計画。",
     "contexts": ["industry-packs/education/research-grant-proposal.md"],
     "required_permission": "Domain Admins",
     "industry": "education"
   },
   {
     "question": "デジタル変革推進政策の主要目標は？",
-    "ground_truth": "行政サービスのデジタル化率向上、市民のオンライン利用促進、業務効率化が目標です。",
+    "ground_truth": "2026年度末までに全行政手続きの80%をオンライン対応とする。マイナンバーカードを活用した本人確認の簡素化、API標準仕様の策定とガバメントクラウドの活用による相互運用性確保、生成AI活用による文書作成支援・問い合わせ対応の自動化を推進する。",
     "contexts": ["industry-packs/government/policy-digital-transformation.md"],
     "required_permission": "Domain Admins",
     "industry": "government"
   },
   {
     "question": "市民サービス窓口の対応マニュアルについて教えてください",
-    "ground_truth": "来庁者への挨拶、用件確認、適切な窓口への案内、待ち時間の説明が基本手順です。",
+    "ground_truth": "来庁者に対し明るい挨拶と用件の確認を行い、番号札を発行し待ち時間の目安を案内する。必要書類の一覧を提示し不足がないか確認する。マイナンバーカードによるオンライン手続きが可能な場合は案内する。高齢者・障がい者には優先対応を実施する。",
     "contexts": ["industry-packs/government/citizen-service-manual.md"],
     "required_permission": "Everyone",
     "industry": "government"
   },
   {
     "question": "不正請求検知パターンにはどのようなものがありますか？",
-    "ground_truth": "同一事故での複数回請求、修理費の水増し、架空事故の報告などのパターンがあります。",
+    "ground_truth": "パターン1:偽装事故（目撃者なし、警察届出なし、損傷と申告内容の不一致、リスクスコア80以上で自動フラグ）。パターン2:損害額水増し（同車種平均修理費の2倍以上、特定修理工場への集中、リスクスコア60以上で要確認）。",
     "contexts": ["industry-packs/insurance/fraud-detection-patterns.md"],
     "required_permission": "Domain Admins",
     "industry": "insurance"
   },
   {
     "question": "契約レビューのガイドラインについて教えてください",
-    "ground_truth": "契約書の条項確認、リスク評価、法的コンプライアンスチェック、承認フローが含まれます。",
+    "ground_truth": "取引金額1,000万円以上の契約、期間1年以上の継続契約、NDA、ライセンス契約、業務委託契約、海外取引に関する契約は締結前に法務部のレビューを受ける。チェック項目は契約当事者の確認、契約目的・範囲の明確化、相手方の信用調査完了確認を含む。",
     "contexts": ["industry-packs/legal/contract-review-guidelines.md"],
     "required_permission": "Domain Admins",
     "industry": "legal"
   },
   {
     "question": "品質検査レポートの内容は？",
-    "ground_truth": "検査項目、合格/不合格基準、不良率、是正措置が記載されています。",
+    "ground_truth": "第3製造ライン精密部品加工の検査結果。外径寸法25.01mm（基準25.00±0.02mm）合格、表面粗さRa 0.6（基準Ra 0.8以下）合格、硬度HRC 60合格、真円度0.003mm合格。不良率0.12%で月間目標0.15%を下回る。バリ残り不良の是正として工具交換サイクルを500個から450個に短縮。",
     "contexts": ["industry-packs/manufacturing/quality-inspection-report-line3.md"],
     "required_permission": "Domain Admins",
     "industry": "manufacturing"
   },
   {
     "question": "設備保全ログの管理方法は？",
-    "ground_truth": "定期点検日、保守内容、交換部品、次回点検予定日を記録します。",
+    "ground_truth": "MC-301 CNC旋盤:主軸ベアリング交換、潤滑油補充、各軸バックラッシュ測定（6時間）。主軸振動値が0.8μmから0.3μmに改善。次回交換予定2025年5月。MC-302マシニングセンタ:Z軸サーボアラーム（SV-410）、原因はエンコーダケーブル断線、ケーブル交換実施。",
     "contexts": ["industry-packs/manufacturing/equipment-maintenance-log.md"],
     "required_permission": "Domain Admins",
     "industry": "manufacturing"
