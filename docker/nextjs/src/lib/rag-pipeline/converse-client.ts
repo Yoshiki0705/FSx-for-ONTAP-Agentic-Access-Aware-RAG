@@ -155,9 +155,14 @@ export async function callConverse(
       const usage = resp.usage;
       if (usage) {
         const cached = (usage as any).cacheReadInputTokenCount ?? 0;
+        const cacheWrite = (usage as any).cacheWriteInputTokenCount ?? 0;
         const total = usage.inputTokens ?? 0;
         if (cached > 0) {
           console.log(`[Converse] Cache hit: ${cached}/${total} input tokens cached (${Math.round(cached / total * 100)}%)`);
+        } else if (cacheWrite > 0) {
+          console.log(`[Converse] Cache write: ${cacheWrite} tokens written to cache (will be available for next request within 5min)`);
+        } else {
+          console.log(`[Converse] Cache: no write/read (system prompt may be below 1024-token minimum or cacheControl not processed)`);
         }
       }
 
