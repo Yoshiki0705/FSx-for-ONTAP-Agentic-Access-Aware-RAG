@@ -290,6 +290,12 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Docker cache — source changes not reflected | Docker layer cache reuses old source | Always use `--no-cache` for source changes |
 | SID filter returns empty (permission deny all) | KB returns comma-separated SIDs | Fixed in `578435b`; parseDocumentSIDs handles all formats |
 | ONTAP version cannot be retrieved via AWS API | `describe-file-systems` lacks version | Use SSM + ONTAP REST API (see operations-runbook.md) |
+| Agent `foundationModel` on-demand error | Inference profiles not accepted by Agent API | Use `anthropic.claude-3-haiku-20240307-v1:0` (on-demand available) |
+| Agent Alias points to old model version | Manual alias deletion causes CFn state drift | Use `update_agent_alias(routingConfiguration=[])` to auto-create new version |
+| Multi-Agent Collaborator uses old model | Collaborator Alias routing pinned to v1 | Clear routing with `routingConfiguration=[]` (auto-creates latest version) |
+| CDK deploy fails with deleted Alias | CFn reads attributes of physically deleted aliases | Never manually delete CFn-managed aliases; use CDK for lifecycle |
+| Converse API ignores cacheControl | Prompt Caching only works via Messages API | Use InvokeModel for Claude; Converse for non-Claude |
+| CDK synth uses old compiled JS | `.js` files not recompiled after `.ts` change | Run `npx tsc` before `cdk synth` when modifying stack code |
 
 ## CI/Test Reliability
 
