@@ -1,49 +1,84 @@
 name: Continuous Monitoring & Alerts
 
-# 継続的監視・アラートワークフロー
+# 継続的品質監視ワークフロー
+#
+# NOTE: 旧バージョンは jobs ブロックが壊れた YAML（リテラル \n）で「workflow file
+# issue」により即時失敗していた。また gitignore 対象の development/ 配下スクリプトに
+# 依存していたため CI では動作しなかった。本バージョンはリポジトリに実在する
+# チェック（tsc / jest / cdk synth）を実行する、自己完結した有効な YAML に再構成。
 on:
-  # 定期実行スケジュール
   schedule:
-    # 毎日2時（UTC）- 日次品質監視
+    # 毎日 02:00 UTC — 日次品質監視
     - cron: '0 2 * * *'
-    # 毎週月曜14時（UTC）- 週次レポート
+    # 毎週月曜 14:00 UTC — 週次
     - cron: '0 14 * * 1'
-    # 毎月1日9時（UTC）- 月次分析
-    - cron: '0 9 1 * *'
-  
-  # 手動実行
   workflow_dispatch:
     inputs:
-      monitoring_type:
-        description: 'Monitoring type'
-        required: true
-        default: 'daily'
-        type: choice
-        options:
-          - daily
-          - weekly
-          - monthly
-          - performance
       notification_level:
         description: 'Notification level'
-        required: true
+        required: false
         default: 'normal'
         type: choice
         options:
           - minimal
           - normal
           - detailed
-      force_notification:
-        description: 'Force notification even on success'
-        required: false
-        default: false
-        type: boolean
 
-# 環境変数
+permissions:
+  contents: read
+
 env:
-  MONITORING_TYPE: ${{ github.event.inputs.monitoring_type || 'daily' }}
-  NOTIFICATION_LEVEL: ${{ github.event.inputs.notification_level || 'normal' }}
-  FORCE_NOTIFICATION: ${{ github.event.inputs.force_notification || 'false' }}
-  METRICS_RETENTION_DAYS: 90
+  NODE_VERSION: '22'
 
-jobs:\n  # 監視タイプ判定\n  determine-monitoring:\n    name: Determine Monitoring Type\n    runs-on: ubuntu-latest\n    outputs:\n      monitoring-type: ${{ steps.determine.outputs.monitoring-type }}\n      test-mode: ${{ steps.determine.outputs.test-mode }}\n      notification-required: ${{ steps.determine.outputs.notification-required }}\n    \n    steps:\n      - name: Determine monitoring parameters\n        id: determine\n        run: |\n          # 実行タイプの判定\n          if [[ \"${{ github.event_name }}\" == \"schedule\" ]]; then\n            # cron実行の場合、時間に基づいて判定\n            hour=$(date -u +%H)\n            day_of_week=$(date -u +%u)  # 1=Monday, 7=Sunday\n            day_of_month=$(date -u +%d)\n            \n            if [[ \"$hour\" == \"02\" ]]; then\n              monitoring_type=\"daily\"\n            elif [[ \"$hour\" == \"14\" && \"$day_of_week\" == \"1\" ]]; then\n              monitoring_type=\"weekly\"\n            elif [[ \"$hour\" == \"09\" && \"$day_of_month\" == \"01\" ]]; then\n              monitoring_type=\"monthly\"\n            else\n              monitoring_type=\"daily\"\n            fi\n          else\n            monitoring_type=\"$MONITORING_TYPE\"\n          fi\n          \n          # テストモードの決定\n          case \"$monitoring_type\" in\n            \"daily\")\n              test_mode=\"full\"\n              notification_required=\"true\"\n              ;;\n            \"weekly\")\n              test_mode=\"full\"\n              notification_required=\"true\"\n              ;;\n            \"monthly\")\n              test_mode=\"full\"\n              notification_required=\"true\"\n              ;;\n            \"performance\")\n              test_mode=\"full\"\n              notification_required=\"false\"\n              ;;\n            *)\n              test_mode=\"full\"\n              notification_required=\"false\"\n              ;;\n          esac\n          \n          echo \"monitoring-type=$monitoring_type\" >> $GITHUB_OUTPUT\n          echo \"test-mode=$test_mode\" >> $GITHUB_OUTPUT\n          echo \"notification-required=$notification_required\" >> $GITHUB_OUTPUT\n          \n          echo \"📊 監視設定:\"\n          echo \"  監視タイプ: $monitoring_type\"\n          echo \"  テストモード: $test_mode\"\n          echo \"  通知必要: $notification_required\"\n\n  # 継続的品質監視\n  continuous-quality-monitoring:\n    name: Continuous Quality Monitoring\n    runs-on: ubuntu-latest\n    needs: determine-monitoring\n    timeout-minutes: 20\n    \n    outputs:\n      test-results: ${{ steps.run-monitoring.outputs.test-results }}\n      performance-metrics: ${{ steps.run-monitoring.outputs.performance-metrics }}\n      quality-score: ${{ steps.run-monitoring.outputs.quality-score }}\n      alert-level: ${{ steps.run-monitoring.outputs.alert-level }}\n    \n    steps:\n      - name: Checkout repository\n        uses: actions/checkout@v4\n        with:\n          fetch-depth: 0\n      \n      - name: Setup monitoring environment\n        run: |\n          echo \"🔧 監視環境セットアップ中\"\n          \n          # 必要なディレクトリ作成\n          mkdir -p development/logs/monitoring\n          mkdir -p development/metrics\n          \n          # 実行権限設定\n          chmod +x development/scripts/testing/quick_integration_test.sh\n          \n          # 環境情報出力\n          echo \"監視タイプ: ${{ needs.determine-monitoring.outputs.monitoring-type }}\"\n          echo \"テストモード: ${{ needs.determine-monitoring.outputs.test-mode }}\"\n          echo \"通知レベル: $NOTIFICATION_LEVEL\"\n          echo \"実行時刻: $(date '+%Y/%m/%d %H:%M:%S UTC')\"\n      \n      - name: Run continuous monitoring\n        id: run-monitoring\n        run: |\n          echo \"📊 継続的品質監視実行開始\"\n          \n          # 監視開始時刻記録\n          START_TIME=$(date +%s%N)\n          MONITORING_ID=\"monitoring_$(date +%Y%m%d_%H%M%S)\"\n          \n          # 統合テスト実行\n          set +e  # エラーでも継続\n          ./development/scripts/testing/quick_integration_test.sh \\\n            --mode \"${{ needs.determine-monitoring.outputs.test-mode }}\" \\\n            --environment demo \\\n            --verbose \\\n            --report-format json \\\n            > monitoring_output.log 2>&1\n          \n          TEST_EXIT_CODE=$?\n          \n          # 監視終了時刻記録\n          END_TIME=$(date +%s%N)\n          EXECUTION_TIME=$(( (END_TIME - START_TIME) / 1000000 ))  # ミリ秒\n          \n          echo \"⏱️ 監視実行完了: ${EXECUTION_TIME}ms\"\n          \n          # 結果解析\n          if [ $TEST_EXIT_CODE -eq 0 ]; then\n            echo \"✅ 品質監視: 正常\"\n            MONITORING_STATUS=\"healthy\"\n            ALERT_LEVEL=\"none\"\n          else\n            echo \"❌ 品質監視: 異常検知\"\n            MONITORING_STATUS=\"unhealthy\"\n            ALERT_LEVEL=\"high\"\n          fi\n          \n          # ログから統計情報を抽出\n          if [ -f monitoring_output.log ]; then\n            TOTAL_TESTS=$(grep -o \"総テスト数: [0-9]*\" monitoring_output.log | grep -o \"[0-9]*\" || echo \"0\")\n            SUCCESS_TESTS=$(grep -o \"成功: [0-9]*\" monitoring_output.log | grep -o \"[0-9]*\" || echo \"0\")\n            FAILED_TESTS=$(grep -o \"失敗: [0-9]*\" monitoring_output.log | grep -o \"[0-9]*\" || echo \"0\")\n            \n            # 成功率計算\n            if [[ $TOTAL_TESTS -gt 0 ]]; then\n              SUCCESS_RATE=$(echo \"scale=2; $SUCCESS_TESTS * 100 / $TOTAL_TESTS\" | bc -l)\n            else\n              SUCCESS_RATE=\"0\"\n            fi\n          else\n            TOTAL_TESTS=\"0\"\n            SUCCESS_TESTS=\"0\"\n            FAILED_TESTS=\"0\"\n            SUCCESS_RATE=\"0\"\n          fi\n          \n          # パフォーマンスメトリクス\n          MEMORY_USAGE=$(free -m | grep '^Mem:' | awk '{print $3}' || echo \"0\")\n          CPU_USAGE=$(top -bn1 | grep \"Cpu(s)\" | awk '{print $2}' | cut -d'%' -f1 || echo \"0\")\n          DISK_USAGE=$(df -h . | tail -1 | awk '{print $5}' | cut -d'%' -f1 || echo \"0\")\n          \n          # 品質スコア計算\n          QUALITY_SCORE=0\n          \n          # テスト成功率（50%）\n          if (( $(echo \"$SUCCESS_RATE >= 100\" | bc -l) )); then\n            QUALITY_SCORE=$((QUALITY_SCORE + 50))\n          elif (( $(echo \"$SUCCESS_RATE >= 95\" | bc -l) )); then\n            QUALITY_SCORE=$((QUALITY_SCORE + 40))\n          elif (( $(echo \"$SUCCESS_RATE >= 90\" | bc -l) )); then\n            QUALITY_SCORE=$((QUALITY_SCORE + 30))\n          fi\n          \n          # 実行時間（30%）\n          if [[ $EXECUTION_TIME -lt 5000 ]]; then\n            QUALITY_SCORE=$((QUALITY_SCORE + 30))\n          elif [[ $EXECUTION_TIME -lt 10000 ]]; then\n            QUALITY_SCORE=$((QUALITY_SCORE + 20))\n          elif [[ $EXECUTION_TIME -lt 15000 ]]; then\n            QUALITY_SCORE=$((QUALITY_SCORE + 10))\n          fi\n          \n          # システムリソース（20%）\n          if [[ $MEMORY_USAGE -lt 1000 && $CPU_USAGE -lt 80 && $DISK_USAGE -lt 80 ]]; then\n            QUALITY_SCORE=$((QUALITY_SCORE + 20))\n          elif [[ $MEMORY_USAGE -lt 2000 && $CPU_USAGE -lt 90 && $DISK_USAGE -lt 90 ]]; then\n            QUALITY_SCORE=$((QUALITY_SCORE + 10))\n          fi\n          \n          # アラートレベル判定\n          if [[ $QUALITY_SCORE -ge 80 ]]; then\n            ALERT_LEVEL=\"none\"\n          elif [[ $QUALITY_SCORE -ge 60 ]]; then\n            ALERT_LEVEL=\"low\"\n          elif [[ $QUALITY_SCORE -ge 40 ]]; then\n            ALERT_LEVEL=\"medium\"\n          else\n            ALERT_LEVEL=\"high\"\n          fi\n          \n          # 結果のJSON形式出力\n          TEST_RESULTS=$(cat << EOF\n{\n  \"monitoring_id\": \"$MONITORING_ID\",\n  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\n  \"monitoring_type\": \"${{ needs.determine-monitoring.outputs.monitoring-type }}\",\n  \"status\": \"$MONITORING_STATUS\",\n  \"test_results\": {\n    \"total_tests\": $TOTAL_TESTS,\n    \"success_tests\": $SUCCESS_TESTS,\n    \"failed_tests\": $FAILED_TESTS,\n    \"success_rate\": $SUCCESS_RATE,\n    \"execution_time_ms\": $EXECUTION_TIME\n  },\n  \"quality_score\": $QUALITY_SCORE,\n  \"alert_level\": \"$ALERT_LEVEL\"\n}\nEOF\n          )\n          \n          PERFORMANCE_METRICS=$(cat << EOF\n{\n  \"execution_time_ms\": $EXECUTION_TIME,\n  \"memory_usage_mb\": $MEMORY_USAGE,\n  \"cpu_usage_percent\": $CPU_USAGE,\n  \"disk_usage_percent\": $DISK_USAGE,\n  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"\n}\nEOF\n          )\n          \n          # GitHub Actions出力設定\n          echo \"test-results<<EOF\" >> $GITHUB_OUTPUT\n          echo \"$TEST_RESULTS\" >> $GITHUB_OUTPUT\n          echo \"EOF\" >> $GITHUB_OUTPUT\n          \n          echo \"performance-metrics<<EOF\" >> $GITHUB_OUTPUT\n          echo \"$PERFORMANCE_METRICS\" >> $GITHUB_OUTPUT\n          echo \"EOF\" >> $GITHUB_OUTPUT\n          \n          echo \"quality-score=$QUALITY_SCORE\" >> $GITHUB_OUTPUT\n          echo \"alert-level=$ALERT_LEVEL\" >> $GITHUB_OUTPUT\n          \n          # メトリクスファイル保存\n          echo \"$TEST_RESULTS\" > \"development/metrics/test_results_$MONITORING_ID.json\"\n          echo \"$PERFORMANCE_METRICS\" > \"development/metrics/performance_$MONITORING_ID.json\"\n          \n          # 監視結果サマリー\n          echo \"📊 監視結果サマリー:\"\n          echo \"  ステータス: $MONITORING_STATUS\"\n          echo \"  品質スコア: $QUALITY_SCORE/100\"\n          echo \"  アラートレベル: $ALERT_LEVEL\"\n          echo \"  テスト成功率: $SUCCESS_RATE%\"\n          echo \"  実行時間: ${EXECUTION_TIME}ms\"\n          \n          # 失敗時はexit codeを返す\n          exit $TEST_EXIT_CODE\n      \n      - name: Store metrics data\n        if: always()\n        run: |\n          echo \"💾 メトリクスデータ保存中\"\n          \n          # メトリクス履歴ファイル更新\n          HISTORY_FILE=\"development/metrics/monitoring_history.jsonl\"\n          \n          # 履歴ファイルが存在しない場合は作成\n          if [[ ! -f \"$HISTORY_FILE\" ]]; then\n            touch \"$HISTORY_FILE\"\n          fi\n          \n          # 新しいメトリクスを履歴に追加\n          echo '${{ steps.run-monitoring.outputs.test-results }}' >> \"$HISTORY_FILE\"\n          \n          # 古いデータのクリーンアップ（90日以上前のデータを削除）\n          CUTOFF_DATE=$(date -d \"90 days ago\" -u +%Y-%m-%dT%H:%M:%SZ)\n          \n          # 一時ファイルで古いデータを除外\n          if command -v jq >/dev/null 2>&1; then\n            jq -s --arg cutoff \"$CUTOFF_DATE\" \\\n              'map(select(.timestamp >= $cutoff))' \\\n              \"$HISTORY_FILE\" > \"${HISTORY_FILE}.tmp\" && \\\n              mv \"${HISTORY_FILE}.tmp\" \"$HISTORY_FILE\"\n          fi\n          \n          echo \"✅ メトリクスデータ保存完了\"\n      \n      - name: Upload monitoring artifacts\n        if: always()\n        uses: actions/upload-artifact@v4\n        with:\n          name: monitoring-results-${{ github.run_number }}\n          path: |\n            monitoring_output.log\n            development/metrics/*.json\n            development/metrics/*.jsonl\n            development/logs/monitoring/\n          retention-days: ${{ env.METRICS_RETENTION_DAYS }}\n\n  # パフォーマンス分析\n  performance-analysis:\n    name: Performance Analysis\n    runs-on: ubuntu-latest\n    needs: [determine-monitoring, continuous-quality-monitoring]\n    if: always()\n    \n    outputs:\n      performance-trend: ${{ steps.analyze.outputs.performance-trend }}\n      recommendations: ${{ steps.analyze.outputs.recommendations }}\n    \n    steps:\n      - name: Checkout repository\n        uses: actions/checkout@v4\n      \n      - name: Download monitoring results\n        uses: actions/download-artifact@v4\n        with:\n          name: monitoring-results-${{ github.run_number }}\n          path: ./monitoring-data/\n        continue-on-error: true\n      \n      - name: Analyze performance trends\n        id: analyze\n        run: |\n          echo \"📈 パフォーマンス分析実行中\"\n          \n          # 現在のメトリクス\n          CURRENT_QUALITY_SCORE=\"${{ needs.continuous-quality-monitoring.outputs.quality-score }}\"\n          CURRENT_ALERT_LEVEL=\"${{ needs.continuous-quality-monitoring.outputs.alert-level }}\"\n          \n          # パフォーマンストレンド分析\n          PERFORMANCE_TREND=\"stable\"\n          RECOMMENDATIONS=\"\"\n          \n          # 品質スコアに基づく分析\n          if [[ $CURRENT_QUALITY_SCORE -ge 90 ]]; then\n            PERFORMANCE_TREND=\"excellent\"\n            RECOMMENDATIONS=\"現在の品質レベルを維持してください。\"\n          elif [[ $CURRENT_QUALITY_SCORE -ge 80 ]]; then\n            PERFORMANCE_TREND=\"good\"\n            RECOMMENDATIONS=\"良好な品質レベルです。継続的な監視を続けてください。\"\n          elif [[ $CURRENT_QUALITY_SCORE -ge 60 ]]; then\n            PERFORMANCE_TREND=\"declining\"\n            RECOMMENDATIONS=\"品質の低下が見られます。テストの見直しやパフォーマンス改善を検討してください。\"\n          else\n            PERFORMANCE_TREND=\"critical\"\n            RECOMMENDATIONS=\"緊急対応が必要です。システムの詳細調査と改善を実施してください。\"\n          fi\n          \n          # アラートレベルに基づく追加推奨事項\n          case \"$CURRENT_ALERT_LEVEL\" in\n            \"high\")\n              RECOMMENDATIONS=\"$RECOMMENDATIONS 高レベルアラートが発生しています。即座の対応が必要です。\"\n              ;;\n            \"medium\")\n              RECOMMENDATIONS=\"$RECOMMENDATIONS 中レベルアラートが発生しています。近日中の対応を推奨します。\"\n              ;;\n            \"low\")\n              RECOMMENDATIONS=\"$RECOMMENDATIONS 軽微な問題が検出されています。監視を継続してください。\"\n              ;;\n          esac\n          \n          echo \"performance-trend=$PERFORMANCE_TREND\" >> $GITHUB_OUTPUT\n          echo \"recommendations<<EOF\" >> $GITHUB_OUTPUT\n          echo \"$RECOMMENDATIONS\" >> $GITHUB_OUTPUT\n          echo \"EOF\" >> $GITHUB_OUTPUT\n          \n          echo \"📊 パフォーマンス分析結果:\"\n          echo \"  トレンド: $PERFORMANCE_TREND\"\n          echo \"  推奨事項: $RECOMMENDATIONS\"\n\n  # 通知・アラート\n  notification-alerts:\n    name: Notifications & Alerts\n    runs-on: ubuntu-latest\n    needs: [determine-monitoring, continuous-quality-monitoring, performance-analysis]\n    if: always() && (needs.determine-monitoring.outputs.notification-required == 'true' || needs.continuous-quality-monitoring.outputs.alert-level != 'none' || github.event.inputs.force_notification == 'true')\n    \n    steps:\n      - name: Prepare notification content\n        id: prepare-notification\n        run: |\n          # 通知内容の準備\n          MONITORING_TYPE=\"${{ needs.determine-monitoring.outputs.monitoring-type }}\"\n          QUALITY_SCORE=\"${{ needs.continuous-quality-monitoring.outputs.quality-score }}\"\n          ALERT_LEVEL=\"${{ needs.continuous-quality-monitoring.outputs.alert-level }}\"\n          PERFORMANCE_TREND=\"${{ needs.performance-analysis.outputs.performance-trend }}\"\n          \n          # ステータス絵文字\n          case \"$ALERT_LEVEL\" in\n            \"none\") STATUS_EMOJI=\"✅\"; STATUS_TEXT=\"正常\" ;;\n            \"low\") STATUS_EMOJI=\"⚠️\"; STATUS_TEXT=\"注意\" ;;\n            \"medium\") STATUS_EMOJI=\"🔶\"; STATUS_TEXT=\"警告\" ;;\n            \"high\") STATUS_EMOJI=\"🚨\"; STATUS_TEXT=\"緊急\" ;;\n            *) STATUS_EMOJI=\"❓\"; STATUS_TEXT=\"不明\" ;;\n          esac\n          \n          # 通知メッセージ作成\n          NOTIFICATION_TITLE=\"$STATUS_EMOJI 継続的監視レポート ($MONITORING_TYPE)\"\n          \n          NOTIFICATION_BODY=\"**監視結果**: $STATUS_TEXT\n**品質スコア**: $QUALITY_SCORE/100\n**パフォーマンストレンド**: $PERFORMANCE_TREND\n**実行時刻**: $(date '+%Y/%m/%d %H:%M:%S UTC')\n\n**推奨事項**:\n${{ needs.performance-analysis.outputs.recommendations }}\n\n**詳細**: [ワークフロー実行 #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\"\n          \n          echo \"notification-title<<EOF\" >> $GITHUB_OUTPUT\n          echo \"$NOTIFICATION_TITLE\" >> $GITHUB_OUTPUT\n          echo \"EOF\" >> $GITHUB_OUTPUT\n          \n          echo \"notification-body<<EOF\" >> $GITHUB_OUTPUT\n          echo \"$NOTIFICATION_BODY\" >> $GITHUB_OUTPUT\n          echo \"EOF\" >> $GITHUB_OUTPUT\n      \n      - name: Create monitoring summary\n        run: |\n          echo \"## ${{ steps.prepare-notification.outputs.notification-title }}\" >> $GITHUB_STEP_SUMMARY\n          echo \"\" >> $GITHUB_STEP_SUMMARY\n          echo \"${{ steps.prepare-notification.outputs.notification-body }}\" >> $GITHUB_STEP_SUMMARY\n          echo \"\" >> $GITHUB_STEP_SUMMARY\n          echo \"### 📊 詳細メトリクス\" >> $GITHUB_STEP_SUMMARY\n          echo \"\\`\\`\\`json\" >> $GITHUB_STEP_SUMMARY\n          echo '${{ needs.continuous-quality-monitoring.outputs.test-results }}' >> $GITHUB_STEP_SUMMARY\n          echo \"\\`\\`\\`\" >> $GITHUB_STEP_SUMMARY\n      \n      # 将来的にSlack通知を実装\n      # - name: Send Slack notification\n      #   if: env.SLACK_WEBHOOK_URL != ''\n      #   uses: 8398a7/action-slack@v3\n      #   with:\n      #     status: ${{ needs.continuous-quality-monitoring.outputs.alert-level }}\n      #     title: ${{ steps.prepare-notification.outputs.notification-title }}\n      #     text: ${{ steps.prepare-notification.outputs.notification-body }}\n      #   env:\n      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}\n      \n      - name: Log notification\n        run: |\n          echo \"📢 継続的監視通知\"\n          echo \"${{ steps.prepare-notification.outputs.notification-title }}\"\n          echo \"${{ steps.prepare-notification.outputs.notification-body }}\"\n\n  # 監視結果サマリー\n  monitoring-summary:\n    name: Monitoring Summary\n    runs-on: ubuntu-latest\n    needs: [determine-monitoring, continuous-quality-monitoring, performance-analysis, notification-alerts]\n    if: always()\n    \n    steps:\n      - name: Generate monitoring summary\n        run: |\n          echo \"📊 継続的監視・アラート実行サマリー\"\n          echo \"\"\n          echo \"**監視タイプ**: ${{ needs.determine-monitoring.outputs.monitoring-type }}\"\n          echo \"**実行結果**: ${{ needs.continuous-quality-monitoring.result }}\"\n          echo \"**品質スコア**: ${{ needs.continuous-quality-monitoring.outputs.quality-score }}/100\"\n          echo \"**アラートレベル**: ${{ needs.continuous-quality-monitoring.outputs.alert-level }}\"\n          echo \"**パフォーマンストレンド**: ${{ needs.performance-analysis.outputs.performance-trend }}\"\n          echo \"**通知実行**: ${{ needs.notification-alerts.result }}\"\n          echo \"\"\n          echo \"**実行時刻**: $(date '+%Y/%m/%d %H:%M:%S UTC')\"\n          echo \"**ワークフロー**: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\"\n          \n          # 全体的な成功判定\n          if [[ \"${{ needs.continuous-quality-monitoring.result }}\" == \"success\" ]]; then\n            echo \"\"\n            echo \"✅ 継続的監視が正常に完了しました\"\n          else\n            echo \"\"\n            echo \"❌ 継続的監視で問題が検出されました\"\n          fi"
+jobs:
+  quality-monitoring:
+    name: Continuous Quality Monitoring
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        id: tsc
+        run: npx tsc --noEmit
+
+      - name: CDK unit tests
+        id: jest
+        run: npx jest --no-coverage --forceExit
+
+      - name: CDK synth (default context)
+        id: synth
+        run: npx cdk synth --quiet
+
+      - name: Monitoring summary
+        if: always()
+        env:
+          TSC_OUTCOME: ${{ steps.tsc.outcome }}
+          JEST_OUTCOME: ${{ steps.jest.outcome }}
+          SYNTH_OUTCOME: ${{ steps.synth.outcome }}
+          TRIGGER: ${{ github.event_name }}
+        run: |
+          {
+            echo "## 📊 継続的品質監視レポート"
+            echo ""
+            echo "**実行時刻**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "**トリガー**: ${TRIGGER}"
+            echo ""
+            echo "| チェック | 結果 |"
+            echo "|---------|------|"
+            echo "| TypeScript (tsc) | ${TSC_OUTCOME} |"
+            echo "| Unit tests (jest) | ${JEST_OUTCOME} |"
+            echo "| CDK synth | ${SYNTH_OUTCOME} |"
+          } >> "$GITHUB_STEP_SUMMARY"
