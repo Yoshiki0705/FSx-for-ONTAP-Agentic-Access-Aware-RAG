@@ -257,11 +257,54 @@ FSxN AI/RAG アーキテクチャレビューの非交渉要件に直結する�
 
 | # | 項目 | 状態 | 対応 |
 |---|------|------|------|
-| R1 | Web Search Tool の us-east-1 制約 | ⚠️ UNVERIFIED | リージョン可用性表で確認。クロスリージョン前提で設計 |
-| R2 | 本セッションの `enableWebSearch`（ap-northeast-1 gateway）の配置誤り | 要修正 | ステップ3 で撤去/移設 |
-| R3 | createGatewayTarget の Web Search target 構成 | ⚠️ UNVERIFIED | 連携リポジトリ実装 + 公式ドキュメントで確定後に IaC 化 |
-| R4 | Web 結果のインジェクション | 設計で対応 | `<web_search_results>` 隔離（ステップ1） |
+| R1 | Web Search Tool の us-east-1 制約 | ✅ **VERIFIED** | 公式ドキュメントに「available in the US East (N. Virginia) us-east-1 Region」と明記。PoC で確認済み |
+| R2 | 本セッションの `enableWebSearch`（ap-northeast-1 gateway）の配置誤り | ✅ **解決済み** | ステップ3 で撤去・synth-time warning 化 |
+| R3 | createGatewayTarget の Web Search target 構成 | ✅ **VERIFIED** | 正式 API 形状確認（下記 §9.1） |
+| R4 | Web 結果のインジェクション | ✅ 設計で対応 | `<web_search_results>` 隔離 + `WEB_SEARCH_SAFETY_INSTRUCTION`（ステップ1） |
 | R5 | 機構 A（Claude Platform）と機構 C（AgentCore）の役割重複 | 要整理 | env での切替 + UI からはエンジンを隠蔽（§3） |
+
+### 9.1 Web Search target 構成（VERIFIED — 2026-06-18 PoC 実行結果）
+
+**正しい API 形状:**
+
+```python
+agentcore.create_gateway_target(
+    gatewayIdentifier="<GATEWAY_ID>",
+    name="web-search-tool",
+    targetConfiguration={
+        "mcp": {
+            "connector": {
+                "source": {"connectorId": "web-search"},
+                "configurations": [{"name": "WebSearch", "parameterValues": {}}]
+            }
+        }
+    },
+    credentialProviderConfigurations=[
+        {"credentialProviderType": "GATEWAY_IAM_ROLE"}
+    ],
+)
+```
+
+**PoC 環境:**
+
+| 項目 | 値 |
+|------|-----|
+| リージョン | us-east-1 |
+| Gateway ID | `web-search-poc-yznjok7zbp` |
+| Gateway URL | `https://web-search-poc-yznjok7zbp.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp` |
+| Target ID | `DVJJCZBSVI` |
+| Status | READY（即時） |
+| IAM Role | `agentcore-gateway-web-search-poc-role` |
+| 必要 IAM Action | `bedrock-agentcore:InvokeGateway`, `bedrock-agentcore:InvokeWebSearch` |
+| InvokeWebSearch Resource | `arn:aws:bedrock-agentcore:us-east-1:aws:tool/web-search.v1` |
+| boto3 最小バージョン | 1.43.32（`connector` key のサポート） |
+
+**重要な発見:**
+
+1. `connector` は `mcp` オブジェクト直下のキーであり、`mcpServer` / `lambda` / `apiGateway` と並列
+2. boto3 1.43.31 以前は `connector` キーを認識しない（ParamValidationError）
+3. Gateway 作成→即 READY、Target 作成→即 READY（プロビジョニング待ち時間なし）
+4. ドメインフィルタリングが `parameterValues.domainFilter.exclude` で設定可能
 
 ---
 

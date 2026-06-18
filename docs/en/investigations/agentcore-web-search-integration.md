@@ -257,9 +257,9 @@ Rationale:
 
 | # | Item | Status | Action |
 |---|------|--------|--------|
-| R1 | Web Search Tool us-east-1 constraint | ⚠️ UNVERIFIED | Confirm via regional availability table; design assuming cross-region |
-| R2 | This session's `enableWebSearch` (ap-northeast-1 gateway) placement error | Needs fix | Remove/relocate in Step 3 |
-| R3 | createGatewayTarget Web Search target config | ⚠️ UNVERIFIED | IaC only after confirming with sibling impl + official docs |
+| R1 | Web Search Tool us-east-1 constraint | ✅ **VERIFIED** | Official docs state "available in the US East (N. Virginia) us-east-1 Region". Confirmed via PoC |
+| R2 | This session's `enableWebSearch` (ap-northeast-1 gateway) placement error | ✅ **Resolved** | Removed in Step 3; synth-time warning added |
+| R3 | createGatewayTarget Web Search target config | ✅ **VERIFIED** | Correct shape: `mcp.connector.source.connectorId: "web-search"` (see PoC results below) |
 | R4 | Injection via web results | Addressed by design | `<web_search_results>` isolation (Step 1) |
 | R5 | Role overlap between mechanism A (Claude Platform) and C (AgentCore) | Needs reconciliation | Env-based switch + hide engine from UI (§3) |
 
