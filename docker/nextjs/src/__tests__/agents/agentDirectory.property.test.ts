@@ -222,7 +222,7 @@ describe('Feature: agent-directory-ui, Property 9: Form preserves input on save 
           instruction: fc.string({ maxLength: 500 }),
           foundationModel: fc.constantFrom(
             'anthropic.claude-haiku-4-5-20251001-v1:0',
-            'anthropic.claude-3-sonnet-20240229-v1:0'
+            'anthropic.claude-sonnet-4-6'
           ),
         }),
         fc.string({ minLength: 1, maxLength: 100 }), // error message

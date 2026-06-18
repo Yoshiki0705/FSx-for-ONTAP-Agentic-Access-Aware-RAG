@@ -22,8 +22,8 @@ const agentDetailArb: fc.Arbitrary<AgentDetail> = fc.record({
   instruction: fc.option(fc.string({ minLength: 1, maxLength: 500 }), { nil: undefined }),
   foundationModel: fc.option(fc.constantFrom(
     'anthropic.claude-haiku-4-5-20251001-v1:0',
-    'anthropic.claude-3-sonnet-20240229-v1:0',
-    'amazon.nova-pro-v1:0'
+    'anthropic.claude-sonnet-4-6',
+    'amazon.nova-2-lite-v1:0'
   ), { nil: undefined }),
   agentVersion: fc.option(fc.string({ minLength: 1, maxLength: 5 }), { nil: undefined }),
   createdAt: fc.option(fc.constant('2025-01-01T00:00:00.000Z'), { nil: undefined }),
@@ -48,8 +48,8 @@ const validAgentConfigArb = fc.record({
   instruction: fc.string({ minLength: 1, maxLength: 500 }).filter(s => s.trim().length > 0),
   foundationModel: fc.constantFrom(
     'anthropic.claude-haiku-4-5-20251001-v1:0',
-    'anthropic.claude-3-sonnet-20240229-v1:0',
-    'amazon.nova-pro-v1:0'
+    'anthropic.claude-sonnet-4-6',
+    'amazon.nova-2-lite-v1:0'
   ),
   actionGroups: fc.array(fc.record({
     name: fc.string({ minLength: 1, maxLength: 50 }),

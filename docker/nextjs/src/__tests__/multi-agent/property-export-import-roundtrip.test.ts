@@ -78,9 +78,9 @@ const dataBoundaryArb = fc.constantFrom(...DATA_BOUNDARIES);
 
 /** Generates a safe foundation model string */
 const foundationModelArb = fc.constantFrom(
-  'anthropic.claude-3-sonnet-20240229-v1:0',
+  'anthropic.claude-sonnet-4-6',
   'anthropic.claude-haiku-4-5-20251001-v1:0',
-  'anthropic.claude-3-5-sonnet-20241022-v2:0',
+  'anthropic.claude-opus-4-8',
 );
 
 /** Generates a valid CollaboratorConfig */

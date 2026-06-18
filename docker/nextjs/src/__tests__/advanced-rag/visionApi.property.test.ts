@@ -12,10 +12,10 @@ import * as fc from 'fast-check';
 // ---------------------------------------------------------------------------
 
 const VISION_CAPABLE_MODELS = [
-  'anthropic.claude-3-sonnet-20240229-v1:0',
+  'anthropic.claude-sonnet-4-6',
   'anthropic.claude-haiku-4-5-20251001-v1:0',
-  'amazon.nova-pro-v1:0',
-  'amazon.nova-lite-v1:0',
+  'anthropic.claude-opus-4-8',
+  'amazon.nova-2-lite-v1:0',
 ];
 
 const VISION_MODEL_ID = 'anthropic.claude-haiku-4-5-20251001-v1:0';

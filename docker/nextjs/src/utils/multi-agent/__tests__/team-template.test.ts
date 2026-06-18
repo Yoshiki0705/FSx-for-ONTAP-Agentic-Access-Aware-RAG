@@ -32,7 +32,7 @@ function createTestConfig(overrides?: Partial<AgentTeamConfig>): AgentTeamConfig
         agentAliasId: 'alias-perm-001',
         agentName: 'Permission Resolver',
         role: 'permission-resolver',
-        foundationModel: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+        foundationModel: 'anthropic.claude-sonnet-4-6',
         toolProfiles: ['access-check'],
         trustLevel: 'team-safe',
         dataBoundary: 'user-scoped',
@@ -43,7 +43,7 @@ function createTestConfig(overrides?: Partial<AgentTeamConfig>): AgentTeamConfig
         agentAliasId: 'alias-ret-002',
         agentName: 'Retrieval Agent',
         role: 'retrieval',
-        foundationModel: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+        foundationModel: 'anthropic.claude-sonnet-4-6',
         toolProfiles: ['kb-retrieve'],
         trustLevel: 'team-safe',
         dataBoundary: 'user-scoped',
@@ -69,7 +69,7 @@ function createTestTemplate(overrides?: Partial<AgentTeamTemplate>): AgentTeamTe
         role: 'permission-resolver',
         agentName: 'Permission Resolver',
         instruction: 'Resolve permissions',
-        foundationModel: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+        foundationModel: 'anthropic.claude-sonnet-4-6',
         toolProfiles: ['access-check'],
         trustLevel: 'team-safe',
         dataBoundary: 'user-scoped',
@@ -78,7 +78,7 @@ function createTestTemplate(overrides?: Partial<AgentTeamTemplate>): AgentTeamTe
         role: 'retrieval',
         agentName: 'Retrieval Agent',
         instruction: 'Search KB',
-        foundationModel: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+        foundationModel: 'anthropic.claude-sonnet-4-6',
         toolProfiles: ['kb-retrieve'],
         trustLevel: 'team-safe',
         dataBoundary: 'user-scoped',
@@ -244,7 +244,7 @@ describe('exportTeamConfig', () => {
 
     const first = template.collaborators[0];
     expect(first.role).toBe('permission-resolver');
-    expect(first.foundationModel).toBe('anthropic.claude-3-5-sonnet-20241022-v2:0');
+    expect(first.foundationModel).toBe('anthropic.claude-sonnet-4-6');
     expect(first.toolProfiles).toEqual(['access-check']);
     expect(first.trustLevel).toBe('team-safe');
     expect(first.dataBoundary).toBe('user-scoped');
@@ -258,7 +258,7 @@ describe('exportTeamConfig', () => {
           agentAliasId: 'alias-001',
           agentName: 'Test Agent',
           role: 'analysis',
-          foundationModel: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+          foundationModel: 'anthropic.claude-sonnet-4-6',
           toolProfiles: [],
           trustLevel: 'user-safe',
           dataBoundary: 'public',
@@ -341,7 +341,7 @@ describe('importTeamTemplate', () => {
 
     const first = config.collaborators[0];
     expect(first.role).toBe('permission-resolver');
-    expect(first.foundationModel).toBe('anthropic.claude-3-5-sonnet-20241022-v2:0');
+    expect(first.foundationModel).toBe('anthropic.claude-sonnet-4-6');
     expect(first.toolProfiles).toEqual(['access-check']);
     expect(first.trustLevel).toBe('team-safe');
     expect(first.dataBoundary).toBe('user-scoped');

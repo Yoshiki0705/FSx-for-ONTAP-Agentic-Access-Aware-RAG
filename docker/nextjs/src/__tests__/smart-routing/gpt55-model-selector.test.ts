@@ -40,7 +40,7 @@ describe('GPT-5.5 Model Selector', () => {
         currentRegion: 'ap-northeast-1',
         currentRegionName: 'Tokyo',
         availableModels: [
-          { id: 'anthropic.claude-3-5-sonnet-20241022-v2:0', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
+          { id: 'anthropic.claude-sonnet-4-6', name: 'Claude Sonnet 4.6', provider: 'Anthropic' },
         ],
         unavailableModels: [],
         availableModelsCount: 1,
