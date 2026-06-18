@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API を含む機能は
+すべて opt-in（デフォルト無効）であり、本番有効化前の検証が前提。
+
+### Added
+- **Policy Engine + Bedrock Guardrails 統合**: `CfnPolicyEngine` + `CfnPolicy`(Cedar) を Gateway の `policyEngineConfiguration` に紐付け。`policyEngineMode` で `LOG_ONLY`/`ENFORCE` を切替。`enableGuardrails=true` + `enableAgentCoreGateway=true` で有効化（東京リージョン GA）。⚠️ Cedar の Guardrails context スキーマは UNVERIFIED（コードにドキュメント参照付きで明記）
+- **AgentCore Web Search**: Gateway の built-in connector target を `AwsCustomResource` で追加。`enableWebSearch=true` で有効化（`enableAgentCoreGateway` 前提）。⚠️ target 構成・エンドポイントは UNVERIFIED。`WEB_SEARCH_TARGET_ENDPOINT` で上書き可能
+- **Chunk Safety Filter (InvokeGuardrailChecks 思想)**: KB Retrieve → SID Filter の後段でチャンク単位のインライン安全性チェック。`GUARDRAIL_ID` 設定時は `ApplyGuardrail`(source=INPUT)、未設定時は多言語ヒューリスティック（en/ja/zh/ko）。Fail-Open + 並列度制限 + EMF メトリクス。`enableGuardrails=true` で自動有効化。閾値/タイムアウト/並列度は `CHUNK_SAFETY_THRESHOLD`/`CHUNK_SAFETY_TIMEOUT_MS`/`CHUNK_SAFETY_CONCURRENCY` で調整
+- **AgentCore Optimization (Preview)**: Configuration Bundle + Recommendations + A/B Testing の基盤。`enableAgentOptimization=true` で有効化（`enableAgentCoreGateway` 前提）。CDK は Config Bundle + IAM ロールを provision、Recommendations/A/B テストは agentcore CLI/SDK で実行。⚠️ `createConfigurationBundle` パラメータは UNVERIFIED
+- **Managed KB 移行検討ドキュメント**: `docs/managed-kb-migration-evaluation.md`（日英）。既存 KB + OpenSearch Serverless / S3 Vectors との比較、Permission-aware RAG への影響（V1〜V7 検証ポイント）、段階移行手順、推奨判定（REQUEST CHANGES — 検証完了まで保留）
+- **Tests**: `chunk-safety-filter.property.test.ts`（Vitest + fast-check 15テスト）— 多言語インジェクション検出、PII、スコアリング、ベナイン誤検出なしの property test
+
+### Changed
+- **8言語ドキュメント同期**: README（ja/en/ko/zh-CN/zh-TW/fr/de/es）に Feature #19 拡張（Policy+Guardrails 統合）、#19.1（Web Search）、#19.2（Optimization）を追加。AGENTS.md に feature flags・アーキテクチャパターン・Pitfalls を追記
+
+### Security
+- **最小権限 IAM**: Web Search / Config Bundle の `AwsCustomResource` ポリシーを `*` から `gateway/*/target/*` および `configuration-bundle/*` にスコープ化
+- **信頼ポリシー絞り込み**: Optimization ロールの `assumedBy` から `AccountPrincipal`（アカウント全体）を除去し、AgentCore サービスのみに限定
+- **ApplyGuardrail source=INPUT**: 取得チャンクのプロンプトインジェクション検出が正しく発火するよう修正（OUTPUT では PROMPT_ATTACK フィルタ非発火）
+- **Cedar ポリシー修正**: ドキュメント突合せで、当初の `context.guardrails.evaluation` ベースのポリシーが**存在しない Cedar context フィールドに依存しており、ENFORCE 時に全ツール呼び出しを拒否しうる**ことが判明。検証済み構文のベースライン `permit(principal, action, resource)`（LOG_ONLY 観測用）に置換。本番 ENFORCE 前にツール単位の least-privilege ポリシー作成と Guardrails の正式な付与機構の利用が必要
+
 ## [4.3.0] - 2026-06-08
 
 ### Added

@@ -153,9 +153,18 @@ const voiceChatMode = (app.node.tryGetContext('voiceChatMode') || 'rest') as 're
 // AgentCore Policy（オプション）
 const enableAgentPolicy = ctxBool('enableAgentPolicy');
 const policyFailureMode = (app.node.tryGetContext('policyFailureMode') || 'fail-open') as 'fail-open' | 'fail-closed';
+const policyEngineMode = (app.node.tryGetContext('policyEngineMode') || 'LOG_ONLY') as 'LOG_ONLY' | 'ENFORCE';
 
 // AgentCore Gateway（オプション — enableAgentPolicy時は自動有効化）
 const enableAgentCoreGateway = ctxBool('enableAgentCoreGateway') || enableAgentPolicy;
+
+// AgentCore Web Search（オプション — Gateway 経由の Web 検索ツール）
+// enableAgentCoreGateway=true が前提条件
+const enableWebSearch = ctxBool('enableWebSearch') && enableAgentCoreGateway;
+
+// AgentCore Optimization（オプション — Preview: Configuration Bundles + A/B Testing）
+// enableAgentCoreGateway=true が前提条件
+const enableAgentOptimization = ctxBool('enableAgentOptimization') && enableAgentCoreGateway;
 
 // Graph RAG（オプション — Neptune Analytics）
 const enableGraphRAG = ctxBool('enableGraphRAG');
@@ -303,6 +312,9 @@ const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   enableAgentRegistry,
   agentRegistryRegion,
   enableAgentCoreGateway,
+  enableWebSearch,
+  policyEngineMode,
+  enableAgentOptimization,
   enableGraphRAG,
   graphRAGMemory,
   vpc: enableGraphRAG ? networkingStack.vpc : undefined,
@@ -375,6 +387,9 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   // Guardrails設定（オプション）
   guardrailId: enableGuardrails ? aiStack.guardrailId : undefined,
   guardrailVersion: enableGuardrails ? aiStack.guardrailVersion : undefined,
+  // Chunk Safety Filter設定（Guardrails有効時に自動有効化、閾値/タイムアウトはコンテキストで調整可能）
+  chunkSafetyThreshold: parseFloat(app.node.tryGetContext('chunkSafetyThreshold') || '') || undefined,
+  chunkSafetyTimeoutMs: parseInt(app.node.tryGetContext('chunkSafetyTimeoutMs') || '', 10) || undefined,
   // 音声チャット設定（オプション）
   enableVoiceChat,
   voiceChatMode,

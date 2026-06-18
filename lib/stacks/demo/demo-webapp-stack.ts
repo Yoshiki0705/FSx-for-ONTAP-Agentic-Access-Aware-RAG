@@ -113,6 +113,10 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   guardrailId?: string;
   /** Bedrock Guardrail Version（AIStackから、enableGuardrails=true 時のみ） */
   guardrailVersion?: string;
+  /** Chunk Safety Filter 安全性スコア閾値（0.0-1.0、デフォルト: 0.7） */
+  chunkSafetyThreshold?: number;
+  /** Chunk Safety Filter タイムアウト（ms、デフォルト: 3000） */
+  chunkSafetyTimeoutMs?: number;
   /** 音声チャット有効化フラグ（AIStackから） */
   enableVoiceChat?: boolean;
   /** 音声チャット通信モード（デフォルト: 'rest'） */
@@ -236,6 +240,10 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(props.guardrailId ? { GUARDRAILS_ENABLED: 'true' } : {}),
         ...(props.guardrailId ? { GUARDRAIL_ID: props.guardrailId } : {}),
         ...(props.guardrailVersion ? { GUARDRAIL_VERSION: props.guardrailVersion } : {}),
+        // Chunk Safety Filter（InvokeGuardrailChecks API — Guardrails有効時に自動有効化）
+        ...(props.guardrailId ? { ENABLE_CHUNK_SAFETY_FILTER: 'true' } : {}),
+        ...(props.chunkSafetyThreshold ? { CHUNK_SAFETY_THRESHOLD: String(props.chunkSafetyThreshold) } : {}),
+        ...(props.chunkSafetyTimeoutMs ? { CHUNK_SAFETY_TIMEOUT_MS: String(props.chunkSafetyTimeoutMs) } : {}),
         // 音声チャット設定（オプション）
         VOICE_CHAT_ENABLED: props.enableVoiceChat ? 'true' : 'false',
         ...(props.enableVoiceChat ? { NOVA_SONIC_MODEL_ID: 'amazon.nova-sonic-v1:0' } : {}),

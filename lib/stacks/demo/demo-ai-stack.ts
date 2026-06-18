@@ -260,6 +260,26 @@ export interface DemoAIStackProps extends cdk.StackProps {
   agentRegistryRegion?: string;
   /** AgentCore Gateway を有効化するか（デフォルト: false、enableAgentPolicy=true時に自動有効化） */
   enableAgentCoreGateway?: boolean;
+  /**
+   * AgentCore Web Search を有効化するか（デフォルト: false）。
+   * Gateway に Web Search built-in connector target を追加し、エージェントが
+   * リアルタイムの Web 情報を引用付きで取得可能にする。
+   * enableAgentCoreGateway=true が前提条件。
+   */
+  enableWebSearch?: boolean;
+  /**
+   * Policy Engine enforcement mode。
+   * - LOG_ONLY: ポリシー評価のみ（テスト用、ブロックしない）
+   * - ENFORCE: ポリシー評価結果に基づきツール呼び出しを許可/拒否
+   * @default 'LOG_ONLY'
+   */
+  policyEngineMode?: 'LOG_ONLY' | 'ENFORCE';
+  /**
+   * AgentCore Optimization を有効化するか（デフォルト: false）。
+   * Configuration Bundle + Recommendations + A/B Testing の基盤を構築。
+   * enableAgentCoreGateway=true が前提条件。Preview 機能。
+   */
+  enableAgentOptimization?: boolean;
   /** Graph RAG（Neptune Analytics）を有効化するか（デフォルト: false） */
   enableGraphRAG?: boolean;
   /** Graph RAG プロビジョンドメモリ（m-NCU、デフォルト: 32） */
@@ -986,20 +1006,65 @@ exports.handler = async (event) => {
 
     // --- AgentCore Gateway + Permission Interceptor（オプション） ---
     // enableAgentPolicy=true または enableAgentCoreGateway=true で有効化
+    // AWS Summit NY 2026: Guardrails 統合 + Web Search ツール追加
     const enableGateway = props.enableAgentCoreGateway || false;
     if (enableGateway && props.userAccessTableArn) {
       const { AgentCoreGatewayConstruct } = require('../../constructs/agentcore-gateway-construct');
       const userAccessTableForGateway = dynamodb.Table.fromTableArn(
         this, 'GatewayUserAccessTable', props.userAccessTableArn
       );
+
+      // Guardrails ARN の構築（enableGuardrails 時のみ Policy Engine に統合）
+      // guardrailId が存在する場合、Gateway の Policy Engine と統合する
+      const guardrailArnForGateway = this.guardrailId
+        ? `arn:aws:bedrock:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:guardrail/${this.guardrailId}`
+        : undefined;
+
       const gateway = new AgentCoreGatewayConstruct(this, 'AgentCoreGateway', {
         projectName,
         environment,
         userAccessTable: userAccessTableForGateway,
         description: `Permission-aware tool gateway for ${projectName}`,
+        // Policy Engine + Guardrails 統合（enableGuardrails 時に自動連携）
+        guardrailArn: guardrailArnForGateway,
+        policyEngineMode: props.policyEngineMode || 'LOG_ONLY',
+        // Web Search built-in connector target
+        enableWebSearch: props.enableWebSearch || false,
       });
       this.gatewayId = gateway.gatewayId;
       this.gatewayArn = gateway.gatewayArn;
+    }
+
+    // --- AgentCore Optimization（オプション — Preview） ---
+    // AWS Summit NY 2026: Configuration Bundles + Recommendations + A/B Testing
+    // 本番トレースからエージェント品質を継続的に改善するループ。
+    // enableAgentOptimization=true かつ Gateway が有効な場合に構築。
+    if (props.enableAgentOptimization && this.gatewayArn && this.gatewayId) {
+      const { AgentCoreOptimizationConstruct } = require('../../constructs/agentcore-optimization-construct');
+      const optimization = new AgentCoreOptimizationConstruct(this, 'AgentCoreOptimization', {
+        projectName,
+        environment,
+        gatewayArn: this.gatewayArn,
+        gatewayId: this.gatewayId,
+        initialConfig: {
+          systemPrompt: 'Permission-Aware RAG system prompt — managed via Configuration Bundle. See prompt-templates.ts for full content.',
+          modelId: 'anthropic.claude-sonnet-4-6',
+          toolDescriptions: {
+            permissionAwareSearch: 'Search documents filtered by user SID/GID permissions from FSx ONTAP via Knowledge Base',
+            webSearch: 'Search the web for current information with cited sources (zero data egress)',
+          },
+        },
+      });
+
+      new cdk.CfnOutput(this, 'OptimizationConfigBundle', {
+        value: optimization.configBundleName,
+        description: 'AgentCore Optimization — Configuration Bundle name',
+      });
+
+      new cdk.CfnOutput(this, 'OptimizationRoleArn', {
+        value: optimization.optimizationRoleArn,
+        description: 'AgentCore Optimization — IAM Role for Recommendations/A/B Tests',
+      });
     }
 
     // --- Graph RAG — Neptune Analytics（オプション） ---

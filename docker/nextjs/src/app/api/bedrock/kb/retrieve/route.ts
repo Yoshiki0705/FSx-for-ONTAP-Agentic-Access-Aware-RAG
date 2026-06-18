@@ -10,7 +10,8 @@
  * 2. Image analysis (Vision API, if image attached)
  * 3. KB Retrieve (with multimodal routing)
  * 4. SID permission filtering (Lambda or inline, Fail-Closed)
- * 5. Advanced permissions (time-based access, audit log)
+ * 4.1 Advanced permissions (time-based access, audit log)
+ * 5. Chunk safety filter (InvokeGuardrailChecks — PII, injection, harmful content)
  * 6. Conversation history (AgentCore Memory)
  * 7. Converse API (answer generation with model fallback)
  * 8. Guardrails evaluation
@@ -31,6 +32,7 @@ import type { MediaType, ActiveKBType } from '@/types/multimodal';
 // RAG Pipeline modules (facade pattern)
 import {
   filterByPermissions,
+  filterByChunkSafety,
   getUserSIDs,
   callConverse,
   resolveConverseModelId,
@@ -41,6 +43,7 @@ import {
   type ParsedRetrievalResult,
   type AllowedDocument,
   type UserAccessRecord,
+  type ChunkSafetyResult,
 } from '@/lib/rag-pipeline';
 
 // === Feature flags ===
@@ -219,6 +222,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // === Step 5: Chunk Safety Filter (Inline Guardrail Checks) ===
+    // AWS Summit NY 2026: SID フィルタ済みチャンクに対してインライン安全性チェック。
+    // プロンプトインジェクション、PII、有害コンテンツをチャンク単位で検出。
+    // Fail-Open: エラー/タイムアウト時は全チャンク通過（可用性優先）。
+    const chunkSafetyResult: ChunkSafetyResult = await filterByChunkSafety(allowed, region);
+    const chunkSafetyActive = chunkSafetyResult.method === 'GUARDRAIL_API' || chunkSafetyResult.method === 'HEURISTIC';
+    if (chunkSafetyActive && chunkSafetyResult.blockedCount > 0) {
+      allowed = chunkSafetyResult.safeChunks;
+      (filterLog as Record<string, unknown>).chunkSafety = {
+        method: chunkSafetyResult.method,
+        blockedCount: chunkSafetyResult.blockedCount,
+        latencyMs: chunkSafetyResult.latencyMs,
+        details: chunkSafetyResult.details.filter(d => d.decision === 'BLOCKED'),
+      };
+      (filterLog as Record<string, unknown>).allowedDocuments = allowed.length;
+      console.log(`[ChunkSafety] Result: ${chunkSafetyResult.blockedCount} chunks blocked, ${allowed.length} remaining`);
+    }
+
     // === Step 6: Converse API (answer generation with Prompt Caching) ===
     const converseModelId = resolveConverseModelId(rawModelId);
 
@@ -268,6 +289,7 @@ export async function POST(request: NextRequest) {
           ...(conversationHistory.length > 0 ? { memoryContextUsed: true, memoryMessageCount: conversationHistory.length } : {}),
           ...(MULTIMODAL_ENABLED ? { multimodalEnabled: true, routeDecision: routeDecision.reason } : {}),
           ...(multimodalFallback ? { multimodalFallback: true } : {}),
+          ...(chunkSafetyResult.method !== 'SKIP_DISABLED' ? { chunkSafety: { method: chunkSafetyResult.method, blockedCount: chunkSafetyResult.blockedCount, latencyMs: chunkSafetyResult.latencyMs } } : {}),
         },
       });
     } else {
