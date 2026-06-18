@@ -45,6 +45,7 @@
 | [docs/poc-workshop-guide.md](poc-workshop-guide.md) | PoC ワークショップガイド（90分、デプロイ→テスト→評価→クリーンアップ） |
 | [docs/cost-estimation-worksheet.md](cost-estimation-worksheet.md) | コスト見積もりワークシート（構成別月額概算テンプレート、計算式、最適化ポイント） |
 | [docs/architecture-decision-records.md](architecture-decision-records.md) | Architecture Decision Records（6つの主要意思決定: ベクトルストア、権限フィルタ、認証、フロントエンド、同期、ルーティング） |
+| [docs/managed-kb-migration-evaluation.md](managed-kb-migration-evaluation.md) | Amazon Bedrock Managed Knowledge Base 移行パス検討（既存 KB + OpenSearch Serverless / S3 Vectors との比較、Permission-aware RAG への影響、ACL メタデータフィルタ検証ポイント、段階移行手順）※AWS Summit NY 2026 |
 | [monitoring/athena-audit-tables.sql](../monitoring/athena-audit-tables.sql) | Athena テーブル定義（監査ログ分析用 DDL + サンプルクエリ） |
 | [docs/benchmark-scenarios.md](benchmark-scenarios.md) | ベンチマークシナリオ（10K/100K/1M ファイル、5 計測シナリオ、理論的ベースライン推定値） |
 | [demo-data/industry-packs/](../demo-data/industry-packs/) | 業種別デモデータパック（8 業種 × 5 ドキュメント: 行政・医療・法務・製造・建設・教育・保険 + 汎用） |

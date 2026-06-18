@@ -6,15 +6,17 @@
  * RAG pipeline. Each concern is delegated to a dedicated module.
  *
  * Modules:
- * - sid-filter.ts       — SID-based permission filtering (Lambda + inline fallback)
- * - converse-client.ts  — Bedrock Converse API with model fallback chain
- * - vision-analyzer.ts  — Image analysis via Vision API
- * - memory-fetcher.ts   — AgentCore Memory conversation history retrieval
- * - routing-metrics.ts  — Smart Routing CloudWatch EMF metrics
- * - types.ts            — Shared type definitions
+ * - sid-filter.ts            — SID-based permission filtering (Lambda + inline fallback)
+ * - chunk-safety-filter.ts   — InvokeGuardrailChecks per-chunk safety (PII, injection, harmful)
+ * - converse-client.ts       — Bedrock Converse API with model fallback chain
+ * - vision-analyzer.ts       — Image analysis via Vision API
+ * - memory-fetcher.ts        — AgentCore Memory conversation history retrieval
+ * - routing-metrics.ts       — Smart Routing CloudWatch EMF metrics
+ * - types.ts                 — Shared type definitions
  */
 
 export { filterByPermissions, getUserSIDs, checkSIDAccess } from './sid-filter';
+export { filterByChunkSafety } from './chunk-safety-filter';
 export { callConverse, resolveConverseModelId } from './converse-client';
 export { analyzeImage } from './vision-analyzer';
 export { fetchConversationHistory, normalizeActorId } from './memory-fetcher';
@@ -28,3 +30,4 @@ export type {
   FilterResult,
   ConverseResult,
 } from './types';
+export type { ChunkSafetyResult } from './chunk-safety-filter';

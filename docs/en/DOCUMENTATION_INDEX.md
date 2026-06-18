@@ -36,6 +36,7 @@
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | Multi-tenant & partner deployment patterns (account isolation/SVM isolation/hybrid, cost estimation templates) |
 | [governance-and-audit.md](governance-and-audit.md) | Governance & audit design (audit log schema, Responsible AI, Guardrails policies, industry-specific use cases) |
 | [evaluation.md](evaluation.md) | RAG / Agent evaluation metrics (4-axis evaluation: business KPIs, RAG quality, permission control, Agent performance; PoC evaluation template) |
+| [managed-kb-migration-evaluation.md](managed-kb-migration-evaluation.md) | Amazon Bedrock Managed Knowledge Base migration path evaluation (comparison with existing KB + OpenSearch Serverless / S3 Vectors, impact on Permission-aware RAG, ACL metadata filter verification points, phased migration). AWS Summit NY 2026 |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Safe experimentation guide (scope definition, prohibited actions, real data ingestion checklist, rollback procedures) |
 | [threat-model.md](threat-model.md) | Threat model (10 threat categories, attack paths, existing mitigations, additional recommendations, threat-to-countermeasure mapping table) |
 | [cloudwatch-dashboard-guide.md](cloudwatch-dashboard-guide.md) | CloudWatch dashboard operations guide (metrics list, alarm definitions, troubleshooting patterns) |
