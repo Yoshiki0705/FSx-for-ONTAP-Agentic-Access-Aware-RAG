@@ -257,8 +257,8 @@ La API `RetrieveAndGenerate` de Bedrock KB solo admite modelos Anthropic. La API
 
 | Modelo enviado | Convertido a | Razón |
 |----------------|-------------|-------|
-| `apac.amazon.nova-pro-v1:0` | `anthropic.claude-haiku-4-5-20251001-v1:0` | Los modelos Nova no son compatibles con la API KB |
-| `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | `anthropic.claude-3-5-sonnet-20241022-v2:0` | Elimina el prefijo de perfil de inferencia |
+| `apac.amazon.nova-pro-v1:0` | `jp.amazon.nova-2-lite-v1:0` | Redirección automática vía DEPRECATED_MODEL_MAP |
+| `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | `anthropic.claude-sonnet-4-6` | Redirigido a Sonnet 4.6 vía DEPRECATED_MODEL_MAP |
 | `anthropic.claude-haiku-4-5-20251001-v1:0` | Sin cambios | No se necesita conversión |
 
 Implementación: `docker/nextjs/src/app/api/bedrock/kb/retrieve/route.ts`

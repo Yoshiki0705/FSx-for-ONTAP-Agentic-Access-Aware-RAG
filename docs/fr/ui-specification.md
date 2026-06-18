@@ -101,7 +101,7 @@ amazon, anthropic, cohere, deepseek, google, minimax, mistral, moonshot, nvidia,
 ### Chaîne de repli
 
 ```
-Selected model → (failure) → apac.amazon.nova-lite-v1:0 → (failure) → anthropic.claude-haiku-4-5-20251001-v1:0
+Selected model → (failure) → jp.amazon.nova-2-lite-v1:0 → (failure) → anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 Essaie automatiquement le modèle suivant lors d'erreurs de modèle Legacy, d'erreurs d'indisponibilité on-demand ou de ValidationException.

@@ -711,7 +711,7 @@ Agent Directory(`/genai/agents`)에서 Agent를 생성하거나 편집할 때, B
 
 - Smart Routing: 기본 OFF (기존 동작에 영향 없음)
 - 경량 모델: `anthropic.claude-haiku-4-5-20251001-v1:0`
-- 고성능 모델: `anthropic.claude-3-5-sonnet-20241022-v2:0`
+- 고성능 모델: `anthropic.claude-sonnet-4-6`
 
 ---
 

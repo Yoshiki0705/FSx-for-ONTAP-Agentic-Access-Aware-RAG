@@ -187,13 +187,13 @@ The Converse API call method varies depending on the selected model ID when usin
 | `apac.xxx` / `us.xxx` / `eu.xxx` | Used as-is as an inference profile |
 | `anthropic.xxx` | Called directly on-demand |
 | `google.xxx`, `qwen.xxx`, `deepseek.xxx`, etc. | Called directly on-demand |
-| `amazon.nova-pro-v1:0`, etc. (no prefix) | Falls back to Claude Haiku |
-| Legacy models | Auto-fallback (Nova Lite → Claude Haiku) |
+| `amazon.nova-2-lite-v1:0`, etc. (no prefix) | Falls back to Claude Haiku |
+| Legacy models | Auto-fallback (Nova 2 Lite → Claude Haiku) |
 
 ### Fallback Chain
 
 ```
-Selected model → (failure) → apac.amazon.nova-lite-v1:0 → (failure) → anthropic.claude-haiku-4-5-20251001-v1:0
+Selected model → (failure) → jp.amazon.nova-2-lite-v1:0 → (failure) → anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 Automatically tries the next model when Legacy model errors, on-demand unavailable errors, or ValidationException occur.

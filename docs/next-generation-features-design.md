@@ -141,7 +141,7 @@ CloudWatch Custom Metrics:
       "matchedSids": ["S-1-5-21-xxx-512"]
     }
   ],
-  "modelId": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+  "modelId": "anthropic.claude-sonnet-4-6",
   "routingTier": "complex",
   "totalTokens": 1536
 }

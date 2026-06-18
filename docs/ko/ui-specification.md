@@ -187,13 +187,13 @@ KB Retrieve API 사용 시 선택된 모델 ID에 따라 Converse API 호출 방
 | `apac.xxx` / `us.xxx` / `eu.xxx` | 추론 프로파일로 그대로 사용 |
 | `anthropic.xxx` | 온디맨드로 직접 호출 |
 | `google.xxx`, `qwen.xxx`, `deepseek.xxx` 등 | 온디맨드로 직접 호출 |
-| `amazon.nova-pro-v1:0` 등 (프레픽스 없음) | Claude Haiku로 폴백 |
-| 레거시 모델 | 자동 폴백 (Nova Lite → Claude Haiku) |
+| `amazon.nova-2-lite-v1:0` 등 (프레픽스 없음) | Claude Haiku로 폴백 |
+| 레거시 모델 | 자동 폴백 (Nova 2 Lite → Claude Haiku) |
 
 ### 폴백 체인
 
 ```
-선택된 모델 → (실패) → apac.amazon.nova-lite-v1:0 → (실패) → anthropic.claude-haiku-4-5-20251001-v1:0
+선택된 모델 → (실패) → jp.amazon.nova-2-lite-v1:0 → (실패) → anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 레거시 모델 오류, 온디맨드 미사용 오류, ValidationException 발생 시 자동으로 다음 모델을 시도합니다.

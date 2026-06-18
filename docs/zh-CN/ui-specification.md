@@ -85,7 +85,7 @@ amazon、anthropic、cohere、deepseek、google、minimax、mistral、moonshot�
 ### 回退链
 
 ```
-选择的模型 → （失败） → apac.amazon.nova-lite-v1:0 → （失败） → anthropic.claude-haiku-4-5-20251001-v1:0
+选择的模型 → （失败） → jp.amazon.nova-2-lite-v1:0 → （失败） → anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 当 Legacy 模型错误、按需不可用错误或 ValidationException 发生时自动尝试下一个模型。

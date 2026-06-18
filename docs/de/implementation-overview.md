@@ -711,7 +711,7 @@ Score < 0.5 → simple, ≥ 0.5 → complex. Confidence = |score - 0.5| × 2.
 
 - Smart Routing: OFF by default (no impact on existing behavior)
 - Lightweight model: `anthropic.claude-haiku-4-5-20251001-v1:0`
-- High-performance model: `anthropic.claude-3-5-sonnet-20241022-v2:0`
+- High-performance model: `anthropic.claude-sonnet-4-6`
 
 ---
 

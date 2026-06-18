@@ -257,8 +257,8 @@ The Bedrock KB `RetrieveAndGenerate` API only supports Anthropic models. The KB 
 
 | Sent Model | Converted To | Reason |
 |------------|-------------|--------|
-| `apac.amazon.nova-pro-v1:0` | `anthropic.claude-haiku-4-5-20251001-v1:0` | Nova models are not supported by KB API |
-| `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | `anthropic.claude-3-5-sonnet-20241022-v2:0` | Removes inference profile prefix |
+| `apac.amazon.nova-pro-v1:0` | `jp.amazon.nova-2-lite-v1:0` | Auto-redirected via DEPRECATED_MODEL_MAP |
+| `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | `anthropic.claude-sonnet-4-6` | Redirected to Sonnet 4.6 via DEPRECATED_MODEL_MAP |
 | `anthropic.claude-haiku-4-5-20251001-v1:0` | As-is | No conversion needed |
 
 Implementation: `docker/nextjs/src/app/api/bedrock/kb/retrieve/route.ts`

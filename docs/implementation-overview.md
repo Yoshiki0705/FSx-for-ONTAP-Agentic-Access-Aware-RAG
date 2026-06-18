@@ -711,7 +711,7 @@ Agent Directory（`/genai/agents`）のAgent作成・編集時に、Bedrock Know
 
 - Smart Routing: デフォルトOFF（既存動作に影響なし）
 - 軽量モデル: `anthropic.claude-haiku-4-5-20251001-v1:0`
-- 高性能モデル: `anthropic.claude-3-5-sonnet-20241022-v2:0`
+- 高性能モデル: `anthropic.claude-sonnet-4-6`
 
 ---
 

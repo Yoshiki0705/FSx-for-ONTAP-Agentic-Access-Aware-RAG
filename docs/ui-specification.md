@@ -187,13 +187,13 @@ KB Retrieve APIでは、選択されたモデルIDに応じてConverse APIの呼
 | `apac.xxx` / `us.xxx` / `eu.xxx` | inference profileとしてそのまま使用 |
 | `anthropic.xxx` | on-demandで直接呼び出し |
 | `google.xxx`, `qwen.xxx`, `deepseek.xxx` 等 | on-demandで直接呼び出し |
-| `amazon.nova-pro-v1:0` 等（プレフィックスなし） | Claude Haikuにフォールバック |
-| Legacyモデル | 自動フォールバック（Nova Lite → Claude Haiku） |
+| `amazon.nova-2-lite-v1:0` 等（プレフィックスなし） | Claude Haikuにフォールバック |
+| Legacyモデル | 自動フォールバック（Nova 2 Lite → Claude Haiku） |
 
 ### フォールバックチェーン
 
 ```
-選択モデル → (失敗) → apac.amazon.nova-lite-v1:0 → (失敗) → anthropic.claude-haiku-4-5-20251001-v1:0
+選択モデル → (失敗) → jp.amazon.nova-2-lite-v1:0 → (失敗) → anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
 Legacyモデルエラー、on-demand不可エラー、ValidationExceptionが発生した場合に自動的に次のモデルを試行します。

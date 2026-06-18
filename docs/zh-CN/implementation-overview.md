@@ -472,7 +472,7 @@ User            Next.js API         DynamoDB        Bedrock KB      Converse API
 
 - Smart Routing：默认关闭（不影响现有行为）
 - 轻量模型：`anthropic.claude-haiku-4-5-20251001-v1:0`
-- 高性能模型：`anthropic.claude-3-5-sonnet-20241022-v2:0`
+- 高性能模型：`anthropic.claude-sonnet-4-6`
 
 ---
 
