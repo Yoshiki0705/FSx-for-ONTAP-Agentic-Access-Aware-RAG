@@ -1216,6 +1216,8 @@ function ChatbotPageContent() {
             ...(agentCoreMemoryEnabled && memorySessionId ? { memorySessionId } : {}),
             // Hybrid Search: ユーザー選択の検索タイプ (v4.3 Feature 5)
             searchType: useSettingsStore.getState().chat.searchType,
+            // Web Search: ユーザートグルによるWeb検索フォールバック有効化
+            useWebSearch: useSettingsStore.getState().chat.webSearchEnabled,
           }),
         });
 

@@ -262,8 +262,11 @@ export interface DemoAIStackProps extends cdk.StackProps {
   enableAgentCoreGateway?: boolean;
   /**
    * AgentCore Web Search を有効化するか（デフォルト: false）。
-   * Gateway に Web Search built-in connector target を追加し、エージェントが
-   * リアルタイムの Web 情報を引用付きで取得可能にする。
+   * ⚠️ 注: 現在 ap-northeast-1 Gateway には Web Search target を作成しません。
+   * Web Search Tool は us-east-1 のみ対応の可能性があり（UNVERIFIED）、
+   * Step 4 で us-east-1 専用 Gateway を作成後に target を追加する予定です。
+   * true を指定すると CDK synth 時に警告が表示されます。
+   * 現時点の Web 検索は機構 A（Claude Platform / ENABLE_WEB_SEARCH env var）で動作します。
    * enableAgentCoreGateway=true が前提条件。
    */
   enableWebSearch?: boolean;
@@ -1028,7 +1031,7 @@ exports.handler = async (event) => {
         // Policy Engine + Guardrails 統合（enableGuardrails 時に自動連携）
         guardrailArn: guardrailArnForGateway,
         policyEngineMode: props.policyEngineMode || 'LOG_ONLY',
-        // Web Search built-in connector target
+        // Web Search: synth-time warning only (target removed — us-east-1 constraint)
         enableWebSearch: props.enableWebSearch || false,
       });
       this.gatewayId = gateway.gatewayId;

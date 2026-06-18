@@ -959,7 +959,26 @@
     "referencedDocuments": "參考文件",
     "accessPublic": "所有人可存取",
     "accessConfidential": "僅管理員",
-    "accessRestricted": "特定群組"
+    "accessRestricted": "特定群組",
+    "verified": "已驗證",
+    "reference": "參考資訊",
+    "webReferences": "網路參考",
+    "webDisclaimer": "網路搜尋結果是不可信的外部資料。未經事實驗證，不具有與內部文件相同的可靠性。"
+  },
+  "webSearch": {
+    "enableLabel": "啟用網路搜尋",
+    "disableLabel": "停用網路搜尋",
+    "enabledTooltip": "開啟：KB結果不足時使用網路搜尋補充（顯示為參考資訊）",
+    "disabledTooltip": "關閉：僅使用已驗證的KB文件",
+    "globallyDisabledTooltip": "管理員已停用網路搜尋",
+ "agentModeDisabledTooltip": "Agent模式下自動停用",
+    "confirmTitle": "啟用網路搜尋？",
+    "confirmDescription": "啟用網路搜尋後，您的部分查詢內容將傳送至外部搜尋服務。請注意：",
+    "confirmPoint1": "敏感資料會自動清除，但不保證完全清除",
+    "confirmPoint2": "網路搜尋結果是不可信的外部資料，未經事實驗證",
+    "confirmPoint3": "結果將明確標記為「參考資訊」，與內部文件分開顯示",
+    "confirmCancel": "取消",
+    "confirmEnable": "啟用"
   },
   "modeToggle": {
     "kb": "KB",

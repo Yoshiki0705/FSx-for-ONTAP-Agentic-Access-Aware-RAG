@@ -186,6 +186,8 @@ export class DemoWebAppStack extends cdk.Stack {
         // Prompt Caching: システムプロンプトのキャッシュ（デフォルト有効）
         ENABLE_PROMPT_CACHING: 'true',
         // Claude Platform on AWS: Web Search + Citations（デフォルト無効）
+        // 機構 A: Claude Platform callWithWebSearch — リージョン制約なし（ap-northeast-1 から利用可能）
+        // AgentCore Gateway Web Search target（機構 C）とは独立。こちらは常に有効化可能。
         CLAUDE_PLATFORM_MODE: (this.node.tryGetContext('claudePlatformMode') as string) || 'disabled',
         ENABLE_WEB_SEARCH: this.node.tryGetContext('enableWebSearch') === 'true' ? 'true' : 'false',
         ...(this.node.tryGetContext('claudePlatformApiKeyArn') ? {

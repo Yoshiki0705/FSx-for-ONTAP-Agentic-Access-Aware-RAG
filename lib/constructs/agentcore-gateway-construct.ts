@@ -22,7 +22,6 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as bedrockagentcore from 'aws-cdk-lib/aws-bedrockagentcore';
-import * as cr from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
 
 /** Policy Engine enforcement mode */
@@ -233,88 +232,37 @@ export class AgentCoreGatewayConstruct extends Construct {
     this.gatewayArn = gateway.attrGatewayArn;
 
     // ─── Web Search Built-in Connector Target ────────────────────
-    // AWS Summit NY 2026: AgentCore Web Search ツール。
-    // Gateway に Web Search connector target を追加し、エージェントが
-    // リアルタイムのWeb情報を引用付きで取得できるようにする。
-    // データは AWS 環境内で処理され、外部へのデータ流出なし（zero data egress）。
+    // ─── Web Search (REMOVED from ap-northeast-1 Gateway) ─────────────────────
+    // AWS Summit NY 2026 で発表された AgentCore Web Search Tool。
     //
-    // ⚠️ UNVERIFIED: Web Search は built-in connector target のため、現時点では
-    //    CloudFormation で直接サポートされていない。下記の AwsCustomResource は
-    //    createGatewayTarget API を呼ぶが、**Web Search 専用の target 構成
-    //    （targetConfiguration の形状・専用 connector 種別・エンドポイント）は
-    //    AWS 公式ドキュメントで未確認**である。
-    //    そのため本実装はデフォルト無効（enableWebSearch=false）とし、
-    //    有効化前に必ず以下で正式な API 形状を確認・修正すること:
-    //    https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/
-    //    https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/
-    //    （AWS Summit 時点の案内ではコンソール/CLI で Web Search target を作成する。
-    //     CLI 相当のパラメータが固まり次第、下記 parameters を置換する想定）
+    // 本セッション以前に enableWebSearch=true で ap-northeast-1 Gateway に
+    // Web Search target を追加する AwsCustomResource が存在していたが、以下の理由で撤去:
+    //
+    // 1. Web Search Tool のリージョン対応は UNVERIFIED（project-context では
+    //    us-east-1 のみ。公式リージョン可用性表で要確認）
+    // 2. target 構成（targetConfiguration の形状）も UNVERIFIED
+    // 3. ap-northeast-1 Gateway に us-east-1 限定のツールを追加するのは整合性エラー
+    //
+    // 今後のステップ (Step 4/5):
+    //   - us-east-1 に専用 Gateway を作成（WafStack パターン or CLI/PoC）
+    //   - Web Search target を us-east-1 Gateway に正式に追加
+    //   - Lambda WebSearchClient が us-east-1 Gateway を呼び出す
+    //
+    // 現在の Web Search 機能:
+    //   - 機構 A (Claude Platform on AWS callWithWebSearch) は ap-northeast-1 Lambda から
+    //     直接利用可能（リージョン制約なし）。Step 1/2 で実装済み。
+    //   - ENABLE_WEB_SEARCH env var (demo-webapp-stack) は機構 A を制御する。
+    //
+    // @see docs/investigations/agentcore-web-search-integration.md — §4.1, §7 Risk R2
     if (props.enableWebSearch) {
-      // NOTE: WEB_SEARCH_TARGET_ENDPOINT 環境変数で正式エンドポイントを上書き可能。
-      // 未指定時はプレースホルダ（要置換）を使用する。
-      const webSearchEndpoint = process.env.WEB_SEARCH_TARGET_ENDPOINT
-        || `https://web-search.bedrock-agentcore.${cdk.Aws.REGION}.amazonaws.com`; // PLACEHOLDER — verify before use
-
-      const webSearchTarget = new cr.AwsCustomResource(this, 'WebSearchTarget', {
-        onCreate: {
-          service: 'BedrockAgentCoreControl',
-          action: 'createGatewayTarget',
-          parameters: {
-            gatewayIdentifier: gateway.attrGatewayIdentifier,
-            name: `${prefix}-web-search`,
-            description: 'Web Search — Ground agent responses in current, cited web knowledge',
-            targetConfiguration: {
-              mcp: {
-                mcpServer: {
-                  endpoint: webSearchEndpoint,
-                },
-              },
-            },
-            credentialProviderConfigurations: [
-              {
-                credentialProviderType: 'GATEWAY_IAM_ROLE',
-                credentialProvider: {},
-              },
-            ],
-          },
-          physicalResourceId: cr.PhysicalResourceId.fromResponse('targetId'),
-        },
-        onDelete: {
-          service: 'BedrockAgentCoreControl',
-          action: 'deleteGatewayTarget',
-          parameters: {
-            gatewayIdentifier: gateway.attrGatewayIdentifier,
-            targetId: new cr.PhysicalResourceIdReference(),
-          },
-        },
-        // 最小権限: この Gateway 配下の target に限定。
-        // CreateGatewayTarget は作成時に target ID が未定のため gateway ARN スコープも許可。
-        policy: cr.AwsCustomResourcePolicy.fromStatements([
-          new iam.PolicyStatement({
-            actions: [
-              'bedrock-agentcore:CreateGatewayTarget',
-              'bedrock-agentcore:DeleteGatewayTarget',
-              'bedrock-agentcore:GetGatewayTarget',
-            ],
-            resources: [
-              gateway.attrGatewayArn,
-              `arn:aws:bedrock-agentcore:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:gateway/*/target/*`,
-            ],
-          }),
-        ]),
-        logRetention: logs.RetentionDays.ONE_WEEK,
-      });
-      webSearchTarget.node.addDependency(gateway);
-
-      new cdk.CfnOutput(this, 'WebSearchTargetId', {
-        value: webSearchTarget.getResponseField('targetId'),
-        description: 'Web Search Gateway Target ID',
-      });
-
-      new cdk.CfnOutput(this, 'WebSearchEnabled', {
-        value: 'true',
-        description: 'Web Search connector target enabled (verify endpoint/config before production)',
-      });
+      cdk.Annotations.of(this).addWarningV2(
+        '@perm-rag/web-search-region',
+        'enableWebSearch=true は現在 ap-northeast-1 Gateway に Web Search target を作成しません。' +
+        'Web Search Tool は us-east-1 のみ対応の可能性があり（UNVERIFIED）、' +
+        '本 Gateway への配置は不整合と判断して撤去しました。' +
+        'Step 4 で us-east-1 専用 Gateway を作成後に Web Search target を追加してください。' +
+        '現時点の Web 検索は機構 A（Claude Platform callWithWebSearch / ENABLE_WEB_SEARCH env var）で動作します。',
+      );
     }
 
     // ─── CloudFormation Outputs ─────────────────────────────────

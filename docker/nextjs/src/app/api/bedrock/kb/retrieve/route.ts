@@ -28,6 +28,7 @@ import { emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
 import { DEFAULT_REGION, resolveModelId, DEFAULT_CHAT_MODEL } from '@/config/model-defaults';
 import { RAG_SYSTEM_PROMPT_KB, RAG_SYSTEM_PROMPT_AGENT, buildSearchContextSegment } from '@/config/prompt-templates';
 import type { MediaType, ActiveKBType } from '@/types/multimodal';
+import { WEB_SEARCH_SAFETY_INSTRUCTION } from '@/lib/web-search/untrusted-content';
 
 // RAG Pipeline modules (facade pattern)
 import {
@@ -306,16 +307,32 @@ export async function POST(request: NextRequest) {
       emitRoutingDecisionMetric(invocationDecision);
 
       if (invocationDecision.useWebSearch) {
+        // Server-side global disable check (defense-in-depth: UI also checks NEXT_PUBLIC_DISABLE_WEB_SEARCH)
+        if (process.env.DISABLE_WEB_SEARCH === 'true') {
+          console.log('[KB] Web Search blocked: DISABLE_WEB_SEARCH=true (admin policy)');
+        } else {
         // Sanitize query before sending to external service
         const sanitizedQuery = sanitizeWebSearchQuery(queryHasWebPrefix ? query.replace(/^web:\s*/i, '') : query);
         console.log('[KB] Web Search fallback:', { reason: invocationDecision.reason, sanitizedQuery: sanitizedQuery.substring(0, 80) });
 
-        const { callWithWebSearch } = await import('@/lib/claude-platform');
-        const { RAG_SYSTEM_PROMPT_KB: webSystemPrompt } = await import('@/config/prompt-templates');
+        // Structured audit log for web search usage (Enterprise governance: who used web search, when, why)
+        console.log(JSON.stringify({
+          event: 'WEB_SEARCH_INVOKED',
+          timestamp: new Date().toISOString(),
+          reason: invocationDecision.reason,
+          queryLength: sanitizedQuery.length,
+          userRequestedWebSearch,
+          queryHasWebPrefix,
+        }));
 
+        const { callWithWebSearch } = await import('@/lib/claude-platform');
+
+        // Harden against prompt injection: web search results are untrusted external data.
+        // For model-side web_search (Claude Platform), the model fetches pages inside its
+        // own tool loop, so the system-prompt instruction is the primary defense.
         const webResult = await callWithWebSearch(
           sanitizedQuery,
-          webSystemPrompt + '\n\nIMPORTANT: You are providing reference information from public web sources. Clearly indicate these are external references, not internal verified documents.',
+          `${RAG_SYSTEM_PROMPT_KB}\n\n${WEB_SEARCH_SAFETY_INSTRUCTION}`,
         );
 
         if (webResult && webResult.text) {
@@ -345,6 +362,7 @@ export async function POST(request: NextRequest) {
             },
           });
         }
+        } // end else (DISABLE_WEB_SEARCH check)
       }
 
       // No Web Search or Web Search failed — return standard "no results" message

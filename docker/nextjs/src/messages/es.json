@@ -938,7 +938,26 @@
     "referencedDocuments": "Documentos referenciados",
     "accessPublic": "Accesible para todos",
     "accessConfidential": "Solo administradores",
-    "accessRestricted": "Grupos específicos"
+    "accessRestricted": "Grupos específicos",
+    "verified": "Verificado",
+    "reference": "Referencia",
+    "webReferences": "Referencias web",
+    "webDisclaimer": "Los resultados de búsqueda web son datos externos no confiables. No han sido verificados y no tienen la misma fiabilidad que los documentos internos."
+  },
+  "webSearch": {
+    "enableLabel": "Activar búsqueda web",
+    "disableLabel": "Desactivar búsqueda web",
+    "enabledTooltip": "ON: Complementar con búsqueda web cuando los resultados KB son insuficientes (mostrado como información de referencia)",
+    "disabledTooltip": "OFF: Usar solo documentos KB verificados",
+    "globallyDisabledTooltip": "La búsqueda web ha sido desactivada por el administrador",
+ "agentModeDisabledTooltip": "Desactivado automáticamente en modo Agent",
+    "confirmTitle": "¿Activar búsqueda web?",
+    "confirmDescription": "Al activar la búsqueda web, parte de su consulta se enviará a un servicio de búsqueda externo. Tenga en cuenta:",
+    "confirmPoint1": "Los datos sensibles se eliminan automáticamente, pero no se garantiza la eliminación completa",
+    "confirmPoint2": "Los resultados de búsqueda web son datos externos no confiables y no han sido verificados",
+    "confirmPoint3": "Los resultados se muestran claramente como \"información de referencia\" y se separan de los documentos internos",
+    "confirmCancel": "Cancelar",
+    "confirmEnable": "Activar"
   },
   "modeToggle": {
     "kb": "KB",

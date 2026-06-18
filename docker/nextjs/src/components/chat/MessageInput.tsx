@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { VoiceButton } from './VoiceButton';
+import { WebSearchToggle } from './WebSearchToggle';
 import { useVoiceSession } from '@/hooks/useVoiceSession';
 
 interface MessageInputProps {
@@ -123,16 +124,19 @@ export function MessageInput({
         </div>
       )}
 
-      {/* 送信ヒント */}
-      <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-        <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 font-mono">
-          Enter
-        </kbd>
-        <span className="mx-1">で送信、</span>
-        <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 font-mono">
-          Shift + Enter
-        </kbd>
-        <span className="mx-1">で改行</span>
+      {/* 送信ヒント + Web検索トグル */}
+      <div className="mt-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center">
+          <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 font-mono">
+            Enter
+          </kbd>
+          <span className="mx-1">で送信、</span>
+          <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 font-mono">
+            Shift + Enter
+          </kbd>
+          <span className="mx-1">で改行</span>
+        </div>
+        <WebSearchToggle disabled={disabled} />
       </div>
     </div>
   );

@@ -938,7 +938,26 @@
     "referencedDocuments": "Referenzierte Dokumente",
     "accessPublic": "Für alle zugänglich",
     "accessConfidential": "Nur Administratoren",
-    "accessRestricted": "Bestimmte Gruppen"
+    "accessRestricted": "Bestimmte Gruppen",
+    "verified": "Verifiziert",
+    "reference": "Referenz",
+    "webReferences": "Web-Referenzen",
+    "webDisclaimer": "Websuchergebnisse sind nicht vertrauenswürdige externe Daten. Sie wurden nicht auf Fakten überprüft und haben nicht die gleiche Zuverlässigkeit wie interne Dokumente."
+  },
+  "webSearch": {
+    "enableLabel": "Websuche aktivieren",
+    "disableLabel": "Websuche deaktivieren",
+    "enabledTooltip": "EIN: Bei unzureichenden KB-Ergebnissen mit Websuche ergänzen (als Referenzinfo angezeigt)",
+    "disabledTooltip": "AUS: Nur verifizierte KB-Dokumente verwenden",
+    "globallyDisabledTooltip": "Die Websuche wurde vom Administrator deaktiviert",
+ "agentModeDisabledTooltip": "Im Agent-Modus automatisch deaktiviert",
+    "confirmTitle": "Websuche aktivieren?",
+    "confirmDescription": "Bei Aktivierung der Websuche werden Teile Ihrer Anfrage an einen externen Suchdienst gesendet. Bitte beachten Sie:",
+    "confirmPoint1": "Sensible Daten werden automatisch entfernt, eine vollständige Entfernung kann jedoch nicht garantiert werden",
+    "confirmPoint2": "Websuchergebnisse sind nicht vertrauenswürdige externe Daten und wurden nicht auf Fakten überprüft",
+    "confirmPoint3": "Ergebnisse werden deutlich als \u201EReferenzinformationen\u201C gekennzeichnet und von internen Dokumenten getrennt",
+    "confirmCancel": "Abbrechen",
+    "confirmEnable": "Aktivieren"
   },
   "modeToggle": {
     "kb": "KB",

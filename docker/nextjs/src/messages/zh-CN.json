@@ -1049,7 +1049,26 @@
     "referencedDocuments": "参考文档",
     "accessPublic": "所有人可访问",
     "accessConfidential": "仅管理员",
-    "accessRestricted": "特定群组"
+    "accessRestricted": "特定群组",
+    "verified": "已验证",
+    "reference": "参考信息",
+    "webReferences": "网络参考",
+    "webDisclaimer": "网络搜索结果是不可信的外部数据。未经事实验证，不具有与内部文档相同的可靠性。"
+  },
+  "webSearch": {
+    "enableLabel": "启用网络搜索",
+    "disableLabel": "禁用网络搜索",
+    "enabledTooltip": "开启：KB结果不足时使用网络搜索补充（显示为参考信息）",
+    "disabledTooltip": "关闭：仅使用已验证的KB文档",
+    "globallyDisabledTooltip": "管理员已禁用网络搜索",
+ "agentModeDisabledTooltip": "Agent模式下自动禁用",
+    "confirmTitle": "启用网络搜索？",
+    "confirmDescription": "启用网络搜索后，您的部分查询内容将发送到外部搜索服务。请注意：",
+    "confirmPoint1": "敏感数据会自动清除，但不保证完全清除",
+    "confirmPoint2": "网络搜索结果是不可信的外部数据，未经事实验证",
+    "confirmPoint3": "结果将明确标记为「参考信息」，与内部文档分开显示",
+    "confirmCancel": "取消",
+    "confirmEnable": "启用"
   },
   "modeToggle": {
     "kb": "KB",

@@ -15,6 +15,10 @@ export interface ChatSettings {
   maxSessions: number;
   /** 検索タイプ (SEMANTIC | HYBRID) */
   searchType: 'SEMANTIC' | 'HYBRID';
+  /** Web検索フォールバック有効化（KB結果不足時に外部Web検索を使用） */
+  webSearchEnabled: boolean;
+  /** ユーザーがWeb検索のリスクを確認済みか（初回有効化時に確認ダイアログを表示） */
+  webSearchConfirmed: boolean;
 }
 
 /**
@@ -52,6 +56,8 @@ const defaultSettings: AppSettings = {
     retentionDays: 30,
     maxSessions: 100,
     searchType: 'SEMANTIC',
+    webSearchEnabled: false,
+    webSearchConfirmed: false,
   },
   theme: 'system',
   language: 'ja',
@@ -94,17 +100,23 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'app-settings',
-      version: 1,
+      version: 3,
       // 設定の移行処理（将来のバージョンアップ用）
       migrate: (persistedState: any, version: number) => {
-        if (version === 0) {
-          // v0からv1への移行処理
-          return {
-            ...defaultSettings,
-            ...persistedState,
-          };
+        const state = { ...defaultSettings, ...persistedState };
+        if (version < 2) {
+          // v0/v1 → v2: webSearchEnabled追加
+          if (state.chat && typeof state.chat.webSearchEnabled === 'undefined') {
+            state.chat = { ...state.chat, webSearchEnabled: false };
+          }
         }
-        return persistedState as SettingsStore;
+        if (version < 3) {
+          // v2 → v3: webSearchConfirmed追加
+          if (state.chat && typeof state.chat.webSearchConfirmed === 'undefined') {
+            state.chat = { ...state.chat, webSearchConfirmed: false };
+          }
+        }
+        return state;
       },
     }
   )

@@ -979,7 +979,26 @@
     "referencedDocuments": "참조 문서",
     "accessPublic": "전체 접근 가능",
     "accessConfidential": "관리자 전용",
-    "accessRestricted": "특정 그룹"
+    "accessRestricted": "특정 그룹",
+    "verified": "인증됨",
+    "reference": "참고 정보",
+    "webReferences": "웹 참조",
+    "webDisclaimer": "웹 검색 결과는 신뢰할 수 없는 외부 데이터입니다. 사실 확인되지 않았으며 내부 문서와 동일한 신뢰성을 갖지 않습니다."
+  },
+  "webSearch": {
+    "enableLabel": "웹 검색 활성화",
+    "disableLabel": "웹 검색 비활성화",
+    "enabledTooltip": "ON: KB 결과 부족 시 웹 검색으로 보완 (참고 정보로 표시)",
+    "disabledTooltip": "OFF: 인증된 KB 문서만 사용",
+    "globallyDisabledTooltip": "관리자가 웹 검색을 비활성화했습니다",
+ "agentModeDisabledTooltip": "에이전트 모드에서 자동으로 비활성화됩니다",
+    "confirmTitle": "웹 검색을 활성화하시겠습니까?",
+    "confirmDescription": "웹 검색을 활성화하면 질문 내용의 일부가 외부 검색 서비스로 전송됩니다. 다음을 확인해 주세요:",
+    "confirmPoint1": "민감한 데이터는 자동으로 제거되지만 완전한 제거를 보장하지 않습니다",
+    "confirmPoint2": "웹 검색 결과는 신뢰할 수 없는 외부 데이터이며 사실 확인되지 않았습니다",
+    "confirmPoint3": "결과는 \"참고 정보\"로 표시되며 내부 문서와 명확히 구분됩니다",
+    "confirmCancel": "취소",
+    "confirmEnable": "활성화"
   },
   "modeToggle": {
     "kb": "KB",

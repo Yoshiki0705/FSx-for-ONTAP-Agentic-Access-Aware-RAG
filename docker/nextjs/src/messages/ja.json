@@ -827,7 +827,26 @@
     "referencedDocuments": "参照ドキュメント",
     "accessPublic": "全員アクセス可",
     "accessConfidential": "管理者のみ",
-    "accessRestricted": "特定グループ"
+    "accessRestricted": "特定グループ",
+    "verified": "認証済み",
+    "reference": "参考情報",
+    "webReferences": "Web参照",
+    "webDisclaimer": "※ Web検索結果は外部の非信頼データです。事実確認されておらず、内部文書と同等の信頼性はありません。"
+  },
+  "webSearch": {
+    "enableLabel": "Web検索を有効にする",
+    "disableLabel": "Web検索を無効にする",
+    "enabledTooltip": "ON: KB結果不足時にWeb検索で補完（結果は参考情報として表示）",
+    "disabledTooltip": "OFF: 認証済みKBドキュメントのみ使用",
+    "globallyDisabledTooltip": "管理者によりWeb検索が無効化されています",
+ "agentModeDisabledTooltip": "Agentモードでは自動的に無効になります",
+    "confirmTitle": "Web検索を有効にしますか？",
+    "confirmDescription": "Web検索を有効にすると、質問内容の一部が外部検索サービスに送信されます。以下をご確認ください：",
+    "confirmPoint1": "社内機密情報を含むクエリは自動的にサニタイズされますが、完全な除去を保証するものではありません",
+    "confirmPoint2": "Web検索結果は外部の非信頼データであり、事実確認されていません",
+    "confirmPoint3": "結果は「参考情報」として内部文書とは明確に区別して表示されます",
+    "confirmCancel": "キャンセル",
+    "confirmEnable": "有効にする"
   },
   "modeToggle": {
     "kb": "KB",

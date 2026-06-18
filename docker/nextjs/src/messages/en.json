@@ -827,7 +827,26 @@
     "referencedDocuments": "Referenced Documents",
     "accessPublic": "Accessible to all",
     "accessConfidential": "Admin only",
-    "accessRestricted": "Specific groups"
+    "accessRestricted": "Specific groups",
+    "verified": "Verified",
+    "reference": "Reference",
+    "webReferences": "Web References",
+    "webDisclaimer": "Web search results are untrusted external data. They have not been fact-checked and do not carry the same reliability as internal documents."
+  },
+  "webSearch": {
+    "enableLabel": "Enable web search",
+    "disableLabel": "Disable web search",
+    "enabledTooltip": "ON: Supplement with web search when KB results are insufficient (shown as reference info)",
+    "disabledTooltip": "OFF: Use verified KB documents only",
+    "globallyDisabledTooltip": "Web search is disabled by your administrator",
+ "agentModeDisabledTooltip": "Automatically disabled in Agent mode",
+    "confirmTitle": "Enable Web Search?",
+    "confirmDescription": "Enabling web search will send parts of your query to an external search service. Please note:",
+    "confirmPoint1": "Queries are sanitized to remove sensitive data, but complete removal is not guaranteed",
+    "confirmPoint2": "Web search results are untrusted external data and have not been fact-checked",
+    "confirmPoint3": "Results are clearly labeled as \"reference information\" and separated from internal documents",
+    "confirmCancel": "Cancel",
+    "confirmEnable": "Enable"
   },
   "modeToggle": {
     "kb": "KB",
