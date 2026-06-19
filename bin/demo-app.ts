@@ -50,6 +50,7 @@ import { DemoAIStack } from '../lib/stacks/demo/demo-ai-stack';
 import { DemoWebAppStack } from '../lib/stacks/demo/demo-webapp-stack';
 import { DemoEmbeddingStack } from '../lib/stacks/demo/demo-embedding-stack';
 import { DemoTransferFamilyStack } from '../lib/stacks/demo/demo-transfer-family-stack';
+import { DemoWebSearchGatewayStack } from '../lib/stacks/demo/demo-web-search-gateway-stack';
 
 const app = new cdk.App();
 
@@ -227,6 +228,17 @@ const wafStack = new DemoWafStack(app, `${stackPrefix}-Waf`, {
   description: `[${projectName}] WAF WebACL for CloudFront (us-east-1)`,
 });
 
+// Stack 1b (Optional): WebSearchGatewayStack (us-east-1)
+// Web Search Tool は us-east-1 のみ対応（VERIFIED）。
+// enableWebSearch=true かつ enableAgentCoreGateway=true で有効化。
+const webSearchGatewayStack = enableWebSearch
+  ? new DemoWebSearchGatewayStack(app, `${stackPrefix}-WebSearchGateway`, {
+      projectName, environment,
+      env: usEast1Env, crossRegionReferences: true,
+      description: `[${projectName}] AgentCore Web Search Gateway (us-east-1)`,
+    })
+  : undefined;
+
 // Stack 2: NetworkingStack
 const networkingStack = new DemoNetworkingStack(app, `${stackPrefix}-Networking`, {
   projectName, environment, enableVpcEndpoints,
@@ -396,12 +408,17 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   // AgentCore Policy設定（オプション）
   enableAgentPolicy,
   policyFailureMode: enableAgentPolicy ? policyFailureMode : undefined,
+  // Web Search Gateway URL（us-east-1 cross-region reference）
+  webSearchGatewayUrl: webSearchGatewayStack?.gatewayUrl,
   env: primaryEnv, crossRegionReferences: true,
   description: `[${projectName}] Lambda Web Adapter + CloudFront`,
 });
 webAppStack.addDependency(aiStack);
 webAppStack.addDependency(securityStack);
 webAppStack.addDependency(wafStack);
+if (webSearchGatewayStack) {
+  webAppStack.addDependency(webSearchGatewayStack);
+}
 
 // Stack 7 (Optional): EmbeddingStack
 if (enableEmbedding) {
