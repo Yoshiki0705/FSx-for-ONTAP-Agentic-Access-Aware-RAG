@@ -119,19 +119,48 @@ StorageStackは`existingFileSystemId`/`existingSvmId`/`existingVolumeId`パラ�
 
 ## ベクトルストア構成比較
 
-CDKコンテキストパラメータ`vectorStoreType`により、ベクトルストア構成を切り替えられます。3つ目の構成（S3 Vectors + AOSSエクスポート）は、S3 Vectors構成上でオンデマンドにエクスポートする運用手順として提供されます。
+CDKコンテキストパラメータ`vectorStoreType`により、ベクトルストア構成を切り替えられます。3つ目の構成（S3 Vectors + AOSSエクスポート）は、S3 Vectors構成上でオンデマンドにエクスポートする運用手順として提供されます。4つ目の構成（Managed KB）は、ベクトルストアとデータパイプラインの双方をAWSが完全管理するオプションです。
 
-> **リージョン対応**: S3 Vectorsは`ap-northeast-1`（東京リージョン）で利用可能です。
+> **リージョン対応**: S3 Vectorsは`ap-northeast-1`（東京リージョン）で利用可能です。Managed KBも`ap-northeast-1`で利用可能です（2026-06-17 GA）。
 
-| 項目 | OpenSearch Serverless | S3 Vectors 単体 | S3 Vectors + AOSS Export |
-|------|----------------------|-----------------|--------------------------|
-| **CDKパラメータ** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors`（デフォルト） | 構成2の上で`export-to-opensearch.sh`を実行 |
-| **コスト** | ~$700/月（2 OCU常時稼働） | 月数ドル（小規模） | S3 Vectors + AOSS OCU（エクスポート時のみ） |
-| **レイテンシ** | ~10ms | サブ秒（コールド）、~100ms（ウォーム） | ~10ms（エクスポート後のAOSS検索） |
-| **フィルタリング** | メタデータフィルタ（`$eq`, `$ne`, `$in`等） | メタデータフィルタ（`$eq`, `$in`, `$and`, `$or`） | エクスポート後はAOSSのフィルタリング |
-| **メタデータ制約** | 制約なし | filterable 2KB/vector（カスタムは実質1KB）、non-filterable keys最大10個 | エクスポート後はAOSSの制約に従う |
-| **ユースケース** | 高パフォーマンス必須の本番環境 | コスト最適化・デモ・開発環境 | 一時的な高パフォーマンス需要 |
-| **運用手順** | CDKデプロイのみ | CDKデプロイのみ | CDKデプロイ後に`export-to-opensearch.sh`を実行。エクスポート用IAMロール自動作成 |
+| 項目 | OpenSearch Serverless | S3 Vectors 単体 | S3 Vectors + AOSS Export | Managed KB (Agentic Retriever) |
+|------|----------------------|-----------------|--------------------------|--------------------------------|
+| **CDKパラメータ** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors`（デフォルト） | 構成2の上で`export-to-opensearch.sh`を実行 | ⚠️ 未実装（検証完了後に追加予定） |
+| **コスト** | ~$700/月（2 OCU常時稼働） | 月数ドル（小規模） | S3 Vectors + AOSS OCU（エクスポート時のみ） | データサイズ + リトリーバル回数のオンデマンド課金 |
+| **レイテンシ** | ~10ms | サブ秒（コールド）、~100ms（ウォーム） | ~10ms（エクスポート後のAOSS検索） | ⚠️ 未測定（マルチホップ時は複数回検索のため加算） |
+| **フィルタリング** | メタデータフィルタ（`$eq`, `$ne`, `$in`等） | メタデータフィルタ（`$eq`, `$in`, `$and`, `$or`） | エクスポート後はAOSSのフィルタリング | `filter`演算子（`listContains`含む）+ `userContext`（⚠️ SID照合は未検証） |
+| **メタデータ制約** | 制約なし | filterable 2KB/vector（カスタムは実質1KB）、non-filterable keys最大10個 | エクスポート後はAOSSの制約に従う | ⚠️ マネージドストレージ内の制約は未公開 |
+| **検索方式** | ベクトル検索 / Hybrid（kbSearchType依存） | ベクトル検索 / Hybrid（kbSearchType依存） | AOSS側の検索機能 | ハイブリッド検索 + Agentic Retrieval（マルチホップ） |
+| **データパイプライン** | ユーザー管理（StartIngestionJob） | ユーザー管理（StartIngestionJob） | ユーザー管理 | マネージド（6コネクタ + 自動同期） |
+| **AgentCore Gateway統合** | カスタム target | カスタム target | カスタム target | ビルトイン connector target（MCP） |
+| **Permission-aware RAG** | ✅ アプリ側SIDフィルタ（検証済み） | ✅ アプリ側SIDフィルタ（検証済み） | ✅ アプリ側SIDフィルタ（検証済み） | ⚠️ Validation Required（後述） |
+| **運用負荷** | 中（OCU設計・スケーリング） | 低（S3課金のみ） | 中（エクスポート運用） | 低（フルマネージド） |
+| **ユースケース** | 高パフォーマンス必須の本番環境 | コスト最適化・デモ・開発環境 | 一時的な高パフォーマンス需要 | 運用負荷削減・マルチホップ検索・Smart Parsing活用 |
+| **運用手順** | CDKデプロイのみ | CDKデプロイのみ | CDKデプロイ後に`export-to-opensearch.sh`を実行。エクスポート用IAMロール自動作成 | ⚠️ CDK未対応。検証完了後に実装予定 |
+
+### Managed KB (Agentic Retriever) の検証ステータス
+
+> ⚠️ **Validation Required**: Managed KB は 2026-06-17 に GA となったが、本プロジェクトの Permission-aware RAG 要件との互換性は**未検証**である。以下の項目が確認されるまで、CDKスタックへの統合は行わない。
+
+| # | 検証項目 | ステータス |
+|---|---------|-----------|
+| V1 | S3 コネクタが FSx ONTAP S3 Access Point を認識するか | 未検証 |
+| V2 | `.metadata.json` の `allowed_group_sids` がインデックスに保持されるか | 未検証 |
+| V3 | `filter` の `listContains` で SID 配列照合が機能するか | 未検証 |
+| V4 | Agentic Retrieval のマルチホップ中にフィルタが維持されるか | 未検証 |
+| V5 | 権限変更・削除の反映遅延が許容範囲か | 未検証 |
+
+詳細は [Managed KB 移行パス検討](managed-kb-migration-evaluation.md) および [Managed KB アップグレードパス](managed-kb-upgrade-path.md) を参照。
+
+### 選び方ガイド
+
+| 優先事項 | 推奨構成 |
+|---------|---------|
+| コスト最小化（デモ・開発） | S3 Vectors 単体 |
+| 本番の低レイテンシ要件 | OpenSearch Serverless |
+| 運用負荷削減・マルチホップ検索 | Managed KB（検証完了後） |
+| 一時的な高パフォーマンス需要 | S3 Vectors + AOSS Export |
+| ACL 厳密適用を最優先 | 現行構成（OpenSearch Serverless / S3 Vectors）を維持 |
 
 > **S3 Vectorsメタデータ制約**: Bedrock KB + S3 Vectorsの場合、カスタムメタデータは実質1KB以下に制限されます（filterable metadata 2KBのうち~1KBをBedrock KB内部メタデータが消費）。CDKコードでは全メタデータをnon-filterableに設定して2KB制限を回避しています。SIDフィルタリングはアプリ側で実施するため、S3 VectorsのQueryVectors filterは不要です。詳細は[docs/s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md)を参照。
 

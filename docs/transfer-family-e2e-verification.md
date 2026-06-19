@@ -1,5 +1,7 @@
 # Transfer Family FSx for ONTAP E2E 検証レポート
 
+**🌐 Language:** **日本語** | [English](en/transfer-family-e2e-verification.md) | [한국어](ko/transfer-family-e2e-verification.md) | [简体中文](zh-CN/transfer-family-e2e-verification.md) | [繁體中文](zh-TW/transfer-family-e2e-verification.md) | [Français](fr/transfer-family-e2e-verification.md) | [Deutsch](de/transfer-family-e2e-verification.md) | [Español](es/transfer-family-e2e-verification.md)
+
 **検証日**: 2026-05-13
 **リージョン**: ap-northeast-1
 **サーバーID**: s-fb47244ef5ac43a28

@@ -30,18 +30,29 @@
 
 | Document | Description |
 |----------|-------------|
-| [production-readiness-checklist.md](production-readiness-checklist.md) | Production readiness checklist (Demo → PoC → Production maturity level definitions, security/audit/DR/operations check items) |
-| [permission-consistency.md](permission-consistency.md) | Permission change consistency model (ACL change → metadata regeneration → KB re-sync → cache invalidation flow, max latency, emergency permission revocation procedures) |
+| [production-readiness-checklist.md](production-readiness-checklist.md) | Production readiness checklist (Demo → PoC → Production maturity level definitions, security/audit/DR/operations check items, with approver column) |
+| [poc-success-criteria-template.md](poc-success-criteria-template.md) | PoC success criteria template (stakeholder definitions, Go/No-Go criteria, next-phase conditions, completion report template) |
+| [data-readiness-assessment.md](data-readiness-assessment.md) | Data readiness assessment template (data location/classification/permission structure/quality/compliance checks, approval flow) |
+| [partner-faq.md](partner-faq.md) | Partner FAQ (12 questions and answers for customer proposals, proposal resource list) |
+| [permission-consistency.md](permission-consistency.md) | Permission change consistency model (ACL change propagation flow, max latency, emergency permission revocation procedures) |
 | [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP sizing & performance guide (scale-based configurations, S3 AP considerations, QoS, vector store selection) |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | Multi-tenant & partner deployment patterns (account isolation/SVM isolation/hybrid, cost estimation templates) |
 | [governance-and-audit.md](governance-and-audit.md) | Governance & audit design (audit log schema, Responsible AI, Guardrails policies, industry-specific use cases) |
 | [evaluation.md](evaluation.md) | RAG / Agent evaluation metrics (4-axis evaluation: business KPIs, RAG quality, permission control, Agent performance; PoC evaluation template) |
-| [managed-kb-migration-evaluation.md](managed-kb-migration-evaluation.md) | Amazon Bedrock Managed Knowledge Base migration path evaluation (comparison with existing KB + OpenSearch Serverless / S3 Vectors, impact on Permission-aware RAG, ACL metadata filter verification points, phased migration). AWS Summit NY 2026 |
-| [investigations/agentcore-web-search-integration.md](investigations/agentcore-web-search-integration.md) | Design investigation for integrating AgentCore Web Search Tool as a hybrid search option in Permission-aware RAG (UI toggle, us-east-1 cross-region Gateway, Lambda Layer/inline, query safety / citation separation / prompt-injection defense, implementation order). AWS Summit NY 2026 |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Safe experimentation guide (scope definition, prohibited actions, real data ingestion checklist, rollback procedures) |
 | [threat-model.md](threat-model.md) | Threat model (10 threat categories, attack paths, existing mitigations, additional recommendations, threat-to-countermeasure mapping table) |
 | [cloudwatch-dashboard-guide.md](cloudwatch-dashboard-guide.md) | CloudWatch dashboard operations guide (metrics list, alarm definitions, troubleshooting patterns) |
 | [poc-workshop-guide.md](poc-workshop-guide.md) | PoC workshop guide (90 minutes: deploy → test → evaluate → cleanup) |
+| [cost-estimation-worksheet.md](cost-estimation-worksheet.md) | Cost estimation worksheet (per-configuration monthly cost templates, formulas, optimization points) |
+| [architecture-decision-records.md](architecture-decision-records.md) | Architecture Decision Records (6 key decisions: vector store, permission filter, auth, frontend, sync, routing) |
+| [managed-kb-migration-evaluation.md](managed-kb-migration-evaluation.md) | Amazon Bedrock Managed Knowledge Base migration path evaluation (comparison with existing KB + OpenSearch Serverless / S3 Vectors, impact on Permission-aware RAG, ACL metadata filter verification points, phased migration). AWS Summit NY 2026 |
+| [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) | Managed KB upgrade path (S3 AP data source connection validation steps V1–V4, Permission-aware design concerns, safe validation pattern using FlexClone, right-tool-for-the-job selection guide). Parallel option / validation procedure |
+| [investigations/agentcore-web-search-integration.md](investigations/agentcore-web-search-integration.md) | Design investigation for integrating AgentCore Web Search Tool as a hybrid search option in Permission-aware RAG (UI toggle, us-east-1 cross-region Gateway, Lambda Layer/inline, query safety / citation separation / prompt-injection defense, implementation order). AWS Summit NY 2026 |
+| [monitoring/athena-audit-tables.sql](../../monitoring/athena-audit-tables.sql) | Athena table definitions (DDL for audit log analysis + sample queries) |
+| [benchmark-scenarios.md](benchmark-scenarios.md) | Benchmark scenarios (10K/100K/1M files, 5 measurement scenarios, theoretical baseline estimates) |
+| [demo-data/industry-packs/](../../demo-data/industry-packs/) | Industry-specific demo data packs (8 industries × 5 documents: public sector, healthcare, legal, manufacturing, construction, education, insurance + generic) |
+| [s3ap-serverless-patterns-integration.md](s3ap-serverless-patterns-integration.md) | S3AP Serverless Patterns integration architecture (3-pattern integration with 17 UCs) |
+| [benchmarks/](../../benchmarks/) | Benchmark framework (test data generation, execution scripts, result templates) |
 | [tests/permission-matrix/](../../tests/permission-matrix/) | Permission matrix tests (31 ACL edge-case scenarios: Fail-Closed, group nesting, inherited permissions, emergency revocation) |
 
 ## FSx for ONTAP Ops Automation
@@ -52,6 +63,15 @@
 | [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | Why this architecture simplifies FSx for ONTAP operations (design decisions, cost estimates, security design) |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS integration verification report (2026-05-01, all phases PASS) |
 | [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | Integrated CloudFormation template (incl. VPC endpoints) |
+
+## Transfer Family Ingestion
+
+| Document | Description |
+|----------|-------------|
+| [transfer-family-e2e-verification.md](transfer-family-e2e-verification.md) | E2E verification report (SFTP connection → upload → KB ingestion complete, all steps PASS) |
+| [transfer-family-partner-onboarding.md](transfer-family-partner-onboarding.md) | Partner onboarding guide (SSH key setup, SFTP connection, file naming conventions, troubleshooting) |
+| [transfer-family-networking-prerequisites.md](transfer-family-networking-prerequisites.md) | Networking prerequisites (VPC endpoints, IP allowlist, security groups) |
+| [v4.2-demo-verification-supplement.md](v4.2-demo-verification-supplement.md) | v4.2 demo verification supplement (test procedures for all use cases, expected results, log retrieval methods) |
 
 ## Sample Configuration Files
 

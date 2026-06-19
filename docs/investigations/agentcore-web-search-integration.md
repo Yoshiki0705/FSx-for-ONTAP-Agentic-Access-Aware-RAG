@@ -1,6 +1,6 @@
 # AgentCore Web Search Tool — Permission-aware RAG ハイブリッド検索統合 調査
 
-**🌐 Language:** **日本語** | [English](../en/investigations/agentcore-web-search-integration.md)
+**🌐 Language:** **日本語** | [English](../en/investigations/agentcore-web-search-integration.md) | [한국어](../ko/investigations/agentcore-web-search-integration.md) | [简体中文](../zh-CN/investigations/agentcore-web-search-integration.md) | [繁體中文](../zh-TW/investigations/agentcore-web-search-integration.md) | [Français](../fr/investigations/agentcore-web-search-integration.md) | [Deutsch](../de/investigations/agentcore-web-search-integration.md) | [Español](../es/investigations/agentcore-web-search-integration.md)
 
 **作成日**: 2026-06-18
 **対象リージョン**: メインスタック ap-northeast-1 / Web Search Tool は us-east-1（後述・要確認）
@@ -305,6 +305,33 @@ agentcore.create_gateway_target(
 2. boto3 1.43.31 以前は `connector` キーを認識しない（ParamValidationError）
 3. Gateway 作成→即 READY、Target 作成→即 READY（プロビジョニング待ち時間なし）
 4. ドメインフィルタリングが `parameterValues.domainFilter.exclude` で設定可能
+
+---
+
+## 10. Step 4 成果物（PoC デプロイ自動化）
+
+§9.1 の手動 PoC を自動化するスクリプトとテンプレートを本リポジトリに追加。
+
+| ファイル | 用途 |
+|---------|------|
+| `development/cfn/agentcore-web-search-gateway-role.yaml` | us-east-1 IAM ロール CFn テンプレート |
+| `development/scripts/web-search/deploy-us-east-1-gateway.sh` | Phase 1-3 自動デプロイ（Role → Gateway → Target） |
+| `development/scripts/web-search/teardown-us-east-1-gateway.sh` | 逆順撤去（Target → Gateway → CFn Stack） |
+
+**使い方:**
+```bash
+# デプロイ
+bash development/scripts/web-search/deploy-us-east-1-gateway.sh
+
+# 成果物確認
+aws bedrock-agent-core get-gateway --gateway-identifier <ID> --region us-east-1
+
+# 撤去
+bash development/scripts/web-search/teardown-us-east-1-gateway.sh
+```
+
+**注意:** スクリプト内の `create-gateway-target` は §9.1 で確認した `connector` 形状ではなく
+`mcpServer` 形状を使用している（作成時点での暫定実装）。本番移行時に `connector` 形状へ修正すること。
 
 ---
 

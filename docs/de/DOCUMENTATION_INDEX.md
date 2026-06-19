@@ -30,7 +30,10 @@
 
 | Dokument | Beschreibung |
 |----------|--------------|
-| [production-readiness-checklist.md](production-readiness-checklist.md) | Produktionsbereitschafts-Checkliste (Demo → PoC → Production Reifegraddefinitionen, Sicherheits-/Audit-/DR-/Betriebsprüfpunkte) |
+| [production-readiness-checklist.md](production-readiness-checklist.md) | Produktionsbereitschafts-Checkliste (Demo → PoC → Production Reifegraddefinitionen, Sicherheits-/Audit-/DR-/Betriebsprüfpunkte, mit Genehmiger-Spalte) |
+| [poc-success-criteria-template.md](poc-success-criteria-template.md) | PoC-Erfolgskriterien-Vorlage (Stakeholder-Definitionen, Go/No-Go-Kriterien, Bedingungen für die nächste Phase, Abschlussberichtsvorlage) |
+| [data-readiness-assessment.md](data-readiness-assessment.md) | Datenbereitschafts-Bewertungsvorlage (Datenstandort/-klassifizierung/-Berechtigungsstruktur/-qualität/-Compliance-Prüfungen, Genehmigungsfluss) |
+| [partner-faq.md](partner-faq.md) | Partner-FAQ (12 Fragen und Antworten für Kundenangebote, Liste der Angebotsressourcen) |
 | [permission-consistency.md](permission-consistency.md) | Konsistenzmodell für Berechtigungsänderungen (ACL-Änderung → Metadaten-Neugenerierung → KB-Neusynchronisierung → Cache-Invalidierung, maximale Latenz, Notfall-Berechtigungsentzugsverfahren) |
 | [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP Dimensionierungs- und Leistungsleitfaden (skalenbasierte Konfigurationen, S3 AP-Überlegungen, QoS, Vektorspeicher-Auswahl) |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | Multi-Tenant- und Partner-Bereitstellungsmuster (Kontoisolierung/SVM-Isolierung/Hybrid, Kostenschätzungsvorlagen) |
@@ -40,6 +43,16 @@
 | [threat-model.md](threat-model.md) | Bedrohungsmodell (10 Bedrohungskategorien, Angriffspfade, bestehende Gegenmaßnahmen, zusätzliche Empfehlungen, Bedrohungs-Gegenmaßnahmen-Zuordnungstabelle) |
 | [cloudwatch-dashboard-guide.md](cloudwatch-dashboard-guide.md) | CloudWatch-Dashboard-Betriebsleitfaden (Metrikliste, Alarmdefinitionen, Fehlerbehebungsmuster) |
 | [poc-workshop-guide.md](poc-workshop-guide.md) | PoC-Workshop-Leitfaden (90 Minuten: Bereitstellung → Test → Bewertung → Bereinigung) |
+| [cost-estimation-worksheet.md](cost-estimation-worksheet.md) | Kostenschätzungs-Arbeitsblatt (monatliche Kostenvorlagen je Konfiguration, Formeln, Optimierungspunkte) |
+| [architecture-decision-records.md](architecture-decision-records.md) | Architecture Decision Records (6 Schlüsselentscheidungen: Vektorspeicher, Berechtigungsfilter, Authentifizierung, Frontend, Synchronisierung, Routing) |
+| [managed-kb-migration-evaluation.md](managed-kb-migration-evaluation.md) | Bewertung des Migrationspfads zu Amazon Bedrock Managed Knowledge Base (Vergleich mit bestehendem KB + OpenSearch Serverless / S3 Vectors, Auswirkung auf Permission-aware RAG, ACL-Metadatenfilter-Verifizierungspunkte, schrittweise Migration). AWS Summit NY 2026 |
+| [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) | Managed KB Upgrade-Pfad (S3 AP-Datenquellen-Verbindungsvalidierungsschritte V1–V4, Permission-aware-Designherausforderungen, sicheres Validierungsmuster mit FlexClone, Auswahlleitfaden nach Einsatzzweck). Parallele Option / Validierungsverfahren |
+| [investigations/agentcore-web-search-integration.md](investigations/agentcore-web-search-integration.md) | Designuntersuchung zur Integration des AgentCore Web Search Tool als Hybrid-Suchoption im Permission-aware RAG (UI-Umschalter, us-east-1 regionsübergreifendes Gateway, Lambda Layer/inline, Abfragesicherheit / Zitattrennung / Prompt-Injection-Abwehr, Implementierungsreihenfolge). AWS Summit NY 2026 |
+| [monitoring/athena-audit-tables.sql](../../monitoring/athena-audit-tables.sql) | Athena-Tabellendefinitionen (DDL für Audit-Log-Analyse + Beispielabfragen) |
+| [benchmark-scenarios.md](benchmark-scenarios.md) | Benchmark-Szenarien (10K/100K/1M Dateien, 5 Messszenarien, theoretische Basiswertschätzungen) |
+| [demo-data/industry-packs/](../../demo-data/industry-packs/) | Branchenspezifische Demo-Datenpakete (8 Branchen × 5 Dokumente: öffentlicher Sektor, Gesundheitswesen, Recht, Fertigung, Bau, Bildung, Versicherung + generisch) |
+| [s3ap-serverless-patterns-integration.md](s3ap-serverless-patterns-integration.md) | S3AP Serverless Patterns Integrationsarchitektur (3-Muster-Integration mit 17 UCs) |
+| [benchmarks/](../../benchmarks/) | Benchmark-Framework (Testdatengenerierung, Ausführungsskripte, Ergebnisvorlagen) |
 | [tests/permission-matrix/](../../tests/permission-matrix/) | Berechtigungsmatrix-Tests (31 ACL-Grenzfallszenarien: Fail-Closed, Gruppenverschachtelung, vererbte Berechtigungen, Notfallentzug) |
 
 ## FSx for ONTAP Betriebsautomatisierung
@@ -50,6 +63,15 @@
 | [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | Warum diese Architektur FSx for ONTAP-Operationen vereinfacht (Designentscheidungen, Kostenschätzungen, Sicherheitsdesign) |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS-Integrationsverifizierungsbericht (2026-05-01, alle Phasen BESTANDEN) |
 | [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | Integrierte CloudFormation-Vorlage (inkl. VPC-Endpunkte) |
+
+## Transfer Family Ingestion
+
+| Dokument | Beschreibung |
+|----------|--------------|
+| [transfer-family-e2e-verification.md](transfer-family-e2e-verification.md) | E2E-Verifizierungsbericht (SFTP-Verbindung → Upload → KB-Ingestion abgeschlossen, alle Schritte BESTANDEN) |
+| [transfer-family-partner-onboarding.md](transfer-family-partner-onboarding.md) | Partner-Onboarding-Leitfaden (SSH-Schlüssel-Einrichtung, SFTP-Verbindung, Dateibenennungskonventionen, Fehlerbehebung) |
+| [transfer-family-networking-prerequisites.md](transfer-family-networking-prerequisites.md) | Netzwerk-Voraussetzungen (VPC-Endpunkte, IP-Zulassungsliste, Sicherheitsgruppen) |
+| [v4.2-demo-verification-supplement.md](v4.2-demo-verification-supplement.md) | v4.2 Demo-Verifizierungsergänzung (Testverfahren für alle Anwendungsfälle, erwartete Ergebnisse, Log-Abrufmethoden) |
 
 ## Beispielkonfigurationsdateien
 

@@ -1,6 +1,6 @@
 # PoC 成功基準テンプレート
 
-**🌐 Language:** **日本語** | [English](en/poc-success-criteria-template.md)
+**🌐 Language:** **日本語** | [English](en/poc-success-criteria-template.md) | [한국어](ko/poc-success-criteria-template.md) | [简体中文](zh-CN/poc-success-criteria-template.md) | [繁體中文](zh-TW/poc-success-criteria-template.md) | [Français](fr/poc-success-criteria-template.md) | [Deutsch](de/poc-success-criteria-template.md) | [Español](es/poc-success-criteria-template.md)
 
 **作成日**: 2026-05-24  
 **対象**: PoC開始前に顧客・パートナーと合意する成功基準の定義テンプレート

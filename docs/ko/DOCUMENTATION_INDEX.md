@@ -30,7 +30,10 @@
 
 | 문서 | 설명 |
 |------|------|
-| [production-readiness-checklist.md](production-readiness-checklist.md) | 프로덕션 준비 체크리스트 (Demo → PoC → Production 성숙도 레벨 정의, 보안/감사/DR/운영 확인 항목) |
+| [production-readiness-checklist.md](production-readiness-checklist.md) | 프로덕션 준비 체크리스트 (Demo → PoC → Production 성숙도 레벨 정의, 보안/감사/DR/운영 확인 항목, 승인자 열 포함) |
+| [poc-success-criteria-template.md](poc-success-criteria-template.md) | PoC 성공 기준 템플릿 (이해관계자 정의, Go/No-Go 판정 기준, 다음 단계 조건, 완료 보고서 템플릿) |
+| [data-readiness-assessment.md](data-readiness-assessment.md) | 데이터 레디니스 평가 템플릿 (데이터 소재·분류·권한 구조·품질·컴플라이언스 확인, 승인 플로우) |
+| [partner-faq.md](partner-faq.md) | 파트너 FAQ (고객 제안 시의 12가지 질문과 답변, 제안 리소스 목록) |
 | [permission-consistency.md](permission-consistency.md) | 권한 변경 일관성 모델 (ACL 변경 → 메타데이터 재생성 → KB 재동기화 → 캐시 무효화 흐름, 최대 지연, 긴급 권한 박탈 절차) |
 | [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP 성능 및 용량 설계 가이드 (규모별 구성, S3 AP 고려사항, QoS, 벡터 스토어 선정) |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | 멀티테넌트 및 파트너 배포 패턴 (계정 분리/SVM 분리/하이브리드, 비용 추정 템플릿) |
@@ -40,6 +43,16 @@
 | [threat-model.md](threat-model.md) | 위협 모델 (10개 위협 카테고리, 공격 경로, 기존 완화 조치, 추가 권장 사항, 위협→대책 매핑 표) |
 | [cloudwatch-dashboard-guide.md](cloudwatch-dashboard-guide.md) | CloudWatch 대시보드 운영 가이드 (메트릭 목록, 알람 정의, 문제 해결 패턴) |
 | [poc-workshop-guide.md](poc-workshop-guide.md) | PoC 워크숍 가이드 (90분: 배포 → 테스트 → 평가 → 정리) |
+| [cost-estimation-worksheet.md](cost-estimation-worksheet.md) | 비용 견적 워크시트 (구성별 월액 개산 템플릿, 계산식, 최적화 포인트) |
+| [architecture-decision-records.md](architecture-decision-records.md) | Architecture Decision Records (6가지 주요 의사결정: 벡터 스토어, 권한 필터, 인증, 프론트엔드, 동기화, 라우팅) |
+| [managed-kb-migration-evaluation.md](managed-kb-migration-evaluation.md) | Amazon Bedrock Managed Knowledge Base 마이그레이션 경로 검토 (기존 KB + OpenSearch Serverless / S3 Vectors와의 비교, Permission-aware RAG에 대한 영향, ACL 메타데이터 필터 검증 포인트, 단계적 마이그레이션) ※AWS Summit NY 2026 |
+| [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) | Managed KB 업그레이드 경로 (S3 AP 데이터 소스 연결 검증 절차 V1~V4, Permission-aware 설계 과제, FlexClone을 사용한 안전한 검증 패턴, 용도에 따른 선택 가이드) ※병렬 옵션·검증 절차서 |
+| [investigations/agentcore-web-search-integration.md](investigations/agentcore-web-search-integration.md) | AgentCore Web Search Tool을 Permission-aware RAG의 하이브리드 검색 옵션으로 통합하는 설계 조사 (UI 토글, us-east-1 크로스 리전 Gateway, Lambda Layer/inline, 쿼리 안전성·인용 분리·프롬프트 인젝션 방어, 구현 순서) ※AWS Summit NY 2026 |
+| [monitoring/athena-audit-tables.sql](../../monitoring/athena-audit-tables.sql) | Athena 테이블 정의 (감사 로그 분석용 DDL + 샘플 쿼리) |
+| [benchmark-scenarios.md](benchmark-scenarios.md) | 벤치마크 시나리오 (10K/100K/1M 파일, 5개 계측 시나리오, 이론적 베이스라인 추정값) |
+| [demo-data/industry-packs/](../../demo-data/industry-packs/) | 업종별 데모 데이터 팩 (8개 업종 × 5개 문서: 행정·의료·법무·제조·건설·교육·보험 + 범용) |
+| [s3ap-serverless-patterns-integration.md](s3ap-serverless-patterns-integration.md) | S3AP Serverless Patterns 연계 아키텍처 (17 UC와의 3패턴 연계) |
+| [benchmarks/](../../benchmarks/) | 벤치마크 프레임워크 (테스트 데이터 생성, 실행 스크립트, 결과 템플릿) |
 | [tests/permission-matrix/](../../tests/permission-matrix/) | 권한 매트릭스 테스트 (ACL 엣지 케이스 31개 시나리오: Fail-Closed, 그룹 중첩, 상속 권한, 긴급 박탈) |
 
 ## FSx for ONTAP 운영 자동화
@@ -50,6 +63,15 @@
 | [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | 이 아키텍처가 FSx for ONTAP 운영을 단순화하는 이유 (설계 결정, 비용 추정, 보안 설계) |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | AWS 통합 검증 보고서 (2026-05-01, 모든 단계 통과) |
 | [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | 통합 CloudFormation 템플릿 (VPC 엔드포인트 포함) |
+
+## Transfer Family 인제스션
+
+| 문서 | 설명 |
+|------|------|
+| [transfer-family-e2e-verification.md](transfer-family-e2e-verification.md) | E2E 검증 보고서 (SFTP 연결 → 업로드 → KB 수집 완료, 전체 스텝 PASS) |
+| [transfer-family-partner-onboarding.md](transfer-family-partner-onboarding.md) | 파트너 온보딩 가이드 (SSH 키 설정, SFTP 연결, 파일 명명 규칙, 문제 해결) |
+| [transfer-family-networking-prerequisites.md](transfer-family-networking-prerequisites.md) | 네트워킹 전제 조건 (VPC 엔드포인트, IP 허용 목록, 보안 그룹) |
+| [v4.2-demo-verification-supplement.md](v4.2-demo-verification-supplement.md) | v4.2 데모 검증 보충 가이드 (전체 유스케이스의 테스트 절차, 예상 결과, 로그 취득 방법) |
 
 ## 샘플 구성 파일
 

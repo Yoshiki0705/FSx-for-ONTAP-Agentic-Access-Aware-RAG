@@ -46,6 +46,7 @@
 | [docs/cost-estimation-worksheet.md](cost-estimation-worksheet.md) | コスト見積もりワークシート（構成別月額概算テンプレート、計算式、最適化ポイント） |
 | [docs/architecture-decision-records.md](architecture-decision-records.md) | Architecture Decision Records（6つの主要意思決定: ベクトルストア、権限フィルタ、認証、フロントエンド、同期、ルーティング） |
 | [docs/managed-kb-migration-evaluation.md](managed-kb-migration-evaluation.md) | Amazon Bedrock Managed Knowledge Base 移行パス検討（既存 KB + OpenSearch Serverless / S3 Vectors との比較、Permission-aware RAG への影響、ACL メタデータフィルタ検証ポイント、段階移行手順）※AWS Summit NY 2026 |
+| [docs/managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) | Managed KB アップグレードパス（S3 AP データソース接続検証手順 V1〜V4、Permission-aware 設計課題、FlexClone を使った安全な検証パターン、用途に応じた選択ガイド）※並列オプション・検証手順書 |
 | [docs/investigations/agentcore-web-search-integration.md](investigations/agentcore-web-search-integration.md) | AgentCore Web Search Tool を Permission-aware RAG のハイブリッド検索オプションとして統合する設計調査（UIトグル、us-east-1 クロスリージョン Gateway、Lambda Layer/inline、クエリ安全性・引用分離・プロンプトインジェクション防御、実装順序）※AWS Summit NY 2026 |
 | [monitoring/athena-audit-tables.sql](../monitoring/athena-audit-tables.sql) | Athena テーブル定義（監査ログ分析用 DDL + サンプルクエリ） |
 | [docs/benchmark-scenarios.md](benchmark-scenarios.md) | ベンチマークシナリオ（10K/100K/1M ファイル、5 計測シナリオ、理論的ベースライン推定値） |

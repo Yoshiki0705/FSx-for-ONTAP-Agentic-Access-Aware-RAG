@@ -119,19 +119,48 @@ StorageStack peut référencer des ressources FSx for ONTAP existantes en utilis
 
 ## Comparaison des configurations de vector store
 
-La configuration du vector store peut être changée via le paramètre de contexte CDK `vectorStoreType`. La troisième configuration (S3 Vectors + Export AOSS) est fournie comme procédure opérationnelle pour l'export à la demande en complément de la configuration S3 Vectors.
+La configuration du vector store peut être changée via le paramètre de contexte CDK `vectorStoreType`. La troisième configuration (S3 Vectors + Export AOSS) est fournie comme procédure opérationnelle pour l'export à la demande en complément de la configuration S3 Vectors. La quatrième configuration (Managed KB) est une option où AWS gère entièrement à la fois le vector store et le pipeline de données.
 
-> **Support régional** : S3 Vectors est disponible dans `ap-northeast-1` (région Tokyo).
+> **Support régional** : S3 Vectors est disponible dans `ap-northeast-1` (région Tokyo). Managed KB est également disponible dans `ap-northeast-1` (GA 2026-06-17).
 
-| Élément | OpenSearch Serverless | S3 Vectors autonome | S3 Vectors + Export AOSS |
-|---------|----------------------|---------------------|--------------------------|
-| **Paramètre CDK** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors` (par défaut) | Exécuter `export-to-opensearch.sh` en complément de la configuration 2 |
-| **Coût** | ~700 $/mois (2 OCU toujours en fonctionnement) | Quelques dollars/mois (petite échelle) | S3 Vectors + OCU AOSS (uniquement pendant l'export) |
-| **Latence** | ~10 ms | Sous-seconde (froid), ~100 ms (chaud) | ~10 ms (recherche AOSS après export) |
-| **Filtrage** | Filtre de métadonnées (`$eq`, `$ne`, `$in`, etc.) | Filtre de métadonnées (`$eq`, `$in`, `$and`, `$or`) | Filtrage AOSS après export |
-| **Contraintes de métadonnées** | Pas de contraintes | filterable 2 Ko/vecteur (effectivement 1 Ko pour les personnalisées), clés non filtrables max 10 | Suit les contraintes AOSS après export |
-| **Cas d'utilisation** | Environnements de production nécessitant de hautes performances | Optimisation des coûts, démo, environnements de développement | Demande temporaire de hautes performances |
-| **Procédure opérationnelle** | Déploiement CDK uniquement | Déploiement CDK uniquement | Exécuter `export-to-opensearch.sh` après le déploiement CDK. Le rôle IAM d'export est créé automatiquement |
+| Élément | OpenSearch Serverless | S3 Vectors autonome | S3 Vectors + Export AOSS | Managed KB (Agentic Retriever) |
+|---------|----------------------|---------------------|--------------------------|--------------------------------|
+| **Paramètre CDK** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors` (par défaut) | Exécuter `export-to-opensearch.sh` en complément de la configuration 2 | ⚠️ Non implémenté (ajout après validation) |
+| **Coût** | ~700 $/mois (2 OCU toujours en fonctionnement) | Quelques dollars/mois (petite échelle) | S3 Vectors + OCU AOSS (uniquement pendant l'export) | Facturation à la demande selon la taille des données + nombre de récupérations |
+| **Latence** | ~10 ms | Sous-seconde (froid), ~100 ms (chaud) | ~10 ms (recherche AOSS après export) | ⚠️ Non mesurée (le multi-hop ajoute plusieurs allers-retours de récupération) |
+| **Filtrage** | Filtre de métadonnées (`$eq`, `$ne`, `$in`, etc.) | Filtre de métadonnées (`$eq`, `$in`, `$and`, `$or`) | Filtrage AOSS après export | Opérateurs `filter` (dont `listContains`) + `userContext` (⚠️ correspondance SID non vérifiée) |
+| **Contraintes de métadonnées** | Pas de contraintes | filterable 2 Ko/vecteur (effectivement 1 Ko pour les personnalisées), clés non filtrables max 10 | Suit les contraintes AOSS après export | ⚠️ Contraintes du stockage managé non divulguées |
+| **Méthode de recherche** | Recherche vectorielle / Hybride (selon kbSearchType) | Recherche vectorielle / Hybride (selon kbSearchType) | Capacités de recherche AOSS | Recherche hybride + Agentic Retrieval (multi-hop) |
+| **Pipeline de données** | Géré par l'utilisateur (StartIngestionJob) | Géré par l'utilisateur (StartIngestionJob) | Géré par l'utilisateur | Managé (6 connecteurs + synchronisation automatique) |
+| **Intégration AgentCore Gateway** | Target personnalisée | Target personnalisée | Target personnalisée | Connector target intégré (MCP) |
+| **Permission-aware RAG** | ✅ Filtre SID côté application (vérifié) | ✅ Filtre SID côté application (vérifié) | ✅ Filtre SID côté application (vérifié) | ⚠️ Validation Required (voir ci-dessous) |
+| **Charge opérationnelle** | Moyenne (conception OCU / mise à l'échelle) | Faible (facturation S3 uniquement) | Moyenne (opérations d'export) | Faible (entièrement managé) |
+| **Cas d'utilisation** | Environnements de production nécessitant de hautes performances | Optimisation des coûts, démo, environnements de développement | Demande temporaire de hautes performances | Réduction de la charge opérationnelle, recherche multi-hop, Smart Parsing |
+| **Procédure opérationnelle** | Déploiement CDK uniquement | Déploiement CDK uniquement | Exécuter `export-to-opensearch.sh` après le déploiement CDK. Le rôle IAM d'export est créé automatiquement | ⚠️ Non pris en charge par CDK. Implémentation prévue après validation |
+
+### Statut de validation de Managed KB (Agentic Retriever)
+
+> ⚠️ **Validation Required** : Managed KB est devenu GA le 2026-06-17, mais la compatibilité avec les exigences de Permission-aware RAG de ce projet est **non vérifiée**. L'intégration dans la stack CDK ne sera pas effectuée tant que les éléments suivants ne sont pas confirmés.
+
+| # | Élément de validation | Statut |
+|---|----------------------|--------|
+| V1 | Le connecteur S3 reconnaît le FSx ONTAP S3 Access Point | Non vérifié |
+| V2 | `allowed_group_sids` de `.metadata.json` est conservé dans l'index | Non vérifié |
+| V3 | `listContains` de `filter` fonctionne pour la correspondance de tableau SID | Non vérifié |
+| V4 | Les filtres sont maintenus pendant le multi-hop d'Agentic Retrieval | Non vérifié |
+| V5 | La latence de propagation des changements/suppressions de permissions est acceptable | Non vérifié |
+
+Pour plus de détails, voir [Évaluation de migration Managed KB](managed-kb-migration-evaluation.md) et [Chemin de mise à niveau Managed KB](managed-kb-upgrade-path.md).
+
+### Guide de sélection
+
+| Priorité | Configuration recommandée |
+|----------|---------------------------|
+| Minimiser les coûts (démo/développement) | S3 Vectors autonome |
+| Exigences de faible latence en production | OpenSearch Serverless |
+| Réduire la charge opérationnelle / recherche multi-hop | Managed KB (après validation) |
+| Demande temporaire de hautes performances | S3 Vectors + Export AOSS |
+| Application stricte des ACL en priorité absolue | Maintenir la configuration actuelle (OpenSearch Serverless / S3 Vectors) |
 
 > **Contrainte de métadonnées S3 Vectors** : Lors de l'utilisation de Bedrock KB + S3 Vectors, les métadonnées personnalisées sont effectivement limitées à 1 Ko ou moins (les métadonnées internes de Bedrock KB consomment ~1 Ko de la limite de 2 Ko de métadonnées filtrables). Le code CDK définit toutes les métadonnées comme non filtrables pour contourner la limite de 2 Ko. Le filtrage SID est effectué côté application, donc le filtre QueryVectors de S3 Vectors n'est pas nécessaire. Voir [docs/s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) pour plus de détails.
 

@@ -1,6 +1,6 @@
 # パートナー FAQ（よくある質問）
 
-**🌐 Language:** **日本語** | [English](en/partner-faq.md)
+**🌐 Language:** **日本語** | [English](en/partner-faq.md) | [한국어](ko/partner-faq.md) | [简体中文](zh-CN/partner-faq.md) | [繁體中文](zh-TW/partner-faq.md) | [Français](fr/partner-faq.md) | [Deutsch](de/partner-faq.md) | [Español](es/partner-faq.md)
 
 **作成日**: 2026-05-24  
 **対象**: パートナー企業、SI、コンサルティングファーム向け

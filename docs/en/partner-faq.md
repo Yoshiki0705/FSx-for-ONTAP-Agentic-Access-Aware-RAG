@@ -1,6 +1,6 @@
 # Partner FAQ (Frequently Asked Questions)
 
-**🌐 Language:** [日本語](../partner-faq.md) | **English**
+**🌐 Language:** [日本語](../partner-faq.md) | **English** | [한국어](../ko/partner-faq.md) | [简体中文](../zh-CN/partner-faq.md) | [繁體中文](../zh-TW/partner-faq.md) | [Français](../fr/partner-faq.md) | [Deutsch](../de/partner-faq.md) | [Español](../es/partner-faq.md)
 
 **Created**: 2026-05-24  
 **Audience**: Partner companies, system integrators, and consulting firms

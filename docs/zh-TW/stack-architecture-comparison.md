@@ -119,19 +119,48 @@ StorageStack 可透過 `existingFileSystemId`/`existingSvmId`/`existingVolumeId`
 
 ## 向量儲存設定比較
 
-向量儲存設定可透過 CDK context 參數 `vectorStoreType` 切換。第三種設定（S3 Vectors + AOSS 匯出）是在 S3 Vectors 設定之上提供的按需匯出操作程序。
+向量儲存設定可透過 CDK context 參數 `vectorStoreType` 切換。第三種設定（S3 Vectors + AOSS 匯出）是在 S3 Vectors 設定之上提供的按需匯出操作程序。第四種設定（Managed KB）是 AWS 完全託管向量儲存與資料管線的選項。
 
-> **區域支援**：S3 Vectors 在 `ap-northeast-1`（東京區域）可用。
+> **區域支援**：S3 Vectors 在 `ap-northeast-1`（東京區域）可用。Managed KB 同樣在 `ap-northeast-1` 可用（2026-06-17 GA）。
 
-| 項目 | OpenSearch Serverless | S3 Vectors 獨立 | S3 Vectors + AOSS 匯出 |
-|------|----------------------|-----------------|------------------------|
-| **CDK 參數** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors`（預設） | 在設定 2 之上執行 `export-to-opensearch.sh` |
-| **成本** | 約 $700/月（2 OCU 持續運行） | 數美元/月（小規模） | S3 Vectors + AOSS OCU（僅在匯出期間） |
-| **延遲** | 約 10ms | 次秒級（冷）、約 100ms（暖） | 約 10ms（匯出後 AOSS 搜尋） |
-| **過濾** | 中繼資料過濾（`$eq`、`$ne`、`$in` 等） | 中繼資料過濾（`$eq`、`$in`、`$and`、`$or`） | 匯出後使用 AOSS 過濾 |
-| **中繼資料限制** | 無限制 | filterable 2KB/向量（自訂實際上為 1KB），non-filterable 金鑰最多 10 個 | 匯出後遵循 AOSS 限制 |
-| **使用情境** | 需要高效能的生產環境 | 成本最佳化、示範、開發環境 | 臨時高效能需求 |
-| **操作程序** | 僅 CDK deploy | 僅 CDK deploy | CDK deploy 後執行 `export-to-opensearch.sh`。匯出 IAM 角色自動建立 |
+| 項目 | OpenSearch Serverless | S3 Vectors 獨立 | S3 Vectors + AOSS 匯出 | Managed KB (Agentic Retriever) |
+|------|----------------------|-----------------|------------------------|--------------------------------|
+| **CDK 參數** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors`（預設） | 在設定 2 之上執行 `export-to-opensearch.sh` | ⚠️ 未實作（驗證完成後新增） |
+| **成本** | 約 $700/月（2 OCU 持續運行） | 數美元/月（小規模） | S3 Vectors + AOSS OCU（僅在匯出期間） | 依資料大小 + 檢索次數的按需計費 |
+| **延遲** | 約 10ms | 次秒級（冷）、約 100ms（暖） | 約 10ms（匯出後 AOSS 搜尋） | ⚠️ 未測量（多跳時多次檢索累加） |
+| **過濾** | 中繼資料過濾（`$eq`、`$ne`、`$in` 等） | 中繼資料過濾（`$eq`、`$in`、`$and`、`$or`） | 匯出後使用 AOSS 過濾 | `filter` 運算子（含 `listContains`）+ `userContext`（⚠️ SID 比對未驗證） |
+| **中繼資料限制** | 無限制 | filterable 2KB/向量（自訂實際上為 1KB），non-filterable 金鑰最多 10 個 | 匯出後遵循 AOSS 限制 | ⚠️ 託管儲存內的限制未公開 |
+| **搜尋方式** | 向量搜尋 / Hybrid（取決於 kbSearchType） | 向量搜尋 / Hybrid（取決於 kbSearchType） | AOSS 搜尋功能 | 混合搜尋 + Agentic Retrieval（多跳） |
+| **資料管線** | 使用者管理（StartIngestionJob） | 使用者管理（StartIngestionJob） | 使用者管理 | 託管（6 個連接器 + 自動同步） |
+| **AgentCore Gateway 整合** | 自訂 target | 自訂 target | 自訂 target | 內建 connector target（MCP） |
+| **Permission-aware RAG** | ✅ 應用端 SID 過濾（已驗證） | ✅ 應用端 SID 過濾（已驗證） | ✅ 應用端 SID 過濾（已驗證） | ⚠️ Validation Required（見下文） |
+| **維運負擔** | 中（OCU 設計 / 擴展） | 低（僅 S3 計費） | 中（匯出維運） | 低（完全託管） |
+| **使用情境** | 需要高效能的生產環境 | 成本最佳化、示範、開發環境 | 臨時高效能需求 | 降低維運負擔、多跳搜尋、Smart Parsing |
+| **操作程序** | 僅 CDK deploy | 僅 CDK deploy | CDK deploy 後執行 `export-to-opensearch.sh`。匯出 IAM 角色自動建立 | ⚠️ CDK 暫不支援。驗證完成後實作 |
+
+### Managed KB (Agentic Retriever) 驗證狀態
+
+> ⚠️ **Validation Required**：Managed KB 已於 2026-06-17 GA，但與本專案 Permission-aware RAG 需求的相容性**尚未驗證**。在確認以下項目之前，不會進行 CDK 堆疊整合。
+
+| # | 驗證項目 | 狀態 |
+|---|---------|------|
+| V1 | S3 連接器是否辨識 FSx ONTAP S3 Access Point | 未驗證 |
+| V2 | `.metadata.json` 的 `allowed_group_sids` 是否在索引中保留 | 未驗證 |
+| V3 | `filter` 的 `listContains` 是否支援 SID 陣列比對 | 未驗證 |
+| V4 | Agentic Retrieval 多跳期間過濾是否維持 | 未驗證 |
+| V5 | 權限變更/刪除的反映延遲是否在可接受範圍 | 未驗證 |
+
+詳情請參閱 [Managed KB 遷移評估](managed-kb-migration-evaluation.md) 和 [Managed KB 升級路徑](managed-kb-upgrade-path.md)。
+
+### 選擇指南
+
+| 優先事項 | 建議設定 |
+|---------|---------|
+| 成本最小化（示範/開發） | S3 Vectors 獨立 |
+| 生產低延遲需求 | OpenSearch Serverless |
+| 降低維運負擔 / 多跳搜尋 | Managed KB（驗證完成後） |
+| 臨時高效能需求 | S3 Vectors + AOSS 匯出 |
+| ACL 嚴格套用為最優先 | 維持現行設定（OpenSearch Serverless / S3 Vectors） |
 
 > **S3 Vectors 中繼資料限制**：使用 Bedrock KB + S3 Vectors 時，自訂中繼資料實際上限制為 1KB 以下（Bedrock KB 內部中繼資料消耗 2KB filterable 中繼資料限制中的約 1KB）。CDK 程式碼將所有中繼資料設為 non-filterable 以繞過 2KB 限制。SID 過濾在應用程式端執行，因此不需要 S3 Vectors QueryVectors 過濾。詳情請參閱 [docs/s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md)。
 

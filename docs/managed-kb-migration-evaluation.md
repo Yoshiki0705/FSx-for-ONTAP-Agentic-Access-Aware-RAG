@@ -1,6 +1,6 @@
 # Amazon Bedrock Managed Knowledge Base 移行パス検討
 
-**🌐 Language:** **日本語** | [English](en/managed-kb-migration-evaluation.md)
+**🌐 Language:** **日本語** | [English](en/managed-kb-migration-evaluation.md) | [한국어](ko/managed-kb-migration-evaluation.md) | [简体中文](zh-CN/managed-kb-migration-evaluation.md) | [繁體中文](zh-TW/managed-kb-migration-evaluation.md) | [Français](fr/managed-kb-migration-evaluation.md) | [Deutsch](de/managed-kb-migration-evaluation.md) | [Español](es/managed-kb-migration-evaluation.md)
 
 **作成日**: 2026-06-18
 **対象リージョン**: ap-northeast-1 (東京) — Managed KB は東京リージョンで利用可能
@@ -255,6 +255,7 @@ Managed KB のマネージドストレージで、本プロジェクトの SID �
 
 ## 関連ドキュメント
 
+- [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) — Managed KB 検証手順（S3 AP 接続検証・FlexClone 安全検証パターン）
 - [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) — SID フィルタリングの基本設計
 - [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) — S3 Vectors + SID 統合
 - [stack-architecture-comparison.md](stack-architecture-comparison.md) — 既存スタック構成と KB クォータ

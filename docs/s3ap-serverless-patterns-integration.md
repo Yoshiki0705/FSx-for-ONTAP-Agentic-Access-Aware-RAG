@@ -1,6 +1,6 @@
 # S3AP Serverless Patterns 連携アーキテクチャ
 
-**🌐 Language:** **日本語** | [English](en/s3ap-serverless-patterns-integration.md)
+**🌐 Language:** **日本語** | [English](en/s3ap-serverless-patterns-integration.md) | [한국어](ko/s3ap-serverless-patterns-integration.md) | [简体中文](zh-CN/s3ap-serverless-patterns-integration.md) | [繁體中文](zh-TW/s3ap-serverless-patterns-integration.md) | [Français](fr/s3ap-serverless-patterns-integration.md) | [Deutsch](de/s3ap-serverless-patterns-integration.md) | [Español](es/s3ap-serverless-patterns-integration.md)
 
 **作成日**: 2026-05-23  
 **ステータス**: ドラフト  

@@ -1,6 +1,6 @@
 # Transfer Family パートナーオンボーディングガイド
 
-**🌐 Language:** **日本語** | [English](en/transfer-family-partner-onboarding.md)
+**🌐 Language:** **日本語** | [English](en/transfer-family-partner-onboarding.md) | [한국어](ko/transfer-family-partner-onboarding.md) | [简体中文](zh-CN/transfer-family-partner-onboarding.md) | [繁體中文](zh-TW/transfer-family-partner-onboarding.md) | [Français](fr/transfer-family-partner-onboarding.md) | [Deutsch](de/transfer-family-partner-onboarding.md) | [Español](es/transfer-family-partner-onboarding.md)
 
 **最終更新**: 2026-05-23  
 **対象**: 外部パートナー（法律事務所、監査法人、規制機関等）のSFTPアクセス設定

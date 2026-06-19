@@ -13,6 +13,7 @@ Key features:
 - **Zero-touch provisioning**: AD / OIDC / LDAP integration auto-retrieves user permissions on first sign-in
 - **Agentic AI**: Toggle between document search (KB mode) and autonomous multi-step reasoning & task execution (Agent mode) with one click
 - **Low cost**: S3 Vectors (a few dollars/month) as default. Can switch to OpenSearch Serverless for high performance
+- **Managed KB ready**: Amazon Bedrock Managed Knowledge Base (Agentic Retriever / multi-hop search) under validation as a parallel option ([evaluation doc](docs/en/managed-kb-migration-evaluation.md))
 
 ---
 

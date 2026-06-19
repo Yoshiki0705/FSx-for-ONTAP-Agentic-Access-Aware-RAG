@@ -15,11 +15,13 @@ AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API
 - **AgentCore Web Search**: Gateway の built-in connector target を `AwsCustomResource` で追加。`enableWebSearch=true` で有効化（`enableAgentCoreGateway` 前提）。⚠️ target 構成・エンドポイントは UNVERIFIED。`WEB_SEARCH_TARGET_ENDPOINT` で上書き可能
 - **Chunk Safety Filter (InvokeGuardrailChecks 思想)**: KB Retrieve → SID Filter の後段でチャンク単位のインライン安全性チェック。`GUARDRAIL_ID` 設定時は `ApplyGuardrail`(source=INPUT)、未設定時は多言語ヒューリスティック（en/ja/zh/ko）。Fail-Open + 並列度制限 + EMF メトリクス。`enableGuardrails=true` で自動有効化。閾値/タイムアウト/並列度は `CHUNK_SAFETY_THRESHOLD`/`CHUNK_SAFETY_TIMEOUT_MS`/`CHUNK_SAFETY_CONCURRENCY` で調整
 - **AgentCore Optimization (Preview)**: Configuration Bundle + Recommendations + A/B Testing の基盤。`enableAgentOptimization=true` で有効化（`enableAgentCoreGateway` 前提）。CDK は Config Bundle + IAM ロールを provision、Recommendations/A/B テストは agentcore CLI/SDK で実行。⚠️ `createConfigurationBundle` パラメータは UNVERIFIED
-- **Managed KB 移行検討ドキュメント**: `docs/managed-kb-migration-evaluation.md`（日英）。既存 KB + OpenSearch Serverless / S3 Vectors との比較、Permission-aware RAG への影響（V1〜V7 検証ポイント）、段階移行手順、推奨判定（REQUEST CHANGES — 検証完了まで保留）
+- **Managed KB 移行検討ドキュメント**: `docs/managed-kb-migration-evaluation.md`（全8言語）。既存 KB + OpenSearch Serverless / S3 Vectors との比較、Permission-aware RAG への影響（V1〜V7 検証ポイント）、段階移行手順、推奨判定（REQUEST CHANGES — 検証完了まで保留）
+- **Managed KB 検証手順ドキュメント**: `docs/managed-kb-upgrade-path.md`（全8言語）。S3 AP データソース接続検証（Phase A/B/C）、`listContains` による SID 配列照合、Agentic Retrieval マルチホップ中のフィルタ維持、FlexClone を使った安全な検証パターン、用途に応じた選択ガイド（並列オプションとして追加・既存パス非削除）
 - **Tests**: `chunk-safety-filter.property.test.ts`（Vitest + fast-check 15テスト）— 多言語インジェクション検出、PII、スコアリング、ベナイン誤検出なしの property test
 
 ### Changed
 - **8言語ドキュメント同期**: README（ja/en/ko/zh-CN/zh-TW/fr/de/es）に Feature #19 拡張（Policy+Guardrails 統合）、#19.1（Web Search）、#19.2（Optimization）を追加。AGENTS.md に feature flags・アーキテクチャパターン・Pitfalls を追記
+- **Managed KB 全8言語化**: `managed-kb-migration-evaluation.md` / `managed-kb-upgrade-path.md` を全8言語で整備（言語セレクター付き）。`stack-architecture-comparison.md`（全8言語）のベクトルストア比較表に Managed KB (Agentic Retriever) 列・検証ステータス・選び方ガイドを追加。README（全8言語）に並列オプションとして1行追記。`DOCUMENTATION_INDEX.md`（全8言語）に両ドキュメントを登録
 
 ### Security
 - **最小権限 IAM**: Web Search / Config Bundle の `AwsCustomResource` ポリシーを `*` から `gateway/*/target/*` および `configuration-bundle/*` にスコープ化

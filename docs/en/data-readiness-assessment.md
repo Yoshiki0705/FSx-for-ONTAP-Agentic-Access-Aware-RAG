@@ -1,6 +1,6 @@
 # Data Readiness Assessment Template
 
-**🌐 Language:** [日本語](../data-readiness-assessment.md) | **English**
+**🌐 Language:** [日本語](../data-readiness-assessment.md) | **English** | [한국어](../ko/data-readiness-assessment.md) | [简体中文](../zh-CN/data-readiness-assessment.md) | [繁體中文](../zh-TW/data-readiness-assessment.md) | [Français](../fr/data-readiness-assessment.md) | [Deutsch](../de/data-readiness-assessment.md) | [Español](../es/data-readiness-assessment.md)
 
 **Created**: 2026-05-24  
 **Purpose**: A template for assessing data readiness before starting a PoC
