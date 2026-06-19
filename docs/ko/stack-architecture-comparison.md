@@ -119,19 +119,48 @@ StorageStack은 `existingFileSystemId`/`existingSvmId`/`existingVolumeId` 파라
 
 ## 벡터 스토어 구성 비교
 
-벡터 스토어 구성은 CDK 컨텍스트 파라미터 `vectorStoreType`으로 전환할 수 있습니다. 세 번째 구성(S3 Vectors + AOSS Export)은 S3 Vectors 구성 위에 온디맨드 내보내기를 위한 운영 절차로 제공됩니다.
+벡터 스토어 구성은 CDK 컨텍스트 파라미터 `vectorStoreType`으로 전환할 수 있습니다. 세 번째 구성(S3 Vectors + AOSS Export)은 S3 Vectors 구성 위에 온디맨드 내보내기를 위한 운영 절차로 제공됩니다. 네 번째 구성(Managed KB)은 AWS가 벡터 스토어와 데이터 파이프라인을 모두 완전 관리하는 옵션입니다.
 
-> **리전 지원**: S3 Vectors는 `ap-northeast-1` (도쿄 리전)에서 사용 가능합니다.
+> **리전 지원**: S3 Vectors는 `ap-northeast-1` (도쿄 리전)에서 사용 가능합니다. Managed KB도 `ap-northeast-1`에서 사용 가능합니다 (2026-06-17 GA).
 
-| 항목 | OpenSearch Serverless | S3 Vectors 단독 | S3 Vectors + AOSS Export |
-|------|----------------------|-----------------|--------------------------|
-| **CDK 파라미터** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors` (기본값) | 구성 2 위에 `export-to-opensearch.sh` 실행 |
-| **비용** | ~$700/월 (2 OCU 상시 가동) | 수 달러/월 (소규모) | S3 Vectors + AOSS OCU (내보내기 중에만) |
-| **지연 시간** | ~10ms | 서브초 (콜드), ~100ms (웜) | ~10ms (내보내기 후 AOSS 검색) |
-| **필터링** | 메타데이터 필터 (`$eq`, `$ne`, `$in` 등) | 메타데이터 필터 (`$eq`, `$in`, `$and`, `$or`) | 내보내기 후 AOSS 필터링 |
-| **메타데이터 제약** | 제약 없음 | filterable 2KB/벡터 (실질적으로 커스텀 1KB), non-filterable 키 최대 10개 | 내보내기 후 AOSS 제약 적용 |
-| **사용 사례** | 고성능이 필요한 프로덕션 환경 | 비용 최적화, 데모, 개발 환경 | 일시적 고성능 수요 |
-| **운영 절차** | CDK 배포만 | CDK 배포만 | CDK 배포 후 `export-to-opensearch.sh` 실행. Export IAM 역할 자동 생성 |
+| 항목 | OpenSearch Serverless | S3 Vectors 단독 | S3 Vectors + AOSS Export | Managed KB (Agentic Retriever) |
+|------|----------------------|-----------------|--------------------------|--------------------------------|
+| **CDK 파라미터** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors` (기본값) | 구성 2 위에 `export-to-opensearch.sh` 실행 | ⚠️ 미구현 (검증 완료 후 추가 예정) |
+| **비용** | ~$700/월 (2 OCU 상시 가동) | 수 달러/월 (소규모) | S3 Vectors + AOSS OCU (내보내기 중에만) | 데이터 크기 + 검색 횟수 기반 온디맨드 과금 |
+| **지연 시간** | ~10ms | 서브초 (콜드), ~100ms (웜) | ~10ms (내보내기 후 AOSS 검색) | ⚠️ 미측정 (멀티홉 시 여러 검색으로 누적) |
+| **필터링** | 메타데이터 필터 (`$eq`, `$ne`, `$in` 등) | 메타데이터 필터 (`$eq`, `$in`, `$and`, `$or`) | 내보내기 후 AOSS 필터링 | `filter` 연산자 (`listContains` 포함) + `userContext` (⚠️ SID 대조 미검증) |
+| **메타데이터 제약** | 제약 없음 | filterable 2KB/벡터 (실질적으로 커스텀 1KB), non-filterable 키 최대 10개 | 내보내기 후 AOSS 제약 적용 | ⚠️ 관리형 스토리지 내 제약 미공개 |
+| **검색 방식** | 벡터 검색 / Hybrid (kbSearchType 의존) | 벡터 검색 / Hybrid (kbSearchType 의존) | AOSS 검색 기능 | 하이브리드 검색 + Agentic Retrieval (멀티홉) |
+| **데이터 파이프라인** | 사용자 관리 (StartIngestionJob) | 사용자 관리 (StartIngestionJob) | 사용자 관리 | 관리형 (6개 커넥터 + 자동 동기화) |
+| **AgentCore Gateway 통합** | 커스텀 target | 커스텀 target | 커스텀 target | 빌트인 connector target (MCP) |
+| **Permission-aware RAG** | ✅ 앱 측 SID 필터 (검증 완료) | ✅ 앱 측 SID 필터 (검증 완료) | ✅ 앱 측 SID 필터 (검증 완료) | ⚠️ Validation Required (아래 참조) |
+| **운영 부하** | 중 (OCU 설계 / 스케일링) | 낮음 (S3 과금만) | 중 (내보내기 운영) | 낮음 (완전 관리형) |
+| **사용 사례** | 고성능이 필요한 프로덕션 환경 | 비용 최적화, 데모, 개발 환경 | 일시적 고성능 수요 | 운영 부하 절감, 멀티홉 검색, Smart Parsing 활용 |
+| **운영 절차** | CDK 배포만 | CDK 배포만 | CDK 배포 후 `export-to-opensearch.sh` 실행. Export IAM 역할 자동 생성 | ⚠️ CDK 미지원. 검증 완료 후 구현 예정 |
+
+### Managed KB (Agentic Retriever) 검증 상태
+
+> ⚠️ **Validation Required**: Managed KB는 2026-06-17에 GA되었지만, 본 프로젝트의 Permission-aware RAG 요구사항과의 호환성은 **미검증** 상태입니다. 다음 항목이 확인될 때까지 CDK 스택 통합은 진행하지 않습니다.
+
+| # | 검증 항목 | 상태 |
+|---|----------|------|
+| V1 | S3 커넥터가 FSx ONTAP S3 Access Point를 인식하는가 | 미검증 |
+| V2 | `.metadata.json`의 `allowed_group_sids`가 인덱스에 보존되는가 | 미검증 |
+| V3 | `filter`의 `listContains`로 SID 배열 대조가 작동하는가 | 미검증 |
+| V4 | Agentic Retrieval 멀티홉 중 필터가 유지되는가 | 미검증 |
+| V5 | 권한 변경/삭제 반영 지연이 허용 범위인가 | 미검증 |
+
+자세한 내용은 [Managed KB 마이그레이션 검토](managed-kb-migration-evaluation.md) 및 [Managed KB 업그레이드 경로](managed-kb-upgrade-path.md)를 참조하세요.
+
+### 선택 가이드
+
+| 우선순위 | 권장 구성 |
+|---------|----------|
+| 비용 최소화 (데모/개발) | S3 Vectors 단독 |
+| 프로덕션 저지연 요구사항 | OpenSearch Serverless |
+| 운영 부하 절감 / 멀티홉 검색 | Managed KB (검증 완료 후) |
+| 일시적 고성능 수요 | S3 Vectors + AOSS Export |
+| ACL 엄격 적용 최우선 | 현행 구성 (OpenSearch Serverless / S3 Vectors) 유지 |
 
 > **S3 Vectors 메타데이터 제약**: Bedrock KB + S3 Vectors 사용 시, 커스텀 메타데이터는 실질적으로 1KB 이하로 제한됩니다 (Bedrock KB 내부 메타데이터가 2KB filterable 메타데이터 제한의 ~1KB를 소비). CDK 코드는 2KB 제한을 우회하기 위해 모든 메타데이터를 non-filterable로 설정합니다. SID 필터링은 애플리케이션 측에서 수행되므로 S3 Vectors QueryVectors 필터는 필요하지 않습니다. 자세한 내용은 [docs/s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md)를 참조하세요.
 

@@ -1,6 +1,6 @@
 # データレディネス評価テンプレート
 
-**🌐 Language:** **日本語** | [English](en/data-readiness-assessment.md)
+**🌐 Language:** **日本語** | [English](en/data-readiness-assessment.md) | [한국어](ko/data-readiness-assessment.md) | [简体中文](zh-CN/data-readiness-assessment.md) | [繁體中文](zh-TW/data-readiness-assessment.md) | [Français](fr/data-readiness-assessment.md) | [Deutsch](de/data-readiness-assessment.md) | [Español](es/data-readiness-assessment.md)
 
 **作成日**: 2026-05-24  
 **対象**: PoC 開始前にデータの準備状況を評価するためのテンプレート

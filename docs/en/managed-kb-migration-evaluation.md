@@ -1,6 +1,6 @@
 # Amazon Bedrock Managed Knowledge Base Migration Path Evaluation
 
-**🌐 Language:** [日本語](../managed-kb-migration-evaluation.md) | **English**
+**🌐 Language:** [日本語](../managed-kb-migration-evaluation.md) | **English** | [한국어](../ko/managed-kb-migration-evaluation.md) | [简体中文](../zh-CN/managed-kb-migration-evaluation.md) | [繁體中文](../zh-TW/managed-kb-migration-evaluation.md) | [Français](../fr/managed-kb-migration-evaluation.md) | [Deutsch](../de/managed-kb-migration-evaluation.md) | [Español](../es/managed-kb-migration-evaluation.md)
 
 **Created**: 2026-06-18
 **Target region**: ap-northeast-1 (Tokyo) — Managed KB is available in the Tokyo Region
@@ -255,6 +255,7 @@ Conditions to lift:
 
 ## Related Documents
 
+- [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) — Managed KB validation procedures (S3 AP connection validation / FlexClone safe validation pattern)
 - [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) — SID filtering fundamental design
 - [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) — S3 Vectors + SID integration
 - [stack-architecture-comparison.md](stack-architecture-comparison.md) — Existing stack configuration and KB quotas

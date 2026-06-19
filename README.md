@@ -59,6 +59,7 @@ AWS CDK でワンコマンドデプロイでき、Amazon Bedrock（RAG / Agent�
 - **ゼロタッチプロビジョニング**: AD / OIDC / LDAP 連携で、ユーザーが初回サインインするだけで権限情報を自動取得
 - **Agentic AI**: 文書検索（KB モード）と多段階推論・自律的タスク実行（Agent モード）をワンクリックで切替
 - **低コスト**: S3 Vectors（月数ドル）をデフォルト採用。OpenSearch Serverless への切替も可能
+- **Managed KB 対応準備**: Amazon Bedrock Managed Knowledge Base（Agentic Retriever / マルチホップ検索）を並列オプションとして検証中（[検討ドキュメント](docs/managed-kb-migration-evaluation.md)）
 
 ---
 
@@ -279,6 +280,17 @@ Phase 0-5 の統合により期待される効果:
                     │ 権限付きAI検索│ │ 分析・ML   │ │ 監査・監視      │
                     └─────────────┘ └───────────┘ └────────────────┘
 ```
+
+---
+
+## AWS 公式リソース
+
+本リポジトリの Permission-aware RAG パターンは、FSx for ONTAP S3 Access Points を Bedrock Knowledge Bases のデータソースとして構成する手順の上に構築されています。基盤となる公式構成手順は以下を参照してください。
+
+| リソース | 内容 |
+|---------|------|
+| [Build a RAG application using Amazon Bedrock Knowledge Bases with FSx for ONTAP](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/tutorial-build-rag-with-bedrock.html) | FSx for ONTAP S3 Access Point を Bedrock Knowledge Base データソースとして構成するステップバイステップチュートリアル（約35-45分） |
+| [FSxN S3 Access Points as an Amazon Bedrock Data Source](https://repost.aws/articles/AReKa8-o8XRGeVW2Nicbg1_w/fsxn-s3-access-points-as-an-amazon-bedrock-data-source) | S3 Access Points を Bedrock データソースとして使用する実践的な構成手順（repost.aws コミュニティガイド） |
 
 ---
 

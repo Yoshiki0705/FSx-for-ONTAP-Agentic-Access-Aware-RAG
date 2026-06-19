@@ -13,6 +13,7 @@ Características principales:
 - **Aprovisionamiento sin intervención**: la integración AD / OIDC / LDAP obtiene automáticamente los permisos en el primer inicio de sesión
 - **Agentic AI**: alterne entre búsqueda de documentos (modo KB) y razonamiento multi-paso autónomo y ejecución de tareas (modo Agent) con un clic
 - **Bajo costo**: S3 Vectors (unos pocos dólares/mes) por defecto. Posibilidad de cambiar a OpenSearch Serverless
+- **Listo para Managed KB**: Amazon Bedrock Managed Knowledge Base (Agentic Retriever / búsqueda multi-hop) en validación como opción paralela ([documento de evaluación](docs/es/managed-kb-migration-evaluation.md))
 ---
 
 ## Quick Start

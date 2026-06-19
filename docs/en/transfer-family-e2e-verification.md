@@ -1,6 +1,6 @@
 # Transfer Family FSx for ONTAP E2E Verification Report
 
-**🌐 Language:** [日本語](../transfer-family-e2e-verification.md) | **English**
+**🌐 Language:** [日本語](../transfer-family-e2e-verification.md) | **English** | [한국어](../ko/transfer-family-e2e-verification.md) | [简体中文](../zh-CN/transfer-family-e2e-verification.md) | [繁體中文](../zh-TW/transfer-family-e2e-verification.md) | [Français](../fr/transfer-family-e2e-verification.md) | [Deutsch](../de/transfer-family-e2e-verification.md) | [Español](../es/transfer-family-e2e-verification.md)
 
 **Verification Date**: 2026-05-13
 **Region**: ap-northeast-1
@@ -93,6 +93,8 @@ sftp -i /path/to/private-key \
   -o PubkeyAcceptedAlgorithms=+ssh-rsa \
   USERNAME@SERVER_ID.server.transfer.REGION.amazonaws.com
 ```
+
+> **⚠️ Production note**: The `StrictHostKeyChecking=no` above is for initial verification only. In production, register the Transfer Family server's HostKey in `~/.ssh/known_hosts` and operate with `StrictHostKeyChecking=yes` (the default). You can obtain the HostKey via `aws transfer describe-server --server-id <ID> --query 'Server.HostKeyFingerprint'`.
 
 ### 8. FSx for ONTAP File System Permissions
 

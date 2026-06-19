@@ -1,6 +1,6 @@
 # PoC Success Criteria Template
 
-**🌐 Language:** [日本語](../poc-success-criteria-template.md) | **English**
+**🌐 Language:** [日本語](../poc-success-criteria-template.md) | **English** | [한국어](../ko/poc-success-criteria-template.md) | [简体中文](../zh-CN/poc-success-criteria-template.md) | [繁體中文](../zh-TW/poc-success-criteria-template.md) | [Français](../fr/poc-success-criteria-template.md) | [Deutsch](../de/poc-success-criteria-template.md) | [Español](../es/poc-success-criteria-template.md)
 
 **Created**: 2026-05-24  
 **Purpose**: A template for defining success criteria to be agreed upon with customers and partners before starting a PoC

@@ -1,6 +1,6 @@
 # AgentCore Web Search Tool — Permission-aware RAG Hybrid Search Integration (Investigation)
 
-**🌐 Language:** [日本語](../../investigations/agentcore-web-search-integration.md) | **English**
+**🌐 Language:** [日本語](../../investigations/agentcore-web-search-integration.md) | **English** | [한국어](../../ko/investigations/agentcore-web-search-integration.md) | [简体中文](../../zh-CN/investigations/agentcore-web-search-integration.md) | [繁體中文](../../zh-TW/investigations/agentcore-web-search-integration.md) | [Français](../../fr/investigations/agentcore-web-search-integration.md) | [Deutsch](../../de/investigations/agentcore-web-search-integration.md) | [Español](../../es/investigations/agentcore-web-search-integration.md)
 
 **Created**: 2026-06-18
 **Target region**: Main stack ap-northeast-1 / Web Search Tool in us-east-1 (see below, to be verified)
@@ -260,8 +260,78 @@ Rationale:
 | R1 | Web Search Tool us-east-1 constraint | ✅ **VERIFIED** | Official docs state "available in the US East (N. Virginia) us-east-1 Region". Confirmed via PoC |
 | R2 | This session's `enableWebSearch` (ap-northeast-1 gateway) placement error | ✅ **Resolved** | Removed in Step 3; synth-time warning added |
 | R3 | createGatewayTarget Web Search target config | ✅ **VERIFIED** | Correct shape: `mcp.connector.source.connectorId: "web-search"` (see PoC results below) |
-| R4 | Injection via web results | Addressed by design | `<web_search_results>` isolation (Step 1) |
+| R4 | Injection via web results | Addressed by design | `<web_search_results>` isolation + `WEB_SEARCH_SAFETY_INSTRUCTION` (Step 1) |
 | R5 | Role overlap between mechanism A (Claude Platform) and C (AgentCore) | Needs reconciliation | Env-based switch + hide engine from UI (§3) |
+
+### 9.1 Web Search target configuration (VERIFIED — 2026-06-18 PoC results)
+
+**Correct API shape:**
+
+```python
+agentcore.create_gateway_target(
+    gatewayIdentifier="<GATEWAY_ID>",
+    name="web-search-tool",
+    targetConfiguration={
+        "mcp": {
+            "connector": {
+                "source": {"connectorId": "web-search"},
+                "configurations": [{"name": "WebSearch", "parameterValues": {}}]
+            }
+        }
+    },
+    credentialProviderConfigurations=[
+        {"credentialProviderType": "GATEWAY_IAM_ROLE"}
+    ],
+)
+```
+
+**PoC environment:**
+
+| Item | Value |
+|------|-----|
+| Region | us-east-1 |
+| Gateway ID | `web-search-poc-yznjok7zbp` |
+| Gateway URL | `https://web-search-poc-yznjok7zbp.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp` |
+| Target ID | `DVJJCZBSVI` |
+| Status | READY (immediate) |
+| IAM Role | `agentcore-gateway-web-search-poc-role` |
+| Required IAM Action | `bedrock-agentcore:InvokeGateway`, `bedrock-agentcore:InvokeWebSearch` |
+| InvokeWebSearch Resource | `arn:aws:bedrock-agentcore:us-east-1:aws:tool/web-search.v1` |
+| Minimum boto3 version | 1.43.32 (support for the `connector` key) |
+
+**Key findings:**
+
+1. `connector` is a key directly under the `mcp` object, parallel to `mcpServer` / `lambda` / `apiGateway`
+2. boto3 1.43.31 and earlier do not recognize the `connector` key (ParamValidationError)
+3. Gateway creation → immediately READY, Target creation → immediately READY (no provisioning wait time)
+4. Domain filtering can be configured via `parameterValues.domainFilter.exclude`
+
+---
+
+## 10. Step 4 Artifacts (PoC Deployment Automation)
+
+Scripts and templates automating the manual PoC from §9.1 have been added to this repository.
+
+| File | Purpose |
+|------|---------|
+| `development/cfn/agentcore-web-search-gateway-role.yaml` | us-east-1 IAM role CloudFormation template |
+| `development/scripts/web-search/deploy-us-east-1-gateway.sh` | Automated deploy (Role → Gateway → Target) |
+| `development/scripts/web-search/teardown-us-east-1-gateway.sh` | Reverse teardown (Target → Gateway → CFn Stack) |
+
+**Usage:**
+```bash
+# Deploy
+bash development/scripts/web-search/deploy-us-east-1-gateway.sh
+
+# Verify
+aws bedrock-agent-core get-gateway --gateway-identifier <ID> --region us-east-1
+
+# Teardown
+bash development/scripts/web-search/teardown-us-east-1-gateway.sh
+```
+
+**Note:** The deploy script's `create-gateway-target` uses the `mcpServer` shape (interim).
+For production, update to the verified `connector` shape from §9.1.
 
 ---
 

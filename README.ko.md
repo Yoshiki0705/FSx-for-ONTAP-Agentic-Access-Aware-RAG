@@ -13,6 +13,7 @@ AWS CDK로 원커맨드 배포가 가능하며, Amazon Bedrock(RAG/Agent), Amazo
 - **제로터치 프로비저닝**: AD / OIDC / LDAP 연동으로 첫 로그인 시 권한 정보를 자동 취득
 - **Agentic AI**: 문서 검색(KB 모드)과 자율적 다단계 추론·태스크 실행(Agent 모드)을 원클릭 전환
 - **저비용**: S3 Vectors(월 수 달러)를 기본 채택. OpenSearch Serverless로 전환 가능
+- **Managed KB 지원 준비**: Amazon Bedrock Managed Knowledge Base(Agentic Retriever / 멀티홉 검색)를 병렬 옵션으로 검증 중([검토 문서](docs/ko/managed-kb-migration-evaluation.md))
 ---
 
 ## Quick Start

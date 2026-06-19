@@ -13,6 +13,7 @@ Amazon FSx for NetApp ONTAP 上儲存的企業資料，AI代理在**遵守每個
 - **零接觸配置**：AD / OIDC / LDAP 整合，使用者首次登入即自動取得權限資訊
 - **Agentic AI**：文件搜尋（KB 模式）和自主多步推理·任務執行（Agent 模式）一鍵切換
 - **低成本**：預設採用 S3 Vectors（每月數美元），可切換至 OpenSearch Serverless
+- **Managed KB 就緒**：Amazon Bedrock Managed Knowledge Base（Agentic Retriever / 多跳搜尋）作為並行選項驗證中（[評估文件](docs/zh-TW/managed-kb-migration-evaluation.md)）
 ---
 
 ## Quick Start

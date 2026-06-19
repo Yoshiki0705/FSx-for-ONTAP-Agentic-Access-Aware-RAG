@@ -30,7 +30,10 @@
 
 | Document | Description |
 |----------|-------------|
-| [production-readiness-checklist.md](production-readiness-checklist.md) | Liste de contrôle de mise en production (définitions des niveaux de maturité Demo → PoC → Production, éléments de vérification sécurité/audit/DR/exploitation) |
+| [production-readiness-checklist.md](production-readiness-checklist.md) | Liste de contrôle de mise en production (définitions des niveaux de maturité Demo → PoC → Production, éléments de vérification sécurité/audit/DR/exploitation, avec colonne approbateur) |
+| [poc-success-criteria-template.md](poc-success-criteria-template.md) | Modèle de critères de succès PoC (définitions des parties prenantes, critères Go/No-Go, conditions de phase suivante, modèle de rapport de clôture) |
+| [data-readiness-assessment.md](data-readiness-assessment.md) | Modèle d'évaluation de la préparation des données (emplacement/classification/structure des permissions/qualité/conformité des données, flux d'approbation) |
+| [partner-faq.md](partner-faq.md) | FAQ partenaire (12 questions et réponses pour les propositions clients, liste des ressources de proposition) |
 | [permission-consistency.md](permission-consistency.md) | Modèle de cohérence des changements de permissions (changement ACL → régénération des métadonnées → re-synchronisation KB → invalidation du cache, latence maximale, procédures de révocation d'urgence) |
 | [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | Guide de dimensionnement et de performance FSx for ONTAP (configurations par échelle, considérations S3 AP, QoS, sélection du magasin de vecteurs) |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | Modèles de déploiement multi-tenant et partenaires (isolation de compte/isolation SVM/hybride, modèles d'estimation des coûts) |
@@ -40,6 +43,16 @@
 | [threat-model.md](threat-model.md) | Modèle de menaces (10 catégories de menaces, chemins d'attaque, mesures d'atténuation existantes, recommandations supplémentaires, tableau de correspondance menaces→contre-mesures) |
 | [cloudwatch-dashboard-guide.md](cloudwatch-dashboard-guide.md) | Guide d'exploitation du tableau de bord CloudWatch (liste des métriques, définitions d'alarmes, modèles de dépannage) |
 | [poc-workshop-guide.md](poc-workshop-guide.md) | Guide d'atelier PoC (90 minutes : déploiement → test → évaluation → nettoyage) |
+| [cost-estimation-worksheet.md](cost-estimation-worksheet.md) | Feuille d'estimation des coûts (modèles de coûts mensuels par configuration, formules, points d'optimisation) |
+| [architecture-decision-records.md](architecture-decision-records.md) | Architecture Decision Records (6 décisions clés : magasin de vecteurs, filtre de permissions, authentification, frontend, synchronisation, routage) |
+| [managed-kb-migration-evaluation.md](managed-kb-migration-evaluation.md) | Évaluation du chemin de migration Amazon Bedrock Managed Knowledge Base (comparaison avec le KB existant + OpenSearch Serverless / S3 Vectors, impact sur le Permission-aware RAG, points de vérification du filtre de métadonnées ACL, migration progressive). AWS Summit NY 2026 |
+| [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) | Chemin de mise à niveau Managed KB (étapes de validation de connexion de la source de données S3 AP V1–V4, défis de conception Permission-aware, modèle de validation sûre avec FlexClone, guide de choix selon l'usage). Option parallèle / procédure de validation |
+| [investigations/agentcore-web-search-integration.md](investigations/agentcore-web-search-integration.md) | Étude de conception pour l'intégration de l'AgentCore Web Search Tool comme option de recherche hybride dans le Permission-aware RAG (bascule UI, Gateway inter-région us-east-1, Lambda Layer/inline, sécurité des requêtes / séparation des citations / défense contre l'injection de prompt, ordre d'implémentation). AWS Summit NY 2026 |
+| [monitoring/athena-audit-tables.sql](../../monitoring/athena-audit-tables.sql) | Définitions de tables Athena (DDL pour l'analyse des journaux d'audit + requêtes exemples) |
+| [benchmark-scenarios.md](benchmark-scenarios.md) | Scénarios de benchmark (10K/100K/1M fichiers, 5 scénarios de mesure, estimations de référence théoriques) |
+| [demo-data/industry-packs/](../../demo-data/industry-packs/) | Packs de données de démonstration par secteur (8 secteurs × 5 documents : secteur public, santé, juridique, fabrication, construction, éducation, assurance + générique) |
+| [s3ap-serverless-patterns-integration.md](s3ap-serverless-patterns-integration.md) | Architecture d'intégration S3AP Serverless Patterns (intégration en 3 modèles avec 17 UC) |
+| [benchmarks/](../../benchmarks/) | Framework de benchmark (génération de données de test, scripts d'exécution, modèles de résultats) |
 | [tests/permission-matrix/](../../tests/permission-matrix/) | Tests de matrice de permissions (31 scénarios de cas limites ACL : Fail-Closed, imbrication de groupes, permissions héritées, révocation d'urgence) |
 
 ## Automatisation des opérations FSx for ONTAP
@@ -50,6 +63,15 @@
 | [automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md](../../automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md) | Pourquoi cette architecture simplifie les opérations FSx for ONTAP (décisions de conception, estimations de coûts, conception de la sécurité) |
 | [automation/fsxn-ops/docs/aws-verification-report.md](../../automation/fsxn-ops/docs/aws-verification-report.md) | Rapport de vérification d'intégration AWS (2026-05-01, toutes les phases RÉUSSIES) |
 | [automation/fsxn-ops/cfn/fsxn-ops-stack.yaml](../../automation/fsxn-ops/cfn/fsxn-ops-stack.yaml) | Modèle CloudFormation intégré (incluant les points de terminaison VPC) |
+
+## Ingestion Transfer Family
+
+| Document | Description |
+|----------|-------------|
+| [transfer-family-e2e-verification.md](transfer-family-e2e-verification.md) | Rapport de vérification E2E (connexion SFTP → téléversement → ingestion KB terminée, toutes les étapes RÉUSSIES) |
+| [transfer-family-partner-onboarding.md](transfer-family-partner-onboarding.md) | Guide d'intégration des partenaires (configuration des clés SSH, connexion SFTP, conventions de nommage des fichiers, dépannage) |
+| [transfer-family-networking-prerequisites.md](transfer-family-networking-prerequisites.md) | Prérequis réseau (points de terminaison VPC, liste d'autorisation IP, groupes de sécurité) |
+| [v4.2-demo-verification-supplement.md](v4.2-demo-verification-supplement.md) | Supplément de vérification de démonstration v4.2 (procédures de test pour tous les cas d'utilisation, résultats attendus, méthodes de récupération des journaux) |
 
 ## Fichiers de configuration exemples
 

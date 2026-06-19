@@ -1,6 +1,6 @@
 # Transfer Family Partner Onboarding Guide
 
-**🌐 Language:** [日本語](../transfer-family-partner-onboarding.md) | **English**
+**🌐 Language:** [日本語](../transfer-family-partner-onboarding.md) | **English** | [한국어](../ko/transfer-family-partner-onboarding.md) | [简体中文](../zh-CN/transfer-family-partner-onboarding.md) | [繁體中文](../zh-TW/transfer-family-partner-onboarding.md) | [Français](../fr/transfer-family-partner-onboarding.md) | [Deutsch](../de/transfer-family-partner-onboarding.md) | [Español](../es/transfer-family-partner-onboarding.md)
 
 **Last Updated**: 2026-05-23  
 **Audience**: External partners (law firms, auditors, regulatory bodies) setting up SFTP access
@@ -55,6 +55,7 @@ Send the **public key** (`~/.ssh/transfer-family-key.pub`) to the system adminis
 ### Administrator registers the key
 
 ```bash
+# Register the public key received from the partner to the Transfer Family user
 aws transfer import-ssh-public-key \
   --server-id s-XXXXXXXXXXXXXXXXX \
   --user-name partner-a \
@@ -87,6 +88,23 @@ sftp -i ~/.ssh/transfer-family-key \
   partner-a@s-XXXXXXXXXXXXXXXXX.server.transfer.ap-northeast-1.amazonaws.com
 ```
 
+### FileZilla settings
+
+1. **Site Manager** → New site
+2. Protocol: **SFTP**
+3. Host: `s-XXXXXXXXXXXXXXXXX.server.transfer.ap-northeast-1.amazonaws.com`
+4. Logon Type: **Key file**
+5. User: `partner-a`
+6. Key file: specify the path to the private key
+
+### WinSCP settings
+
+1. **New Session**
+2. File protocol: **SFTP**
+3. Host name: Transfer Family endpoint
+4. User name: `partner-a`
+5. **Advanced** → SSH → Authentication → specify the private key file
+
 ---
 
 ## 4. File Upload Procedure
@@ -106,6 +124,7 @@ Partners are restricted to their home directory `/uploads/partner-a/`:
 ### Upload operations
 
 ```bash
+# After connecting via SFTP
 sftp> cd /uploads/partner-a/contracts
 sftp> put local-contract.pdf
 sftp> put -r local-folder/    # Upload entire directory
@@ -129,7 +148,7 @@ sftp> ls                      # Verify upload
 
 ---
 
-## 5. Ingestion Timeline
+## 5. Ingestion Confirmation
 
 After upload, documents are processed on this timeline:
 
@@ -139,6 +158,17 @@ After upload, documents are processed on this timeline:
 | Metadata generation | Seconds | `.metadata.json` auto-generated |
 | KB ingestion | 1-5 min | Bedrock Knowledge Base indexing |
 | RAG searchable | Immediate | After ingestion completes |
+
+### Confirmation method (for administrators)
+
+```bash
+# Check the latest ingestion job
+aws bedrock-agent list-ingestion-jobs \
+  --knowledge-base-id XXXXXXXXXX \
+  --data-source-id XXXXXXXXXX \
+  --region ap-northeast-1 \
+  --query 'ingestionJobSummaries[0]'
+```
 
 ---
 
@@ -159,6 +189,13 @@ After upload, documents are processed on this timeline:
 | `Permission denied` on `put` | Accessing outside home directory | Upload to `/uploads/partner-a/` only |
 | `Permission denied` on `.metadata.json` | IAM Deny policy | Metadata file operations are prohibited (expected behavior) |
 | `File too large` | Exceeds 5GB limit | Split file before uploading |
+
+### File not reflected in RAG
+
+| Symptom | Cause | Resolution |
+|---------|-------|------------|
+| Not reflected after 5+ minutes | Waiting for polling interval or Lambda error | Ask admin to check CloudWatch Logs |
+| Ingestion job FAILED | Unsupported file format | Verify supported formats (PDF, DOCX, TXT, MD, HTML) |
 
 ---
 
@@ -189,6 +226,55 @@ When a partner uploads a file, the system automatically generates `.metadata.jso
 ```
 
 Permissions are derived from the administrator-managed DynamoDB mapping table. Partners cannot specify permissions directly.
+
+---
+
+## 8. For Administrators: Adding a Partner
+
+### Adding a new partner
+
+```bash
+# 1. Register in the DynamoDB permission mapping
+aws dynamodb put-item \
+  --table-name ${PREFIX}-transfer-permission-mapping \
+  --item '{
+    "userName": {"S": "partner-b"},
+    "allowed_sids": {"L": [{"S": "S-1-5-21-xxx-2001"}]},
+    "allowed_uids": {"L": [{"S": "2001"}]},
+    "allowed_gids": {"L": [{"S": "2001"}]},
+    "description": {"S": "Partner B - Audit Firm"}
+  }' \
+  --region ap-northeast-1
+
+# 2. Create the Transfer Family user (CDK redeploy or CLI)
+# Add to transferFamilyUsers in cdk.context.json and deploy,
+# or create directly via CLI:
+aws transfer create-user \
+  --server-id s-XXXXXXXXXXXXXXXXX \
+  --user-name partner-b \
+  --role arn:aws:iam::ACCOUNT:role/${PREFIX}-transfer-user-role \
+  --home-directory-type LOGICAL \
+  --home-directory-mappings '[{"Entry":"/","Target":"/${S3_AP_ALIAS}/uploads/partner-b"}]' \
+  --region ap-northeast-1
+
+# 3. Register the SSH public key
+aws transfer import-ssh-public-key \
+  --server-id s-XXXXXXXXXXXXXXXXX \
+  --user-name partner-b \
+  --ssh-public-key-body "$(cat partner-b-public-key.pub)" \
+  --region ap-northeast-1
+```
+
+### Disabling a partner
+
+```bash
+# Delete the SSH key (makes connection impossible)
+aws transfer delete-ssh-public-key \
+  --server-id s-XXXXXXXXXXXXXXXXX \
+  --user-name partner-b \
+  --ssh-public-key-id key-XXXXXXXXXXXXXXXXX \
+  --region ap-northeast-1
+```
 
 ---
 

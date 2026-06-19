@@ -1,6 +1,6 @@
 # Transfer Family Networking Prerequisites
 
-**🌐 Language:** [日本語](../transfer-family-networking-prerequisites.md) | **English**
+**🌐 Language:** [日本語](../transfer-family-networking-prerequisites.md) | **English** | [한국어](../ko/transfer-family-networking-prerequisites.md) | [简体中文](../zh-CN/transfer-family-networking-prerequisites.md) | [繁體中文](../zh-TW/transfer-family-networking-prerequisites.md) | [Français](../fr/transfer-family-networking-prerequisites.md) | [Deutsch](../de/transfer-family-networking-prerequisites.md) | [Español](../es/transfer-family-networking-prerequisites.md)
 
 **Created**: 2026-05  
 **Scope**: Transfer Family FSx for ONTAP Ingestion (`enableTransferFamily=true`)
