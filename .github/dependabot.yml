@@ -12,6 +12,15 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "aws-cdk-lib"
         update-types: ["version-update:semver-major"]
+      # cdk-nag v3 removes `NagSuppressions` in favor of `Validations.of().acknowledge()`
+      # and reworks the engine from IAspect to IPolicyValidationPlugin (breaking change).
+      # This project does NOT apply `AwsSolutionsChecks`, so nag rules never run and the
+      # `NagSuppressions` calls are effectively dead code — a v3 migration would be pure
+      # churn with no behavioral benefit. Pin to v2 until a follow-up task decides to
+      # either (a) enable nag via AwsSolutionsChecks and migrate to v3, or
+      # (b) remove the unused cdk-nag dependency. See the tracking issue for context.
+      - dependency-name: "cdk-nag"
+        update-types: ["version-update:semver-major"]
     # Group updates for AWS SDK packages
     groups:
       aws-sdk:
