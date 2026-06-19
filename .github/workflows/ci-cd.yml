@@ -34,7 +34,7 @@ jobs:
       should-deploy: ${{ steps.determine-mode.outputs.should-deploy }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Determine test mode and deployment
         id: determine-mode
@@ -83,7 +83,7 @@ jobs:
       execution-time: ${{ steps.parse-results.outputs.execution-time }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -232,7 +232,7 @@ jobs:
     if: needs.setup.outputs.test-mode == 'full'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -314,7 +314,7 @@ jobs:
     needs: setup
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -354,7 +354,7 @@ jobs:
       gate-score: ${{ steps.evaluate-quality.outputs.gate-score }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download test results
         uses: actions/download-artifact@v4
