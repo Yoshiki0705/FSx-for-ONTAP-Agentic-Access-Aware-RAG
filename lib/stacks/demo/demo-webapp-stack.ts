@@ -127,6 +127,12 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   policyFailureMode?: 'fail-open' | 'fail-closed';
   /** ECRリポジトリ名（デフォルト: permission-aware-rag-webapp） */
   ecrRepositoryName?: string;
+  /**
+   * Web Search Gateway URL（us-east-1 の DemoWebSearchGatewayStack から、
+   * enableWebSearch=true 時のみ）。cross-region reference で渡される。
+   * Next.js Lambda の WEB_SEARCH_GATEWAY_URL 環境変数に設定される。
+   */
+  webSearchGatewayUrl?: string;
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -190,6 +196,12 @@ export class DemoWebAppStack extends cdk.Stack {
         // AgentCore Gateway Web Search target（機構 C）とは独立。こちらは常に有効化可能。
         CLAUDE_PLATFORM_MODE: (this.node.tryGetContext('claudePlatformMode') as string) || 'disabled',
         ENABLE_WEB_SEARCH: this.node.tryGetContext('enableWebSearch') === 'true' ? 'true' : 'false',
+        // 機構 C: AgentCore Web Search Gateway URL（us-east-1、cross-region）。
+        // enableWebSearch=true 時のみ DemoWebSearchGatewayStack から渡される。
+        ...(props.webSearchGatewayUrl ? {
+          WEB_SEARCH_GATEWAY_URL: props.webSearchGatewayUrl,
+          WEB_SEARCH_GATEWAY_REGION: 'us-east-1',
+        } : {}),
         ...(this.node.tryGetContext('claudePlatformApiKeyArn') ? {
           CLAUDE_PLATFORM_API_KEY: this.node.tryGetContext('claudePlatformApiKeyArn') as string,
         } : {}),
