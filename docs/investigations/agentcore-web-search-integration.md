@@ -242,6 +242,17 @@ FSxN AI/RAG アーキテクチャレビューの非交渉要件に直結する�
 | 5 | **Lambda WebSearchClient（inline）** | `web_search_client.py` を `lambda/web-search/` に取り込み（inline）、us-east-1 Gateway を呼ぶ | §5 の方式に従い実装。PoC 検証後 |
 | 6 | **CDK IaC 化（Option A / 本番）** | us-east-1 Gateway スタックを WafStack パターンで IaC 化 | PoC で構成確定後に再現性を確保 |
 
+### 実装状況（2026-06-18 時点）
+
+| ステップ | 状態 | 成果物 |
+|---------|------|--------|
+| 1. インジェクション防御 | ✅ 完了 | `docker/nextjs/src/lib/web-search/untrusted-content.ts`（34/34 テスト） |
+| 2. UI トグル + バッジ分離 | ✅ 完了 | `WebSearchToggle.tsx`, `CitationDisplay.tsx`, 8 言語 i18n |
+| 3. us-east-1 不整合の解消 | ✅ 完了 | ap-northeast-1 gateway から target 撤去 → synth warning 化 |
+| 4. us-east-1 Gateway（PoC / Option B） | ✅ 完了 | `development/cfn/` + `development/scripts/web-search/`（§10） |
+| 5. Lambda WebSearchClient（inline） | ✅ 完了 | `lambda/web-search/`（18/18 テスト、§11） |
+| 6. CDK IaC 化（Option A / 本番） | ✅ 完了 | `lib/stacks/demo/demo-web-search-gateway-stack.ts`（§11） |
+
 ### 最初に着手すべきコンポーネント
 
 **ステップ1（プロンプトインジェクション防御の補強）を最優先で推奨。**
@@ -332,6 +343,61 @@ bash development/scripts/web-search/teardown-us-east-1-gateway.sh
 
 **注意:** スクリプト内の `create-gateway-target` は §9.1 で確認した `connector` 形状ではなく
 `mcpServer` 形状を使用している（作成時点での暫定実装）。本番移行時に `connector` 形状へ修正すること。
+
+---
+
+## 11. Step 5 / Step 6 成果物（Lambda クライアント + 本番 CDK IaC）
+
+### 11.1 Step 5: Lambda WebSearchClient（inline）
+
+`lambda/web-search/` に boto3 のみで動作する Web Search クライアントを追加（追加依存なし）。
+
+| ファイル | 用途 |
+|---------|------|
+| `lambda/web-search/web_search_client.py` | Web Search 呼び出しクライアント（SDK / HTTP-SigV4 2 モード） |
+| `lambda/web-search/handler.py` | 直接 invoke + API GW proxy 両対応のハンドラ |
+| `lambda/web-search/tests/test_web_search_client.py` | 単体テスト（18/18 pass） |
+
+**ポイント:**
+- `WEB_SEARCH_INVOCATION_MODE` env で SDK（`invoke_web_search`）/ HTTP-SigV4（`invoke_web_search_http`）を切替
+- 出力は `boundaryType: 'reference'`（verified ではなく外部参照として扱う）
+- クエリ長ガード（1000 文字）、クエリ本文はログに残さない
+
+> **デプロイ補足（正直な明示）:** この単体 Lambda は **どの CDK スタックにも組み込まれていない**。採用した
+> 本番経路（Step 6）は Next.js Lambda が `WEB_SEARCH_GATEWAY_URL` を直接利用する機構 C。
+> `lambda/web-search/` は **オプションの** Lambda プロキシ経路用の再利用可能クライアントであり、その経路が
+> 必要な場合のみ専用 construct でデプロイすること。
+
+### 11.2 Step 6: 本番 CDK IaC（Option A）
+
+`DemoWebSearchGatewayStack` を us-east-1 に IaC 化。WafStack と同じ `crossRegionReferences` パターンで
+ap-northeast-1 の WebApp に Gateway URL を渡す。
+
+| ファイル | 用途 |
+|---------|------|
+| `lib/stacks/demo/demo-web-search-gateway-stack.ts` | us-east-1 Gateway スタック（IAM Role + Gateway + Web Search target） |
+| `bin/demo-app.ts` | `enableWebSearch` 時に条件付きで instantiate、WebApp へ `webSearchGatewayUrl` を伝播 |
+| `lib/stacks/demo/demo-webapp-stack.ts` | `webSearchGatewayUrl` prop → `WEB_SEARCH_GATEWAY_URL` / `WEB_SEARCH_GATEWAY_REGION` env var |
+| `tests/web-search-gateway-stack.test.ts` | CDK アサーションテスト（11/11 pass） |
+
+**構成（§9.1 VERIFIED 形状を使用）:**
+- IAM Role: `bedrock-agentcore.amazonaws.com` trust + `aws:SourceAccount` 条件
+- Gateway: `AwsCustomResource`（create/update/delete）、`protocolType: MCP`, `authorizerType: AWS_IAM`
+- Web Search target: `mcp.connector.source.connectorId: "web-search"` + `GATEWAY_IAM_ROLE`
+- Output: `WebSearchGatewayUrl`（cross-region export）→ WebApp Lambda の `WEB_SEARCH_GATEWAY_URL`
+
+**有効化条件:** `enableWebSearch=true` かつ `enableAgentCoreGateway=true`
+
+**検証結果（2026-06-18）:**
+```bash
+npx tsc --noEmit                                                           # clean
+npx cdk synth --quiet -c enableWebSearch=true -c enableAgentCoreGateway=true  # WebSearchGateway stack 生成（us-east-1）
+npx cdk synth --quiet                                                      # 無効時はスタック非生成（回帰なし）
+npx jest tests/ --no-coverage                                             # 55 suites / 540 tests pass
+```
+
+**Step 4 PoC スクリプトとの差分:** §10 のスクリプトは暫定的に `mcpServer` 形状を使用していたが、
+本 CDK スタック（Step 6）は §9.1 で VERIFIED した `connector` 形状を採用している。
 
 ---
 

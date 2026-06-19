@@ -242,6 +242,17 @@ Ordered by lowest dependency and risk. Each step is independently verifiable.
 | 5 | **Lambda WebSearchClient (inline)** | Import `web_search_client.py` into `lambda/web-search/` (inline), call the us-east-1 Gateway | Implement per §5 after PoC verification |
 | 6 | **CDK IaC (Option A / production)** | IaC the us-east-1 Gateway stack with the WafStack pattern | Reproducibility once PoC confirms the configuration |
 
+### Implementation Status (as of 2026-06-18)
+
+| Step | Status | Artifacts |
+|------|--------|-----------|
+| 1. Injection defense | ✅ Done | `docker/nextjs/src/lib/web-search/untrusted-content.ts` (34/34 tests) |
+| 2. UI toggle + badge separation | ✅ Done | `WebSearchToggle.tsx`, `CitationDisplay.tsx`, 8-language i18n |
+| 3. Resolve us-east-1 inconsistency | ✅ Done | Removed target from ap-northeast-1 gateway → synth warning |
+| 4. us-east-1 Gateway (PoC / Option B) | ✅ Done | `development/cfn/` + `development/scripts/web-search/` (§10) |
+| 5. Lambda WebSearchClient (inline) | ✅ Done | `lambda/web-search/` (18/18 tests, §11) |
+| 6. CDK IaC (Option A / production) | ✅ Done | `lib/stacks/demo/demo-web-search-gateway-stack.ts` (§11) |
+
 ### Component to start with
 
 **Recommend starting with Step 1 (strengthen prompt-injection defense).**
@@ -332,6 +343,61 @@ bash development/scripts/web-search/teardown-us-east-1-gateway.sh
 
 **Note:** The deploy script's `create-gateway-target` uses the `mcpServer` shape (interim).
 For production, update to the verified `connector` shape from §9.1.
+
+---
+
+## 11. Step 5 / Step 6 Artifacts (Lambda client + production CDK IaC)
+
+### 11.1 Step 5: Lambda WebSearchClient (inline)
+
+Added a boto3-only Web Search client (no extra dependencies) under `lambda/web-search/`.
+
+| File | Purpose |
+|------|---------|
+| `lambda/web-search/web_search_client.py` | Web Search client (SDK / HTTP-SigV4 dual mode) |
+| `lambda/web-search/handler.py` | Handler supporting both direct invoke and API GW proxy |
+| `lambda/web-search/tests/test_web_search_client.py` | Unit tests (18/18 pass) |
+
+**Highlights:**
+- `WEB_SEARCH_INVOCATION_MODE` env switches between SDK (`invoke_web_search`) and HTTP-SigV4 (`invoke_web_search_http`)
+- Output uses `boundaryType: 'reference'` (treated as external reference, not verified)
+- Query length guard (1000 chars); query body is never logged
+
+> **Deployment note (honest):** This standalone Lambda is **not** wired into any CDK stack. The chosen
+> production path (Step 6) is the Next.js Lambda consuming `WEB_SEARCH_GATEWAY_URL` directly (mechanism C).
+> `lambda/web-search/` is a reusable client for an **optional** Lambda-proxy path; deploy it via a dedicated
+> construct only if that path is needed.
+
+### 11.2 Step 6: Production CDK IaC (Option A)
+
+`DemoWebSearchGatewayStack` IaC'd in us-east-1. Uses the same `crossRegionReferences` pattern as
+WafStack to pass the Gateway URL to the ap-northeast-1 WebApp.
+
+| File | Purpose |
+|------|---------|
+| `lib/stacks/demo/demo-web-search-gateway-stack.ts` | us-east-1 Gateway stack (IAM Role + Gateway + Web Search target) |
+| `bin/demo-app.ts` | Conditionally instantiated when `enableWebSearch`; propagates `webSearchGatewayUrl` to WebApp |
+| `lib/stacks/demo/demo-webapp-stack.ts` | `webSearchGatewayUrl` prop → `WEB_SEARCH_GATEWAY_URL` / `WEB_SEARCH_GATEWAY_REGION` env var |
+| `tests/web-search-gateway-stack.test.ts` | CDK assertion tests (11/11 pass) |
+
+**Configuration (uses the §9.1 VERIFIED shape):**
+- IAM Role: `bedrock-agentcore.amazonaws.com` trust + `aws:SourceAccount` condition
+- Gateway: `AwsCustomResource` (create/update/delete), `protocolType: MCP`, `authorizerType: AWS_IAM`
+- Web Search target: `mcp.connector.source.connectorId: "web-search"` + `GATEWAY_IAM_ROLE`
+- Output: `WebSearchGatewayUrl` (cross-region export) → WebApp Lambda's `WEB_SEARCH_GATEWAY_URL`
+
+**Enable condition:** `enableWebSearch=true` AND `enableAgentCoreGateway=true`
+
+**Verification (2026-06-18):**
+```bash
+npx tsc --noEmit                                                              # clean
+npx cdk synth --quiet -c enableWebSearch=true -c enableAgentCoreGateway=true  # WebSearchGateway stack synthesized (us-east-1)
+npx cdk synth --quiet                                                         # stack absent when disabled (no regression)
+npx jest tests/ --no-coverage                                                # 55 suites / 540 tests pass
+```
+
+**Difference vs the Step 4 PoC scripts:** the §10 scripts interim-used the `mcpServer` shape;
+this CDK stack (Step 6) adopts the `connector` shape VERIFIED in §9.1.
 
 ---
 
