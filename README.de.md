@@ -135,6 +135,8 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+> **Parallele Option**: Amazon Bedrock Managed Knowledge Base (Agentic Retriever / Multi-Hop-Suche) wird ebenfalls als Vektorspeicher-Option validiert. Die bestehenden S3 Vectors / OpenSearch Serverless Pfade bleiben erhalten; Managed KB kann als zusätzlicher Pfad für Anwendungsfälle genutzt werden, die eine Reduktion des Betriebsaufwands erfordern (⚠️ Kompatibilität mit Permission-aware RAG ist [in Validierung](docs/de/managed-kb-upgrade-path.md)). Konfigurationsvergleich siehe [docs/de/stack-architecture-comparison.md](docs/de/stack-architecture-comparison.md).
+
 ## Enterprise-Design- und Betriebsleitfaden
 
 Dieses Beispiel enthält zusätzliche Leitfäden für die Bewertung und den Betrieb von zugriffsbewusstem RAG in Unternehmensumgebungen:

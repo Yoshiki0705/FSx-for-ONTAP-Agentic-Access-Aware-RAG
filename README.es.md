@@ -136,6 +136,8 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+> **Opción paralela**: Amazon Bedrock Managed Knowledge Base (Agentic Retriever / búsqueda multi-hop) también está en validación como opción de vector store. Las rutas existentes de S3 Vectors / OpenSearch Serverless se mantienen; Managed KB se puede usar como ruta adicional para casos que requieren reducción de la carga operativa (⚠️ la compatibilidad con Permission-aware RAG está [en validación](docs/es/managed-kb-upgrade-path.md)). Consulte [docs/es/stack-architecture-comparison.md](docs/es/stack-architecture-comparison.md) para la comparación de configuraciones.
+
 ## Guía de diseño y operación empresarial
 
 Este ejemplo proporciona las siguientes guías adicionales para la evaluación desde PoC hasta producción:

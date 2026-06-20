@@ -134,6 +134,8 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+> **병렬 옵션**: Amazon Bedrock Managed Knowledge Base(Agentic Retriever / 멀티홉 검색)도 벡터 스토어 선택지로 검증 중입니다. S3 Vectors / OpenSearch Serverless의 기존 경로를 유지한 채, 운영 부담 절감이 필요한 유스케이스에서 Managed KB를 추가 경로로 활용할 수 있습니다(⚠️ Permission-aware RAG와의 호환성은 [검증 중](docs/ko/managed-kb-upgrade-path.md)). 구성 비교는 [docs/ko/stack-architecture-comparison.md](docs/ko/stack-architecture-comparison.md)를 참조하세요.
+
 ## 엔터프라이즈 설계 및 운영 가이드
 
 본 샘플은 PoC에서 프로덕션 검토까지 지원하기 위해 다음 추가 가이드를 제공합니다.
