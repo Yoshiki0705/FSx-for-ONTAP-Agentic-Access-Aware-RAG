@@ -196,7 +196,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 | S3 AP policy | s3:* for account root | Access point ARN format |
 | IAM policy | AdministratorAccess | Includes s3:* |
 | Network | Same VPC/subnet | FSx and AD in the same subnet |
-| Block Public Access | Not configured (account level) | FSx S3 AP enforces by default |
+| Block Public Access | Not configured (account level) | FSx for ONTAP S3 AP enforces by default |
 | UNIX user mapping | root (UID 0) registered | Resolvable via name-service |
 
 ## Cleanup
@@ -235,4 +235,4 @@ Confirmed that the same S3 AP access pattern works correctly in the old account 
 Perform one of the following in the Organization management account:
 1. Add a statement to the SCP that allows access to FSx for ONTAP S3 AP
 2. Exclude the target account from SCP restrictions
-3. Identify the S3 actions/resource patterns being blocked by the SCP and exclude the FSx S3 AP ARN pattern (`arn:aws:s3:<region>:<account>:accesspoint/*`)
+3. Identify the S3 actions/resource patterns being blocked by the SCP and exclude the FSx for ONTAP S3 AP ARN pattern (`arn:aws:s3:<region>:<account>:accesspoint/*`)

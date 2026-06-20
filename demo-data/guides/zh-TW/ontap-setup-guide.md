@@ -1,4 +1,4 @@
-# FSx ONTAP + Active Directory 整合與 CIFS 共享設定指南
+# FSx for ONTAP + Active Directory 整合與 CIFS 共享設定指南
 
 **Last updated**: 2026-04-04
 
@@ -67,7 +67,7 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 
 - VPC 端點（5 個必需）：`secretsmanager`、`fsx`、`monitoring`、`sns`（Interface）+ `s3`（Gateway）
 - Secrets Manager：`{"username": "fsxadmin", "password": "xxx"}` 格式
-- fsxadmin 密碼必須在 Secrets Manager 和 FSx ONTAP 之間保持一致
+- fsxadmin 密碼必須在 Secrets Manager 和 FSx for ONTAP 之間保持一致
 
 ### 功能
 
@@ -76,6 +76,6 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 | 容量監控 | EventBridge 5 分鐘間隔，自動擴展 + SNS 通知 |
 | SnapMirror DR | Step Functions 故障轉移/恢復編排 |
 | ONTAP API 執行 | 透過 Lambda 安全執行 ONTAP REST API |
-| 資料預處理 | 透過 FSx ONTAP S3 Access Point 進行 AI/分析預處理 |
+| 資料預處理 | 透過 FSx for ONTAP S3 Access Point 進行 AI/分析預處理 |
 
 詳情：[automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md)

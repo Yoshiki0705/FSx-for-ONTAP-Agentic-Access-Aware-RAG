@@ -39,7 +39,7 @@ KB Auto-Sync Lambda は以下のカスタムメトリクスを出力:
 
 ### Pattern 1: S3 Access Point ListObjectsV2 エラー
 
-**原因**: FSx ONTAP S3 AP接続エラー、IAM権限不足、S3 AP削除済み
+**原因**: FSx for ONTAP S3 AP接続エラー、IAM権限不足、S3 AP削除済み
 
 **動作**:
 - Lambda はエラーをログに出力して例外スロー

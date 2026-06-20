@@ -96,7 +96,7 @@ aws bedrock-agent create-data-source \
 | S3 AP 不可行但一般 S3 儲存桶可行 | △ 有條件 | 考慮基於 DataSync 的 S3 中繼路徑（ACL 中繼資料保留需額外驗證） |
 | S3 連接器自身同步失敗 | ❌ FAIL | 遷移不成立。保留現行設定 |
 
-> **本專案的假設**: 假設 S3 相容 API 則可連接，但 S3 AP 特有的限制（[FSx ONTAP S3 AP 相容性矩陣](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md) 中記述的 ListObjectsV2 延遲等）可能影響 Managed KB 的爬蟲。
+> **本專案的假設**: 假設 S3 相容 API 則可連接，但 S3 AP 特有的限制（[FSx for ONTAP S3 AP 相容性矩陣](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md) 中記述的 ListObjectsV2 延遲等）可能影響 Managed KB 的爬蟲。
 
 ### 2.2 驗證 V2: 中繼資料保留
 
@@ -279,7 +279,7 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 
 在遷移可行性判斷前，請清除以下所有項。
 
-- [ ] **V1**: S3 連接器辨識 FSx ONTAP S3 AP（Phase A）
+- [ ] **V1**: S3 連接器辨識 FSx for ONTAP S3 AP（Phase A）
 - [ ] **V2**: `allowed_group_sids` 作為中繼資料保留（Phase A）
 - [ ] **V3**: `listContains` SID 陣列比對生效（Phase B）
 - [ ] **V4**: Agentic Retrieval 多跳中維持過濾（Phase B）

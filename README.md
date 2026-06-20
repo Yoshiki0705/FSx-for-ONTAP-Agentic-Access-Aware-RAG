@@ -290,7 +290,7 @@ Phase 0-5 の統合により期待される効果:
 | リソース | 内容 |
 |---------|------|
 | [Build a RAG application using Amazon Bedrock Knowledge Bases with FSx for ONTAP](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/tutorial-build-rag-with-bedrock.html) | FSx for ONTAP S3 Access Point を Bedrock Knowledge Base データソースとして構成するステップバイステップチュートリアル（約35-45分） |
-| [FSxN S3 Access Points as an Amazon Bedrock Data Source](https://repost.aws/articles/AReKa8-o8XRGeVW2Nicbg1_w/fsxn-s3-access-points-as-an-amazon-bedrock-data-source) | S3 Access Points を Bedrock データソースとして使用する実践的な構成手順（repost.aws コミュニティガイド） |
+| [FSx for ONTAP S3 Access Points as an Amazon Bedrock Data Source](https://repost.aws/articles/AReKa8-o8XRGeVW2Nicbg1_w/fsxn-s3-access-points-as-an-amazon-bedrock-data-source) | S3 Access Points を Bedrock データソースとして使用する実践的な構成手順（repost.aws コミュニティガイド） |
 
 ---
 
@@ -304,7 +304,7 @@ Phase 0-5 の統合により期待される効果:
 | 2 | AWS WAF | レートリミット、IP Reputation、OWASP準拠ルール、SQLi防御、IP許可リストの6ルール構成 | WafStack |
 | 3 | IAM認証 | Lambda Function URL + CloudFront OAC による多層セキュリティ | WebAppStack |
 | 4 | ベクトルDB | S3 Vectors（デフォルト、低コスト）/ OpenSearch Serverless（高パフォーマンス）。`vectorStoreType`で選択 | AIStack |
-| 5 | Embedding Server | FSx ONTAPボリュームをCIFS/SMBマウントしたEC2でドキュメントをベクトル化しAOSSに書き込み（AOSS構成時のみ） | EmbeddingStack |
+| 5 | Embedding Server | FSx for ONTAPボリュームをCIFS/SMBマウントしたEC2でドキュメントをベクトル化しAOSSに書き込み（AOSS構成時のみ） | EmbeddingStack |
 | 6 | Titan Text Embeddings | `amazon.titan-embed-text-v2:0`（1024次元）をKB取り込みとEmbeddingサーバーの両方で使用 | AIStack |
 | 7 | SIDメタデータ + 権限フィルタリング | NTFS ACLのSID情報を`.metadata.json`で管理し、検索時にユーザーSIDと照合してフィルタリング | StorageStack |
 | 8 | KB/Agentモード切替 | KBモード（文書検索）とAgentモード（多段階推論）をトグルで切替。Agent Directory（`/genai/agents`）でカタログ形式のAgent管理・テンプレート作成・編集・削除。動的Agent作成・カード紐付け。アウトプット指向ワークフロー（プレゼン資料、稟議書、議事録、レポート、契約書、オンボーディング）。8言語i18n対応。両モードでPermission-aware | WebAppStack |
@@ -321,11 +321,11 @@ Phase 0-5 の統合により期待される効果:
 | 18 | 音声チャット（Nova Sonic） | Amazon Nova Sonic による音声対話機能。ブラウザマイクから音声入力 → Nova Sonic（speech-to-speech）→ テキスト＋音声同時出力。既存 RAG パイプライン（Permission Filter 含む）と統合。KB/Agent 両モード対応。波形アニメーション、30秒無音タイムアウト、自動再接続（最大3回）、テキストフォールバック。8言語 i18n 対応。`enableVoiceChat=true` で有効化。推定月額: $70〜$100 | AIStack, WebAppStack |
 | 18.1 | 音声チャット Phase 2（WebRTC） | AgentCore Runtime + Pipecat Voice Agent + KVS WebRTC による低レイテンシ音声対話。Strategy パターン（REST/WebRTC）で Phase 1 と切替可能。WebRTC 接続失敗時は REST に自動フォールバック。KVS Signaling Channel によるシグナリング。`useVoiceCapability` フックでマイク権限状態を正確にハンドリング。⚠️ AgentCore Runtime は CloudFormation 未サポートのため CLI/SDK で手動デプロイが必要 | WebAppStack |
 | 19 | AgentCore Policy | AgentCore Policy によるエージェント行動制御。自然言語ポリシー定義でエージェントのツール・API・MCP サーバーアクセスを制限。3 種類のポリシーテンプレート（セキュリティ重視・コスト重視・柔軟性重視）。PolicyEvaluationMiddleware（3 秒タイムアウト、fail-open/fail-closed）。違反ログ（EMF 形式）・CloudWatch ダッシュボード統合。8 言語 i18n 対応。`enableAgentPolicy=true` で有効化。**v4.3 拡張**: Policy Engine + Bedrock Guardrails 統合（Gateway レベルでプロンプトインジェクション・PII・有害コンテンツをリアルタイム検出/ブロック）。`policyEngineMode` で LOG_ONLY/ENFORCE 切替。InvokeGuardrailChecks API によるチャンク単位のインライン安全性チェック | AIStack, WebAppStack |
-| 19.1 | Web Search | AgentCore Gateway 経由の Web 検索ツール。エージェントがリアルタイムの Web 情報を引用（URL・タイトル・公開日）付きで取得。FSx ONTAP ドキュメントだけでは回答できない場合の補完情報源。Zero data egress（AWS 環境内完結）。`enableWebSearch=true` で有効化（`enableAgentCoreGateway=true` が前提条件） | AIStack |
+| 19.1 | Web Search | AgentCore Gateway 経由の Web 検索ツール。エージェントがリアルタイムの Web 情報を引用（URL・タイトル・公開日）付きで取得。FSx for ONTAP ドキュメントだけでは回答できない場合の補完情報源。Zero data egress（AWS 環境内完結）。`enableWebSearch=true` で有効化（`enableAgentCoreGateway=true` が前提条件） | AIStack |
 | 19.2 | AgentCore Optimization | 本番トレースからエージェント品質を継続的に改善するループ（Preview）。Configuration Bundle（system prompt/model ID/tool descriptions のバージョン管理、コード再デプロイ不要）、Recommendations（トレース分析による改善案自動生成）、A/B Testing（Gateway トラフィック分割 + 統計的有意性検証）。CDK は Configuration Bundle + IAM ロールを構築、Recommendations/A/B テストは agentcore CLI/SDK で実行。`enableAgentOptimization=true` で有効化（`enableAgentCoreGateway=true` が前提条件） | AIStack |
 | 20 | FSx ONTAP 運用自動化 | Lambda + Step Functions による FSx for ONTAP 運用自動化。SnapMirror フェイルオーバー/フェイルバック自動化（ASL 定義）、容量監視・自動拡張（EventBridge 5分間隔）、Capacity Guardrails（DynamoDB 永続追跡、日次上限、クールダウン、CloudWatch Dashboard）、ONTAP REST API 汎用実行、AI/分析向けデータ前処理（S3 Access Point 境界）。イベント駆動不要・NFS マウント不要。月額 ~$2.60。詳細は [automation/fsxn-ops/](automation/fsxn-ops/) を参照 | CloudFormation (standalone) |
-| 21 | KB Auto-Sync | EventBridge Scheduler ポーリングによる FSx ONTAP S3 AP ファイル変更検出 + Bedrock KB StartIngestionJob 自動トリガー。ListObjectsV2 → DynamoDB インベントリ差分比較 → 変更検出時のみインジェスション実行。CloudWatch EMF メトリクス（`KbAutoSync` 名前空間）+ 3回連続エラー Alarm。IN_PROGRESS ジョブ重複排除。`enableKbAutoSync=true` で有効化 | AIStack (KbAutoSyncConstruct) |
-| 22 | Transfer Family FSx ONTAP インジェスション | AWS Transfer Family SFTP サーバー経由のドキュメントアップロード → FSx ONTAP S3 AP → 自動 KB インジェスション。ポーリング/CloudTrail 2モード対応。権限メタデータ自動生成。`enableTransferFamily=true` で有効化 | DemoTransferFamilyStack |
+| 21 | KB Auto-Sync | EventBridge Scheduler ポーリングによる FSx for ONTAP S3 AP ファイル変更検出 + Bedrock KB StartIngestionJob 自動トリガー。ListObjectsV2 → DynamoDB インベントリ差分比較 → 変更検出時のみインジェスション実行。CloudWatch EMF メトリクス（`KbAutoSync` 名前空間）+ 3回連続エラー Alarm。IN_PROGRESS ジョブ重複排除。`enableKbAutoSync=true` で有効化 | AIStack (KbAutoSyncConstruct) |
+| 22 | Transfer Family FSx for ONTAP インジェスション | AWS Transfer Family SFTP サーバー経由のドキュメントアップロード → FSx for ONTAP S3 AP → 自動 KB インジェスション。ポーリング/CloudTrail 2モード対応。権限メタデータ自動生成。`enableTransferFamily=true` で有効化 | DemoTransferFamilyStack |
 
 #### v4.0.0 技術的注意事項
 
@@ -438,7 +438,7 @@ RAG検索結果にはFSxファイルパスとアクセスレベルバッジ（�
 | 1 | WafStack | us-east-1 | WAF WebACL, IPセット | CloudFront用WAF（レートリミット、マネージドルール） |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, サブネット, セキュリティグループ, VPCエンドポイント（オプション） | ネットワーク基盤 |
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + OIDC IdP + Cognito Domain（Federation有効時）, Identity Sync Lambda（オプション）, LDAP Health Check Lambda + CloudWatch Alarm（オプション）, Auth Audit Log DynamoDB（オプション） | 認証・認可（SAML/OIDC/メール） |
-| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS暗号化（オプション）, CloudTrail（オプション） | ストレージ・SIDデータ・権限キャッシュ |
+| 4 | StorageStack | ap-northeast-1 | FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS暗号化（オプション）, CloudTrail（オプション） | ストレージ・SIDデータ・権限キャッシュ |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless（`vectorStoreType`で選択）, Bedrock Guardrails（オプション） | RAG検索基盤（Titan Embed v2） |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda（オプション）, MonitoringConstruct（オプション） | Webアプリケーション、Agent Management、監視・アラート |
 | 7 | EmbeddingStack（任意） | ap-northeast-1 | EC2 (m5.large), ECR, ONTAP ACL自動取得（オプション） | FlexCache CIFSマウント + Embeddingサーバー |
@@ -492,7 +492,7 @@ RAG検索結果にはFSxファイルパスとアクセスレベルバッジ（�
 
 | パラメータ | 影響 | リスクレベル | 事前確認 |
 |-----------|------|------------|---------|
-| `adPassword` | AWS Managed Microsoft ADを新規作成（FSx ONTAP用）。AD自体はIdentity Centerに影響しないが、下記の注意事項を参照 | � 中 | 下記「Managed ADに関する注意」を参照 |
+| `adPassword` | AWS Managed Microsoft ADを新規作成（FSx for ONTAP用）。AD自体はIdentity Centerに影響しないが、下記の注意事項を参照 | � 中 | 下記「Managed ADに関する注意」を参照 |
 | `enableAdFederation` | Cognito SAML IdPを作成。RAGシステムのサインイン画面に「ADでサインイン」ボタンを追加 | � 低 | 既存のCognito User Poolがないことを確認 |
 | `enableVpcEndpoints` | VPCエンドポイントを作成。既存VPCのルーティングに影響する可能性 | 🟡 中 | VPCのエンドポイント上限を確認 |
 | `enableKmsEncryption` | KMS CMKを作成。S3・DynamoDBの暗号化設定を変更 | 🟢 低 | 既存のKMSキー数を確認 |
@@ -664,7 +664,7 @@ Cloud assembly schema version mismatch: Maximum schema version supported is 48.x
 **対処法**: プロジェクトローカルのCDK CLIを最新に更新します。
 
 ```bash
-cd Permission-aware-RAG-FSxN-CDK
+cd Permission-aware-RAG-FSx for ONTAP-CDK
 npm install aws-cdk@latest
 npx cdk --version  # 更新後のバージョンを確認
 ```
@@ -714,7 +714,7 @@ EOF
 
 #### Active Directory連携（オプション）
 
-FSx ONTAP SVMをActive Directoryドメインに参加させ、CIFS共有でNTFS ACL（SIDベース）を使用する場合は、`cdk.context.json` に以下を追加します。
+FSx for ONTAP SVMをActive Directoryドメインに参加させ、CIFS共有でNTFS ACL（SIDベース）を使用する場合は、`cdk.context.json` に以下を追加します。
 
 ```bash
 cat > cdk.context.json << 'EOF'
@@ -1040,7 +1040,7 @@ SAML + OIDC ハイブリッド構成のサインイン画面（ADでサインイ
 | `ontapSvmUuid` | (なし) | SVM UUID（`ontapMgmtIp`と併用） |
 | `ontapAdminSecretArn` | (なし) | ONTAP管理者パスワードのSecrets Manager ARN |
 | `useS3AccessPoint` | `false` | S3 Access PointをBedrock KBデータソースとして使用 |
-| `volumeSecurityStyle` | `NTFS` | FSx ONTAPボリュームのセキュリティスタイル（`NTFS` or `UNIX`） |
+| `volumeSecurityStyle` | `NTFS` | FSx for ONTAPボリュームのセキュリティスタイル（`NTFS` or `UNIX`） |
 | `s3apUserType` | (自動) | S3 APユーザータイプ（`WINDOWS` or `UNIX`）。未指定時: AD設定あり→WINDOWS、なし→UNIX |
 | `s3apUserName` | (自動) | S3 APユーザー名。未指定時: WINDOWS→`Admin`、UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | SIDフィルタリングを専用Lambda経由で実行（インラインフィルタリングのフォールバック付き） |
@@ -1091,7 +1091,7 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 
 | パラメータ | 説明 |
 |-----------|------|
-| `existingFileSystemId` | 既存FSx ONTAPファイルシステムID（例: `fs-0123456789abcdef0`） |
+| `existingFileSystemId` | 既存FSx for ONTAPファイルシステムID（例: `fs-0123456789abcdef0`） |
 | `existingSvmId` | 既存SVM ID（例: `svm-0123456789abcdef0`） |
 | `existingVolumeId` | 既存ボリュームID（例: `fsvol-0123456789abcdef0`）— **プライマリボリューム1つ** を指定 |
 
@@ -1104,7 +1104,7 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 追加ボリュームは、デプロイ完了後に [FSx for ONTAPボリュームのEmbedding対象管理](#fsx-for-ontapボリュームのembedding対象管理) の手順で個別にEmbedding対象に追加します。
 
 ```
-既存FSx ONTAP環境の例:
+既存FSx for ONTAP環境の例:
   FileSystem: fs-0123456789abcdef0
   └── SVM: svm-0123456789abcdef0
       ├── vol-data     (fsvol-aaaa...)  ← existingVolumeId に指定（プライマリ）
@@ -1213,7 +1213,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 このスクリプトが自動的に以下を実行します:
 1. S3 Access Point作成 + ポリシー設定
-2. FSx ONTAPにデモデータアップロード（S3 AP経由）
+2. FSx for ONTAPにデモデータアップロード（S3 AP経由）
 3. Bedrock KBデータソース追加 + 同期
 4. DynamoDBにユーザーSIDデータ登録
 5. Cognitoにデモユーザー作成（admin / user）
@@ -1271,7 +1271,7 @@ bash demo-data/scripts/cleanup-all.sh
 8. VPC内のCDK管理外EC2インスタンス・SG削除 + Networkingスタック再削除
 9. CDKToolkit + CDK staging S3バケット削除（両リージョン、バージョニング対応）
 
-> **Note**: FSx ONTAPの削除に20-30分かかるため、全体で30-40分程度です。
+> **Note**: FSx for ONTAPの削除に20-30分かかるため、全体で30-40分程度です。
 
 ## トラブルシューティング
 
@@ -1430,7 +1430,7 @@ aws cloudformation delete-stack --stack-name perm-rag-demo-demo-AI --region ap-n
 
 #### 問題3: S3 Access PointがアタッチされているとFSxボリューム削除失敗
 
-StorageスタックのFSx ONTAPボリュームにS3 APがアタッチされていると削除できません:
+StorageスタックのFSx for ONTAPボリュームにS3 APがアタッチされていると削除できません:
 
 ```bash
 # S3 APをデタッチ・削除
@@ -1600,14 +1600,14 @@ excludedRules: [
 
 ## Embeddingサーバー（オプション）
 
-FlexCache CacheボリュームをCIFSマウントしてEmbeddingを実行するEC2サーバーです。FSx ONTAP S3 Access Pointが利用できない場合（FlexCache Cacheボリュームでは2026年3月時点で未対応）の代替パスとして使用します。
+FlexCache CacheボリュームをCIFSマウントしてEmbeddingを実行するEC2サーバーです。FSx for ONTAP S3 Access Pointが利用できない場合（FlexCache Cacheボリュームでは2026年3月時点で未対応）の代替パスとして使用します。
 
 ### データ取り込みパス
 
-本システムはFSx ONTAP → S3 Access Point → Bedrock KBの一本道アーキテクチャです。Bedrock KBがドキュメントの取得・チャンク分割・ベクトル化・格納を全て管理します。
+本システムはFSx for ONTAP → S3 Access Point → Bedrock KBの一本道アーキテクチャです。Bedrock KBがドキュメントの取得・チャンク分割・ベクトル化・格納を全て管理します。
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   +-- public/company-overview.md
   +-- public/company-overview.md.metadata.json
   +-- confidential/financial-report.md
@@ -1624,7 +1624,7 @@ FSx ONTAP Volume (/data)
 ```
 
 Bedrock KBのIngestion Jobが実行する処理：
-1. S3 Access Point経由でFSx ONTAP上のドキュメントと`.metadata.json`を読み取り
+1. S3 Access Point経由でFSx for ONTAP上のドキュメントと`.metadata.json`を読み取り
 2. ドキュメントをチャンク分割
 3. Amazon Titan Embed Text v2でベクトル化（1024次元）
 4. ベクトル + メタデータ（`allowed_group_sids`含む）をベクトルストアに格納
@@ -1679,12 +1679,12 @@ App -> Bedrock KB Retrieve API -> Vector Store (vector search)
 
 ### Embedding対象ドキュメントの設定
 
-Bedrock KBにEmbeddingされるドキュメントは、FSx ONTAPボリューム上のファイル構成で決まります。
+Bedrock KBにEmbeddingされるドキュメントは、FSx for ONTAPボリューム上のファイル構成で決まります。
 
 #### ディレクトリ構成とSIDメタデータ
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   +-- public/                          <- All users can access
   |   +-- product-catalog.md           <- Document body
   |   +-- product-catalog.md.metadata.json  <- SID metadata
@@ -1806,11 +1806,11 @@ CDKコードでは以下の対処が実装済みです：
 
 | パス | 方式 | CDK有効化 | 状況 |
 |------|------|----------|------|
-| メイン | FSx ONTAP → S3 Access Point → Bedrock KB → ベクトルストア | CDKデプロイ後に`post-deploy-setup.sh` | ✅ |
+| メイン | FSx for ONTAP → S3 Access Point → Bedrock KB → ベクトルストア | CDKデプロイ後に`post-deploy-setup.sh` | ✅ |
 | フォールバック | S3バケット直接アップロード → Bedrock KB → ベクトルストア | 手動（`upload-demo-data.sh`） | ✅ |
 | 代替（オプション） | Embeddingサーバー（CIFSマウント）→ AOSS直接書き込み | `-c enableEmbeddingServer=true` | ✅（AOSS構成時のみ） |
 
-> **フォールバックパス**: FSx ONTAP S3 APが利用できない場合（Organization SCPの制限等）、S3バケットにドキュメント+`.metadata.json`を直接アップロードしてKBデータソースとして設定できます。SIDフィルタリングはデータソースの種類に依存しません。
+> **フォールバックパス**: FSx for ONTAP S3 APが利用できない場合（Organization SCPの制限等）、S3バケットにドキュメント+`.metadata.json`を直接アップロードしてKBデータソースとして設定できます。SIDフィルタリングはデータソースの種類に依存しません。
 
 ### Embedding対象ドキュメントの手動管理
 
@@ -1818,10 +1818,10 @@ CDKデプロイなしで、Embedding対象のドキュメントを追加・変�
 
 #### ドキュメントの追加
 
-FSx ONTAP S3 Access Point経由（メインパス）:
+FSx for ONTAP S3 Access Point経由（メインパス）:
 
 ```bash
-# VPC内のEC2またはWorkSpacesからSMBでFSx ONTAPにファイルを配置
+# VPC内のEC2またはWorkSpacesからSMBでFSx for ONTAPにファイルを配置
 SVM_IP=<SVM_SMB_IP>
 smbclient //$SVM_IP/data -U 'demo.local\Admin%<PASSWORD>' \
   -c "cd public; put new-document.md; put new-document.md.metadata.json"
@@ -1900,7 +1900,7 @@ aws bedrock-agent start-ingestion-job \
 
 ### FSx for ONTAPボリュームのEmbedding対象管理
 
-既存のFSx ONTAPボリュームをBedrock KBのEmbedding対象として追加・除外する手順です。ボリューム自体の作成・削除はFSx管理者が行います。
+既存のFSx for ONTAPボリュームをBedrock KBのEmbedding対象として追加・除外する手順です。ボリューム自体の作成・削除はFSx管理者が行います。
 
 > **既存FSx参照モードとの関係**: CDKデプロイ時に `existingVolumeId` で指定したプライマリボリュームは `post-deploy-setup.sh` で自動的にEmbedding対象に登録されます。同じSVM上の追加ボリュームをEmbedding対象にする場合は、以下の手順で個別に追加してください。詳細は [既存FSx for ONTAPの利用](#既存fsx-for-ontapの利用) を参照してください。
 
@@ -1976,7 +1976,7 @@ aws bedrock-agent list-data-sources \
   --region ap-northeast-1 \
   --query 'dataSourceSummaries[*].{name:name,id:dataSourceId,status:status}'
 
-# S3 AP一覧（FSx ONTAPボリュームとの紐付き）
+# S3 AP一覧（FSx for ONTAPボリュームとの紐付き）
 aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \
   --query 'S3AccessPointAttachments[*].{Name:Name,Volume:OntapConfiguration.VolumeId,Status:Lifecycle}'
 ```
@@ -2143,7 +2143,7 @@ Regular user: SID = [...-1001, S-1-1-0 (Everyone)]
 |   +-- demo-waf-stack.ts             # WAF WebACL (us-east-1)
 |   +-- demo-networking-stack.ts      # VPC, Subnets, SG
 |   +-- demo-security-stack.ts        # Cognito
-|   +-- demo-storage-stack.ts         # FSx ONTAP + SVM + Volume, S3, DynamoDB x2, AD
+|   +-- demo-storage-stack.ts         # FSx for ONTAP + SVM + Volume, S3, DynamoDB x2, AD
 |   +-- demo-ai-stack.ts             # Bedrock KB, S3 Vectors / OpenSearch Serverless
 |   +-- demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
 |   +-- demo-embedding-stack.ts       # (optional) Embedding Server (FlexCache CIFS)
@@ -2211,13 +2211,13 @@ Regular user: SID = [...-1001, S-1-1-0 (Everyone)]
 | [docs/demo-environment-guide.md](docs/demo-environment-guide.md) | 検証環境セットアップガイド |
 | [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) | ドキュメントインデックス（推奨読書順序） |
 | [demo-data/guides/demo-scenario.md](demo-data/guides/demo-scenario.md) | 検証シナリオ（管理者 vs 一般ユーザーの権限差異確認） |
-| [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD連携・CIFS共有・NTFS ACL設定 |
+| [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) | FSx for ONTAP + AD連携・CIFS共有・NTFS ACL設定 |
 
-## FSx ONTAP + Active Directory Setup
+## FSx for ONTAP + Active Directory Setup
 
-FSx ONTAPのAD連携・CIFS共有・NTFS ACL設定の手順は [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) を参照してください。
+FSx for ONTAPのAD連携・CIFS共有・NTFS ACL設定の手順は [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) を参照してください。
 
-CDKデプロイでAWS Managed Microsoft ADとFSx ONTAP（SVM + Volume）が作成されます。SVMのADドメイン参加はデプロイ後にCLIで実行します（タイミング制御のため）。
+CDKデプロイでAWS Managed Microsoft ADとFSx for ONTAP（SVM + Volume）が作成されます。SVMのADドメイン参加はデプロイ後にCLIで実行します（タイミング制御のため）。
 
 ```bash
 # AD DNS IP取得

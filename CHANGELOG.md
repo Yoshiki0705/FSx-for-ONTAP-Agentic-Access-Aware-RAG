@@ -95,7 +95,7 @@ AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API
   - テスト 60 件: CDK Assertion Tests 26 件 + Python Lambda Tests 34 件（うち Property-Based Tests 6 件、Hypothesis）
   - CDK Property Test（fast-check）: ユーザーアクセススコーピング
 
-### Verified (Transfer Family FSx ONTAP Ingestion デプロイ検証 — ap-northeast-1)
+### Verified (Transfer Family FSx for ONTAP Ingestion デプロイ検証 — ap-northeast-1)
 - **Transfer Family Server**: ONLINE 状態、PUBLIC エンドポイント、SFTP プロトコル、SecurityPolicy-2024-01
 - **サーバーエンドポイント**: `s-fb47244ef5ac43a28.server.transfer.ap-northeast-1.amazonaws.com`
 - **SFTP User**: demo-user、LOGICAL ホームディレクトリ、スコープ IAM ロール
@@ -130,7 +130,7 @@ AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API
 ## [4.1.0] - 2026-05
 
 ### Added
-- **KB Auto-Sync**: EventBridge Scheduler ポーリングによる FSx ONTAP S3 AP ファイル変更検出 + Bedrock KB StartIngestionJob 自動トリガー
+- **KB Auto-Sync**: EventBridge Scheduler ポーリングによる FSx for ONTAP S3 AP ファイル変更検出 + Bedrock KB StartIngestionJob 自動トリガー
   - KbAutoSyncConstruct: CDK Construct（AIStack 内）。`enableKbAutoSync=true` で有効化
   - EventBridge Scheduler: `rate(N minutes)` 定期ポーリング（デフォルト: 5分間隔）
   - Lambda (Python 3.12): ListObjectsV2 → DynamoDB 差分比較 → StartIngestionJob
@@ -143,7 +143,7 @@ AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API
   - CDK パラメータ: `enableKbAutoSync`, `s3AccessPointArn`, `kbDataSourceId`, `kbAutoSyncIntervalMinutes`
   - 8 Property-Based Tests（hypothesis）: 差分検出正確性、トリガー判定、間隔バリデーション、インベントリ整合性、空インベントリ、ログ完全性、EMF 完全性、冪等リカバリ
 
-- **Capacity Guardrails**: FSx ONTAP 自動拡張に対する安全制御モジュール
+- **Capacity Guardrails**: FSx for ONTAP 自動拡張に対する安全制御モジュール
   - Guardrails モジュール (`lambda/common/guardrails.py`): per-action rate limit、daily cap、cooldown の3段階チェック
   - DynamoDB 永続追跡: 日次拡張合計、最終アクションタイムスタンプ、アクション回数、TTL 7日自動クリーンアップ (`ttl_epoch`)
   - CloudWatch カスタムメトリクス: `FSxNOps/Guardrails` 名前空間、`GuardrailDecision` メトリクス（Allowed/Blocked/DryRun × ResourceType × ResourceId）
@@ -194,7 +194,7 @@ AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API
 - **CloudFormation Guard Hook 干渉**: 別プロジェクトの `FSxNS3AP::Guard::Hook` がアカウント内でアクティブな場合、全リソース作成がブロックされる。デプロイ前に `aws cloudformation deactivate-type --type HOOK --type-name "FSxNS3AP::Guard::Hook"` で無効化が必要
 - **CloudWatch Dashboard 未対応**: RoutingTier / KbAutoSync メトリクスウィジェットが CloudWatch Dashboard に未追加（MonitoringConstruct の拡張が必要）
 - **KB Auto-Sync: rate(1 minutes) 単数形問題**: `kbAutoSyncIntervalMinutes=1` 設定時に `rate(1 minutes)` が生成される。EventBridge Scheduler は `rate(1 minute)` （単数形）を要求する。現在のデフォルト値（5分）では問題なし。修正予定: CDK Construct で `intervalMinutes === 1` の場合に `rate(1 minute)` を生成するよう条件分岐を追加
-- **KB Auto-Sync: S3 AP / Data Source 手動作成**: S3 Access Point と KB Data Source は CDK 外で手動作成が必要（`post-deploy-setup.sh` で自動化済み）。CDK 内での完全自動化は FSx S3 AP の CloudFormation 未サポートにより不可
+- **KB Auto-Sync: S3 AP / Data Source 手動作成**: S3 Access Point と KB Data Source は CDK 外で手動作成が必要（`post-deploy-setup.sh` で自動化済み）。CDK 内での完全自動化は FSx for ONTAP S3 AP の CloudFormation 未サポートにより不可
 - **Capacity Guardrails: Lambda コード手動デプロイ**: CloudFormation テンプレートは `ZipFile` インラインプレースホルダーを使用。実際の Lambda コードは `aws lambda update-function-code --zip-file` で個別デプロイが必要（fsxn-ops スタンドアロンスタックの既知パターン）
 - **Capacity Guardrails: メトリクス出力条件**: CloudWatch `FSxNOps/Guardrails` メトリクスは自動拡張が試行された場合のみ出力される。閾値未超過時（通常監視）はガードレール評価自体が行われないためメトリクスなし
 - **Capacity Guardrails: rate(1 minutes) 単数形問題**: EventBridge Scheduler の `rate(1 minutes)` 単数形問題は fsxn-ops スタックにも該当（デフォルト5分では問題なし）
@@ -429,7 +429,7 @@ AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API
 - **認証モード別デモ環境構築ガイド** (`demo-data/guides/auth-mode-setup-guide.md`): 5モード（メール/パスワード、SAML AD、OIDC+LDAP、OIDC Claims Only、SAML+OIDCハイブリッド）のサンプル構成ファイルと再現可能な構築手順。8言語対応
 - **サンプル構成ファイル** (`demo-data/configs/mode-a~e-*.json`): 認証モード別の`cdk.context.json`テンプレート5種。`REPLACE_*`プレースホルダーで環境非依存
 - **OpenLDAPセットアップスクリプト** (`demo-data/scripts/setup-openldap.sh`): VPC内EC2にOpenLDAPを自動構築、テストユーザー3名+グループ5つ+memberOfオーバーレイ設定
-- **ONTAP name-mappingセットアップスクリプト** (`demo-data/scripts/setup-ontap-namemapping.sh`): FSx ONTAP REST API経由でname-mappingルールを自動設定
+- **ONTAP name-mappingセットアップスクリプト** (`demo-data/scripts/setup-ontap-namemapping.sh`): FSx for ONTAP REST API経由でname-mappingルールを自動設定
 - **検証スクリプト**: `verify-ldap-integration.sh`（LDAP→Lambda→DynamoDB検証）、`verify-ontap-namemapping.sh`（REST API接続・ルール取得検証）
 - **モードCワンショットスクリプト** (`demo-data/scripts/setup-mode-c-oidc-ldap.sh`): 環境変数3つで全7フェーズ自動実行
 - **サインイン画面多言語対応**: `[locale]/signin/page.tsx`の全テキストを`useTranslations('signin')`に置き換え、8言語21キー追加。`/signin`フォールバックページはブラウザ言語検出→ロケール付きページへ自動リダイレクト
@@ -475,7 +475,7 @@ AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API
 - `AuditLogger`: 非ブロッキング監査ログ記録（リトライ3回、指数バックオフ）
 - プロパティベーステスト6件（Property 1-6: ラウンドトリップ、スケジュール正当性、後方互換性、監査完全性、TTL正当性、SID不変性）
 - **多言語ドキュメント**: `docs/` 配下の全11ドキュメントを8言語に翻訳（`docs/{en,ko,zh-CN,zh-TW,fr,de,es}/`）
-- **S3 Access Point データソース**: FSx ONTAP S3 AP経由のBedrock KBデータソース設定・検証完了
+- **S3 Access Point データソース**: FSx for ONTAP S3 AP経由のBedrock KBデータソース設定・検証完了
 - Steeringファイル: `.kiro/steering/multilingual-docs.md`（ドキュメント更新時の多言語自動反映ルール）
 - **S3 Access Point ユーザータイプ設計ガイド**: NTFS×WINDOWS / NTFS×新規WINDOWS / UNIX×既存UNIX / UNIX×新規UNIX の4パターン決定マトリクス。CDKコンテキストパラメータ `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` による明示的制御
 - **README 8言語版**: `README.{en,ko,zh-CN,zh-TW,fr,de,es}.md` — 言語セレクター付き、S3 AP 4パターンガイド含む

@@ -196,7 +196,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 | S3 AP-Policy | s3:* für Account Root | Access Point ARN-Format |
 | IAM-Policy | AdministratorAccess | Enthält s3:* |
 | Netzwerk | Gleiche VPC/Subnetz | FSx und AD im gleichen Subnetz |
-| Block Public Access | Nicht konfiguriert (Kontoebene) | FSx S3 AP erzwingt standardmäßig |
+| Block Public Access | Nicht konfiguriert (Kontoebene) | FSx for ONTAP S3 AP erzwingt standardmäßig |
 | UNIX-Benutzerzuordnung | root (UID 0) registriert | Auflösbar über name-service |
 
 ## Bereinigung
@@ -235,4 +235,4 @@ Es wurde bestätigt, dass das gleiche S3 AP-Zugriffsmuster im alten Konto (nicht
 Führen Sie eine der folgenden Maßnahmen im Organization-Verwaltungskonto durch:
 1. Fügen Sie der SCP eine Anweisung hinzu, die den Zugriff auf FSx for ONTAP S3 AP erlaubt
 2. Schließen Sie das Zielkonto von SCP-Einschränkungen aus
-3. Identifizieren Sie die S3-Aktionen/Ressourcenmuster, die von der SCP blockiert werden, und schließen Sie das FSx S3 AP ARN-Muster aus (`arn:aws:s3:<region>:<account>:accesspoint/*`)
+3. Identifizieren Sie die S3-Aktionen/Ressourcenmuster, die von der SCP blockiert werden, und schließen Sie das FSx for ONTAP S3 AP ARN-Muster aus (`arn:aws:s3:<region>:<account>:accesspoint/*`)

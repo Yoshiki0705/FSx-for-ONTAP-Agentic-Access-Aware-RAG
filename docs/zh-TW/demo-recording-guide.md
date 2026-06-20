@@ -119,7 +119,7 @@ npm install
 ### 步驟 1：部署前設定（ECR 映像準備）
 
 ```bash
-cd /home/ubuntu/Permission-aware-RAG-FSxN-CDK
+cd /home/ubuntu/Permission-aware-RAG-FSx for ONTAP-CDK
 
 # 建立 ECR 儲存庫 + 建構 Docker 映像 + 推送
 bash demo-data/scripts/pre-deploy-setup.sh

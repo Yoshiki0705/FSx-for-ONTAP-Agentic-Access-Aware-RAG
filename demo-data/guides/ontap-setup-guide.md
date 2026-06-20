@@ -1,4 +1,4 @@
-# FSx ONTAP + Active Directory 連携・CIFS共有設定ガイド
+# FSx for ONTAP + Active Directory 連携・CIFS共有設定ガイド
 
 **最終更新**: 2026-04-04  
 **検証済み環境**: ap-northeast-1, AWS Managed Microsoft AD (Standard), FSx for ONTAP Single-AZ / Multi-AZ
@@ -105,7 +105,7 @@ MISCONFIGUREDになった場合、同じコマンドを正しいOU pathで再実
 
 ---
 
-## 3. FSx ONTAP管理パスワードの設定
+## 3. FSx for ONTAP管理パスワードの設定
 
 ONTAP REST APIを使用するには、fsxadminパスワードの設定が必要です。
 
@@ -384,16 +384,16 @@ aws cloudformation deploy \
   - S3 Gateway エンドポイントは Lambda サブネットのルートテーブルに関連付けが必要
   - CFn テンプレートに含まれています (`CreateVpcEndpoints=true` の場合)
 - Secrets Manager: `{"username": "fsxadmin", "password": "xxx"}` 形式のシークレット
-  - **重要**: Secrets Manager のパスワードと FSx ONTAP の fsxadmin パスワードが一致していること
+  - **重要**: Secrets Manager のパスワードと FSx for ONTAP の fsxadmin パスワードが一致していること
 - セキュリティグループ: Lambda から ONTAP 管理 LIF (port 443) へのアウトバウンド許可
 
-### FSx ONTAP S3 Access Point について
+### FSx for ONTAP S3 Access Point について
 
-データ前処理 Lambda は FSx ONTAP の S3 Access Point 経由で NAS データにアクセスします。
+データ前処理 Lambda は FSx for ONTAP の S3 Access Point 経由で NAS データにアクセスします。
 通常の S3 Access Point とは異なり、FSx 専用の API で作成します:
 
 ```bash
-# FSx ONTAP S3 Access Point の作成
+# FSx for ONTAP S3 Access Point の作成
 aws fsx create-and-attach-s3-access-point \
   --name my-s3ap \
   --type ONTAP \

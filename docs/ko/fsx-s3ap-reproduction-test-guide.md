@@ -196,7 +196,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 | S3 AP 정책 | 계정 루트에 s3:* | Access Point ARN 형식 |
 | IAM 정책 | AdministratorAccess | s3:* 포함 |
 | 네트워크 | 동일 VPC/서브넷 | FSx와 AD가 동일 서브넷 |
-| Block Public Access | 미구성 (계정 수준) | FSx S3 AP가 기본적으로 강제 |
+| Block Public Access | 미구성 (계정 수준) | FSx for ONTAP S3 AP가 기본적으로 강제 |
 | UNIX 사용자 매핑 | root (UID 0) 등록됨 | name-service를 통해 해석 가능 |
 
 ## 정리
@@ -235,4 +235,4 @@ npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" \
 Organization 관리 계정에서 다음 중 하나를 수행하세요:
 1. FSx for ONTAP S3 AP에 대한 접근을 허용하는 문을 SCP에 추가
 2. 대상 계정을 SCP 제한에서 제외
-3. SCP에서 차단하는 S3 액션/리소스 패턴을 식별하고 FSx S3 AP ARN 패턴(`arn:aws:s3:<region>:<account>:accesspoint/*`)을 제외
+3. SCP에서 차단하는 S3 액션/리소스 패턴을 식별하고 FSx for ONTAP S3 AP ARN 패턴(`arn:aws:s3:<region>:<account>:accesspoint/*`)을 제외

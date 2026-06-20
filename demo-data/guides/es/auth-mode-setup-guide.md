@@ -215,4 +215,4 @@ bash demo-data/scripts/cleanup-all.sh
 ## Documentos relacionados
 
 - [Guía de autenticación y gestión de usuarios](../../docs/es/auth-and-user-management.md)
-- [FSx ONTAP Setup Guide](ontap-setup-guide.md)
+- [FSx for ONTAP Setup Guide](ontap-setup-guide.md)

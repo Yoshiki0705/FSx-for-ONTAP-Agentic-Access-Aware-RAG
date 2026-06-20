@@ -542,5 +542,5 @@ npx cdk destroy --all
 ## 関連ドキュメント
 
 - [認証・ユーザー管理ガイド](../../docs/auth-and-user-management.md) — 認証モードの詳細設計
-- [FSx ONTAP設定ガイド](ontap-setup-guide.md) — ONTAP REST API / Name-Mapping設定
+- [FSx for ONTAP設定ガイド](ontap-setup-guide.md) — ONTAP REST API / Name-Mapping設定
 - [検証シナリオ](demo-scenario.md) — SIDフィルタリング検証手順

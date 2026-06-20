@@ -144,7 +144,7 @@ The vector store configuration can be switched using the CDK context parameter `
 
 | # | Validation Item | Status |
 |---|----------------|--------|
-| V1 | S3 connector recognizes FSx ONTAP S3 Access Point | Unverified |
+| V1 | S3 connector recognizes FSx for ONTAP S3 Access Point | Unverified |
 | V2 | `.metadata.json` `allowed_group_sids` is preserved in the index | Unverified |
 | V3 | `filter` `listContains` works for SID array matching | Unverified |
 | V4 | Filters are maintained during Agentic Retrieval multi-hop | Unverified |

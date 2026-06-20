@@ -128,6 +128,7 @@ paths = [
   '''\.next/''',
   '''dist/''',
   '''\.hypothesis/''',
+  '''\.playwright-mcp/''',
   '''package-lock\.json$''',
   '''\.gitleaks\.toml$''',
   '''__snapshots__/''',

@@ -14,6 +14,81 @@ Amazon FSx for NetApp ONTAP 上存储的企业数据，AI代理在**遵守每个
 - **Agentic AI**：文档搜索（KB 模式）和自主多步推理·任务执行（Agent 模式）一键切换
 - **低成本**：默认采用 S3 Vectors（每月数美元），可切换至 OpenSearch Serverless
 - **Managed KB 就绪**：Amazon Bedrock Managed Knowledge Base（Agentic Retriever / 多跳搜索）作为并行选项验证中（[评估文档](docs/zh-CN/managed-kb-migration-evaluation.md)）
+
+---
+
+## 本系统带来的变化
+
+| | 导入前 | 导入后 |
+|---|--------|--------|
+| **文档检索** | 手动搜索共享文件夹（平均15分钟/次） | AI在权限范围内即时回答（数秒） |
+| **权限管理** | 检索系统与权限管理分离，存在信息泄露风险 | NTFS ACL / UNIX权限自动反映到RAG检索 |
+| **合作伙伴协作** | 通过邮件附件交换文件，手动KB更新 | SFTP → 自动摄取 → 即时可通过RAG检索 |
+| **成本** | 所有查询使用高性能模型 | Smart Routing将简单查询自动分配到低成本模型 |
+| **多语言支持** | 仅日语或仅英语 | 8语言UI，以用户语言自动回答 |
+
+**量化效果（基于PoC实绩）**：检索时间缩短50%以上，首次回答率60%以上，权限违规0件
+
+> **注意**：Smart Routing的成本节约效果取决于查询模式。在演示环境中测量发现，60-80%的查询被分类为simple（使用Haiku），确认Token成本约降低40-60%。生产环境效果请按照[RAG/Agent评估框架](docs/zh-CN/evaluation.md)进行实测。
+
+---
+
+## 行业用例速查表
+
+| 行业 | 客户课题 | 本系统的解决方案 | 预期效果 |
+|------|----------|-----------------|----------|
+| **制造** | 设计图纸·技术文档分散在各部门间 | 按部门×项目×机密级别的权限RAG检索 | 设计评审准备时间缩短60% |
+| **金融** | 监管文件·内部报告的访问管理为手动，存在泄露风险 | 按职位×部门的自动权限过滤 | 合规确认工时缩短50% |
+| **公共** | 政策文件·内部资料检索耗时，跨部门协作延迟 | 按部门×职位×公开/非公开的权限控制检索 | 政策制定信息收集时间缩短70% |
+| **医疗** | 规程·研究资料按诊疗科分割，无法横向检索 | 按诊疗科×职种的权限横向检索 | 临床判断支持信息获取时间缩短50% |
+| **法务** | 合同·判例的案件管理复杂，客户信息隔离困难 | 按案件×负责人×客户隔离的RAG | 合同审查时间缩短40% |
+| **教育** | 教材·研究资料封闭在各学院，共同研究信息共享困难 | 按学院×教职员/学生×研究室的权限控制 | 研究资料检索时间缩短55% |
+| **保险** | 理赔资料·欺诈检测报告的访问管理复杂 | 按部门×案件×机密级别的自动过滤 | 理赔业务效率提升30% |
+
+> 附带行业演示数据包（7个行业×各5个文档）。→ [demo-data/industry-packs/](demo-data/industry-packs/)
+
+---
+
+## Responsible AI 声明
+
+本系统的AI输出是**辅助信号（assistive signal）**，不替代最终决策。
+
+- AI回答是参考信息。业务上的最终判断必须由人类负责人做出
+- 权限过滤是技术性访问控制，不替代法律·合规判断
+- 在受监管工作负载（医疗、金融、公共）中使用需要客户特定的法务·合规评估
+- 本仓库的示例数据全部为虚构的演示数据。投入生产数据前请确认[安全实验指南](docs/zh-CN/safe-experimentation-guide.md)
+- 审计追踪保全、数据所有者确定、审批流程设计属于客户的责任范围
+
+详情请参阅[治理·审计设计](docs/zh-CN/governance-and-audit.md)及[威胁模型](docs/zh-CN/threat-model.md)。
+
+---
+
+## PoC 旅程图
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  1. 体验     │    │  2. 验证     │    │  3. 评估     │    │  4. 判断     │
+│  (1天)       │───▶│  (2-4周)     │───▶│  (1周)       │───▶│  (Go/No-Go)  │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+│                  │                  │                  │
+├ 用演示数据       ├ 投入实际数据     ├ KPI测量          ├ 业务赞助者
+│ 确认运行         ├ 连接IdP          ├ 用户评价          │ 判定
+├ 体验权限差异     ├ 验证权限设计     ├ 精度·速度·       ├ 确认下阶段
+├ 90分钟工作坊     ├ 投入行业数据     │ 安全确认          │ 条件
+│                  │                  │                  │
+▼                  ▼                  ▼                  ▼
+[工作坊            [安全实验          [评估              [PoC成功标准
+ 指南]             指南]              框架]              模板]
+```
+
+| 阶段 | 所需时间 | AWS费用 | 成果物 | 文档 |
+|------|----------|---------|--------|------|
+| 1. 体验 | 1天 | ~$10 | 运行确认完成 | [PoC工作坊指南](docs/zh-CN/poc-workshop-guide.md) |
+| 2. 验证 | 2-4周 | ~$430/月 | 实际数据运行确认 | [安全实验指南](docs/zh-CN/safe-experimentation-guide.md)、[数据就绪评估](docs/zh-CN/data-readiness-assessment.md) |
+| 3. 评估 | 1周 | — | KPI测量结果 | [RAG/Agent评估框架](docs/zh-CN/evaluation.md) |
+| 4. 判断 | — | — | Go/No-Go判定 | [PoC成功标准模板](docs/zh-CN/poc-success-criteria-template.md) |
+| 5. 生产 | 2-4周 | 取决于配置 | 生产环境 | [生产就绪检查清单](docs/zh-CN/production-readiness-checklist.md) |
+
 ---
 
 ## Quick Start
@@ -78,6 +153,20 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 ---
 
+## FSx for ONTAP S3 Access Points — 约束与验证模式
+
+将FSx for ONTAP S3 Access Points用作Bedrock Knowledge Bases数据源时的主要约束及本项目中验证的模式。
+
+详情请参阅[FSx for ONTAP S3 AP约束与模式](docs/zh-CN/s3-access-points-constraints.md)。
+
+---
+
+## Roadmap
+
+项目路线图请参阅[Roadmap](docs/zh-CN/roadmap.md)。
+
+---
+
 ## 实现概览（15 个视角）
 
 本系统的实现从 13 个视角进行组织。各项详情请参阅 [docs/implementation-overview.md](docs/implementation-overview.md)。
@@ -88,7 +177,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 | 2 | AWS WAF | 6 条规则配置：速率限制、IP 信誉、OWASP 合规规则、SQLi 防护、IP 白名单 | WafStack |
 | 3 | IAM 认证 | 使用 Lambda Function URL + CloudFront OAC 的多层安全 | WebAppStack |
 | 4 | 向量数据库 | S3 Vectors（默认，低成本）/ OpenSearch Serverless（高性能）。通过 `vectorStoreType` 选择 | AIStack |
-| 5 | Embedding 服务器 | 在 EC2 上通过 CIFS/SMB 挂载 FSx ONTAP 卷进行文档向量化，并写入 AOSS（仅 AOSS 配置） | EmbeddingStack |
+| 5 | Embedding 服务器 | 在 EC2 上通过 CIFS/SMB 挂载 FSx for ONTAP 卷进行文档向量化，并写入 AOSS（仅 AOSS 配置） | EmbeddingStack |
 | 6 | Titan Text Embeddings | KB 摄取和 Embedding 服务器均使用 `amazon.titan-embed-text-v2:0`（1024 维） | AIStack |
 | 7 | SID 元数据 + 权限过滤 | 通过 `.metadata.json` 管理 NTFS ACL SID 信息，在搜索时通过匹配用户 SID 进行过滤 | StorageStack |
 | 8 | KB/Agent 模式切换 | 在 KB 模式（文档搜索）和 Agent 模式（多步推理）之间切换。Agent Directory（`/genai/agents`）用于目录式 Agent 管理、模板创建、编辑和删除。动态 Agent 创建和卡片绑定。面向输出的工作流（演示文稿、审批文档、会议纪要、报告、合同、入职培训）。支持 8 种语言国际化。两种模式均支持权限感知 | WebAppStack |
@@ -103,7 +192,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 | 17 | Guardrails Organizational Safeguards | Bedrock Guardrails 扩展。通过 `guardrailsConfig` CDK 参数详细配置内容过滤强度、主题策略和 PII 检测。AWS Organizations Organizational Safeguards 检测与显示。聊天响应中显示 GuardrailsStatusBadge（✅ safe / ⚠️ filtered）。干预日志（结构化 JSON）、EMF 指标、CloudWatch 仪表板集成。管理员只读 GuardrailsAdminPanel。Fail-Open 错误处理。通过 `enableGuardrails=true` + `guardrailsConfig` 启用 | AIStack, WebAppStack |
 | 18 | 语音聊天 (Nova Sonic) | 通过 Amazon Nova Sonic 实现语音对话功能。浏览器麦克风输入 → Nova Sonic (speech-to-speech) → 文本 + 语音同时输出。与现有 RAG 管道（含 Permission Filter）集成。支持 KB/Agent 模式。波形动画、30秒静音超时、自动重连（最多3次）、文本回退。8种语言 i18n 支持。通过 `enableVoiceChat=true` 启用。预估月费：$70~$100 | AIStack, WebAppStack |
 | 19 | AgentCore Policy | 通过 AgentCore Policy 实现代理行为控制。使用自然语言策略定义限制代理的工具、API、MCP 服务器访问。3种策略模板（安全优先、成本优先、灵活性优先）。PolicyEvaluationMiddleware（3秒超时、fail-open/fail-closed）。违规日志（EMF 格式）及 CloudWatch 仪表板集成。8种语言 i18n 支持。通过 `enableAgentPolicy=true` 启用。**v4.3 扩展**: Policy Engine + Bedrock Guardrails 集成（Gateway 层实时检测/阻止提示注入、PII、有害内容）。`policyEngineMode` 切换 LOG_ONLY/ENFORCE。InvokeGuardrailChecks API 实现逐块内联安全检查 | AIStack, WebAppStack |
-| 19.1 | Web Search | 通过 AgentCore Gateway 的 Web 搜索工具。代理获取实时 Web 信息并附带引用（URL、标题、发布日期）。当 FSx ONTAP 文档无法完整回答时的补充信息源。Zero data egress（AWS 环境内完成处理）。通过 `enableWebSearch=true` 启用（需要 `enableAgentCoreGateway=true`） | AIStack |
+| 19.1 | Web Search | 通过 AgentCore Gateway 的 Web 搜索工具。代理获取实时 Web 信息并附带引用（URL、标题、发布日期）。当 FSx for ONTAP 文档无法完整回答时的补充信息源。Zero data egress（AWS 环境内完成处理）。通过 `enableWebSearch=true` 启用（需要 `enableAgentCoreGateway=true`） | AIStack |
 | 19.2 | AgentCore Optimization | 从生产追踪持续改进代理质量的循环（Preview）。Configuration Bundle（system prompt/model ID/tool descriptions 版本管理，无需重新部署代码）、Recommendations（基于追踪分析自动生成改进建议）、A/B Testing（Gateway 流量分割 + 统计显著性验证）。CDK 构建 Configuration Bundle + IAM 角色，Recommendations/A/B 测试通过 agentcore CLI/SDK 执行。通过 `enableAgentOptimization=true` 启用（需要 `enableAgentCoreGateway=true`） | AIStack |
 | 20 | FSx ONTAP 运维自动化 | 使用 Lambda + Step Functions 实现 FSx for ONTAP 运维自动化。SnapMirror 故障转移/恢复编排（ASL）、容量监控与自动扩展（EventBridge 5分钟间隔）、ONTAP REST API 通用执行器、AI/分析数据预处理（S3 Access Point 边界）。无事件驱动依赖、无 NFS 挂载。月费约 $2.60。详见 [automation/fsxn-ops/](automation/fsxn-ops/) | CloudFormation (standalone) |
 
@@ -212,7 +301,7 @@ RAG 搜索结果显示 FSx 文件路径和访问级别徽章（所有人可访�
 | 1 | WafStack | us-east-1 | WAF WebACL, IP Set | CloudFront 的 WAF（速率限制、托管规则） |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups, VPC Endpoints (optional) | 网络基础设施 |
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + OIDC IdP + Cognito Domain（启用 Federation 时）, Identity Sync Lambda（可选）, LDAP Health Check Lambda + CloudWatch Alarm（可选）, Auth Audit Log DynamoDB（可选） | 认证与授权（SAML/OIDC/邮箱） |
-| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS encryption (optional), CloudTrail (optional) | 存储、SID 数据、权限缓存 |
+| 4 | StorageStack | ap-northeast-1 | FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS encryption (optional), CloudTrail (optional) | 存储、SID 数据、权限缓存 |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless (selected via `vectorStoreType`), Bedrock Guardrails (optional) | RAG 搜索基础设施（Titan Embed v2） |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda (optional), MonitoringConstruct (optional) | Web 应用、Agent 管理、监控与告警 |
 | 7 | EmbeddingStack (optional) | ap-northeast-1 | EC2 (m5.large), ECR, ONTAP ACL auto-retrieval (optional) | FlexCache CIFS 挂载 + Embedding 服务器 |
@@ -266,7 +355,7 @@ RAG 系统的认证方式（OIDC / LDAP / 邮箱密码）与 AWS 管理控制台
 
 | 参数 | 影响 | 风险级别 | 事前确认 |
 |------|------|----------|----------|
-| `adPassword` | 创建新的 AWS Managed Microsoft AD（用于 FSx ONTAP）。AD 本身不影响 Identity Center — 请参阅下方说明 | 🟡 中 | 参阅下方"关于 Managed AD 的说明" |
+| `adPassword` | 创建新的 AWS Managed Microsoft AD（用于 FSx for ONTAP）。AD 本身不影响 Identity Center — 请参阅下方说明 | 🟡 中 | 参阅下方"关于 Managed AD 的说明" |
 | `enableAdFederation` | 创建 Cognito SAML IdP。在 RAG 登录页面添加"使用 AD 登录"按钮 | 🟢 低 | 确认不存在现有 Cognito User Pool |
 | `enableVpcEndpoints` | 创建 VPC 端点。可能影响现有 VPC 路由 | 🟡 中 | 检查 VPC 端点限制 |
 | `enableKmsEncryption` | 创建 KMS CMK。更改 S3/DynamoDB 加密设置 | 🟢 低 | 检查现有 KMS 密钥数量 |
@@ -408,7 +497,7 @@ Cloud assembly schema version mismatch: Maximum schema version supported is 48.x
 **解决方案**：将项目本地的 CDK CLI 更新到最新版本。
 
 ```bash
-cd Permission-aware-RAG-FSxN-CDK
+cd Permission-aware-RAG-FSx for ONTAP-CDK
 npm install aws-cdk@latest
 npx cdk --version  # Verify the updated version
 ```
@@ -456,7 +545,7 @@ EOF
 
 #### Active Directory 集成（可选）
 
-要将 FSx ONTAP SVM 加入 Active Directory 域并使用 NTFS ACL（基于 SID）的 CIFS 共享，请在 `cdk.context.json` 中添加以下内容。
+要将 FSx for ONTAP SVM 加入 Active Directory 域并使用 NTFS ACL（基于 SID）的 CIFS 共享，请在 `cdk.context.json` 中添加以下内容。
 
 ```bash
 cat > cdk.context.json << 'EOF'
@@ -764,7 +853,7 @@ SAML + OIDC 混合配置的登录页面（AD 登录 + Auth0 登录 + 邮箱/密�
 | `ontapSvmUuid` | （无） | SVM UUID（与 `ontapMgmtIp` 配合使用） |
 | `ontapAdminSecretArn` | （无） | ONTAP 管理员密码的 Secrets Manager ARN |
 | `useS3AccessPoint` | `false` | 使用 S3 Access Point 作为 Bedrock KB 数据源 |
-| `volumeSecurityStyle` | `NTFS` | FSx ONTAP 卷安全样式（`NTFS` or `UNIX`） |
+| `volumeSecurityStyle` | `NTFS` | FSx for ONTAP 卷安全样式（`NTFS` or `UNIX`） |
 | `s3apUserType` | （自动） | S3 AP 用户类型（`WINDOWS` or `UNIX`）。默认：已配置 AD→WINDOWS，未配置 AD→UNIX |
 | `s3apUserName` | （自动） | S3 AP 用户名。默认：WINDOWS→`Admin`，UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | 通过专用 Lambda 执行 SID 过滤（带内联过滤回退） |
@@ -814,7 +903,7 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 
 | 参数 | 说明 |
 |------|------|
-| `existingFileSystemId` | 现有 FSx ONTAP 文件系统 ID（例如 `fs-0123456789abcdef0`） |
+| `existingFileSystemId` | 现有 FSx for ONTAP 文件系统 ID（例如 `fs-0123456789abcdef0`） |
 | `existingSvmId` | 现有 SVM ID（例如 `svm-0123456789abcdef0`） |
 | `existingVolumeId` | 现有卷 ID（例：`fsvol-0123456789abcdef0`）— 指定 **一个主卷** |
 
@@ -916,7 +1005,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 此脚本自动执行以下操作：
 1. 创建 S3 Access Point + 配置策略
-2. 上传演示数据到 FSx ONTAP（通过 S3 AP）
+2. 上传演示数据到 FSx for ONTAP（通过 S3 AP）
 3. 添加 Bedrock KB 数据源 + 同步
 4. 在 DynamoDB 中注册用户 SID 数据
 5. 在 Cognito 中创建演示用户（admin / user）
@@ -974,7 +1063,7 @@ bash demo-data/scripts/cleanup-all.sh
 8. 删除 VPC 中非 CDK 管理的 EC2 实例和 SG + 重新删除 Networking stack
 9. CDKToolkit + CDK staging S3 存储桶删除（两个区域，支持版本控制）
 
-> **注意**：FSx ONTAP 删除需要 20-30 分钟，因此总计约 30-40 分钟。
+> **注意**：FSx for ONTAP 删除需要 20-30 分钟，因此总计约 30-40 分钟。
 
 ## 故障排除
 
@@ -1095,7 +1184,7 @@ aws cloudformation delete-stack --stack-name perm-rag-demo-demo-AI --region ap-n
 
 #### 问题 3：附加 S3 Access Point 时 FSx Volume 删除失败
 
-附加了 S3 AP 的 Storage stack FSx ONTAP volume 无法删除：
+附加了 S3 AP 的 Storage stack FSx for ONTAP volume 无法删除：
 
 ```bash
 # Detach and delete S3 AP
@@ -1281,14 +1370,14 @@ excludedRules: [
 
 ## Embedding 服务器（可选）
 
-通过 CIFS 挂载 FlexCache Cache 卷并执行 Embedding 的 EC2 服务器。当 FSx ONTAP S3 Access Point 不可用时（截至 2026 年 3 月，FlexCache Cache 卷不支持 S3 Access Point）作为替代路径使用。
+通过 CIFS 挂载 FlexCache Cache 卷并执行 Embedding 的 EC2 服务器。当 FSx for ONTAP S3 Access Point 不可用时（截至 2026 年 3 月，FlexCache Cache 卷不支持 S3 Access Point）作为替代路径使用。
 
 ### 数据摄取路径
 
-本系统使用单路径架构：FSx ONTAP → S3 Access Point → Bedrock KB。Bedrock KB 管理所有文档检索、分块、向量化和存储。
+本系统使用单路径架构：FSx for ONTAP → S3 Access Point → Bedrock KB。Bedrock KB 管理所有文档检索、分块、向量化和存储。
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   ├── public/company-overview.md
   ├── public/company-overview.md.metadata.json
   ├── confidential/financial-report.md
@@ -1305,7 +1394,7 @@ FSx ONTAP Volume (/data)
 ```
 
 Bedrock KB Ingestion Job 执行的处理：
-1. 通过 S3 Access Point 从 FSx ONTAP 读取文档和 `.metadata.json`
+1. 通过 S3 Access Point 从 FSx for ONTAP 读取文档和 `.metadata.json`
 2. 对文档进行分块
 3. 使用 Amazon Titan Embed Text v2（1024 维）进行向量化
 4. 将向量 + 元数据（包括 `allowed_group_sids`）存储到向量存储中
@@ -1342,12 +1431,12 @@ App → Bedrock KB Retrieve API → Vector Store (vector search)
 
 ### Embedding 目标文档配置
 
-嵌入到 Bedrock KB 中的文档由 FSx ONTAP 卷上的文件结构决定。
+嵌入到 Bedrock KB 中的文档由 FSx for ONTAP 卷上的文件结构决定。
 
 #### 目录结构和 SID 元数据
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   ├── public/                          ← Accessible to all users
   │   ├── product-catalog.md           ← Document body
   │   └── product-catalog.md.metadata.json  ← SID metadata
@@ -1432,11 +1521,11 @@ CDK 代码中实现了以下缓解措施：
 
 | 路径 | 方式 | CDK 激活 | 状态 |
 |------|------|----------|------|
-| 主路径 | FSx ONTAP → S3 Access Point → Bedrock KB → Vector Store | CDK 部署后运行 `post-deploy-setup.sh` | ✅ |
+| 主路径 | FSx for ONTAP → S3 Access Point → Bedrock KB → Vector Store | CDK 部署后运行 `post-deploy-setup.sh` | ✅ |
 | 回退路径 | 直接 S3 存储桶上传 → Bedrock KB → Vector Store | 手动（`upload-demo-data.sh`） | ✅ |
 | 替代路径（可选） | Embedding 服务器（CIFS 挂载）→ 直接 AOSS 写入 | `-c enableEmbeddingServer=true` | ✅（仅 AOSS 配置） |
 
-> **回退路径**：如果 FSx ONTAP S3 AP 不可用（例如 Organization SCP 限制），可以直接将文档 + `.metadata.json` 上传到 S3 存储桶并配置为 KB 数据源。SID 过滤不依赖于数据源类型。
+> **回退路径**：如果 FSx for ONTAP S3 AP 不可用（例如 Organization SCP 限制），可以直接将文档 + `.metadata.json` 上传到 S3 存储桶并配置为 KB 数据源。SID 过滤不依赖于数据源类型。
 
 ### 手动管理 Embedding 目标文档
 
@@ -1444,10 +1533,10 @@ CDK 代码中实现了以下缓解措施：
 
 #### 添加文档
 
-通过 FSx ONTAP S3 Access Point（主路径）：
+通过 FSx for ONTAP S3 Access Point（主路径）：
 
 ```bash
-# Place files on FSx ONTAP via SMB from EC2 or WorkSpaces within the VPC
+# Place files on FSx for ONTAP via SMB from EC2 or WorkSpaces within the VPC
 SVM_IP=<SVM_SMB_IP>
 smbclient //$SVM_IP/data -U 'demo.local\Admin%<PASSWORD>' \
   -c "cd public; put new-document.md; put new-document.md.metadata.json"
@@ -1526,7 +1615,7 @@ aws bedrock-agent start-ingestion-job \
 
 ### 管理 FSx for ONTAP 卷 Embedding 目标
 
-将现有 FSx ONTAP 卷添加或移除为 Bedrock KB Embedding 目标的操作步骤。卷的创建/删除由 FSx 管理员执行。
+将现有 FSx for ONTAP 卷添加或移除为 Bedrock KB Embedding 目标的操作步骤。卷的创建/删除由 FSx 管理员执行。
 
 #### 将卷添加为 Embedding 目标
 
@@ -1600,7 +1689,7 @@ aws bedrock-agent list-data-sources \
   --region ap-northeast-1 \
   --query 'dataSourceSummaries[*].{name:name,id:dataSourceId,status:status}'
 
-# List S3 APs (association with FSx ONTAP volumes)
+# List S3 APs (association with FSx for ONTAP volumes)
 aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \
   --query 'S3AccessPointAttachments[*].{Name:Name,Volume:OntapConfiguration.VolumeId,Status:Lifecycle}'
 ```
@@ -1767,7 +1856,7 @@ User              Next.js API             DynamoDB            Bedrock KB        
 │   ├── demo-waf-stack.ts             # WAF WebACL (us-east-1)
 │   ├── demo-networking-stack.ts      # VPC, Subnets, SG
 │   ├── demo-security-stack.ts        # Cognito
-│   ├── demo-storage-stack.ts         # FSx ONTAP + SVM + Volume, S3, DynamoDB×2, AD
+│   ├── demo-storage-stack.ts         # FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, AD
 │   ├── demo-ai-stack.ts             # Bedrock KB, S3 Vectors / OpenSearch Serverless
 │   ├── demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
 │   └── demo-embedding-stack.ts       # (optional) Embedding Server (FlexCache CIFS)
@@ -1833,13 +1922,13 @@ User              Next.js API             DynamoDB            Bedrock KB        
 | [docs/demo-environment-guide.md](docs/demo-environment-guide.md) | 验证环境设置指南 |
 | [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) | 文档索引（推荐阅读顺序） |
 | [demo-data/guides/demo-scenario.md](demo-data/guides/demo-scenario.md) | 验证场景（管理员与普通用户权限差异确认） |
-| [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD 集成、CIFS 共享、NTFS ACL 配置 |
+| [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) | FSx for ONTAP + AD 集成、CIFS 共享、NTFS ACL 配置 |
 
-## FSx ONTAP + Active Directory 设置
+## FSx for ONTAP + Active Directory 设置
 
-FSx ONTAP AD 集成、CIFS 共享和 NTFS ACL 配置步骤请参阅 [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md)。
+FSx for ONTAP AD 集成、CIFS 共享和 NTFS ACL 配置步骤请参阅 [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md)。
 
-CDK 部署会创建 AWS Managed Microsoft AD 和 FSx ONTAP（SVM + Volume）。SVM AD 域加入在部署后通过 CLI 执行（用于时序控制）。
+CDK 部署会创建 AWS Managed Microsoft AD 和 FSx for ONTAP（SVM + Volume）。SVM AD 域加入在部署后通过 CLI 执行（用于时序控制）。
 
 ```bash
 # Get AD DNS IPs
@@ -2078,10 +2167,21 @@ Supervisor Agent 无法在单次 CloudFormation 操作中同时创建 `AgentColl
 
 | 仓库 | 用途 | 概述 |
 |------|------|------|
-| **[本仓库] Agentic Access-Aware RAG** | AI / RAG | 权限感知 RAG + Agentic AI。自动将 FSx ONTAP ACL 应用于搜索 |
+| **[本仓库] Agentic Access-Aware RAG** | AI / RAG | 权限感知 RAG + Agentic AI。自动将 FSx for ONTAP ACL 应用于搜索 |
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自动化 | 17个行业无服务器模式集（通过 S3 AP 的 AI/ML 处理，支持 FPolicy 事件驱动） |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | 通过 FSx ONTAP S3 AP 与 Athena、Glue、EMR、SageMaker 集成的验证框架 |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / 审计 | 无需 EC2 将 FSx ONTAP 审计日志和指标传送到 Datadog、Splunk、Grafana 等 |
+| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | 通过 FSx for ONTAP S3 AP 与 Athena、Glue、EMR、SageMaker 集成的验证框架 |
+| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / 审计 | 无需 EC2 将 FSx for ONTAP 审计日志和指标传送到 Datadog、Splunk、Grafana 等 |
+
+---
+
+## AWS 官方资源
+
+本仓库的Permission-aware RAG模式构建在将FSx for ONTAP S3 Access Points配置为Bedrock Knowledge Bases数据源的步骤之上。基础的官方配置步骤请参阅以下资源。
+
+| 资源 | 内容 |
+|------|------|
+| [Build a RAG application using Amazon Bedrock Knowledge Bases with FSx for ONTAP](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/tutorial-build-rag-with-bedrock.html) | 将FSx for ONTAP S3 Access Point配置为Bedrock Knowledge Base数据源的分步教程（约35-45分钟） |
+| [FSx for ONTAP S3 Access Points as an Amazon Bedrock Data Source](https://repost.aws/articles/AReKa8-o8XRGeVW2Nicbg1_w/fsxn-s3-access-points-as-an-amazon-bedrock-data-source) | 将S3 Access Points用作Bedrock数据源的实用配置指南（repost.aws社区指南） |
 
 ---
 

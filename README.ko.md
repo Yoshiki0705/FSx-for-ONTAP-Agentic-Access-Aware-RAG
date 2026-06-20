@@ -16,6 +16,80 @@ AWS CDK로 원커맨드 배포가 가능하며, Amazon Bedrock(RAG/Agent), Amazo
 - **Managed KB 지원 준비**: Amazon Bedrock Managed Knowledge Base(Agentic Retriever / 멀티홉 검색)를 병렬 옵션으로 검증 중([검토 문서](docs/ko/managed-kb-migration-evaluation.md))
 ---
 
+## 이 시스템으로 무엇이 바뀌는가
+
+| | 도입 전 | 도입 후 |
+|---|--------|--------|
+| **문서 검색** | 공유 폴더를 수동으로 탐색 (평균 15분/건) | AI가 권한 범위 내에서 즉시 응답 (수 초) |
+| **권한 관리** | 검색 시스템과 권한 관리가 분리되어 정보 유출 위험 | NTFS ACL / UNIX 권한이 RAG 검색에 자동 반영 |
+| **파트너 연계** | 이메일 첨부 파일 교환, 수동 KB 업데이트 | SFTP → 자동 인제스션 → 즉시 RAG 검색 가능 |
+| **비용** | 모든 쿼리에 고성능 모델 사용 | Smart Routing으로 간단한 쿼리를 저비용 모델에 자동 분배 |
+| **다국어 지원** | 일본어만 또는 영어만 | 8개 언어 UI, 사용자 언어로 자동 응답 |
+
+**정량적 효과 (PoC 실적 기반)**: 검색 시간 50% 이상 단축, 1차 답변율 60% 이상, 권한 위반 0건
+
+> **참고**: Smart Routing의 비용 절감 효과는 쿼리 패턴에 따라 다릅니다. 데모 환경에서의 측정 결과, 60-80%의 쿼리가 simple로 분류(Haiku 사용)되어 토큰 비용 약 40-60% 절감을 확인했습니다. 프로덕션 환경에서의 효과는 [RAG/Agent 평가 프레임워크](docs/ko/evaluation.md)에 따라 실측하세요.
+
+---
+
+## 업종별 유스케이스 조견표
+
+| 업종 | 고객 과제 | 본 시스템에서의 해결 | 기대 효과 |
+|------|-----------|---------------------|----------|
+| **제조** | 설계 도면·기술 문서가 부서 간에 분산되어 필요한 정보에 도달 불가 | 부서×프로젝트×기밀 레벨의 권한 부여 RAG 검색 | 설계 리뷰 준비 시간 60% 단축 |
+| **금융** | 규제 문서·내부 보고서 접근 관리가 수동이며 유출 위험 | 직위×부서의 자동 권한 필터링 | 컴플라이언스 확인 공수 50% 단축 |
+| **공공** | 정책 문서·내부 자료 검색에 시간 소요, 부처 간 연계 지연 | 부처×직위×공개/비공개 권한 제어 검색 | 정책 수립 정보 수집 시간 70% 단축 |
+| **의료** | 절차서·연구 자료가 진료과별로 분단, 횡단 검색 불가 | 진료과×직종의 권한 부여 횡단 검색 | 임상 판단 지원 정보 취득 시간 50% 단축 |
+| **법무** | 계약서·판례의 안건별 관리 복잡, 클라이언트 정보 분리 곤란 | 안건×담당자×클라이언트 분리 RAG | 계약 리뷰 시간 40% 단축 |
+| **교육** | 교재·연구 자료가 학부별로 폐쇄, 공동 연구 정보 공유 곤란 | 학부×교직원/학생×연구실 권한 제어 | 연구 자료 검색 시간 55% 단축 |
+| **보험** | 사정 자료·부정 검출 보고서 접근 관리 복잡 | 부서×안건×기밀 레벨의 자동 필터링 | 사정 업무 효율 30% 향상 |
+
+> 업종별 데모 데이터 팩(7개 업종 × 각 5개 문서)이 동봉되어 있습니다. → [demo-data/industry-packs/](demo-data/industry-packs/)
+
+---
+
+## Responsible AI 선언
+
+본 시스템의 AI 출력은 **보조적 시그널(assistive signal)**이며 최종 의사 결정을 대체하지 않습니다.
+
+- AI 답변은 참고 정보입니다. 업무상 최종 판단은 반드시 인간 책임자가 수행해야 합니다
+- 권한 필터링은 기술적 접근 제어이며 법적·컴플라이언스 판단을 대체하지 않습니다
+- 규제 대상 워크로드(의료, 금융, 공공)에서의 이용에는 고객 고유의 법무·컴플라이언스 평가가 필요합니다
+- 본 리포지토리의 샘플 데이터는 모두 가상의 데모 데이터입니다. 프로덕션 데이터 투입 전에 [안전한 실험 가이드](docs/ko/safe-experimentation-guide.md)를 확인하세요
+- 감사 추적 보전, 데이터 소유자 특정, 승인 플로우 설계는 고객의 책임 범위입니다
+
+자세한 내용은 [거버넌스·감사 설계](docs/ko/governance-and-audit.md) 및 [위협 모델](docs/ko/threat-model.md)을 참조하세요.
+
+---
+
+## PoC 여정 맵
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  1. 체험     │    │  2. 검증     │    │  3. 평가     │    │  4. 판단     │
+│  (1일)       │───▶│  (2-4주)     │───▶│  (1주)       │───▶│  (Go/No-Go)  │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+│                  │                  │                  │
+├ 데모 데이터로     ├ 실제 데이터 투입  ├ KPI 측정         ├ 비즈니스 스폰서
+│ 동작 확인        ├ IdP 연결         ├ 사용자 평가       │ 판정
+├ 권한 차이 체험    ├ 권한 설계 검증    ├ 정확도·속도·     ├ 다음 단계 조건
+├ 90분 워크숍      ├ 업종별 데이터 투입 │ 보안 확인        │ 확인
+│                  │                  │                  │
+▼                  ▼                  ▼                  ▼
+[워크숍            [안전한 실험        [평가              [PoC 성공 기준
+ 가이드]           가이드]             프레임워크]         템플릿]
+```
+
+| 단계 | 소요 시간 | AWS 비용 | 성과물 | 문서 |
+|------|----------|----------|--------|------|
+| 1. 체험 | 1일 | ~$10 | 동작 확인 완료 | [PoC 워크숍 가이드](docs/ko/poc-workshop-guide.md) |
+| 2. 검증 | 2-4주 | ~$430/월 | 실제 데이터 동작 확인 | [안전한 실험 가이드](docs/ko/safe-experimentation-guide.md), [데이터 준비도 평가](docs/ko/data-readiness-assessment.md) |
+| 3. 평가 | 1주 | — | KPI 측정 결과 | [RAG/Agent 평가 프레임워크](docs/ko/evaluation.md) |
+| 4. 판단 | — | — | Go/No-Go 판정 | [PoC 성공 기준 템플릿](docs/ko/poc-success-criteria-template.md) |
+| 5. 프로덕션 | 2-4주 | 구성에 따라 다름 | 프로덕션 환경 | [프로덕션 준비 체크리스트](docs/ko/production-readiness-checklist.md) |
+
+---
+
 ## Quick Start
 
 ```bash
@@ -78,6 +152,20 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 ---
 
+## FSx for ONTAP S3 Access Points — 제약 및 검증된 패턴
+
+FSx for ONTAP S3 Access Points를 Bedrock Knowledge Bases 데이터 소스로 사용할 때의 주요 제약과 본 프로젝트에서 검증된 패턴을 정리합니다.
+
+자세한 내용은 [FSx for ONTAP S3 AP 제약 및 패턴](docs/ko/s3-access-points-constraints.md)을 참조하세요.
+
+---
+
+## Roadmap
+
+프로젝트 로드맵은 [Roadmap](docs/ko/roadmap.md)을 참조하세요.
+
+---
+
 ## 구현 개요 (15가지 관점)
 
 이 시스템의 구현은 15가지 관점으로 구성되어 있습니다. 각 항목의 상세 내용은 [docs/implementation-overview.md](docs/implementation-overview.md)를 참조하세요.
@@ -88,7 +176,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 | 2 | AWS WAF | 6개 규칙 구성: 속도 제한, IP 평판, OWASP 준수 규칙, SQLi 보호, IP 허용 목록 | WafStack |
 | 3 | IAM 인증 | Lambda Function URL + CloudFront OAC를 활용한 다계층 보안 | WebAppStack |
 | 4 | 벡터 DB | S3 Vectors(기본값, 저비용) / OpenSearch Serverless(고성능). `vectorStoreType`으로 선택 | AIStack |
-| 5 | 임베딩 서버 | CIFS/SMB로 마운트된 FSx ONTAP 볼륨의 문서를 EC2에서 벡터화하여 AOSS에 기록 (AOSS 구성 전용) | EmbeddingStack |
+| 5 | 임베딩 서버 | CIFS/SMB로 마운트된 FSx for ONTAP 볼륨의 문서를 EC2에서 벡터화하여 AOSS에 기록 (AOSS 구성 전용) | EmbeddingStack |
 | 6 | Titan Text Embeddings | KB 수집과 임베딩 서버 모두에서 `amazon.titan-embed-text-v2:0` (1024차원) 사용 | AIStack |
 | 7 | SID 메타데이터 + 권한 필터링 | `.metadata.json`을 통해 NTFS ACL SID 정보를 관리하고 검색 시 사용자 SID 매칭으로 필터링 | StorageStack |
 | 8 | KB/Agent 모드 전환 | KB 모드(문서 검색)와 Agent 모드(다단계 추론) 간 전환. Agent Directory(`/genai/agents`)에서 카탈로그 방식의 Agent 관리, 템플릿 생성, 편집, 삭제. 동적 Agent 생성 및 카드 바인딩. 출력 지향 워크플로우(프레젠테이션, 결재 문서, 회의록, 보고서, 계약서, 온보딩). 8개 언어 i18n 지원. 양쪽 모드 모두 권한 인식 | WebAppStack |
@@ -103,7 +191,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 | 17 | Guardrails Organizational Safeguards | Bedrock Guardrails 확장. `guardrailsConfig` CDK 파라미터를 통한 콘텐츠 필터 강도, 토픽 정책, PII 감지 상세 설정. AWS Organizations Organizational Safeguards 감지 및 표시. 채팅 응답에 GuardrailsStatusBadge(✅ safe / ⚠️ filtered) 표시. 개입 로그(구조화 JSON), EMF 메트릭, CloudWatch 대시보드 통합. 관리자용 GuardrailsAdminPanel(읽기 전용). Fail-Open 오류 처리. `enableGuardrails=true` + `guardrailsConfig`로 활성화 | AIStack, WebAppStack |
 | 18 | 음성 채팅 (Nova Sonic) | Amazon Nova Sonic을 통한 음성 대화 기능. 브라우저 마이크 입력 → Nova Sonic (speech-to-speech) → 텍스트 + 음성 동시 출력. 기존 RAG 파이프라인 (Permission Filter 포함) 통합. KB/Agent 모드 지원. 파형 애니메이션, 30초 무음 타임아웃, 자동 재연결 (최대 3회), 텍스트 폴백. 8개 언어 i18n 지원. `enableVoiceChat=true`로 활성화. 예상 월 비용: $70~$100 | AIStack, WebAppStack |
 | 19 | AgentCore Policy | AgentCore Policy를 통한 에이전트 행동 제어. 자연어 정책 정의로 에이전트의 도구, API, MCP 서버 접근을 제한. 3가지 정책 템플릿 (보안 중심, 비용 중심, 유연성 중심). PolicyEvaluationMiddleware (3초 타임아웃, fail-open/fail-closed). 위반 로그 (EMF 형식) 및 CloudWatch 대시보드 통합. 8개 언어 i18n 지원. `enableAgentPolicy=true`로 활성화. **v4.3 확장**: Policy Engine + Bedrock Guardrails 통합 (Gateway 레벨에서 프롬프트 인젝션, PII, 유해 콘텐츠 실시간 감지/차단). `policyEngineMode`로 LOG_ONLY/ENFORCE 전환. InvokeGuardrailChecks API를 통한 청크 단위 인라인 안전성 검사 | AIStack, WebAppStack |
-| 19.1 | Web Search | AgentCore Gateway 경유 웹 검색 도구. 에이전트가 실시간 웹 정보를 인용(URL, 제목, 게시일) 포함하여 취득. FSx ONTAP 문서만으로 답변할 수 없는 경우의 보완 정보원. Zero data egress (AWS 환경 내 완결). `enableWebSearch=true`로 활성화 (`enableAgentCoreGateway=true` 필요) | AIStack |
+| 19.1 | Web Search | AgentCore Gateway 경유 웹 검색 도구. 에이전트가 실시간 웹 정보를 인용(URL, 제목, 게시일) 포함하여 취득. FSx for ONTAP 문서만으로 답변할 수 없는 경우의 보완 정보원. Zero data egress (AWS 환경 내 완결). `enableWebSearch=true`로 활성화 (`enableAgentCoreGateway=true` 필요) | AIStack |
 | 19.2 | AgentCore Optimization | 프로덕션 트레이스에서 에이전트 품질을 지속적으로 개선하는 루프 (Preview). Configuration Bundle (system prompt/model ID/tool descriptions 버전 관리, 코드 재배포 불필요), Recommendations (트레이스 분석 기반 개선안 자동 생성), A/B Testing (Gateway 트래픽 분할 + 통계적 유의성 검증). CDK는 Configuration Bundle + IAM 역할을 구축하고 Recommendations/A/B 테스트는 agentcore CLI/SDK로 실행. `enableAgentOptimization=true`로 활성화 (`enableAgentCoreGateway=true` 필요) | AIStack |
 | 20 | FSx ONTAP 운영 자동화 | Lambda + Step Functions를 사용한 FSx for ONTAP 운영 자동화. SnapMirror 페일오버/페일백 오케스트레이션(ASL), 용량 모니터링 및 자동 확장(EventBridge 5분 간격), ONTAP REST API 범용 실행기, AI/분석 데이터 전처리(S3 Access Point 경계). 이벤트 기반 의존성 없음, NFS 마운트 없음. 월 ~$2.60. [automation/fsxn-ops/](automation/fsxn-ops/) 참조 | CloudFormation (standalone) |
 
@@ -212,7 +300,7 @@ RAG 검색 결과는 FSx 파일 경로와 접근 레벨 배지(전체 접근 가
 | 1 | WafStack | us-east-1 | WAF WebACL, IP Set | CloudFront용 WAF (속도 제한, 관리형 규칙) |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups, VPC Endpoints (선택 사항) | 네트워크 인프라 |
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + OIDC IdP + Cognito Domain (Federation 활성화 시), Identity Sync Lambda (선택 사항), LDAP Health Check Lambda + CloudWatch Alarm (선택 사항), Auth Audit Log DynamoDB (선택 사항) | 인증 & 인가 (SAML/OIDC/이메일) |
-| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS 암호화 (선택 사항), CloudTrail (선택 사항) | 스토리지, SID 데이터, 권한 캐시 |
+| 4 | StorageStack | ap-northeast-1 | FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS 암호화 (선택 사항), CloudTrail (선택 사항) | 스토리지, SID 데이터, 권한 캐시 |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless (`vectorStoreType`으로 선택), Bedrock Guardrails (선택 사항) | RAG 검색 인프라 (Titan Embed v2) |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda (선택 사항), MonitoringConstruct (선택 사항) | 웹 애플리케이션, Agent 관리, 모니터링 & 알림 |
 | 7 | EmbeddingStack (선택 사항) | ap-northeast-1 | EC2 (m5.large), ECR, ONTAP ACL 자동 검색 (선택 사항) | FlexCache CIFS 마운트 + 임베딩 서버 |
@@ -266,7 +354,7 @@ RAG 시스템의 인증 방식(OIDC / LDAP / 이메일-비밀번호)과 AWS 관�
 
 | 파라미터 | 영향 | 위험 수준 | 사전 확인 |
 |----------|------|----------|----------|
-| `adPassword` | 새 AWS Managed Microsoft AD를 생성(FSx ONTAP용). AD 자체는 Identity Center에 영향을 주지 않음 — 아래 참고 사항 참조 | 🟡 중간 | 아래 "Managed AD에 대한 참고 사항" 참조 |
+| `adPassword` | 새 AWS Managed Microsoft AD를 생성(FSx for ONTAP용). AD 자체는 Identity Center에 영향을 주지 않음 — 아래 참고 사항 참조 | 🟡 중간 | 아래 "Managed AD에 대한 참고 사항" 참조 |
 | `enableAdFederation` | Cognito SAML IdP를 생성. RAG 로그인 화면에 "AD로 로그인" 버튼 추가 | 🟢 낮음 | 기존 Cognito User Pool이 없는지 확인 |
 | `enableVpcEndpoints` | VPC 엔드포인트를 생성. 기존 VPC 라우팅에 영향을 줄 수 있음 | 🟡 중간 | VPC 엔드포인트 한도 확인 |
 | `enableKmsEncryption` | KMS CMK를 생성. S3/DynamoDB 암호화 설정 변경 | 🟢 낮음 | 기존 KMS 키 수 확인 |
@@ -408,7 +496,7 @@ Cloud assembly schema version mismatch: Maximum schema version supported is 48.x
 **해결 방법**: 프로젝트 로컬 CDK CLI를 최신 버전으로 업데이트합니다.
 
 ```bash
-cd Permission-aware-RAG-FSxN-CDK
+cd Permission-aware-RAG-FSx for ONTAP-CDK
 npm install aws-cdk@latest
 npx cdk --version  # 업데이트된 버전 확인
 ```
@@ -454,7 +542,7 @@ EOF
 
 #### Active Directory 통합 (선택 사항)
 
-FSx ONTAP SVM을 Active Directory 도메인에 가입시키고 CIFS 공유에서 NTFS ACL(SID 기반)을 사용하려면 `cdk.context.json`에 다음을 추가합니다.
+FSx for ONTAP SVM을 Active Directory 도메인에 가입시키고 CIFS 공유에서 NTFS ACL(SID 기반)을 사용하려면 `cdk.context.json`에 다음을 추가합니다.
 
 ```bash
 cat > cdk.context.json << 'EOF'
@@ -762,7 +850,7 @@ SAML + OIDC 하이브리드 구성의 로그인 화면 (AD로 로그인 + Auth0�
 | `ontapSvmUuid` | (없음) | SVM UUID (`ontapMgmtIp`와 함께 사용) |
 | `ontapAdminSecretArn` | (없음) | ONTAP 관리자 비밀번호용 Secrets Manager ARN |
 | `useS3AccessPoint` | `false` | S3 Access Point를 Bedrock KB 데이터 소스로 사용 |
-| `volumeSecurityStyle` | `NTFS` | FSx ONTAP 볼륨 보안 스타일 (`NTFS` or `UNIX`) |
+| `volumeSecurityStyle` | `NTFS` | FSx for ONTAP 볼륨 보안 스타일 (`NTFS` or `UNIX`) |
 | `s3apUserType` | (자동) | S3 AP 사용자 유형 (`WINDOWS` or `UNIX`). 기본값: AD 설정 있음→WINDOWS, 없음→UNIX |
 | `s3apUserName` | (자동) | S3 AP 사용자 이름. 기본값: WINDOWS→`Admin`, UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | 전용 Lambda를 통한 SID 필터링 실행 (인라인 필터링 폴백 포함) |
@@ -814,7 +902,7 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 
 | 파라미터 | 설명 |
 |----------|------|
-| `existingFileSystemId` | 기존 FSx ONTAP 파일 시스템 ID (예: `fs-0123456789abcdef0`) |
+| `existingFileSystemId` | 기존 FSx for ONTAP 파일 시스템 ID (예: `fs-0123456789abcdef0`) |
 | `existingSvmId` | 기존 SVM ID (예: `svm-0123456789abcdef0`) |
 | `existingVolumeId` | 기존 볼륨 ID (예: `fsvol-0123456789abcdef0`) — **프라이머리 볼륨 1개** 를 지정 |
 
@@ -916,7 +1004,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 이 스크립트는 다음을 자동으로 수행합니다:
 1. S3 Access Point 생성 + 정책 구성
-2. FSx ONTAP에 데모 데이터 업로드 (S3 AP 경유)
+2. FSx for ONTAP에 데모 데이터 업로드 (S3 AP 경유)
 3. Bedrock KB 데이터 소스 추가 + 동기화
 4. DynamoDB에 사용자 SID 데이터 등록
 5. Cognito에 데모 사용자 생성 (admin / user)
@@ -974,7 +1062,7 @@ bash demo-data/scripts/cleanup-all.sh
 8. VPC 내 CDK 비관리 EC2 인스턴스 & SG 삭제 + Networking 스택 재삭제
 9. CDKToolkit + CDK 스테이징 S3 버킷 삭제 (양쪽 리전, 버전 관리 대응)
 
-> **참고**: FSx ONTAP 삭제에 20-30분이 걸리므로 총 약 30-40분 소요됩니다.
+> **참고**: FSx for ONTAP 삭제에 20-30분이 걸리므로 총 약 30-40분 소요됩니다.
 
 ## 문제 해결
 
@@ -1102,7 +1190,7 @@ aws cloudformation delete-stack --stack-name perm-rag-demo-demo-AI --region ap-n
 
 #### 문제 3: S3 Access Point가 연결되어 있으면 FSx 볼륨 삭제 실패
 
-S3 AP가 연결된 상태에서는 Storage 스택의 FSx ONTAP 볼륨을 삭제할 수 없습니다:
+S3 AP가 연결된 상태에서는 Storage 스택의 FSx for ONTAP 볼륨을 삭제할 수 없습니다:
 
 ```bash
 # S3 AP 분리 및 삭제
@@ -1288,14 +1376,14 @@ excludedRules: [
 
 ## 임베딩 서버 (선택 사항)
 
-FlexCache Cache 볼륨을 CIFS로 마운트하여 임베딩을 수행하는 EC2 서버입니다. FSx ONTAP S3 Access Point를 사용할 수 없는 경우(2026년 3월 기준 FlexCache Cache 볼륨에서 미지원)의 대체 경로로 사용됩니다.
+FlexCache Cache 볼륨을 CIFS로 마운트하여 임베딩을 수행하는 EC2 서버입니다. FSx for ONTAP S3 Access Point를 사용할 수 없는 경우(2026년 3월 기준 FlexCache Cache 볼륨에서 미지원)의 대체 경로로 사용됩니다.
 
 ### 데이터 수집 경로
 
-이 시스템은 단일 경로 아키텍처를 사용합니다: FSx ONTAP → S3 Access Point → Bedrock KB. Bedrock KB가 모든 문서 검색, 청킹, 벡터화, 저장을 관리합니다.
+이 시스템은 단일 경로 아키텍처를 사용합니다: FSx for ONTAP → S3 Access Point → Bedrock KB. Bedrock KB가 모든 문서 검색, 청킹, 벡터화, 저장을 관리합니다.
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   ├── public/company-overview.md
   ├── public/company-overview.md.metadata.json
   ├── confidential/financial-report.md
@@ -1312,7 +1400,7 @@ FSx ONTAP Volume (/data)
 ```
 
 Bedrock KB Ingestion Job이 수행하는 처리:
-1. S3 Access Point를 통해 FSx ONTAP에서 문서와 `.metadata.json` 읽기
+1. S3 Access Point를 통해 FSx for ONTAP에서 문서와 `.metadata.json` 읽기
 2. 문서 청킹
 3. Amazon Titan Embed Text v2(1024차원)로 벡터화
 4. 벡터 + 메타데이터(`allowed_group_sids` 포함)를 벡터 스토어에 저장
@@ -1349,12 +1437,12 @@ App → Bedrock KB Retrieve API → Vector Store (vector search)
 
 ### 임베딩 대상 문서 구성
 
-Bedrock KB에 임베딩되는 문서는 FSx ONTAP 볼륨의 파일 구조에 의해 결정됩니다.
+Bedrock KB에 임베딩되는 문서는 FSx for ONTAP 볼륨의 파일 구조에 의해 결정됩니다.
 
 #### 디렉토리 구조와 SID 메타데이터
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   ├── public/                          ← 모든 사용자 접근 가능
   │   ├── product-catalog.md           ← 문서 본문
   │   └── product-catalog.md.metadata.json  ← SID 메타데이터
@@ -1439,11 +1527,11 @@ CDK 코드에 다음 완화 조치가 구현되어 있습니다:
 
 | 경로 | 방법 | CDK 활성화 | 상태 |
 |------|------|-----------|------|
-| 메인 | FSx ONTAP → S3 Access Point → Bedrock KB → Vector Store | CDK 배포 후 `post-deploy-setup.sh` 실행 | ✅ |
+| 메인 | FSx for ONTAP → S3 Access Point → Bedrock KB → Vector Store | CDK 배포 후 `post-deploy-setup.sh` 실행 | ✅ |
 | 폴백 | 직접 S3 버킷 업로드 → Bedrock KB → Vector Store | 수동 (`upload-demo-data.sh`) | ✅ |
 | 대체 (선택 사항) | 임베딩 서버 (CIFS 마운트) → 직접 AOSS 기록 | `-c enableEmbeddingServer=true` | ✅ (AOSS 구성 전용) |
 
-> **폴백 경로**: FSx ONTAP S3 AP를 사용할 수 없는 경우(예: Organization SCP 제한), 문서 + `.metadata.json`을 S3 버킷에 직접 업로드하고 KB 데이터 소스로 구성할 수 있습니다. SID 필터링은 데이터 소스 유형에 의존하지 않습니다.
+> **폴백 경로**: FSx for ONTAP S3 AP를 사용할 수 없는 경우(예: Organization SCP 제한), 문서 + `.metadata.json`을 S3 버킷에 직접 업로드하고 KB 데이터 소스로 구성할 수 있습니다. SID 필터링은 데이터 소스 유형에 의존하지 않습니다.
 
 ### 임베딩 대상 문서의 수동 관리
 
@@ -1451,10 +1539,10 @@ CDK 배포 없이 임베딩 대상 문서를 추가, 수정, 삭제할 수 있�
 
 #### 문서 추가
 
-FSx ONTAP S3 Access Point 경유 (메인 경로):
+FSx for ONTAP S3 Access Point 경유 (메인 경로):
 
 ```bash
-# VPC 내 EC2 또는 WorkSpaces에서 SMB를 통해 FSx ONTAP에 파일 배치
+# VPC 내 EC2 또는 WorkSpaces에서 SMB를 통해 FSx for ONTAP에 파일 배치
 SVM_IP=<SVM_SMB_IP>
 smbclient //$SVM_IP/data -U 'demo.local\Admin%<PASSWORD>' \
   -c "cd public; put new-document.md; put new-document.md.metadata.json"
@@ -1533,7 +1621,7 @@ aws bedrock-agent start-ingestion-job \
 
 ### FSx for ONTAP 볼륨 임베딩 대상 관리
 
-기존 FSx ONTAP 볼륨을 Bedrock KB 임베딩 대상으로 추가하거나 제거하는 절차입니다. 볼륨 생성/삭제 자체는 FSx 관리자가 수행합니다.
+기존 FSx for ONTAP 볼륨을 Bedrock KB 임베딩 대상으로 추가하거나 제거하는 절차입니다. 볼륨 생성/삭제 자체는 FSx 관리자가 수행합니다.
 
 #### 볼륨을 임베딩 대상으로 추가
 
@@ -1607,7 +1695,7 @@ aws bedrock-agent list-data-sources \
   --region ap-northeast-1 \
   --query 'dataSourceSummaries[*].{name:name,id:dataSourceId,status:status}'
 
-# S3 AP 목록 (FSx ONTAP 볼륨과의 연결)
+# S3 AP 목록 (FSx for ONTAP 볼륨과의 연결)
 aws fsx describe-s3-access-point-attachments --region ap-northeast-1 \
   --query 'S3AccessPointAttachments[*].{Name:Name,Volume:OntapConfiguration.VolumeId,Status:Lifecycle}'
 ```
@@ -1774,7 +1862,7 @@ User              Next.js API             DynamoDB            Bedrock KB        
 │   ├── demo-waf-stack.ts             # WAF WebACL (us-east-1)
 │   ├── demo-networking-stack.ts      # VPC, Subnets, SG
 │   ├── demo-security-stack.ts        # Cognito
-│   ├── demo-storage-stack.ts         # FSx ONTAP + SVM + Volume, S3, DynamoDB×2, AD
+│   ├── demo-storage-stack.ts         # FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, AD
 │   ├── demo-ai-stack.ts             # Bedrock KB, S3 Vectors / OpenSearch Serverless
 │   ├── demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
 │   └── demo-embedding-stack.ts       # (선택 사항) 임베딩 서버 (FlexCache CIFS)
@@ -1840,13 +1928,13 @@ User              Next.js API             DynamoDB            Bedrock KB        
 | [docs/demo-environment-guide.md](docs/demo-environment-guide.md) | 검증 환경 설정 가이드 |
 | [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) | 문서 인덱스 (권장 읽기 순서) |
 | [demo-data/guides/demo-scenario.md](demo-data/guides/demo-scenario.md) | 검증 시나리오 (관리자 vs. 일반 사용자 권한 차이 확인) |
-| [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD 통합, CIFS 공유, NTFS ACL 구성 |
+| [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) | FSx for ONTAP + AD 통합, CIFS 공유, NTFS ACL 구성 |
 
-## FSx ONTAP + Active Directory 설정
+## FSx for ONTAP + Active Directory 설정
 
-FSx ONTAP AD 통합, CIFS 공유, NTFS ACL 구성 절차는 [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md)를 참조하세요.
+FSx for ONTAP AD 통합, CIFS 공유, NTFS ACL 구성 절차는 [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md)를 참조하세요.
 
-CDK 배포는 AWS Managed Microsoft AD와 FSx ONTAP(SVM + Volume)을 생성합니다. SVM AD 도메인 가입은 배포 후 CLI를 통해 실행됩니다 (타이밍 제어를 위해).
+CDK 배포는 AWS Managed Microsoft AD와 FSx for ONTAP(SVM + Volume)을 생성합니다. SVM AD 도메인 가입은 배포 후 CLI를 통해 실행됩니다 (타이밍 제어를 위해).
 
 ```bash
 # AD DNS IP 가져오기
@@ -2085,10 +2173,21 @@ Supervisor Agent는 `AgentCollaboration=SUPERVISOR_ROUTER`와 `AgentCollaborator
 
 | 리포지토리 | 용도 | 개요 |
 |-----------|------|------|
-| **[본 리포지토리] Agentic Access-Aware RAG** | AI / RAG | 권한 필터링 RAG + Agentic AI. FSx ONTAP ACL을 검색에 자동 반영 |
+| **[본 리포지토리] Agentic Access-Aware RAG** | AI / RAG | 권한 필터링 RAG + Agentic AI. FSx for ONTAP ACL을 검색에 자동 반영 |
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 자동화 | 17개 업종별 서버리스 패턴 (S3 AP 경유 AI/ML 처리, FPolicy 이벤트 구동 지원) |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | FSx ONTAP S3 AP를 통한 Athena, Glue, EMR, SageMaker 통합 검증 프레임워크 |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / 감사 | FSx ONTAP 감사 로그·메트릭을 Datadog, Splunk, Grafana 등에 EC2 없이 전달 |
+| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | FSx for ONTAP S3 AP를 통한 Athena, Glue, EMR, SageMaker 통합 검증 프레임워크 |
+| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / 감사 | FSx for ONTAP 감사 로그·메트릭을 Datadog, Splunk, Grafana 등에 EC2 없이 전달 |
+
+---
+
+## AWS 공식 리소스
+
+본 리포지토리의 Permission-aware RAG 패턴은 FSx for ONTAP S3 Access Points를 Bedrock Knowledge Bases의 데이터 소스로 구성하는 절차를 기반으로 구축되었습니다. 기반이 되는 공식 구성 절차는 아래를 참조하세요.
+
+| 리소스 | 내용 |
+|--------|------|
+| [Build a RAG application using Amazon Bedrock Knowledge Bases with FSx for ONTAP](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/tutorial-build-rag-with-bedrock.html) | FSx for ONTAP S3 Access Point를 Bedrock Knowledge Base 데이터 소스로 구성하는 단계별 튜토리얼 (~35-45분) |
+| [FSx for ONTAP S3 Access Points as an Amazon Bedrock Data Source](https://repost.aws/articles/AReKa8-o8XRGeVW2Nicbg1_w/fsxn-s3-access-points-as-an-amazon-bedrock-data-source) | S3 Access Points를 Bedrock 데이터 소스로 사용하는 실용적인 구성 가이드 (repost.aws 커뮤니티 가이드) |
 
 ---
 

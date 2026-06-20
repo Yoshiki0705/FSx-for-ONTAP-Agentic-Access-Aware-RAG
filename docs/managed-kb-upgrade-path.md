@@ -96,7 +96,7 @@ aws bedrock-agent create-data-source \
 | S3 AP は不可だが通常 S3 バケットなら可 | △ 条件付き | DataSync 等で S3 中継パスを検討（ACL メタデータ保持に追加検証必要） |
 | S3 コネクタ自体が同期失敗 | ❌ FAIL | 移行不成立。現行構成を維持 |
 
-> **本プロジェクトの想定**: S3 互換 API であれば接続可能と想定するが、S3 AP 固有の制約（[FSx ONTAP S3 AP 互換性マトリクス](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/ja/compatibility-matrix.md) 記載の ListObjectsV2 レイテンシ等）が Managed KB のクローラに影響する可能性がある。
+> **本プロジェクトの想定**: S3 互換 API であれば接続可能と想定するが、S3 AP 固有の制約（[FSx for ONTAP S3 AP 互換性マトリクス](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/ja/compatibility-matrix.md) 記載の ListObjectsV2 レイテンシ等）が Managed KB のクローラに影響する可能性がある。
 
 ### 2.2 検証 V2: メタデータの保持
 
@@ -279,7 +279,7 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 
 移行可否判断の前に、以下を全てクリアすること。
 
-- [ ] **V1**: S3 コネクタが FSx ONTAP S3 AP を認識（Phase A）
+- [ ] **V1**: S3 コネクタが FSx for ONTAP S3 AP を認識（Phase A）
 - [ ] **V2**: `allowed_group_sids` がメタデータとして保持（Phase A）
 - [ ] **V3**: `listContains` で SID 配列照合が機能（Phase B）
 - [ ] **V4**: Agentic Retrieval マルチホップ中もフィルタ維持（Phase B）

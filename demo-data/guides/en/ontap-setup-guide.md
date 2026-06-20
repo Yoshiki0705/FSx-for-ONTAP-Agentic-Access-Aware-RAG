@@ -1,4 +1,4 @@
-# FSx ONTAP + Active Directory Integration & CIFS Share Setup Guide
+# FSx for ONTAP + Active Directory Integration & CIFS Share Setup Guide
 
 **Last updated**: 2026-04-04
 
@@ -84,7 +84,7 @@ aws cloudformation deploy \
 - VPC Endpoints (5 required): `secretsmanager`, `fsx`, `monitoring`, `sns` (Interface) + `s3` (Gateway)
   - S3 Gateway endpoint must be associated with Lambda subnet route table
 - Secrets Manager: `{"username": "fsxadmin", "password": "xxx"}` format
-- fsxadmin password must match between Secrets Manager and FSx ONTAP
+- fsxadmin password must match between Secrets Manager and FSx for ONTAP
 
 ### Features
 
@@ -93,9 +93,9 @@ aws cloudformation deploy \
 | Capacity Monitoring | EventBridge 5-min interval, auto-expansion + SNS notification |
 | SnapMirror DR | Step Functions failover/failback orchestration |
 | ONTAP API Execution | Safe ONTAP REST API execution via Lambda |
-| Data Preprocessing | AI/analytics preprocessing via FSx ONTAP S3 Access Point |
+| Data Preprocessing | AI/analytics preprocessing via FSx for ONTAP S3 Access Point |
 
-### FSx ONTAP S3 Access Point
+### FSx for ONTAP S3 Access Point
 
 ```bash
 aws fsx create-and-attach-s3-access-point \
