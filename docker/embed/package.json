@@ -1,7 +1,7 @@
 {
   "name": "fsx-ontap-embedding",
   "version": "1.0.0",
-  "description": "Embedding server for FSx ONTAP CIFS-mounted documents → OpenSearch Serverless",
+  "description": "Embedding server for FSx for ONTAP CIFS-mounted documents → OpenSearch Serverless",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",

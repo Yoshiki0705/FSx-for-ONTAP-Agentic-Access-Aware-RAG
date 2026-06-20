@@ -38,16 +38,16 @@ dynamodb = boto3.resource(
 # Each tool maps to required permission level and optional scope constraints.
 # Permission levels: read < write < admin
 TOOL_PERMISSION_RULES: dict[str, dict[str, Any]] = {
-    # FSx ONTAP Operations — Read
+    # FSx for ONTAP Operations — Read
     "list_volumes": {"required_level": "read"},
     "get_capacity": {"required_level": "read"},
     "list_files": {"required_level": "read", "scope": "sid_matched_directory"},
     "get_file_metadata": {"required_level": "read", "scope": "sid_matched_file"},
-    # FSx ONTAP Operations — Write
+    # FSx for ONTAP Operations — Write
     "upload_file": {"required_level": "write", "scope": "sid_matched_directory"},
     "rename_file": {"required_level": "write", "scope": "sid_matched_file"},
     "update_metadata": {"required_level": "write", "scope": "sid_matched_file"},
-    # FSx ONTAP Operations — Admin
+    # FSx for ONTAP Operations — Admin
     "expand_volume": {"required_level": "admin"},
     "delete_file": {"required_level": "admin", "scope": "owner_only"},
     "modify_acl": {"required_level": "admin"},

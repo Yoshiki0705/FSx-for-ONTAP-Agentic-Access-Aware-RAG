@@ -1,18 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 #
-# FSx ONTAP S3 Access Point → Bedrock KB データソース セットアップスクリプト
+# FSx for ONTAP S3 Access Point → Bedrock KB データソース セットアップスクリプト
 #
 # 前提条件:
 #   1. CDKデプロイ完了（Storage + AI スタック）
 #   2. SVM が AD ドメインに参加済み
-#   3. FSx ONTAP ボリュームにドキュメント + .metadata.json が配置済み
+#   3. FSx for ONTAP ボリュームにドキュメント + .metadata.json が配置済み
 #
 # 使用方法:
 #   bash demo-data/scripts/setup-kb-datasource.sh
 #
 # このスクリプトが行うこと:
-#   1. S3 Access Point を FSx ONTAP ボリュームにアタッチ
+#   1. S3 Access Point を FSx for ONTAP ボリュームにアタッチ
 #   2. Bedrock KB に S3 AP データソースを追加
 #   3. データソース同期（Ingestion Job）を開始
 

@@ -361,7 +361,7 @@ if [ -z "$FSX_IDS" ]; then
   fi
 fi
 
-# さらにフォールバック: 全FSx ONTAPを確認
+# さらにフォールバック: 全FSx for ONTAPを確認
 if [ -z "$FSX_IDS" ]; then
   FSX_IDS=$(aws fsx describe-file-systems --region $REGION \
     --query "FileSystems[?FileSystemType=='ONTAP' && Lifecycle=='AVAILABLE'].FileSystemId" \

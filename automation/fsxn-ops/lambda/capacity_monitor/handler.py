@@ -2,7 +2,7 @@
 FSx for NetApp ONTAP 容量監視・自動拡張 Lambda
 
 EventBridge Scheduler (5分間隔) でトリガーされ、以下を実行する:
-1. FSx ONTAP ファイルシステムのストレージ容量使用率を監視
+1. FSx for ONTAP ファイルシステムのストレージ容量使用率を監視
 2. 各ボリュームの使用率を監視
 3. 閾値超過時に自動拡張を実行 (ガードレールモジュールで安全性を担保)
 4. SNS 通知を送信
@@ -151,7 +151,7 @@ def check_filesystem_capacity(
         grow_factor = 1 + (config["fs_grow_pct"] / 100)
         new_capacity_gib = int(storage_capacity_gib * grow_factor)
 
-        # FSx ONTAP の最小増分: 10% or 1 TiB
+        # FSx for ONTAP の最小増分: 10% or 1 TiB
         min_increase = max(int(storage_capacity_gib * 0.1), 1024)
         if new_capacity_gib - storage_capacity_gib < min_increase:
             new_capacity_gib = storage_capacity_gib + min_increase
@@ -364,7 +364,7 @@ def handler(event: dict, context: Any) -> dict[str, Any]:
     # 閾値超過時に通知
     if fs_result.get("exceeded") or exceeded_volumes:
         subject = (
-            f"⚠️ FSx ONTAP 容量警告 — {config['filesystem_id']}"
+            f"⚠️ FSx for ONTAP 容量警告 — {config['filesystem_id']}"
         )
         message_lines = [
             f"FSx for NetApp ONTAP 容量監視レポート",

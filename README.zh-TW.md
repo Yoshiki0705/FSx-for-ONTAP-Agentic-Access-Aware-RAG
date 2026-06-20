@@ -196,7 +196,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 | 19 | AgentCore Policy | 透過 AgentCore Policy 實現代理行為控制。使用自然語言策略定義限制代理的工具、API、MCP 伺服器存取。3種策略範本（安全優先、成本優先、彈性優先）。PolicyEvaluationMiddleware（3秒逾時、fail-open/fail-closed）。違規日誌（EMF 格式）及 CloudWatch 儀表板整合。8種語言 i18n 支援。透過 `enableAgentPolicy=true` 啟用。**v4.3 擴充**: Policy Engine + Bedrock Guardrails 整合（Gateway 層即時偵測/阻擋提示注入、PII、有害內容）。`policyEngineMode` 切換 LOG_ONLY/ENFORCE。InvokeGuardrailChecks API 實現逐塊內聯安全檢查 | AIStack, WebAppStack |
 | 19.1 | Web Search | 透過 AgentCore Gateway 的 Web 搜尋工具。代理取得即時 Web 資訊並附帶引用（URL、標題、發布日期）。當 FSx for ONTAP 文件無法完整回答時的補充資訊來源。Zero data egress（AWS 環境內完成處理）。透過 `enableWebSearch=true` 啟用（需要 `enableAgentCoreGateway=true`） | AIStack |
 | 19.2 | AgentCore Optimization | 從生產追蹤持續改進代理品質的循環（Preview）。Configuration Bundle（system prompt/model ID/tool descriptions 版本管理，無需重新部署程式碼）、Recommendations（基於追蹤分析自動產生改進建議）、A/B Testing（Gateway 流量分割 + 統計顯著性驗證）。CDK 建構 Configuration Bundle + IAM 角色，Recommendations/A/B 測試透過 agentcore CLI/SDK 執行。透過 `enableAgentOptimization=true` 啟用（需要 `enableAgentCoreGateway=true`） | AIStack |
-| 20 | FSx ONTAP 維運自動化 | 使用 Lambda + Step Functions 實現 FSx for ONTAP 維運自動化。SnapMirror 故障轉移/恢復編排（ASL）、容量監控與自動擴展（EventBridge 5分鐘間隔）、ONTAP REST API 通用執行器、AI/分析資料預處理（S3 Access Point 邊界）。無事件驅動依賴、無 NFS 掛載。月費約 $2.60。詳見 [automation/fsxn-ops/](automation/fsxn-ops/) | CloudFormation (standalone) |
+| 20 | FSx for ONTAP 維運自動化 | 使用 Lambda + Step Functions 實現 FSx for ONTAP 維運自動化。SnapMirror 故障轉移/恢復編排（ASL）、容量監控與自動擴展（EventBridge 5分鐘間隔）、ONTAP REST API 通用執行器、AI/分析資料預處理（S3 Access Point 邊界）。無事件驅動依賴、無 NFS 掛載。月費約 $2.60。詳見 [automation/fsxn-ops/](automation/fsxn-ops/) | CloudFormation (standalone) |
 
 #### v4.0.0 技術說明
 
@@ -892,7 +892,7 @@ SAML + OIDC 混合配置的登入頁面（AD 登入 + Auth0 登入 + 電子郵�
 
 #### 使用現有的 FSx for ONTAP
 
-如果 FSx for ONTAP 檔案系統已存在，您可以參考現有資源而非建立新的。這可大幅縮短部署時間（省去 FSx ONTAP 建立的 30-40 分鐘等待）。
+如果 FSx for ONTAP 檔案系統已存在，您可以參考現有資源而非建立新的。這可大幅縮短部署時間（省去 FSx for ONTAP 建立的 30-40 分鐘等待）。
 
 ```bash
 npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \

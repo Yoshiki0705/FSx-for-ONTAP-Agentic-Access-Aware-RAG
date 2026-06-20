@@ -1,5 +1,5 @@
 """
-Guardrails Module — expansion safety checks for FSx ONTAP auto-expansion.
+Guardrails Module — expansion safety checks for FSx for ONTAP auto-expansion.
 
 Per-action rate limiting, daily cumulative cap, and cooldown period enforcement
 using DynamoDB for persistent state tracking. Emits CloudWatch custom metrics
@@ -452,7 +452,7 @@ def _publish_break_glass_notification(
         sns_client = boto3.client("sns")
         sns_client.publish(
             TopicArn=config.sns_topic_arn,
-            Subject="[BREAK_GLASS] FSx ONTAP Guardrail Bypassed",
+            Subject="[BREAK_GLASS] FSx for ONTAP Guardrail Bypassed",
             Message=(
                 f"BREAK_GLASS mode activated.\n\n"
                 f"Resource ID: {resource_id}\n"

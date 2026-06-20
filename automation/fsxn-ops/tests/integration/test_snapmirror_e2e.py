@@ -1,7 +1,7 @@
 """
 SnapMirror E2E テスト Lambda
 
-同一 FSx ONTAP クラスタ内でテスト用ボリュームを作成し、
+同一 FSx for ONTAP クラスタ内でテスト用ボリュームを作成し、
 SnapMirror 関係の作成→転送→ブレーク→再同期→クリーンアップを
 一連のフローとしてテストする。
 

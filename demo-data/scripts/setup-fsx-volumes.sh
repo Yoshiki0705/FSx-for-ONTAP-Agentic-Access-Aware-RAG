@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# FSx ONTAPボリューム設定スクリプト
+# FSx for ONTAPボリューム設定スクリプト
 # ONTAP REST APIを使用してSVM・ボリュームを作成する
 
 # 設定
@@ -10,7 +10,7 @@ ONTAP_USER="${ONTAP_ADMIN_USER:-fsxadmin}"
 ONTAP_PASS="${ONTAP_ADMIN_PASSWORD:?環境変数 ONTAP_ADMIN_PASSWORD を設定してください}"
 
 echo "=========================================="
-echo "FSx ONTAP ボリューム設定"
+echo "FSx for ONTAP ボリューム設定"
 echo "=========================================="
 echo "Management Endpoint: ${FSX_MGMT_ENDPOINT}"
 echo ""

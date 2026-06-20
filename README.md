@@ -325,7 +325,7 @@ Phase 0-5 の統合により期待される効果:
 | 19 | AgentCore Policy | AgentCore Policy によるエージェント行動制御。自然言語ポリシー定義でエージェントのツール・API・MCP サーバーアクセスを制限。3 種類のポリシーテンプレート（セキュリティ重視・コスト重視・柔軟性重視）。PolicyEvaluationMiddleware（3 秒タイムアウト、fail-open/fail-closed）。違反ログ（EMF 形式）・CloudWatch ダッシュボード統合。8 言語 i18n 対応。`enableAgentPolicy=true` で有効化。**v4.3 拡張**: Policy Engine + Bedrock Guardrails 統合（Gateway レベルでプロンプトインジェクション・PII・有害コンテンツをリアルタイム検出/ブロック）。`policyEngineMode` で LOG_ONLY/ENFORCE 切替。InvokeGuardrailChecks API によるチャンク単位のインライン安全性チェック | AIStack, WebAppStack |
 | 19.1 | Web Search | AgentCore Gateway 経由の Web 検索ツール。エージェントがリアルタイムの Web 情報を引用（URL・タイトル・公開日）付きで取得。FSx for ONTAP ドキュメントだけでは回答できない場合の補完情報源。Zero data egress（AWS 環境内完結）。`enableWebSearch=true` で有効化（`enableAgentCoreGateway=true` が前提条件） | AIStack |
 | 19.2 | AgentCore Optimization | 本番トレースからエージェント品質を継続的に改善するループ（Preview）。Configuration Bundle（system prompt/model ID/tool descriptions のバージョン管理、コード再デプロイ不要）、Recommendations（トレース分析による改善案自動生成）、A/B Testing（Gateway トラフィック分割 + 統計的有意性検証）。CDK は Configuration Bundle + IAM ロールを構築、Recommendations/A/B テストは agentcore CLI/SDK で実行。`enableAgentOptimization=true` で有効化（`enableAgentCoreGateway=true` が前提条件） | AIStack |
-| 20 | FSx ONTAP 運用自動化 | Lambda + Step Functions による FSx for ONTAP 運用自動化。SnapMirror フェイルオーバー/フェイルバック自動化（ASL 定義）、容量監視・自動拡張（EventBridge 5分間隔）、Capacity Guardrails（DynamoDB 永続追跡、日次上限、クールダウン、CloudWatch Dashboard）、ONTAP REST API 汎用実行、AI/分析向けデータ前処理（S3 Access Point 境界）。イベント駆動不要・NFS マウント不要。月額 ~$2.60。詳細は [automation/fsxn-ops/](automation/fsxn-ops/) を参照 | CloudFormation (standalone) |
+| 20 | FSx for ONTAP 運用自動化 | Lambda + Step Functions による FSx for ONTAP 運用自動化。SnapMirror フェイルオーバー/フェイルバック自動化（ASL 定義）、容量監視・自動拡張（EventBridge 5分間隔）、Capacity Guardrails（DynamoDB 永続追跡、日次上限、クールダウン、CloudWatch Dashboard）、ONTAP REST API 汎用実行、AI/分析向けデータ前処理（S3 Access Point 境界）。イベント駆動不要・NFS マウント不要。月額 ~$2.60。詳細は [automation/fsxn-ops/](automation/fsxn-ops/) を参照 | CloudFormation (standalone) |
 | 21 | KB Auto-Sync | EventBridge Scheduler ポーリングによる FSx for ONTAP S3 AP ファイル変更検出 + Bedrock KB StartIngestionJob 自動トリガー。ListObjectsV2 → DynamoDB インベントリ差分比較 → 変更検出時のみインジェスション実行。CloudWatch EMF メトリクス（`KbAutoSync` 名前空間）+ 3回連続エラー Alarm。IN_PROGRESS ジョブ重複排除。`enableKbAutoSync=true` で有効化 | AIStack (KbAutoSyncConstruct) |
 | 22 | Transfer Family FSx for ONTAP インジェスション | AWS Transfer Family SFTP サーバー経由のドキュメントアップロード → FSx for ONTAP S3 AP → 自動 KB インジェスション。ポーリング/CloudTrail 2モード対応。権限メタデータ自動生成。`enableTransferFamily=true` で有効化 | DemoTransferFamilyStack |
 
@@ -1080,7 +1080,7 @@ SAML + OIDC ハイブリッド構成のサインイン画面（ADでサインイ
 
 #### 既存FSx for ONTAPの利用
 
-既にFSx for ONTAPファイルシステムが存在する場合、新規作成せずに既存リソースを参照できます。これによりデプロイ時間が大幅に短縮されます（FSx ONTAP作成の30-40分待ちが不要）。
+既にFSx for ONTAPファイルシステムが存在する場合、新規作成せずに既存リソースを参照できます。これによりデプロイ時間が大幅に短縮されます（FSx for ONTAP作成の30-40分待ちが不要）。
 
 ```bash
 npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
