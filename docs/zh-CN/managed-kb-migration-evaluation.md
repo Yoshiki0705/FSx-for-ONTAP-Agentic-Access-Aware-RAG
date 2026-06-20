@@ -57,7 +57,7 @@
 | 视角 | 现行 (Custom: Bedrock KB + OpenSearch Serverless / S3 Vectors) | Managed KB |
 |------|--------------------------------------------------------------|------------|
 | 向量存储运维 | 自行管理（AOSS 的 OCU 设计 / S3 Vectors index 管理） | 完全托管（无需预置） |
-| 数据源 | FSx ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | 经由 S3 连接器（S3 AP 连接待验证） |
+| 数据源 | FSx for ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | 经由 S3 连接器（S3 AP 连接待验证） |
 | 解析·分块 | 通过 `kbChunkingStrategy` 手动选择 (FIXED/HIERARCHICAL/SEMANTIC/NONE) | Smart Parsing 自动选择（可自定义） |
 | 嵌入模型 | 部署时固定 (`embeddingModel`，更改需重建) | 默认自动选择 + 可选指定 Bedrock 模型 |
 | 检索 | 单次 Retrieve + 应用端 SID 过滤 | `Retrieve`（单次混合）+ `AgenticRetrieveStream`（多跳） |
@@ -142,7 +142,7 @@ Bedrock KB Retrieve API → 检索结果 + 元数据(allowed_group_sids)
 
 | # | 验证项目 | 本项目的假设 | 风险 |
 |---|---------|-------------|------|
-| V1 | S3 连接器能否将 **FSx ONTAP S3 Access Point** 作为数据源（alias 格式·IAM 边界） | 假设 S3 兼容则可连接 | 无法连接则迁移本身不成立 |
+| V1 | S3 连接器能否将 **FSx for ONTAP S3 Access Point** 作为数据源（alias 格式·IAM 边界） | 假设 S3 兼容则可连接 | 无法连接则迁移本身不成立 |
 | V2 | `.metadata.json` 的 `allowed_group_sids` 是否在 Managed KB 索引中**作为元数据保留** | 假设保留 | 不保留则无法 ACL 过滤 |
 | V3 | `Retrieve` 的 `filter` 是否支持 **`listContains` 的 SID 数组匹配** | 假设可用 | 不可用则切换到 userContext 方式 |
 | V4 | `userContext` 方式在 **S3 连接器摄取的数据**中是否有效（是否仅限 SaaS 连接器） | S3 是否有效不明 | S3 无效则依赖 filter 方式 |
@@ -150,7 +150,7 @@ Bedrock KB Retrieve API → 检索结果 + 元数据(allowed_group_sids)
 | V6 | 托管存储中**权限变更·删除·重命名的反映延迟**是否在可接受范围 | 期望与现有同等的即时性 | 反映延迟导致旧权限数据残留的风险 |
 | V7 | 对话历史·缓存的 **ACL 应用**是否维持 | 应用端维持 | Managed 端缓存的行为不明 |
 
-> ⚠️ **不可让步**: 若 V2、V3（或 V4）、V5 中任一未满足，因**权限外数据可能混入检索结果**，迁移为 **BLOCKED**。这违反 FSxN AI/RAG 架构审查的不可让步要求（"权限外数据可能混入 vector search 结果的设计""无对传递给 LLM 的 context 进行授权检查的设计"）。
+> ⚠️ **不可让步**: 若 V2、V3（或 V4）、V5 中任一未满足，因**权限外数据可能混入检索结果**，迁移为 **BLOCKED**。这违反 FSx for ONTAP AI/RAG 架构审查的不可让步要求（"权限外数据可能混入 vector search 结果的设计""无对传递给 LLM 的 context 进行授权检查的设计"）。
 
 ### 4.3 维持纵深防御
 
@@ -206,7 +206,7 @@ Bedrock KB Retrieve API → 检索结果 + 元数据(allowed_group_sids)
 在做出迁移判断前，请清除以下所有项。
 
 ### 数据基础
-- [ ] V1: S3 连接器可将 FSx ONTAP S3 AP 注册为数据源
+- [ ] V1: S3 连接器可将 FSx for ONTAP S3 AP 注册为数据源
 - [ ] 使用 Snapshot / FlexClone 的一致数据执行 PoC
 - [ ] 不将生产数据直接作为重度爬取对象
 
@@ -249,7 +249,7 @@ Bedrock KB Retrieve API → 检索结果 + 元数据(allowed_group_sids)
 - 然而，本项目的**最优先要求是 Permission-aware RAG 的 ACL 严格应用**，而托管存储中的 SID 过滤行为**尚未验证**。
 - `userContext`（应用显式提供·与模型无关）与 `listContains` filter 方向一致，因此**视验证情况，迁移完全可行**。
 
-> 本文档为评估资料。实际迁移应在经过上述验证并获得相关审查（FSxN AI/RAG 架构审查）批准后实施。
+> 本文档为评估资料。实际迁移应在经过上述验证并获得相关审查（FSx for ONTAP AI/RAG 架构审查）批准后实施。
 
 ---
 

@@ -144,7 +144,7 @@ StorageStack은 `existingFileSystemId`/`existingSvmId`/`existingVolumeId` 파라
 
 | # | 검증 항목 | 상태 |
 |---|----------|------|
-| V1 | S3 커넥터가 FSx ONTAP S3 Access Point를 인식하는가 | 미검증 |
+| V1 | S3 커넥터가 FSx for ONTAP S3 Access Point를 인식하는가 | 미검증 |
 | V2 | `.metadata.json`의 `allowed_group_sids`가 인덱스에 보존되는가 | 미검증 |
 | V3 | `filter`의 `listContains`로 SID 배열 대조가 작동하는가 | 미검증 |
 | V4 | Agentic Retrieval 멀티홉 중 필터가 유지되는가 | 미검증 |

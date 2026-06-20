@@ -16,6 +16,81 @@ Hauptmerkmale:
 - **Managed KB-bereit**: Amazon Bedrock Managed Knowledge Base (Agentic Retriever / Multi-Hop-Suche) wird als parallele Option validiert ([Bewertungsdokument](docs/de/managed-kb-migration-evaluation.md))
 ---
 
+## Was dieses System verändert
+
+| | Vorher | Nachher |
+|---|--------|---------|
+| **Dokumentensuche** | Manuelle Suche in Dateifreigaben (~15 Min./Anfrage) | KI antwortet sofort im Berechtigungsrahmen des Benutzers (Sekunden) |
+| **Berechtigungen** | Suchsystem und Berechtigungsverwaltung getrennt; Datenleck-Risiko | NTFS ACL / UNIX-Berechtigungen werden automatisch auf die RAG-Suche angewendet |
+| **Partnerzusammenarbeit** | Dateiaustausch per E-Mail, manuelle KB-Aktualisierungen | SFTP → automatische Aufnahme → sofort über RAG durchsuchbar |
+| **Kosten** | Alle Anfragen nutzen leistungsstarke Modelle | Smart Routing leitet einfache Anfragen automatisch an kostengünstige Modelle weiter |
+| **Mehrsprachigkeit** | Oberfläche nur auf Japanisch oder Englisch | 8-Sprachen-Oberfläche mit automatischer Antwort in der Benutzersprache |
+
+**Quantitative Auswirkung (basierend auf PoC)**: Reduktion der Suchzeit um 50%+, Erstantwortrate von 60%+, 0 Berechtigungsverletzungen
+
+> **Hinweis**: Die Einsparungen durch Smart Routing hängen von den Anfragemuster ab. In der Demoumgebung wurden 60-80% der Anfragen als einfach klassifiziert (mit Haiku), was eine Reduktion der Token-Kosten um ca. 40-60% ergab. Messen Sie die Auswirkungen in der Produktion mit dem [RAG/Agent-Bewertungsframework](docs/de/evaluation.md).
+
+---
+
+## Branchenspezifische Anwendungsfälle
+
+| Branche | Kundenherausforderung | Lösung mit diesem System | Erwartete Auswirkung |
+|---------|----------------------|--------------------------|---------------------|
+| **Industrie** | Konstruktionsdokumente über Abteilungen verstreut | RAG-Suche nach Abteilung × Projekt × Klassifikation mit Berechtigungsverwaltung | 60% Reduktion der Vorbereitungszeit für Design-Reviews |
+| **Finanzdienstleistungen** | Manuelle Zugriffsverwaltung für regulatorische Dokumente; Leckrisiko | Automatische Berechtigungsfilterung nach Rolle × Abteilung | 50% Reduktion des Compliance-Prüfungsaufwands |
+| **Öffentlicher Sektor** | Langsame behördenübergreifende Dokumentensuche | Berechtigungsgesteuerte Suche nach Amt × Position × Klassifikation | 70% Reduktion der Recherchzeit für Richtlinien |
+| **Gesundheitswesen** | Klinische Verfahren und Forschung abteilungsweise isoliert | Abteilungsübergreifende Suche mit Berechtigungen nach Fachgebiet × Rolle | 50% Reduktion der Recherchezeit für klinische Entscheidungshilfe |
+| **Rechtswesen** | Komplexe fallweise Vertragsverwaltung; schwierige Mandantentrennung | RAG mit Trennung nach Akte × Anwalt × Mandant | 40% Reduktion der Vertragsprüfungszeit |
+| **Bildung** | Forschungsmaterialien innerhalb von Fakultäten eingeschlossen | Berechtigungskontrolle nach Fakultät × Personal/Studenten × Forschungsgruppe | 55% Reduktion der Materialrecherchezeit |
+| **Versicherung** | Komplexe Zugriffskontrolle für Schadens- und Betrugsmeldungen | Automatische Filterung nach Abteilung × Akte × Klassifikation | 30% Verbesserung der Schadenbearbeitungseffizienz |
+
+> Branchenspezifische Demo-Datenpakete (7 Branchen × 5 Dokumente) sind enthalten. → [demo-data/industry-packs/](demo-data/industry-packs/)
+
+---
+
+## Responsible AI Erklärung
+
+Die KI-Ausgaben dieses Systems sind **unterstützende Signale** und ersetzen nicht die abschließende Entscheidungsfindung.
+
+- KI-Antworten sind Referenzinformationen. Endgültige Geschäftsentscheidungen müssen immer von einer verantwortlichen Person getroffen werden
+- Die Berechtigungsfilterung ist eine technische Zugriffskontrolle und ersetzt keine rechtlichen/Compliance-Beurteilungen
+- Die Nutzung in regulierten Workloads (Gesundheitswesen, Finanzen, öffentlicher Sektor) erfordert eine kundenspezifische rechtliche/Compliance-Bewertung
+- Alle Beispieldaten in diesem Repository sind fiktive Demodaten. Konsultieren Sie den [Leitfaden für sicheres Experimentieren](docs/de/safe-experimentation-guide.md) vor dem Laden von Produktionsdaten
+- Die Pflege von Audit-Trails, die Identifizierung von Dateneignern und die Gestaltung von Genehmigungsworkflows liegt in der Verantwortung des Kunden
+
+Siehe [Governance und Audit](docs/de/governance-and-audit.md) für weitere Details.
+
+---
+
+## PoC-Reisekarte
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│ 1. Testen   │    │ 2. Validie- │    │ 3. Bewerten │    │ 4. Entschei-│
+│  (1 Tag)    │───▶│  ren (2-4W) │───▶│  (1 Woche)  │───▶│  den (Go/   │
+└─────────────┘    └─────────────┘    └─────────────┘    │  No-Go)     │
+│                  │                  │                  └─────────────┘
+├ Mit Demodaten    ├ Echte Daten      ├ KPIs messen      ├ Entscheidung
+│ bestätigen       │ laden            ├ Benutzer-         │ des Business-
+├ Berechtigungs-   ├ IdP anbinden    │ feedback          │ Sponsors
+│ unterschied      ├ Berechtigungs-  ├ Genauigkeit,     ├ Kriterien für
+│ feststellen      │ design          │ Geschwindigkeit   │ nächste Phase
+├ 90-Min-Workshop  │ validieren      │ & Sicherheit     │ bestätigen
+▼                  ▼                  ▼                  ▼
+[Workshop-Guide]   [Guide Sicheres   [Bewertungs-       [PoC-Erfolgs-
+                    Experimentieren]  framework]          kriterien]
+```
+
+| Phase | Dauer | AWS-Kosten | Ergebnis | Dokumentation |
+|-------|-------|-----------|----------|---------------|
+| 1. Testen | 1 Tag | ~10 $ | Funktionsfähige Demo bestätigt | [PoC Workshop Guide](docs/de/poc-workshop-guide.md) |
+| 2. Validieren | 2-4 Wochen | ~430 $/Monat | Funktion mit echten Daten bestätigt | [Leitfaden für sicheres Experimentieren](docs/de/safe-experimentation-guide.md) |
+| 3. Bewerten | 1 Woche | — | KPI-Messergebnisse | [RAG/Agent-Bewertungsframework](docs/de/evaluation.md) |
+| 4. Entscheiden | — | — | Go/No-Go-Entscheidung | [PoC-Erfolgskriterien-Vorlage](docs/de/poc-success-criteria-template.md) |
+| 5. Produktion | 2-4 Wochen | Nach Konfig. | Produktionsumgebung | [Produktionsbereitschafts-Checkliste](docs/de/production-readiness-checklist.md) |
+
+---
+
 ## Quick Start
 
 ```bash
@@ -78,6 +153,52 @@ Dieses Beispiel enthält zusätzliche Leitfäden für die Bewertung und den Betr
 
 ---
 
+## FSx for ONTAP S3 Access Points — Einschränkungen und validierte Muster
+
+Dieses Projekt nutzt die S3 Access Points von FSx for ONTAP. Für die vollständige Kompatibilitätsmatrix, validierte Muster und bekannte Einschränkungen (bestätigt mit AWS Support, Mai 2026), siehe:
+
+📋 **[FSx for ONTAP S3 AP Kompatibilitätsmatrix](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)**
+
+Wesentliche Einschränkungen für dieses Projekt:
+
+| Einschränkung | Auswirkung | Workaround |
+|--------------|------------|------------|
+| Keine bedingten Schreibvorgänge (If-None-Match) | Transaktionale Schreibvorgänge von Delta Lake/Iceberg/Hudi blockiert | Nur-Lese-Analytik oder DataSync → S3 für Schreiblasten |
+| Keine S3-Ereignisbenachrichtigungen | Snowpipe Auto-Ingest, Auto Loader Benachrichtigungsmodus nicht verfügbar | FPolicy → Lambda, geplantes Polling oder Snowpipe REST API |
+| Kein SnapMirror S3 | Replikation eines ONTAP S3-Buckets zu AWS S3 nicht möglich | DataSync (NFS → S3) als validierter Synchronisierungsmechanismus nutzen |
+| ListObjectsV2 hohe Latenz | 30-80x langsamer als natives S3 bei kleinen Verzeichnissen | Dateilisten vorab generieren, größere Dateien verwenden oder Ergebnisse cachen |
+| Nur SSE-FSX-Verschlüsselung | SSE-S3, SSE-KMS, SSE-C nicht unterstützt | SSE-FSX standardmäßig verwenden (transparent, AWS KMS-verwaltet) |
+| Kein Objekt-Versionierung | S3-Versionierung nicht verfügbar | ONTAP Snapshots für zeitpunktbasierte Wiederherstellung nutzen |
+| Presigned URLs: nicht offiziell unterstützt | Funktioniert in der Praxis, aber nicht garantiert | Nur für unkritische Pfade verwenden; IAM-basierten Zugriff bevorzugen |
+| ONTAP 9.17.1+ erforderlich | Mindestversion für S3 Access Points | ONTAP-Version des FSx-Dateisystems vor dem Deployment prüfen |
+
+Für die vollständige Matrix einschließlich plattformspezifischer Kompatibilität (Athena, Glue, EMR, Databricks, Snowflake, Bedrock), siehe das [vollständige Dokument](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md).
+
+---
+
+## Roadmap
+
+### Integration der AI-Updates 2026 Q2 — v4.3.0 ✅ Abgeschlossen
+
+Die Integration der AWS AI-Updates von März bis Juni 2026 ist abgeschlossen und in der Produktion verifiziert. Siehe [2026 Q2 AI Update Roadmap](docs/design/2026q2-ai-update-roadmap.md) und [CHANGELOG](CHANGELOG.md) für Details.
+
+| Phase | Inhalt | Status |
+|-------|--------|--------|
+| Phase 0 | Model ID-Update (Opus 4.8, Sonnet 4.6, Nova 2 Lite) + Inference Profile-Auflösung | ✅ Verifiziert |
+| Phase 1 | Prompt Caching (Messages API) + System Prompt 1161 Tokens | ✅ Cache Hit Bestätigt |
+| Phase 2 | AgentCore Gateway + Permission Interceptor | ✅ Abgeschlossen |
+| Phase 3 | Claude Platform auf AWS (Web Search, Citations) + Permission Badges | ✅ UX-001 Behoben |
+| Phase 4 | Multimodal KB + Graph RAG (Neptune Analytics) | ✅ Abgeschlossen |
+| Phase 5 | Modell-Distillation-Pipeline | ✅ Abgeschlossen |
+
+#### Zukünftige Verbesserungen
+
+- [ ] Produktionstest des Multi-Agent-Modus (Supervisor)
+- [ ] Unterstützung von Inference Profiles für Agent foundationModel (ausstehend auf AWS API-Update)
+- [ ] P99-Latenzmessung des Gateway Interceptor
+
+---
+
 ## Implementierungsübersicht (15 Perspektiven)
 
 Die Implementierung dieses Systems ist in 15 Perspektiven organisiert. Details zu jedem Punkt finden Sie unter [docs/implementation-overview.md](docs/implementation-overview.md).
@@ -88,7 +209,7 @@ Die Implementierung dieses Systems ist in 15 Perspektiven organisiert. Details z
 | 2 | AWS WAF | 6-Regel-Konfiguration: Ratenbegrenzung, IP-Reputation, OWASP-konforme Regeln, SQLi-Schutz, IP-Whitelist | WafStack |
 | 3 | IAM-Authentifizierung | Mehrschichtige Sicherheit mit Lambda Function URL + CloudFront OAC | WebAppStack |
 | 4 | Vektordatenbank | S3 Vectors (Standard, kostengünstig) / OpenSearch Serverless (Hochleistung). Auswahl über `vectorStoreType` | AIStack |
-| 5 | Embedding-Server | Vektorisiert Dokumente auf EC2 mit über CIFS/SMB gemountem FSx ONTAP-Volume und schreibt in AOSS (nur AOSS-Konfiguration) | EmbeddingStack |
+| 5 | Embedding-Server | Vektorisiert Dokumente auf EC2 mit über CIFS/SMB gemountem FSx for ONTAP-Volume und schreibt in AOSS (nur AOSS-Konfiguration) | EmbeddingStack |
 | 6 | Titan Text Embeddings | Verwendet `amazon.titan-embed-text-v2:0` (1024 Dimensionen) sowohl für die KB-Aufnahme als auch den Embedding-Server | AIStack |
 | 7 | SID-Metadaten + Berechtigungsfilterung | Verwaltet NTFS ACL SID-Informationen über `.metadata.json` und filtert durch Abgleich der Benutzer-SIDs bei der Suche | StorageStack |
 | 8 | KB/Agent-Moduswechsel | Umschalten zwischen KB-Modus (Dokumentensuche) und Agent-Modus (mehrstufiges Reasoning). Agent-Verzeichnis (`/genai/agents`) für katalogbasierte Agent-Verwaltung, Vorlagenerstellung, Bearbeitung und Löschung. Dynamische Agent-Erstellung und Kartenbindung. Ergebnisorientierte Workflows (Präsentationen, Genehmigungsdokumente, Besprechungsprotokolle, Berichte, Verträge, Onboarding). 8-Sprachen-i18n-Unterstützung. Berechtigungsbewusst in beiden Modi | WebAppStack |
@@ -103,7 +224,7 @@ Die Implementierung dieses Systems ist in 15 Perspektiven organisiert. Details z
 | 17 | Guardrails Organizational Safeguards | Bedrock Guardrails-Erweiterung. Detaillierte Konfiguration von Inhaltsfilter-Stärke, Themenrichtlinien und PII-Erkennung über den CDK-Parameter `guardrailsConfig`. Erkennung und Anzeige von AWS Organizations Organizational Safeguards. GuardrailsStatusBadge (✅ safe / ⚠️ filtered) bei Chat-Antworten. Interventionsprotokolle (strukturiertes JSON), EMF-Metriken, CloudWatch-Dashboard-Integration. Schreibgeschütztes GuardrailsAdminPanel für Administratoren. Fail-Open-Fehlerbehandlung. Aktivieren mit `enableGuardrails=true` + `guardrailsConfig` | AIStack, WebAppStack |
 | 18 | Sprach-Chat (Nova Sonic) | Sprachinteraktion über Amazon Nova Sonic. Browser-Mikrofoneingabe → Nova Sonic (Speech-to-Speech) → gleichzeitige Text- + Audioausgabe. Integration mit bestehender RAG-Pipeline (inkl. Permission Filter). Unterstützt KB- und Agent-Modi. Wellenform-Animation, 30s Stille-Timeout, automatische Wiederverbindung (max. 3 Versuche), Text-Fallback. 8-Sprachen i18n-Unterstützung. Aktivieren mit `enableVoiceChat=true`. Geschätzte Kosten: $70–$100/Monat | AIStack, WebAppStack |
 | 19 | AgentCore Policy | Agenten-Verhaltenssteuerung über AgentCore Policy. Richtliniendefinition in natürlicher Sprache zur Einschränkung des Zugriffs auf Tools, APIs und MCP-Server. 3 Richtlinienvorlagen (Sicherheit, Kosten, Flexibilität). PolicyEvaluationMiddleware (3s Timeout, fail-open/fail-closed). Verletzungsprotokolle (EMF-Format) und CloudWatch-Dashboard-Integration. 8-Sprachen i18n. Aktivieren mit `enableAgentPolicy=true`. **v4.3 Erweiterung**: Policy Engine + Bedrock Guardrails Integration (Echtzeit-Erkennung/Blockierung von Prompt-Injection, PII und schädlichen Inhalten auf Gateway-Ebene). `policyEngineMode` für LOG_ONLY/ENFORCE-Umschaltung. InvokeGuardrailChecks API für Inline-Sicherheitsprüfung pro Chunk | AIStack, WebAppStack |
-| 19.1 | Web Search | Web-Suche-Tool über AgentCore Gateway. Agenten rufen Echtzeit-Webinformationen mit Zitaten (URL, Titel, Veröffentlichungsdatum) ab. Ergänzende Informationsquelle, wenn FSx ONTAP-Dokumente nicht ausreichen. Zero Data Egress (Verarbeitung innerhalb der AWS-Umgebung). Aktivieren mit `enableWebSearch=true` (erfordert `enableAgentCoreGateway=true`) | AIStack |
+| 19.1 | Web Search | Web-Suche-Tool über AgentCore Gateway. Agenten rufen Echtzeit-Webinformationen mit Zitaten (URL, Titel, Veröffentlichungsdatum) ab. Ergänzende Informationsquelle, wenn FSx for ONTAP-Dokumente nicht ausreichen. Zero Data Egress (Verarbeitung innerhalb der AWS-Umgebung). Aktivieren mit `enableWebSearch=true` (erfordert `enableAgentCoreGateway=true`) | AIStack |
 | 19.2 | AgentCore Optimization | Kontinuierliche Verbesserungsschleife für Agentenqualität aus Produktions-Traces (Preview). Configuration Bundle (versionierte system prompt/model ID/tool descriptions, ohne Code-Redeployment), Recommendations (KI-generierte Verbesserungen aus Trace-Analyse), A/B Testing (Gateway-Traffic-Splitting + statistische Signifikanz). CDK stellt Configuration Bundle + IAM-Rolle bereit; Recommendations/A/B-Tests laufen über agentcore CLI/SDK. Aktivieren mit `enableAgentOptimization=true` (erfordert `enableAgentCoreGateway=true`) | AIStack |
 | 20 | FSx ONTAP Betriebsautomatisierung | Automatisierung der FSx for ONTAP-Operationen mit Lambda + Step Functions. SnapMirror Failover/Failback-Orchestrierung (ASL), Kapazitätsüberwachung mit Auto-Erweiterung (EventBridge 5-Min-Intervall), generischer ONTAP REST API-Executor, AI/Analytics-Datenvorverarbeitung (S3 Access Point-Grenze). Keine ereignisgesteuerte Abhängigkeit, kein NFS-Mount. ~$2,60/Monat. Siehe [automation/fsxn-ops/](automation/fsxn-ops/) | CloudFormation (standalone) |
 
@@ -212,7 +333,7 @@ Aktiviert mit `enableAgentCoreMemory=true`. Fügt eine Sitzungsliste (SessionLis
 | 1 | WafStack | us-east-1 | WAF WebACL, IP Set | WAF für CloudFront (Ratenbegrenzung, verwaltete Regeln) |
 | 2 | NetworkingStack | ap-northeast-1 | VPC, Subnets, Security Groups, VPC Endpoints (optional) | Netzwerkinfrastruktur |
 | 3 | SecurityStack | ap-northeast-1 | Cognito User Pool, Client, SAML IdP + OIDC IdP + Cognito Domain (bei aktivierter Federation), Identity Sync Lambda (optional), LDAP Health Check Lambda + CloudWatch Alarm (optional), Auth Audit Log DynamoDB (optional) | Authentifizierung und Autorisierung (SAML/OIDC/E-Mail) |
-| 4 | StorageStack | ap-northeast-1 | FSx ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS-Verschlüsselung (optional), CloudTrail (optional) | Speicher, SID-Daten, Berechtigungscache |
+| 4 | StorageStack | ap-northeast-1 | FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, (AD), KMS-Verschlüsselung (optional), CloudTrail (optional) | Speicher, SID-Daten, Berechtigungscache |
 | 5 | AIStack | ap-northeast-1 | Bedrock KB, S3 Vectors / OpenSearch Serverless (ausgewählt über `vectorStoreType`), Bedrock Guardrails (optional) | RAG-Suchinfrastruktur (Titan Embed v2) |
 | 6 | WebAppStack | ap-northeast-1 | Lambda (Docker, IAM Auth + OAC), CloudFront, Permission Filter Lambda (optional), MonitoringConstruct (optional) | Webanwendung, Agent-Verwaltung, Überwachung und Alarme |
 | 7 | EmbeddingStack (optional) | ap-northeast-1 | EC2 (m5.large), ECR, ONTAP ACL automatische Abfrage (optional) | FlexCache CIFS-Mount + Embedding-Server |
@@ -266,7 +387,7 @@ Die Authentifizierungsmethoden des RAG-Systems (OIDC / LDAP / E-Mail-Passwort) u
 
 | Parameter | Auswirkung | Risikostufe | Vorabprüfung |
 |-----------|-----------|-------------|-------------|
-| `adPassword` | Erstellt ein neues AWS Managed Microsoft AD (für FSx ONTAP). AD selbst beeinflusst Identity Center nicht — siehe Hinweis unten | 🟡 Mittel | Siehe „Hinweis zu Managed AD" unten |
+| `adPassword` | Erstellt ein neues AWS Managed Microsoft AD (für FSx for ONTAP). AD selbst beeinflusst Identity Center nicht — siehe Hinweis unten | 🟡 Mittel | Siehe „Hinweis zu Managed AD" unten |
 | `enableAdFederation` | Erstellt Cognito SAML IdP. Fügt eine „Mit AD anmelden"-Schaltfläche zum RAG-Anmeldebildschirm hinzu | 🟢 Niedrig | Sicherstellen, dass kein bestehender Cognito User Pool existiert |
 | `enableVpcEndpoints` | Erstellt VPC-Endpunkte. Kann bestehendes VPC-Routing beeinflussen | 🟡 Mittel | VPC-Endpunkt-Limits prüfen |
 | `enableKmsEncryption` | Erstellt KMS CMK. Ändert S3/DynamoDB-Verschlüsselungseinstellungen | 🟢 Niedrig | Bestehende KMS-Schlüsselanzahl prüfen |
@@ -408,7 +529,7 @@ Cloud assembly schema version mismatch: Maximum schema version supported is 48.x
 **Lösung**: Aktualisieren Sie die projektlokale CDK CLI auf die neueste Version.
 
 ```bash
-cd Permission-aware-RAG-FSxN-CDK
+cd Permission-aware-RAG-FSx for ONTAP-CDK
 npm install aws-cdk@latest
 npx cdk --version  # Aktualisierte Version überprüfen
 ```
@@ -456,7 +577,7 @@ EOF
 
 #### Active Directory-Integration (optional)
 
-Um den FSx ONTAP SVM einer Active Directory-Domäne beizutreten und NTFS ACL (SID-basiert) mit CIFS-Freigaben zu verwenden, fügen Sie Folgendes zu `cdk.context.json` hinzu.
+Um den FSx for ONTAP SVM einer Active Directory-Domäne beizutreten und NTFS ACL (SID-basiert) mit CIFS-Freigaben zu verwenden, fügen Sie Folgendes zu `cdk.context.json` hinzu.
 
 ```bash
 cat > cdk.context.json << 'EOF'
@@ -764,7 +885,7 @@ Die folgenden CDK-Kontextparameter aktivieren Sicherheitsverbesserungs- und Arch
 | `ontapSvmUuid` | (keiner) | SVM UUID (verwendet mit `ontapMgmtIp`) |
 | `ontapAdminSecretArn` | (keiner) | Secrets Manager ARN für ONTAP-Administratorpasswort |
 | `useS3AccessPoint` | `false` | S3 Access Point als Bedrock KB-Datenquelle verwenden |
-| `volumeSecurityStyle` | `NTFS` | FSx ONTAP Volume-Sicherheitsstil (`NTFS` or `UNIX`) |
+| `volumeSecurityStyle` | `NTFS` | FSx for ONTAP Volume-Sicherheitsstil (`NTFS` or `UNIX`) |
 | `s3apUserType` | (auto) | S3 AP-Benutzertyp (`WINDOWS` or `UNIX`). Standard: AD konfiguriert→WINDOWS, kein AD→UNIX |
 | `s3apUserName` | (auto) | S3 AP-Benutzername. Standard: WINDOWS→`Admin`, UNIX→`root` |
 | `usePermissionFilterLambda` | `false` | SID-Filterung über dediziertes Lambda ausführen (mit Inline-Filterungs-Fallback) |
@@ -814,7 +935,7 @@ npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \
 
 | Parameter | Beschreibung |
 |-----------|--------------|
-| `existingFileSystemId` | Vorhandene FSx ONTAP-Dateisystem-ID (z.B. `fs-0123456789abcdef0`) |
+| `existingFileSystemId` | Vorhandene FSx for ONTAP-Dateisystem-ID (z.B. `fs-0123456789abcdef0`) |
 | `existingSvmId` | Vorhandene SVM-ID (z.B. `svm-0123456789abcdef0`) |
 | `existingVolumeId` | Vorhandene Volume-ID (z.B. `fsvol-0123456789abcdef0`) — geben Sie **ein primäres Volume** an |
 
@@ -916,7 +1037,7 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 Dieses Skript führt automatisch Folgendes aus:
 1. Erstellt S3 Access Point + konfiguriert Richtlinie
-2. Lädt Demodaten auf FSx ONTAP hoch (über S3 AP)
+2. Lädt Demodaten auf FSx for ONTAP hoch (über S3 AP)
 3. Fügt Bedrock KB-Datenquelle hinzu + synchronisiert
 4. Registriert Benutzer-SID-Daten in DynamoDB
 5. Erstellt Demo-Benutzer in Cognito (admin / user)
@@ -974,7 +1095,7 @@ Dieses Skript führt automatisch Folgendes aus:
 8. Löschung nicht CDK-verwalteter EC2-Instanzen und SGs im VPC + erneute Löschung des Networking-Stacks
 9. CDKToolkit + CDK-Staging-S3-Bucket-Löschung (beide Regionen, Versionierung-bewusst)
 
-> **Hinweis**: Die Löschung von FSx ONTAP dauert 20-30 Minuten, insgesamt also ca. 30-40 Minuten.
+> **Hinweis**: Die Löschung von FSx for ONTAP dauert 20-30 Minuten, insgesamt also ca. 30-40 Minuten.
 
 ## Fehlerbehebung
 
@@ -1060,12 +1181,12 @@ Die CloudFront WAF wird in `us-east-1` bereitgestellt und besteht aus 6 Regeln (
 
 ### Konfiguration der Embedding-Zieldokumente
 
-Die in Bedrock KB eingebetteten Dokumente werden durch die Dateistruktur auf dem FSx ONTAP-Volume bestimmt.
+Die in Bedrock KB eingebetteten Dokumente werden durch die Dateistruktur auf dem FSx for ONTAP-Volume bestimmt.
 
 #### Verzeichnisstruktur und SID-Metadaten
 
 ```
-FSx ONTAP Volume (/data)
+FSx for ONTAP Volume (/data)
   ├── public/                          ← Für alle Benutzer zugänglich
   │   ├── product-catalog.md           ← Dokumentkörper
   │   └── product-catalog.md.metadata.json  ← SID-Metadaten
@@ -1161,11 +1282,11 @@ aws bedrock-agent start-ingestion-job \
 
 | Pfad | Methode | CDK-Aktivierung | Status |
 |------|---------|-----------------|--------|
-| Haupt | FSx ONTAP → S3 Access Point → Bedrock KB → Vector Store | `post-deploy-setup.sh` nach CDK-Deploy ausführen | ✅ |
+| Haupt | FSx for ONTAP → S3 Access Point → Bedrock KB → Vector Store | `post-deploy-setup.sh` nach CDK-Deploy ausführen | ✅ |
 | Fallback | Direkter S3-Bucket-Upload → Bedrock KB → Vector Store | Manuell (`upload-demo-data.sh`) | ✅ |
 | Alternativ (optional) | Embedding-Server (CIFS-Mount) → Direktes AOSS-Schreiben | `-c enableEmbeddingServer=true` | ✅ (nur AOSS-Konfiguration) |
 
-> **Fallback-Pfad**: Wenn FSx ONTAP S3 AP nicht verfügbar ist (z.B. Organization SCP-Einschränkungen), können Sie Dokumente + `.metadata.json` direkt in einen S3-Bucket hochladen und als KB-Datenquelle konfigurieren. Die SID-Filterung hängt nicht vom Datenquellentyp ab.
+> **Fallback-Pfad**: Wenn FSx for ONTAP S3 AP nicht verfügbar ist (z.B. Organization SCP-Einschränkungen), können Sie Dokumente + `.metadata.json` direkt in einen S3-Bucket hochladen und als KB-Datenquelle konfigurieren. Die SID-Filterung hängt nicht vom Datenquellentyp ab.
 
 ### Manuelle Verwaltung von Embedding-Zieldokumenten
 
@@ -1173,10 +1294,10 @@ Sie können Embedding-Zieldokumente ohne CDK-Bereitstellung hinzufügen, ändern
 
 #### Dokumente hinzufügen
 
-Über FSx ONTAP S3 Access Point (Hauptpfad):
+Über FSx for ONTAP S3 Access Point (Hauptpfad):
 
 ```bash
-# Dateien auf FSx ONTAP über SMB von EC2 oder WorkSpaces im VPC platzieren
+# Dateien auf FSx for ONTAP über SMB von EC2 oder WorkSpaces im VPC platzieren
 SVM_IP=<SVM_SMB_IP>
 smbclient //$SVM_IP/data -U 'demo.local\Admin%<PASSWORD>' \
   -c "cd public; put new-document.md; put new-document.md.metadata.json"
@@ -1310,6 +1431,69 @@ User              Next.js API             DynamoDB            Bedrock KB        
 | Berechtigungen | DynamoDB (user-access: SID data, perm-cache: permission cache) |
 | Sicherheit | AWS WAF + IAM Auth + OAC + Geo Restriction |
 
+## Embedding-Server (Optional)
+
+Ein EC2-Server, der ein FlexCache-Cache-Volume über CIFS mountet und das Embedding durchführt. Wird als alternativer Pfad verwendet, wenn der S3 Access Point von FSx for ONTAP nicht verfügbar ist (nicht unterstützt für FlexCache-Cache-Volumes, März 2026).
+
+### Datenaufnahmepfad
+
+Dieses System verwendet eine Single-Path-Architektur: FSx for ONTAP → S3 Access Point → Bedrock KB. Bedrock KB übernimmt die gesamte Dokumentenabfrage, das Chunking, die Vektorisierung und Speicherung.
+
+```
+FSx for ONTAP Volume (/data)
+  ├── public/company-overview.md
+  ├── public/company-overview.md.metadata.json
+  ├── confidential/financial-report.md
+  ├── confidential/financial-report.md.metadata.json
+  └── ...
+      │ S3 Access Point
+      ▼
+  Bedrock KB Data Source (alias S3 AP)
+      │ Ingestion Job (Chunking + Vektorisierung mit Titan Embed v2)
+      ▼
+  Vector Store (ausgewählt über vectorStoreType)
+    ├── S3 Vectors (Standard: kostengünstig, Latenz unter einer Sekunde)
+    └── OpenSearch Serverless (Hochleistung, ~700 $/Monat)
+```
+
+Verarbeitung durch den Bedrock KB Ingestion Job:
+1. Liest Dokumente und `.metadata.json` von FSx for ONTAP über S3 Access Point
+2. Teilt Dokumente in Chunks auf
+3. Vektorisiert mit Amazon Titan Embed Text v2 (1024 Dimensionen)
+4. Speichert Vektoren + Metadaten (einschließlich `allowed_group_sids`) im Vector Store
+
+## Projektstruktur
+
+```
+├── bin/
+│   └── demo-app.ts                  # CDK-Einstiegspunkt (7-Stack-Konfiguration)
+├── lib/stacks/demo/
+│   ├── demo-waf-stack.ts             # WAF WebACL (us-east-1)
+│   ├── demo-networking-stack.ts      # VPC, Subnets, SG
+│   ├── demo-security-stack.ts        # Cognito
+│   ├── demo-storage-stack.ts         # FSx for ONTAP + SVM + Volume, S3, DynamoDB×2, AD
+│   ├── demo-ai-stack.ts             # Bedrock KB, S3 Vectors / OpenSearch Serverless
+│   ├── demo-webapp-stack.ts          # Lambda (IAM Auth + OAC), CloudFront
+│   └── demo-embedding-stack.ts       # (optional) Embedding-Server (FlexCache CIFS)
+├── lambda/permissions/
+│   ├── permission-filter-handler.ts  # Berechtigungsfilter-Lambda (ACL-basiert)
+│   ├── metadata-filter-handler.ts    # Berechtigungsfilter-Lambda (Metadaten-basiert)
+│   ├── permission-calculator.ts      # SID/ACL-Abgleichlogik
+│   └── types.ts                      # Typdefinitionen
+├── docker/nextjs/                    # Next.js-Anwendung
+│   ├── src/app/[locale]/genai/       # Chat-Hauptseite (KB/Agent-Moduswechsel)
+│   ├── src/app/[locale]/genai/agents/ # Agent-Verzeichnis-Seite
+│   ├── src/components/agents/        # Agent-Directory-UI (AgentCard, AgentCreator, etc.)
+│   ├── src/store/                    # Zustand-Stores (useAgentStore, etc.)
+│   └── src/app/api/bedrock/          # KB/Agent API-Routen
+├── demo-data/
+│   ├── documents/                    # Verifizierungsdokumente + .metadata.json
+│   ├── scripts/                      # Einrichtungsskripte
+│   └── guides/                       # Verifizierungsszenarien & ONTAP-Leitfaden
+├── docs/                             # Dokumentation (50+ Dokumente, 8 Sprachen)
+└── tests/                            # CDK-Tests + Property-Tests (Jest + fast-check)
+```
+
 ## Verifizierungsszenarien
 
 Siehe [demo-data/guides/demo-scenario.md](demo-data/guides/demo-scenario.md) für Verfahren zur Verifizierung der Berechtigungsfilterung.
@@ -1330,13 +1514,13 @@ Wenn zwei Benutzertypen (Administrator und normaler Benutzer) dieselbe Frage ste
 | [docs/demo-environment-guide.md](docs/demo-environment-guide.md) | Leitfaden zur Einrichtung der Verifizierungsumgebung |
 | [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) | Dokumentationsindex (empfohlene Lesereihenfolge) |
 | [demo-data/guides/demo-scenario.md](demo-data/guides/demo-scenario.md) | Verifizierungsszenarien (Bestätigung des Berechtigungsunterschieds Admin vs. normaler Benutzer) |
-| [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) | FSx ONTAP + AD-Integration, CIFS-Freigabe, NTFS ACL-Konfiguration |
+| [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) | FSx for ONTAP + AD-Integration, CIFS-Freigabe, NTFS ACL-Konfiguration |
 
-## FSx ONTAP + Active Directory-Einrichtung
+## FSx for ONTAP + Active Directory-Einrichtung
 
-Siehe [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) für FSx ONTAP AD-Integration, CIFS-Freigabe und NTFS ACL-Konfigurationsverfahren.
+Siehe [demo-data/guides/ontap-setup-guide.md](demo-data/guides/ontap-setup-guide.md) für FSx for ONTAP AD-Integration, CIFS-Freigabe und NTFS ACL-Konfigurationsverfahren.
 
-Die CDK-Bereitstellung erstellt AWS Managed Microsoft AD und FSx ONTAP (SVM + Volume). Der SVM AD-Domänenbeitritt wird nach der Bereitstellung über CLI ausgeführt (zur Timing-Kontrolle).
+Die CDK-Bereitstellung erstellt AWS Managed Microsoft AD und FSx for ONTAP (SVM + Volume). Der SVM AD-Domänenbeitritt wird nach der Bereitstellung über CLI ausgeführt (zur Timing-Kontrolle).
 
 ```bash
 # AD DNS-IPs abrufen
@@ -1575,10 +1759,21 @@ Supervisor Agent kann nicht mit `AgentCollaboration=SUPERVISOR_ROUTER` und `Agen
 
 | Repository | Anwendungsfall | Beschreibung |
 |-----------|---------------|-------------|
-| **[Dieses Repo] Agentic Access-Aware RAG** | AI / RAG | Berechtigungsbasiertes RAG + Agentic AI. FSx ONTAP ACLs werden automatisch in Suchergebnissen durchgesetzt |
+| **[Dieses Repo] Agentic Access-Aware RAG** | AI / RAG | Berechtigungsbasiertes RAG + Agentic AI. FSx for ONTAP ACLs werden automatisch in Suchergebnissen durchgesetzt |
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless-Automatisierung | 17 branchenspezifische Serverless-Muster via S3 AP (FPolicy Event-Driven-Unterstützung) |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | Validierungsframework für Athena, Glue, EMR, SageMaker Integration via FSx ONTAP S3 AP |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / Audit | EC2-freie Bereitstellung von FSx ONTAP Audit-Logs und Metriken an Datadog, Splunk, Grafana usw. |
+| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics / Lakehouse | Validierungsframework für Athena, Glue, EMR, SageMaker Integration via FSx for ONTAP S3 AP |
+| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability / Audit | EC2-freie Bereitstellung von FSx for ONTAP Audit-Logs und Metriken an Datadog, Splunk, Grafana usw. |
+
+---
+
+## Offizielle AWS-Ressourcen
+
+Das Permission-aware RAG-Pattern dieses Repositories basiert auf dem Verfahren zur Konfiguration von FSx for ONTAP S3 Access Points als Datenquelle für Bedrock Knowledge Bases. Konsultieren Sie die folgenden offiziellen Ressourcen für die grundlegenden Konfigurationsschritte.
+
+| Ressource | Beschreibung |
+|-----------|-------------|
+| [Build a RAG application using Amazon Bedrock Knowledge Bases with FSx for ONTAP](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/tutorial-build-rag-with-bedrock.html) | Schritt-für-Schritt-Tutorial zur Konfiguration von FSx for ONTAP S3 Access Points als Bedrock Knowledge Base-Datenquelle (~35-45 Min.) |
+| [FSx for ONTAP S3 Access Points as an Amazon Bedrock Data Source](https://repost.aws/articles/AReKa8-o8XRGeVW2Nicbg1_w/fsxn-s3-access-points-as-an-amazon-bedrock-data-source) | Praktischer Konfigurationsleitfaden für die Nutzung von S3 Access Points als Bedrock-Datenquelle (repost.aws Community-Leitfaden) |
 
 ---
 

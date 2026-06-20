@@ -57,7 +57,7 @@
 | 관점 | 현행 (Custom: Bedrock KB + OpenSearch Serverless / S3 Vectors) | Managed KB |
 |------|--------------------------------------------------------------|------------|
 | 벡터 스토어 운영 | 자체 관리 (AOSS의 OCU 설계 / S3 Vectors index 관리) | 완전 관리형 (프로비저닝 불필요) |
-| 데이터 소스 | FSx ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | S3 커넥터 경유 (S3 AP 연결은 요검증) |
+| 데이터 소스 | FSx for ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | S3 커넥터 경유 (S3 AP 연결은 요검증) |
 | 파싱·청킹 | `kbChunkingStrategy`로 수동 선택 (FIXED/HIERARCHICAL/SEMANTIC/NONE) | Smart Parsing이 자동 선택 (커스터마이즈 가능) |
 | 임베딩 모델 | 배포 시 고정 (`embeddingModel`, 재생성으로 변경) | 기본 자동 선택 + 임의로 Bedrock 모델 지정 |
 | 검색 | 단일 Retrieve + 앱 측 SID 필터 | `Retrieve`(단일 하이브리드) + `AgenticRetrieveStream`(멀티홉) |
@@ -142,7 +142,7 @@ Managed KB의 관리형 스토리지에서 본 프로젝트의 SID 기반 ACL �
 
 | # | 검증 항목 | 본 프로젝트의 상정 | 리스크 |
 |---|----------|-------------------|--------|
-| V1 | S3 커넥터가 **FSx ONTAP S3 Access Point**를 데이터 소스로 할 수 있는가(alias 형식·IAM 경계) | S3 호환이면 연결 가능하다고 상정 | 연결 불가 시 마이그레이션 자체가 불성립 |
+| V1 | S3 커넥터가 **FSx for ONTAP S3 Access Point**를 데이터 소스로 할 수 있는가(alias 형식·IAM 경계) | S3 호환이면 연결 가능하다고 상정 | 연결 불가 시 마이그레이션 자체가 불성립 |
 | V2 | `.metadata.json`의 `allowed_group_sids`가 Managed KB 인덱스에 **메타데이터로 보존**되는가 | 보존된다고 상정 | 보존되지 않으면 ACL 필터 불가 |
 | V3 | `Retrieve`의 `filter`에서 **`listContains`에 의한 SID 배열 대조**가 기능하는가 | 기능한다고 상정 | 기능하지 않으면 userContext 방식으로 전환 |
 | V4 | `userContext` 방식이 **S3 커넥터 수집 데이터**에서도 유효한가(SaaS 커넥터 전제가 아닌가) | S3에서도 유효한지 불명 | S3에서 무효이면 filter 방식에 의존 |
@@ -150,7 +150,7 @@ Managed KB의 관리형 스토리지에서 본 프로젝트의 SID 기반 ACL �
 | V6 | 관리형 스토리지에서 **권한 변경·삭제·이름 변경의 반영 지연**이 허용 범위인가 | 기존과 동일한 즉시성을 기대 | 반영 지연으로 구 권한 데이터가 남는 리스크 |
 | V7 | 대화 이력·캐시로의 **ACL 적용**이 유지되는가 | 앱 측에서 유지 | Managed 측 캐시의 동작이 불명 |
 
-> ⚠️ **양보 불가**: V2, V3(또는 V4), V5 중 하나라도 미달이면, **권한 외 데이터가 검색 결과에 혼입될 가능성**이 있으므로 마이그레이션은 **BLOCKED**입니다. 이는 FSxN AI/RAG 아키텍처 리뷰의 양보 불가 요건("권한 외 데이터가 vector search 결과에 혼입될 가능성이 있는 설계", "LLM에 전달하는 context의 인가 체크가 없는 설계")에 위반됩니다.
+> ⚠️ **양보 불가**: V2, V3(또는 V4), V5 중 하나라도 미달이면, **권한 외 데이터가 검색 결과에 혼입될 가능성**이 있으므로 마이그레이션은 **BLOCKED**입니다. 이는 FSx for ONTAP AI/RAG 아키텍처 리뷰의 양보 불가 요건("권한 외 데이터가 vector search 결과에 혼입될 가능성이 있는 설계", "LLM에 전달하는 context의 인가 체크가 없는 설계")에 위반됩니다.
 
 ### 4.3 다층 방어 유지
 
@@ -206,7 +206,7 @@ Managed KB의 관리형 스토리지에서 본 프로젝트의 SID 기반 ACL �
 마이그레이션 판단 전에 다음을 모두 클리어하십시오.
 
 ### 데이터 기반
-- [ ] V1: S3 커넥터가 FSx ONTAP S3 AP를 데이터 소스로 등록 가능
+- [ ] V1: S3 커넥터가 FSx for ONTAP S3 AP를 데이터 소스로 등록 가능
 - [ ] Snapshot / FlexClone에서의 일관된 데이터로 PoC 실시
 - [ ] 프로덕션 데이터를 직접 무거운 크롤링 대상으로 하지 않음
 
@@ -249,7 +249,7 @@ Managed KB의 관리형 스토리지에서 본 프로젝트의 SID 기반 ACL �
 - 한편, 본 프로젝트의 **최우선 요건은 Permission-aware RAG의 ACL 엄격 적용**이며, 관리형 스토리지에서의 SID 필터 동작은 **미검증**입니다.
 - `userContext`(앱 명시 부여·모델 비의존)와 `listContains` filter는 방향성이 일치하므로, **검증 여하에 따라 마이그레이션은 충분히 현실적**입니다.
 
-> 본 문서는 검토 자료입니다. 실제 마이그레이션은 위 검증을 거쳐 관련 리뷰(FSxN AI/RAG 아키텍처 리뷰)의 승인을 얻은 후 실시하십시오.
+> 본 문서는 검토 자료입니다. 실제 마이그레이션은 위 검증을 거쳐 관련 리뷰(FSx for ONTAP AI/RAG 아키텍처 리뷰)의 승인을 얻은 후 실시하십시오.
 
 ---
 

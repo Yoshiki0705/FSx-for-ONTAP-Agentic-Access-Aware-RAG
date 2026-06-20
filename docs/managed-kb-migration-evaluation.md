@@ -57,7 +57,7 @@
 | 観点 | 現行（Custom: Bedrock KB + OpenSearch Serverless / S3 Vectors） | Managed KB |
 |------|--------------------------------------------------------------|------------|
 | ベクトルストア運用 | 自己管理（AOSS の OCU 設計 / S3 Vectors index 管理） | フルマネージド（プロビジョニング不要） |
-| データソース | FSx ONTAP → S3 AP → Bedrock KB（`setup-kb-datasource.sh`） | S3 コネクタ経由（S3 AP 接続は要検証） |
+| データソース | FSx for ONTAP → S3 AP → Bedrock KB（`setup-kb-datasource.sh`） | S3 コネクタ経由（S3 AP 接続は要検証） |
 | パース・チャンキング | `kbChunkingStrategy` で手動選択（FIXED/HIERARCHICAL/SEMANTIC/NONE） | Smart Parsing が自動選択（カスタマイズ可） |
 | 埋め込みモデル | デプロイ時固定（`embeddingModel`、再作成で変更） | デフォルト自動選択 + 任意で Bedrock モデル指定 |
 | リトリーバル | 単一 Retrieve + アプリ側 SID フィルタ | `Retrieve`（単一ハイブリッド）+ `AgenticRetrieveStream`（マルチホップ） |
@@ -142,7 +142,7 @@ Managed KB のマネージドストレージで、本プロジェクトの SID �
 
 | # | 検証項目 | 本プロジェクトの想定 | リスク |
 |---|---------|---------------------|--------|
-| V1 | S3 コネクタが **FSx ONTAP S3 Access Point** をデータソースにできるか（alias 形式・IAM 境界） | S3 互換なら接続可能と想定 | 接続不可なら移行自体が不成立 |
+| V1 | S3 コネクタが **FSx for ONTAP S3 Access Point** をデータソースにできるか（alias 形式・IAM 境界） | S3 互換なら接続可能と想定 | 接続不可なら移行自体が不成立 |
 | V2 | `.metadata.json` の `allowed_group_sids` が Managed KB のインデックスに**メタデータとして保持**されるか | 保持されると想定 | 保持されないと ACL フィルタ不可 |
 | V3 | `Retrieve` の `filter` で **`listContains` による SID 配列照合**が機能するか | 機能すると想定 | 機能しなければ userContext 方式へ切替 |
 | V4 | `userContext` 方式が **S3 コネクタ取り込みデータ**でも有効か（SaaS コネクタ前提でないか） | S3 でも有効か不明 | S3 で無効なら filter 方式に依存 |
@@ -150,7 +150,7 @@ Managed KB のマネージドストレージで、本プロジェクトの SID �
 | V6 | マネージドストレージで**権限変更・削除・リネームの反映遅延**が許容範囲か | 既存同様の即時性を期待 | 反映遅延で旧権限のデータが残るリスク |
 | V7 | 会話履歴・キャッシュへの **ACL 適用**が維持されるか | アプリ側で維持 | Managed 側キャッシュの挙動が不明 |
 
-> ⚠️ **Non-negotiable**: V2・V3（または V4）・V5 のいずれかが未達なら、**権限外データが検索結果に混入する可能性**があるため移行は BLOCKED とする。FSxN AI/RAG アーキテクチャレビューの非交渉要件（「権限外データが vector search 結果に混入する可能性がある設計」「LLM に渡す context の認可チェックがない設計」）に抵触する。
+> ⚠️ **Non-negotiable**: V2・V3（または V4）・V5 のいずれかが未達なら、**権限外データが検索結果に混入する可能性**があるため移行は BLOCKED とする。FSx for ONTAP AI/RAG アーキテクチャレビューの非交渉要件（「権限外データが vector search 結果に混入する可能性がある設計」「LLM に渡す context の認可チェックがない設計」）に抵触する。
 
 ### 4.3 多層防御の維持
 
@@ -206,7 +206,7 @@ Managed KB のマネージドストレージで、本プロジェクトの SID �
 移行判断前に以下を全て確認する。
 
 ### データ基盤
-- [ ] V1: S3 コネクタで FSx ONTAP S3 AP をデータソース登録できる
+- [ ] V1: S3 コネクタで FSx for ONTAP S3 AP をデータソース登録できる
 - [ ] Snapshot / FlexClone 由来の一貫性あるデータで PoC を実施した
 - [ ] 本番データを直接重いクロール対象にしていない
 
@@ -249,7 +249,7 @@ Managed KB のマネージドストレージで、本プロジェクトの SID �
 - 一方、本プロジェクトの**最優先要件は Permission-aware RAG の ACL 厳密適用**であり、マネージドストレージでの SID フィルタ挙動は**未検証**である。
 - `userContext`（アプリ明示付与・モデル非依存）と `listContains` filter は方向性が一致しており、**検証次第で移行は十分に現実的**。
 
-> このドキュメントは検討資料である。実際の移行は、上記検証を経て、関連レビュー（FSxN AI/RAG アーキテクチャレビュー）の承認を得てから実施すること。
+> このドキュメントは検討資料である。実際の移行は、上記検証を経て、関連レビュー（FSx for ONTAP AI/RAG アーキテクチャレビュー）の承認を得てから実施すること。
 
 ---
 

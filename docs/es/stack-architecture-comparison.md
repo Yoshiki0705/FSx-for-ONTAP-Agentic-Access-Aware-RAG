@@ -144,7 +144,7 @@ La configuración del almacén vectorial se puede cambiar usando el parámetro d
 
 | # | Elemento de validación | Estado |
 |---|------------------------|--------|
-| V1 | El conector S3 reconoce el FSx ONTAP S3 Access Point | Sin verificar |
+| V1 | El conector S3 reconoce el FSx for ONTAP S3 Access Point | Sin verificar |
 | V2 | `allowed_group_sids` de `.metadata.json` se conserva en el índice | Sin verificar |
 | V3 | `listContains` de `filter` funciona para coincidencia de array SID | Sin verificar |
 | V4 | Los filtros se mantienen durante el multi-hop de Agentic Retrieval | Sin verificar |

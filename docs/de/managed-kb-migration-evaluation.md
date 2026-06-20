@@ -57,7 +57,7 @@ Laut [AWS-Beschreibung](https://aws.amazon.com/blogs/aws/introducing-amazon-bedr
 | Aspekt | Aktuell (Custom: Bedrock KB + OpenSearch Serverless / S3 Vectors) | Managed KB |
 |--------|-------------------------------------------------------------------|------------|
 | Vektorspeicher-Betrieb | Selbstverwaltet (AOSS OCU-Design / S3 Vectors Index-Verwaltung) | Vollständig verwaltet (keine Bereitstellung) |
-| Datenquelle | FSx ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | Über S3-Konnektor (S3 AP-Verbindung zu verifizieren) |
+| Datenquelle | FSx for ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | Über S3-Konnektor (S3 AP-Verbindung zu verifizieren) |
 | Parsing & Chunking | Manuelle Auswahl über `kbChunkingStrategy` (FIXED/HIERARCHICAL/SEMANTIC/NONE) | Smart Parsing wählt automatisch (anpassbar) |
 | Embedding-Modell | Zur Deploy-Zeit fixiert (`embeddingModel`, Änderung erfordert Neuerstellung) | Standardmäßig automatisch ausgewählt + optionales Bedrock-Modell |
 | Retrieval | Einzelnes Retrieve + SID-Filter auf Anwendungsseite | `Retrieve` (einzeln hybrid) + `AgenticRetrieveStream` (Multi-Hop) |
@@ -142,7 +142,7 @@ Alle folgenden Punkte sind **nicht verifiziert** und bestimmen die Migrationsfä
 
 | # | Verifizierungselement | Projektannahme | Risiko |
 |---|----------------------|----------------|--------|
-| V1 | Kann der S3-Konnektor den **FSx ONTAP S3 Access Point** als Datenquelle verwenden (Alias-Format, IAM-Grenze)? | Angenommen verbindbar, wenn S3-kompatibel | Wenn nicht verbindbar, ist die Migration nicht machbar |
+| V1 | Kann der S3-Konnektor den **FSx for ONTAP S3 Access Point** als Datenquelle verwenden (Alias-Format, IAM-Grenze)? | Angenommen verbindbar, wenn S3-kompatibel | Wenn nicht verbindbar, ist die Migration nicht machbar |
 | V2 | Wird `allowed_group_sids` aus `.metadata.json` **als Metadaten** im Managed-KB-Index **beibehalten**? | Angenommen beibehalten | Wenn nicht beibehalten, ist ACL-Filter unmöglich |
 | V3 | Funktioniert der `filter` von `Retrieve` für den **SID-Array-Abgleich über `listContains`**? | Angenommen funktional | Wenn nicht, zur userContext-Methode wechseln |
 | V4 | Ist die `userContext`-Methode für **per S3-Konnektor ingestierte Daten** gültig (nicht nur SaaS-Konnektoren)? | Unbekannt, ob für S3 gültig | Wenn für S3 ungültig, abhängig von der filter-Methode |
@@ -150,7 +150,7 @@ Alle folgenden Punkte sind **nicht verifiziert** und bestimmen die Migrationsfä
 | V6 | Ist die **Widerspiegelungslatenz für Berechtigungsänderungen/-löschungen/-umbenennungen** im verwalteten Speicher akzeptabel? | Erwartung der gleichen Unmittelbarkeit wie bisher | Risiko veralteter Berechtigungsdaten durch Widerspiegelungsverzögerung |
 | V7 | Wird die **ACL-Anwendung für Konversationsverlauf/Cache** beibehalten? | Auf Anwendungsseite beibehalten | Cache-Verhalten auf verwalteter Seite unbekannt |
 
-> ⚠️ **Nicht verhandelbar**: Wenn V2, V3 (oder V4) oder V5 nicht erfüllt ist, ist die Migration **BLOCKED**, da **nicht autorisierte Daten in die Suchergebnisse eindringen könnten**. Dies würde die nicht verhandelbaren Anforderungen der FSxN AI/RAG-Architekturüberprüfung verletzen („ein Design, bei dem nicht autorisierte Daten in vector-search-Ergebnisse eindringen können", „ein Design ohne Autorisierungsprüfung des an das LLM übergebenen Kontexts").
+> ⚠️ **Nicht verhandelbar**: Wenn V2, V3 (oder V4) oder V5 nicht erfüllt ist, ist die Migration **BLOCKED**, da **nicht autorisierte Daten in die Suchergebnisse eindringen könnten**. Dies würde die nicht verhandelbaren Anforderungen der FSx for ONTAP AI/RAG-Architekturüberprüfung verletzen („ein Design, bei dem nicht autorisierte Daten in vector-search-Ergebnisse eindringen können", „ein Design ohne Autorisierungsprüfung des an das LLM übergebenen Kontexts").
 
 ### 4.3 Aufrechterhaltung der Defense-in-Depth
 
@@ -206,7 +206,7 @@ Wie beim bestehenden Dual-KB-Migrationsmuster ([migration-guide-multimodal.md](.
 Bestätigen Sie alle folgenden Punkte vor einer Migrationsentscheidung.
 
 ### Datenfundament
-- [ ] V1: S3-Konnektor kann FSx ONTAP S3 AP als Datenquelle registrieren
+- [ ] V1: S3-Konnektor kann FSx for ONTAP S3 AP als Datenquelle registrieren
 - [ ] PoC mit konsistenten Daten aus Snapshot / FlexClone durchgeführt
 - [ ] Produktionsdaten werden keinem intensiven direkten Crawling unterzogen
 
@@ -249,7 +249,7 @@ Bedingungen zur Aufhebung:
 - Die **oberste Anforderung dieses Projekts ist jedoch die strikte ACL-Durchsetzung für Permission-aware RAG**, und das SID-Filterverhalten im verwalteten Speicher ist **nicht verifiziert**.
 - `userContext` (von der Anwendung bereitgestellt, modellunabhängig) und der `listContains`-filter stimmen richtungsmäßig überein, daher ist **die Migration je nach Verifizierung durchaus machbar**.
 
-> Dieses Dokument ist eine Bewertung. Die tatsächliche Migration sollte erst nach der obigen Verifizierung und Genehmigung durch die entsprechende Überprüfung (FSxN AI/RAG-Architekturüberprüfung) durchgeführt werden.
+> Dieses Dokument ist eine Bewertung. Die tatsächliche Migration sollte erst nach der obigen Verifizierung und Genehmigung durch die entsprechende Überprüfung (FSx for ONTAP AI/RAG-Architekturüberprüfung) durchgeführt werden.
 
 ---
 

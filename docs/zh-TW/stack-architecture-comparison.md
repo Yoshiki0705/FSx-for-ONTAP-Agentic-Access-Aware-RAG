@@ -144,7 +144,7 @@ StorageStack 可透過 `existingFileSystemId`/`existingSvmId`/`existingVolumeId`
 
 | # | 驗證項目 | 狀態 |
 |---|---------|------|
-| V1 | S3 連接器是否辨識 FSx ONTAP S3 Access Point | 未驗證 |
+| V1 | S3 連接器是否辨識 FSx for ONTAP S3 Access Point | 未驗證 |
 | V2 | `.metadata.json` 的 `allowed_group_sids` 是否在索引中保留 | 未驗證 |
 | V3 | `filter` 的 `listContains` 是否支援 SID 陣列比對 | 未驗證 |
 | V4 | Agentic Retrieval 多跳期間過濾是否維持 | 未驗證 |

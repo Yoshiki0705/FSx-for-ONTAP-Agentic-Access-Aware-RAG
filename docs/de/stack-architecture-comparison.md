@@ -144,7 +144,7 @@ Die Vektorspeicher-Konfiguration kann über den CDK-Kontextparameter `vectorStor
 
 | # | Validierungspunkt | Status |
 |---|-------------------|--------|
-| V1 | S3-Konnektor erkennt FSx ONTAP S3 Access Point | Nicht verifiziert |
+| V1 | S3-Konnektor erkennt FSx for ONTAP S3 Access Point | Nicht verifiziert |
 | V2 | `allowed_group_sids` aus `.metadata.json` wird im Index erhalten | Nicht verifiziert |
 | V3 | `listContains` von `filter` funktioniert für SID-Array-Abgleich | Nicht verifiziert |
 | V4 | Filter werden während Agentic Retrieval Multi-Hop beibehalten | Nicht verifiziert |

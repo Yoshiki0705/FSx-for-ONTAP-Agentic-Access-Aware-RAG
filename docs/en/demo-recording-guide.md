@@ -119,7 +119,7 @@ npm install
 ### Step 1: Pre-Deploy Setup (ECR Image Preparation)
 
 ```bash
-cd /home/ubuntu/Permission-aware-RAG-FSxN-CDK
+cd /home/ubuntu/Permission-aware-RAG-FSx for ONTAP-CDK
 
 # Create ECR repository + Build Docker image + Push
 bash demo-data/scripts/pre-deploy-setup.sh

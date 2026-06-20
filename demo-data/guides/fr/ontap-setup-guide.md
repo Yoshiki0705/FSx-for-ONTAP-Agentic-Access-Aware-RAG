@@ -1,4 +1,4 @@
-# Guide de configuration FSx ONTAP + Active Directory et partage CIFS
+# Guide de configuration FSx for ONTAP + Active Directory et partage CIFS
 
 **Last updated**: 2026-04-04
 
@@ -67,7 +67,7 @@ Une suite d'automatisation autonome avec Lambda + Step Functions est disponible 
 
 - VPC Endpoints (5 requis) : `secretsmanager`, `fsx`, `monitoring`, `sns` (Interface) + `s3` (Gateway)
 - Secrets Manager : format `{"username": "fsxadmin", "password": "xxx"}`
-- Le mot de passe fsxadmin doit correspondre entre Secrets Manager et FSx ONTAP
+- Le mot de passe fsxadmin doit correspondre entre Secrets Manager et FSx for ONTAP
 
 ### Fonctionnalités
 
@@ -76,6 +76,6 @@ Une suite d'automatisation autonome avec Lambda + Step Functions est disponible 
 | Surveillance de capacité | EventBridge toutes les 5 min, auto-expansion + notification SNS |
 | SnapMirror DR | Orchestration failover/failback avec Step Functions |
 | Exécution API ONTAP | Exécution sécurisée de l'API REST ONTAP via Lambda |
-| Prétraitement de données | Prétraitement IA/analytique via FSx ONTAP S3 Access Point |
+| Prétraitement de données | Prétraitement IA/analytique via FSx for ONTAP S3 Access Point |
 
 Détails : [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md)

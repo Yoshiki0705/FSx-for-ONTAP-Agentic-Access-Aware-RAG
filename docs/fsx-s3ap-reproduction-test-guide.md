@@ -196,7 +196,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 | S3 APポリシー | s3:* for account root | アクセスポイントARN形式 |
 | IAMポリシー | AdministratorAccess | s3:*を含む |
 | ネットワーク | 同一VPC/サブネット | FSxとADが同一サブネット |
-| Block Public Access | 未設定（アカウントレベル） | FSx S3 APはデフォルトで強制 |
+| Block Public Access | 未設定（アカウントレベル） | FSx for ONTAP S3 APはデフォルトで強制 |
 | UNIXユーザーマッピング | root (UID 0) 登録済み | name-serviceで解決可能 |
 
 ## クリーンアップ
@@ -235,4 +235,4 @@ npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" \
 Organization管理アカウントで以下のいずれかを実施：
 1. SCPにFSx for ONTAP S3 APへのアクセスを許可するステートメントを追加
 2. 該当アカウントをSCP制限の対象外にする
-3. SCPでブロックしているS3アクション/リソースパターンを特定し、FSx S3 APのARNパターン（`arn:aws:s3:<region>:<account>:accesspoint/*`）を除外
+3. SCPでブロックしているS3アクション/リソースパターンを特定し、FSx for ONTAP S3 APのARNパターン（`arn:aws:s3:<region>:<account>:accesspoint/*`）を除外

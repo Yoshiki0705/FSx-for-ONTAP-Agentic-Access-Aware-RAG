@@ -96,7 +96,7 @@ aws bedrock-agent create-data-source \
 | S3 AP nicht möglich, aber ein normaler S3-Bucket funktioniert | △ Bedingt | Einen DataSync-basierten S3-Relay-Pfad erwägen (zusätzliche Validierung für ACL-Metadaten-Erhaltung erforderlich) |
 | Die Synchronisierung des S3-Konnektors selbst schlägt fehl | ❌ FAIL | Migration nicht machbar. Aktuelle Konfiguration beibehalten |
 
-> **Projektannahme**: Wir gehen davon aus, dass die Verbindung möglich ist, wenn die S3-kompatible API funktioniert, aber S3 AP-spezifische Einschränkungen (wie die in der [FSx ONTAP S3 AP-Kompatibilitätsmatrix](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md) erwähnte ListObjectsV2-Latenz) den Crawler von Managed KB beeinträchtigen können.
+> **Projektannahme**: Wir gehen davon aus, dass die Verbindung möglich ist, wenn die S3-kompatible API funktioniert, aber S3 AP-spezifische Einschränkungen (wie die in der [FSx for ONTAP S3 AP-Kompatibilitätsmatrix](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md) erwähnte ListObjectsV2-Latenz) den Crawler von Managed KB beeinträchtigen können.
 
 ### 2.2 Validierung V2: Metadaten-Erhaltung
 
@@ -279,7 +279,7 @@ Für Details der Audit-Anforderungen siehe [Governance- und Audit-Design](govern
 
 Erfüllen Sie alle folgenden Punkte vor der Migrationsfähigkeitsentscheidung.
 
-- [ ] **V1**: S3-Konnektor erkennt FSx ONTAP S3 AP (Phase A)
+- [ ] **V1**: S3-Konnektor erkennt FSx for ONTAP S3 AP (Phase A)
 - [ ] **V2**: `allowed_group_sids` wird als Metadaten beibehalten (Phase A)
 - [ ] **V3**: `listContains`-SID-Array-Abgleich funktioniert (Phase B)
 - [ ] **V4**: Filter wird während des Agentic-Retrieval-Multi-Hop beibehalten (Phase B)

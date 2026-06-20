@@ -144,7 +144,7 @@ CDKコンテキストパラメータ`vectorStoreType`により、ベクトルス
 
 | # | 検証項目 | ステータス |
 |---|---------|-----------|
-| V1 | S3 コネクタが FSx ONTAP S3 Access Point を認識するか | 未検証 |
+| V1 | S3 コネクタが FSx for ONTAP S3 Access Point を認識するか | 未検証 |
 | V2 | `.metadata.json` の `allowed_group_sids` がインデックスに保持されるか | 未検証 |
 | V3 | `filter` の `listContains` で SID 配列照合が機能するか | 未検証 |
 | V4 | Agentic Retrieval のマルチホップ中にフィルタが維持されるか | 未検証 |

@@ -196,7 +196,7 @@ echo "new file" | aws s3 cp - "s3://${S3AP_ALIAS}/public/new-file.txt" --region 
 | S3 AP 政策 | 帳戶根目錄的 s3:* | Access Point ARN 格式 |
 | IAM 政策 | AdministratorAccess | 包含 s3:* |
 | 網路 | 相同 VPC/子網路 | FSx 和 AD 在相同子網路 |
-| Block Public Access | 未設定（帳戶層級） | FSx S3 AP 預設強制執行 |
+| Block Public Access | 未設定（帳戶層級） | FSx for ONTAP S3 AP 預設強制執行 |
 | UNIX 使用者對應 | root (UID 0) 已註冊 | 可透過 name-service 解析 |
 
 ## 清理
@@ -235,4 +235,4 @@ npx cdk destroy --all --app "npx ts-node bin/demo-app.ts" \
 在 Organization 管理帳戶中執行以下其中一項：
 1. 在 SCP 中新增允許存取 FSx for ONTAP S3 AP 的陳述
 2. 將目標帳戶從 SCP 限制中排除
-3. 識別 SCP 阻擋的 S3 動作/資源模式，並排除 FSx S3 AP ARN 模式（`arn:aws:s3:<region>:<account>:accesspoint/*`）
+3. 識別 SCP 阻擋的 S3 動作/資源模式，並排除 FSx for ONTAP S3 AP ARN 模式（`arn:aws:s3:<region>:<account>:accesspoint/*`）

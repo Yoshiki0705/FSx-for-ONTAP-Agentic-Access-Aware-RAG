@@ -11,7 +11,7 @@
 | AWS ドキュメント（FSx for ONTAP Performance） | throughput / IOPS / レイテンシ仕様 | 高 |
 | AWS ドキュメント（S3 Vectors） | クエリレイテンシ特性 | 高 |
 | デモ環境実測（2 ドキュメント、ap-northeast-1） | Retrieve API レイテンシ | 中（規模が小さい） |
-| AWS Storage Blog（FSx S3 AP） | S3 AP アクセス特性 | 中 |
+| AWS Storage Blog（FSx for ONTAP S3 AP） | S3 AP アクセス特性 | 中 |
 | 一般的な DynamoDB レイテンシ | 単一項目 GetItem | 高 |
 
 ---
@@ -49,7 +49,7 @@
 |-----------|-----------|---------------------|------|
 | KB Sync Duration（初回） | 数時間〜1 日 | 数時間〜1 日 | バッチ分割推奨 |
 | KB Sync Duration（差分 10,000 件） | 30〜60 分 | 30〜60 分 | |
-| Retrieve API P50 | 500〜1,500 ms | 100〜300 ms | AOSS の優位性が顕著 |
+| Retrieve API P50 | 500〜1,500 ms | 100〜300 ms | 大規模では AOSS が低レイテンシ／S3 Vectors は低コスト（用途で選択） |
 | Retrieve API P95 | 1,500〜5,000 ms | 200〜500 ms | |
 | SID Filter Duration | 5〜30 ms | 5〜30 ms | グループ SID 数に依存 |
 | End-to-End P50（全体） | 4〜8 秒 | 2〜5 秒 | |

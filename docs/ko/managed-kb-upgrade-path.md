@@ -96,7 +96,7 @@ aws bedrock-agent create-data-source \
 | S3 AP는 불가하지만 일반 S3 버킷이면 가능 | △ 조건부 | DataSync 등으로 S3 중계 경로를 검토(ACL 메타데이터 보존에 추가 검증 필요) |
 | S3 커넥터 자체가 동기화 실패 | ❌ FAIL | 마이그레이션 불성립. 현행 구성 유지 |
 
-> **본 프로젝트의 상정**: S3 호환 API라면 연결 가능하다고 상정하지만, S3 AP 고유의 제약([FSx ONTAP S3 AP 호환성 매트릭스](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)에 기재된 ListObjectsV2 레이턴시 등)이 Managed KB의 크롤러에 영향을 줄 가능성이 있습니다.
+> **본 프로젝트의 상정**: S3 호환 API라면 연결 가능하다고 상정하지만, S3 AP 고유의 제약([FSx for ONTAP S3 AP 호환성 매트릭스](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)에 기재된 ListObjectsV2 레이턴시 등)이 Managed KB의 크롤러에 영향을 줄 가능성이 있습니다.
 
 ### 2.2 검증 V2: 메타데이터 보존
 
@@ -279,7 +279,7 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 
 마이그레이션 가부 판단 전에 다음을 모두 클리어하십시오.
 
-- [ ] **V1**: S3 커넥터가 FSx ONTAP S3 AP를 인식(Phase A)
+- [ ] **V1**: S3 커넥터가 FSx for ONTAP S3 AP를 인식(Phase A)
 - [ ] **V2**: `allowed_group_sids`가 메타데이터로 보존(Phase A)
 - [ ] **V3**: `listContains`로 SID 배열 대조가 기능(Phase B)
 - [ ] **V4**: Agentic Retrieval 멀티홉 중에도 필터 유지(Phase B)

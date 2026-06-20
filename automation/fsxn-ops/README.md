@@ -75,7 +75,7 @@ bash tests/integration/run_aws_verification.sh
 │  Compute: Lambda (Python 3.12, VPC-deployed)            │
 ├──────────────────────┬──────────────────────────────────┤
 │  Data Path:          │  Control Plane:                  │
-│  FSx ONTAP S3 AP     │  ONTAP REST API                  │
+│  FSx for ONTAP S3 AP     │  ONTAP REST API                  │
 │  (ListObjectsV2,     │  (volumes, snapmirror,           │
 │   GetObject,         │   snapshots, exports,            │
 │   PutObject)         │   security style, ACLs)          │
@@ -85,7 +85,7 @@ bash tests/integration/run_aws_verification.sh
 ```
 
 **Design principles:**
-- **Scheduled polling, not file-change triggers** — FSx ONTAP S3 Access Points [do not support `GetBucketNotificationConfiguration`](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/access-points-for-fsxn-object-api-support.html)
+- **Scheduled polling, not file-change triggers** — FSx for ONTAP S3 Access Points [do not support `GetBucketNotificationConfiguration`](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/access-points-for-fsxn-object-api-support.html)
 - **S3 Access Points for data-path** — file listing, content access, sidecar writes via supported S3 object APIs
 - **ONTAP REST API for control-plane** — volume resize, SnapMirror, snapshots, ACLs, export policies
 - **TLS verification enabled by default** — `ONTAP_VERIFY_SSL=true` with optional `ONTAP_CA_CERT_PATH` for production; `false` for lab/PoC only
@@ -166,11 +166,11 @@ fsxn-ops/
 
 ## References
 
-- [FSx ONTAP S3 Access Points](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/accessing-data-via-s3-access-points.html)
+- [FSx for ONTAP S3 Access Points](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/accessing-data-via-s3-access-points.html)
 - [S3 AP Supported Operations](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/access-points-for-fsxn-object-api-support.html)
 - [SnapMirror Failover Orchestration (aws-samples)](https://github.com/aws-samples/sample-fsx-ontap-failover-and-failback-orchestration)
-- [FSx ONTAP Samples & Scripts (NetApp)](https://github.com/NetApp/FSx-ONTAP-samples-scripts)
-- [FSx ONTAP Monitoring & Auto-Resizing (NetApp)](https://docs.netapp.com/us-en/netapp-solutions-dataops/automation/fsxn-monitoring-resizing.html)
+- [FSx for ONTAP Samples & Scripts (NetApp)](https://github.com/NetApp/FSx-ONTAP-samples-scripts)
+- [FSx for ONTAP Monitoring & Auto-Resizing (NetApp)](https://docs.netapp.com/us-en/netapp-solutions-dataops/automation/fsxn-monitoring-resizing.html)
 
 ## Troubleshooting
 
@@ -178,7 +178,7 @@ See [README.ja.md](README.ja.md#トラブルシューティング-検証で得�
 
 Key issues:
 - **Lambda timeout on AWS API calls** → Missing VPC endpoints (see table above)
-- **ONTAP REST API 401** → fsxadmin password mismatch between Secrets Manager and FSx ONTAP
+- **ONTAP REST API 401** → fsxadmin password mismatch between Secrets Manager and FSx for ONTAP
 - **SnapMirror stays uninitialized** → Explicit `POST /transfers` needed after relationship creation
 - **CloudWatch metrics unavailable** → Normal for new filesystems; monitor falls back to ONTAP REST API
 

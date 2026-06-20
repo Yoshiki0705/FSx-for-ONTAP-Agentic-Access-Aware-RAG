@@ -1,4 +1,4 @@
-# FSx ONTAP 運用自動化 — AWS 環境統合検証レポート
+# FSx for ONTAP 運用自動化 — AWS 環境統合検証レポート
 
 **実施日**: 2026-05-01  
 **環境**: ap-northeast-1 (東京リージョン)
@@ -25,7 +25,7 @@
 | `com.amazonaws.{region}.fsx` | Interface | FSx API (容量変更等) |
 | `com.amazonaws.{region}.monitoring` | Interface | CloudWatch メトリクス取得 |
 | `com.amazonaws.{region}.sns` | Interface | SNS 通知送信 |
-| `com.amazonaws.{region}.s3` | **Gateway** | S3 / FSx ONTAP S3 Access Point アクセス |
+| `com.amazonaws.{region}.s3` | **Gateway** | S3 / FSx for ONTAP S3 Access Point アクセス |
 
 > S3 Gateway エンドポイントは Lambda サブネットのルートテーブルに関連付けが必要。
 
@@ -47,7 +47,7 @@
 | 9 | CFn スタック完全デプロイ | ✅ PASS | `aws cloudformation deploy` 成功 |
 | 10 | EventBridge Scheduler | ✅ PASS | 5 分間隔の自動実行確認 (CloudWatch Logs) |
 | 11 | SNS 通知送信 | ✅ PASS | SNS Publish API 呼び出し成功 |
-| 12 | data_preprocessor (FSx ONTAP S3 AP) | ✅ PASS | scan / collect_metadata / generate_tasks |
+| 12 | data_preprocessor (FSx for ONTAP S3 AP) | ✅ PASS | scan / collect_metadata / generate_tasks |
 
 ---
 
@@ -61,7 +61,7 @@
 
 ### fsxadmin パスワード
 
-- Secrets Manager のパスワードと FSx ONTAP の fsxadmin パスワードが不一致だと 401 エラー
+- Secrets Manager のパスワードと FSx for ONTAP の fsxadmin パスワードが不一致だと 401 エラー
 - `aws fsx update-file-system --ontap-configuration FsxAdminPassword=...` で同期が必要
 
 ### SnapMirror
@@ -92,7 +92,7 @@
    - Interface: `secretsmanager`, `fsx`, `monitoring`, `sns`
    - Gateway: `s3` (Lambda サブネットのルートテーブルに関連付けが必要)
    - CFn テンプレートの `CreateVpcEndpoints=true` で自動作成。既存エンドポイントがある場合は `false` に設定。
-2. **fsxadmin パスワード同期**: Secrets Manager の値と FSx ONTAP の fsxadmin パスワードが一致していることを確認。
+2. **fsxadmin パスワード同期**: Secrets Manager の値と FSx for ONTAP の fsxadmin パスワードが一致していることを確認。
 3. **セキュリティグループ**: Lambda の SG から ONTAP 管理 LIF (port 443) へのアウトバウンドを許可。
 4. **サブネット**: Lambda はプライベートサブネットに配置。NAT Gateway は不要 (VPC エンドポイント使用)。
 5. **Lambda Handler パス**: CFn テンプレートの Handler は `module.handler.handler` 形式。

@@ -57,7 +57,7 @@ Selon la [description d'AWS](https://aws.amazon.com/blogs/aws/introducing-amazon
 | Aspect | Actuel (Custom : Bedrock KB + OpenSearch Serverless / S3 Vectors) | Managed KB |
 |--------|-------------------------------------------------------------------|------------|
 | Exploitation du vector store | Autogéré (conception OCU AOSS / gestion d'index S3 Vectors) | Entièrement managé (pas de provisionnement) |
-| Source de données | FSx ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | Via connecteur S3 (connexion S3 AP à vérifier) |
+| Source de données | FSx for ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | Via connecteur S3 (connexion S3 AP à vérifier) |
 | Parsing et chunking | Sélection manuelle via `kbChunkingStrategy` (FIXED/HIERARCHICAL/SEMANTIC/NONE) | Smart Parsing sélectionne automatiquement (personnalisable) |
 | Modèle d'embedding | Fixé au déploiement (`embeddingModel`, changement nécessite recréation) | Auto-sélectionné par défaut + modèle Bedrock optionnel |
 | Récupération | Retrieve unique + filtre SID côté application | `Retrieve` (hybride unique) + `AgenticRetrieveStream` (multi-hop) |
@@ -142,7 +142,7 @@ Tous les éléments suivants sont **non vérifiés** et déterminent la faisabil
 
 | # | Élément de vérification | Hypothèse du projet | Risque |
 |---|-------------------------|---------------------|--------|
-| V1 | Le connecteur S3 peut-il utiliser le **FSx ONTAP S3 Access Point** comme source de données (format alias, frontière IAM) ? | Supposé connectable si compatible S3 | Si non connectable, la migration est infaisable |
+| V1 | Le connecteur S3 peut-il utiliser le **FSx for ONTAP S3 Access Point** comme source de données (format alias, frontière IAM) ? | Supposé connectable si compatible S3 | Si non connectable, la migration est infaisable |
 | V2 | Le `allowed_group_sids` de `.metadata.json` est-il **conservé comme métadonnée** dans l'index Managed KB ? | Supposé conservé | Si non conservé, le filtre ACL est impossible |
 | V3 | Le `filter` de `Retrieve` fonctionne-t-il pour la **correspondance de tableau SID via `listContains`** ? | Supposé fonctionnel | Sinon, passer à la méthode userContext |
 | V4 | La méthode `userContext` est-elle valide pour les **données ingérées par connecteur S3** (pas uniquement les connecteurs SaaS) ? | Inconnu si valide pour S3 | Si invalide pour S3, dépend de la méthode filter |
@@ -150,7 +150,7 @@ Tous les éléments suivants sont **non vérifiés** et déterminent la faisabil
 | V6 | La **latence de reflet des changements/suppressions/renommages de permissions** est-elle acceptable dans le stockage managé ? | Attente de la même immédiateté qu'actuellement | Risque de données à permissions obsolètes dû au délai de reflet |
 | V7 | L'**application de l'ACL est-elle maintenue pour l'historique de conversation/le cache** ? | Maintenue côté application | Comportement du cache côté managé inconnu |
 
-> ⚠️ **Non négociable** : Si V2, V3 (ou V4) ou V5 n'est pas satisfait, la migration est **BLOCKED** car **des données non autorisées pourraient entrer dans les résultats de recherche**. Cela violerait les exigences non négociables de la revue d'architecture FSxN AI/RAG (« une conception où des données non autorisées peuvent entrer dans les résultats de vector search », « une conception sans contrôle d'autorisation sur le contexte passé au LLM »).
+> ⚠️ **Non négociable** : Si V2, V3 (ou V4) ou V5 n'est pas satisfait, la migration est **BLOCKED** car **des données non autorisées pourraient entrer dans les résultats de recherche**. Cela violerait les exigences non négociables de la revue d'architecture FSx for ONTAP AI/RAG (« une conception où des données non autorisées peuvent entrer dans les résultats de vector search », « une conception sans contrôle d'autorisation sur le contexte passé au LLM »).
 
 ### 4.3 Maintien de la défense en profondeur
 
@@ -206,7 +206,7 @@ Comme le modèle de migration Dual KB existant ([migration-guide-multimodal.md](
 Confirmez tous les éléments suivants avant une décision de migration.
 
 ### Fondation des données
-- [ ] V1 : Le connecteur S3 peut enregistrer FSx ONTAP S3 AP comme source de données
+- [ ] V1 : Le connecteur S3 peut enregistrer FSx for ONTAP S3 AP comme source de données
 - [ ] PoC effectué avec des données cohérentes depuis Snapshot / FlexClone
 - [ ] Les données de production ne sont pas soumises à un crawling direct intensif
 
@@ -249,7 +249,7 @@ Conditions de levée :
 - Cependant, l'**exigence prioritaire de ce projet est l'application stricte de l'ACL pour le Permission-aware RAG**, et le comportement du filtre SID dans le stockage managé est **non vérifié**.
 - `userContext` (fourni par l'application, indépendant du modèle) et le filter `listContains` s'alignent directionnellement, donc **la migration est tout à fait faisable selon la vérification**.
 
-> Ce document est une évaluation. La migration réelle ne doit être effectuée qu'après la vérification ci-dessus et l'approbation via la revue concernée (revue d'architecture FSxN AI/RAG).
+> Ce document est une évaluation. La migration réelle ne doit être effectuée qu'après la vérification ci-dessus et l'approbation via la revue concernée (revue d'architecture FSx for ONTAP AI/RAG).
 
 ---
 

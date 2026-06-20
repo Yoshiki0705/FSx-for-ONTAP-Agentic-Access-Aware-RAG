@@ -57,7 +57,7 @@ Per [AWS's description](https://aws.amazon.com/blogs/aws/introducing-amazon-bedr
 | Aspect | Current (Custom: Bedrock KB + OpenSearch Serverless / S3 Vectors) | Managed KB |
 |--------|------------------------------------------------------------------|------------|
 | Vector store operations | Self-managed (AOSS OCU design / S3 Vectors index management) | Fully managed (no provisioning) |
-| Data source | FSx ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | Via S3 connector (S3 AP connection to be verified) |
+| Data source | FSx for ONTAP → S3 AP → Bedrock KB (`setup-kb-datasource.sh`) | Via S3 connector (S3 AP connection to be verified) |
 | Parsing & chunking | Manual selection via `kbChunkingStrategy` (FIXED/HIERARCHICAL/SEMANTIC/NONE) | Smart Parsing auto-selects (customizable) |
 | Embedding model | Fixed at deploy time (`embeddingModel`, change requires recreation) | Default auto-selected + optional Bedrock model |
 | Retrieval | Single Retrieve + app-side SID filter | `Retrieve` (single hybrid) + `AgenticRetrieveStream` (multi-hop) |
@@ -142,7 +142,7 @@ All of the following are **unverified** and determine migration feasibility. Pro
 
 | # | Verification item | Project assumption | Risk |
 |---|-------------------|-------------------|------|
-| V1 | Can the S3 connector use **FSx ONTAP S3 Access Point** as a data source (alias format, IAM boundary)? | Assumed connectable if S3-compatible | If not connectable, migration is infeasible |
+| V1 | Can the S3 connector use **FSx for ONTAP S3 Access Point** as a data source (alias format, IAM boundary)? | Assumed connectable if S3-compatible | If not connectable, migration is infeasible |
 | V2 | Is `.metadata.json`'s `allowed_group_sids` **retained as metadata** in the Managed KB index? | Assumed retained | If not retained, ACL filter is impossible |
 | V3 | Does `Retrieve`'s `filter` work for **SID array matching via `listContains`**? | Assumed functional | If not, switch to userContext method |
 | V4 | Is the `userContext` method valid for **S3-connector-ingested data** (not SaaS-connector-only)? | Unknown whether valid for S3 | If invalid for S3, depends on filter method |
@@ -150,7 +150,7 @@ All of the following are **unverified** and determine migration feasibility. Pro
 | V6 | Is **reflection latency for permission changes/deletions/renames** acceptable in managed storage? | Expect same immediacy as existing | Risk of stale-permission data due to reflection delay |
 | V7 | Is **ACL application maintained for conversation history/cache**? | Maintained app-side | Managed-side cache behavior unknown |
 
-> ⚠️ **Non-negotiable**: If any of V2, V3 (or V4), or V5 is unmet, migration is **BLOCKED** because **unauthorized data may enter search results**. This would violate the FSxN AI/RAG architecture review non-negotiable requirements ("a design where unauthorized data may enter vector search results," "a design with no authorization check on the context passed to the LLM").
+> ⚠️ **Non-negotiable**: If any of V2, V3 (or V4), or V5 is unmet, migration is **BLOCKED** because **unauthorized data may enter search results**. This would violate the FSx for ONTAP AI/RAG architecture review non-negotiable requirements ("a design where unauthorized data may enter vector search results," "a design with no authorization check on the context passed to the LLM").
 
 ### 4.3 Maintaining Defense-in-Depth
 
@@ -206,7 +206,7 @@ Like the existing Dual KB migration pattern ([migration-guide-multimodal.md](mig
 Confirm all of the following before a migration decision.
 
 ### Data Foundation
-- [ ] V1: S3 connector can register FSx ONTAP S3 AP as a data source
+- [ ] V1: S3 connector can register FSx for ONTAP S3 AP as a data source
 - [ ] PoC performed with consistent data from Snapshot / FlexClone
 - [ ] Production data is not subjected to heavy direct crawling
 
@@ -249,7 +249,7 @@ Conditions to lift:
 - However, this project's **top-priority requirement is strict ACL enforcement for Permission-aware RAG**, and SID filter behavior in managed storage is **unverified**.
 - `userContext` (app-supplied, model-independent) and the `listContains` filter align directionally, so **migration is quite feasible depending on verification**.
 
-> This document is an evaluation. Actual migration should be performed only after the above verification and approval through the relevant review (FSxN AI/RAG architecture review).
+> This document is an evaluation. Actual migration should be performed only after the above verification and approval through the relevant review (FSx for ONTAP AI/RAG architecture review).
 
 ---
 

@@ -144,7 +144,7 @@ La configuration du vector store peut être changée via le paramètre de contex
 
 | # | Élément de validation | Statut |
 |---|----------------------|--------|
-| V1 | Le connecteur S3 reconnaît le FSx ONTAP S3 Access Point | Non vérifié |
+| V1 | Le connecteur S3 reconnaît le FSx for ONTAP S3 Access Point | Non vérifié |
 | V2 | `allowed_group_sids` de `.metadata.json` est conservé dans l'index | Non vérifié |
 | V3 | `listContains` de `filter` fonctionne pour la correspondance de tableau SID | Non vérifié |
 | V4 | Les filtres sont maintenus pendant le multi-hop d'Agentic Retrieval | Non vérifié |

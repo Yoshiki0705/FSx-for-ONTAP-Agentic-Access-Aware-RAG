@@ -96,7 +96,7 @@ aws bedrock-agent create-data-source \
 | S3 AP no es posible pero un bucket S3 normal funciona | △ Condicional | Considerar una ruta de relé S3 basada en DataSync (se necesita validación adicional para la preservación de metadatos ACL) |
 | La sincronización del conector S3 en sí falla | ❌ FAIL | Migración no viable. Conservar la configuración actual |
 
-> **Supuesto del proyecto**: Asumimos que la conexión es posible si la API compatible con S3 funciona, pero las restricciones específicas de S3 AP (como la latencia de ListObjectsV2 señalada en la [matriz de compatibilidad de FSx ONTAP S3 AP](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)) pueden afectar al crawler de Managed KB.
+> **Supuesto del proyecto**: Asumimos que la conexión es posible si la API compatible con S3 funciona, pero las restricciones específicas de S3 AP (como la latencia de ListObjectsV2 señalada en la [matriz de compatibilidad de FSx for ONTAP S3 AP](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)) pueden afectar al crawler de Managed KB.
 
 ### 2.2 Validación V2: preservación de metadatos
 
@@ -279,7 +279,7 @@ Para los detalles de los requisitos de auditoría, vea [Diseño de gobernanza y 
 
 Supere todos los siguientes elementos antes de la decisión de viabilidad de la migración.
 
-- [ ] **V1**: El conector S3 reconoce FSx ONTAP S3 AP (Phase A)
+- [ ] **V1**: El conector S3 reconoce FSx for ONTAP S3 AP (Phase A)
 - [ ] **V2**: `allowed_group_sids` se conserva como metadato (Phase A)
 - [ ] **V3**: La coincidencia de array SID vía `listContains` funciona (Phase B)
 - [ ] **V4**: El filtro se mantiene durante el multi-hop de Agentic Retrieval (Phase B)

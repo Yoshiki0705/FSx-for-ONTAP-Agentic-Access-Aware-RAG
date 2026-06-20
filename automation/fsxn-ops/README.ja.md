@@ -51,7 +51,7 @@ bash automation/fsxn-ops/tests/integration/run_aws_verification.sh
 - FSx for NetApp ONTAP がデプロイ済み
 - SVM 管理ユーザー (fsxadmin) が利用可能
 - Secrets Manager に `{"username": "fsxadmin", "password": "xxx"}` 形式で保存
-- **fsxadmin パスワード同期**: Secrets Manager の値と FSx ONTAP の実パスワードが一致していること
+- **fsxadmin パスワード同期**: Secrets Manager の値と FSx for ONTAP の実パスワードが一致していること
   ```bash
   # パスワード同期 (不一致の場合)
   aws fsx update-file-system --file-system-id <FS_ID> \
@@ -68,7 +68,7 @@ VPC 内の Lambda から AWS API にアクセスするため、以下の VPC エ
 | `com.amazonaws.{region}.fsx` | Interface | FSx API (容量変更等) |
 | `com.amazonaws.{region}.monitoring` | Interface | CloudWatch メトリクス取得 |
 | `com.amazonaws.{region}.sns` | Interface | SNS 通知送信 |
-| `com.amazonaws.{region}.s3` | **Gateway** | S3 / FSx ONTAP S3 Access Point アクセス |
+| `com.amazonaws.{region}.s3` | **Gateway** | S3 / FSx for ONTAP S3 Access Point アクセス |
 
 > CFn テンプレート (`cfn/fsxn-ops-stack.yaml`) に VPC エンドポイント定義が含まれています。
 > S3 Gateway エンドポイントは Lambda サブネットのルートテーブルに関連付けが必要です。
@@ -121,7 +121,7 @@ automation/fsxn-ops/
 | # | ユースケース | 実装 | トリガー |
 |---|-------------|------|---------|
 | 1 | SnapMirror フェイルオーバー自動化 | Step Functions + Lambda | 手動 / API |
-| 2 | FSx ONTAP 容量監視・自動拡張 | Lambda | EventBridge (5分間隔) |
+| 2 | FSx for ONTAP 容量監視・自動拡張 | Lambda | EventBridge (5分間隔) |
 | 3 | ONTAP 管理 API 実行 | Lambda | API Gateway / 手動 |
 | 4 | AI/分析向けデータ前処理 | Step Functions + Lambda | EventBridge / アプリ |
 | 5 | Capacity Guardrails（拡張安全制御） | Lambda + DynamoDB | 容量監視時に自動評価 |
@@ -230,9 +230,9 @@ aws cloudwatch list-metrics --namespace FSxNOps/Guardrails
 ## 参考実装
 
 - [SnapMirror Failover Orchestration](https://github.com/aws-samples/sample-fsx-ontap-failover-and-failback-orchestration)
-- [FSx ONTAP Samples & Scripts](https://github.com/NetApp/FSx-ONTAP-samples-scripts)
-- [FSx ONTAP Monitoring & Auto-Resizing](https://docs.netapp.com/us-en/netapp-solutions-dataops/automation/fsxn-monitoring-resizing.html)
-- [GenAI Bedrock FSx ONTAP](https://github.com/aws-samples/genai-bedrock-fsxontap)
+- [FSx for ONTAP Samples & Scripts](https://github.com/NetApp/FSx-ONTAP-samples-scripts)
+- [FSx for ONTAP Monitoring & Auto-Resizing](https://docs.netapp.com/us-en/netapp-solutions-dataops/automation/fsxn-monitoring-resizing.html)
+- [GenAI Bedrock FSx for ONTAP](https://github.com/aws-samples/genai-bedrock-fsxontap)
 
 ## トラブルシューティング (検証で得た知見)
 
@@ -248,17 +248,17 @@ aws cloudwatch list-metrics --namespace FSxNOps/Guardrails
 | `com.amazonaws.{region}.fsx` | Interface | FSx API (容量変更等) |
 | `com.amazonaws.{region}.monitoring` | Interface | CloudWatch メトリクス取得 |
 | `com.amazonaws.{region}.sns` | Interface | SNS 通知送信 |
-| `com.amazonaws.{region}.s3` | **Gateway** | S3 / FSx ONTAP S3 Access Point アクセス |
+| `com.amazonaws.{region}.s3` | **Gateway** | S3 / FSx for ONTAP S3 Access Point アクセス |
 
 **S3 Gateway エンドポイントの注意点**: Lambda のサブネットが使用するルートテーブルに関連付けが必要。CFn テンプレートの `RouteTableIds` パラメータで指定する。
 
 ### ONTAP REST API が 401 Unauthorized を返す
 
-**原因**: Secrets Manager のパスワードと FSx ONTAP の fsxadmin パスワードが不一致。
+**原因**: Secrets Manager のパスワードと FSx for ONTAP の fsxadmin パスワードが不一致。
 
 **解決**:
 ```bash
-# Secrets Manager のパスワードで FSx ONTAP を更新
+# Secrets Manager のパスワードで FSx for ONTAP を更新
 CURRENT_PW=$(aws secretsmanager get-secret-value \
   --secret-id <SECRET_ID> --query 'SecretString' --output text \
   | python3 -c "import sys,json; print(json.loads(sys.stdin.read())['password'])")
@@ -270,7 +270,7 @@ aws fsx update-file-system \
 
 ### CloudWatch StorageCapacityUtilization メトリクスが取得できない
 
-**原因**: FSx ONTAP の StorageCapacityUtilization メトリクスは、ファイルシステム作成直後やデータが少ない場合に取得できないことがある。
+**原因**: FSx for ONTAP の StorageCapacityUtilization メトリクスは、ファイルシステム作成直後やデータが少ない場合に取得できないことがある。
 
 **対応**: capacity_monitor は自動的に ONTAP REST API にフォールバックし、ボリュームレベルの使用率を直接取得する。FS レベルの使用率は 0% として扱われる。
 
@@ -289,9 +289,9 @@ aws fsx update-file-system \
 aws iam delete-role --role-name fsxn-ops-capacity-monitor-role
 ```
 
-### FSx ONTAP S3 Access Point の作成方法
+### FSx for ONTAP S3 Access Point の作成方法
 
-FSx ONTAP の NAS データを S3 API 経由で公開するには、通常の S3 Access Point ではなく FSx 専用の API を使用する:
+FSx for ONTAP の NAS データを S3 API 経由で公開するには、通常の S3 Access Point ではなく FSx 専用の API を使用する:
 
 ```bash
 aws fsx create-and-attach-s3-access-point \

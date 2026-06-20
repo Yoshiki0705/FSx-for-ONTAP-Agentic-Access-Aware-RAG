@@ -2,7 +2,7 @@
 
 ## Overview
 
-2026年3月〜6月のAWS AIアップデートを本プロジェクト（Permission-aware RAG with FSx ONTAP）に統合するための実装ロードマップ。全7 Specを段階的に実装し、Permission境界の一貫性を維持しながら新機能を導入する。
+2026年3月〜6月のAWS AIアップデートを本プロジェクト（Permission-aware RAG with FSx for ONTAP）に統合するための実装ロードマップ。全7 Specを段階的に実装し、Permission境界の一貫性を維持しながら新機能を導入する。
 
 ## Core Invariant: Permission Boundary Classification
 
@@ -10,7 +10,7 @@
 
 | Type | Source | Permission保証 | Trust Level | UI表示 |
 |------|--------|---------------|-------------|--------|
-| `verified` | KB (FSx ONTAP, SID-matched) | Fail-closed + SIDマッチング完了 | HIGH | 🔒 社内文書 |
+| `verified` | KB (FSx for ONTAP, SID-matched) | Fail-closed + SIDマッチング完了 | HIGH | 🔒 社内文書 |
 | `reference` | Web Search (Claude Platform) | 不適用（公開情報） | LOW | 🌐 参考情報（外部） |
 | `expanded` | Graph RAG expansion (Neptune) | Real-time SIDチェック済み（遅延あり） | MEDIUM | 🔗 関連ドキュメント |
 | `memory` | Agent Memory (AgentCore) | SIDスコープタグ付き | MEDIUM | 表示しない（内部利用） |
@@ -63,7 +63,7 @@
 |------|------|--------|
 | Gateway構築 | CDK construct + IAM認証 | MEDIUM |
 | Permission Interceptor | Lambda + DynamoDB Permission check | MEDIUM |
-| MCP Server登録 | FSxN/KB/Capacity各ツール | LOW |
+| MCP Server登録 | FSx for ONTAP/KB/Capacity各ツール | LOW |
 | Observability | 構造化ログ + X-Ray | LOW |
 
 **完了条件**: 全エージェントツール通信がGateway経由 + Permission Interceptor通過
@@ -85,11 +85,11 @@
 
 | Task | 内容 | リスク |
 |------|------|--------|
-| Strands SDK基盤 | 1エージェント（FSxN Agent）のみ移行 | MEDIUM |
+| Strands SDK基盤 | 1エージェント（FSx for ONTAP Agent）のみ移行 | MEDIUM |
 | Memory Permission tagging | SIDスコープ付きメモリ | HIGH |
 | Tool decorator | @permission_required 強制 | LOW |
 
-**完了条件**: FSxN AgentがStrands SDKで動作 + Memory安全性確認
+**完了条件**: FSx for ONTAP AgentがStrands SDKで動作 + Memory安全性確認
 
 ---
 

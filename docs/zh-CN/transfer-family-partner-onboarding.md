@@ -282,5 +282,5 @@ aws transfer delete-ssh-public-key \
 
 - [Transfer Family E2E 验证报告](transfer-family-e2e-verification.md)
 - [Transfer Family 网络前提条件](transfer-family-networking-prerequisites.md)
-- [AWS Transfer Family + FSx S3 AP 文档](https://docs.aws.amazon.com/transfer/latest/userguide/fsx-s3-access-points.html)
+- [AWS Transfer Family + FSx for ONTAP S3 AP 文档](https://docs.aws.amazon.com/transfer/latest/userguide/fsx-s3-access-points.html)
 - [AWS Storage Blog: Secure SFTP file sharing](https://aws.amazon.com/blogs/storage/secure-sftp-file-sharing-with-aws-transfer-family-amazon-fsx-for-netapp-ontap-and-s3-access-points/)
