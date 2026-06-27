@@ -79,7 +79,7 @@ AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API
   - Docker イメージ OCI 形式修正: `docker buildx build --provenance=false --sbom=false` で Docker V2 manifest を保証
   - `cdk.context.json` `imageTag` パラメータ: 明示的タグによる CDK イメージ変更検出
 
-- **Transfer Family FSx ONTAP Ingestion**: AWS Transfer Family SFTP サーバーと FSx for ONTAP S3 Access Points を統合し、ドキュメントアップロードから Bedrock KB 自動インジェスションパイプラインを構築
+- **Transfer Family FSx for ONTAP Ingestion**: AWS Transfer Family SFTP サーバーと FSx for ONTAP S3 Access Points を統合し、ドキュメントアップロードから Bedrock KB 自動インジェスションパイプラインを構築
   - `DemoTransferFamilyStack`: 新規 CDK スタック。`enableTransferFamily=true` で有効化
   - Transfer Family SFTP サーバー: `TransferSecurityPolicy-2024-01`、PUBLIC エンドポイント、SFTP プロトコル
   - SFTP ユーザー管理: SSH 鍵認証、論理ホームディレクトリ（`/uploads/{userName}`）、スコープ IAM ロール

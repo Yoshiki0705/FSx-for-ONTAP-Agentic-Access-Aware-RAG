@@ -1,7 +1,7 @@
 """
 KB Auto Sync Lambda Handler.
 
-FSx ONTAP S3 Access Point のファイル変更をポーリングで検出し、
+FSx for ONTAP S3 Access Point のファイル変更をポーリングで検出し、
 Bedrock KB StartIngestionJob を自動トリガーする。
 
 2フェーズインベントリモデル:
@@ -9,7 +9,7 @@ Bedrock KB StartIngestionJob を自動トリガーする。
   - status-check: GetIngestionJob → commit_inventory / mark_inventory_failed
 
 環境変数:
-    S3_ACCESS_POINT_ARN  : FSx ONTAP S3 Access Point ARN
+    S3_ACCESS_POINT_ARN  : FSx for ONTAP S3 Access Point ARN
     KNOWLEDGE_BASE_ID    : Bedrock Knowledge Base ID
     DATA_SOURCE_ID       : Bedrock KB Data Source ID
     INVENTORY_TABLE_NAME : DynamoDB インベントリテーブル名

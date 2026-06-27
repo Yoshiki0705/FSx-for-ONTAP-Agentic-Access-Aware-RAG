@@ -4,7 +4,7 @@ set -euo pipefail
 ###############################################################################
 # ONTAP Name-Mapping 検証スクリプト
 #
-# FSx ONTAP REST APIへの接続、name-mappingルールの取得、
+# FSx for ONTAP REST APIへの接続、name-mappingルールの取得、
 # UNIX→Windowsユーザーマッピングの動作を検証する。
 #
 # 前提:
@@ -25,10 +25,10 @@ echo "🔍 ONTAP Name-Mapping 検証"
 echo "============================================"
 
 # ========================================
-# Step 1: FSx ONTAP情報確認
+# Step 1: FSx for ONTAP情報確認
 # ========================================
 echo ""
-echo "📋 Step 1: FSx ONTAP情報確認"
+echo "📋 Step 1: FSx for ONTAP情報確認"
 
 FS_ID=$(aws fsx describe-file-systems \
   --region "$REGION" \
@@ -51,9 +51,9 @@ FS_LIFECYCLE=$(aws fsx describe-file-systems \
   --output text)
 
 if [ "$FS_LIFECYCLE" = "AVAILABLE" ]; then
-  pass "FSx ONTAP: $FS_ID ($FS_LIFECYCLE)"
+  pass "FSx for ONTAP: $FS_ID ($FS_LIFECYCLE)"
 else
-  fail "FSx ONTAP: $FS_ID ($FS_LIFECYCLE)"
+  fail "FSx for ONTAP: $FS_ID ($FS_LIFECYCLE)"
 fi
 
 pass "Management IP: $MGMT_IP"

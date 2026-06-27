@@ -4,12 +4,12 @@ set -euo pipefail
 ###############################################################################
 # ONTAP Name-Mapping セットアップスクリプト
 #
-# FSx ONTAP REST APIに接続し、name-mappingルール（UNIX→Windows）を設定する。
+# FSx for ONTAP REST APIに接続し、name-mappingルール（UNIX→Windows）を設定する。
 # Permission Resolver LambdaがONTAP REST API経由でマッピングを取得できることを検証。
 #
 # 前提:
 #   - AWS CLI設定済み（ap-northeast-1）
-#   - FSx ONTAPがデプロイ済み（Storage Stack）
+#   - FSx for ONTAPがデプロイ済み（Storage Stack）
 #   - fsxadminパスワードが設定済み
 ###############################################################################
 
@@ -17,9 +17,9 @@ REGION="${AWS_REGION:-ap-northeast-1}"
 STACK_PREFIX="perm-rag-demo-demo"
 
 # ========================================
-# FSx ONTAP情報取得
+# FSx for ONTAP情報取得
 # ========================================
-echo "📋 FSx ONTAP情報を取得中..."
+echo "📋 FSx for ONTAP情報を取得中..."
 
 FS_ID=$(aws fsx describe-file-systems \
   --region "$REGION" \
@@ -71,11 +71,11 @@ if aws secretsmanager describe-secret --secret-id "$ONTAP_SECRET_NAME" --region 
 else
   echo ""
   echo "⚠️  fsxadminパスワードがSecrets Managerに登録されていません。"
-  echo "  FSx ONTAPコンソールでfsxadminパスワードを設定し、以下のコマンドで登録してください:"
+  echo "  FSx for ONTAPコンソールでfsxadminパスワードを設定し、以下のコマンドで登録してください:"
   echo ""
   echo "  aws secretsmanager create-secret \\"
   echo "    --name $ONTAP_SECRET_NAME \\"
-  echo "    --description 'FSx ONTAP fsxadmin password' \\"
+  echo "    --description 'FSx for ONTAP fsxadmin password' \\"
   echo "    --secret-string 'YOUR_FSXADMIN_PASSWORD' \\"
   echo "    --region $REGION"
   echo ""
@@ -95,7 +95,7 @@ else
   # Secrets Managerに保存
   aws secretsmanager create-secret \
     --name "$ONTAP_SECRET_NAME" \
-    --description "FSx ONTAP fsxadmin password" \
+    --description "FSx for ONTAP fsxadmin password" \
     --secret-string "$FSXADMIN_PASSWORD" \
     --region "$REGION" >/dev/null
   echo "  Secrets Managerに保存しました"

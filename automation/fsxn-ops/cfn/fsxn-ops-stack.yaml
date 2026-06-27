@@ -4,7 +4,7 @@ Description: >
   Lambda, Step Functions, EventBridge Scheduler, IAM, SNS を一括デプロイする。
 
 Parameters:
-  # === FSx ONTAP 設定 ===
+  # === FSx for ONTAP 設定 ===
   FsxFilesystemId:
     Type: String
     Description: "FSx for ONTAP ファイルシステム ID (例: fs-0123456789abcdef0)"
@@ -218,7 +218,7 @@ Resources:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: fsxn-ops-notifications
-      DisplayName: FSx ONTAP Ops Notifications
+      DisplayName: FSx for ONTAP Ops Notifications
 
   NotificationSubscription:
     Type: AWS::SNS::Subscription

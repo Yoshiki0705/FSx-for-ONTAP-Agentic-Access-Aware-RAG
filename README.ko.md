@@ -195,7 +195,7 @@ FSx for ONTAP S3 Access Points를 Bedrock Knowledge Bases 데이터 소스로 �
 | 19 | AgentCore Policy | AgentCore Policy를 통한 에이전트 행동 제어. 자연어 정책 정의로 에이전트의 도구, API, MCP 서버 접근을 제한. 3가지 정책 템플릿 (보안 중심, 비용 중심, 유연성 중심). PolicyEvaluationMiddleware (3초 타임아웃, fail-open/fail-closed). 위반 로그 (EMF 형식) 및 CloudWatch 대시보드 통합. 8개 언어 i18n 지원. `enableAgentPolicy=true`로 활성화. **v4.3 확장**: Policy Engine + Bedrock Guardrails 통합 (Gateway 레벨에서 프롬프트 인젝션, PII, 유해 콘텐츠 실시간 감지/차단). `policyEngineMode`로 LOG_ONLY/ENFORCE 전환. InvokeGuardrailChecks API를 통한 청크 단위 인라인 안전성 검사 | AIStack, WebAppStack |
 | 19.1 | Web Search | AgentCore Gateway 경유 웹 검색 도구. 에이전트가 실시간 웹 정보를 인용(URL, 제목, 게시일) 포함하여 취득. FSx for ONTAP 문서만으로 답변할 수 없는 경우의 보완 정보원. Zero data egress (AWS 환경 내 완결). `enableWebSearch=true`로 활성화 (`enableAgentCoreGateway=true` 필요) | AIStack |
 | 19.2 | AgentCore Optimization | 프로덕션 트레이스에서 에이전트 품질을 지속적으로 개선하는 루프 (Preview). Configuration Bundle (system prompt/model ID/tool descriptions 버전 관리, 코드 재배포 불필요), Recommendations (트레이스 분석 기반 개선안 자동 생성), A/B Testing (Gateway 트래픽 분할 + 통계적 유의성 검증). CDK는 Configuration Bundle + IAM 역할을 구축하고 Recommendations/A/B 테스트는 agentcore CLI/SDK로 실행. `enableAgentOptimization=true`로 활성화 (`enableAgentCoreGateway=true` 필요) | AIStack |
-| 20 | FSx ONTAP 운영 자동화 | Lambda + Step Functions를 사용한 FSx for ONTAP 운영 자동화. SnapMirror 페일오버/페일백 오케스트레이션(ASL), 용량 모니터링 및 자동 확장(EventBridge 5분 간격), ONTAP REST API 범용 실행기, AI/분석 데이터 전처리(S3 Access Point 경계). 이벤트 기반 의존성 없음, NFS 마운트 없음. 월 ~$2.60. [automation/fsxn-ops/](automation/fsxn-ops/) 참조 | CloudFormation (standalone) |
+| 20 | FSx for ONTAP 운영 자동화 | Lambda + Step Functions를 사용한 FSx for ONTAP 운영 자동화. SnapMirror 페일오버/페일백 오케스트레이션(ASL), 용량 모니터링 및 자동 확장(EventBridge 5분 간격), ONTAP REST API 범용 실행기, AI/분석 데이터 전처리(S3 Access Point 경계). 이벤트 기반 의존성 없음, NFS 마운트 없음. 월 ~$2.60. [automation/fsxn-ops/](automation/fsxn-ops/) 참조 | CloudFormation (standalone) |
 
 #### v4.0.0 기술 참고사항
 
@@ -891,7 +891,7 @@ SAML + OIDC 하이브리드 구성의 로그인 화면 (AD로 로그인 + Auth0�
 
 #### 기존 FSx for ONTAP 사용
 
-FSx for ONTAP 파일 시스템이 이미 존재하는 경우, 새로 생성하는 대신 기존 리소스를 참조할 수 있습니다. 이를 통해 배포 시간이 크게 단축됩니다 (FSx ONTAP 생성의 30-40분 대기 제거).
+FSx for ONTAP 파일 시스템이 이미 존재하는 경우, 새로 생성하는 대신 기존 리소스를 참조할 수 있습니다. 이를 통해 배포 시간이 크게 단축됩니다 (FSx for ONTAP 생성의 30-40분 대기 제거).
 
 ```bash
 npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \

@@ -1,11 +1,11 @@
 """
 Ingestion Trigger Lambda Handler.
 
-Detects new/changed files on FSx ONTAP S3 Access Point and triggers
+Detects new/changed files on FSx for ONTAP S3 Access Point and triggers
 Bedrock KB StartIngestionJob.
 
 Environment Variables:
-    S3_ACCESS_POINT_ARN    : FSx ONTAP S3 Access Point ARN
+    S3_ACCESS_POINT_ARN    : FSx for ONTAP S3 Access Point ARN
     KNOWLEDGE_BASE_ID      : Bedrock Knowledge Base ID
     DATA_SOURCE_ID         : Bedrock KB Data Source ID
     STATE_TABLE_NAME       : DynamoDB scan state table name

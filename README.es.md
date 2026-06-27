@@ -223,7 +223,7 @@ La implementación de este sistema está organizada en 15 perspectivas. Para det
 | 19 | AgentCore Policy | Control de comportamiento de agentes mediante AgentCore Policy. Definición de políticas en lenguaje natural para restringir el acceso a herramientas, API y servidores MCP. 3 plantillas de política (seguridad, costos, flexibilidad). PolicyEvaluationMiddleware (timeout 3s, fail-open/fail-closed). Registros de violación (formato EMF) e integración con CloudWatch. Soporte i18n de 8 idiomas. Habilitar con `enableAgentPolicy=true`. **Extensión v4.3**: Integración Policy Engine + Bedrock Guardrails (detección/bloqueo en tiempo real de inyección de prompts, PII y contenido dañino a nivel Gateway). `policyEngineMode` para alternar LOG_ONLY/ENFORCE. API InvokeGuardrailChecks para verificación de seguridad en línea por chunk | AIStack, WebAppStack |
 | 19.1 | Web Search | Herramienta de búsqueda web vía AgentCore Gateway. Los agentes obtienen información web en tiempo real con citas (URL, título, fecha de publicación). Fuente de información complementaria cuando los documentos FSx for ONTAP no son suficientes. Zero data egress (procesamiento dentro del entorno AWS). Habilitar con `enableWebSearch=true` (requiere `enableAgentCoreGateway=true`) | AIStack |
 | 19.2 | AgentCore Optimization | Bucle de mejora continua de la calidad del agente a partir de trazas de producción (Preview). Configuration Bundle (versionado de system prompt/model ID/tool descriptions, sin redespliegue de código), Recommendations (mejoras generadas por IA a partir del análisis de trazas), A/B Testing (división de tráfico en Gateway + validación de significancia estadística). CDK aprovisiona el Configuration Bundle + rol IAM; Recommendations/pruebas A/B se ejecutan vía agentcore CLI/SDK. Habilitar con `enableAgentOptimization=true` (requiere `enableAgentCoreGateway=true`) | AIStack |
-| 20 | Automatización FSx ONTAP | Automatización de operaciones FSx for ONTAP con Lambda + Step Functions. Orquestación de failover/failback SnapMirror (ASL), monitoreo de capacidad con auto-expansión (EventBridge 5 min), ejecutor genérico de API REST ONTAP, preprocesamiento de datos IA/análisis (frontera S3 Access Point). Sin dependencia de eventos, sin montaje NFS. ~$2.60/mes. Ver [automation/fsxn-ops/](automation/fsxn-ops/) | CloudFormation (standalone) |
+| 20 | Automatización FSx for ONTAP | Automatización de operaciones FSx for ONTAP con Lambda + Step Functions. Orquestación de failover/failback SnapMirror (ASL), monitoreo de capacidad con auto-expansión (EventBridge 5 min), ejecutor genérico de API REST ONTAP, preprocesamiento de datos IA/análisis (frontera S3 Access Point). Sin dependencia de eventos, sin montaje NFS. ~$2.60/mes. Ver [automation/fsxn-ops/](automation/fsxn-ops/) | CloudFormation (standalone) |
 
 #### Notas técnicas v4.0.0
 
@@ -935,7 +935,7 @@ Cambie el almacén de vectores usando el parámetro `vectorStoreType`. El predet
 
 #### Uso de un FSx for ONTAP existente
 
-Si ya existe un sistema de archivos FSx for ONTAP, puede referenciar recursos existentes en lugar de crear nuevos. Esto reduce significativamente el tiempo de despliegue (elimina la espera de 30-40 minutos para la creación de FSx ONTAP).
+Si ya existe un sistema de archivos FSx for ONTAP, puede referenciar recursos existentes en lugar de crear nuevos. Esto reduce significativamente el tiempo de despliegue (elimina la espera de 30-40 minutos para la creación de FSx for ONTAP).
 
 ```bash
 npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \

@@ -4,7 +4,7 @@ Metadata Generator Lambda Handler.
 Generates permission metadata (.metadata.json) files for uploaded documents.
 
 Environment Variables:
-    S3_ACCESS_POINT_ARN       : FSx ONTAP S3 Access Point ARN
+    S3_ACCESS_POINT_ARN       : FSx for ONTAP S3 Access Point ARN
     PERMISSION_CONFIG_TABLE   : DynamoDB permission mapping table name
     DEFAULT_PERMISSIONS       : Default permissions JSON string
     SNS_TOPIC_ARN             : SNS topic for error notifications

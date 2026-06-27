@@ -153,7 +153,7 @@ class FsxHelper:
         hours: int = 1,
     ) -> dict[str, Any]:
         """
-        CloudWatch から FSx ONTAP のストレージ容量メトリクスを取得
+        CloudWatch から FSx for ONTAP のストレージ容量メトリクスを取得
 
         Returns:
             {

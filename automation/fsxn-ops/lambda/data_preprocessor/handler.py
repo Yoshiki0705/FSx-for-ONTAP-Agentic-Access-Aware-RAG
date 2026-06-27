@@ -6,7 +6,7 @@ FSx for NetApp ONTAP 上のデータを対象に、AI/分析パイプライン�
 "境界" として扱い、S3 経由でデータにアクセスする。
 
 処理フロー:
-1. S3 Access Point 経由で FSx ONTAP のデータ一覧を取得
+1. S3 Access Point 経由で FSx for ONTAP のデータ一覧を取得
 2. 対象ファイルのメタデータを収集 (ONTAP REST API)
 3. 前処理タスクを生成 (Step Functions の Map ステート用)
 4. 処理結果を S3 に出力
@@ -39,7 +39,7 @@ logger.setLevel(logging.INFO)
 
 
 class DataPreprocessor:
-    """FSx ONTAP データの前処理を管理"""
+    """FSx for ONTAP データの前処理を管理"""
 
     def __init__(
         self,
@@ -63,7 +63,7 @@ class DataPreprocessor:
         """
         S3 Access Point 経由でソースオブジェクト一覧を取得
 
-        S3 Access Point は FSx ONTAP のデータへの "境界" として機能する。
+        S3 Access Point は FSx for ONTAP のデータへの "境界" として機能する。
         Lambda から直接 NFS マウントせず、S3 API 経由でアクセスする。
         """
         objects = []

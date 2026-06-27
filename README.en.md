@@ -980,7 +980,7 @@ Switch the vector store using the `vectorStoreType` parameter. The default is S3
 
 #### Using an Existing FSx for ONTAP
 
-If an FSx for ONTAP file system already exists, you can reference existing resources instead of creating new ones. This significantly reduces deployment time (eliminates the 30-40 minute wait for FSx ONTAP creation).
+If an FSx for ONTAP file system already exists, you can reference existing resources instead of creating new ones. This significantly reduces deployment time (eliminates the 30-40 minute wait for FSx for ONTAP creation).
 
 ```bash
 npx cdk deploy --all --app "npx ts-node bin/demo-app.ts" \

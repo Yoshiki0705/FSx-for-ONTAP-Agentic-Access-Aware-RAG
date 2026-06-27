@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 #
-# FSx ONTAP S3 Access Point 経由でデモデータをアップロード
+# FSx for ONTAP S3 Access Point 経由でデモデータをアップロード
 #
 # 前提条件:
 #   1. S3 Access Point が AVAILABLE 状態

@@ -5,7 +5,7 @@ set -euo pipefail
 #
 # CDKデプロイ完了後に1回実行するだけで、以下を自動的に行います:
 #   1. S3 Access Point の確認・作成 + ポリシー設定
-#   2. FSx ONTAP にデモデータをアップロード（S3 AP経由）
+#   2. FSx for ONTAP にデモデータをアップロード（S3 AP経由）
 #   3. Bedrock KB にデータソース追加 + 同期
 #   4. DynamoDB にユーザーSIDデータを登録
 #   5. Cognito にデモユーザーを作成
@@ -207,7 +207,7 @@ echo ""
 # ========================================
 # 2. デモデータアップロード
 # ========================================
-echo "📤 Step 2/5: デモデータをFSx ONTAPにアップロード..."
+echo "📤 Step 2/5: デモデータをFSx for ONTAPにアップロード..."
 aws s3 sync "${SCRIPT_DIR}/../documents/" "s3://${S3AP_ALIAS}/" --region $REGION 2>&1 | grep -c "upload:" | xargs -I{} echo "  ✅ {}ファイルアップロード完了"
 echo ""
 
