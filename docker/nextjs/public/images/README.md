@@ -4,7 +4,7 @@
 
 ### main-image.jpg
 - **Path**: `frontend/public/images/main-image.jpg`
-- **Source**: https://github.com/NetAppJpTechTeam/Permission-aware-RAG-FSxN-CDK/blob/master/docker/nextjs/public/images/main-image.jpg
+- **Source**: https://github.com/NetAppJpTechTeam/Permission-aware-RAG-FSx for ONTAP-CDK/blob/master/docker/nextjs/public/images/main-image.jpg
 - **Description**: NetApp building with "DATA INFRASTRUCTURE INTELLIGENT" branding
 - **Usage**: Used in the sign-in page left panel as the main brand image
 - **Dimensions**: Recommended minimum 800x600px

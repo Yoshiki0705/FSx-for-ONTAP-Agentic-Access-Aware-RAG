@@ -34,7 +34,7 @@ aws s3 sync demo-data/industry-packs/ \
   --exclude "README.md"
 ```
 
-### 2. FSx ONTAP経由でのアップロード（SFTP）
+### 2. FSx for ONTAP経由でのアップロード（SFTP）
 
 Transfer Family SFTP エンドポイント経由でアップロードする場合、`.metadata.json` はサービスロールが自動生成するため、ドキュメント本体のみをアップロードしてください。
 
@@ -184,7 +184,7 @@ Industry Packs は既存の `demo-data/` ディレクトリのデモデータと
 ### 推奨構成
 
 ```
-S3 Bucket (or FSx ONTAP volume)
+S3 Bucket (or FSx for ONTAP volume)
 ├── demo-data/              # 既存の汎用デモデータ
 │   ├── documents/
 │   └── scripts/
