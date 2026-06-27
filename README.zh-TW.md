@@ -135,6 +135,8 @@ bash demo-data/scripts/post-deploy-setup.sh
                                 +------------------+
 ```
 
+> **並行選項**: Amazon Bedrock Managed Knowledge Base（Agentic Retriever / 多跳搜尋）也正在作為向量儲存選擇進行驗證。現有的 S3 Vectors / OpenSearch Serverless 路徑保持不變，在需要降低維運負擔的場景中可使用 Managed KB 作為附加路徑（⚠️ 與 Permission-aware RAG 的相容性[驗證中](docs/zh-TW/managed-kb-upgrade-path.md)）。配置比較請參閱 [docs/zh-TW/stack-architecture-comparison.md](docs/zh-TW/stack-architecture-comparison.md)。
+
 ## 企業設計與維運指南
 
 本範例提供以下附加指南，支援從 PoC 到正式環境的評估：

@@ -151,6 +151,8 @@ aws cloudformation describe-stacks --stack-name perm-rag-demo-demo-WebApp \
                                 +------------------+
 ```
 
+> **並列オプション**: Amazon Bedrock Managed Knowledge Base（Agentic Retriever / マルチホップ検索）もベクトルストアの選択肢として検証中です。S3 Vectors / OpenSearch Serverless の既存パスは維持したまま、運用負荷削減が必要なユースケースで Managed KB を追加パスとして利用可能です（⚠️ Permission-aware RAG との互換性は[検証中](docs/managed-kb-upgrade-path.md)）。構成比較は [docs/stack-architecture-comparison.md](docs/stack-architecture-comparison.md) を参照。
+
 ## エンタープライズ設計・運用ガイド
 
 本サンプルは、PoC から本番検討までを支援するため、以下の追加ガイドを提供しています。
