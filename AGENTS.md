@@ -53,7 +53,7 @@ bash demo-data/scripts/test-transfer-family-e2e.sh --stack-prefix perm-rag-demo 
 │   │   ├── demo-waf-stack.ts          — WAF (us-east-1)
 │   │   ├── demo-networking-stack.ts   — VPC, subnets, endpoints
 │   │   ├── demo-security-stack.ts     — Cognito, OIDC/SAML/LDAP federation
-│   │   ├── demo-storage-stack.ts      — FSx ONTAP, S3, DynamoDB
+│   │   ├── demo-storage-stack.ts      — FSx for ONTAP, S3, DynamoDB
 │   │   ├── demo-ai-stack.ts           — Bedrock KB, S3 Vectors, Guardrails, KbAutoSync
 │   │   ├── demo-webapp-stack.ts       — Lambda (Next.js), CloudFront, Monitoring
 │   │   ├── demo-embedding-stack.ts    — EC2 embedding server (optional)
@@ -61,7 +61,7 @@ bash demo-data/scripts/test-transfer-family-e2e.sh --stack-prefix perm-rag-demo 
 │   └── constructs/                    — Reusable CDK constructs (8 constructs)
 ├── automation/
 │   ├── transfer-family/lambda/        — Transfer Family Lambda (Python 3.12)
-│   └── fsxn-ops/lambda/               — FSx ONTAP operations + Capacity Guardrails (Python 3.12)
+│   └── fsxn-ops/lambda/               — FSx for ONTAP operations + Capacity Guardrails (Python 3.12)
 ├── lambda/kb-auto-sync/               — KB Auto-Sync Lambda (Python 3.12)
 ├── docker/
 │   ├── nextjs/                        — Next.js 15 frontend (Lambda Web Adapter)
@@ -337,6 +337,7 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Hybrid Search not working | `SEARCH_TYPE` env not set | Set via `kbSearchType` CDK context |
 | Policy Engine blocks all requests | `policyEngineMode=ENFORCE` without validated policies | Start with `LOG_ONLY`, verify traces, then switch to `ENFORCE` |
 | Web Search target not created | `enableWebSearch=true` without `enableAgentCoreGateway=true` | Gateway target removed (us-east-1 constraint); use mechanism A (Claude Platform) or wait for Step 4 |
+| Web Search Gateway returns null | `WEB_SEARCH_GATEWAY_URL` set but Gateway not deployed in us-east-1 | Deploy `DemoWebSearchGatewayStack` first (`npx cdk deploy *-WebSearchGateway`); mechanism A auto-fallback covers this |
 | Guardrails not evaluating at Gateway | `enableGuardrails=false` | Policy Engine requires Guardrails; set `enableGuardrails=true` + `enableAgentCoreGateway=true` |
 | Optimization resources not synthesized | `enableAgentOptimization=true` without `enableAgentCoreGateway=true` | Optimization requires Gateway; set both. Also run `npx tsc` before synth (stale JS) |
 | AgentCore Optimization L1 construct missing | Preview feature not in CloudFormation yet | Construct uses AwsCustomResource (SDK); Recommendations/A/B tests run via agentcore CLI post-deploy |

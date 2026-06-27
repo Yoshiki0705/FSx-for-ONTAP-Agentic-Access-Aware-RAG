@@ -28,19 +28,36 @@ KB Retrieve API (Permission-Aware RAG)
   │
   └── 結果なし or 不十分 ──→ Invocation Router 判定
        │
-       ├── CLAUDE_PLATFORM_MODE=disabled → 「情報なし」回答
+       ├── ENABLE_WEB_SEARCH=false → 「情報なし」回答
        │
-       └── CLAUDE_PLATFORM_MODE=web-search-only/full
+       └── ENABLE_WEB_SEARCH=true
             │
             ▼
        Web Search Sanitizer (PII除去)
             │
-            ▼
-       Claude Platform Messages API (Web Search tool)
+            ├── 機構 C: WEB_SEARCH_GATEWAY_URL 設定あり
+            │     → AgentCore Gateway MCP (us-east-1, SigV4, 5秒タイムアウト)
+            │     → 成功 → 回答 + Citations (boundary: 'reference')
+            │     → 失敗 → 機構 A にフォールバック ↓
             │
-            ▼
-       回答 + Citations (boundary: 'reference')
+            └── 機構 A: Claude Platform Messages API (Web Search tool)
+                  → 回答 + Citations (boundary: 'reference')
 ```
+
+### Web Search 2パス アーキテクチャ
+
+| 機構 | パス | リージョン制約 | 特徴 |
+|------|------|-------------|------|
+| **C** (推奨) | AgentCore Web Search Gateway (MCP) | us-east-1 のみ | AWS 環境内完結、SigV4 認証、zero data egress |
+| **A** (フォールバック) | Claude Platform callWithWebSearch | 制約なし | Claude Platform API Key が必要、外部 API 呼び出し |
+
+機構 C が設定されている場合は優先的に使用し、失敗時に機構 A へ自動フォールバックします。
+
+**関連ファイル**:
+- `docker/nextjs/src/lib/web-search/gateway-client.ts` — 機構 C クライアント（SigV4 署名 + MCP JSON-RPC）
+- `docker/nextjs/src/lib/claude-platform/client.ts` — 機構 A クライアント
+- `docker/nextjs/src/lib/claude-platform/invocation-router.ts` — パス判定ロジック
+- `lib/stacks/demo/demo-web-search-gateway-stack.ts` — us-east-1 Gateway CDK スタック
 
 ### Permission Boundary の分離
 

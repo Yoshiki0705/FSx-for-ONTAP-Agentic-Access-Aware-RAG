@@ -325,6 +325,57 @@ export async function POST(request: NextRequest) {
           queryHasWebPrefix,
         }));
 
+        // === Mechanism C: AgentCore Web Search Gateway (preferred when configured) ===
+        // Gateway provides us-east-1 Web Search via MCP protocol with SigV4 auth.
+        // Falls back to Mechanism A (Claude Platform) if Gateway is unavailable or fails.
+        const { isGatewayWebSearchAvailable, invokeGatewayWebSearch } = await import('@/lib/web-search/gateway-client');
+        const { wrapWebSearchResults } = await import('@/lib/web-search/untrusted-content');
+
+        if (isGatewayWebSearchAvailable()) {
+          console.log('[KB] Attempting mechanism C (AgentCore Gateway Web Search)');
+          const gatewayResult = await invokeGatewayWebSearch(sanitizedQuery);
+
+          if (gatewayResult && gatewayResult.text) {
+            // Gateway succeeded — inject results as untrusted context into Converse API
+            const webContext = wrapWebSearchResults(
+              gatewayResult.citations.map((c, i) =>
+                `[${i + 1}] ${c.title}\n${c.url}\n${c.snippet}`
+              ).join('\n\n') || gatewayResult.text,
+            );
+
+            // Use Converse API with web context injected (not direct Claude Platform)
+            const webCitations = gatewayResult.citations.map((c, i) => ({
+              index: i + 1,
+              fileName: c.title,
+              s3Uri: c.url,
+              content: c.snippet.substring(0, 500),
+              metadata: {},
+              boundaryType: 'reference' as const,
+              permissionVerified: false,
+            }));
+
+            return NextResponse.json({
+              success: true,
+              answer: gatewayResult.text,
+              citations: webCitations,
+              filterLog,
+              metadata: {
+                knowledgeBaseId: effectiveKbId, modelId: 'agentcore-web-search', region,
+                timestamp: new Date().toISOString(),
+                webSearchUsed: true,
+                boundaryTypes: ['reference'],
+                invocationPath: 'agentcore-gateway',
+                invocationReason: invocationDecision.reason,
+                webSearchLatencyMs: gatewayResult.latencyMs,
+              },
+            });
+          }
+
+          // Gateway failed — fall through to mechanism A
+          console.log('[KB] Mechanism C failed or returned empty, falling through to mechanism A');
+        }
+
+        // === Mechanism A: Claude Platform Web Search (fallback) ===
         const { callWithWebSearch } = await import('@/lib/claude-platform');
 
         // Harden against prompt injection: web search results are untrusted external data.
