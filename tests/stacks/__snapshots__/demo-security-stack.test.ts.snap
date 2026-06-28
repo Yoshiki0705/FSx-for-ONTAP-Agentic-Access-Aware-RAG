@@ -34,6 +34,20 @@ exports[`Federation disabled - snapshot (backward compatibility) テンプレー
   "Resources": {
     "UserPool6BA7E5F2": {
       "DeletionPolicy": "Delete",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-COG2",
+              "reason": "MFA is not required for this demo/reference architecture. Production deployments should enable MFA via Cognito User Pool MFA configuration.",
+            },
+            {
+              "id": "AwsSolutions-COG8",
+              "reason": "Cognito Plus tier (advanced security features) adds per-MAU cost. Not required for demo environment. Production should evaluate Plus tier for threat protection.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AccountRecoverySetting": {
           "RecoveryMechanisms": [
@@ -56,7 +70,7 @@ exports[`Federation disabled - snapshot (backward compatibility) テンプレー
             "MinimumLength": 8,
             "RequireLowercase": true,
             "RequireNumbers": true,
-            "RequireSymbols": false,
+            "RequireSymbols": true,
             "RequireUppercase": true,
           },
         },
@@ -431,6 +445,20 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
     },
     "UserPool6BA7E5F2": {
       "DeletionPolicy": "Delete",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-COG2",
+              "reason": "MFA is not required for this demo/reference architecture. Production deployments should enable MFA via Cognito User Pool MFA configuration.",
+            },
+            {
+              "id": "AwsSolutions-COG8",
+              "reason": "Cognito Plus tier (advanced security features) adds per-MAU cost. Not required for demo environment. Production should evaluate Plus tier for threat protection.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AccountRecoverySetting": {
           "RecoveryMechanisms": [
@@ -467,7 +495,7 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
             "MinimumLength": 8,
             "RequireLowercase": true,
             "RequireNumbers": true,
-            "RequireSymbols": false,
+            "RequireSymbols": true,
             "RequireUppercase": true,
           },
         },
@@ -930,6 +958,20 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
     },
     "UserPool6BA7E5F2": {
       "DeletionPolicy": "Delete",
+      "Metadata": {
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "id": "AwsSolutions-COG2",
+              "reason": "MFA is not required for this demo/reference architecture. Production deployments should enable MFA via Cognito User Pool MFA configuration.",
+            },
+            {
+              "id": "AwsSolutions-COG8",
+              "reason": "Cognito Plus tier (advanced security features) adds per-MAU cost. Not required for demo environment. Production should evaluate Plus tier for threat protection.",
+            },
+          ],
+        },
+      },
       "Properties": {
         "AccountRecoverySetting": {
           "RecoveryMechanisms": [
@@ -966,7 +1008,7 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
             "MinimumLength": 8,
             "RequireLowercase": true,
             "RequireNumbers": true,
-            "RequireSymbols": false,
+            "RequireSymbols": true,
             "RequireUppercase": true,
           },
         },

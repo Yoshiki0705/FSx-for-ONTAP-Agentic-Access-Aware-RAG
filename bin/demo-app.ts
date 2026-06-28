@@ -42,6 +42,8 @@
 
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
+import { Aspects } from 'aws-cdk-lib';
+import { AwsSolutionsChecks } from 'cdk-nag';
 import { DemoWafStack } from '../lib/stacks/demo/demo-waf-stack';
 import { DemoNetworkingStack } from '../lib/stacks/demo/demo-networking-stack';
 import { DemoSecurityStack } from '../lib/stacks/demo/demo-security-stack';
@@ -502,5 +504,8 @@ if (creatorTag) {
   cdk.Tags.of(app).add('creator', creatorTag);
 }
 cdk.Tags.of(app).add('ManagedBy', 'CDK');
+
+// cdk-nag: AwsSolutions checks (best-practice compliance)
+Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
 
 app.synth();

@@ -17,6 +17,7 @@ import * as bedrock from 'aws-cdk-lib/aws-bedrock';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as bedrockagentcore from 'aws-cdk-lib/aws-bedrockagentcore';
 import * as kinesisvideo from 'aws-cdk-lib/aws-kinesisvideo';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 import { EmbeddingModelRegistry } from '../../config/embedding-model-registry';
 import { KBConfigStrategy } from '../../config/kb-config-strategy';
@@ -2410,6 +2411,35 @@ ${langInstruction}`,
         agentLocale: (this.node.tryGetContext('agentLocale') as string) || 'ja',
       });
     }
+
+    // ========================================
+    // cdk-nag suppressions
+    // ========================================
+    NagSuppressions.addStackSuppressions(this, [
+      {
+        id: 'AwsSolutions-IAM4',
+        reason: 'AWSLambdaBasicExecutionRole is the standard AWS managed policy for Lambda. Required for CloudWatch Logs. See: https://docs.aws.amazon.com/lambda/latest/dg/security-iam-awsmanpol.html',
+        appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'Bedrock KB service role requires wildcard access to S3 Access Points (dynamically created), S3 Vectors index paths, and data bucket objects. This follows AWS documentation: https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/tutorial-build-rag-with-bedrock.html',
+        appliesTo: [
+          'Resource::arn:aws:s3:<AWS::Region>:<AWS::AccountId>:accesspoint/*',
+          'Resource::arn:aws:s3:<AWS::Region>:<AWS::AccountId>:accesspoint/*/object/*',
+          'Resource::arn:aws:s3:::perm-rag-demo-demo-kb-data-<AWS::AccountId>/*',
+          'Resource::arn:aws:s3:::perm-rag-demo-demo-*-ext-s3alias',
+          'Resource::arn:aws:s3:::perm-rag-demo-demo-*-ext-s3alias/*',
+          'Resource::arn:aws:s3vectors:<AWS::Region>:<AWS::AccountId>:bucket/perm-rag-demo-demo-vectors/*',
+          'Resource::arn:aws:bedrock:<AWS::Region>:<AWS::AccountId>:knowledge-base/*',
+          'Resource::*',
+        ],
+      },
+      {
+        id: 'AwsSolutions-L1',
+        reason: 'Lambda functions created by CDK AwsCustomResource (S3VectorsCreator, KbCleanupFn) use an internal runtime managed by CDK. The runtime version cannot be controlled by user code. See: https://constructs.dev/packages/aws-cdk-lib/v/2.260.0/api/CustomResourceLambdaRuntime',
+      },
+    ]);
   }
 
   /** インデックス作成Lambda のインラインコード */

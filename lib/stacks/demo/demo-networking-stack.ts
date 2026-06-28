@@ -7,6 +7,7 @@
 
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
 export interface DemoNetworkingStackProps extends cdk.StackProps {
@@ -51,6 +52,12 @@ export class DemoNetworkingStack extends cdk.Stack {
           cidrMask: 24,
         },
       ],
+      flowLogs: {
+        'VpcFlowLog': {
+          destination: ec2.FlowLogDestination.toCloudWatchLogs(),
+          trafficType: ec2.FlowLogTrafficType.ALL,
+        },
+      },
     });
 
     this.privateSubnets = this.vpc.privateSubnets;
@@ -271,5 +278,22 @@ export class DemoNetworkingStack extends cdk.Stack {
     // タグ付け
     cdk.Tags.of(this).add('Project', projectName);
     cdk.Tags.of(this).add('Environment', environment);
+
+    // ========================================
+    // cdk-nag suppressions
+    // ========================================
+    NagSuppressions.addResourceSuppressions(this.fsxSg, [
+      {
+        id: 'AwsSolutions-EC23',
+        reason: 'FSx SG ingress uses VPC CIDR (Fn::GetAtt intrinsic), which cdk-nag cannot validate statically. Access is restricted to VPC-internal traffic only.',
+      },
+    ]);
+    // CdkNagValidationFailure for EC23 — intrinsic function reference
+    NagSuppressions.addStackSuppressions(this, [
+      {
+        id: 'CdkNagValidationFailure',
+        reason: 'Security group rules reference VPC CIDR via Fn::GetAtt intrinsic function. Cannot be statically validated by cdk-nag but access is properly scoped to VPC CIDR.',
+      },
+    ]);
   }
 }
