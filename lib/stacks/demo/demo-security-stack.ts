@@ -18,6 +18,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as events_targets from 'aws-cdk-lib/aws-events-targets';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
 export type AdType = 'managed' | 'self-managed' | 'none';
@@ -195,7 +196,7 @@ export class DemoSecurityStack extends cdk.Stack {
       } : undefined,
       passwordPolicy: {
         minLength: 8, requireLowercase: true, requireUppercase: true,
-        requireDigits: true, requireSymbols: false,
+        requireDigits: true, requireSymbols: true,
       },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -511,6 +512,9 @@ export class DemoSecurityStack extends cdk.Stack {
 
     cdk.Tags.of(this).add('Project', projectName);
     cdk.Tags.of(this).add('Environment', environment);
+
+    // Apply cdk-nag suppressions
+    this.applyCdkNagSuppressions();
   }
 
   private createAdSyncLambda(prefix: string, adType: AdType, props: DemoSecurityStackProps): void {
@@ -924,5 +928,21 @@ export class DemoSecurityStack extends cdk.Stack {
       value: healthCheckFn.functionName,
       description: 'LDAP Health Check Lambda function name',
     });
+  }
+
+  /**
+   * cdk-nag suppressions — applied at the end of the constructor to ensure all resources exist.
+   */
+  private applyCdkNagSuppressions(): void {
+    NagSuppressions.addResourceSuppressions(this.userPool, [
+      {
+        id: 'AwsSolutions-COG2',
+        reason: 'MFA is not required for this demo/reference architecture. Production deployments should enable MFA via Cognito User Pool MFA configuration.',
+      },
+      {
+        id: 'AwsSolutions-COG8',
+        reason: 'Cognito Plus tier (advanced security features) adds per-MAU cost. Not required for demo environment. Production should evaluate Plus tier for threat protection.',
+      },
+    ]);
   }
 }

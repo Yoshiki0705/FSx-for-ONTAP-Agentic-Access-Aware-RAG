@@ -20,6 +20,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 import { MonitoringConstruct } from '../../constructs/monitoring-construct';
 
@@ -557,6 +558,8 @@ export class DemoWebAppStack extends cdk.Stack {
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_PREFERRED,
+      enforceSSL: true,
+      lifecycleRules: [{ expiration: cdk.Duration.days(90) }],
     });
 
     // ========================================
@@ -678,5 +681,41 @@ export class DemoWebAppStack extends cdk.Stack {
         enableAgentPolicy: props.enableAgentPolicy,
       });
     }
+
+    // ========================================
+    // cdk-nag suppressions
+    // ========================================
+    NagSuppressions.addResourceSuppressions(this.webAppFunction, [
+      {
+        id: 'AwsSolutions-IAM4',
+        reason: 'AWSLambdaBasicExecutionRole and AWSLambdaVPCAccessExecutionRole are standard AWS managed policies for Lambda. Required for CloudWatch Logs and ENI management in VPC. See: https://docs.aws.amazon.com/lambda/latest/dg/security-iam-awsmanpol.html',
+        appliesTo: [
+          'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
+          'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole',
+        ],
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'WebApp Lambda requires wildcard permissions for: (1) bedrock:* on role ARNs for dynamic agent/model discovery, (2) Resource::* for bedrock:ListFoundationModels and bedrock:ListInferenceProfiles which are account-level APIs without resource-level scoping.',
+        appliesTo: [
+          'Resource::arn:aws:iam::<AWS::AccountId>:role/*bedrock*',
+          'Resource::*',
+        ],
+      },
+    ], true); // true = apply to children (ServiceRole/DefaultPolicy)
+
+    NagSuppressions.addResourceSuppressions(this.distribution, [
+      {
+        id: 'AwsSolutions-CFR4',
+        reason: 'Distribution uses CloudFront default viewer certificate (*.cloudfront.net). When using the default certificate, CloudFront sets TLS minimum to TLSv1 regardless of MinimumProtocolVersion. Custom domain + ACM certificate required to enforce TLSv1.2+. See: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_cloudfront.CfnDistribution.ViewerCertificateProperty.html',
+      },
+    ]);
+
+    NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/AccessLogBucket/Resource`, [
+      {
+        id: 'AwsSolutions-S1',
+        reason: 'AccessLogBucket is itself the log destination for the CloudFront distribution. Enabling access logs on a log bucket would create a circular dependency or infinite log loop.',
+      },
+    ]);
   }
 }

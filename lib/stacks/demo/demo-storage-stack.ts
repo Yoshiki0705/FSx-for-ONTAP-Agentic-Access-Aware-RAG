@@ -18,6 +18,7 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as cloudtrail from 'aws-cdk-lib/aws-cloudtrail';
 import * as directoryservice from 'aws-cdk-lib/aws-directoryservice';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
 export interface DemoStorageStackProps extends cdk.StackProps {
@@ -184,6 +185,17 @@ export class DemoStorageStack extends cdk.Stack {
     // ========================================
     // S3バケット（Bedrock KBデータソース / FSx S3 AP経由のフォールバック）
     // ========================================
+    // DataBucket用アクセスログバケット
+    const dataBucketAccessLogs = new s3.Bucket(this, 'DataBucketAccessLogs', {
+      bucketName: `${prefix}-kb-data-logs-${cdk.Aws.ACCOUNT_ID}`,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: true,
+      lifecycleRules: [{ expiration: cdk.Duration.days(90) }],
+    });
+
     this.dataBucket = new s3.Bucket(this, 'DataBucket', {
       bucketName: `${prefix}-kb-data-${cdk.Aws.ACCOUNT_ID}`,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -192,6 +204,9 @@ export class DemoStorageStack extends cdk.Stack {
       encryptionKey: kmsKey,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       versioned: false,
+      enforceSSL: true,
+      serverAccessLogsBucket: dataBucketAccessLogs,
+      serverAccessLogsPrefix: 'data-bucket/',
     });
 
     // ========================================
@@ -205,6 +220,7 @@ export class DemoStorageStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: 'ttl',
+      pointInTimeRecovery: true,
       ...(kmsKey ? { encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED, encryptionKey: kmsKey } : {}),
     });
 
@@ -216,6 +232,7 @@ export class DemoStorageStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
+      pointInTimeRecovery: true,
       ...(kmsKey ? { encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED, encryptionKey: kmsKey } : {}),
     });
 
@@ -472,6 +489,32 @@ export class DemoStorageStack extends cdk.Stack {
 
     cdk.Tags.of(this).add('Project', projectName);
     cdk.Tags.of(this).add('Environment', environment);
+
+    // ========================================
+    // cdk-nag suppressions
+    // ========================================
+    // S3 AP Creator Lambda — uses inline code with AwsCustomResource pattern
+    NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/S3ApCreatorRole/Resource`, [
+      {
+        id: 'AwsSolutions-IAM4',
+        reason: 'AWSLambdaBasicExecutionRole is the standard AWS managed policy for Lambda CloudWatch Logs access. See: https://docs.aws.amazon.com/lambda/latest/dg/security-iam-awsmanpol.html',
+        appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'S3 Access Point ARN uses wildcard because the AP name is dynamically generated at deploy time. FSx CreateS3AccessPoint requires fsx:* on volume resources.',
+        appliesTo: [
+          'Resource::arn:aws:s3:<AWS::Region>:<AWS::AccountId>:accesspoint/*',
+          'Resource::*',
+        ],
+      },
+    ]);
+    NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/S3ApCreatorFn/Resource`, [
+      {
+        id: 'AwsSolutions-L1',
+        reason: 'S3 AP Creator uses Node.js 22.x which is the latest LTS. cdk-nag may flag this until the runtime metadata is updated.',
+      },
+    ]);
   }
 
   /**
