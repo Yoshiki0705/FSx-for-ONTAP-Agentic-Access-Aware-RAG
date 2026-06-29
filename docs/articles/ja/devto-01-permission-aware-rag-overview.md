@@ -13,7 +13,7 @@ cover_image: https://raw.githubusercontent.com/Yoshiki0705/FSx-for-ONTAP-Agentic
 - 同じ質問でも管理者は機密文書込み、一般ユーザーは公開情報のみで回答が変わる
 - S3 Vectors（月数ドル）をデフォルトベクトルストアに採用し、PoC 月額 ~$430 から開始可能
 - `npx cdk deploy --all` でフルスタックデプロイ（7 CDK スタック）
-- v4.3: Voice Chat（WebRTC）、Smart Routing、Guardrails、Prompt Caching、エピソード記憶を含む [22 機能搭載](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG#features)。Web Search ハイブリッド検索は実装済み・次版リリース予定（[Summit NYC 2026 GA](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/)）
+- v4.4: Voice Chat（WebRTC）、Smart Routing、Guardrails、Prompt Caching、エピソード記憶、**cdk-nag AwsSolutions 準拠**を含む [22 機能搭載](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG#features)。Web Search ハイブリッド検索は実装済み・次版リリース予定（[Summit NYC 2026 GA](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/)）
 
 > **Responsible AI note**: 本システムの AI 出力は**補助的なシグナル**です。業務上の最終判断は人間が行います。権限フィルタリングは技術的なアクセス制御であり、法的・コンプライアンス上の判断を代替しません。規制対象ワークロードでの利用には顧客固有の評価が必要です。
 
@@ -98,7 +98,7 @@ FSx for ONTAP Volume (/data)
 
 ---
 
-## 主要機能ハイライト（v4.3.0）
+## 主要機能ハイライト（v4.4.0）
 
 ### Smart Routing — クエリ単価の大幅削減
 
@@ -160,6 +160,7 @@ Supervisor + Collaborator パターンで複雑なタスクを分担:
 
 | 機能 | 概要 |
 |------|------|
+| **cdk-nag AwsSolutions 準拠** | 全スタックで AwsSolutionsChecks を有効化。S3 SSL、DynamoDB PITR、VPC Flow Logs、パスワードポリシー強化を含む 35 findings 解消 |
 | **KB Auto-Sync** | 5 分間隔でファイル変更を自動検出・KB 取り込み |
 | **Guardrails** | コンテンツフィルタ + PII 検出 + トピックポリシー + Automated Reasoning |
 | **AgentCore Memory** | 短期記憶（セッション内）+ 長期記憶（セッション横断）+ エピソード記憶 |
