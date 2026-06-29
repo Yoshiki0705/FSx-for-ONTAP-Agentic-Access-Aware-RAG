@@ -220,7 +220,7 @@ export class DemoStorageStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: 'ttl',
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
       ...(kmsKey ? { encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED, encryptionKey: kmsKey } : {}),
     });
 
@@ -232,7 +232,7 @@ export class DemoStorageStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
       ...(kmsKey ? { encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED, encryptionKey: kmsKey } : {}),
     });
 

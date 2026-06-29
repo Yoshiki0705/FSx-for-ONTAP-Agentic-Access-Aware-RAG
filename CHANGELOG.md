@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-06-29
+
 AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API を含む機能は
 すべて opt-in（デフォルト無効）であり、本番有効化前の検証が前提。
 
@@ -28,6 +30,20 @@ AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API
 - **信頼ポリシー絞り込み**: Optimization ロールの `assumedBy` から `AccountPrincipal`（アカウント全体）を除去し、AgentCore サービスのみに限定
 - **ApplyGuardrail source=INPUT**: 取得チャンクのプロンプトインジェクション検出が正しく発火するよう修正（OUTPUT では PROMPT_ATTACK フィルタ非発火）
 - **Cedar ポリシー修正**: ドキュメント突合せで、当初の `context.guardrails.evaluation` ベースのポリシーが**存在しない Cedar context フィールドに依存しており、ENFORCE 時に全ツール呼び出しを拒否しうる**ことが判明。検証済み構文のベースライン `permit(principal, action, resource)`（LOG_ONLY 観測用）に置換。本番 ENFORCE 前にツール単位の least-privilege ポリシー作成と Guardrails の正式な付与機構の利用が必要
+- **cdk-nag AwsSolutionsChecks 有効化** (#84, #104): 全スタックに対して35 findings を解消（5件修正 + 26件 suppress with evidence）。S3 SSL enforcement、DynamoDB PITR、VPC Flow Logs、Cognito パスワードポリシー強化を含む
+- **S3 enforceSSL**: DataBucket、AccessLogBucket、DataBucketAccessLogs に `enforceSSL: true` 適用
+- **DynamoDB PITR**: PermissionCacheTable / UserAccessTable に Point-in-time Recovery 有効化（`pointInTimeRecoverySpecification` API 使用）
+- **VPC Flow Logs**: CloudWatch Logs 宛の VPC Flow Log を NetworkingStack に追加
+- **Cognito パスワードポリシー**: `requireSymbols: true` に変更
+
+### Dependencies
+- Bump AWS SDK group 3.1072→3.1073 (#102)
+- Bump gitleaks/gitleaks-action v2→v3 (Node 24) (#99)
+- Bump actions/setup-python v5.6→v6.2 (Node 24) (#101)
+- Bump actions/upload-artifact v4.6→v7.0 (Node 24 + ESM) (#97)
+- Bump actions/download-artifact v4.3→v8.0 (Node 24 + ESM) (#98)
+- Bump github/codeql-action v3.36→v4.36 (Node 24) (#100)
+- Add `@testing-library/dom` to frontend devDependencies (peer dep fix)
 
 ## [4.3.0] - 2026-06-08
 
