@@ -1,0 +1,106 @@
+{
+  // ============================================================================
+  // CDK Context: Existing FSx for ONTAP Environment
+  // ============================================================================
+  // This is a minimal template for deploying the Permission-aware RAG system
+  // into an environment where FSx for ONTAP, VPC, and networking already exist.
+  //
+  // Usage:
+  //   cp cdk.context.existing-env.example.json cdk.context.json
+  //   # Edit values below, then:
+  //   npx cdk synth --quiet && npx cdk deploy --all
+  //
+  // For full feature flag reference, see cdk.context.json.example
+  // For deployment walkthrough, see docs/deployment-guide.md
+  // ============================================================================
+
+  // === Project Identity ===
+  "projectName": "perm-rag",
+  "environment": "prod",
+  "imageTag": "REPLACE_WITH_ECR_TAG",
+
+  // === Existing FSx for ONTAP Resources ===
+  // All three IDs MUST be specified together (or all omitted for greenfield).
+  // Obtain via:
+  //   aws fsx describe-file-systems --query 'FileSystems[].FileSystemId'
+  //   aws fsx describe-storage-virtual-machines --query 'StorageVirtualMachines[].StorageVirtualMachineId'
+  //   aws fsx describe-volumes --query 'Volumes[].VolumeId'
+  "existingFileSystemId": "fs-0123456789abcdef0",
+  "existingSvmId": "svm-0123456789abcdef0",
+  "existingVolumeId": "fsvol-0123456789abcdef0",
+
+  // === Existing VPC (optional — omit to create a new VPC) ===
+  // When specified, CDK imports this VPC instead of creating one.
+  // The VPC must have:
+  //   - At least 2 private subnets in different AZs
+  //   - Route to NAT Gateway or VPC Endpoints for AWS services
+  //   - DNS resolution and DNS hostnames enabled
+  // "existingVpcId": "vpc-0abc123def456",
+
+  // === VPC Endpoint Conflict Avoidance ===
+  // If the existing VPC already has VPC Endpoints for these services,
+  // list them here to prevent CDK from creating duplicates.
+  // Valid values: "s3", "dynamodb", "bedrock-runtime", "secretsmanager",
+  //              "sts", "ecr-api", "ecr-dkr", "logs"
+  // "skipVpcEndpoints": ["s3", "dynamodb"],
+
+  // === Security ===
+  // WAF geo-restriction (ISO 3166-1 alpha-2 country codes)
+  "allowedCountries": ["JP"],
+  // IP allowlist (CIDR notation, empty = country-only restriction)
+  "allowedIps": [],
+
+  // === Active Directory (optional — omit for UNIX-only environments) ===
+  // Setting adPassword triggers AWS Managed Microsoft AD creation.
+  // For existing AD, use adEc2InstanceId + samlMetadataUrl instead.
+  // "adPassword": "YourStrongP@ssw0rd123",
+  // "adDomainName": "corp.example.com",
+
+  // === Volume & S3 Access Point ===
+  // "NTFS" = Windows ACL semantics, "UNIX" = POSIX permissions
+  "volumeSecurityStyle": "NTFS",
+  // S3 AP user type: "WINDOWS" (requires AD) or "UNIX"
+  // "s3apUserType": "WINDOWS",
+  // "s3apUserName": "Admin",
+
+  // === Vector Store ===
+  // "s3vectors" (default): Low cost, sub-second latency, dev/demo
+  // "opensearch-serverless": High performance, ~$700/month, production
+  "vectorStoreType": "s3vectors",
+
+  // === KB Search Configuration ===
+  // "SEMANTIC" (default) or "HYBRID" (semantic + keyword)
+  "kbSearchType": "SEMANTIC",
+  // Chunking: "FIXED_SIZE" | "HIERARCHICAL" | "SEMANTIC" | "NONE"
+  "kbChunkingStrategy": "FIXED_SIZE",
+
+  // === Feature Flags (enable as needed) ===
+  "enableAgent": false,
+  "enableMonitoring": false,
+  "enableGuardrails": false,
+  "enableVoiceChat": false,
+  "enableTransferFamily": false,
+  "enableKbAutoSync": false,
+  "enableAdFederation": false,
+  "enableAdvancedPermissions": false,
+
+  // === ONTAP REST API Access (required for fsxn-ops automation) ===
+  // Management LIF IP — obtain from FSx Console > File System > Network
+  // Use RFC 5737 (documentation) range for examples: 198.51.100.0/24
+  // "ontapMgmtIp": "198.51.100.10",
+  // "ontapSvmUuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  // "ontapAdminSecretArn": "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:ontap-fsxadmin-password",
+
+  // === Monitoring (when enableMonitoring=true) ===
+  // "monitoringEmail": "ops@example.com",
+
+  // === KB Auto-Sync (when enableKbAutoSync=true) ===
+  // "s3AccessPointArn": "arn:aws:s3:ap-northeast-1:123456789012:accesspoint/my-fsxn-ap",
+  // "kbDataSourceId": "XXXXXXXXXX",
+  // "kbAutoSyncIntervalMinutes": 5,
+
+  // === Transfer Family (when enableTransferFamily=true) ===
+  // "transferFamilyEndpointType": "PUBLIC",
+  // "transferFamilyTriggerMode": "polling",
+  // "transferFamilyPollingIntervalMinutes": 5
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "ParameterKey": "FsxFilesystemId",
+    "ParameterValue": "fs-0123456789abcdef0"
+  },
+  {
+    "ParameterKey": "ManagementLif",
+    "ParameterValue": "198.51.100.10"
+  },
+  {
+    "ParameterKey": "OntapSecretId",
+    "ParameterValue": "ontap-fsxadmin-password"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-0abc123def456"
+  },
+  {
+    "ParameterKey": "SubnetIds",
+    "ParameterValue": "subnet-0aaa1111bbb22222,subnet-0ccc3333ddd44444"
+  },
+  {
+    "ParameterKey": "SecurityGroupId",
+    "ParameterValue": "sg-0123456789abcdef0"
+  },
+  {
+    "ParameterKey": "NotificationEmail",
+    "ParameterValue": "ops@example.com"
+  },
+  {
+    "ParameterKey": "FsThresholdPct",
+    "ParameterValue": "85"
+  },
+  {
+    "ParameterKey": "VolThresholdPct",
+    "ParameterValue": "80"
+  },
+  {
+    "ParameterKey": "AutoResizeEnabled",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "DryRun",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "MonitoringIntervalMinutes",
+    "ParameterValue": "5"
+  }
+]
