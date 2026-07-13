@@ -287,3 +287,112 @@ class OntapClient:
     def get_cluster_info(self) -> dict:
         """クラスタ情報を取得"""
         return self.get("/cluster", params={"fields": "name,version,uuid"})
+
+    # --- AD DC 到達性チェック ---
+
+    def is_cifs_enabled(self, svm_name: str) -> bool:
+        """
+        SVM で CIFS (AD参加) が有効かどうかを確認する。
+
+        CIFS が有効な SVM では、S3 Access Point のデータ操作
+        (ListObjectsV2, GetObject, PutObject) に AD DC 到達性が必須。
+        HeadBucket は成功するが、データ操作は AccessDenied になる。
+
+        Args:
+            svm_name: SVM 名
+
+        Returns:
+            True if CIFS is enabled (SVM is AD-joined)
+        """
+        try:
+            result = self.get(
+                "/protocols/cifs/services",
+                params={"svm.name": svm_name, "fields": "enabled,ad_domain.fqdn"},
+            )
+            records = result.get("records", [])
+            if records and records[0].get("enabled", False):
+                return True
+            return False
+        except OntapClientError:
+            # CIFS エンドポイントへのクエリ失敗はCIFS無効と見なす
+            return False
+
+    def check_ad_dc_reachability(self, svm_name: str) -> dict[str, Any]:
+        """
+        AD DC 到達性を確認する（S3 AP データ操作の前提条件チェック）。
+
+        AD参加 SVM では、全ての S3 AP データ操作で ONTAP が unix→win
+        逆引きネームマッピングを実行するため、AD DC への LDAP/Kerberos
+        接続が必須。AD DC 到達不能時は AccessDenied が返るが、
+        HeadBucket は成功するため、誤った層でのトラブルシューティングを
+        招きやすい。
+
+        Returns:
+            {
+                "cifs_enabled": bool,
+                "ad_domain": str or None,
+                "dc_reachable": bool,
+                "discovered_servers": list[dict],
+                "error": str or None,
+            }
+
+        Usage:
+            # S3 AP データ操作前の pre-flight チェック
+            health = ontap.check_ad_dc_reachability("svm1")
+            if health["cifs_enabled"] and not health["dc_reachable"]:
+                raise RuntimeError(
+                    f"AD DC 到達不能: S3 AP データ操作は AccessDenied になります。"
+                    f" AD domain: {health['ad_domain']}"
+                )
+        """
+        result: dict[str, Any] = {
+            "cifs_enabled": False,
+            "ad_domain": None,
+            "dc_reachable": False,
+            "discovered_servers": [],
+            "error": None,
+        }
+
+        # Step 1: CIFS サービスの有効状態を確認
+        try:
+            cifs_resp = self.get(
+                "/protocols/cifs/services",
+                params={"svm.name": svm_name, "fields": "enabled,ad_domain.fqdn"},
+            )
+            cifs_records = cifs_resp.get("records", [])
+            if not cifs_records or not cifs_records[0].get("enabled", False):
+                # CIFS 無効 = AD 非参加 → S3 AP に AD DC 到達性は不要
+                return result
+
+            result["cifs_enabled"] = True
+            result["ad_domain"] = (
+                cifs_records[0].get("ad_domain", {}).get("fqdn")
+            )
+        except OntapClientError as e:
+            result["error"] = f"CIFS サービス確認失敗: {e}"
+            return result
+
+        # Step 2: CIFS ドメイン検出 (DC 到達性の実効チェック)
+        # /protocols/cifs/domains は SVM が認識している DC 一覧を返す。
+        # discovered_servers が空 = AD DC 到達不能
+        try:
+            domain_resp = self.get(
+                "/protocols/cifs/domains",
+                params={
+                    "svm.name": svm_name,
+                    "fields": "name,discovered_servers",
+                },
+            )
+            domain_records = domain_resp.get("records", [])
+            if domain_records:
+                servers = domain_records[0].get("discovered_servers", [])
+                result["discovered_servers"] = servers
+                result["dc_reachable"] = len(servers) > 0
+            else:
+                result["dc_reachable"] = False
+        except OntapClientError as e:
+            # ドメイン検出 API 呼び出し失敗 → DC 到達不能と見なす
+            result["error"] = f"CIFS ドメイン検出失敗: {e}"
+            result["dc_reachable"] = False
+
+        return result

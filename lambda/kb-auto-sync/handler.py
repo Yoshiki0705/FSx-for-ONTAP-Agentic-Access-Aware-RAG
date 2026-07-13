@@ -13,6 +13,13 @@ Bedrock KB StartIngestionJob を自動トリガーする。
     KNOWLEDGE_BASE_ID    : Bedrock Knowledge Base ID
     DATA_SOURCE_ID       : Bedrock KB Data Source ID
     INVENTORY_TABLE_NAME : DynamoDB インベントリテーブル名
+    SVM_ID               : (オプション) FSx for ONTAP SVM ID — AD DC 到達性チェック用
+
+前提条件 (AD参加 SVM):
+    AD参加 SVM (CIFS有効) 上の S3 Access Point では、全てのデータ操作
+    (ListObjectsV2, GetObject) に AD DC 到達性が必須。AD DC 到達不能時は
+    AccessDenied が返るが、HeadBucket は成功するため誤診断しやすい。
+    詳細: docs/s3ap-ad-prerequisites.md
 """
 
 import json
@@ -24,6 +31,7 @@ from typing import Any, Optional
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 from diff import compute_diff
 from inventory import (
@@ -48,6 +56,93 @@ RETRY_CONFIG = Config(retries={"max_attempts": 3, "mode": "adaptive"})
 MAX_RETRIES = 10
 BASE_BACKOFF_SECONDS = 30
 MAX_BACKOFF_SECONDS = 300
+
+
+class S3ApAdConnectivityError(Exception):
+    """
+    AD DC 到達性に起因する S3 AP AccessDenied エラー。
+
+    AD参加 SVM では ONTAP が S3 AP データ操作時に unix→win
+    逆引きネームマッピングを実行するため、AD DC 到達性が必須。
+    HeadBucket は成功するが ListObjectsV2/GetObject は
+    AccessDenied になるパターン。
+    """
+
+    pass
+
+
+def _check_ad_dc_reachability_via_fsx(svm_id: str) -> dict[str, Any]:
+    """
+    FSx API 経由で SVM の AD 参加状態を確認する（オプショナル診断）。
+
+    ONTAP REST API アクセスが無い場合のフォールバック。
+    SVM の ActiveDirectoryConfiguration を確認し、AD参加状態を返す。
+
+    Returns:
+        {"ad_joined": bool, "domain_name": str or None, "error": str or None}
+    """
+    result: dict[str, Any] = {
+        "ad_joined": False,
+        "domain_name": None,
+        "error": None,
+    }
+    try:
+        fsx_client = boto3.client("fsx", config=RETRY_CONFIG)
+        response = fsx_client.describe_storage_virtual_machines(
+            StorageVirtualMachineIds=[svm_id]
+        )
+        svms = response.get("StorageVirtualMachines", [])
+        if svms:
+            ad_config = svms[0].get("ActiveDirectoryConfiguration", {})
+            self_managed = ad_config.get(
+                "SelfManagedActiveDirectoryConfiguration", {}
+            )
+            domain = self_managed.get("DomainName")
+            if domain:
+                result["ad_joined"] = True
+                result["domain_name"] = domain
+    except ClientError as e:
+        result["error"] = f"FSx API エラー: {e}"
+        logger.warning(f"SVM AD状態確認失敗 (non-fatal): {e}")
+    except Exception as e:
+        result["error"] = f"予期しないエラー: {e}"
+        logger.warning(f"SVM AD状態確認で予期しないエラー (non-fatal): {e}")
+
+    return result
+
+
+def _diagnose_s3ap_access_denied(s3_ap_arn: str) -> dict[str, Any]:
+    """
+    S3 AP の AccessDenied を診断する。
+
+    HeadBucket が成功するか確認し、AD DC 到達性問題を判別する。
+    HeadBucket 成功 + ListObjectsV2 失敗 = AD DC 到達不能の強い兆候。
+
+    Returns:
+        {"head_bucket_ok": bool, "likely_ad_issue": bool, "svm_ad_info": dict}
+    """
+    diagnosis: dict[str, Any] = {
+        "head_bucket_ok": False,
+        "likely_ad_issue": False,
+        "svm_ad_info": {},
+    }
+
+    try:
+        s3_client = boto3.client("s3", config=RETRY_CONFIG)
+        s3_client.head_bucket(Bucket=s3_ap_arn)
+        diagnosis["head_bucket_ok"] = True
+        # HeadBucket OK + ListObjectsV2 AccessDenied = AD DC問題の兆候
+        diagnosis["likely_ad_issue"] = True
+    except ClientError:
+        # HeadBucket も失敗 → IAM/ポリシー/ネットワーク問題の可能性
+        diagnosis["likely_ad_issue"] = False
+
+    # SVM_ID があれば FSx API で AD 状態を確認
+    svm_id = os.environ.get("SVM_ID", "")
+    if svm_id:
+        diagnosis["svm_ad_info"] = _check_ad_dc_reachability_via_fsx(svm_id)
+
+    return diagnosis
 
 
 def lambda_handler(event: dict, context: Any) -> dict:
@@ -81,7 +176,40 @@ def _handle_scan(event: dict, context: Any) -> dict:
         logger.info(f"Cleaned {cleaned} stale pending records")
 
     # 1. S3 AP から現在のファイル一覧を取得
-    current_files = scan_s3_access_point(s3_ap_arn, s3_client=s3_client)
+    #    AD参加 SVM の場合、AD DC 到達不能時に AccessDenied が発生する。
+    #    HeadBucket は成功するため、IAM/ポリシー問題と誤診断しやすい。
+    try:
+        current_files = scan_s3_access_point(s3_ap_arn, s3_client=s3_client)
+    except ClientError as e:
+        error_code = e.response.get("Error", {}).get("Code", "")
+        if error_code == "AccessDenied":
+            # AccessDenied 診断: AD DC 到達性問題の可能性を確認
+            diagnosis = _diagnose_s3ap_access_denied(s3_ap_arn)
+            logger.error(
+                json.dumps(
+                    {
+                        "message": "S3 AP AccessDenied — AD DC到達性問題の可能性",
+                        "s3ApArn": s3_ap_arn,
+                        "headBucketOk": diagnosis["head_bucket_ok"],
+                        "likelyAdIssue": diagnosis["likely_ad_issue"],
+                        "svmAdInfo": diagnosis["svm_ad_info"],
+                        "guidance": (
+                            "HeadBucketが成功しListObjectsV2がAccessDeniedの場合、"
+                            "AD DC到達性問題が原因です。SVM ENIからAD DCへの"
+                            "ネットワーク接続(port 53/88/389/445/636)を確認してください。"
+                            if diagnosis["likely_ad_issue"]
+                            else "IAMポリシーまたはS3 APリソースポリシーを確認してください。"
+                        ),
+                    }
+                )
+            )
+            if diagnosis["likely_ad_issue"]:
+                raise S3ApAdConnectivityError(
+                    f"S3 AP データ操作が AccessDenied (AD DC到達性問題の可能性)。"
+                    f" HeadBucket=OK, ListObjectsV2=AccessDenied。"
+                    f" SVM AD info: {diagnosis['svm_ad_info']}"
+                ) from e
+        raise
 
     # 2. DynamoDB インベントリから committed レコードのみ取得
     previous_files = get_inventory(table, status_filter=InventoryStatus.COMMITTED)
