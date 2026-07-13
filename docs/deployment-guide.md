@@ -127,6 +127,46 @@ The deploying principal needs at minimum:
 | Lambda SG | DynamoDB VPC Endpoint | TCP 443 | User-access table |
 | Lambda SG | Secrets Manager Endpoint | TCP 443 | ONTAP credentials |
 
+### Additional Requirements for AD-Joined SVMs (S3 Access Point)
+
+When using FSx for ONTAP S3 AP on an AD-joined SVM (CIFS enabled), **all S3 AP data operations** (ListObjectsV2, GetObject, PutObject) require connectivity to the AD domain controllers. This is because ONTAP performs a `unix→win` reverse name-mapping lookup on every S3 AP data operation.
+
+> **Note**: `HeadBucket` operates at the S3 layer only and succeeds even when AD DCs are unreachable (false positive). Do not misdiagnose data operation AccessDenied errors as IAM/policy issues.
+
+**Required network connectivity (SVM ENI → AD DC):**
+
+| Port | Protocol | Service |
+|------|----------|---------|
+| 53 | TCP/UDP | DNS |
+| 88 | TCP/UDP | Kerberos |
+| 389 | TCP/UDP | LDAP |
+| 445 | TCP | SMB/CIFS |
+| 636 | TCP | LDAPS |
+
+**Pre-deployment verification:**
+
+```bash
+# Check if SVM is AD-joined
+aws fsx describe-storage-virtual-machines \
+  --storage-virtual-machine-ids svm-0123456789abcdef0 \
+  --query 'StorageVirtualMachines[0].ActiveDirectoryConfiguration'
+
+# If AD-joined, confirm that SVM ENI security groups allow traffic
+# to AD DC IPs on the ports listed above
+```
+
+**Enable KB Auto-Sync AD diagnostics (recommended):**
+
+Set `svmId` in `cdk.context.json` to enable automatic AD DC reachability diagnosis when KB Auto-Sync Lambda encounters AccessDenied:
+
+```json
+{
+  "svmId": "svm-0123456789abcdef0"
+}
+```
+
+See: [S3 AP + AD Prerequisites Guide](s3ap-ad-prerequisites.md)
+
 ---
 
 ## 2. Architecture Overview
