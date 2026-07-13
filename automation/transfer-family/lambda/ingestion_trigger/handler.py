@@ -14,6 +14,13 @@ Environment Variables:
     SCAN_PREFIX            : Scan target prefix (default: /uploads/)
     TRIGGER_MODE           : Trigger mode (polling | cloudtrail)
     SNS_TOPIC_ARN          : SNS topic for error notifications
+    SVM_ID                 : (Optional) FSx for ONTAP SVM ID for AD DC reachability diagnostics
+
+Prerequisites (AD-joined SVM):
+    On AD-joined SVMs (CIFS enabled), all S3 AP data operations require
+    AD DC reachability. If AD DCs are unreachable, ListObjectsV2/GetObject
+    return AccessDenied while HeadBucket succeeds (false positive).
+    See: docs/s3ap-ad-prerequisites.md
 """
 
 import json
@@ -25,6 +32,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
 import boto3
+from botocore.exceptions import ClientError
 
 # Add parent directory to path for common imports
 import sys
@@ -48,6 +56,7 @@ METADATA_GENERATOR_ARN = os.environ.get('METADATA_GENERATOR_ARN', '')
 SCAN_PREFIX = os.environ.get('SCAN_PREFIX', '/uploads/')
 TRIGGER_MODE = os.environ.get('TRIGGER_MODE', 'polling')
 SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN', '')
+SVM_ID = os.environ.get('SVM_ID', '')
 
 # AWS clients (lazy initialization)
 _s3_client = None
@@ -92,6 +101,55 @@ def get_sns_client():
     return _sns_client
 
 
+def _diagnose_s3ap_access_denied() -> Dict[str, Any]:
+    """
+    S3 AP AccessDenied の原因を診断する。
+
+    AD参加 SVM 上の S3 AP では、AD DC 到達不能時に:
+    - HeadBucket → 成功 (false positive)
+    - ListObjectsV2 → AccessDenied
+
+    この関数は HeadBucket を試行し、成功すれば AD DC 問題を示唆する。
+    """
+    diagnosis: Dict[str, Any] = {
+        'head_bucket_ok': False,
+        'likely_ad_issue': False,
+        'svm_ad_info': {},
+    }
+
+    try:
+        s3 = get_s3_client()
+        s3.head_bucket(Bucket=S3_ACCESS_POINT_ARN)
+        diagnosis['head_bucket_ok'] = True
+        diagnosis['likely_ad_issue'] = True
+    except ClientError:
+        diagnosis['likely_ad_issue'] = False
+
+    # SVM_ID があれば FSx API で AD 参加状態を確認
+    if SVM_ID:
+        try:
+            fsx_client = boto3.client('fsx')
+            response = fsx_client.describe_storage_virtual_machines(
+                StorageVirtualMachineIds=[SVM_ID]
+            )
+            svms = response.get('StorageVirtualMachines', [])
+            if svms:
+                ad_config = svms[0].get('ActiveDirectoryConfiguration', {})
+                self_managed = ad_config.get(
+                    'SelfManagedActiveDirectoryConfiguration', {}
+                )
+                domain = self_managed.get('DomainName')
+                if domain:
+                    diagnosis['svm_ad_info'] = {
+                        'ad_joined': True,
+                        'domain_name': domain,
+                    }
+        except Exception as e:
+            logger.warning(f'SVM AD state check failed (non-fatal): {e}')
+
+    return diagnosis
+
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Main handler for Ingestion Trigger Lambda."""
     start_time = time.time()
@@ -110,7 +168,34 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     try:
         # Step 1: List current files from S3 Access Point
-        current_files = _list_s3_files()
+        #   AD-joined SVMs require AD DC reachability for data operations.
+        #   AccessDenied here may indicate AD DC unreachability, not IAM issues.
+        try:
+            current_files = _list_s3_files()
+        except ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', '')
+            if error_code == 'AccessDenied':
+                diagnosis = _diagnose_s3ap_access_denied()
+                logger.error(json.dumps({
+                    'level': 'ERROR',
+                    'message': 'S3 AP AccessDenied — possible AD DC reachability issue',
+                    'scanId': scan_id,
+                    's3ApArn': S3_ACCESS_POINT_ARN,
+                    'headBucketOk': diagnosis['head_bucket_ok'],
+                    'likelyAdIssue': diagnosis['likely_ad_issue'],
+                    'svmAdInfo': diagnosis['svm_ad_info'],
+                    'guidance': (
+                        'HeadBucket succeeded but ListObjectsV2 returned AccessDenied. '
+                        'This indicates AD DC reachability failure on the AD-joined SVM. '
+                        'Verify network connectivity (ports 53/88/389/445/636) from '
+                        'SVM ENIs to AD domain controllers.'
+                        if diagnosis['likely_ad_issue']
+                        else 'Check IAM policy and S3 AP resource policy configuration.'
+                    ),
+                }))
+                if diagnosis['likely_ad_issue'] and SNS_TOPIC_ARN:
+                    _send_ad_connectivity_alert(scan_id, diagnosis)
+            raise
 
         # Step 2: Get previous inventory from DynamoDB
         previous_inventory = _get_previous_inventory()
@@ -434,3 +519,29 @@ def _save_scan_state(result: ScanResult) -> None:
         item['error'] = result.error
 
     table.put_item(Item=item)
+
+
+def _send_ad_connectivity_alert(scan_id: str, diagnosis: Dict[str, Any]) -> None:
+    """Send SNS alert for AD DC connectivity failure detected via S3 AP."""
+    try:
+        get_sns_client().publish(
+            TopicArn=SNS_TOPIC_ARN,
+            Subject='[ALERT] S3 AP AccessDenied — AD DC Reachability Issue',
+            Message=json.dumps({
+                'scanId': scan_id,
+                'issue': 'S3 AP data operations returning AccessDenied due to AD DC unreachability',
+                'diagnosis': {
+                    'headBucketOk': diagnosis['head_bucket_ok'],
+                    'likelyAdIssue': diagnosis['likely_ad_issue'],
+                    'svmAdInfo': diagnosis.get('svm_ad_info', {}),
+                },
+                'action_required': (
+                    'Verify network connectivity from SVM ENIs to AD domain controllers. '
+                    'Required ports: 53 (DNS), 88 (Kerberos), 389 (LDAP), 445 (SMB), 636 (LDAPS). '
+                    'Check Security Groups and NACLs on SVM subnets.'
+                ),
+                's3ApArn': S3_ACCESS_POINT_ARN,
+            }, indent=2, ensure_ascii=False),
+        )
+    except Exception as e:
+        logger.warning(f'Failed to send AD connectivity alert: {e}')

@@ -279,6 +279,9 @@ WafStack (us-east-1) → WebSearchGatewayStack (us-east-1, optional: enableWebSe
 | zizmor | `.github/workflows/zizmor.yml` | GitHub Actions security linting (SHA-pinning, credential persistence, injection) |
 | gitleaks | `.github/workflows/gitleaks.yml` | Secret detection — custom rules in `.gitleaks.toml` |
 | OpenSSF Scorecard | `.github/workflows/scorecard.yml` | Automated security health scoring |
+| Renovate | `renovate.json` | Automated dependency updates (npm, pip, Dockerfile, GitHub Actions); grouped PRs, weekly (Mon, Asia/Tokyo), keeps Actions SHA-pinned (`pinDigests`), majors gated via Dependency Dashboard, OSV/vulnerability alerts on |
+
+> **Renovate** is driven by the [Renovate GitHub App](https://github.com/apps/renovate), which must be enabled for this repository separately (Settings → GitHub Apps). The `renovate.json` config alone does not activate updates. Renovate preserves the SHA-pinning policy via `helpers:pinGitHubActionDigests` + per-manager `pinDigests: true`, so it does not conflict with the zizmor SHA-pinning lint.
 
 ### Local Security Checks
 
@@ -357,6 +360,10 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | CDK deploy fails with deleted Alias | CFn reads attributes of physically deleted aliases | Never manually delete CFn-managed aliases; use CDK for lifecycle |
 | Converse API ignores cacheControl | Prompt Caching only works via Messages API | Use InvokeModel for Claude; Converse for non-Claude |
 | CDK synth uses old compiled JS | `.js` files not recompiled after `.ts` change | Run `npx tsc` before `cdk synth` when modifying stack code |
+| SSM domain join fails with schema error | `SsmAssociations` + custom SSM Document (`schemaVersion: '2.2'`) | Use `AWS::SSM::Association` (separate resource) with `AWS-JoinDirectoryServiceDomain` managed doc; never use `SsmAssociations` prop with `aws:domainJoin` |
+| S3 AP AccessDenied on AD-joined SVM | AD DC unreachable; ONTAP `unix→win` reverse name-mapping fails | HeadBucket succeeds (false positive) but data ops fail. Check SVM→AD DC connectivity (ports 53/88/389/445/636). See `docs/s3ap-ad-prerequisites.md` |
+| S3 AP VPC-origin AP returns AccessDenied | VPC-origin AP + VPC Lambda + S3 Gateway EP — environment-dependent | Use Internet-origin AP (`NetworkOrigin: Internet`) + VPC-external Lambda (no `VpcConfig`). Same-account: no AP resource policy needed |
+| FlexClone not found by FSx API | FSx API sync delay: 12–36 min after ONTAP REST API creation | Static Wait (10 min) + polling loop (120s × 25 = 50 min); total 60 min budget in Step Functions |
 
 ## CI/Test Reliability
 
