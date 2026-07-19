@@ -6,16 +6,14 @@
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [README.md](../README.md) | システム概要、アーキテクチャ、デプロイ手順、WAF/Geo設定 |
-| [docs/auth-and-user-management.md](auth-and-user-management.md) | 認証・ユーザー管理ガイド（認証モード選択、AD Federation、SID自動登録、トラブルシューティング） |
-| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（14の観点: 画像分析RAG、KB接続UI、Smart Routing、監視・アラート、OIDC/LDAP Federation含む） |
+| [README.md](../README.md) | システム概要、アーキテクチャ、はじめるガイド（ランディングページ） |
+| [docs/deployment-guide.ja.md](deployment-guide.ja.md) | デプロイ手順（既存/新規環境、CDK/CFn、フィーチャーフラグ、WAF/Geo、認証モード設定） |
+| [docs/deployment-troubleshooting.md](deployment-troubleshooting.md) | デプロイトラブルシューティング（20+の既知問題と対処法） |
+| [docs/auth-and-user-management.md](auth-and-user-management.md) | 認証・ユーザー管理ガイド（認証モード選択、AD Federation、OIDC/LDAP、SID自動登録） |
+| [docs/implementation-overview.md](implementation-overview.md) | 実装内容の詳細説明（22の観点） |
 | [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SIDベース権限フィルタリングの詳細設計 |
-| [docs/verification-report.md](verification-report.md) | デプロイ後の検証手順とテストケース |
-| [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（KB/Agentモード、Agent Directory、エンタープライズAgent機能、サイドバー設計） |
-| [docs/demo-recording-guide.md](demo-recording-guide.md) | 検証デモ動画撮影手順書（6つの証跡） |
-| [docs/embedding-server-design.md](embedding-server-design.md) | Embeddingサーバー設計・実装ドキュメント |
+| [docs/ui-specification.md](ui-specification.md) | チャットボットUI仕様書（KB/Agentモード、Agent Directory、サイドバー設計） |
 | [docs/stack-architecture-comparison.md](stack-architecture-comparison.md) | CDKスタック アーキテクチャガイド（ベクトルストア比較、実装知見） |
-| [README.md#AD SAMLフェデレーション](../README.md#ad-samlフェデレーションオプション) | AD SAMLフェデレーション セットアップ手順（Managed AD / Self-managed AD） |
 
 ## セットアップ・検証
 
@@ -112,11 +110,12 @@
 
 ### 初回セットアップ
 
-1. **README.md** — システム全体像とデプロイ手順
-2. **auth-and-user-management.md** — 認証モード選択とユーザー管理
-3. **implementation-overview.md** — 22の観点での実装内容詳細
-4. **SID-Filtering-Architecture.md** — コア機能の技術詳細
-5. **safe-experimentation-guide.md** — 安全な実験ガイド（PoC開始前に必読）
+1. **README.md** — システム全体像（ランディングページ）
+2. **deployment-guide.ja.md** — デプロイ手順・フィーチャーフラグ・WAF/Geo・認証モード設定
+3. **auth-and-user-management.md** — 認証モード選択とユーザー管理
+4. **implementation-overview.md** — 22の観点での実装内容詳細
+5. **SID-Filtering-Architecture.md** — コア機能の技術詳細
+6. **safe-experimentation-guide.md** — 安全な実験ガイド（PoC開始前に必読）
 
 ### 検証・評価
 

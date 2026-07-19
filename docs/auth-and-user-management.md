@@ -570,7 +570,7 @@ Auth0 OIDCサインイン成功後のチャット画面:
 
 ## 関連ドキュメント
 
-- [README.md — AD SAMLフェデレーション](../README.md#ad-samlフェデレーションオプション) — CDKデプロイ手順
+- [README.md — AD SAMLフェデレーション](auth-and-user-management.md#モード2-ad-federationの場合) — CDKデプロイ手順
 - [docs/implementation-overview.md — セクション3: IAM認証](implementation-overview.md#3-iam認証--lambda-function-url-iam-auth--cloudfront-oac) — インフラ層の認証設計
 - [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) — SIDフィルタリングの詳細設計
 - [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) — FSx for ONTAP AD連携設定

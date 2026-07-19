@@ -6,16 +6,14 @@
 
 | Document | Description |
 |----------|-------------|
-| [README.md](../../README.en.md) | System overview, architecture, deployment steps, WAF/Geo settings |
-| [auth-and-user-management.md](auth-and-user-management.md) | Authentication & user management guide (auth mode selection, AD Federation, automatic SID registration, troubleshooting) |
-| [implementation-overview.md](implementation-overview.md) | Detailed implementation (22 aspects: image analysis RAG, KB connection UI, Smart Routing, monitoring & alerts, OIDC/LDAP Federation) |
+| [README.md](../../README.en.md) | System overview, architecture, Get Started guide (landing page) |
+| [deployment-guide.md](../deployment-guide.md) | Deployment guide (existing/fresh environments, CDK/CFn, feature flags, WAF/Geo, auth mode config) |
+| [deployment-troubleshooting.md](../deployment-troubleshooting.md) | Deployment troubleshooting (20+ known issues and resolutions) |
+| [auth-and-user-management.md](auth-and-user-management.md) | Authentication & user management guide (auth mode selection, AD Federation, OIDC/LDAP, automatic SID registration) |
+| [implementation-overview.md](implementation-overview.md) | Detailed implementation (22 aspects) |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID-based permission filtering detailed design |
-| [verification-report.md](verification-report.md) | Post-deployment verification procedures and test cases |
-| [ui-specification.md](ui-specification.md) | Chatbot UI specification (KB/Agent mode, Agent Directory, enterprise Agent features, sidebar design) |
-| [demo-recording-guide.md](demo-recording-guide.md) | Demo video recording guide (6 evidence items) |
-| [embedding-server-design.md](embedding-server-design.md) | Embedding server design & implementation document |
+| [ui-specification.md](ui-specification.md) | Chatbot UI specification (KB/Agent mode, Agent Directory, sidebar design) |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | CDK stack architecture guide (vector store comparison, implementation insights) |
-| [README - AD SAML Federation](../../README.en.md#ad-saml-federation-optional) | AD SAML federation setup (Managed AD / Self-managed AD) |
 
 ## Setup & Verification
 
@@ -112,11 +110,12 @@
 
 ### Phase 1: Initial Setup
 
-1. **README.md** — System overview and deployment steps
-2. **auth-and-user-management.md** — Auth mode selection and user management
-3. **implementation-overview.md** — Detailed implementation across 22 aspects
-4. **SID-Filtering-Architecture.md** — Core feature technical details
-5. **safe-experimentation-guide.md** — Safe experimentation guide (must-read before starting PoC)
+1. **README.md** — System overview (landing page)
+2. **deployment-guide.md** — Deployment steps, feature flags, WAF/Geo, auth mode configuration
+3. **auth-and-user-management.md** — Auth mode selection and user management
+4. **implementation-overview.md** — Detailed implementation across 22 aspects
+5. **SID-Filtering-Architecture.md** — Core feature technical details
+6. **safe-experimentation-guide.md** — Safe experimentation guide (must-read before starting PoC)
 
 ### Phase 2: Verification & Evaluation
 

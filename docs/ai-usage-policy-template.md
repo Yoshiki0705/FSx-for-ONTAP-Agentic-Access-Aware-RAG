@@ -120,4 +120,4 @@
 
 - [ガバナンス・監査設計](governance-and-audit.md)
 - [安全な実験ガイド](safe-experimentation-guide.md)
-- [Responsible AI Statement](../README.md#responsible-ai-ステートメント)
+- [Responsible AI Statement](governance-and-audit.md)

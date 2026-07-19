@@ -122,4 +122,4 @@ Customize this template to fit your organization's characteristics:
 
 - [Governance & Audit Design](governance-and-audit.md)
 - [Safe Experimentation Guide](safe-experimentation-guide.md)
-- [Responsible AI Statement](../README.md#responsible-ai-ステートメント)
+- [Responsible AI Statement](governance-and-audit.md)
