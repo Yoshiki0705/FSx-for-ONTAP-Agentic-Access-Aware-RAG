@@ -1138,6 +1138,9 @@ exports.handler = async (event) => {
                 actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
                 resources: [
                   `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                  // Cross-region wildcard required: inference profiles use region-prefixed IDs
+                  // (e.g., jp.anthropic.*, apac.anthropic.*) that resolve across regions.
+                  // Scoping to a single region would break multi-region profile resolution.
                   'arn:aws:bedrock:*:*:inference-profile/*',
                 ],
               }),

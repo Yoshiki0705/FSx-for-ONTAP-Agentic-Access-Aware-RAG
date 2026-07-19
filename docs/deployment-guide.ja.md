@@ -61,7 +61,7 @@ CDK デプロイ時にアカウントに作成される AWS リソース:
 | CDN | CloudFront ディストリビューション | HTTPS フロントエンド |
 | （オプション） | Managed AD、Transfer Family、Monitoring | フィーチャーフラグ依存 |
 
-> **安心事項**: CDK は既存の FSx for ONTAP ファイルシステム、SVM、ボリューム、ジャンクションパス、エクスポートポリシー、CIFS 共有を一切変更しません。リソース ID を参照するのみです。
+> ⚠️ **既存環境への影響なし**: CDK は既存の FSx for ONTAP ファイルシステム、SVM、ボリューム、ジャンクションパス、エクスポートポリシー、CIFS 共有を **一切変更しません**。リソース ID を読み取り参照するのみです。既存ワークロード（NFS/SMB）に影響はありません。
 
 ---
 
@@ -116,6 +116,8 @@ bash --version    # >= 4.0
 - CDK ブートストラップ権限一式（[CDK Bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html) 参照）
 - `bedrock:*`（Knowledge Base 作成）
 - `cognito-idp:*`, `lambda:*`, `s3:*`, `dynamodb:*`, `cloudfront:*`
+
+> **本番環境向けの補足**: 上記は PoC / 開発環境での簡易的な権限です。本番環境では CDK が生成する CloudFormation テンプレートの `cdk.out/` 内を確認し、実際に必要なアクションのみに限定した IAM ポリシーを作成してください。`cdk diff` の出力も、追加される IAM リソースの確認に有用です。スコープダウンの参考: [AWS CDK Security Best Practices](https://docs.aws.amazon.com/cdk/v2/guide/security.html)。
 
 ### ネットワーク要件
 
@@ -455,6 +457,26 @@ bash demo-data/scripts/setup-user-access.sh
 - CDK デプロイログ: ターミナル出力 + CloudFormation コンソールのイベント
 - ONTAP 監査ログ: ONTAP 監査ログ配信設定については [運用ランブック](operations-runbook.md) を参照
 
+**ログレベルの変更**:
+
+Lambda 関数は構造化 JSON ログを出力します。ログレベルは環境変数で制御:
+
+```bash
+# ログレベルを DEBUG に変更（一時的なトラブルシュート時）
+aws lambda update-function-configuration \
+  --function-name {projectName}-{environment}-webapp \
+  --environment "Variables={LOG_LEVEL=DEBUG}" \
+  --region ap-northeast-1
+
+# 通常運用に戻す
+aws lambda update-function-configuration \
+  --function-name {projectName}-{environment}-webapp \
+  --environment "Variables={LOG_LEVEL=INFO}" \
+  --region ap-northeast-1
+```
+
+> 有効な値: `DEBUG`, `INFO`（デフォルト）, `WARN`, `ERROR`
+
 ### 7.5 バックアップとリカバリ
 
 - **FSx for ONTAP**: 既存の顧客バックアップポリシーで管理（Snapshot/SnapMirror）
@@ -478,11 +500,24 @@ bash demo-data/scripts/setup-user-access.sh
 | Cognito | 無料（50K MAU 未満） | |
 | DynamoDB | 約 $5〜10 | オンデマンド、小規模テーブル |
 | WAF | 約 $6 | Web ACL + ルール |
-| VPC エンドポイント（Interface） | 約 $15〜45 | エンドポイントごと/AZ ごと |
+| VPC エンドポイント（Interface） | 約 $15〜45 | エンドポイントごと/AZ ごと¹ |
 | **合計（軽量利用）** | **約 $70〜150/月** | 1,000 クエリ/日 |
 | **合計（中程度利用）** | **約 $200〜500/月** | 10,000 クエリ/日 |
 
+> ¹ **VPC Endpoint コストの目安**: Interface Endpoint 4 個（Bedrock Runtime, Secrets Manager, STS, ECR）× 2 AZ × $0.01/時 × 730 時間 ≈ **$58/月**。Gateway Endpoint（S3, DynamoDB）は無料。既存 VPC に共有エンドポイントがある場合はこのコストは不要。
+
 > **コストに関する補足**: 最大の変動費は Bedrock モデル呼び出しです。Smart Routing を使用して単純なクエリを低コストモデル（Haiku）に振り分け、高コストモデル（Sonnet/Opus）は複雑なクエリに限定することでコストを最適化できます。初月は全ドキュメントの初回インジェストにより費用が高くなる可能性があります — 2ヶ月目以降は増分変更のみの処理になります。
+
+**ベクトルストア選択の目安**:
+
+| | S3 Vectors（デフォルト） | OpenSearch Serverless |
+|--|--------------------------|---------------------|
+| 月額 | 数ドル〜$20 | 約 $700〜（2 OCU 最小） |
+| レイテンシ | サブ秒（十分な PoC 品質） | 低レイテンシ（大規模向け） |
+| 適用場面 | PoC、開発、小〜中規模（〜100K ドキュメント） | 本番、大規模、低レイテンシ要件 |
+| 切替 | `vectorStoreType` を変更 + KB 再作成 | 同左 |
+
+> 詳細比較: [スタック構成比較](stack-architecture-comparison.md)
 
 ### デプロイ所要時間
 
@@ -493,6 +528,19 @@ bash demo-data/scripts/setup-user-access.sh
 | CDK デプロイ（既存 FSx for ONTAP） | 15〜20 分 | FSx 作成をスキップ |
 | CDK デプロイ（新規 FSx for ONTAP） | 45〜60 分 | FSx プロビジョニング含む |
 | デプロイ後セットアップ | 5〜10 分 | ユーザー、KB データソース、デモデータ |
+
+<details><summary>スタック別内訳（既存 FSx for ONTAP 構成）</summary>
+
+| スタック | 所要時間 | 主なリソース |
+|---------|---------|------------|
+| WafStack (us-east-1) | 1〜2 分 | WebACL, IP Set |
+| NetworkingStack | 2〜3 分 | VPC Endpoints |
+| SecurityStack | 2〜3 分 | Cognito User Pool |
+| StorageStack | 1〜2 分 | DynamoDB, S3（FSx 参照のみ） |
+| AIStack | 3〜5 分 | Bedrock KB, S3 Vectors Index |
+| WebAppStack | 3〜5 分 | Lambda, CloudFront Distribution |
+
+</details>
 
 ---
 

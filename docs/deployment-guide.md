@@ -61,7 +61,7 @@ When you deploy with CDK, the following AWS resources are created in your accoun
 | CDN | CloudFront distribution | HTTPS frontend |
 | (Optional) | Managed AD, Transfer Family, Monitoring | Per feature flags |
 
-> **Assurance note**: CDK does NOT modify your existing FSx for ONTAP file system, SVM, volume, junction paths, export policies, or CIFS shares. It only reads resource IDs for reference.
+> ⚠️ **No impact on existing environment**: CDK does **NOT** modify your existing FSx for ONTAP file system, SVM, volume, junction paths, export policies, or CIFS shares. It only reads resource IDs for reference. Your existing NFS/SMB workloads are unaffected.
 
 ---
 
@@ -116,6 +116,8 @@ The deploying principal needs at minimum:
 - Full CDK bootstrap permissions (see [CDK Bootstrapping](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping.html))
 - `bedrock:*` (Knowledge Base creation)
 - `cognito-idp:*`, `lambda:*`, `s3:*`, `dynamodb:*`, `cloudfront:*`
+
+> **Production note**: The above is a simplified set for PoC / dev environments. For production, inspect the generated CloudFormation templates in `cdk.out/` to identify exact actions needed, and create a scoped-down IAM policy. `cdk diff` output is also useful for auditing IAM resources being added. Reference: [AWS CDK Security Best Practices](https://docs.aws.amazon.com/cdk/v2/guide/security.html).
 
 ### Network Requirements
 
@@ -455,6 +457,26 @@ When `enableMonitoring=true`:
 - CDK deploy logs: Terminal output + CloudFormation console events
 - ONTAP audit logs: See [Operations Runbook](operations-runbook.md) for ONTAP audit log delivery setup
 
+**Changing log level**:
+
+Lambda functions emit structured JSON logs. Log level is controlled via environment variable:
+
+```bash
+# Set to DEBUG (for temporary troubleshooting)
+aws lambda update-function-configuration \
+  --function-name {projectName}-{environment}-webapp \
+  --environment "Variables={LOG_LEVEL=DEBUG}" \
+  --region ap-northeast-1
+
+# Revert to normal operation
+aws lambda update-function-configuration \
+  --function-name {projectName}-{environment}-webapp \
+  --environment "Variables={LOG_LEVEL=INFO}" \
+  --region ap-northeast-1
+```
+
+> Valid values: `DEBUG`, `INFO` (default), `WARN`, `ERROR`
+
 ### 7.5 Backup and Recovery
 
 - **FSx for ONTAP**: Managed by existing customer backup policy (Snapshots/SnapMirror)
@@ -478,11 +500,24 @@ When `enableMonitoring=true`:
 | Cognito | Free (< 50K MAU) | |
 | DynamoDB | ~$5-10 | On-demand, small table |
 | WAF | ~$6 | Web ACL + rules |
-| VPC Endpoints (Interface) | ~$15-45 | Per endpoint per AZ |
+| VPC Endpoints (Interface) | ~$15-45 | Per endpoint per AZ¹ |
 | **Total (light usage)** | **~$70-150/month** | 1,000 queries/day |
 | **Total (medium usage)** | **~$200-500/month** | 10,000 queries/day |
 
+> ¹ **VPC Endpoint cost breakdown**: 4 Interface Endpoints (Bedrock Runtime, Secrets Manager, STS, ECR) × 2 AZs × $0.01/hr × 730 hrs ≈ **$58/month**. Gateway Endpoints (S3, DynamoDB) are free. If your existing VPC has shared endpoints, this cost does not apply.
+
 > **Cost note**: The largest variable cost is Bedrock model invocation. Use Smart Routing to direct simple queries to lower-cost models (Haiku) and reserve expensive models (Sonnet/Opus) for complex queries. First-month costs may be higher due to initial full ingestion of all documents — subsequent months only process incremental changes.
+
+**Vector store selection guide**:
+
+| | S3 Vectors (default) | OpenSearch Serverless |
+|--|----------------------|---------------------|
+| Monthly cost | A few dollars–$20 | ~$700+ (2 OCU minimum) |
+| Latency | Sub-second (sufficient for PoC) | Low latency (large-scale) |
+| Best for | PoC, dev, small–medium (~100K docs) | Production, large-scale, low-latency requirements |
+| Switching | Change `vectorStoreType` + recreate KB | Same |
+
+> Detailed comparison: [Stack Architecture Comparison](en/stack-architecture-comparison.md)
 
 ### Time to Deploy
 
@@ -493,6 +528,19 @@ When `enableMonitoring=true`:
 | CDK deploy (existing FSx for ONTAP) | 15-20 min | Skips FSx creation |
 | CDK deploy (new FSx for ONTAP) | 45-60 min | Includes FSx provisioning |
 | Post-deploy setup | 5-10 min | Users, KB data source, demo data |
+
+<details><summary>Per-stack breakdown (existing FSx for ONTAP)</summary>
+
+| Stack | Duration | Key resources |
+|-------|----------|---------------|
+| WafStack (us-east-1) | 1-2 min | WebACL, IP Set |
+| NetworkingStack | 2-3 min | VPC Endpoints |
+| SecurityStack | 2-3 min | Cognito User Pool |
+| StorageStack | 1-2 min | DynamoDB, S3 (FSx reference only) |
+| AIStack | 3-5 min | Bedrock KB, S3 Vectors Index |
+| WebAppStack | 3-5 min | Lambda, CloudFront Distribution |
+
+</details>
 
 ---
 
