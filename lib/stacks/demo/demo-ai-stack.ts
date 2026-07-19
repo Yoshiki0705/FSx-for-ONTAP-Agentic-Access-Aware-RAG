@@ -1093,11 +1093,14 @@ exports.handler = async (event) => {
       // Foundation Model shared by the existing single agent and used as the
       // default fallback for all multi-agent Collaborators/Supervisor when
       // `collaboratorModels` is not specified (Requirement 12.5).
-      // NOTE (2026-07 verified): Bedrock Agent now supports inference profile IDs
-      // as foundationModel. In ap-northeast-1, use JP inference profile.
-      // Claude 3 Haiku (on-demand) is LEGACY and blocked after 30 days inactivity.
-      // The Agent IAM role MUST include arn:aws:bedrock:*:*:inference-profile/* resource.
-      const singleAgentModel = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
+      // NOTE (2026-07-19 verified): CloudFormation AWS::Bedrock::Agent does NOT accept
+      // inference profile IDs as foundationModel. Use an on-demand model for initial
+      // creation, then update to inference profile via API post-deploy.
+      // See: docs/deployment-troubleshooting.md §23
+      //
+      // Deploy model: amazon.nova-lite-v1:0 (ON_DEMAND, ACTIVE, lightweight)
+      // Runtime model: jp.anthropic.claude-haiku-4-5-20251001-v1:0 (updated post-deploy)
+      const singleAgentModel = 'amazon.nova-lite-v1:0';
       // Action Group Lambda: Permission-aware KB検索
       const actionGroupFn = new lambda.Function(this, 'PermSearchFn', {
         functionName: `${prefix}-perm-search`,

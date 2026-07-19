@@ -1303,7 +1303,10 @@ actively using the model in the last 30 days.
 Invocation of model ID anthropic.claude-haiku-4-5-20251001-v1:0 with on-demand
 throughput isn't supported.
 
-# パターン C: inference profile ID を使用 + IAM 権限不足
+# パターン C: inference profile ID を CFn で使用
+Access denied for operation 'AWS::Bedrock::Agent'.
+
+# パターン D: inference profile ID を API で使用 + IAM 権限不足
 Access denied while trying to create/update an agent using InferenceProfile
 jp.anthropic.claude-haiku-4-5-20251001-v1:0
 ```
@@ -1314,22 +1317,39 @@ jp.anthropic.claude-haiku-4-5-20251001-v1:0
 |---------|------|----------|
 | A | `claude-3-haiku-20240307` が LEGACY 化し、30 日未使用でブロック | Inference Profile に移行（復活不可） |
 | B | ap-northeast-1 で on-demand 未対応 | JP Inference Profile を使用 |
-| C | Agent IAM ロールに `inference-profile/*` リソースがない | IAM ポリシーに ARN 追加 |
+| C | **CFn `AWS::Bedrock::Agent` は inference profile ID を受け付けない** | on-demand model で作成後、API で更新（下記手順） |
+| D | Agent IAM ロールに `inference-profile/*` リソースがない | IAM ポリシーに ARN 追加 |
 
-**正しい構成（2026-07 以降）:**
+**正しい 2 段階パターン（2026-07 確定）:**
 
 ```typescript
-// foundationModel: JP inference profile を使用
-const singleAgentModel = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
+// Step 1: CDK/CFn — on-demand model で Agent 作成（CFn の制約）
+const singleAgentModel = 'amazon.nova-lite-v1:0';  // ON_DEMAND, ACTIVE
 
-// IAM ロール: inference-profile/* を Resource に含める（必須）
-new iam.PolicyStatement({
-  actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-  resources: [
-    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
-    'arn:aws:bedrock:*:*:inference-profile/*',   // ← これが必須
-  ],
-}),
+// IAM ロール: inference-profile/* を含める（Step 2 の update_agent 用）
+resources: [
+  `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+  'arn:aws:bedrock:*:*:inference-profile/*',
+],
+```
+
+```python
+# Step 2: post-deploy — API で inference profile に更新
+import boto3
+client = boto3.client('bedrock-agent', region_name='ap-northeast-1')
+client.update_agent(
+    agentId='AGENT_ID',
+    agentName='...',
+    foundationModel='jp.anthropic.claude-haiku-4-5-20251001-v1:0',
+    instruction='...',
+    agentResourceRoleArn='...',
+)
+client.prepare_agent(agentId='AGENT_ID')
+# Alias routing を最新バージョンに更新
+client.update_agent_alias(
+    agentId='AGENT_ID', agentAliasId='ALIAS_ID',
+    agentAliasName='updated', routingConfiguration=[]
+)
 ```
 
 ### Agent Alias バージョン更新
@@ -1356,8 +1376,17 @@ jp.anthropic.claude-sonnet-4-6                  # Sonnet 4.6（推奨: Smart Rou
 jp.anthropic.claude-opus-4-8                    # Opus 4.8（推奨: full-context 用）
 ```
 
-> **重要**: 2026-06 以降、全ての ACTIVE な Anthropic モデルは `INFERENCE_PROFILE` のみ対応。
-> on-demand (`anthropic.claude-3-haiku-20240307-v1:0`) は LEGACY でブロック済み。
+### CFn で Agent 作成に使える on-demand モデル（ap-northeast-1）
+
+```
+amazon.nova-lite-v1:0       # 推奨: 軽量、高速、Agent 作成用
+amazon.nova-2-sonic-v1:0    # 音声対応
+mistral.mistral-large-3-675b-instruct  # 高精度
+```
+
+> **重要**: 2026-07 以降、全ての ACTIVE な Anthropic モデルは `INFERENCE_PROFILE` のみ対応。
+> CFn `AWS::Bedrock::Agent` では Anthropic モデルは使用不可（on-demand 非対応）。
+> on-demand 対応の non-Anthropic モデルで作成後、API で Anthropic inference profile に更新する。
 
 
 ---
