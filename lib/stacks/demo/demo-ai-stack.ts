@@ -2456,7 +2456,23 @@ ${langInstruction}`,
           'Resource::arn:aws:s3:::perm-rag-demo-demo-*-ext-s3alias/*',
           'Resource::arn:aws:s3vectors:<AWS::Region>:<AWS::AccountId>:bucket/perm-rag-demo-demo-vectors/*',
           'Resource::arn:aws:bedrock:<AWS::Region>:<AWS::AccountId>:knowledge-base/*',
+          // KB data bucket (projectName-environment prefix pattern)
+          'Resource::arn:aws:s3:::perm-rag-demo-kb-data-<AWS::AccountId>/*',
+          'Resource::arn:aws:s3:::perm-rag-demo-*-ext-s3alias',
+          'Resource::arn:aws:s3:::perm-rag-demo-*-ext-s3alias/*',
+          'Resource::arn:aws:s3vectors:<AWS::Region>:<AWS::AccountId>:bucket/perm-rag-demo-vectors/*',
           'Resource::*',
+        ],
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'Bedrock Agent roles require wildcard access to foundation models and inference profiles for model invocation. Inference profiles are region-prefixed (jp.*/apac.*) and cannot be enumerated at synth time. Agent-alias wildcards needed for Supervisor to invoke Collaborators dynamically. See: https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles.html',
+        appliesTo: [
+          'Resource::arn:aws:bedrock:<AWS::Region>::foundation-model/*',
+          'Resource::arn:aws:bedrock:*:*:inference-profile/*',
+          'Resource::arn:aws:bedrock:<AWS::Region>:<AWS::AccountId>:agent-alias/*',
+          'Resource::arn:aws:bedrock:<AWS::Region>:<AWS::AccountId>:agent-alias/*/*',
+          'Resource::arn:aws:bedrock:<AWS::Region>:<AWS::AccountId>:agent/*',
         ],
       },
       {

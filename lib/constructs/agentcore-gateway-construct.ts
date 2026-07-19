@@ -137,7 +137,7 @@ export class AgentCoreGatewayConstruct extends Construct {
 
     if (props.guardrailArn) {
       const policyEngine = new bedrockagentcore.CfnPolicyEngine(this, 'PolicyEngine', {
-        name: `${prefix}-policy-engine`,
+        name: `${prefix.replace(/-/g, '_')}_policy_engine`,
         description: `Policy Engine for ${projectName} — Cedar authorization for gateway tool calls`,
       });
 
@@ -156,7 +156,7 @@ export class AgentCoreGatewayConstruct extends Construct {
       //             resource == AgentCore::Gateway::"<gateway-arn>") when { ... };
       //    参考: https://aws.github.io/bedrock-agentcore-starter-toolkit/examples/policy-integration.html
       const baselinePolicy = new bedrockagentcore.CfnPolicy(this, 'BaselineAuthorizationPolicy', {
-        name: `${prefix}-baseline-policy`,
+        name: `${prefix.replace(/-/g, '_')}_baseline_policy`,
         policyEngineId: policyEngine.attrPolicyEngineId,
         description: 'Baseline permit for LOG_ONLY observation. Replace with least-privilege policies before ENFORCE.',
         definition: {
@@ -202,7 +202,7 @@ export class AgentCoreGatewayConstruct extends Construct {
     const gateway = new bedrockagentcore.CfnGateway(this, 'Gateway', {
       name: `${prefix}-gateway`,
       description: props.description || `AgentCore Gateway for ${projectName} — Permission-aware tool routing`,
-      authorizerType: 'IAM',
+      authorizerType: 'AWS_IAM',
       protocolType: 'MCP',
       roleArn: gatewayRole.roleArn,
       exceptionLevel: 'DEBUG',
@@ -211,7 +211,7 @@ export class AgentCoreGatewayConstruct extends Construct {
       // Lambda Interceptor: ツール実行前にPermission checkを適用
       interceptorConfigurations: [
         {
-          interceptionPoints: ['BEFORE_TOOL_INVOCATION'],
+          interceptionPoints: ['REQUEST'],
           interceptor: {
             lambda: {
               arn: this.interceptorFunction.functionArn,

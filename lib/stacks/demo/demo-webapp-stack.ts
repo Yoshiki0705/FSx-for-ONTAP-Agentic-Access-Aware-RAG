@@ -717,5 +717,12 @@ export class DemoWebAppStack extends cdk.Stack {
         reason: 'AccessLogBucket is itself the log destination for the CloudFront distribution. Enabling access logs on a log bucket would create a circular dependency or infinite log loop.',
       },
     ]);
+
+    NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/Monitoring/AlertsTopic/Resource`, [
+      {
+        id: 'AwsSolutions-SNS3',
+        reason: 'SNS Topic is used for internal CloudWatch Alarm notifications only (email subscription). Publishers are AWS services (CloudWatch) over internal AWS endpoints. TLS enforcement on topic policy not required for service-to-service communication. See: https://docs.aws.amazon.com/sns/latest/dg/sns-security-best-practices.html',
+      },
+    ]);
   }
 }

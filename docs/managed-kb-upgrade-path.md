@@ -275,7 +275,39 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 
 ---
 
-## 6. 検証チェックリスト（サマリ）
+## 6. 検証ステータス更新（2026-07-19）
+
+### 現行構成の E2E 検証結果から得られた知見
+
+2026-07-19 の E2E デプロイ検証で、以下が確認された。これらは Managed KB 移行検討時の前提条件に影響する。
+
+| 知見 | Managed KB への影響 |
+|------|---------------------|
+| **S3 AP + AD-joined SVM**: AD DC 到達不能で S3 AP 作成 FAILED | Managed KB の S3 コネクタも同じ制約を受ける可能性大。V1 検証時に考慮 |
+| **Permission Filter (Fail-Closed)**: `allowed_group_sids` メタデータなしのドキュメントは即拒否 | Managed KB でもアプリ側 Fail-Closed は維持必須。`listContains` を KB 側で使う場合でも、アプリ側の再認可レイヤーは残す |
+| **Inference Profile 必須化**: 全 ACTIVE Anthropic モデルが `INFERENCE_PROFILE` のみ | Managed KB + Agentic Retriever もモデル呼び出しに Inference Profile が必要。IAM ポリシーに `inference-profile/*` 含める |
+| **Bedrock KB Retrieve API**: メタデータは `retrievalResults[].metadata` で返却 | Managed KB の `managedSearchConfiguration.filter` と現行のアプリ側照合は相補的に使える |
+
+### 移行判断の現時点ステータス
+
+```
+Phase A (接続検証): 未着手
+  - V1 S3 AP → Managed KB S3 コネクタ: ❓ 未検証
+  - V2 allowed_group_sids メタデータ保持: ❓ 未検証
+
+Phase B (認可検証): 未着手
+  - V3 listContains SID 照合: ❓ 未検証（ドキュメント上はサポート）
+  - V4 マルチホップ ACL 維持: ❓ 未検証
+  - V5 権限変更反映遅延: ❓ 未検証
+
+Phase C (監査検証): 未着手
+```
+
+**既定方針（変更なし）**: 全検証項目がクリアされるまで、現行構成（Bedrock KB + S3 Vectors / OpenSearch Serverless + アプリ側 SID フィルタリング）を本番パスとして維持。Managed KB は並列オプションとして位置づけ、検証の優先度は Gateway/Agent 安定化の後とする。
+
+---
+
+## 7. 検証チェックリスト（サマリ）
 
 移行可否判断の前に、以下を全てクリアすること。
 
@@ -293,7 +325,7 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 
 ---
 
-## 7. 関連ドキュメント
+## 8. 関連ドキュメント
 
 | ドキュメント | 内容 |
 |-------------|------|
