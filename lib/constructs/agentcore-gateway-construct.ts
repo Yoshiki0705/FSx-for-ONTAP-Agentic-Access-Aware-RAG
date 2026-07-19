@@ -115,6 +115,14 @@ export class AgentCoreGatewayConstruct extends Construct {
               actions: ['lambda:InvokeFunction'],
               resources: [this.interceptorFunction.functionArn],
             }),
+            new iam.PolicyStatement({
+              actions: [
+                'bedrock-agentcore:GetPolicyEngine',
+                'bedrock-agentcore:EvaluatePolicy',
+                'bedrock-agentcore:AuthorizeAction',
+              ],
+              resources: ['*'],
+            }),
           ],
         }),
       },
@@ -161,8 +169,15 @@ export class AgentCoreGatewayConstruct extends Construct {
         description: 'Baseline permit for LOG_ONLY observation. Replace with least-privilege policies before ENFORCE.',
         definition: {
           cedar: {
-            // Constrain to AgentCore::Gateway resource type (wildcard resource rejected by API)
-            statement: 'permit(principal, action, resource) when { resource is AgentCore::Gateway };',
+            // NOTE: Cedar permit-all with resource type constraint.
+            // The exact Cedar syntax accepted by AgentCore Policy Engine CreatePolicy API
+            // is under active investigation. The following patterns were REJECTED:
+            //   - 'permit(principal, action, resource);'  → wildcard resource rejected
+            //   - 'permit(principal, action, resource) when { resource is AgentCore::Gateway };' → parse error
+            //   - 'permit(principal, action, resource is AgentCore::Gateway::"*");' → parse error
+            // TODO: Confirm correct Cedar entity type syntax with AgentCore team.
+            //       Until resolved, deploy Gateway WITHOUT policyEngineConfiguration.
+            statement: 'permit(principal, action, resource);',
           },
         },
         // 有効な Cedar 構文のため findings で fail させる（厳格）
