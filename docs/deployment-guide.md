@@ -504,9 +504,15 @@ When `enableMonitoring=true`:
 | `Cannot resolve FSx file system` | Wrong FS ID or region | Verify `existingFileSystemId` matches region |
 | `Lambda timeout on ONTAP call` | SG missing HTTPS to mgmt LIF | Add TCP 443 rule from Lambda SG to ONTAP mgmt |
 | `S3 Access Point 403` | Missing IAM or AP policy | Check `s3:GetObject` on AP ARN |
+| S3 AP Lifecycle: FAILED | AD-joined SVM with unreachable AD DC | Use AD-free SVM or restore AD DC connectivity. [Details](deployment-troubleshooting.md#26-s3-access-point-が-ad-joined-svm-で-failed-になる2026-07-19-検証済み) |
+| Agent: `accessDeniedException` | Agent IAM role missing `inference-profile/*` resource | [Inference Profile fix](deployment-troubleshooting.md#23-bedrock-agent-foundationmodel-と-inference-profile2026-07-19-更新) |
+| Agent: `Legacy model blocked` | claude-3-haiku unused for 30+ days | Migrate to JP Inference Profile (`jp.anthropic.claude-haiku-4-5-20251001-v1:0`) |
+| cdk-nag `Found errors` halts deploy | IAM wildcard without NagSuppression | Add NagSuppression or temporarily disable. [Details](deployment-troubleshooting.md#27-cdk-nag-awssolutions-エラーでデプロイが止まる2026-07-19-知見) |
 | `KB ingestion returns 0 docs` | Missing `.metadata.json` | Run `upload-demo-data-s3ap.sh` (generates metadata) |
 | `Cognito callback mismatch` | CloudFront URL not set | Set `cloudFrontUrl` in context |
 | CDK synth: `All three existing IDs required` | Partial specification | Set all of `existingFileSystemId`, `existingSvmId`, `existingVolumeId` or none |
+
+> For the full troubleshooting guide (27 items), see [deployment-troubleshooting.md](deployment-troubleshooting.md).
 
 ---
 

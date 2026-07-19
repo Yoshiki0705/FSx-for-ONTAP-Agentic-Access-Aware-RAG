@@ -1093,11 +1093,11 @@ exports.handler = async (event) => {
       // Foundation Model shared by the existing single agent and used as the
       // default fallback for all multi-agent Collaborators/Supervisor when
       // `collaboratorModels` is not specified (Requirement 12.5).
-      // NOTE: Bedrock Agent's foundationModel parameter only accepts base model IDs,
-      // not inference profiles. In ap-northeast-1, Claude Haiku 4.5 requires inference
-      // profile for direct invocation, but Agent internally handles the routing.
-      // Use Claude 3 Haiku (on-demand available) as the agent orchestration model.
-      const singleAgentModel = 'anthropic.claude-3-haiku-20240307-v1:0';
+      // NOTE (2026-07 verified): Bedrock Agent now supports inference profile IDs
+      // as foundationModel. In ap-northeast-1, use JP inference profile.
+      // Claude 3 Haiku (on-demand) is LEGACY and blocked after 30 days inactivity.
+      // The Agent IAM role MUST include arn:aws:bedrock:*:*:inference-profile/* resource.
+      const singleAgentModel = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
       // Action Group Lambda: Permission-aware KB検索
       const actionGroupFn = new lambda.Function(this, 'PermSearchFn', {
         functionName: `${prefix}-perm-search`,
@@ -1133,7 +1133,10 @@ exports.handler = async (event) => {
             statements: [
               new iam.PolicyStatement({
                 actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-                resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`],
+                resources: [
+                  `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                  'arn:aws:bedrock:*:*:inference-profile/*',
+                ],
               }),
               new iam.PolicyStatement({
                 actions: ['bedrock:Retrieve'],
@@ -1243,7 +1246,10 @@ ${langInstruction}`,
                   actions: [
                     'bedrock:InvokeModel',
                   ],
-                  resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`],
+                  resources: [
+                    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                    'arn:aws:bedrock:*:*:inference-profile/*',
+                  ],
                 }),
               ],
             }),
@@ -1344,7 +1350,10 @@ ${langInstruction}`,
               statements: [
                 new iam.PolicyStatement({
                   actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-                  resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`],
+                  resources: [
+                    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                    'arn:aws:bedrock:*:*:inference-profile/*',
+                  ],
                 }),
                 ...(userAccessTableArn ? [new iam.PolicyStatement({
                   actions: ['dynamodb:GetItem'],
@@ -1498,7 +1507,10 @@ ${langInstruction}`,
               statements: [
                 new iam.PolicyStatement({
                   actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-                  resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`],
+                  resources: [
+                    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                    'arn:aws:bedrock:*:*:inference-profile/*',
+                  ],
                 }),
                 new iam.PolicyStatement({
                   actions: ['bedrock:Retrieve'],
@@ -1638,7 +1650,10 @@ ${langInstruction}`,
               statements: [
                 new iam.PolicyStatement({
                   actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-                  resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`],
+                  resources: [
+                    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                    'arn:aws:bedrock:*:*:inference-profile/*',
+                  ],
                 }),
               ],
             }),
@@ -1686,7 +1701,10 @@ ${langInstruction}`,
               statements: [
                 new iam.PolicyStatement({
                   actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-                  resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`],
+                  resources: [
+                    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                    'arn:aws:bedrock:*:*:inference-profile/*',
+                  ],
                 }),
               ],
             }),
@@ -1736,7 +1754,10 @@ ${langInstruction}`,
                 statements: [
                   new iam.PolicyStatement({
                     actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-                    resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`],
+                    resources: [
+                    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                    'arn:aws:bedrock:*:*:inference-profile/*',
+                  ],
                   }),
                 ],
               }),
@@ -1790,7 +1811,10 @@ ${langInstruction}`,
                     'bedrock:InvokeModel',
                     'bedrock:InvokeModelWithResponseStream',
                   ],
-                  resources: [`arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`],
+                  resources: [
+                    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                    'arn:aws:bedrock:*:*:inference-profile/*',
+                  ],
                 }),
                 new iam.PolicyStatement({
                   actions: ['bedrock:GetAgentAlias', 'bedrock:InvokeAgent'],

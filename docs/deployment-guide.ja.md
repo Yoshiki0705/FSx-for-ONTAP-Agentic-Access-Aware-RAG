@@ -504,9 +504,15 @@ bash demo-data/scripts/setup-user-access.sh
 | `Cannot resolve FSx file system` | FS ID またはリージョンの不一致 | `existingFileSystemId` がリージョンと一致しているか確認 |
 | `Lambda timeout on ONTAP call` | SG に管理 LIF への HTTPS ルールがない | Lambda SG から ONTAP 管理 LIF への TCP 443 ルールを追加 |
 | `S3 Access Point 403` | IAM または AP ポリシーの不足 | AP ARN に対する `s3:GetObject` を確認 |
+| S3 AP Lifecycle: FAILED | AD-joined SVM で AD DC 到達不能 | AD 非参加 SVM を使用するか AD DC 接続を修復。[詳細](deployment-troubleshooting.md#26-s3-access-point-が-ad-joined-svm-で-failed-になる2026-07-19-検証済み) |
+| Agent: `accessDeniedException` | Agent IAM ロールに `inference-profile/*` リソースがない | [Inference Profile 対応](deployment-troubleshooting.md#23-bedrock-agent-foundationmodel-と-inference-profile2026-07-19-更新)を参照 |
+| Agent: `Legacy model blocked` | claude-3-haiku が 30 日未使用でブロック | JP Inference Profile (`jp.anthropic.claude-haiku-4-5-20251001-v1:0`) に移行 |
+| cdk-nag `Found errors` で停止 | IAM ワイルドカード未抑制 | NagSuppression を追加 or 一時無効化。[詳細](deployment-troubleshooting.md#27-cdk-nag-awssolutions-エラーでデプロイが止まる2026-07-19-知見) |
 | `KB ingestion returns 0 docs` | `.metadata.json` が存在しない | `upload-demo-data-s3ap.sh` を実行（メタデータ生成） |
 | `Cognito callback mismatch` | CloudFront URL が未設定 | context に `cloudFrontUrl` を設定 |
 | CDK synth: `All three existing IDs required` | 部分的な指定 | `existingFileSystemId`、`existingSvmId`、`existingVolumeId` の 3 つ全てを指定するか、全て省略 |
+
+> 詳細なトラブルシューティング（27 項目）は [deployment-troubleshooting.md](deployment-troubleshooting.md) を参照してください。
 
 ---
 

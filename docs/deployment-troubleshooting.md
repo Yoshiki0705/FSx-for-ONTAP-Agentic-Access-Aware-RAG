@@ -1288,56 +1288,76 @@ aws bedrock-agent get-ingestion-job \
 
 ---
 
-## 23. Bedrock Agent foundationModel と Inference Profile の非互換（2026-06-08 発見）
+## 23. Bedrock Agent foundationModel と Inference Profile（2026-07-19 更新）
 
 ### 症状
 
-CDK で Agent の `foundationModel` に inference profile ID（`jp.anthropic.claude-haiku-4-5-20251001-v1:0` 等）を設定すると、Agent 呼び出し時に以下のエラーが発生する:
+Agent 呼び出し時に以下のいずれかのエラーが発生する:
 
 ```
-The provided model identifier is invalid.
+# パターン A: claude-3-haiku (LEGACY) を使用
+Access denied. This Model is marked by provider as Legacy and you have not been
+actively using the model in the last 30 days.
+
+# パターン B: base model ID (on-demand 非対応) を使用
+Invocation of model ID anthropic.claude-haiku-4-5-20251001-v1:0 with on-demand
+throughput isn't supported.
+
+# パターン C: inference profile ID を使用 + IAM 権限不足
+Access denied while trying to create/update an agent using InferenceProfile
+jp.anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
-または base model ID（`anthropic.claude-haiku-4-5-20251001-v1:0`）を設定すると:
+### 原因と解決方法（2026-07-19 検証済み）
 
-```
-Invocation of model ID anthropic.claude-haiku-4-5-20251001-v1:0 with on-demand throughput isn't supported.
-```
+| パターン | 原因 | 解決方法 |
+|---------|------|----------|
+| A | `claude-3-haiku-20240307` が LEGACY 化し、30 日未使用でブロック | Inference Profile に移行（復活不可） |
+| B | ap-northeast-1 で on-demand 未対応 | JP Inference Profile を使用 |
+| C | Agent IAM ロールに `inference-profile/*` リソースがない | IAM ポリシーに ARN 追加 |
 
-### 原因
-
-Bedrock Agent の `foundationModel` パラメータは **base model ID のみ**を受け付ける。inference profile ID は無効。しかし ap-northeast-1 では一部のモデル（Claude Haiku 4.5 等）が on-demand で利用不可のため、Agent の foundationModel に設定すると呼び出し時にエラーになる。
-
-### 解決方法
-
-ap-northeast-1 で on-demand 利用可能なモデルを Agent の foundationModel に使用する:
+**正しい構成（2026-07 以降）:**
 
 ```typescript
-// ✅ on-demand available in ap-northeast-1
-const singleAgentModel = 'anthropic.claude-3-haiku-20240307-v1:0';
+// foundationModel: JP inference profile を使用
+const singleAgentModel = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
 
-// ❌ inference profile — Agent does NOT accept these
-// 'jp.anthropic.claude-haiku-4-5-20251001-v1:0'
-// 'apac.anthropic.claude-haiku-4-5-20251001-v1:0'
-
-// ❌ base ID but NOT on-demand available in ap-northeast-1
-// 'anthropic.claude-haiku-4-5-20251001-v1:0'
+// IAM ロール: inference-profile/* を Resource に含める（必須）
+new iam.PolicyStatement({
+  actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+  resources: [
+    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+    'arn:aws:bedrock:*:*:inference-profile/*',   // ← これが必須
+  ],
+}),
 ```
 
-### Agent Alias バージョン問題
+### Agent Alias バージョン更新
 
-Agent の `foundationModel` を CDK で変更しても、Alias が古い versioned agent を参照している場合は変更が反映されない。
+`foundationModel` を変更した後、Alias が古いバージョンを指している場合は応答に反映されない:
+
+```python
+# routingConfiguration を空にすると、最新の DRAFT バージョンが自動作成・参照される
+client.update_agent_alias(
+    agentId='AGENT_ID',
+    agentAliasId='ALIAS_ID',
+    agentAliasName='updated-alias',
+    routingConfiguration=[]  # 自動的に最新バージョンを作成
+)
+```
+
+### ap-northeast-1 で利用可能な Inference Profile（2026-07 時点）
 
 ```
-Agent DRAFT: model updated ✅
-Agent Version 1: old model ❌ (Alias points here)
+jp.anthropic.claude-haiku-4-5-20251001-v1:0    # Haiku 4.5（推奨: Agent 用）
+jp.anthropic.claude-sonnet-4-5-20250929-v1:0   # Sonnet 4.5
+apac.anthropic.claude-sonnet-4-20250514-v1:0   # Sonnet 4
+jp.anthropic.claude-sonnet-4-6                  # Sonnet 4.6（推奨: Smart Routing 用）
+jp.anthropic.claude-opus-4-8                    # Opus 4.8（推奨: full-context 用）
 ```
 
-Alias を新バージョンに更新するには:
-1. `create_agent_version` で新バージョンを作成（AWS Console or 最新 SDK）
-2. `update_agent_alias` の `routingConfiguration` を新バージョンに変更
-
-> **注意**: ローカルの boto3/AWS CLI が古い場合、`create_agent_version` API が未対応の場合がある。AWS Console での操作または SDK アップグレードが必要。
+> **重要**: 2026-06 以降、全ての ACTIVE な Anthropic モデルは `INFERENCE_PROFILE` のみ対応。
+> on-demand (`anthropic.claude-3-haiku-20240307-v1:0`) は LEGACY でブロック済み。
 
 
 ---
@@ -1424,3 +1444,101 @@ grep "FoundationModel" cdk.out/<stack-name>.template.json | sort -u
 - `cdk synth` の前に必ず `npx tsc` を実行する
 - CI/CD パイプラインでは `npx tsc && npx cdk synth` をセットで実行する
 - `.js` ファイルのタイムスタンプと `.ts` ファイルのタイムスタンプを比較する
+
+
+---
+
+## 26. S3 Access Point が AD-joined SVM で FAILED になる（2026-07-19 検証済み）
+
+### 症状
+
+`create-and-attach-s3-access-point` 実行後、S3 AP の Lifecycle が `CREATING` → `FAILED` に遷移する。WINDOWS ユーザー / UNIX ユーザーどちらでも失敗する。
+
+### 原因
+
+AD-joined SVM では、S3 AP 作成時に FSx が AD DC への接続を試行する。AD DC が到達不能（削除済み、IP 変更、SG ブロック等）な場合、S3 AP 作成自体が失敗する。
+
+**判別方法:**
+
+```bash
+# SVM の AD 設定を確認
+aws fsx describe-storage-virtual-machines \
+  --storage-virtual-machine-ids svm-XXXX \
+  --query 'StorageVirtualMachines[0].ActiveDirectoryConfiguration' \
+  --region ap-northeast-1
+
+# AD DC の IP が返ってきた場合、その IP に到達できるか確認
+# SG で TCP 53/88/389/445/636 が開いているか
+```
+
+### 解決方法
+
+| 状況 | 対応 |
+|------|------|
+| AD DC が存在し到達可能 | WINDOWS ユーザー（ドメインプレフィクスなし: `Admin`）で S3 AP 作成 |
+| AD DC が到達不能（削除/再構築済み） | AD 非参加の別 SVM を使用するか、SVM から CIFS を force-delete して AD 離脱 |
+| 新規環境でテストしたい | `adPassword` を設定せず CDK デプロイ → AD なし SVM が作成される → UNIX ユーザーで S3 AP 作成 |
+
+### デプロイガイドとの関連
+
+`cdk.context.json` で `existingSvmId` を指定する場合、事前に SVM の AD 参加状態を確認すること:
+
+```bash
+# AD 参加状態の確認
+aws fsx describe-storage-virtual-machines \
+  --storage-virtual-machine-ids svm-XXXX \
+  --query 'StorageVirtualMachines[0].ActiveDirectoryConfiguration.SelfManagedActiveDirectoryConfiguration.DomainName' \
+  --output text --region ap-northeast-1
+# "None" なら AD 非参加 → UNIX ユーザーで OK
+# ドメイン名が返ったら AD 参加済み → AD DC 到達性を確認
+```
+
+### CDK context パラメータ
+
+| SVM 状態 | 推奨 `s3apUserType` | 推奨 `s3apUserName` |
+|---------|---------------------|---------------------|
+| AD 非参加 | `UNIX`（デフォルト） | `root`（デフォルト） |
+| AD 参加 + DC 到達可能 | `WINDOWS` | `Admin`（ドメインプレフィクスなし） |
+| AD 参加 + DC 到達不能 | — | 別 SVM を使用するか AD 離脱が必要 |
+
+---
+
+## 27. cdk-nag AwsSolutions エラーでデプロイが止まる（2026-07-19 知見）
+
+### 症状
+
+`npx cdk deploy --all` が `Found errors` で停止し、CloudFormation changeset が作成されない。
+
+```
+[Error at /...-AI/AgentRole/Resource] AwsSolutions-IAM5[Resource::arn:aws:bedrock:*:*:inference-profile/*]:
+The IAM entity contains wildcard permissions...
+Found errors
+```
+
+### 原因
+
+`cdk-nag` の `AwsSolutionsChecks` が有効で、IAM ワイルドカードが NagSuppression なしで使用されている場合に synth を失敗させる。
+
+### 解決方法
+
+**本番推奨**: 各リソースに NagSuppression を追加:
+
+```typescript
+import { NagSuppressions } from 'cdk-nag';
+
+NagSuppressions.addResourceSuppressions(agentRole, [
+  {
+    id: 'AwsSolutions-IAM5',
+    reason: 'Agent needs access to all inference profiles for model invocation',
+    appliesTo: ['Resource::arn:aws:bedrock:*:*:inference-profile/*'],
+  },
+], true);
+```
+
+**一時的回避策**: `bin/demo-app.ts` で cdk-nag を無効化（テスト・PoC 目的のみ）:
+
+```typescript
+// Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
+```
+
+> **注意**: 本番環境では cdk-nag を有効にし、NagSuppression に理由を明記すること。
