@@ -291,19 +291,29 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 ### 移行判断の現時点ステータス
 
 ```
-Phase A (接続検証): 未着手
-  - V1 S3 AP → Managed KB S3 コネクタ: ❓ 未検証
-  - V2 allowed_group_sids メタデータ保持: ❓ 未検証
+Phase A (接続検証): V1 FAIL
+  - V1 S3 AP → Managed KB S3 コネクタ: ❌ FAIL (2026-07-19 検証済み)
+    → Managed KB (type=MANAGED) は S3 データソースタイプを受け付けない
+    → エラー: "Unsupported data source type for MANAGED knowledge base type"
+    → Managed KB は独自の Managed Data Source コネクタのみ対応
+  - V2 allowed_group_sids メタデータ保持: ❓ V1 FAIL のため検証不能
 
-Phase B (認可検証): 未着手
-  - V3 listContains SID 照合: ❓ 未検証（ドキュメント上はサポート）
-  - V4 マルチホップ ACL 維持: ❓ 未検証
-  - V5 権限変更反映遅延: ❓ 未検証
-
-Phase C (監査検証): 未着手
+Phase B (認可検証): ブロック (V1 FAIL)
+Phase C (監査検証): ブロック (V1 FAIL)
 ```
 
-**既定方針（変更なし）**: 全検証項目がクリアされるまで、現行構成（Bedrock KB + S3 Vectors / OpenSearch Serverless + アプリ側 SID フィルタリング）を本番パスとして維持。Managed KB は並列オプションとして位置づけ、検証の優先度は Gateway/Agent 安定化の後とする。
+**判定 (2026-07-19)**: **V1 FAIL — 現行構成を維持**
+
+Managed KB は FSx for ONTAP S3 Access Point をデータソースとして直接使用できない。
+これは本プロジェクトの基本アーキテクチャ（FSx for ONTAP → S3 AP → KB）と互換性がない。
+
+**今後の選択肢**:
+1. **現行構成維持（推奨）**: Bedrock KB (type=VECTOR) + S3 Vectors / OpenSearch Serverless + アプリ側 SID フィルタリング
+2. **Managed KB のデータコネクタ調査**: Managed KB が将来的に S3 AP をサポートする可能性を追跡
+3. **ハイブリッド構成**: 一部クエリ（マルチホップ、複雑推論）に Managed KB を使い、FSx データは DataSync で同期
+
+> **Note**: Managed KB 自体は正常に動作する（`type: MANAGED` で KB 作成 → ACTIVE 状態確認済み）。
+> 制約は「データソースタイプの互換性」にのみ存在する。
 
 ---
 
