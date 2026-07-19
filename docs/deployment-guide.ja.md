@@ -586,6 +586,88 @@ FSx for ONTAP S3 AP は、ONTAP ボリュームのデータを S3 API 経由で�
 
 ---
 
+## 付録 A: 新規環境デプロイ（FSx for ONTAP 新規作成）
+
+既存 FSx for ONTAP がない環境でゼロからデプロイする場合の最小構成:
+
+```jsonc
+{
+  "projectName": "rag-demo",
+  "environment": "demo",
+  "imageTag": "latest",
+  "allowedIps": [],
+  "allowedCountries": ["JP"],
+  // AD 連携が必要な場合（オプション）:
+  // "adPassword": "YourStrongP@ssw0rd123",
+  // "adDomainName": "demo.local"
+}
+```
+
+`existingFileSystemId` / `existingSvmId` / `existingVolumeId` を省略すると、CDK が FSx for ONTAP ファイルシステム、SVM、ボリュームを新規作成します。所要時間は約 45〜60 分です。
+
+デプロイコマンドは同一です:
+
+```bash
+bash demo-data/scripts/pre-deploy-setup.sh
+npx cdk deploy --all --require-approval never
+bash demo-data/scripts/post-deploy-setup.sh
+```
+
+> **注意**: 新規 FSx for ONTAP 作成ではデフォルトで NTFS セキュリティスタイルのボリュームが作成されます。`volumeSecurityStyle: "UNIX"` で POSIX 権限ベースに変更可能です。
+
+---
+
+## 付録 B: フィーチャーフラグ一覧
+
+全フィーチャーフラグのリファレンスは以下を参照してください:
+
+- **`cdk.context.json.example`** — 全パラメータのコメント付きテンプレート（リポジトリルート）
+- **[AGENTS.md](../AGENTS.md)** — Feature Flags セクションにフラグ・デフォルト値・説明の対応表
+
+主要フラグ（抜粋）:
+
+| フラグ | デフォルト | 説明 |
+|--------|-----------|------|
+| `enableAgent` | `false` | Bedrock Agent（KB 検索 + 多段階推論） |
+| `enableGuardrails` | `false` | Bedrock Guardrails（コンテンツフィルタ + PII） |
+| `enableMonitoring` | `false` | CloudWatch ダッシュボード + SNS アラート |
+| `enableTransferFamily` | `false` | SFTP インジェスションパイプライン |
+| `enableKbAutoSync` | `false` | ファイル変更検出 + KB 自動同期 |
+| `enableVoiceChat` | `false` | 音声チャット（Nova Sonic） |
+| `enableAgentCoreGateway` | `false` | AgentCore Gateway + Permission Interceptor |
+| `vectorStoreType` | `s3-vectors` | ベクトルストア選択（`s3-vectors` / `opensearch-serverless`） |
+| `kbSearchType` | `SEMANTIC` | 検索タイプ（`SEMANTIC` / `HYBRID`） |
+
+---
+
+## 付録 C: WAF & Geo 制限
+
+CloudFront 用 WAF（us-east-1）は 6 ルールで構成:
+
+| 優先度 | ルール | 説明 |
+|--------|--------|------|
+| 100 | RateLimit | 5 分間 3000 リクエスト超でブロック |
+| 200 | AWSIPReputationList | 悪意ある IP をブロック |
+| 300 | AWSCommonRuleSet | OWASP Top 10 準拠（一部除外） |
+| 400 | AWSKnownBadInputs | Log4j 等の既知脆弱性 |
+| 500 | AWSSQLiRuleSet | SQL インジェクション |
+| 600 | IPAllowList | `allowedIps` 設定時のみ有効 |
+
+**Geo 制限**: `allowedCountries` で許可国を指定（デフォルト: `["JP"]`）。空配列で全世界許可。
+
+カスタマイズは `lib/stacks/demo/demo-waf-stack.ts` を直接編集します。
+
+---
+
+## 付録 D: 認証モード設定
+
+認証モードの詳細な構成例（AD Federation / OIDC / LDAP / マルチ IdP）は以下を参照:
+
+- [認証・ユーザー管理ガイド](auth-and-user-management.md) — 全モードの技術詳細
+- [認証モード別デモ環境構築ガイド](../demo-data/guides/auth-mode-setup-guide.md) — ワンショットセットアップスクリプト付き
+
+---
+
 ## 関連ドキュメント
 
 - [コスト見積もりワークシート](cost-estimation-worksheet.md)
