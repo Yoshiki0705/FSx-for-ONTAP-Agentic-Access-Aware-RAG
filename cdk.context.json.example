@@ -1,3 +1,6 @@
+// NOTE: This file uses JSONC (JSON with Comments). CDK natively supports this format.
+// Copy to cdk.context.json before use. Do not parse with strict-JSON tools (e.g., jq)
+// without stripping comments first.
 {
   "projectName": "perm-rag-demo",
   "environment": "demo",
@@ -43,6 +46,7 @@
 
   // エンタープライズAgent機能（オプション）
   // "enableAgent": Bedrock Agent + Permission-aware Action Group
+  // 推定月額コスト: 待機 $0（Agent 自体は無料）、利用時のみトークン消費（$10〜$100、クエリ量依存）
   // "enableAgentSharing": Agent構成共有S3バケット（JSON export/import、組織内共有）
   // "enableAgentSchedules": Agent定期実行基盤（EventBridge Scheduler + Lambda + DynamoDB実行履歴）
   "enableAgent": true,
@@ -121,6 +125,7 @@
 
   // 監視・アラート機能（オプション）
   // CloudWatchダッシュボード、SNSアラート、EventBridge連携
+  // 推定月額コスト: $5〜$20（ダッシュボード + アラーム + ログストレージ）
   // "enableMonitoring": true,
   // "monitoringEmail": "ops@example.com",
   // "enableAgentCoreObservability": false,
@@ -289,6 +294,7 @@
   // ドキュメントアップロードから Bedrock KB 自動インジェスションを実行する。
   // ========================================================================
   // "enableTransferFamily": Transfer Family 統合有効化フラグ（デフォルト: false）
+  // 推定月額コスト: $220〜$300（SFTP サーバー $219/月 + データ転送 + Lambda 実行）
   // "transferFamilyEndpointType": エンドポイントタイプ（"PUBLIC" | "VPC"、デフォルト: "PUBLIC"）
   // "transferFamilyProtocols": 有効プロトコル（["SFTP"] | ["SFTP", "FTPS"]、デフォルト: ["SFTP"]）
   // "transferFamilyAllowedCidrs": IP許可リスト（VPCエンドポイント時はSG、PUBLIC時は制限なし）

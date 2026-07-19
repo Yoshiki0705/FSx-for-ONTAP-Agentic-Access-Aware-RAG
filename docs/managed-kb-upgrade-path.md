@@ -310,7 +310,7 @@ Managed KB は FSx for ONTAP S3 Access Point をデータソースとして直�
 **今後の選択肢**:
 1. **現行構成維持（推奨）**: Bedrock KB (type=VECTOR) + S3 Vectors / OpenSearch Serverless + アプリ側 SID フィルタリング
 2. **Managed KB のデータコネクタ調査**: Managed KB が将来的に S3 AP をサポートする可能性を追跡
-3. **ハイブリッド構成**: 一部クエリ（マルチホップ、複雑推論）に Managed KB を使い、FSx データは DataSync で同期
+3. **ハイブリッド構成**: 一部クエリ（マルチホップ、複雑推論）に Managed KB を使い、FSx データは DataSync で同期。ただし DataSync は分単位の同期遅延（スケジュール実行: 最短 1 時間間隔、タスク実行時間: データ量依存で数分〜数十分）があるため、リアルタイム性が必要なユースケースには不向き。ACL 変更のタイムリーな反映も課題となる
 
 > **Note**: Managed KB 自体は正常に動作する（`type: MANAGED` で KB 作成 → ACTIVE 状態確認済み）。
 > 制約は「データソースタイプの互換性」にのみ存在する。

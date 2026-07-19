@@ -13,7 +13,8 @@
 | I want to... | Guide | Time |
 |--------------|-------|------|
 | Try it out quickly | [PoC Workshop Guide](docs/en/poc-workshop-guide.md) | 90 min |
-| Deploy to my account | [Deployment Guide](docs/deployment-guide.md) | 30-40 min |
+| Deploy to my account (greenfield) | [Deployment Guide](docs/deployment-guide.md) | 30-40 min |
+| Integrate with existing FSx for ONTAP | [Deployment Guide](docs/deployment-guide.md) (§3.3) | 15-20 min |
 | Validate with real data | [Safe Experimentation Guide](docs/en/safe-experimentation-guide.md) | 2-4 weeks |
 | Evaluate accuracy & cost | [RAG/Agent Evaluation Framework](docs/en/evaluation.md) | 1 week |
 | Assess production readiness | [Production Readiness Checklist](docs/en/production-readiness-checklist.md) | — |
@@ -67,9 +68,13 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 Key features:
 - **Permission-aware RAG** — NTFS ACL / UNIX permissions enforced at query time (Fail-Closed)
 - **Agentic AI** — Toggle between document search (KB mode) and autonomous multi-step reasoning (Agent mode)
-- **Smart Routing** — Auto-selects Haiku / Sonnet / Opus based on query complexity (40-60% cost reduction)
+- **Smart Routing** — Auto-selects Haiku / Sonnet / Opus based on query complexity (40-60% cost reduction, [benchmark](docs/en/benchmark-scenarios.md))
 - **Low cost** — S3 Vectors (a few dollars/month) as default
 - **22 integrated capabilities** — Voice chat, Guardrails, Graph RAG, Web Search, and more ([details](docs/en/implementation-overview.md))
+
+> **Default ON**: Permission-aware RAG, Smart Routing, S3 Vectors, WAF, CloudFront
+> **Optional (default OFF)**: Agent, Multi-Agent, Voice Chat, Guardrails, Transfer Family, KB Auto-Sync, Monitoring, Graph RAG, Web Search, AgentCore Gateway
+> See `cdk.context.json.example` for the full feature flag reference.
 
 <details><summary>⚠️ Prerequisites & constraints</summary>
 
@@ -127,6 +132,8 @@ For changelog, see [CHANGELOG.md](CHANGELOG.md).
 </details>
 
 <details><summary>🖼️ Screenshots</summary>
+
+> Note: Screenshots show the Japanese UI. The English UI has an identical layout with localized labels.
 
 | Screen | Description |
 |--------|-------------|

@@ -13,7 +13,8 @@
 | やりたいこと | ガイド | 所要時間 |
 |-------------|--------|---------|
 | まず動かして体験する | [PoC ワークショップガイド](docs/poc-workshop-guide.md) | 90 分 |
-| 自分のアカウントにデプロイする | [デプロイ手順](docs/deployment-guide.ja.md) | 30-40 分 |
+| 自分のアカウントにデプロイする（新規） | [デプロイ手順](docs/deployment-guide.ja.md) | 30-40 分 |
+| 既存 FSx for ONTAP に統合する | [デプロイ手順](docs/deployment-guide.ja.md)（§3.3 参照） | 15-20 分 |
 | 実データで検証する | [安全な実験ガイド](docs/safe-experimentation-guide.md) | 2-4 週間 |
 | 精度・コストを評価する | [RAG/Agent 評価フレームワーク](docs/evaluation.md) | 1 週間 |
 | 本番化を判断する | [本番化チェックリスト](docs/production-readiness-checklist.md) | — |
@@ -67,9 +68,13 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 主な特徴:
 - **Permission-aware RAG** — NTFS ACL / UNIX 権限を検索時に自動反映（Fail-Closed）
 - **Agentic AI** — KB モード（文書検索）と Agent モード（多段階推論）をワンクリック切替
-- **Smart Routing** — クエリ複雑度で Haiku / Sonnet / Opus を自動選択（コスト 40-60% 削減）
+- **Smart Routing** — クエリ複雑度で Haiku / Sonnet / Opus を自動選択（コスト 40-60% 削減、[ベンチマーク](docs/benchmark-scenarios.md)）
 - **低コスト** — S3 Vectors（月数ドル）をデフォルト採用
 - **22 の統合機能** — 音声チャット、Guardrails、Graph RAG、Web Search 等（[詳細](docs/implementation-overview.md)）
+
+> **デフォルト ON**: Permission-aware RAG, Smart Routing, S3 Vectors, WAF, CloudFront
+> **オプション（デフォルト OFF）**: Agent, Multi-Agent, Voice Chat, Guardrails, Transfer Family, KB Auto-Sync, Monitoring, Graph RAG, Web Search, AgentCore Gateway
+> フィーチャーフラグの一覧は `cdk.context.json.example` を参照。
 
 <details><summary>⚠️ 前提条件・制約</summary>
 

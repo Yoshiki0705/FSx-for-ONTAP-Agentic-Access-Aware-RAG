@@ -22,6 +22,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as bedrockagentcore from 'aws-cdk-lib/aws-bedrockagentcore';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
 /** Policy Engine enforcement mode */
@@ -90,12 +91,14 @@ export class AgentCoreGatewayConstruct extends Construct {
       runtime: lambda.Runtime.PYTHON_3_12,
       handler: 'handler.lambda_handler',
       code: lambda.Code.fromAsset('lambda/gateway-interceptor'),
-      timeout: cdk.Duration.seconds(3),
+      timeout: cdk.Duration.seconds(5),
       memorySize: 256,
       environment: {
         USER_ACCESS_TABLE_NAME: userAccessTable.tableName,
         LOG_LEVEL: 'INFO',
       },
+      // 1 month for PoC/dev. For production, use ONE_YEAR or longer to meet
+      // audit and compliance requirements (e.g., logs.RetentionDays.ONE_YEAR).
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
 
@@ -116,13 +119,33 @@ export class AgentCoreGatewayConstruct extends Construct {
               resources: [this.interceptorFunction.functionArn],
             }),
             new iam.PolicyStatement({
-              actions: ['bedrock-agentcore:*'],
+              // TODO: Narrow to specific actions once AgentCore GA documents
+              // the minimum required set for Gateway operation. Known needed:
+              // InvokeGatewayTarget, GetGateway, ListGatewayTargets.
+              // Using broad permissions during Preview to avoid runtime failures.
+              actions: [
+                'bedrock-agentcore:InvokeGatewayTarget',
+                'bedrock-agentcore:GetGateway',
+                'bedrock-agentcore:ListGatewayTargets',
+                'bedrock-agentcore:GetGatewayTarget',
+                'bedrock-agentcore:InvokeWebSearchTool',
+              ],
               resources: ['*'],
             }),
           ],
         }),
       },
     });
+
+    // cdk-nag suppression: Gateway role needs wildcard resource because target ARNs
+    // are only known after targets are registered post-deploy.
+    NagSuppressions.addResourceSuppressions(gatewayRole, [
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'AgentCore Gateway role requires wildcard resource — target ARNs are dynamic and registered post-deploy. Actions are scoped to known Gateway operations.',
+        appliesTo: ['Resource::*'],
+      },
+    ], true);
 
     // ─── Policy Engine + Guardrails 統合 ─────────────────────────
     // AWS Summit NY 2026: AgentCore Policy に Bedrock Guardrails を統合。
@@ -239,6 +262,20 @@ export class AgentCoreGatewayConstruct extends Construct {
       new cdk.CfnOutput(this, 'PolicyEngineNote', {
         value: 'Policy Engine created in LOG_ONLY mode. Add Cedar policies post-deploy: agentcore add policy --gateway-id <id> --generate "<description>"',
         description: 'Cedar policies must be added after target registration (overly-permissive permit-all rejected by API)',
+      });
+
+      new cdk.CfnOutput(this, 'EnforceMigrationChecklist', {
+        value: [
+          'ENFORCE migration checklist:',
+          '1. Deploy with LOG_ONLY (current)',
+          '2. Register targets and exercise all tool calls in test',
+          '3. Review CloudWatch Logs for policy evaluation traces (1-2 weeks)',
+          '4. Author per-tool Cedar policies: agentcore add policy --gateway-id <id> --generate "<tool description>"',
+          '5. Validate: no unexpected DENY in traces',
+          '6. Switch to ENFORCE: update policyEngineMode in cdk.context.json',
+          '7. Monitor for 48h with rollback plan (revert to LOG_ONLY)',
+        ].join(' | '),
+        description: 'Step-by-step checklist before switching Policy Engine to ENFORCE mode',
       });
     }
 

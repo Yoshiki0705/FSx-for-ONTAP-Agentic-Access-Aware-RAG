@@ -1311,6 +1311,31 @@ Access denied while trying to create/update an agent using InferenceProfile
 jp.anthropic.claude-haiku-4-5-20251001-v1:0
 ```
 
+### クイック診断フロー
+
+```
+1. エラーメッセージを確認
+   ├─ "marked by provider as Legacy" → パターン A → Step 2a
+   ├─ "on-demand throughput isn't supported" → パターン B → Step 2b
+   ├─ "Access denied for operation 'AWS::Bedrock::Agent'" → パターン C → Step 2c
+   └─ "using InferenceProfile" → パターン D → Step 2d
+
+2a. パターン A 修正:
+    → Agent の foundationModel を inference profile に更新（下記 Step 2 参照）
+
+2b. パターン B 修正:
+    → aws bedrock list-inference-profiles --region ap-northeast-1 で利用可能 ID を確認
+    → jp.anthropic.* プレフィクスの ID を使用
+
+2c. パターン C 修正:
+    → CFn では on-demand model（amazon.nova-lite-v1:0）で作成
+    → デプロイ後に API で inference profile に更新（下記 2 段階パターン）
+
+2d. パターン D 修正:
+    → Agent IAM ロールに 'arn:aws:bedrock:*:*:inference-profile/*' を追加
+    → IAM 伝播待ち（~15 秒）後にリトライ
+```
+
 ### 原因と解決方法（2026-07-19 検証済み）
 
 | パターン | 原因 | 解決方法 |
@@ -1473,6 +1498,7 @@ grep "FoundationModel" cdk.out/<stack-name>.template.json | sort -u
 - `cdk synth` の前に必ず `npx tsc` を実行する
 - CI/CD パイプラインでは `npx tsc && npx cdk synth` をセットで実行する
 - `.js` ファイルのタイムスタンプと `.ts` ファイルのタイムスタンプを比較する
+- `tsconfig.json` の `outDir` 設定を確認: 未設定の場合 `.js` は `.ts` と同じディレクトリに生成される。`"outDir": "./dist"` を設定している場合は `dist/` 配下を確認する。本プロジェクトでは `outDir` 未設定（CDK `ts-node` 実行のため）だが、`npx tsc` 実行時にルート直下に `.js` が残る可能性がある
 
 
 ---
@@ -1505,7 +1531,7 @@ aws fsx describe-storage-virtual-machines \
 | 状況 | 対応 |
 |------|------|
 | AD DC が存在し到達可能 | WINDOWS ユーザー（ドメインプレフィクスなし: `Admin`）で S3 AP 作成 |
-| AD DC が到達不能（削除/再構築済み） | AD 非参加の別 SVM を使用するか、SVM から CIFS を force-delete して AD 離脱 |
+| AD DC が到達不能（削除/再構築済み） | AD 非参加の別 SVM を使用するか、SVM から CIFS を force-delete して AD 離脱（手順: [operations-runbook.md](operations-runbook.md) の「CIFS Force-Delete and AD Re-Join」セクション参照） |
 | 新規環境でテストしたい | `adPassword` を設定せず CDK デプロイ → AD なし SVM が作成される → UNIX ユーザーで S3 AP 作成 |
 
 ### デプロイガイドとの関連
