@@ -62,6 +62,15 @@
   // S3 AP user type: "WINDOWS" (requires AD) or "UNIX"
   // "s3apUserType": "WINDOWS",
   // "s3apUserName": "Admin",
+  //
+  // ⚠️ IMPORTANT (2026-07 verified):
+  //   If the SVM is AD-joined but the AD DC is unreachable (deleted, IP changed),
+  //   S3 AP creation will FAIL regardless of user type (WINDOWS or UNIX).
+  //   Check SVM AD status before deploying:
+  //     aws fsx describe-storage-virtual-machines --storage-virtual-machine-ids <SVM_ID> \
+  //       --query 'StorageVirtualMachines[0].ActiveDirectoryConfiguration'
+  //   If AD is configured but DC unreachable: use a different SVM or fix AD connectivity.
+  //   See: docs/deployment-troubleshooting.md §26
 
   // === Vector Store ===
   // "s3vectors" (default): Low cost, sub-second latency, dev/demo

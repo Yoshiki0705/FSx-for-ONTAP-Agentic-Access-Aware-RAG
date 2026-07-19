@@ -75,10 +75,29 @@
   // "enableAdvancedPermissions": 時間ベースアクセス制御 + 権限判定監査ログ
   "enableAdvancedPermissions": false,
 
+  // AgentCore Gateway（オプション）— Permission Interceptor + Policy Engine
+  // エージェントとツール間の通信を集約するマネージドエントリポイント。
+  // Lambda Interceptor でリクエストレベルの Permission check を適用する。
+  // ⚠️ 2026-07 検証済み: authorizerType は "AWS_IAM"、interceptionPoints は "REQUEST"/"RESPONSE"
+  // "enableAgentCoreGateway": true,
+  // "policyEngineMode": ポリシーエンジン動作モード
+  //   "LOG_ONLY" (デフォルト): 評価のみ（トレース記録、ブロックしない）
+  //   "ENFORCE": ポリシー評価に基づき許可/拒否
+  //   ⚠️ ENFORCE 前に必ず LOG_ONLY でトレースを確認し、least-privilege Cedar ポリシーを作成すること
+  // "policyEngineMode": "LOG_ONLY",
+  // "enableWebSearch": AgentCore Web Search Tool を有効化（us-east-1 のみ、enableAgentCoreGateway=true が前提）
+  // "enableWebSearch": false,
+  // "enableAgentOptimization": Configuration Bundles + Recommendations + A/B Testing (Preview)
+  //   enableAgentCoreGateway=true が前提条件
+  // "enableAgentOptimization": false,
+
   // ボリューム・S3 Access Point設定
   // "volumeSecurityStyle": "NTFS" or "UNIX"（デフォルト: NTFS）
   // "s3apUserType": "WINDOWS" or "UNIX"（デフォルト: AD設定あり→WINDOWS、なし→UNIX）
   // "s3apUserName": S3 APユーザー名（デフォルト: WINDOWS→Admin、UNIX→root）
+  // ⚠️ AD-joined SVM で AD DC が到達不能な場合、S3 AP 作成が FAILED になる。
+  //    AD 非参加の SVM を使用するか、AD DC との接続を確認すること。
+  //    詳細: docs/deployment-troubleshooting.md §26
 
   // AD SAMLフェデレーション（オプション）
   // ADユーザーがCloudFront UIから直接サインインし、Cognitoユーザーが自動作成される

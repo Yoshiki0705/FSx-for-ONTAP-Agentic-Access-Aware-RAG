@@ -354,7 +354,10 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Docker cache — source changes not reflected | Docker layer cache reuses old source | Always use `--no-cache` for source changes |
 | SID filter returns empty (permission deny all) | KB returns comma-separated SIDs | Fixed in `578435b`; parseDocumentSIDs handles all formats |
 | ONTAP version cannot be retrieved via AWS API | `describe-file-systems` lacks version | Use SSM + ONTAP REST API (see operations-runbook.md) |
-| Agent `foundationModel` on-demand error | Inference profiles not accepted by Agent API | Use `anthropic.claude-3-haiku-20240307-v1:0` (on-demand available) |
+| Agent `foundationModel` on-demand error | Inference profiles not accepted by Agent API | **CORRECTED (2026-07-19)**: Agent API now accepts inference profile IDs (e.g., `jp.anthropic.claude-haiku-4-5-20251001-v1:0`) but IAM role MUST include `arn:aws:bedrock:*:*:inference-profile/*`. Old `claude-3-haiku-20240307` is LEGACY/blocked |
+| Agent `accessDeniedException` after model update | Agent IAM role missing inference-profile resource | Add `'arn:aws:bedrock:*:*:inference-profile/*'` to InvokeModel resources in agent role. IAM propagation takes ~15s |
+| S3 AP Lifecycle: FAILED on existing SVM | AD-joined SVM with unreachable AD DC | Use AD-free SVM, or verify AD DC connectivity (ports 53/88/389/445/636). Both UNIX and WINDOWS user types fail if DC is unreachable |
+| cdk-nag `Found errors` blocks deploy | IAM wildcard without NagSuppression | Add NagSuppressions with `appliesTo` and documented reason. See demo-ai-stack.ts §cdk-nag suppressions |
 | Agent Alias points to old model version | Manual alias deletion causes CFn state drift | Use `update_agent_alias(routingConfiguration=[])` to auto-create new version |
 | Multi-Agent Collaborator uses old model | Collaborator Alias routing pinned to v1 | Clear routing with `routingConfiguration=[]` (auto-creates latest version) |
 | CDK deploy fails with deleted Alias | CFn reads attributes of physically deleted aliases | Never manually delete CFn-managed aliases; use CDK for lifecycle |
