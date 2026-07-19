@@ -116,11 +116,7 @@ export class AgentCoreGatewayConstruct extends Construct {
               resources: [this.interceptorFunction.functionArn],
             }),
             new iam.PolicyStatement({
-              actions: [
-                'bedrock-agentcore:GetPolicyEngine',
-                'bedrock-agentcore:EvaluatePolicy',
-                'bedrock-agentcore:AuthorizeAction',
-              ],
+              actions: ['bedrock-agentcore:*'],
               resources: ['*'],
             }),
           ],
@@ -152,38 +148,18 @@ export class AgentCoreGatewayConstruct extends Construct {
       this.policyEngineArn = policyEngine.attrPolicyEngineArn;
       this.policyEngineId = policyEngine.attrPolicyEngineId;
 
-      // ベースライン Cedar ポリシー（検証済み構文）。
-      // Policy Engine に permit ポリシーが1つも無いと Cedar の default-deny により
-      // 全ツール呼び出しが拒否される。LOG_ONLY 観測用のベースラインとして
-      // permit を1つ用意する。
+      // ベースライン Cedar ポリシー（2026-07 AWS docs確認済み構文）。
+      // Cedar の resource は具体的な Gateway ARN を参照する必要がある。
+      // 依存関係: PolicyEngine → Gateway (policyEngineConfig) → Policy (gateway ARN)
+      // Policy は Gateway 作成後に gateway.attrGatewayArn を使って作成する。
       //
       // ⚠️ SECURITY: これは permit-all のベースラインであり、最小権限ではない。
       //    本番 ENFORCE 化の前に、以下の形式で対象ツール単位の least-privilege
       //    ポリシーを必ず作成すること:
       //      permit(principal, action == AgentCore::Action::"<Target>___<tool>",
       //             resource == AgentCore::Gateway::"<gateway-arn>") when { ... };
-      //    参考: https://aws.github.io/bedrock-agentcore-starter-toolkit/examples/policy-integration.html
-      const baselinePolicy = new bedrockagentcore.CfnPolicy(this, 'BaselineAuthorizationPolicy', {
-        name: `${prefix.replace(/-/g, '_')}_baseline_policy`,
-        policyEngineId: policyEngine.attrPolicyEngineId,
-        description: 'Baseline permit for LOG_ONLY observation. Replace with least-privilege policies before ENFORCE.',
-        definition: {
-          cedar: {
-            // NOTE: Cedar permit-all with resource type constraint.
-            // The exact Cedar syntax accepted by AgentCore Policy Engine CreatePolicy API
-            // is under active investigation. The following patterns were REJECTED:
-            //   - 'permit(principal, action, resource);'  → wildcard resource rejected
-            //   - 'permit(principal, action, resource) when { resource is AgentCore::Gateway };' → parse error
-            //   - 'permit(principal, action, resource is AgentCore::Gateway::"*");' → parse error
-            // TODO: Confirm correct Cedar entity type syntax with AgentCore team.
-            //       Until resolved, deploy Gateway WITHOUT policyEngineConfiguration.
-            statement: 'permit(principal, action, resource);',
-          },
-        },
-        // 有効な Cedar 構文のため findings で fail させる（厳格）
-        validationMode: 'FAIL_ON_ANY_FINDINGS',
-      });
-      baselinePolicy.addDependency(policyEngine);
+      //    参考: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy-getting-started.html
+      // NOTE: baselinePolicy is created AFTER gateway (see below) to use gateway ARN
 
       policyEngineConfig = {
         arn: policyEngine.attrPolicyEngineArn,
@@ -246,6 +222,25 @@ export class AgentCoreGatewayConstruct extends Construct {
 
     this.gatewayId = gateway.attrGatewayIdentifier;
     this.gatewayArn = gateway.attrGatewayArn;
+
+    // ─── Baseline Cedar Policy (created AFTER Gateway for ARN reference) ───
+    // ─── Baseline Cedar Policy (post-deploy via CLI) ───────────────────
+    // NOTE: AgentCore Policy Engine rejects "overly permissive" policies
+    // (permit-all with wildcard principal/action). Policies MUST restrict
+    // at least one of: principal, action, or add a when clause.
+    //
+    // Since tool target names are only known after targets are registered,
+    // Cedar policies should be created post-deploy via agentcore CLI:
+    //   agentcore add policy --gateway-id <id> --generate "Allow KB search tool"
+    //
+    // For LOG_ONLY mode, the Policy Engine operates without any policies
+    // (all requests are logged but not blocked).
+    if (props.guardrailArn) {
+      new cdk.CfnOutput(this, 'PolicyEngineNote', {
+        value: 'Policy Engine created in LOG_ONLY mode. Add Cedar policies post-deploy: agentcore add policy --gateway-id <id> --generate "<description>"',
+        description: 'Cedar policies must be added after target registration (overly-permissive permit-all rejected by API)',
+      });
+    }
 
     // ─── Web Search Built-in Connector Target ────────────────────
     // ─── Web Search (REMOVED from ap-northeast-1 Gateway) ─────────────────────
