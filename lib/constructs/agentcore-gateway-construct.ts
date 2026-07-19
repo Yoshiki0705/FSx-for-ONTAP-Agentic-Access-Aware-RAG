@@ -161,7 +161,8 @@ export class AgentCoreGatewayConstruct extends Construct {
         description: 'Baseline permit for LOG_ONLY observation. Replace with least-privilege policies before ENFORCE.',
         definition: {
           cedar: {
-            statement: 'permit(principal, action, resource);',
+            // Constrain to AgentCore::Gateway resource type (wildcard resource rejected by API)
+            statement: 'permit(principal, action, resource) when { resource is AgentCore::Gateway };',
           },
         },
         // 有効な Cedar 構文のため findings で fail させる（厳格）
