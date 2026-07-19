@@ -586,6 +586,88 @@ After successful deployment:
 
 ---
 
+## Appendix A: Fresh Deploy (New FSx for ONTAP)
+
+Minimal configuration for deploying from scratch without an existing FSx for ONTAP:
+
+```jsonc
+{
+  "projectName": "rag-demo",
+  "environment": "demo",
+  "imageTag": "latest",
+  "allowedIps": [],
+  "allowedCountries": ["JP"],
+  // AD integration (optional):
+  // "adPassword": "YourStrongP@ssw0rd123",
+  // "adDomainName": "demo.local"
+}
+```
+
+When `existingFileSystemId` / `existingSvmId` / `existingVolumeId` are omitted, CDK creates a new FSx for ONTAP file system, SVM, and volume. Estimated time: 45-60 minutes.
+
+Deployment commands remain the same:
+
+```bash
+bash demo-data/scripts/pre-deploy-setup.sh
+npx cdk deploy --all --require-approval never
+bash demo-data/scripts/post-deploy-setup.sh
+```
+
+> **Note**: Fresh FSx for ONTAP creation defaults to NTFS security style. Set `volumeSecurityStyle: "UNIX"` for POSIX-based permissions.
+
+---
+
+## Appendix B: Feature Flags Reference
+
+For the complete feature flags reference, see:
+
+- **`cdk.context.json.example`** — Fully commented template (repo root)
+- **[AGENTS.md](../AGENTS.md)** — Feature Flags section with flags, defaults, and descriptions
+
+Key flags (excerpt):
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `enableAgent` | `false` | Bedrock Agent (KB search + multi-step reasoning) |
+| `enableGuardrails` | `false` | Bedrock Guardrails (content filter + PII) |
+| `enableMonitoring` | `false` | CloudWatch dashboard + SNS alerts |
+| `enableTransferFamily` | `false` | SFTP ingestion pipeline |
+| `enableKbAutoSync` | `false` | File change detection + KB auto-sync |
+| `enableVoiceChat` | `false` | Voice chat (Nova Sonic) |
+| `enableAgentCoreGateway` | `false` | AgentCore Gateway + Permission Interceptor |
+| `vectorStoreType` | `s3-vectors` | Vector store selection (`s3-vectors` / `opensearch-serverless`) |
+| `kbSearchType` | `SEMANTIC` | Search type (`SEMANTIC` / `HYBRID`) |
+
+---
+
+## Appendix C: WAF & Geo Restrictions
+
+CloudFront WAF (us-east-1) consists of 6 rules:
+
+| Priority | Rule | Description |
+|----------|------|-------------|
+| 100 | RateLimit | Block after 3000 requests in 5 minutes |
+| 200 | AWSIPReputationList | Block malicious IPs |
+| 300 | AWSCommonRuleSet | OWASP Top 10 compliant (with exclusions) |
+| 400 | AWSKnownBadInputs | Known vulnerabilities (Log4j etc.) |
+| 500 | AWSSQLiRuleSet | SQL injection |
+| 600 | IPAllowList | Active only when `allowedIps` is set |
+
+**Geo restriction**: `allowedCountries` specifies allowed countries (default: `["JP"]`). Empty array allows worldwide access.
+
+Customize by editing `lib/stacks/demo/demo-waf-stack.ts` directly.
+
+---
+
+## Appendix D: Auth Mode Configuration
+
+For detailed auth mode configuration examples (AD Federation / OIDC / LDAP / Multi-IdP), see:
+
+- [Auth & User Management Guide](en/auth-and-user-management.md) — Full technical details for all modes
+- [Auth Mode Setup Guide](../demo-data/guides/auth-mode-setup-guide.md) — One-shot setup scripts included
+
+---
+
 ## Related Documents
 
 - [Cost Estimation Worksheet](cost-estimation-worksheet.md)
