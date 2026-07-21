@@ -367,6 +367,12 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | S3 AP AccessDenied on AD-joined SVM | AD DC unreachable; ONTAP `unix→win` reverse name-mapping fails | HeadBucket succeeds (false positive) but data ops fail. Check SVM→AD DC connectivity (ports 53/88/389/445/636). See `docs/s3ap-ad-prerequisites.md` |
 | S3 AP VPC-origin AP returns AccessDenied | VPC-origin AP + VPC Lambda + S3 Gateway EP — environment-dependent | Use Internet-origin AP (`NetworkOrigin: Internet`) + VPC-external Lambda (no `VpcConfig`). Same-account: no AP resource policy needed |
 | FlexClone not found by FSx API | FSx API sync delay: 12–36 min after ONTAP REST API creation | Static Wait (10 min) + polling loop (120s × 25 = 50 min); total 60 min budget in Step Functions |
+| AgentCore Gateway us-east-1 only assumption | Workshop examples use us-east-1 for simplicity | **ap-northeast-1 で利用可能（検証済み 2026-07）**。Gateway + Lambda + S3 AP を同一リージョンに配置すること |
+| AgentCore Lambda event format: `event.toolName` で取得 | ❌ 正しくは `context.client_context.custom['bedrockAgentCoreToolName']` | event はフラットなパラメータ辞書。ツール名は `targetName___toolName` 形式 |
+| AgentCore Gateway + Quick Desktop: Remote MCP 追加が永続化されない | Quick Desktop v0.1000.1495 の間欠的バグ | **Import 方式**（JSON ファイルからの読み込み）を使う。Local/Remote 直接追加は不安定 |
+| AgentCore Gateway `create-gateway-target` で Lambda not found | Gateway と Lambda のリージョン不一致 | Gateway と Lambda は**同一リージョン**に配置必須。クロスリージョン Lambda 呼び出しは不可 |
+| Quick Desktop サインインで「account name is invalid」 | IAM ユーザー名 ≠ QuickSight ユーザー名 | `aws quicksight list-users` で確認。Email ベースのサインインが最もシンプル |
+| FSx for ONTAP S3 AP + AgentCore MCP E2E 検証構成 | Internet-origin AP + VPC-external Lambda + AgentCore Gateway (同一リージョン) | 検証済み構成 (2026-07): ap-northeast-1 で Gateway → Lambda → S3 AP (list/read/search) が動作確認済み |
 
 ## CI/Test Reliability
 
