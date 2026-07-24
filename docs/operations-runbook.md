@@ -197,7 +197,7 @@ aws bedrock-agent-runtime retrieve \
 ### 手動実行
 
 ```bash
-ECR_REGISTRY="178625946981.dkr.ecr.ap-northeast-1.amazonaws.com"
+ECR_REGISTRY="123456789012.dkr.ecr.ap-northeast-1.amazonaws.com"
 ECR_REPO="permission-aware-rag-webapp"
 LAMBDA_FUNCTION="v4-test-demo-webapp"
 
@@ -442,7 +442,7 @@ CF_URL="https://d2o9tj1d67benl.cloudfront.net"
 USER_POOL_ID="ap-northeast-1_WAcvT5Cdr"
 
 # ECR
-ECR_REGISTRY="178625946981.dkr.ecr.ap-northeast-1.amazonaws.com"
+ECR_REGISTRY="123456789012.dkr.ecr.ap-northeast-1.amazonaws.com"
 ECR_REPO="permission-aware-rag-webapp"
 ```
 

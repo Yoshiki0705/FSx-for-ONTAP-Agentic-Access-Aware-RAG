@@ -34,7 +34,7 @@ aws bedrock create-automated-reasoning-policy \
 
 # 成功時の出力例:
 # {
-#   "automatedReasoningPolicyArn": "arn:aws:bedrock:ap-northeast-1:178625946981:automated-reasoning-policy/xxx",
+#   "automatedReasoningPolicyArn": "arn:aws:bedrock:ap-northeast-1:123456789012:automated-reasoning-policy/xxx",
 #   ...
 # }
 
