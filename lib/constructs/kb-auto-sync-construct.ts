@@ -34,6 +34,13 @@ export interface KbAutoSyncConstructProps {
   s3AccessPointArn: string;
   /** ポーリング間隔（分）。デフォルト: 5 */
   intervalMinutes?: number;
+  /**
+   * FSx for ONTAP SVM ID（オプション）。
+   * 指定時、AD参加 SVM での S3 AP AccessDenied 発生時に
+   * FSx API 経由で AD DC 到達性を診断し、より精度の高いエラー情報を提供する。
+   * AD参加 SVM では全ての S3 AP データ操作に AD DC 到達性が必須。
+   */
+  svmId?: string;
 }
 
 export class KbAutoSyncConstruct extends Construct {
@@ -82,6 +89,7 @@ export class KbAutoSyncConstruct extends Construct {
         KNOWLEDGE_BASE_ID: props.knowledgeBaseId,
         DATA_SOURCE_ID: props.dataSourceId,
         INVENTORY_TABLE_NAME: inventoryTable.tableName,
+        ...(props.svmId ? { SVM_ID: props.svmId } : {}),
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
@@ -111,6 +119,16 @@ export class KbAutoSyncConstruct extends Construct {
     );
 
     inventoryTable.grantReadWriteData(fn);
+
+    // --- IAM Policy: FSx SVM AD診断（svmId指定時のみ） ---
+    if (props.svmId) {
+      fn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['fsx:DescribeStorageVirtualMachines'],
+          resources: ['*'],
+        })
+      );
+    }
 
     // --- EventBridge Scheduler (Task 4.3) ---
     const schedulerRole = new iam.Role(this, 'SchedulerRole', {

@@ -2417,6 +2417,7 @@ ${langInstruction}`,
           dataSourceId,
           s3AccessPointArn,
           intervalMinutes,
+          svmId: (this.node.tryGetContext('svmId') as string) || undefined,
         });
       }
     }
