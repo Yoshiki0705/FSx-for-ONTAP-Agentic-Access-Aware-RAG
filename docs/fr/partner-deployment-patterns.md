@@ -231,7 +231,7 @@ for (const tenant of tenants) {
 | Aspect | Avant (État actuel) | Après (Avec ce système) |
 |--------|---------------------|-------------------------|
 | Recherche de fichiers | Exploration manuelle des dossiers partagés, faible précision de recherche | L'IA présente les documents optimaux dans le périmètre des permissions |
-| Gestion des permissions | Risque de disparition des frontières de permissions lors de l'utilisation de l'IA | Les ACL NTFS existantes directement reflétées dans l'IA |
+| Gestion des permissions | Risque de disparition des frontières de permissions lors de l'utilisation de l'IA | Frontière préservée en confrontant les métadonnées de permission aux SID de l'appelant (les changements d'ACL exigent une procédure de report) |
 | Utilisation des connaissances | Silos de connaissances entre départements, dépendance aux personnes | Recherche de connaissances inter-organisationnelle respectant les permissions |
 | Charge opérationnelle | Copie de données et reconfiguration des permissions nécessaires pour l'IA | Connecter directement les données sur FSx à l'IA |
 

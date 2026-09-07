@@ -231,7 +231,7 @@ for (const tenant of tenants) {
 | Aspekt | Vorher (Aktueller Zustand) | Nachher (Mit diesem System) |
 |--------|---------------------------|----------------------------|
 | Dateisuche | Manuelles Durchsuchen gemeinsamer Ordner, geringe Suchgenauigkeit | KI präsentiert optimale Dokumente innerhalb des Berechtigungsbereichs |
-| Berechtigungsverwaltung | Risiko des Verschwindens von Berechtigungsgrenzen bei KI-Nutzung | Bestehende NTFS ACL direkt in KI reflektiert |
+| Berechtigungsverwaltung | Risiko des Verschwindens von Berechtigungsgrenzen bei KI-Nutzung | Grenze bleibt erhalten, indem Berechtigungsmetadaten gegen die SIDs des Aufrufers geprüft werden (ACL-Änderungen erfordern ein Übertragungsverfahren) |
 | Wissensnutzung | Wissenssilos zwischen Abteilungen, personenabhängig | Organisationsübergreifende Wissenssuche unter Beachtung von Berechtigungen |
 | Betriebsaufwand | Datenkopie und Berechtigungsneukonfiguration für KI erforderlich | Daten auf FSx direkt mit KI verbinden |
 
