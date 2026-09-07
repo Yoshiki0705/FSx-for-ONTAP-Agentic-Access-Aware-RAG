@@ -4,7 +4,7 @@
 
 **🌐 Language / 言語:** [日本語](README.md) | [English](README.en.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | **Español**
 
-> Implementación de referencia que proporciona RAG Permission-aware + IA Agéntica sobre datos empresariales en FSx for ONTAP, con aplicación automática de ACL NTFS / permisos UNIX en tiempo de consulta. Despliegue AWS CDK con un solo comando. Desde PoC hasta evaluación de producción.
+> Implementación de referencia que proporciona RAG Permission-aware + IA Agéntica sobre datos empresariales en FSx for ONTAP, que contrasta los metadatos de permisos de cada documento con el SID / UID-GID del solicitante en tiempo de consulta (Fail-Closed). Despliegue AWS CDK con un solo comando. Desde PoC hasta evaluación de producción.
 
 ---
 
@@ -54,7 +54,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 **Flujo**: Autenticación → obtener SID de DynamoDB → búsqueda vectorial Bedrock KB → filtrado por coincidencia SID → generar respuesta solo con documentos autorizados
 
 Características principales:
-- **RAG Permission-aware** — ACL NTFS / permisos UNIX aplicados automáticamente en consulta (Fail-Closed)
+- **RAG Permission-aware** — metadatos de permisos del documento contrastados con el SID / UID-GID del solicitante en consulta (Fail-Closed)
 - **IA Agéntica** — Alternar entre modo KB (búsqueda documental) y modo Agent (razonamiento multi-paso)
 - **Smart Routing** — Selección automática de Haiku / Sonnet / Opus según complejidad (reducción 40-60% en costos)
 - **Bajo costo** — S3 Vectors (pocos dólares/mes) por defecto
@@ -81,6 +81,7 @@ Características principales:
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless | 17 patrones serverless por industria |
 | [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Integración Athena / Glue / EMR / SageMaker |
 | [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observabilidad | Entrega de logs de auditoría a Datadog / Splunk / Grafana sin EC2 |
+| [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | Decisiones de adopción | Hub del dominio data-utilization: comportamiento de autorización del S3 AP, restricciones y opciones de diseño |
 
 </details>
 

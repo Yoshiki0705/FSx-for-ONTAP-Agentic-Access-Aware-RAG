@@ -181,7 +181,7 @@ Cada documento requiere un archivo `.metadata.json` correspondiente. Al incluir 
 
 #### Cómo obtener información SID para `.metadata.json`
 
-Este sistema tiene un mecanismo para recuperar automáticamente SIDs de las ACLs NTFS.
+Existe código para recuperar SIDs de las ACL NTFS. Para el estado de despliegue, véase más abajo la tabla «Opciones de automatización para producción».
 
 | Componente | Archivo de implementación | Función |
 |------------|--------------------------|---------|
@@ -213,13 +213,15 @@ El stack de demostración no utiliza la automatización anterior y configura los
 | Método | Descripción |
 |--------|-------------|
 | AD Sync Lambda | Recupera automáticamente SIDs de usuarios AD a través de SSM y los almacena en DynamoDB (implementado) |
-| FSx Permission Service | Recupera ACL NTFS a través de Get-Acl mediante SSM (implementado) |
-| ONTAP REST API | Recupera ACL directamente a través del endpoint de gestión de FSx for ONTAP (implementado: `ENV_AUTO_METADATA=true`) |
-| S3 Access Point | La ACL NTFS se aplica automáticamente al acceder a archivos a través de S3 AP (soportado por CDK: `useS3AccessPoint=true`) |
+| FSx Permission Service | Recupera ACL NTFS a través de Get-Acl mediante SSM (el código existe, pero ningún stack de CDK lo despliega) |
+| ONTAP REST API | Recupera ACL directamente a través del endpoint de gestión de FSx for ONTAP (implementado: `ENV_AUTO_METADATA=true`; solo en esta ruta del servidor de embeddings) |
+| S3 Access Point | No es un mecanismo para usar las ACL por archivo en la autorización (véase abajo). Los permisos se llevan en `.metadata.json` |
 
 #### Al usar S3 Access Point (Opción C)
 
-Cuando Bedrock KB ingiere documentos a través de S3 Access Point, la ACL NTFS se aplica automáticamente a través de la `FileSystemIdentity` (tipo WINDOWS) del S3 Access Point. Sin embargo, si los metadatos devueltos por la API Retrieve de Bedrock KB incluyen información ACL depende de la implementación del S3 Access Point. En este momento, la gestión de SID a través de `.metadata.json` es el método confiable.
+Las solicitudes a través de un S3 Access Point se autorizan con la única identidad de sistema de archivos (`FileSystemIdentity`) configurada en el access point. Las ACL NTFS por archivo no se evalúan contra el usuario final solicitante, y la ingesta de Bedrock KB también se ejecuta con esa única identidad. **Por tanto, las ACL originales por archivo no se trasladan a la autorización del usuario final en ninguna ruta que pase por un S3 Access Point.**
+
+Lo que este sistema contrasta en tiempo de consulta es la lista de SID de `.metadata.json`, que no es una proyección de la ACL. Su origen difiere según la ruta: la ruta de Transfer Family usa un mapeo en DynamoDB mantenido por el administrador, esta ruta del servidor de embeddings usa la API REST de ONTAP cuando `ENV_AUTO_METADATA=true`, y el entorno de demostración usa archivos colocados manualmente.
 
 #### Formato de `.metadata.json`
 

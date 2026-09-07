@@ -103,7 +103,7 @@ DynamoDB user-access 테이블
 
 Bedrock KB 검색 결과의 각 Citation에는 S3의 `.metadata.json` 파일에서 수집된 메타데이터가 포함됩니다.
 
-> **`.metadata.json` 생성 방법**: 이 시스템에는 AD Sync Lambda(`lambda/agent-core-ad-sync/`)와 FSx permission service(`lambda/permissions/fsx-permission-service.ts`)에 의해 구현된 자동 NTFS ACL 취득 기능이 포함되어 있습니다. 데모 환경에서는 검증 목적으로 샘플 데이터를 수동으로 배치합니다. 자세한 내용은 [docs/embedding-server-design.md](embedding-server-design.md)의 "메타데이터 구조" 섹션을 참조하세요.
+> **`.metadata.json` 생성 방법**: AD Sync Lambda(`lambda/agent-core-ad-sync/`)는 AD에서 사용자 SID를 취득해 DynamoDB에 저장하며, 파일 ACL은 읽지 않습니다. 파일의 NTFS ACL을 읽는 코드(`lambda/permissions/fsx-permission-service.ts`)는 존재하지만 어떤 CDK 스택에서도 배포되지 않습니다. 데모 환경에서는 검증 목적으로 샘플 데이터를 수동으로 배치합니다. 자세한 내용은 [docs/embedding-server-design.md](embedding-server-design.md)의 "메타데이터 구조" 섹션을 참조하세요.
 
 ```
 문서 메타데이터 (.metadata.json)

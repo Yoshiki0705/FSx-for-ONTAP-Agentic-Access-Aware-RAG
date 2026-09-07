@@ -181,7 +181,7 @@ AOSS 인덱스는 `dynamic: false`로 생성됩니다. 이는 다음을 의미�
 
 #### `.metadata.json`용 SID 정보 취득 방법
 
-이 시스템에는 NTFS ACL에서 SID를 자동으로 취득하는 메커니즘이 있습니다.
+NTFS ACL에서 SID를 취득하는 코드는 존재합니다. 배포 상태는 아래 「프로덕션 환경의 자동화 옵션」 표를 참조하세요.
 
 | 컴포넌트 | 구현 파일 | 기능 |
 |----------|----------|------|
@@ -213,13 +213,15 @@ AOSS 인덱스는 `dynamic: false`로 생성됩니다. 이는 다음을 의미�
 | 방법 | 설명 |
 |------|------|
 | AD Sync Lambda | SSM을 통해 AD 사용자 SID를 자동 취득하여 DynamoDB에 저장 (구현 완료) |
-| FSx Permission Service | SSM을 통해 Get-Acl로 NTFS ACL 취득 (구현 완료) |
-| ONTAP REST API | FSx for ONTAP 관리 엔드포인트를 통해 직접 ACL 취득 (구현 완료: `ENV_AUTO_METADATA=true`) |
-| S3 Access Point | S3 AP를 통한 파일 접근 시 NTFS ACL이 자동 적용 (CDK 지원: `useS3AccessPoint=true`) |
+| FSx Permission Service | SSM을 통해 Get-Acl로 NTFS ACL 취득 (코드는 존재하지만 어떤 CDK 스택에서도 배포되지 않음) |
+| ONTAP REST API | FSx for ONTAP 관리 엔드포인트를 통해 직접 ACL 취득 (구현 완료: `ENV_AUTO_METADATA=true`. 이 임베딩 서버 경로에만 해당) |
+| S3 Access Point | 파일별 ACL을 인가에 사용하는 수단이 아님 (아래 참조). 권한은 `.metadata.json`으로 관리 |
 
 #### S3 Access Point 사용 시 (옵션 C)
 
-Bedrock KB가 S3 Access Point를 통해 문서를 수집할 때, S3 Access Point의 `FileSystemIdentity`(WINDOWS 타입)를 통해 NTFS ACL이 자동으로 적용됩니다. 그러나 Bedrock KB Retrieve API가 반환하는 메타데이터에 ACL 정보가 포함되는지는 S3 Access Point 구현에 따라 다릅니다. 현시점에서는 `.metadata.json`을 통한 SID 관리가 확실한 방법입니다.
+S3 Access Point를 통한 요청은 Access Point에 설정된 하나의 파일 시스템 ID(`FileSystemIdentity`)로 인가됩니다. 파일별 NTFS ACL이 요청한 최종 사용자에 대해 평가되지 않으며, Bedrock KB의 수집도 이 하나의 ID로 실행됩니다. **따라서 원본 파일의 ACL은 S3 Access Point를 경유하는 경로에서 최종 사용자의 인가로 이어지지 않습니다.**
+
+이 시스템이 검색 시점에 대조하는 것은 `.metadata.json`의 SID 목록이며, ACL의 투영이 아닙니다. 생성원은 경로에 따라 다릅니다(Transfer Family 경로는 관리자가 유지하는 DynamoDB 매핑, 이 임베딩 서버 경로는 `ENV_AUTO_METADATA=true`일 때의 ONTAP REST API, 데모 환경은 수동 배치).
 
 #### `.metadata.json` 형식
 

@@ -4,7 +4,7 @@
 
 **🌐 Language / 言語:** [日本語](README.md) | [English](README.en.md) | **한국어** | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
-> FSx for ONTAP에 저장된 기업 데이터에 대해 NTFS ACL / UNIX 권한을 쿼리 시점에 자동 적용하는 Permission-aware RAG + Agentic AI 레퍼런스 구현입니다. AWS CDK 단일 명령 배포. PoC부터 프로덕션 평가까지 지원합니다.
+> FSx for ONTAP에 저장된 기업 데이터에 대해 문서별 권한 메타데이터와 호출자의 SID / UID・GID를 검색 시점에 대조하는 Permission-aware RAG + Agentic AI 레퍼런스 구현입니다. AWS CDK 단일 명령 배포. PoC부터 프로덕션 평가까지 지원합니다.
 
 ---
 
@@ -54,7 +54,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 **처리 흐름**: 사용자 인증 → DynamoDB에서 SID 조회 → Bedrock KB 벡터 검색 → SID 매칭 필터 → 허가된 문서만으로 응답 생성
 
 주요 특징:
-- **Permission-aware RAG** — NTFS ACL / UNIX 권한을 검색 시점에 자동 적용 (Fail-Closed)
+- **Permission-aware RAG** — 문서의 권한 메타데이터와 호출자의 SID / UID・GID를 검색 시점에 대조 (Fail-Closed)
 - **Agentic AI** — KB 모드(문서 검색)와 Agent 모드(다단계 추론)를 원클릭 전환
 - **Smart Routing** — 쿼리 복잡도에 따라 Haiku / Sonnet / Opus 자동 선택 (비용 40-60% 절감)
 - **저비용** — S3 Vectors (월 수 달러)를 기본 채택
@@ -83,6 +83,7 @@ S3 AP 포괄적 호환성 매트릭스는 [fsxn-lakehouse-integrations](https://
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 자동화 | 17개 업종별 서버리스 패턴 |
 | [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Athena / Glue / EMR / SageMaker 통합 |
 | [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability | 감사 로그를 Datadog / Splunk / Grafana로 EC2 없이 전달 |
+| [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | 도입 판단 | 데이터 활용 도메인 허브: S3 AP 인가 특성 · 제약 · 설계 선택지 |
 
 </details>
 
