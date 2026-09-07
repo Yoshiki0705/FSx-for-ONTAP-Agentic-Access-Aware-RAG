@@ -301,7 +301,7 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 | [CDK 堆栈架构指南](stack-architecture-comparison.md) | 向量存储配置对比（含 Managed KB 列） |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID 过滤设计 |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | 与向量存储无关的授权方式 |
-| [权限一致性模型](permission-consistency.md) | ACL 变更反映流程 / 可接受延迟 |
+| [权限元数据变更一致性模型](permission-consistency.md) | 权限元数据反映流程 / 可接受延迟 |
 | [治理·审计设计](governance-and-audit.md) | 审计日志 / lineage 要求 |
 | [运维 Runbook](operations-runbook.md) | ONTAP 操作（FlexClone 创建步骤） |
 

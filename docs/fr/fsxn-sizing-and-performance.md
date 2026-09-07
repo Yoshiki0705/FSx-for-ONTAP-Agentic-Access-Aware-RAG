@@ -292,7 +292,7 @@ Pour les environnements de petite à moyenne taille, utilisez S3 Vectors (quelqu
 
 | Document | Description |
 |----------|-------------|
-| [permission-consistency.md](permission-consistency.md) | Modèle de cohérence des changements de permissions |
+| [permission-consistency.md](permission-consistency.md) | Modèle de cohérence des métadonnées de permission |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | Architecture S3 Vectors + SID |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | Comparaison des 3 configurations |
 | [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | Automatisation des opérations FSx for ONTAP |

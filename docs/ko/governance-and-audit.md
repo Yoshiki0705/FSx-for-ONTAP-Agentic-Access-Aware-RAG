@@ -365,6 +365,6 @@ ORDER BY total_denied DESC;
 | 문서 | 설명 |
 |------|------|
 | [production-readiness-checklist.md](production-readiness-checklist.md) | 프로덕션 준비 체크리스트 |
-| [permission-consistency.md](permission-consistency.md) | 권한 변경 일관성 모델 |
+| [permission-consistency.md](permission-consistency.md) | 권한 메타데이터 변경 일관성 모델 |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID 필터링 아키텍처 |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | 안전한 실험 가이드 |

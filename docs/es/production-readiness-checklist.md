@@ -175,7 +175,7 @@ npx cdk deploy --all --require-approval broadening
 
 | Documento | Descripción |
 |-----------|-------------|
-| [permission-consistency.md](permission-consistency.md) | Modelo de consistencia de cambios de permisos |
+| [permission-consistency.md](permission-consistency.md) | Modelo de consistencia de metadatos de permisos |
 | [governance-and-audit.md](governance-and-audit.md) | Diseño de gobernanza y auditoría |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | Patrones de despliegue multi-inquilino |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Guía de experimentación segura |

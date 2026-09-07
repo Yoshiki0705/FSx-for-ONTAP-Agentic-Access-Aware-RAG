@@ -175,7 +175,7 @@ npx cdk deploy --all --require-approval broadening
 
 | 문서 | 설명 |
 |------|------|
-| [permission-consistency.md](permission-consistency.md) | 권한 변경 일관성 모델 |
+| [permission-consistency.md](permission-consistency.md) | 권한 메타데이터 변경 일관성 모델 |
 | [governance-and-audit.md](governance-and-audit.md) | 거버넌스 및 감사 설계 |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | 멀티 테넌트 배포 패턴 |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | 안전한 실험 가이드 |

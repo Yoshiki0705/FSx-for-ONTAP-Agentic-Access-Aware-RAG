@@ -365,6 +365,6 @@ Approval flow when access to top-secret data is required:
 | Document | Description |
 |----------|-------------|
 | [production-readiness-checklist.md](production-readiness-checklist.md) | Production Readiness Checklist |
-| [permission-consistency.md](permission-consistency.md) | Permission Change Consistency Model |
+| [permission-consistency.md](permission-consistency.md) | Permission Metadata Consistency Model |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID Filtering Architecture |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Safe Experimentation Guide |

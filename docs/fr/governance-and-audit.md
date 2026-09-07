@@ -367,6 +367,6 @@ Flux d'approbation lorsque l'accès aux données très secrètes est requis :
 | Document | Description |
 |----------|-------------|
 | [production-readiness-checklist.md](production-readiness-checklist.md) | Liste de vérification pour la mise en production |
-| [permission-consistency.md](permission-consistency.md) | Modèle de cohérence des changements de permissions |
+| [permission-consistency.md](permission-consistency.md) | Modèle de cohérence des métadonnées de permission |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Architecture de filtrage SID |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Guide d'expérimentation sécurisée |

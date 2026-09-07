@@ -248,4 +248,4 @@ aws opensearchserverless list-collections --region ap-northeast-1
 | [evaluation.md](evaluation.md) | RAG / Agent 평가 지표 |
 | [production-readiness-checklist.md](production-readiness-checklist.md) | 프로덕션 준비 체크리스트 |
 | [governance-and-audit.md](governance-and-audit.md) | 거버넌스 및 감사 설계 |
-| [permission-consistency.md](permission-consistency.md) | 권한 변경 일관성 모델 |
+| [permission-consistency.md](permission-consistency.md) | 권한 메타데이터 변경 일관성 모델 |

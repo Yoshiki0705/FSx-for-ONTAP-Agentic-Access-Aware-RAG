@@ -34,7 +34,7 @@
 | [poc-success-criteria-template.md](poc-success-criteria-template.md) | PoC 成功標準範本（利害關係人定義、Go/No-Go 判定標準、下一階段條件、完成報告範本） |
 | [data-readiness-assessment.md](data-readiness-assessment.md) | 資料就緒度評估範本（資料位置·分類·權限結構·品質·合規確認、核准流程） |
 | [partner-faq.md](partner-faq.md) | 合作夥伴 FAQ（客戶提案時的12個問答、提案資源清單） |
-| [permission-consistency.md](permission-consistency.md) | 權限變更一致性模型（ACL 變更 → 中繼資料再生成 → KB 重新同步 → 快取失效流程、最大延遲、緊急權限撤銷程序） |
+| [permission-consistency.md](permission-consistency.md) | 權限中繼資料變更一致性模型（反映路徑、最大延遲、ACL 變更無法到達的原因、緊急權限撤銷程序） |
 | [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP 效能與容量設計指南（依規模配置、S3 AP 考量、QoS、向量儲存選型） |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | 多租戶與合作夥伴部署模式（帳戶隔離/SVM 隔離/混合、成本估算範本） |
 | [governance-and-audit.md](governance-and-audit.md) | 治理與稽核設計（稽核日誌結構、Responsible AI、Guardrails 政策、產業特定使用案例） |
@@ -129,7 +129,7 @@
 ### 第三階段：正式環境與企業設計
 
 11. **production-readiness-checklist.md** — 正式環境準備檢查清單
-12. **permission-consistency.md** — 權限變更一致性模型
+12. **permission-consistency.md** — 權限中繼資料變更一致性模型
 13. **fsxn-sizing-and-performance.md** — FSx for ONTAP 效能與容量設計
 14. **governance-and-audit.md** — 治理與稽核設計
 15. **partner-deployment-patterns.md** — 多租戶部署模式

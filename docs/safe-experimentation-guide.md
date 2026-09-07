@@ -294,4 +294,4 @@ aws opensearchserverless list-collections --region ap-northeast-1
 | [evaluation.md](evaluation.md) | RAG / Agent 評価メトリクス |
 | [production-readiness-checklist.md](production-readiness-checklist.md) | 本番化チェックリスト |
 | [governance-and-audit.md](governance-and-audit.md) | ガバナンス・監査設計 |
-| [permission-consistency.md](permission-consistency.md) | 権限変更時の整合性モデル |
+| [permission-consistency.md](permission-consistency.md) | 権限メタデータ変更の整合性モデル |

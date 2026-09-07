@@ -362,7 +362,7 @@ RAG 検索結果に反映されるまでの最大遅延は以下の合計です:
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [permission-consistency.md](permission-consistency.md) | 権限変更時の整合性モデル |
+| [permission-consistency.md](permission-consistency.md) | 権限メタデータ変更の整合性モデル |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | S3 Vectors + SID アーキテクチャ |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3 構成比較表 |
 | [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx for ONTAP 運用自動化 |

@@ -292,7 +292,7 @@ Für kleine bis mittlere Umgebungen verwenden Sie S3 Vectors (wenige Dollar/Mona
 
 | Dokument | Beschreibung |
 |----------|--------------|
-| [permission-consistency.md](permission-consistency.md) | Konsistenzmodell für Berechtigungsänderungen |
+| [permission-consistency.md](permission-consistency.md) | Konsistenzmodell für Berechtigungsmetadaten |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | S3 Vectors + SID-Architektur |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3-Konfigurationen-Vergleich |
 | [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx for ONTAP Betriebsautomatisierung |

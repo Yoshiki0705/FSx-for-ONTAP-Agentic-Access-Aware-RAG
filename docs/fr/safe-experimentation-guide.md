@@ -248,4 +248,4 @@ aws opensearchserverless list-collections --region ap-northeast-1
 | [evaluation.md](evaluation.md) | Métriques d'évaluation RAG / Agent |
 | [production-readiness-checklist.md](production-readiness-checklist.md) | Liste de vérification pour la mise en production |
 | [governance-and-audit.md](governance-and-audit.md) | Conception de la gouvernance et de l'audit |
-| [permission-consistency.md](permission-consistency.md) | Modèle de cohérence des changements de permissions |
+| [permission-consistency.md](permission-consistency.md) | Modèle de cohérence des métadonnées de permission |

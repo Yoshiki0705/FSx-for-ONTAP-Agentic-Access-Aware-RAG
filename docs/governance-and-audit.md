@@ -413,7 +413,7 @@ ORDER BY total_denied DESC;
 | ドキュメント | 内容 |
 |-------------|------|
 | [production-readiness-checklist.md](production-readiness-checklist.md) | 本番化チェックリスト |
-| [permission-consistency.md](permission-consistency.md) | 権限変更時の整合性モデル |
+| [permission-consistency.md](permission-consistency.md) | 権限メタデータ変更の整合性モデル |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID フィルタリング設計 |
 | [data-readiness-assessment.md](data-readiness-assessment.md) | データレディネス評価テンプレート |
 | [threat-model.md](threat-model.md) | 脅威モデル |

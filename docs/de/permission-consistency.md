@@ -1,118 +1,132 @@
-# Konsistenzmodell für Berechtigungsänderungen
+# Konsistenzmodell für Berechtigungsmetadaten
 
 **🌐 Language:** [日本語](../permission-consistency.md) | [English](../en/permission-consistency.md) | [한국어](../ko/permission-consistency.md) | [简体中文](../zh-CN/permission-consistency.md) | [繁體中文](../zh-TW/permission-consistency.md) | [Français](../fr/permission-consistency.md) | **Deutsch** | [Español](../es/permission-consistency.md)
 
-**Erstellt**: 2026-05-21  
-**Status**: Entwurf  
+**Erstellt**: 2026-05-21
+**Aktualisiert**: 2026-09-07 (Beschreibung des ACL-basierten automatischen Propagierungsflusses nach Prüfung der Implementierung zurückgezogen)
+**Status**: Entwurf
 **Zielgruppe**: Betriebsdesigner, Sicherheitsingenieure
 
 ---
 
 ## Überblick
 
-Dieses Dokument erläutert, wann und wie Änderungen an Datei-ACLs auf FSx for ONTAP im Vektorspeicher und Berechtigungscache reflektiert werden, und definiert die Konsistenzgarantiestufen während Berechtigungsänderungen.
+Dieses Dokument definiert, wann eine Änderung der Daten, die zur Abfragezeit für die Berechtigungsentscheidung verwendet werden, in den Suchergebnissen sichtbar wird. Verwendet werden zwei Datenbestände: `.metadata.json` auf Dokumentseite und die DynamoDB-Tabelle `user-access` auf Benutzerseite.
+
+**Es gibt keinen Mechanismus, der Änderungen der NTFS ACL von Dateien auf FSx for ONTAP automatisch nachführt.** Der Berechtigungsindex ist keine Projektion der ACL, sondern ein separat aufgebauter und gepflegter Index. Gründe und betriebliche Konsequenzen stehen unter „Warum ACL-Änderungen nicht ankommen".
 
 ---
 
-## Gesamter Berechtigungsdatenfluss
+## Daten für die Berechtigungsentscheidung
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                     Propagierungsfluss für Berechtigungsänderungen              │
-│                                                                              │
-│  ① ACL-Änderung     ② Metadaten-Regenerierung ③ KB-Resync         ④ Cache   │
-│                                                                    Invalidierung│
-│  ┌──────────┐      ┌──────────────┐      ┌──────────────┐      ┌────────┐  │
-│  │ FSx for ONTAP│      │ .metadata    │      │ Bedrock KB   │      │DynamoDB│  │
-│  │ NTFS ACL │─────▶│ .json update │─────▶│ StartIngest  │─────▶│perm-   │  │
-│  │ Change   │      │              │      │ ionJob       │      │cache   │  │
-│  └──────────┘      └──────────────┘      └──────────────┘      │TTL     │  │
-│                                                                  │expiry  │  │
-│  Admin ändert       Service-Rolle         KB Auto-Sync          └────────┘  │
-│  Dateiberechtigungen Lambda ruft ACL      (EventBridge           5-Min-TTL   │
-│                     erneut ab             Scheduler)             Auto-       │
-│                                           oder manueller         Invalidierung│
-│                                           Trigger                            │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+| Daten | Ablage | Erzeugt/aktualisiert von | Rolle zur Abfragezeit |
+|-------|--------|--------------------------|-----------------------|
+| `.metadata.json` (`allowed_group_sids` / `allowed_uids` / `allowed_gids`) | Benachbartes Objekt auf dem S3 AP → Metadatenattribut in der Bedrock KB | Je Pfad unterschiedlich (siehe unten) | Zulässige SID- / UID- / GID-Menge des abgerufenen Chunks |
+| `user-access` (`userSID` / `groupSIDs` / `uid` / `gid` / `unixGroups`) | DynamoDB | AD- / LDAP-Sync-Lambda (`lambda/agent-core-ad-sync/`) | SID- / UID- / GID-Menge des Aufrufers |
+| `perm-cache` | DynamoDB (TTL 5 Minuten) | Berechtigungsfilter | Cache der Entscheidungsergebnisse |
+
+Herkunft von `.metadata.json`:
+
+| Pfad | Herkunft | Auslöser |
+|------|----------|----------|
+| Transfer Family SFTP (`enableTransferFamily=true`) | Administratorseitig gepflegte DynamoDB-Zuordnung (Schlüssel: Upload-Benutzername) | Beim Datei-Upload |
+| Selbst betriebener Embedding-Server (`ENV_AUTO_METADATA=true`, optional, nicht Standard) | Echte NTFS ACL über die ONTAP REST API abgerufen | Bei Erkennung einer unverarbeiteten Datei (`mtime`-basiert) |
+| Demo-Umgebung | Im Repository enthaltene Beispiele, manuell abgelegt | Manuell |
+
+SFTP-Benutzer erhalten ein IAM-Deny auf `*.metadata.json`; wer eine Datei hochlädt, kann seine eigenen Berechtigungen nicht schreiben.
 
 ---
 
-## Schrittdetails
+## Propagierungspfade
 
-### Schritt ①: ACL-Änderung (FSx for ONTAP)
+Automatisch propagieren zwei Pfade.
 
-| Operation | Reflexionszeitpunkt | Hinweise |
-|-----------|---------------------|----------|
-| Datei-ACL-Änderung | Sofort (auf FSx) | NTFS ACL wird sofort auf dem FSx-Volume reflektiert |
-| Gruppenmitgliedschaftsänderung | Nach AD-Propagierung (typischerweise innerhalb von 15 Min.) | Abhängig von der AD-Replikationsverzögerung |
-| Dateiverschiebung (Umbenennung/Verschiebung) | Sofort (auf FSx) | Vererbte Berechtigungen werden neu berechnet |
-| Änderung vererbter Berechtigungen | Sofort (auf FSx) | Übergeordnete Ordner-ACL-Änderungen propagieren zu Unterordnern |
+### Pfad A: Berechtigungsänderung auf Dokumentseite
 
-### Schritt ②: Metadaten-Regenerierung
+| Schritt | Verantwortlich | Latenz |
+|---------|----------------|--------|
+| ① Aktualisierung von `.metadata.json` | Die Herkunft aus der Tabelle oben oder eine direkte Aktualisierung durch einen Administrator | Auslöserabhängig |
+| ② Änderungserkennung | KB Auto-Sync (EventBridge Scheduler; vergleicht `size` / `lastModified` / `ETag`) | Polling-Intervall (Standard 15 Min.) |
+| ③ Aktualisierung des Vektorspeichers | `StartIngestionJob` | 1–15 Min. (abhängig von der Dokumentanzahl) |
+| ④ Ablauf des Entscheidungs-Caches | TTL von `perm-cache` | Bis zu 5 Min. |
 
-Methoden zur Aktualisierung von `allowed_group_sids` in `.metadata.json`:
+### Pfad B: Berechtigungsänderung auf Benutzerseite
 
-| Methode | Auslöser | Verzögerung | Hinweise |
-|---------|----------|-------------|----------|
-| Upload über Transfer Family | Bei Datei-Upload | Sofort | Bei `enableTransferFamily=true`. Generiert automatisch Metadaten für hochgeladene Dateien |
-| AD Sync Lambda | Manuell / Geplant | Abhängig von Konfiguration | `lambda/agent-core-ad-sync/` ruft NTFS ACL erneut ab |
-| Manuelle Aktualisierung | Admin-Operation | Sofort | Für S3-Bucket-Fallback-Pfad, `.metadata.json` direkt aktualisieren |
+| Schritt | Verantwortlich | Latenz |
+|---------|----------------|--------|
+| ① Änderung der AD-Gruppenmitgliedschaft | AD-Replikation | Üblicherweise innerhalb von 15 Min. |
+| ② Aktualisierung von `user-access` | AD- / LDAP-Sync-Lambda. **Ausgelöst durch Cognito PostAuthentication / PostConfirmation; es gibt keine geplante Ausführung** | Bis zur nächsten Anmeldung des Benutzers (unbestimmt) |
+| ③ Ablauf des Entscheidungs-Caches | TTL von `perm-cache` oder explizite Invalidierung über DynamoDB Streams von `user-access` | Bis zu 5 Min. |
 
-### Schritt ③: Vektorspeicher-Aktualisierung (KB-Resync)
-
-| Methode | Auslöser | Verzögerung | Hinweise |
-|---------|----------|-------------|----------|
-| KB Auto-Sync | EventBridge Scheduler (Polling) | Konfiguriertes Intervall (Standard: 15 Min.) | Bei `enableKbAutoSync=true`. Führt StartIngestionJob nur bei erkannten Dateiänderungen aus |
-| Manuelle KB-Synchronisierung | AWS-Konsole / CLI | Startet sofort, abgeschlossen in Minuten | `aws bedrock-agent start-ingestion-job` |
-| CloudTrail-Event | S3 PutObject | Einige Minuten | Bei `enableCloudTrailIngestion=true` auf Transfer Family-Pfad |
-
-**Geschätzte KB-Synchronisierungsdauer:**
-
-| Dokumentenanzahl | Synchronisierungszeit (Schätzung) |
-|------------------|-----------------------------------|
-| ~100 | 1–3 Min. |
-| ~1.000 | 5–15 Min. |
-| ~10.000 | 30–60 Min. |
-| ~100.000 | Mehrere Stunden (inkrementelle Synchronisierung empfohlen) |
-
-### Schritt ④: Berechtigungscache-Invalidierung
-
-| Cache | TTL | Invalidierungsmethode | Hinweise |
-|-------|-----|----------------------|----------|
-| DynamoDB `perm-cache` | 5 Min. | Automatischer TTL-Ablauf | Filterergebnis-Cache |
-| DynamoDB `user-access` | Keiner (persistent) | Explizite Aktualisierung erforderlich | Benutzer-SID / Gruppen-SID |
-| Browser-Sitzung | Während der Sitzung | Abmeldung / Sitzungsablauf | Frontend-Speicher-Cache |
+Schritt ② von Pfad B kommt bei einem Benutzer mit fortbestehender Sitzung nie an. Für einen verlässlichen Entzug verwenden Sie das Notfall-Entzugsverfahren.
 
 ---
 
-## Maximale Verzögerung der Berechtigungspropagierung
+## Warum ACL-Änderungen nicht ankommen
 
-### Normalbetrieb
+Das Ändern der NTFS ACL einer Datei regeneriert `.metadata.json` in keiner Bereitstellungskonfiguration. Gegen die Implementierung geprüft:
 
-```
-ACL-Änderung → Metadaten-Regenerierung → KB-Resync → Cache-Ablauf
-  0 Min.        0–15 Min.                1–15 Min.    0–5 Min.
-                                              
-Max. Verzögerung: ~35 Min. (15 Min. Polling + 15 Min. KB-Sync + 5 Min. Cache)
-```
+| Mechanismus | Läuft bei einer ACL-Änderung? | Grundlage |
+|-------------|-------------------------------|-----------|
+| AD- / LDAP-Sync-Lambda | Nein | Weder ACL-Abruf noch Schreiben von `.metadata.json` ist implementiert. Abgerufen werden nur Benutzer-SIDs aus AD |
+| Metadatenerzeugung von Transfer Family | Nein | Auslöser ist der Datei-Upload. Herkunft ist eine administratorseitig gepflegte DynamoDB-Zuordnung, die die ACL nicht konsultiert |
+| Selbst betriebener Embedding-Server (`ENV_AUTO_METADATA=true`) | Nein | Die Wiederverarbeitung richtet sich nach `mtime`. Eine reine ACL-Änderung verändert `mtime` nicht |
+| KB Auto-Sync | Nein | Der Abgleich erfolgt über `size` / `lastModified` / `ETag`. Eine ACL-Änderung verändert keines davon |
+| FSx-Berechtigungsdienst (`lambda/permissions/fsx-permission-service.ts`) | Außerhalb des Umfangs | Code, der ACLs liest, ist vorhanden, wird jedoch von keinem CDK-Stack bereitgestellt |
 
-### RPO-artige Darstellung
-
-| Szenario | Max. Verzögerung | Beschreibung |
-|----------|------------------|--------------|
-| Normalbetrieb (KB Auto-Sync 15-Min.-Intervall) | Max. 35 Min. | Polling-Intervall + KB-Sync + Cache-TTL |
-| Hochfrequenz-Sync (KB Auto-Sync 5-Min.-Intervall) | Max. 15 Min. | Reduziertes Polling-Intervall |
-| Manuelle sofortige Synchronisierung | Max. 10 Min. | Manuelle KB-Synchronisierung + Cache-TTL |
-| Notfall-Berechtigungsentzug | Max. 5 Min. | Erzwungene Cache-Löschung + Fail-Closed |
+**Konsequenz**: Damit eine ACL-Änderung in den Suchergebnissen wirkt, muss ein Betreiber `.metadata.json` neu erzeugen und auf dem S3 AP ablegen. Die Korrektheit dieses Index hängt vom Betrieb ab; die Übereinstimmung mit der ACL ist nicht automatisch gewährleistet. Für dringende Zugriffssperren handeln Sie auf der Benutzerseite (Löschen in `user-access` + Cache leeren + Sitzung invalidieren) statt an der ACL.
 
 ---
 
-## Verfahren zum Notfall-Berechtigungsentzug
+## Details der Schritte
 
-Wenn ein sofortiger Entzug der Zugriffsberechtigungen eines Benutzers erforderlich ist:
+### Aktualisierung des Vektorspeichers (KB-Resynchronisierung)
 
-### Schritt 1: Benutzer-SID aus DynamoDB löschen (sofortige Wirkung)
+| Methode | Auslöser | Latenz | Hinweise |
+|---------|----------|--------|----------|
+| KB Auto-Sync | EventBridge Scheduler (Polling) | Konfiguriertes Intervall (Standard: 15 Min.) | Bei `enableKbAutoSync=true`. StartIngestionJob läuft nur bei erkannter Dateiänderung |
+| Manuelle KB-Synchronisierung | AWS-Konsole / CLI | Startet sofort, Abschluss in Minuten | `aws bedrock-agent start-ingestion-job` |
+| CloudTrail-Ereignis | S3 PutObject | Minuten | Auf dem Transfer Family-Pfad mit `enableCloudTrailIngestion=true` |
+
+**Richtwerte für die KB-Synchronisierungsdauer:**
+
+| Dokumentanzahl | Synchronisierungszeit (Richtwert) |
+|----------------|-----------------------------------|
+| bis 100 | 1–3 Min. |
+| bis 1.000 | 5–15 Min. |
+| bis 10.000 | 30–60 Min. |
+| bis 100.000 | Stunden (inkrementelle Synchronisierung empfohlen) |
+
+### Invalidierung des Berechtigungs-Caches
+
+| Cache | TTL | Invalidierung | Hinweise |
+|-------|-----|---------------|----------|
+| DynamoDB `perm-cache` | 5 Min. | TTL-Ablauf / explizites Löschen über Streams von `user-access` | Cache der Filterergebnisse |
+| DynamoDB `user-access` | Keine (persistent) | Erfordert eine explizite Aktualisierung | Benutzer-SID / Gruppen-SIDs |
+| Browser-Sitzung | Während der Sitzung | Abmeldung / Sitzungsablauf | In-Memory-Cache im Frontend |
+
+---
+
+## Maximale Propagierungsverzögerung
+
+| Ursprung | Maximale Verzögerung | Aufschlüsselung |
+|----------|----------------------|-----------------|
+| Änderung auf Dokumentseite (Pfad A, Auto-Sync alle 15 Min.) | ca. 35 Min. | 15 Min. Polling + 15 Min. KB-Sync + 5 Min. Cache |
+| Änderung auf Dokumentseite (Auto-Sync alle 5 Min.) | ca. 25 Min. | 5 Min. Polling + 15 Min. KB-Sync + 5 Min. Cache |
+| Änderung auf Dokumentseite (manuelle KB-Sync) | ca. 20 Min. | 15 Min. KB-Sync + 5 Min. Cache |
+| Änderung auf Benutzerseite (Pfad B) | Nicht definierbar | 15 Min. AD-Replikation + bis zur nächsten Anmeldung (unbestimmt) + 5 Min. Cache |
+| Notfall-Entzug (Verfahren unten) | Bis zu 5 Min. | Erzwungenes Leeren des Caches + Fail-Closed |
+| Änderung der Datei-ACL | **Nicht definierbar** | Kein Mechanismus führt sie nach. Setzt die Neuerzeugung von `.metadata.json` durch einen Betreiber voraus |
+
+Die 15 Min. für die KB-Synchronisierung hängen von der Dokumentanzahl ab (siehe Richtwerte oben). Bei 10.000 Dokumenten werden es 30–60 Min., und die Gesamtverzögerung wächst entsprechend.
+
+---
+
+## Notfall-Entzug von Berechtigungen
+
+Wenn der Zugriff eines Benutzers sofort entzogen werden muss:
+
+### Schritt 1: Benutzer-SIDs aus DynamoDB löschen (sofortige Wirkung)
 
 ```bash
 # SID-Daten des Benutzers löschen → Fail-Closed verweigert alle Dokumente
@@ -121,10 +135,10 @@ aws dynamodb delete-item \
   --key '{"userId": {"S": "target-user@example.com"}}'
 ```
 
-### Schritt 2: Berechtigungscache erzwungen löschen
+### Schritt 2: Berechtigungs-Cache erzwungen leeren
 
 ```bash
-# Cache-Einträge für den Zielbenutzer löschen
+# Cache-Einträge des Benutzers löschen
 aws dynamodb scan \
   --table-name perm-rag-demo-demo-perm-cache \
   --filter-expression "userId = :uid" \
@@ -147,109 +161,114 @@ aws cognito-idp admin-disable-user \
 
 ### Wirkung
 
-- Nach Schritt 1: Neue Suchanfragen verweigern sofort alle Dokumente (Fail-Closed)
-- Nach Schritt 2: Verhindert die Nutzung zwischengespeicherter alter Berechtigungsinformationen
-- Nach Schritt 3: Invalidiert die Sitzung des Benutzers selbst
+- Nach Schritt 1: neue Suchanfragen werden sofort für alle Dokumente verweigert (Fail-Closed)
+- Nach Schritt 2: veraltete gecachte Berechtigungsdaten können nicht mehr verwendet werden
+- Nach Schritt 3: die Sitzung des Benutzers selbst wird invalidiert
+
+**Beachten Sie, dass dieses Verfahren die Benutzerseite stoppt, nicht die Dokumentseite.** Ein einzelnes Dokument vor einer einzelnen Person zu verbergen, läuft über die Aktualisierung von `.metadata.json` und die KB-Resynchronisierung und unterliegt damit der Latenz von Pfad A.
 
 ---
 
-## Verhalten nach Berechtigungsänderungsszenarien
+## Verhalten je Änderungsszenario
 
-### Szenario 1: Datei-ACL-Änderung
-
-```
-Admin entfernt Benutzer X aus der ACL von Datei A
-  → SID von Benutzer X aus .metadata.json allowed_group_sids entfernen
-  → KB-Resync aktualisiert Vektorspeicher-Metadaten
-  → Datei A wird aus den nächsten Suchergebnissen von Benutzer X ausgeschlossen
-```
-
-**Verzögerung**: Max. 35 Min. (Normalbetrieb)
-
-### Szenario 2: AD-Gruppenmitgliedschaftsänderung
+### Szenario 1: Änderung der Berechtigungsmetadaten eines Dokuments
 
 ```
-Admin entfernt Benutzer X aus der Engineering-Gruppe
+Administrator entfernt die SID von User X aus der .metadata.json von Datei A
+  → KB Auto-Sync erkennt die Differenz (ETag geändert)
+  → StartIngestionJob aktualisiert die Metadaten im Vektorspeicher
+  → Nach Ablauf der perm-cache-TTL wird Datei A aus den Suchen von User X ausgeschlossen
+```
+
+**Verzögerung**: bis zu ca. 35 Min. (Auto-Sync alle 15 Min.)
+
+### Szenario 2: Änderung der AD-Gruppenmitgliedschaft
+
+```
+Administrator entfernt User X aus der Gruppe Engineering
   → AD-Replikation (~15 Min.)
-  → DynamoDB user-access groupSIDs aktualisiert (bei AD Sync Lambda-Ausführung)
-  → Auf Engineering-Gruppe beschränkte Dokumente werden aus der Suche von Benutzer X ausgeschlossen
+  → Bei der nächsten Anmeldung von User X aktualisiert die AD-Sync-Lambda groupSIDs in user-access
+  → Nach Ablauf von perm-cache werden Engineering-exklusive Dokumente ausgeschlossen
 ```
 
-**Verzögerung**: AD-Replikation + AD Sync Lambda-Ausführungsintervall + Cache-TTL
+**Verzögerung**: AD-Replikation + bis zur nächsten Anmeldung (unbestimmt) + Cache-TTL. **Solange die Sitzung fortbesteht, wird nichts wirksam.** Wenn Unmittelbarkeit erforderlich ist, verwenden Sie das Notfall-Entzugsverfahren.
 
-### Szenario 3: Dateiverschiebung (Umbenennung / Verschiebung)
-
-```
-Admin verschiebt Datei A von /public/ nach /confidential/
-  → Vererbte Berechtigungen werden auf FSx neu berechnet
-  → .metadata.json-Regenerierung erforderlich
-  → KB-Resync aktualisiert Vektorspeicher-Metadaten
-```
-
-**Hinweis**: Eine automatische `.metadata.json`-Regenerierung erfolgt möglicherweise nicht bei Dateiverschiebungen. Ein Design, bei dem KB Auto-Sync-Polling Dateipfadänderungen erkennt und die Metadaten-Regenerierung auslöst, wird empfohlen.
-
-### Szenario 4: Änderung vererbter Berechtigungen
+### Szenario 3: Dateiverschiebung (rename / move)
 
 ```
-Admin ändert ACL des Ordners /confidential/ (Vererbung aktiviert)
-  → Effektive Berechtigungen ändern sich für alle darunterliegenden Dateien
-  → .metadata.json-Regenerierung für jede Datei erforderlich
-  → KB-Resync
+Administrator verschiebt Datei A von /public/ nach /confidential/
+  → Geerbte Berechtigungen werden auf FSx neu berechnet (nur effektive Berechtigungen auf ONTAP-Seite)
+  → .metadata.json folgt den Berechtigungen des Ziels nicht automatisch
+  → Ein Betreiber muss .metadata.json neu erzeugen und ablegen
 ```
 
-**Hinweis**: Massenberechtigungsänderungen für große Dateimengen benötigen Zeit für die KB-Synchronisierung. Schrittweise Änderungen werden empfohlen.
+**Hinweis**: die zulässigen SIDs des Ursprungsorts bleiben erhalten, eine Verschiebung allein ändert die Sichtbarkeit in der Suche also nicht. Wenn die Verzeichnisstruktur als Berechtigungsgrenze dient, fassen Sie Verschiebung und Aktualisierung von `.metadata.json` zu einem Verfahren zusammen.
+
+### Szenario 4: ACL-Massenänderung an einem übergeordneten Ordner
+
+```
+Administrator ändert die ACL von /confidential/ (Vererbung aktiv)
+  → Effektive Berechtigungen ändern sich auf ONTAP für alle darunterliegenden Dateien
+  → .metadata.json folgt nicht (siehe „Warum ACL-Änderungen nicht ankommen")
+  → Neuerzeugung von .metadata.json für diese Dateien plus KB-Resynchronisierung ist erforderlich
+```
+
+**Hinweis**: Massenänderungen über viele Dateien verlängern die Resynchronisierung. Stufenweise Änderungen werden empfohlen.
 
 ---
 
-## Konsistenzgarantiestufen
+## Konsistenzgarantien
 
-| Stufe | Garantie | Implementierung |
+| Ebene | Garantie | Implementierung |
 |-------|----------|-----------------|
-| **Fail-Closed** | Alles verweigern, wenn SID-Informationen nicht abgerufen werden können | Bei DynamoDB-Fehler / kein Datensatz |
-| **Eventually Consistent** | ACL-Änderungen werden schließlich in Suchergebnissen reflektiert | KB Auto-Sync + Cache-TTL |
-| **Keine False Positives** | Dokumente ohne Berechtigung werden niemals angezeigt | SID-Abgleich (Schnittmenge) |
-| **Metadaten erforderlich** | Dokumente ohne Metadaten werden ausgeschlossen | `.metadata.json` erforderlich |
+| **Fail-Closed** | Alles verweigern, wenn SID-Informationen nicht abgerufen werden können | Bei DynamoDB-Fehler / fehlendem Datensatz |
+| **Eventually Consistent** | Änderungen der Berechtigungsmetadaten (`.metadata.json` / `user-access`) erreichen die Suchergebnisse letztlich | KB Auto-Sync + Cache-TTL + Streams-Invalidierung |
+| **No False Positive** | Dokumente ohne Berechtigung werden nicht angezeigt | SID-Abgleich (Schnittmenge) |
+| **Metadata Required** | Dokumente ohne Metadaten werden ausgeschlossen | `.metadata.json` erforderlich |
+| **Kein ACL-Nachziehen** | ACL-Änderungen an Dateien werden nicht automatisch wirksam | Setzt die Neuerzeugung von `.metadata.json` durch einen Betreiber voraus |
 
-### Hinweis: Möglichkeit von False Negatives
+### Hinweis: mögliche False Negatives
 
-In den folgenden Fällen können Dokumente, auf die zugegriffen werden sollte, vorübergehend nicht angezeigt werden (False Negative):
+In den folgenden Fällen erscheint ein Dokument, auf das der Benutzer Anspruch hat, zeitweise nicht (False Negative):
 
-- Unmittelbar nach Berechtigungserteilung (Metadaten noch nicht aktualisiert)
-- Während der KB-Synchronisierung (alte Metadaten verbleiben)
-- Während der AD-Replikationsverzögerung
+- Unmittelbar nach einer Vergabe (`.metadata.json` noch nicht aktualisiert oder vor der KB-Resynchronisierung)
+- Während der KB-Synchronisierung (veraltete Metadaten noch vorhanden)
+- Während einer AD-Replikationsverzögerung oder bevor sich der Benutzer erneut anmeldet
 
-**Designprinzip**: Aus Sicherheitsgründen werden False Negatives (zugängliche Elemente nicht sichtbar) toleriert, während False Positives (eingeschränkte Elemente sichtbar) auf null Vorkommen abzielen.
+**Designhaltung**: aus Sicherheitsgründen werden False Negatives (etwas Sichtbares ist nicht sichtbar) akzeptiert, und False Positives (etwas Unsichtbares wird sichtbar) werden auf Null angestrebt.
+
+Diese Haltung **setzt jedoch voraus, dass der Berechtigungsindex korrekt ist.** Wurde eine ACL eingeschränkt, `.metadata.json` aber nicht aktualisiert, liefert der Index weiterhin eine Erlaubnis — ein False Positive. Die Pflege des Index ist die Grenze selbst.
 
 ---
 
-## Empfohlene Überwachungs- und Alarmkonfiguration
+## Empfohlene Überwachung und Alarme
 
 ```yaml
-# Empfohlene CloudWatch-Alarmeinstellungen
+# Empfohlene CloudWatch-Alarme
 Alarms:
   - Name: PermCacheHighMissRate
     Metric: CacheMissRate
-    Threshold: 80%  # Hohe Cache-Miss-Rate = hohe Aktualisierungsfrequenz der Berechtigungsdaten
-    
+    Threshold: 80%  # hohe Miss-Rate = häufige Aktualisierung der Berechtigungsdaten
+
   - Name: KBSyncFailure
     Metric: IngestionJobFailureCount
-    Threshold: 3  # Alarm bei 3 aufeinanderfolgenden Fehlern
-    
+    Threshold: 3  # Alarm nach 3 aufeinanderfolgenden Fehlern
+
   - Name: SIDResolutionFailure
     Metric: SIDResolutionErrorCount
-    Threshold: 1  # Sofortiger Alarm bei SID-Auflösungsfehler
-    
+    Threshold: 1  # sofortiger Alarm bei fehlgeschlagener SID-Auflösung
+
   - Name: PermissionDenyAllFallback
     Metric: DenyAllFallbackCount
-    Threshold: 5  # Untersuchen, wenn Fail-Closed häufig ausgelöst wird
+    Threshold: 5  # häufige Fail-Closed-Auslösungen erfordern eine Untersuchung
 ```
 
 ---
 
-## Verwandte Dokumente
+## Zugehörige Dokumente
 
-| Dokument | Beschreibung |
-|----------|--------------|
-| [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID-Filterarchitektur-Details |
-| [production-readiness-checklist.md](production-readiness-checklist.md) | Checkliste für die Produktionsbereitschaft |
-| [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP Dimensionierung und Leistung |
+| Dokument | Inhalt |
+|----------|--------|
+| [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Details zum Design der SID-Filterung |
+| [production-readiness-checklist.md](production-readiness-checklist.md) | Checkliste für die Produktionsreife |
+| [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | Leistungs- und Kapazitätsdesign für FSx for ONTAP |

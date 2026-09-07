@@ -301,7 +301,7 @@ Clear all of the following before the migration feasibility decision.
 | [CDK Stack Architecture Guide](stack-architecture-comparison.md) | Vector store configuration comparison (incl. Managed KB column) |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID filtering design |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | Vector-store-independent authorization approach |
-| [Permission Consistency Model](permission-consistency.md) | ACL change propagation flow / acceptable latency |
+| [Permission Metadata Consistency Model](permission-consistency.md) | Permission metadata propagation flow / acceptable latency |
 | [Governance & Audit Design](governance-and-audit.md) | Audit log / lineage requirements |
 | [Operations Runbook](operations-runbook.md) | ONTAP operations (FlexClone creation procedure) |
 

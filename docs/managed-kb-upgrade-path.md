@@ -343,7 +343,7 @@ Managed KB は FSx for ONTAP S3 Access Point をデータソースとして直�
 | [CDKスタック アーキテクチャガイド](stack-architecture-comparison.md) | ベクトルストア構成比較（Managed KB 列含む） |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID フィルタリング設計 |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | ベクトルストア非依存の認可方式 |
-| [権限整合性モデル](permission-consistency.md) | ACL 変更反映フロー・許容遅延 |
+| [権限メタデータ変更の整合性モデル](permission-consistency.md) | 権限メタデータの反映フロー・許容遅延 |
 | [ガバナンス・監査設計](governance-and-audit.md) | 監査ログ・lineage 要件 |
 | [運用 Runbook](operations-runbook.md) | ONTAP 操作（FlexClone 作成手順） |
 
