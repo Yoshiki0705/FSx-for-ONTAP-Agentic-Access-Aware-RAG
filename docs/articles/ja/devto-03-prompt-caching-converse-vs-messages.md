@@ -18,7 +18,7 @@ cover_image:
 
 ## 背景
 
-Amazon FSx for NetApp ONTAP に保存された企業文書に対して、ユーザーのファイル権限（NTFS ACL / SID）を守りながら AI が回答する「Permission-Aware RAG」を構築しています。
+Amazon FSx for NetApp ONTAP に保存された企業文書に対して、文書ごとの権限メタデータと利用者の SID を検索時に突き合わせて AI が回答する「Permission-Aware RAG」を構築しています。
 
 コスト最適化のため Bedrock Prompt Caching（ephemeral, 5 分 TTL）を導入しようとしました。
 
