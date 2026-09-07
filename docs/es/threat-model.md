@@ -3,6 +3,7 @@
 **🌐 Language:** [日本語](../threat-model.md) | [English](../en/threat-model.md) | [한국어](../ko/threat-model.md) | [简体中文](../zh-CN/threat-model.md) | [繁體中文](../zh-TW/threat-model.md) | [Français](../fr/threat-model.md) | [Deutsch](../de/threat-model.md) | **Español**
 
 **Fecha de creación**: 2026-05-21  
+**Actualizado**: 2026-09-07 (mitigaciones y valoración de T4 corregidas tras verificar la implementación)  
 **Estado**: Borrador  
 **Audiencia**: Arquitectos de seguridad, responsables de modelado de amenazas, CISOs
 
@@ -82,12 +83,12 @@ Este documento es un modelo de amenazas que organiza las principales amenazas, v
 
 | Elemento | Detalles |
 |----------|----------|
-| **Amenaza** | Se modifican las ACL del archivo, pero los permisos antiguos persisten en los metadatos del vector store o en la caché de permisos |
-| **Vector de ataque** | Cambio de ACL → Metadatos no actualizados → Búsqueda posible con permisos antiguos |
-| **Impacto** | Medio — Acceso posible durante un período después de la revocación de permisos (máximo 35 minutos) |
-| **Medidas de mitigación existentes** | KB Auto-Sync (intervalo de 15 minutos), TTL de caché de permisos (5 minutos), procedimiento de revocación de emergencia |
-| **Recomendaciones adicionales** | Detección inmediata de eventos de cambio de ACL (FSx Audit Log → EventBridge), considerar reducción del TTL de caché, registro de auditoría de cambios de permisos |
-| **Riesgo residual** | Debido al modelo Eventually Consistent, la reflexión completa en tiempo real es imposible. En emergencias se responde con revocación manual |
+| **Amenaza** | La ACL de un archivo cambia pero el índice de permisos (`.metadata.json`) no la sigue: un índice más permisivo que la ACL se sigue usando para la búsqueda |
+| **Vector de ataque** | Cambio de ACL → `.metadata.json` sin actualizar → búsqueda posible con permisos antiguos |
+| **Impacto** | Alto — persiste indefinidamente hasta que un operador regenere `.metadata.json`. No se cura con el paso del tiempo |
+| **Medidas de mitigación existentes** | Procedimiento de revocación de emergencia (borrado en `user-access` del lado del usuario + limpieza forzada de caché + invalidación de sesión), TTL de caché de permisos (5 minutos, aunque con un índice permisivo solo vuelve a cachear la decisión permisiva), registro de auditoría |
+| **Recomendaciones adicionales** | Establecer una vía ACL → metadatos de permisos (automatizada o documentada como procedimiento operativo), auditoría periódica de diferencias entre las ACL y `.metadata.json`, detección de eventos de cambio de ACL (FSx Audit Log → EventBridge), norma operativa de no usar los cambios de ACL como mecanismo de revocación |
+| **Riesgo residual** | Alto — el índice de permisos no es una proyección de la ACL y no hay mecanismo que siga automáticamente los cambios de ACL. **KB Auto-Sync solo propaga los cambios de `.metadata.json`; no detecta cambios de ACL** (su diferencia se calcula sobre `size` / `lastModified` / `ETag`). El Fail-Closed cubre los documentos sin metadatos, no unos metadatos existentes pero demasiado permisivos |
 
 **Detalle**: Consulte [permission-consistency.md](permission-consistency.md)
 
@@ -180,13 +181,15 @@ Este documento es un modelo de amenazas que organiza las principales amenazas, v
 | T1: Prompt Injection | — | ✅ | — | — | — | — | ✅ | — |
 | T2: Retrieval Poisoning | — | ✅ | — | — | ✅ | — | ✅ | — |
 | T3: Cross-User Leakage | — | — | ✅ | ✅ | — | — | ✅ | — |
-| T4: Stale ACL | — | — | — | ✅ | — | — | ✅ | — |
+| T4: Stale ACL | — | — | — | — | — | — | ✅ | — |
 | T5: Over-Permissive Cache | — | — | ✅ | ✅ | — | — | ✅ | — |
 | T6: Agent Tool Abuse | — | ✅ | — | — | ✅ | — | ✅ | ✅ |
 | T7: Audit Log Tampering | — | — | — | — | ✅ | ✅ | — | — |
 | T8: Misconfigured IdP | — | — | — | ✅ | ✅ | — | ✅ | — |
 | T9: Metadata Leakage | — | — | — | — | ✅ | ✅ | ✅ | — |
 | T10: Cost Abuse | ✅ | — | — | — | — | — | ✅ | ✅ |
+
+> **Sobre el Fail-Closed para T4**: el Fail-Closed actúa cuando no se pueden obtener los metadatos de permisos. Si los metadatos existen y son más permisivos que la ACL, la comprobación pasa, por lo que no constituye una mitigación de T4.
 
 ---
 
@@ -197,7 +200,7 @@ Este documento es un modelo de amenazas que organiza las principales amenazas, v
 | T1: Prompt Injection | Alto | Medio | Medio | P1 |
 | T2: Retrieval Poisoning | Bajo | Alto | Bajo | P2 |
 | T3: Cross-User Leakage | Bajo | Alto | Bajo | P1 |
-| T4: Stale ACL | Medio | Medio | Medio | P2 |
+| T4: Stale ACL | Alta | Alto | Alto | P1 |
 | T5: Over-Permissive Cache | Bajo | Alto | Bajo | P3 |
 | T6: Agent Tool Abuse | Medio | Alto | Medio | P1 |
 | T7: Audit Log Tampering | Bajo | Alto | Bajo | P2 |
@@ -215,13 +218,14 @@ Este documento es un modelo de amenazas que organiza las principales amenazas, v
 2. **Implementación de Human Approval para invocaciones de herramientas del Agent** — Contramedida para T6
 3. **Establecimiento de proceso de auditoría periódica de configuración del IdP** — Contramedida para T8
 4. **Incorporación de pruebas de matriz de permisos en CI/CD** — Contramedida para T3
+5. **Establecimiento de una vía ACL → metadatos de permisos** — Contramedida para T4. Automatizarla o documentarla como procedimiento operativo
 
 ### Respuesta a corto plazo (P2)
 
-5. **Protección de registros de auditoría con S3 Object Lock** — Contramedida para T7
-6. **Detección inmediata de eventos de cambio de ACL** — Contramedida para T4
-7. **Validación de contenido al ingerir documentos** — Contramedida para T2
-8. **AWS Budgets + límite de consultas por usuario** — Contramedida para T10
+6. **Protección de registros de auditoría con S3 Object Lock** — Contramedida para T7
+7. **Auditoría periódica de diferencias entre las ACL y `.metadata.json`** — Contramedida para T4
+8. **Validación de contenido al ingerir documentos** — Contramedida para T2
+9. **AWS Budgets + límite de consultas por usuario** — Contramedida para T10
 
 ### Respuesta a medio plazo (P3)
 

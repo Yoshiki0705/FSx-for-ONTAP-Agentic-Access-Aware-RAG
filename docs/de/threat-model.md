@@ -3,6 +3,7 @@
 **🌐 Language:** [日本語](../threat-model.md) | [English](../en/threat-model.md) | [한국어](../ko/threat-model.md) | [简体中文](../zh-CN/threat-model.md) | [繁體中文](../zh-TW/threat-model.md) | [Français](../fr/threat-model.md) | **Deutsch** | [Español](../es/threat-model.md)
 
 **Erstellungsdatum**: 2026-05-21  
+**Aktualisiert**: 2026-09-07 (Gegenmaßnahmen und Bewertung von T4 nach Prüfung der Implementierung korrigiert)  
 **Status**: Entwurf  
 **Zielgruppe**: Sicherheitsarchitekten, Bedrohungsmodellierung-Verantwortliche, CISOs
 
@@ -82,12 +83,12 @@ Dieses Dokument ist ein Bedrohungsmodell, das die wichtigsten Bedrohungen, Angri
 
 | Element | Details |
 |---------|---------|
-| **Bedrohung** | Datei-ACL wurde geändert, aber veraltete Berechtigungen verbleiben in den Vektorspeicher-Metadaten oder im Berechtigungscache |
-| **Angriffsvektor** | ACL-Änderung → Metadaten nicht aktualisiert → Suche mit alten Berechtigungen möglich |
-| **Auswirkung** | Mittel — Zugriff für einen bestimmten Zeitraum nach Berechtigungsentzug möglich (maximal 35 Minuten) |
-| **Bestehende Gegenmaßnahmen** | KB Auto-Sync (15-Minuten-Intervall), Berechtigungscache-TTL (5 Minuten), Notfall-Berechtigungsentzugsverfahren |
-| **Zusätzliche Empfehlungen** | Sofortige Erkennung von ACL-Änderungsereignissen (FSx Audit Log → EventBridge), Prüfung der Cache-TTL-Verkürzung, Berechtigungsänderungs-Auditprotokoll |
-| **Restrisiko** | Aufgrund des Eventually-Consistent-Modells ist eine vollständige Echtzeit-Synchronisation nicht möglich. Im Notfall wird manueller Entzug durchgeführt |
+| **Bedrohung** | Eine Datei-ACL ändert sich, der Berechtigungsindex (`.metadata.json`) zieht jedoch nicht nach: ein Index, der laxer als die ACL ist, wird weiterhin für die Suche verwendet |
+| **Angriffsvektor** | ACL-Änderung → `.metadata.json` nicht aktualisiert → Suche mit alten Berechtigungen möglich |
+| **Auswirkung** | Hoch — besteht unbefristet, bis ein Betreiber `.metadata.json` neu erzeugt. Es heilt nicht mit der Zeit |
+| **Bestehende Gegenmaßnahmen** | Notfall-Entzugsverfahren (Löschen in `user-access` auf Benutzerseite + erzwungenes Leeren des Caches + Sitzungsinvalidierung), Berechtigungscache-TTL (5 Minuten — bei laxem Index wird damit nur die laxe Entscheidung erneut gecacht), Auditprotokoll |
+| **Zusätzliche Empfehlungen** | Einen Pfad ACL → Berechtigungsmetadaten etablieren (automatisiert oder als Betriebsverfahren dokumentiert), periodischer Abgleich zwischen ACLs und `.metadata.json`, Erkennung von ACL-Änderungsereignissen (FSx Audit Log → EventBridge), Betriebsregel, ACL-Änderungen nicht als Entzugsmechanismus zu verwenden |
+| **Restrisiko** | Hoch — der Berechtigungsindex ist keine Projektion der ACL, und kein Mechanismus zieht ACL-Änderungen automatisch nach. **KB Auto-Sync propagiert nur Änderungen an `.metadata.json` und erkennt keine ACL-Änderungen** (Abgleich über `size` / `lastModified` / `ETag`). Fail-Closed greift bei Dokumenten ohne Metadaten, nicht bei vorhandenen, zu großzügigen Metadaten |
 
 **Details**: Siehe [permission-consistency.md](permission-consistency.md)
 
@@ -181,13 +182,15 @@ Dieses Dokument ist ein Bedrohungsmodell, das die wichtigsten Bedrohungen, Angri
 | T1: Prompt Injection | — | ✅ | — | — | — | — | ✅ | — |
 | T2: Retrieval Poisoning | — | ✅ | — | — | ✅ | — | ✅ | — |
 | T3: Cross-User Leakage | — | — | ✅ | ✅ | — | — | ✅ | — |
-| T4: Stale ACL | — | — | — | ✅ | — | — | ✅ | — |
+| T4: Stale ACL | — | — | — | — | — | — | ✅ | — |
 | T5: Over-Permissive Cache | — | — | ✅ | ✅ | — | — | ✅ | — |
 | T6: Agent Tool Abuse | — | ✅ | — | — | ✅ | — | ✅ | ✅ |
 | T7: Audit Log Tampering | — | — | — | — | ✅ | ✅ | — | — |
 | T8: Misconfigured IdP | — | — | — | ✅ | ✅ | — | ✅ | — |
 | T9: Metadata Leakage | — | — | — | — | ✅ | ✅ | ✅ | — |
 | T10: Cost Abuse | ✅ | — | — | — | — | — | ✅ | ✅ |
+
+> **Zum Fail-Closed bei T4**: Fail-Closed greift, wenn Berechtigungsmetadaten nicht abgerufen werden können. Sind die Metadaten vorhanden und laxer als die ACL, passiert die Prüfung — es ist damit keine Gegenmaßnahme für T4.
 
 ---
 
@@ -198,7 +201,7 @@ Dieses Dokument ist ein Bedrohungsmodell, das die wichtigsten Bedrohungen, Angri
 | T1: Prompt Injection | Hoch | Mittel | Mittel | P1 |
 | T2: Retrieval Poisoning | Niedrig | Hoch | Niedrig | P2 |
 | T3: Cross-User Leakage | Niedrig | Hoch | Niedrig | P1 |
-| T4: Stale ACL | Mittel | Mittel | Mittel | P2 |
+| T4: Stale ACL | Hoch | Hoch | Hoch | P1 |
 | T5: Over-Permissive Cache | Niedrig | Hoch | Niedrig | P3 |
 | T6: Agent Tool Abuse | Mittel | Hoch | Mittel | P1 |
 | T7: Audit Log Tampering | Niedrig | Hoch | Niedrig | P2 |
@@ -216,13 +219,14 @@ Dieses Dokument ist ein Bedrohungsmodell, das die wichtigsten Bedrohungen, Angri
 2. **Implementierung von Human Approval für Agent-Tool-Aufrufe** — Gegenmaßnahme für T6
 3. **Etablierung eines regelmäßigen IdP-Konfigurationsaudit-Prozesses** — Gegenmaßnahme für T8
 4. **Integration von Berechtigungsmatrix-Tests in CI/CD** — Gegenmaßnahme für T3
+5. **Etablierung eines Pfades ACL → Berechtigungsmetadaten** — Gegenmaßnahme für T4. Automatisieren oder als Betriebsverfahren dokumentieren
 
 ### Kurzfristige Maßnahmen (P2)
 
-5. **Schutz der Auditprotokolle durch S3 Object Lock** — Gegenmaßnahme für T7
-6. **Sofortige Erkennung von ACL-Änderungsereignissen** — Gegenmaßnahme für T4
-7. **Inhaltsvalidierung bei Dokumenteneinspeisung** — Gegenmaßnahme für T2
-8. **AWS Budgets + benutzerspezifische Abfrageobergrenze** — Gegenmaßnahme für T10
+6. **Schutz der Auditprotokolle durch S3 Object Lock** — Gegenmaßnahme für T7
+7. **Periodischer Abgleich zwischen ACLs und `.metadata.json`** — Gegenmaßnahme für T4
+8. **Inhaltsvalidierung bei Dokumenteneinspeisung** — Gegenmaßnahme für T2
+9. **AWS Budgets + benutzerspezifische Abfrageobergrenze** — Gegenmaßnahme für T10
 
 ### Mittelfristige Maßnahmen (P3)
 

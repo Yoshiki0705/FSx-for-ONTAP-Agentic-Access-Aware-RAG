@@ -3,6 +3,7 @@
 **🌐 Language:** [日本語](../threat-model.md) | **English** | [한국어](../ko/threat-model.md) | [简体中文](../zh-CN/threat-model.md) | [繁體中文](../zh-TW/threat-model.md) | [Français](../fr/threat-model.md) | [Deutsch](../de/threat-model.md) | [Español](../es/threat-model.md)
 
 **Created**: 2026-05-21  
+**Updated**: 2026-09-07 (T4 mitigations and rating corrected after verifying the implementation)  
 **Status**: Draft  
 **Audience**: Security Architects, Threat Modeling Practitioners, CISOs
 
@@ -81,12 +82,12 @@ This document is a threat model that organizes the major threats, attack vectors
 
 | Item | Details |
 |------|---------|
-| **Threat** | File ACLs are changed but stale permissions remain in vector store metadata or permission cache |
-| **Attack Vector** | ACL change → Metadata not updated → Searchable with old permissions |
-| **Impact** | Medium — Access remains possible for a period after permission revocation (up to 35 minutes) |
-| **Existing Mitigations** | KB Auto-Sync (15-minute intervals), permission cache TTL (5 minutes), emergency permission revocation procedure |
-| **Additional Recommendations** | Immediate ACL change event detection (FSx Audit Log → EventBridge), consider shorter cache TTL, permission change audit log |
-| **Residual Risk** | Complete real-time reflection is impossible due to the Eventually Consistent model. Manual revocation handles emergencies |
+| **Threat** | A file ACL changes but the permission index (`.metadata.json`) does not follow, so an index looser than the ACL keeps being used for search |
+| **Attack Vector** | ACL change → `.metadata.json` not updated → searchable with old permissions |
+| **Impact** | High — it persists indefinitely until an operator regenerates `.metadata.json`. It does not heal with time |
+| **Existing Mitigations** | Emergency revocation procedure (delete from `user-access` on the user side + force-clear the cache + invalidate the session), permission cache TTL (5 minutes — though with a loose index this only re-caches the loose decision), audit log |
+| **Additional Recommendations** | Establish an ACL → permission metadata path (automated or documented as an operational procedure), periodic diff audit between ACLs and `.metadata.json`, ACL change event detection (FSx Audit Log → EventBridge), an operating rule not to use ACL changes as a revocation mechanism |
+| **Residual Risk** | High — the permission index is not a projection of the ACL, and no mechanism tracks ACL changes automatically. **KB Auto-Sync only propagates changes to `.metadata.json`; it does not detect ACL changes** (its diff is on `size` / `lastModified` / `ETag`). Fail-Closed covers documents with no metadata, not metadata that exists and is too permissive |
 
 **Details**: See [permission-consistency.md](../permission-consistency.md)
 
@@ -179,13 +180,15 @@ This document is a threat model that organizes the major threats, attack vectors
 | T1: Prompt Injection | — | ✅ | — | — | — | — | ✅ | — |
 | T2: Retrieval Poisoning | — | ✅ | — | — | ✅ | — | ✅ | — |
 | T3: Cross-User Leakage | — | — | ✅ | ✅ | — | — | ✅ | — |
-| T4: Stale ACL | — | — | — | ✅ | — | — | ✅ | — |
+| T4: Stale ACL | — | — | — | — | — | — | ✅ | — |
 | T5: Over-Permissive Cache | — | — | ✅ | ✅ | — | — | ✅ | — |
 | T6: Agent Tool Abuse | — | ✅ | — | — | ✅ | — | ✅ | ✅ |
 | T7: Audit Log Tampering | — | — | — | — | ✅ | ✅ | — | — |
 | T8: Misconfigured IdP | — | — | — | ✅ | ✅ | — | ✅ | — |
 | T9: Metadata Leakage | — | — | — | — | ✅ | ✅ | ✅ | — |
 | T10: Cost Abuse | ✅ | — | — | — | — | — | ✅ | ✅ |
+
+> **On Fail-Closed for T4**: Fail-Closed triggers when permission metadata cannot be retrieved. When the metadata exists and is looser than the ACL, the check passes, so it is not a mitigation for T4.
 
 ---
 
@@ -196,7 +199,7 @@ This document is a threat model that organizes the major threats, attack vectors
 | T1: Prompt Injection | High | Medium | Medium | P1 |
 | T2: Retrieval Poisoning | Low | High | Low | P2 |
 | T3: Cross-User Leakage | Low | High | Low | P1 |
-| T4: Stale ACL | Medium | Medium | Medium | P2 |
+| T4: Stale ACL | High | High | High | P1 |
 | T5: Over-Permissive Cache | Low | High | Low | P3 |
 | T6: Agent Tool Abuse | Medium | High | Medium | P1 |
 | T7: Audit Log Tampering | Low | High | Low | P2 |
@@ -214,13 +217,14 @@ This document is a threat model that organizes the major threats, attack vectors
 2. **Implement Human Approval for Agent tool invocations** — T6 countermeasure
 3. **Establish periodic IdP configuration audit process** — T8 countermeasure
 4. **Integrate permission matrix tests into CI/CD** — T3 countermeasure
+5. **Establish an ACL → permission metadata path** — T4 countermeasure. Automate it, or document it as an operational procedure
 
 ### Short-term Response (P2)
 
-5. **Protect audit logs with S3 Object Lock** — T7 countermeasure
-6. **Immediate ACL change event detection** — T4 countermeasure
-7. **Content validation on document ingestion** — T2 countermeasure
-8. **AWS Budgets + per-user query limits** — T10 countermeasure
+6. **Protect audit logs with S3 Object Lock** — T7 countermeasure
+7. **Periodic diff audit between ACLs and `.metadata.json`** — T4 countermeasure
+8. **Content validation on document ingestion** — T2 countermeasure
+9. **AWS Budgets + per-user query limits** — T10 countermeasure
 
 ### Medium-term Response (P3)
 
