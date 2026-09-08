@@ -144,7 +144,7 @@ Dieses Dokument bietet eine Checkliste der zu überprüfenden Punkte bei der Mig
 
 ### 8. Tests
 
-- [ ] Berechtigungsmatrix-Tests ausführen (siehe [tests/permission-matrix/](../tests/permission-matrix/))
+- [ ] Berechtigungsmatrix-Tests ausführen (siehe [tests/permission-matrix/](../../tests/permission-matrix/))
 - [ ] Lasttests (2x erwartete gleichzeitige Benutzer)
 - [ ] Sicherheitstests (Penetrationstests)
 - [ ] DR-Tests (Failover / Failback)

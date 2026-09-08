@@ -85,4 +85,4 @@
 | [PoC Success Criteria Template](poc-success-criteria-template.md) | Next-step agreement |
 | [Data Readiness Assessment](data-readiness-assessment.md) | Follow-up delivery |
 | [Cost Estimation Worksheet](cost-estimation-worksheet.md) | Cost explanation |
-| [demo-data/guides/demo-scenario.md](../demo-data/guides/demo-scenario.md) | Detailed demo scenarios |
+| [demo-data/guides/demo-scenario.md](../../demo-data/guides/demo-scenario.md) | Detailed demo scenarios |

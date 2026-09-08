@@ -295,4 +295,4 @@ aws fsx update-file-system \
 | [permission-consistency.md](permission-consistency.md) | 권한 메타데이터 변경 일관성 모델 |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | S3 Vectors + SID 아키텍처 |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3구성 비교 |
-| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx for ONTAP 운영 자동화 |
+| [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | FSx for ONTAP 운영 자동화 |

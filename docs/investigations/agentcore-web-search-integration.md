@@ -249,7 +249,7 @@ FSx for ONTAP AI/RAG アーキテクチャレビューの非交渉要件に直�
 | 1. インジェクション防御 | ✅ 完了 | `docker/nextjs/src/lib/web-search/untrusted-content.ts`（34/34 テスト） |
 | 2. UI トグル + バッジ分離 | ✅ 完了 | `WebSearchToggle.tsx`, `CitationDisplay.tsx`, 8 言語 i18n |
 | 3. us-east-1 不整合の解消 | ✅ 完了 | ap-northeast-1 gateway から target 撤去 → synth warning 化 |
-| 4. us-east-1 Gateway（PoC / Option B） | ✅ 完了 | `development/cfn/` + `development/scripts/web-search/`（§10） |
+| 4. us-east-1 Gateway（PoC / Option B） | ✅ 完了（ローカル環境。成果物はリポジトリに含まれない） | 再現手段は §10 / §11 の CDK スタック |
 | 5. Lambda WebSearchClient（inline） | ✅ 完了 | `lambda/web-search/`（18/18 テスト、§11） |
 | 6. CDK IaC 化（Option A / 本番） | ✅ 完了 | `lib/stacks/demo/demo-web-search-gateway-stack.ts`（§11） |
 
@@ -321,28 +321,22 @@ agentcore.create_gateway_target(
 
 ## 10. Step 4 成果物（PoC デプロイ自動化）
 
-§9.1 の手動 PoC を自動化するスクリプトとテンプレートを本リポジトリに追加。
+§9.1 の手動 PoC は、ローカル作業環境のスクリプトと CFn テンプレートで自動化した。**これらはリポジトリに含まれていない**（`development/` は `.gitignore` 対象）。target 作成に `mcpServer` 形状を使う暫定実装だったため、成果物としても残していない。
 
-| ファイル | 用途 |
-|---------|------|
-| `development/cfn/agentcore-web-search-gateway-role.yaml` | us-east-1 IAM ロール CFn テンプレート |
-| `development/scripts/web-search/deploy-us-east-1-gateway.sh` | Phase 1-3 自動デプロイ（Role → Gateway → Target） |
-| `development/scripts/web-search/teardown-us-east-1-gateway.sh` | 逆順撤去（Target → Gateway → CFn Stack） |
+**リポジトリから再現する手段は §11 の CDK スタックである。** 以下で us-east-1 の Gateway と Web Search target が作成される。
 
-**使い方:**
 ```bash
-# デプロイ
-bash development/scripts/web-search/deploy-us-east-1-gateway.sh
+# デプロイ（IAM ロール → Gateway → Web Search target）
+npx cdk deploy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 
 # 成果物確認
 aws bedrock-agent-core get-gateway --gateway-identifier <ID> --region us-east-1
 
 # 撤去
-bash development/scripts/web-search/teardown-us-east-1-gateway.sh
+npx cdk destroy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 ```
 
-**注意:** スクリプト内の `create-gateway-target` は §9.1 で確認した `connector` 形状ではなく
-`mcpServer` 形状を使用している（作成時点での暫定実装）。本番移行時に `connector` 形状へ修正すること。
+CDK 側は §9.1 で確認した `connector` 形状（`mcp.connector.source.connectorId: "web-search"`）を使用している。
 
 ---
 

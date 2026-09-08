@@ -224,7 +224,7 @@ Les fonctionnalités suivantes ne sont pas actuellement implémentées mais sont
 
 | Document | Contenu |
 |----------|---------|
-| [README.md](../README.md) | Procédures de déploiement et liste des paramètres de contexte CDK |
+| [README.md](../../README.fr.md) | Procédures de déploiement et liste des paramètres de contexte CDK |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Conception du filtrage SID et détails des chemins d'ingestion de données |
 | [embedding-server-design.md](embedding-server-design.md) | Conception du serveur d'Embedding (incluant la récupération automatique des ACL ONTAP) |
 | [ui-specification.md](ui-specification.md) | Spécification de l'interface utilisateur (interface carte, basculement mode KB/Agent) |

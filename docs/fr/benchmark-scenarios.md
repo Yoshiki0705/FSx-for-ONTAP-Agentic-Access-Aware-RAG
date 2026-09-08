@@ -106,7 +106,7 @@ bash benchmarks/scripts/run-benchmark.sh \
 
 ## Estimations théoriques de référence
 
-> Pour plus de détails, voir [benchmarks/results/baseline-estimates.md](../benchmarks/results/baseline-estimates.md)
+> Pour plus de détails, voir [benchmarks/results/baseline-estimates.md](../../benchmarks/results/baseline-estimates.md)
 
 | Échelle | Retrieve P50 (S3V) | Retrieve P50 (AOSS) | End-to-End P50 | KB Sync (initial) |
 |---------|--------------------|--------------------|----------------|-------------------|

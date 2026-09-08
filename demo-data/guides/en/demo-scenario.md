@@ -51,7 +51,7 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 | Security groups | Allow ports 389/636 from Lambda SG |
 | VPC placement | CDK auto-places Lambda in VPC when `ldapConfig` specified |
 
-See [Authentication Mode Setup Guide](en/auth-mode-setup-guide.md) for full setup instructions.
+See [Authentication Mode Setup Guide](auth-mode-setup-guide.md) for full setup instructions.
 
 
 ---

@@ -145,7 +145,7 @@
 
 ### 8. 測試
 
-- [ ] 執行權限矩陣測試（參見 [tests/permission-matrix/](../tests/permission-matrix/)）
+- [ ] 執行權限矩陣測試（參見 [tests/permission-matrix/](../../tests/permission-matrix/)）
 - [ ] 負載測試（預期並行使用者的 2 倍）
 - [ ] 安全性測試（滲透測試）
 - [ ] DR 測試（容錯移轉 / 容錯回復）

@@ -106,7 +106,7 @@ bash benchmarks/scripts/run-benchmark.sh \
 
 ## 理論基準估算值
 
-> 詳情請參閱 [benchmarks/results/baseline-estimates.md](../benchmarks/results/baseline-estimates.md)
+> 詳情請參閱 [benchmarks/results/baseline-estimates.md](../../benchmarks/results/baseline-estimates.md)
 
 | 規模 | Retrieve P50 (S3V) | Retrieve P50 (AOSS) | End-to-End P50 | KB Sync（初始） |
 |------|--------------------|--------------------|----------------|----------------|

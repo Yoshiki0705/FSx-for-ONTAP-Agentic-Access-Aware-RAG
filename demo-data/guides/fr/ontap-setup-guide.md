@@ -78,4 +78,4 @@ Une suite d'automatisation autonome avec Lambda + Step Functions est disponible 
 | Exécution API ONTAP | Exécution sécurisée de l'API REST ONTAP via Lambda |
 | Prétraitement de données | Prétraitement IA/analytique via FSx for ONTAP S3 Access Point |
 
-Détails : [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md)
+Détails : [automation/fsxn-ops/README.md](../../../automation/fsxn-ops/README.md)

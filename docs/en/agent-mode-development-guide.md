@@ -677,7 +677,7 @@ docker build --no-cache --pull \
 mv docker/nextjs/.dockerignore.bak docker/nextjs/.dockerignore
 
 # 6. Docker Image verification (required!)
-./development/scripts/temp/verify-docker-image.sh \
+bash scripts/verify-docker-image.sh \
   permission-aware-rag-webapp:agent-mode-fix-v22
 
 if [ $? -ne 0 ]; then

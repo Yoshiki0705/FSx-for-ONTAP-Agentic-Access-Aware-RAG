@@ -1,6 +1,8 @@
 # デプロイガイド: 既存 FSx for ONTAP 環境への統合
 
-**Language:** **日本語** | [English](deployment-guide.md) | [한국어](ko/deployment-guide.md) | [简体中文](zh-CN/deployment-guide.md) | [繁體中文](zh-TW/deployment-guide.md) | [Français](fr/deployment-guide.md) | [Deutsch](de/deployment-guide.md) | [Español](es/deployment-guide.md)
+**Language:** **日本語** | [English](deployment-guide.md)
+
+> このガイドは日本語版と英語版のみです。他言語は各言語の README から入り、デプロイ手順はこのガイドを参照してください。
 
 **作成日**: 2026-07  
 **ステータス**: アクティブ  
@@ -13,8 +15,8 @@
 経験者向けの最短手順:
 
 ```bash
-git clone https://github.com/Yoshiki0705/Permission-aware-RAG-FSxN-CDK.git
-cd Permission-aware-RAG-FSxN-CDK && npm ci
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG && npm ci
 
 # 1. CDK ブートストラップ（両リージョン — アカウントごとに1回）
 npx cdk bootstrap aws://ACCOUNT_ID/ap-northeast-1
@@ -185,8 +187,8 @@ npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output t
 ### 3.2 クローンとインストール
 
 ```bash
-git clone https://github.com/Yoshiki0705/Permission-aware-RAG-FSxN-CDK.git
-cd Permission-aware-RAG-FSxN-CDK
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG
 npm ci
 ```
 
@@ -430,8 +432,9 @@ aws cloudfront list-distributions \
 ### 7.2 アプリケーション更新
 
 ```bash
-# フロントエンドのみ更新（約 3 分）
-bash development/scripts/deploy-webapp.sh
+# フロントエンドのみ更新（約 3 分）: イメージをビルド＆プッシュして Lambda を更新する。
+# コマンド一式は operations-runbook.md の「3. WebApp Docker ビルド＆デプロイ」を参照
+
 
 # 全スタック更新（CDK コンストラクト変更時）
 npx cdk deploy --all --require-approval never

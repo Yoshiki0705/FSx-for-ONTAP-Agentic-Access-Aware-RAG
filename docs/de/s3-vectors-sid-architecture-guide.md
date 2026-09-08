@@ -168,5 +168,3 @@ E2E-Verifizierung der S3 Vectors-Konfiguration wurde mit allen 6 bereitgestellte
 |----------|--------|
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Details zum SID-Filterungsdesign |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3-Konfigurationen-Vergleichstabelle und Implementierungserkenntnisse |
-| [.kiro/specs/s3-vectors-integration/design.md](../.kiro/specs/s3-vectors-integration/design.md) | Technisches Designdokument |
-| [.kiro/specs/s3-vectors-integration/requirements.md](../.kiro/specs/s3-vectors-integration/requirements.md) | Anforderungsdokument |

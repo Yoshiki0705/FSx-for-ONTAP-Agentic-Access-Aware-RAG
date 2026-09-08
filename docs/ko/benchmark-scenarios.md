@@ -106,7 +106,7 @@ bash benchmarks/scripts/run-benchmark.sh \
 
 ## 이론적 베이스라인 추정값
 
-> 상세 내용은 [benchmarks/results/baseline-estimates.md](../benchmarks/results/baseline-estimates.md) 참조
+> 상세 내용은 [benchmarks/results/baseline-estimates.md](../../benchmarks/results/baseline-estimates.md) 참조
 
 | 규모 | Retrieve P50 (S3V) | Retrieve P50 (AOSS) | End-to-End P50 | KB Sync (초기) |
 |------|--------------------|--------------------|----------------|---------------|

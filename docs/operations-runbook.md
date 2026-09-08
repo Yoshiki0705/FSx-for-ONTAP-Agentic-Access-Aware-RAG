@@ -182,19 +182,9 @@ aws bedrock-agent-runtime retrieve \
 
 ### 背景
 
-ソースコード変更後、Docker layer cache が古いソースを使い回す問題が頻発した。`--no-cache` をデフォルトにすることで解決。
+ソースコード変更後、Docker layer cache が古いソースを使い回す問題が頻発した。**ソース変更時は必ず `--no-cache` を付ける。**
 
-### 手順（推奨）
-
-```bash
-# ローカルスクリプト（development/ は gitignored）
-./development/scripts/deploy-webapp.sh
-
-# デフォルト: --no-cache 付きビルド
-# キャッシュ有効化: ./development/scripts/deploy-webapp.sh --use-cache
-```
-
-### 手動実行
+### 手順
 
 ```bash
 ECR_REGISTRY="123456789012.dkr.ecr.ap-northeast-1.amazonaws.com"

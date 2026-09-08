@@ -78,4 +78,4 @@ Eine eigenständige Automatisierungssuite mit Lambda + Step Functions ist unter 
 | ONTAP API-Ausführung | Sichere ONTAP REST API-Ausführung über Lambda |
 | Datenvorverarbeitung | AI/Analytics-Vorverarbeitung über FSx for ONTAP S3 Access Point |
 
-Details: [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md)
+Details: [automation/fsxn-ops/README.md](../../../automation/fsxn-ops/README.md)

@@ -153,7 +153,7 @@ sftp -i /path/to/private-key \
 
 ### Transfer Family 服务器详情
 
-![Transfer Family Server Detail](screenshots/transfer-family-server-detail.png)
+![Transfer Family Server Detail](../screenshots/transfer-family-server-detail.png)
 
 - Status: **Online**
 - Protocol: **SFTP**
@@ -164,14 +164,14 @@ sftp -i /path/to/private-key \
 
 ### Ingestion Trigger Lambda 监控
 
-![Ingestion Trigger Lambda](screenshots/transfer-family-ingestion-trigger-lambda.png)
+![Ingestion Trigger Lambda](../screenshots/transfer-family-ingestion-trigger-lambda.png)
 
 - Lambda 函数名: `v4-test-demo-ingestion-trigger`
 - 已确认执行成功
 
 ### Bedrock KB 摄取完成
 
-![KB Ingestion Complete](screenshots/transfer-family-kb-ingestion-complete.png)
+![KB Ingestion Complete](../screenshots/transfer-family-kb-ingestion-complete.png)
 
 - Knowledge Base ID: `OBKM84FBQK`
 - Data Source ID: `XPJGH2MCBN`

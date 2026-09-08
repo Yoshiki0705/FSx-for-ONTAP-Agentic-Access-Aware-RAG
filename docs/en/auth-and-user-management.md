@@ -473,15 +473,15 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 
 SAML + OIDC hybrid sign-in page:
 
-![Sign-in page (SAML + OIDC Hybrid)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![Sign-in page (SAML + OIDC Hybrid)](../screenshots/signin-page-saml-oidc-hybrid.png)
 
 Auth0 OIDC login page:
 
-![Auth0 OIDC Login Page](../docs/screenshots/oidc-auth0-login-page.png)
+![Auth0 OIDC Login Page](../screenshots/oidc-auth0-login-page.png)
 
 Chat page after Auth0 OIDC sign-in:
 
-![Chat page after OIDC sign-in](../docs/screenshots/oidc-auth0-signin-success.png)
+![Chat page after OIDC sign-in](../screenshots/oidc-auth0-signin-success.png)
 
 ---
 

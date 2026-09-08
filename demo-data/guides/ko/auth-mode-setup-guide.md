@@ -214,5 +214,5 @@ bash demo-data/scripts/cleanup-all.sh
 
 ## 관련 문서
 
-- [인증 및 사용자 관리 가이드](../../docs/ko/auth-and-user-management.md)
+- [인증 및 사용자 관리 가이드](../../../docs/ko/auth-and-user-management.md)
 - [FSx for ONTAP Setup Guide](ontap-setup-guide.md)

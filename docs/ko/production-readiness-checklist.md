@@ -144,7 +144,7 @@
 
 ### 8. 테스트
 
-- [ ] 권한 매트릭스 테스트 실행 ([tests/permission-matrix/](../tests/permission-matrix/) 참조)
+- [ ] 권한 매트릭스 테스트 실행 ([tests/permission-matrix/](../../tests/permission-matrix/) 참조)
 - [ ] 부하 테스트 (예상 동시 사용자의 2배)
 - [ ] 보안 테스트 (침투 테스트)
 - [ ] DR 테스트 (페일오버 / 페일백)

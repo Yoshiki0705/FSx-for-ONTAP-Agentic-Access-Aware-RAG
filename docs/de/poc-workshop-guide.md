@@ -245,7 +245,7 @@ Nach Abschluss des Workshops folgende Punkte in Betracht ziehen:
 
 | Dokument | Inhalt |
 |----------|--------|
-| [README.md](../README.md) | Systemgesamtbild, Bereitstellungsverfahren |
+| [README.md](../../README.de.md) | Systemgesamtbild, Bereitstellungsverfahren |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Leitfaden für sicheres Experimentieren |
 | [evaluation.md](evaluation.md) | RAG / Agent-Bewertungsmetriken |
 | [threat-model.md](threat-model.md) | Bedrohungsmodell |

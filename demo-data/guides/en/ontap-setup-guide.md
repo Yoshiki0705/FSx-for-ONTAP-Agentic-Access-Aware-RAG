@@ -103,4 +103,4 @@ aws fsx create-and-attach-s3-access-point \
   --ontap-configuration '{"VolumeId":"<VOLUME_ID>","FileSystemIdentity":{"Type":"UNIX","UnixUser":{"Name":"root"}}}'
 ```
 
-Details: [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md)
+Details: [automation/fsxn-ops/README.md](../../../automation/fsxn-ops/README.md)

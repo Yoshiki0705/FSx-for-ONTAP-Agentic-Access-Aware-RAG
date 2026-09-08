@@ -153,7 +153,7 @@ For Transfer Family users to read and write files, the S3 Access Point's file sy
 
 ### Transfer Family Server Details
 
-![Transfer Family Server Detail](screenshots/transfer-family-server-detail.png)
+![Transfer Family Server Detail](../screenshots/transfer-family-server-detail.png)
 
 - Status: **Online**
 - Protocol: **SFTP**
@@ -164,14 +164,14 @@ For Transfer Family users to read and write files, the S3 Access Point's file sy
 
 ### Ingestion Trigger Lambda Monitoring
 
-![Ingestion Trigger Lambda](screenshots/transfer-family-ingestion-trigger-lambda.png)
+![Ingestion Trigger Lambda](../screenshots/transfer-family-ingestion-trigger-lambda.png)
 
 - Lambda function name: `v4-test-demo-ingestion-trigger`
 - Execution success confirmed
 
 ### Bedrock KB Ingestion Complete
 
-![KB Ingestion Complete](screenshots/transfer-family-kb-ingestion-complete.png)
+![KB Ingestion Complete](../screenshots/transfer-family-kb-ingestion-complete.png)
 
 - Knowledge Base ID: `OBKM84FBQK`
 - Data Source ID: `XPJGH2MCBN`

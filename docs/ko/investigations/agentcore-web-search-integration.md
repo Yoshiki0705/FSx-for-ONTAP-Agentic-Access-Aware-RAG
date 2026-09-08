@@ -6,7 +6,7 @@
 **대상 리전**: 메인 스택 ap-northeast-1 / Web Search Tool은 us-east-1(후술·확인 필요)
 **상태**: 조사 문서(설계 검토 / 미구현)
 **관련**:
-- 기존 구현: [claude-platform-integration.md](../claude-platform-integration.md)(Claude Platform on AWS Web Search 폴백)
+- 기존 구현: [claude-platform-integration.md](../../claude-platform-integration.md)(Claude Platform on AWS Web Search 폴백)
 - 연계원(다른 리포지토리의 선행 산출물): `fsxn-s3ap-serverless-patterns/docs/investigations/agentcore-web-search-fsxn-integration.md`, `shared/web_search_client.py`, `shared/cfn/agentcore-gateway-role.yaml`
 
 ---
@@ -310,34 +310,28 @@ agentcore.create_gateway_target(
 
 ## 10. Step 4 산출물(PoC 배포 자동화)
 
-§9.1의 수동 PoC를 자동화하는 스크립트와 템플릿을 본 리포지토리에 추가.
+§9.1의 수동 PoC는 로컬 작업 환경의 스크립트와 CFn 템플릿으로 자동화했다. **이들은 리포지토리에 포함되어 있지 않다**(`development/`는 `.gitignore` 대상). target 생성에 `mcpServer` 형상을 사용하는 잠정 구현이었으므로 산출물로도 남기지 않았다.
 
-| 파일 | 용도 |
-|---------|------|
-| `development/cfn/agentcore-web-search-gateway-role.yaml` | us-east-1 IAM 역할 CFn 템플릿 |
-| `development/scripts/web-search/deploy-us-east-1-gateway.sh` | Phase 1-3 자동 배포(Role → Gateway → Target) |
-| `development/scripts/web-search/teardown-us-east-1-gateway.sh` | 역순 철거(Target → Gateway → CFn Stack) |
+**리포지토리에서 재현하는 수단은 §11의 CDK 스택이다.** 아래로 us-east-1 Gateway와 Web Search target이 생성된다.
 
-**사용법:**
 ```bash
-# 배포
-bash development/scripts/web-search/deploy-us-east-1-gateway.sh
+# 배포(IAM 역할 → Gateway → Web Search target)
+npx cdk deploy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 
 # 산출물 확인
 aws bedrock-agent-core get-gateway --gateway-identifier <ID> --region us-east-1
 
 # 철거
-bash development/scripts/web-search/teardown-us-east-1-gateway.sh
+npx cdk destroy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 ```
 
-**주의:** 스크립트 내의 `create-gateway-target`은 §9.1에서 확인한 `connector` 형상이 아니라
-`mcpServer` 형상을 사용하고 있다(작성 시점의 잠정 구현). 운영 이행 시 `connector` 형상으로 수정할 것.
+CDK 측은 §9.1에서 확인한 `connector` 형상(`mcp.connector.source.connectorId: "web-search"`)을 사용한다.
 
 ---
 
 ## 관련 문서
 
-- [claude-platform-integration.md](../claude-platform-integration.md) — 기존 Web Search 폴백(메커니즘 A)
+- [claude-platform-integration.md](../../claude-platform-integration.md) — 기존 Web Search 폴백(메커니즘 A)
 - [SID-Filtering-Architecture.md](../SID-Filtering-Architecture.md) — Permission-aware의 인가 경계
 - [s3-vectors-sid-architecture-guide.md](../s3-vectors-sid-architecture-guide.md) — 메인 벡터 스토어(S3 Vectors 유지 판단)
 - [managed-kb-migration-evaluation.md](../managed-kb-migration-evaluation.md) — Managed KB 미채용 판단의 관련 검토

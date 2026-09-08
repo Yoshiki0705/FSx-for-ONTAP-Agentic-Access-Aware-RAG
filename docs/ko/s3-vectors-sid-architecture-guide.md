@@ -249,7 +249,7 @@ Agent 모드 교훈:
 
 #### Export 콘솔 화면
 
-![S3 Vectors → OpenSearch Serverless Export 구성 화면](screenshots/s3vectors-export-to-opensearch.png)
+![S3 Vectors → OpenSearch Serverless Export 구성 화면](../screenshots/s3vectors-export-to-opensearch.png)
 
 콘솔은 다음을 자동화합니다:
 - OpenSearch Serverless 벡터 컬렉션 생성 (최대 OCU: 100)
@@ -282,5 +282,3 @@ Agent 모드 교훈:
 |------|------|
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID 필터링 설계 상세 |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3가지 구성 비교표 및 구현 교훈 |
-| [.kiro/specs/s3-vectors-integration/design.md](../.kiro/specs/s3-vectors-integration/design.md) | 기술 설계 문서 |
-| [.kiro/specs/s3-vectors-integration/requirements.md](../.kiro/specs/s3-vectors-integration/requirements.md) | 요구 사항 문서 |

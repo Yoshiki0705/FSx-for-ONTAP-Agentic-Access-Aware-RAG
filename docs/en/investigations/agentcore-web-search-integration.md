@@ -249,7 +249,7 @@ Ordered by lowest dependency and risk. Each step is independently verifiable.
 | 1. Injection defense | ✅ Done | `docker/nextjs/src/lib/web-search/untrusted-content.ts` (34/34 tests) |
 | 2. UI toggle + badge separation | ✅ Done | `WebSearchToggle.tsx`, `CitationDisplay.tsx`, 8-language i18n |
 | 3. Resolve us-east-1 inconsistency | ✅ Done | Removed target from ap-northeast-1 gateway → synth warning |
-| 4. us-east-1 Gateway (PoC / Option B) | ✅ Done | `development/cfn/` + `development/scripts/web-search/` (§10) |
+| 4. us-east-1 Gateway (PoC / Option B) | ✅ Done (local workspace; artifacts not shipped in this repository) | Reproduce via the CDK stack in §10 / §11 |
 | 5. Lambda WebSearchClient (inline) | ✅ Done | `lambda/web-search/` (18/18 tests, §11) |
 | 6. CDK IaC (Option A / production) | ✅ Done | `lib/stacks/demo/demo-web-search-gateway-stack.ts` (§11) |
 
@@ -321,28 +321,22 @@ agentcore.create_gateway_target(
 
 ## 10. Step 4 Artifacts (PoC Deployment Automation)
 
-Scripts and templates automating the manual PoC from §9.1 have been added to this repository.
+The manual PoC from §9.1 was automated with scripts and a CFn template in a local workspace. **Those are not part of this repository** (`development/` is gitignored). They created the target with the interim `mcpServer` shape, so they were not kept as artifacts either.
 
-| File | Purpose |
-|------|---------|
-| `development/cfn/agentcore-web-search-gateway-role.yaml` | us-east-1 IAM role CloudFormation template |
-| `development/scripts/web-search/deploy-us-east-1-gateway.sh` | Automated deploy (Role → Gateway → Target) |
-| `development/scripts/web-search/teardown-us-east-1-gateway.sh` | Reverse teardown (Target → Gateway → CFn Stack) |
+**The reproducible path from this repository is the CDK stack in §11.** It creates the us-east-1 Gateway and the Web Search target.
 
-**Usage:**
 ```bash
-# Deploy
-bash development/scripts/web-search/deploy-us-east-1-gateway.sh
+# Deploy (IAM role → Gateway → Web Search target)
+npx cdk deploy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 
 # Verify
 aws bedrock-agent-core get-gateway --gateway-identifier <ID> --region us-east-1
 
 # Teardown
-bash development/scripts/web-search/teardown-us-east-1-gateway.sh
+npx cdk destroy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 ```
 
-**Note:** The deploy script's `create-gateway-target` uses the `mcpServer` shape (interim).
-For production, update to the verified `connector` shape from §9.1.
+The CDK path uses the `connector` shape verified in §9.1 (`mcp.connector.source.connectorId: "web-search"`).
 
 ---
 

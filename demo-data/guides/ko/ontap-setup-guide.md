@@ -78,4 +78,4 @@ Lambda + Step Functions를 사용한 독립형 자동화 스위트가 `automatio
 | ONTAP API 실행 | Lambda를 통한 안전한 ONTAP REST API 실행 |
 | 데이터 전처리 | FSx for ONTAP S3 Access Point를 통한 AI/분석 전처리 |
 
-자세한 내용: [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md)
+자세한 내용: [automation/fsxn-ops/README.md](../../../automation/fsxn-ops/README.md)
