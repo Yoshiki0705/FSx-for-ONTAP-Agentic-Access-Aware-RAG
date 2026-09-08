@@ -360,10 +360,14 @@ jobs:
         include:
           - name: default
             flags: ''
-          # NOTE: enableTransferFamily のレーンは未追加。cdk-nag の未解決の指摘が
-          # 12 件あり（IAM5 6 / IAM4 2 / L1 2 / SQS4 / SMG4）、そのうち SQS4（TLS 強制）と
-          # SMG4（シークレットの自動ローテーション）は抑制で片付けるべきでない実指摘。
-          # 追加手順と指摘の一覧は追跡 issue を参照。
+          # enableTransferFamily は 3 つの追加コンテキストが必須（未指定なら
+          # bin/demo-app.ts が throw する）。値は synth を通すためのダミー。
+          - name: transfer-family
+            flags: >-
+              -c enableTransferFamily=true
+              -c s3AccessPointArn=arn:aws:s3:ap-northeast-1:111122223333:accesspoint/ci-dummy-ap
+              -c transferFamilyS3ApAlias=ci-dummy-alias
+              -c kbDataSourceId=CIDUMMYDS1
           - name: kb-auto-sync
             flags: '-c enableKbAutoSync=true'
           - name: monitoring

@@ -26,6 +26,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as path from 'path';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
 // ========================================
@@ -283,6 +284,18 @@ export class DemoTransferFamilyStack extends cdk.Stack {
       };
       this.createSftpUser(server, demoUser, props.s3AccessPointArn, props.s3AccessPointAlias, prefix);
 
+      // AwsSolutions-SMG4: この Secret は生成されたプレースホルダ文字列と説明メモだけを
+      // 保持する入れ物で、稼働中の認証情報は入っていない（デモユーザーの公開鍵は
+      // 下のプレースホルダをそのまま使う）。自動ローテーションの対象になる中身が無いため
+      // 抑制する。実運用では transferFamilyUsers コンテキストで鍵を渡し、鍵の更新は
+      // Transfer Family のユーザー更新として扱う。
+      NagSuppressions.addResourceSuppressions(demoKeySecret, [
+        {
+          id: 'AwsSolutions-SMG4',
+          reason: 'Placeholder secret created only so that a demo SFTP user can be provisioned; it holds a generated placeholder string, not a live credential. Production deployments pass real keys via the transferFamilyUsers context and rotate them through Transfer Family user updates. See: https://docs.aws.amazon.com/transfer/latest/userguide/key-management.html',
+        },
+      ]);
+
       new cdk.CfnOutput(this, 'DemoSshKeySecretArn', {
         value: demoKeySecret.secretArn,
         description: 'Secrets Manager ARN for demo SFTP user SSH key',
@@ -308,6 +321,8 @@ export class DemoTransferFamilyStack extends cdk.Stack {
     const dlq = new sqs.Queue(this, 'MetadataGeneratorDLQ', {
       queueName: `${prefix}-metadata-generator-dlq`,
       retentionPeriod: cdk.Duration.days(14),
+      // TLS 必須（AwsSolutions-SQS4）。キューポリシーに aws:SecureTransport=false の Deny が入る。
+      enforceSSL: true,
     });
 
     // Metadata Generator Lambda
@@ -737,6 +752,45 @@ export class DemoTransferFamilyStack extends cdk.Stack {
       value: this.permissionMappingTableName,
       exportName: `${prefix}-TransferPermissionMappingTable`,
     });
+
+    // ========================================
+    // cdk-nag suppressions
+    // ========================================
+    // このスタックは enableTransferFamily=true のときだけ生成されるため、
+    // CI の synth 行列に入っておらず、抑制が 1 件も無い状態が残っていた。
+    // 実指摘（SQS4）は enforceSSL: true で解消済み。以下は理由付きの抑制。
+    NagSuppressions.addResourceSuppressions(
+      [metadataGeneratorFn, ingestionTriggerFn],
+      [
+        {
+          id: 'AwsSolutions-IAM4',
+          reason: 'AWSLambdaBasicExecutionRole is the standard AWS managed policy for Lambda execution roles. Required for CloudWatch Logs. See: https://docs.aws.amazon.com/lambda/latest/dg/security-iam-awsmanpol.html',
+          appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+        },
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Object keys under the S3 Access Point are per-user upload prefixes that are not known at synth time; the DynamoDB GSI set and Lambda version/alias suffixes are likewise dynamic. Each statement is already scoped to a single resource, with the wildcard only on the key prefix, index name, or version suffix.',
+          appliesTo: [
+            { regex: '/^Resource::arn:aws:s3:.*:accesspoint\\/.*\\/object\\/.*$/g' },
+            { regex: '/^Resource::<ScanStateTable.*\\.Arn>\\/index\\/\\*$/g' },
+            { regex: '/^Resource::<MetadataGeneratorFn.*\\.Arn>:\\*$/g' },
+          ],
+        },
+        {
+          id: 'AwsSolutions-L1',
+          reason: 'Python 3.12 is the runtime pinned across this project (9 Lambda definitions) and the one the Python unit tests run on. Bumping the runtime repo-wide is a separate change; see AGENTS.md for the current standard.',
+        },
+      ],
+      true,
+    );
+
+    NagSuppressions.addResourceSuppressions(transferLoggingRole, [
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'Transfer Family writes one log stream per session; stream names are generated at runtime, so the grant is scoped to the log group ARN with a wildcard on the stream.',
+        appliesTo: [{ regex: '/^Resource::<TransferLogGroup.*\\.Arn>:\\*$/g' }],
+      },
+    ]);
   }
 
   /**
@@ -786,6 +840,16 @@ export class DemoTransferFamilyStack extends cdk.Stack {
         }),
       },
     });
+
+    // AwsSolutions-IAM5: ホームディレクトリ配下のオブジェクトキーは synth 時に確定しない。
+    // 付与は S3 AP の 1 つのプレフィックスに限定され、ワイルドカードはキー部分のみ。
+    NagSuppressions.addResourceSuppressions(userRole, [
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'SFTP users are scoped to their own home-directory prefix on the S3 Access Point. Object keys within that prefix are not known at synth time, so the wildcard is on the key only. A Deny on *.metadata.json is attached in the same policy.',
+        appliesTo: [{ regex: '/^Resource::arn:aws:s3:.*:accesspoint\\/.*\\/object\\/.*$/g' }],
+      },
+    ]);
 
     // Transfer Family User
     // NOTE: HomeDirectoryMappings Target uses S3 AP ALIAS (not ARN, not AP name)
