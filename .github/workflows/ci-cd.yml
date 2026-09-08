@@ -424,10 +424,27 @@ jobs:
       - name: Check documentation links
         run: python3 scripts/check-doc-links.py
 
+  evidence:
+    name: Evidence Labels
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # 本検査の前に、検出器が落とすべき入力で落ちることを確認する
+      - name: Verify the checker rejects incomplete labels
+        run: python3 scripts/check-evidence.py --selftest
+
+      - name: Check evidence labels
+        run: python3 scripts/check-evidence.py
+
   # 基本的な品質ゲート
   quality-gate:
     runs-on: ubuntu-latest
-    needs: [quick-tests, full-tests, build-test, synth-matrix, doc-links]
+    needs: [quick-tests, full-tests, build-test, synth-matrix, doc-links, evidence]
     if: always()
     outputs:
       gate-status: ${{ steps.evaluate-quality.outputs.gate-status }}

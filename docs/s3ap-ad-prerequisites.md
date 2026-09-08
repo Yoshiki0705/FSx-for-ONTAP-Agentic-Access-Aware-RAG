@@ -4,7 +4,7 @@
 
 **作成日**: 2026-07-13
 **検証環境**: ap-northeast-1 (東京), ONTAP 9.17.1P7D1
-**ステータス**: E2E 検証済み
+**ステータス**: E2E 検証済み。証跡の区分は [証跡の区分ポリシー](evidence-policy.md) の行内ラベルで示す
 
 ---
 
@@ -46,7 +46,9 @@ AD DC が到達不能な場合、データ操作は `AccessDenied` を返す。
 
 ## 推奨アーキテクチャパターン
 
-### Internet-origin AP + VPC外 Lambda (検証済み推奨)
+### Internet-origin AP + VPC外 Lambda
+
+**[verified 2026-07-13 / ap-northeast-1]** この構成で S3 AP のデータ操作が動作した（ONTAP 9.17.1P7D1）。
 
 ```
 Lambda (VPC外) → Internet-origin S3 AP → FSx for ONTAP Volume
@@ -85,7 +87,7 @@ AP リソースポリシーが必要なケース:
 
 ### FlexClone 作成後の発見遅延
 
-FlexClone を作成した後、FSx API (`DescribeVolumes`) がそのボリュームを認識するまで **12〜36 分** の遅延がある (実測、増加傾向)。
+**[verified 2026-07-13 / ap-northeast-1]** FlexClone を作成した後、FSx API (`DescribeVolumes`) がそのボリュームを認識するまで **12〜36 分** の遅延がある（ONTAP 9.17.1P7D1、複数回の観測で増加傾向）。**これはこの検証環境での測定値であり、サービスの仕様として引用できません。**
 
 ### Step Functions での推奨タイミングバジェット
 

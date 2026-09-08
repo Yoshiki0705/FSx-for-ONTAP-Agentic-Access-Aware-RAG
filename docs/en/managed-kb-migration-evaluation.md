@@ -138,7 +138,7 @@ Per the documentation, when a KB applies per-user/group access control, the call
 
 ### 4.2 Verification Points (Confirm Before Migration)
 
-All of the following are **unverified** and determine migration feasibility. Project-context assumptions are noted alongside.
+**[hypothesis]** All of the following are **unverified** and determine migration feasibility. The assumptions noted alongside are this project's reasoning, not measurements. See the [Evidence Policy](evidence-policy.md) for what the tier means.
 
 | # | Verification item | Project assumption | Risk |
 |---|-------------------|-------------------|------|

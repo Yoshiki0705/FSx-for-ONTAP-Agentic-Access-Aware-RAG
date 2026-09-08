@@ -15,13 +15,7 @@
 
 AWS Summit New York 2026（2026-06-17）で GA となった [AgentCore Web Search Tool](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/) を、本リポジトリの Permission-aware RAG パターンに**ハイブリッド検索オプション**として追加するための設計検討。
 
-エビデンス階層:
-
-| 階層 | 定義 | 本書での扱い |
-|------|------|------------|
-| Public evidence | AWS 公式ドキュメント・ブログから検証可能 | 出典リンク付き |
-| Project-context | 本プロジェクト/連携リポジトリの設計判断・実装 | 「本プロジェクト」「連携リポジトリ」と明示 |
-| Unverified | 未検証の前提・API 形状 | ⚠️ UNVERIFIED と明示 |
+証跡の区分は [証跡の区分ポリシー](../evidence-policy.md) の 4 語（`verified` / `documented` / `field-observation` / `hypothesis`）を使う。主張の直前に行内ラベルを置く。
 
 > ⚠️ **Distinction discipline**: AgentCore Web Search Tool の「機能の存在（GA）」は public evidence だが、本リポジトリの CDK 統合での具体的な target 構成・エンドポイント・リージョン制約は**未検証**を含む。後述の検証ポイントを参照。
 
@@ -34,7 +28,7 @@ AWS Summit New York 2026（2026-06-17）で GA となった [AgentCore Web Searc
 | # | 機構 | 実装状況 | 役割 |
 |---|------|---------|------|
 | A | **Claude Platform on AWS Web Search** | 実装済み（`docker/nextjs/src/lib/claude-platform/`） | KB スコア低下時/明示要求時のフォールバック。`callWithWebSearch` + `routeInvocation` |
-| B | **AgentCore Web Search Gateway target** | 部分実装・⚠️UNVERIFIED（`lib/constructs/agentcore-gateway-construct.ts` の `enableWebSearch`） | Gateway の built-in connector target。本セッションで追加したが target 構成は未検証 |
+| B | **AgentCore Web Search Gateway target** | 部分実装（`lib/constructs/agentcore-gateway-construct.ts` の `enableWebSearch`） | Gateway の built-in connector target。追加した時点では target 構成は**未検証**だった（**[hypothesis]** の段階）。形状は後に §9.1 で確認 |
 | C | **本調査の対象** | 未実装 | A/B を踏まえ、AgentCore Web Search Tool を Permission-aware RAG の正式なハイブリッド検索オプションとして設計 |
 
 ### 1.1 既存機構 A が既に提供しているもの（再利用可能）
@@ -109,8 +103,7 @@ UI トグルは**既存の `useWebSearch` 経路を再利用**し、バックエ
 
 ### 4.1 リージョン制約（要確認）
 
-- 連携リポジトリの知見では **Web Search Tool は us-east-1 のみ対応**（Project-context として記録）。
-- ⚠️ UNVERIFIED: AWS 公式のリージョン可用性表での確認が必要。[Regional product services](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/) で要確認。
+- **[documented]** Web Search Tool は us-east-1 のみ対応。出典: [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/)。現行の対応リージョンは [Regional product services](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/) で確認できる。
 - **重要な不整合**: 本セッションで追加した `enableWebSearch`（機構 B）は **ap-northeast-1 のメイン Gateway** に Web Search target を追加している。us-east-1 制約が事実なら**この配置は誤り**であり、Web Search 用 Gateway は us-east-1 に分離する必要がある。
 
 ### 4.2 既存の us-east-1 クロスリージョン precedent
@@ -223,7 +216,7 @@ FSx for ONTAP AI/RAG アーキテクチャレビューの非交渉要件に直�
 
 規約:
 - 日英バイリンガル（`docs/investigations/` = 日本語、`docs/en/investigations/` = 英語）
-- エビデンス階層を明示し、未検証項目は ⚠️ UNVERIFIED と記載
+- 証跡の区分を [証跡の区分ポリシー](../evidence-policy.md) の行内ラベルで明示する
 - 既存実装との関係を必ず冒頭で整理（車輪の再発明防止）
 - 中立フレーミング（competing tools ではなく right-tool-for-the-job）
 
@@ -237,7 +230,7 @@ FSx for ONTAP AI/RAG アーキテクチャレビューの非交渉要件に直�
 |----|--------------|------|------|
 | 1 | **プロンプトインジェクション防御の補強** | 既存機構 A の Web 結果を `<web_search_results>` で囲い、非信頼データ指示を system prompt に追加 | 最小変更・最高のセキュリティ価値。CDK 変更不要。§6.3 の既存欠落を即解消 |
 | 2 | **UI トグル** | Zustand `webSearchEnabled` + チャット UI トグル + verified/reference バッジ分離 | バックエンド受け口は既存。フロントのみで完結。ユーザー価値が見える |
-| 3 | **us-east-1 不整合の解消** | ap-northeast-1 gateway の `enableWebSearch` を撤去 or us-east-1 移設の方針確定 | 本セッションで入れた UNVERIFIED 実装の整合化。誤デプロイ防止 |
+| 3 | **us-east-1 不整合の解消** | ap-northeast-1 gateway の `enableWebSearch` を撤去 or us-east-1 移設の方針確定 | 形状が未検証のまま入れた実装の整合化。誤デプロイ防止 |
 | 4 | **us-east-1 Gateway（Option B / PoC）** | 連携リポジトリの `agentcore-gateway-role.yaml` を us-east-1 に適用、Web Search target を手動作成、endpoint を env で受信 | 実環境で target 構成・リージョン制約（§4.1）を検証 |
 | 5 | **Lambda WebSearchClient（inline）** | `web_search_client.py` を `lambda/web-search/` に取り込み（inline）、us-east-1 Gateway を呼ぶ | §5 の方式に従い実装。PoC 検証後 |
 | 6 | **CDK IaC 化（Option A / 本番）** | us-east-1 Gateway スタックを WafStack パターンで IaC 化 | PoC で構成確定後に再現性を確保 |
@@ -268,13 +261,15 @@ FSx for ONTAP AI/RAG アーキテクチャレビューの非交渉要件に直�
 
 | # | 項目 | 状態 | 対応 |
 |---|------|------|------|
-| R1 | Web Search Tool の us-east-1 制約 | ✅ **VERIFIED** | 公式ドキュメントに「available in the US East (N. Virginia) us-east-1 Region」と明記。PoC で確認済み |
+| R1 | Web Search Tool の us-east-1 制約 | **[documented]** | 公式ドキュメントに us-east-1 のみと記載。出典: [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/) |
 | R2 | 本セッションの `enableWebSearch`（ap-northeast-1 gateway）の配置誤り | ✅ **解決済み** | ステップ3 で撤去・synth-time warning 化 |
-| R3 | createGatewayTarget の Web Search target 構成 | ✅ **VERIFIED** | 正式 API 形状確認（下記 §9.1） |
+| R3 | createGatewayTarget の Web Search target 構成 | **[verified 2026-06-18 / us-east-1]** | PoC で API 形状を確認（下記 §9.1） |
 | R4 | Web 結果のインジェクション | ✅ 設計で対応 | `<web_search_results>` 隔離 + `WEB_SEARCH_SAFETY_INSTRUCTION`（ステップ1） |
 | R5 | 機構 A（Claude Platform）と機構 C（AgentCore）の役割重複 | 要整理 | env での切替 + UI からはエンジンを隠蔽（§3） |
 
-### 9.1 Web Search target 構成（VERIFIED — 2026-06-18 PoC 実行結果）
+### 9.1 Web Search target 構成
+
+**[verified 2026-06-18 / us-east-1]** PoC の実行結果。
 
 **正しい API 形状:**
 
@@ -374,7 +369,7 @@ ap-northeast-1 の WebApp に Gateway URL を渡す。
 | `lib/stacks/demo/demo-webapp-stack.ts` | `webSearchGatewayUrl` prop → `WEB_SEARCH_GATEWAY_URL` / `WEB_SEARCH_GATEWAY_REGION` env var |
 | `tests/web-search-gateway-stack.test.ts` | CDK アサーションテスト（11/11 pass） |
 
-**構成（§9.1 VERIFIED 形状を使用）:**
+**構成（§9.1 で確認した形状を使用）:**
 - IAM Role: `bedrock-agentcore.amazonaws.com` trust + `aws:SourceAccount` 条件
 - Gateway: `AwsCustomResource`（create/update/delete）、`protocolType: MCP`, `authorizerType: AWS_IAM`
 - Web Search target: `mcp.connector.source.connectorId: "web-search"` + `GATEWAY_IAM_ROLE`
@@ -391,7 +386,7 @@ npx jest tests/ --no-coverage                                             # 55 s
 ```
 
 **Step 4 PoC スクリプトとの差分:** §10 のスクリプトは暫定的に `mcpServer` 形状を使用していたが、
-本 CDK スタック（Step 6）は §9.1 で VERIFIED した `connector` 形状を採用している。
+本 CDK スタック（Step 6）は §9.1 で確認した `connector` 形状を採用している。
 
 ---
 

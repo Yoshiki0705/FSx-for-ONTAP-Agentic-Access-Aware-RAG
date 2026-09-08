@@ -15,13 +15,7 @@
 
 Eine Designprüfung zur Aufnahme des [AgentCore Web Search Tool](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/) — das auf dem AWS Summit New York 2026 (2026-06-17) GA wurde — als **Hybrid Search Option** in das Permission-aware RAG Muster dieses Repositorys.
 
-Evidenzstufen:
-
-| Stufe | Definition | Behandlung in diesem Dokument |
-|------|------|------------|
-| Public evidence | Aus offizieller AWS-Dokumentation/Blogs überprüfbar | Mit Quellenlink |
-| Project-context | Designentscheidungen/Implementierungen dieses Projekts/des zugehörigen Repositorys | Als „dieses Projekt“ / „zugehöriges Repository“ gekennzeichnet |
-| Unverified | Nicht verifizierte Annahmen/API-Formen | Mit ⚠️ UNVERIFIED gekennzeichnet |
+Die Evidenzstufen verwenden die vier Begriffe der [Evidence Policy](../../en/evidence-policy.md) (`verified` / `documented` / `field-observation` / `hypothesis`) als Inline-Kennzeichnung direkt vor der Aussage.
 
 > ⚠️ **Distinction discipline**: Die „Existenz der Funktion (GA)“ des AgentCore Web Search Tool ist public evidence, doch die konkrete Target-Konfiguration, der Endpunkt und die regionalen Einschränkungen der CDK-Integration dieses Repositorys enthalten **nicht verifizierte** Punkte. Siehe die Verifizierungspunkte unten.
 
@@ -34,7 +28,7 @@ Dieses Repository enthält **bereits zwei** Web-Search-bezogene Implementierunge
 | # | Mechanismus | Status | Rolle |
 |---|------|---------|------|
 | A | **Claude Platform on AWS Web Search** | Implementiert (`docker/nextjs/src/lib/claude-platform/`) | Fallback bei niedrigen KB-Scores / auf ausdrückliche Anfrage. `callWithWebSearch` + `routeInvocation` |
-| B | **AgentCore Web Search Gateway target** | Teilweise · ⚠️UNVERIFIED (`enableWebSearch` in `lib/constructs/agentcore-gateway-construct.ts`) | built-in connector target des Gateway. In dieser Session hinzugefügt, aber Target-Konfiguration nicht verifiziert |
+| B | **AgentCore Web Search Gateway target** | Teilweise (`enableWebSearch` in `lib/constructs/agentcore-gateway-construct.ts`) | built-in connector target des Gateway. In dieser Session hinzugefügt, aber Target-Konfiguration nicht verifiziert. Beim Hinzufügen war die Target-Konfiguration noch **nicht verifiziert** (Stufe **[hypothesis]**). Die Form wurde später in §9.1 bestätigt |
 | C | **Gegenstand dieser Untersuchung** | Nicht implementiert | Unter Berücksichtigung von A/B das AgentCore Web Search Tool als vollwertige Hybrid Search Option des Permission-aware RAG entwerfen |
 
 ### 1.1 Was Mechanismus A bereits bietet (wiederverwendbar)
@@ -110,7 +104,7 @@ Der UI-Umschalter sollte **den bestehenden `useWebSearch`-Pfad wiederverwenden**
 ### 4.1 Regionale Einschränkung (zu verifizieren)
 
 - Nach den Erfahrungen des zugehörigen Repositorys wird **das Web Search Tool nur in us-east-1 unterstützt** (als Project-context festgehalten).
-- ⚠️ UNVERIFIED: Bestätigung in der offiziellen AWS-Tabelle der regionalen Verfügbarkeit erforderlich. Zu prüfen unter [Regional product services](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/).
+- **[documented]** Das Web Search Tool ist nur in us-east-1 verfügbar. Quelle: [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/)
 - **Wichtige Inkonsistenz**: Das in dieser Session hinzugefügte `enableWebSearch` (Mechanismus B) hängt das Web-Search-Target an das **Haupt-Gateway in ap-northeast-1**. Falls die us-east-1-Einschränkung zutrifft, **ist diese Platzierung falsch** und das Gateway für Web Search muss in us-east-1 isoliert werden.
 
 ### 4.2 Bestehender us-east-1 regionsübergreifender precedent
@@ -223,7 +217,7 @@ Da dies der erste Eintrag unter `docs/investigations/` ist, wird das folgende St
 
 Konventionen:
 - Zweisprachig Japanisch-Englisch (`docs/investigations/` = Japanisch, `docs/en/investigations/` = Englisch)
-- Evidenzstufen angeben; nicht verifizierte Elemente mit ⚠️ UNVERIFIED kennzeichnen
+- Die Evidenzstufe mit einer Inline-Kennzeichnung aus der [Evidence Policy](../../en/evidence-policy.md) angeben
 - Stets zu Beginn die Beziehung zu bestehenden Implementierungen klären (das Rad nicht neu erfinden)
 - Neutrale Rahmung (right-tool-for-the-job, nicht competing tools)
 
@@ -237,7 +231,7 @@ Geordnet von niedrigster Abhängigkeit und niedrigstem Risiko. Jeder Schritt ist
 |----|--------------|------|------|
 | 1 | **Abwehr von Prompt-Injection stärken** | Web-Ergebnisse von Mechanismus A mit `<web_search_results>` umschließen und die Anweisung für nicht vertrauenswürdige Daten in den system prompt aufnehmen | Minimale Änderung · höchster Sicherheitswert. Keine CDK-Änderung. Schließt sofort die bestehende Lücke aus §6.3 |
 | 2 | **UI-Umschalter** | Zustand `webSearchEnabled` + Chat-UI-Umschalter + Trennung der verified/reference-Badges | Backend-Eingang existiert bereits; nur Frontend. Sichtbarer Nutzerwert |
-| 3 | **Auflösung der us-east-1-Inkonsistenz** | Entscheidung, das `enableWebSearch` des ap-northeast-1-Gateway zu entfernen oder nach us-east-1 zu verlagern | Konsistenzherstellung der in dieser Session hinzugefügten UNVERIFIED-Implementierung; Fehldeployment vermeiden |
+| 3 | **Auflösung der us-east-1-Inkonsistenz** | Entscheidung, das `enableWebSearch` des ap-northeast-1-Gateway zu entfernen oder nach us-east-1 zu verlagern | Konsistenzherstellung der in dieser Session hinzugefügten Implementierung; Fehldeployment vermeiden |
 | 4 | **us-east-1 Gateway (Option B / PoC)** | Das `agentcore-gateway-role.yaml` des zugehörigen Repositorys in us-east-1 anwenden, das Web-Search-Target manuell erstellen, den endpoint per env empfangen | Target-Konfiguration · regionale Einschränkung (§4.1) in einer realen Umgebung verifizieren |
 | 5 | **Lambda WebSearchClient (inline)** | `web_search_client.py` in `lambda/web-search/` übernehmen (inline), das us-east-1 Gateway aufrufen | Gemäß dem Ansatz aus §5 implementieren. Nach der PoC-Verifizierung |
 | 6 | **CDK-IaC (Option A / Produktion)** | Den us-east-1 Gateway Stack mit dem WafStack-Muster als IaC umsetzen | Reproduzierbarkeit sicherstellen, sobald der PoC die Konfiguration bestätigt |
@@ -257,13 +251,15 @@ Begründung:
 
 | # | Element | Status | Maßnahme |
 |---|------|------|------|
-| R1 | us-east-1-Einschränkung des Web Search Tool | ✅ **VERIFIED** | Die offizielle Dokumentation gibt „available in the US East (N. Virginia) us-east-1 Region“ an. Per PoC bestätigt |
+| R1 | us-east-1-Einschränkung des Web Search Tool | **[documented]** | Die offizielle Dokumentation nennt ausschließlich us-east-1. [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/) |
 | R2 | Platzierungsfehler des `enableWebSearch` dieser Session (ap-northeast-1-Gateway) | ✅ **Gelöst** | In Schritt 3 entfernt · in synth-time warning umgewandelt |
-| R3 | Web-Search-Target-Konfiguration von createGatewayTarget | ✅ **VERIFIED** | Offizielle API-Form bestätigt (§9.1 unten) |
+| R3 | Web-Search-Target-Konfiguration von createGatewayTarget | **[verified 2026-06-18 / us-east-1]** | Offizielle API-Form bestätigt (§9.1 unten) |
 | R4 | Injection über Web-Ergebnisse | ✅ Durch Design adressiert | `<web_search_results>`-Isolierung + `WEB_SEARCH_SAFETY_INSTRUCTION` (Schritt 1) |
 | R5 | Rollenüberschneidung zwischen Mechanismus A (Claude Platform) und Mechanismus C (AgentCore) | Zu klären | Umschaltung per env + Verbergen der Engine vor der UI (§3) |
 
-### 9.1 Web-Search-Target-Konfiguration (VERIFIED — PoC-Ausführungsergebnisse vom 2026-06-18)
+### 9.1 Web-Search-Target-Konfiguration
+
+**[verified 2026-06-18 / us-east-1]** PoC-Ausführungsergebnisse.
 
 **Korrekte API-Form:**
 

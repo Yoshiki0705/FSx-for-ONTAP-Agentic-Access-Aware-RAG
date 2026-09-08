@@ -15,13 +15,7 @@
 
 A design exploration for adding the [AgentCore Web Search Tool](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/) — which became GA at AWS Summit New York 2026 (2026-06-17) — as a **hybrid search option** in this repository's Permission-aware RAG pattern.
 
-Evidence tiers:
-
-| Tier | Definition | Treatment |
-|------|-----------|-----------|
-| Public evidence | Verifiable from official AWS docs/blogs | Cited with links |
-| Project-context | Design decisions/implementations in this/sibling repo | Labeled "this project" / "sibling repo" |
-| Unverified | Unverified assumptions/API shapes | ⚠️ marked UNVERIFIED |
+Evidence tiers use the four words from the [Evidence Policy](../evidence-policy.md) (`verified` / `documented` / `field-observation` / `hypothesis`) as an inline label immediately before the claim.
 
 > ⚠️ **Distinction discipline**: The existence of the AgentCore Web Search Tool (GA) is public evidence, but the specific target configuration, endpoint, and regional constraints for this repo's CDK integration include **unverified** items. See verification points below.
 
@@ -34,7 +28,7 @@ This repository **already has two** web-search-related implementations; the Agen
 | # | Mechanism | Status | Role |
 |---|-----------|--------|------|
 | A | **Claude Platform on AWS Web Search** | Implemented (`docker/nextjs/src/lib/claude-platform/`) | Fallback when KB scores are low / on explicit request. `callWithWebSearch` + `routeInvocation` |
-| B | **AgentCore Web Search Gateway target** | Partial / ⚠️UNVERIFIED (`lib/constructs/agentcore-gateway-construct.ts` `enableWebSearch`) | Gateway built-in connector target; added this session but target config unverified |
+| B | **AgentCore Web Search Gateway target** | Partial (`lib/constructs/agentcore-gateway-construct.ts` `enableWebSearch`) | Gateway built-in connector target. When added, the target shape was still **unverified** (a **[hypothesis]** at that point); the shape was later confirmed in §9.1 |
 | C | **Subject of this investigation** | Not implemented | Design AgentCore Web Search Tool as a first-class hybrid search option, accounting for A/B |
 
 ### 1.1 What Mechanism A Already Provides (reusable)
@@ -109,8 +103,7 @@ Reuse the **existing `useWebSearch` path** for the UI toggle, and make the backe
 
 ### 4.1 Regional constraint (to be verified)
 
-- Per sibling-repo experience, **Web Search Tool is us-east-1 only** (recorded as Project-context).
-- ⚠️ UNVERIFIED: confirm against the official regional availability table. Check [Regional product services](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/).
+- **[documented]** Web Search Tool is available in us-east-1 only. Source: [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/). Current regional coverage can be checked in [Regional product services](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/).
 - **Important inconsistency**: the `enableWebSearch` added this session (mechanism B) attaches the Web Search target to the **ap-northeast-1 main Gateway**. If the us-east-1 constraint holds, **this placement is wrong** and the Web Search Gateway must be isolated in us-east-1.
 
 ### 4.2 Existing us-east-1 cross-region precedent
@@ -223,7 +216,7 @@ As this is the first entry under `docs/investigations/`, the following standard 
 
 Conventions:
 - Bilingual (`docs/investigations/` = Japanese, `docs/en/investigations/` = English)
-- State evidence tiers; mark unverified items ⚠️ UNVERIFIED
+- State the evidence tier with an inline label from the [Evidence Policy](../evidence-policy.md)
 - Always reconcile with existing implementations up front (avoid reinventing the wheel)
 - Neutral framing (right-tool-for-the-job, not competing tools)
 
@@ -237,7 +230,7 @@ Ordered by lowest dependency and risk. Each step is independently verifiable.
 |-------|-----------|---------|-----------|
 | 1 | **Strengthen prompt-injection defense** | Wrap mechanism A's web results in `<web_search_results>` and add untrusted-data instruction to the system prompt | Minimal change, highest security value. No CDK change. Immediately closes the §6.3 existing gap |
 | 2 | **UI toggle** | Zustand `webSearchEnabled` + chat UI toggle + verified/reference badge separation | Backend entry point already exists; front-end only. Visible user value |
-| 3 | **Resolve the us-east-1 inconsistency** | Decide to remove or relocate the ap-northeast-1 gateway's `enableWebSearch` to us-east-1 | Reconcile the UNVERIFIED implementation added this session; prevent mis-deploy |
+| 3 | **Resolve the us-east-1 inconsistency** | Decide to remove or relocate the ap-northeast-1 gateway's `enableWebSearch` to us-east-1 | Reconcile the implementation that was added while its shape was unverified; prevent mis-deploy |
 | 4 | **us-east-1 Gateway (Option B / PoC)** | Apply the sibling repo's `agentcore-gateway-role.yaml` in us-east-1, create the Web Search target manually, receive endpoint via env | Verify target config & regional constraint (§4.1) in a real environment |
 | 5 | **Lambda WebSearchClient (inline)** | Import `web_search_client.py` into `lambda/web-search/` (inline), call the us-east-1 Gateway | Implement per §5 after PoC verification |
 | 6 | **CDK IaC (Option A / production)** | IaC the us-east-1 Gateway stack with the WafStack pattern | Reproducibility once PoC confirms the configuration |
@@ -268,13 +261,15 @@ Rationale:
 
 | # | Item | Status | Action |
 |---|------|--------|--------|
-| R1 | Web Search Tool us-east-1 constraint | ✅ **VERIFIED** | Official docs state "available in the US East (N. Virginia) us-east-1 Region". Confirmed via PoC |
+| R1 | Web Search Tool us-east-1 constraint | **[documented]** | Official documentation states us-east-1 only. Source: [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/) |
 | R2 | This session's `enableWebSearch` (ap-northeast-1 gateway) placement error | ✅ **Resolved** | Removed in Step 3; synth-time warning added |
-| R3 | createGatewayTarget Web Search target config | ✅ **VERIFIED** | Correct shape: `mcp.connector.source.connectorId: "web-search"` (see PoC results below) |
+| R3 | createGatewayTarget Web Search target config | **[verified 2026-06-18 / us-east-1]** | Shape confirmed in the PoC: `mcp.connector.source.connectorId: "web-search"` (see below) |
 | R4 | Injection via web results | Addressed by design | `<web_search_results>` isolation + `WEB_SEARCH_SAFETY_INSTRUCTION` (Step 1) |
 | R5 | Role overlap between mechanism A (Claude Platform) and C (AgentCore) | Needs reconciliation | Env-based switch + hide engine from UI (§3) |
 
-### 9.1 Web Search target configuration (VERIFIED — 2026-06-18 PoC results)
+### 9.1 Web Search target configuration
+
+**[verified 2026-06-18 / us-east-1]** PoC results.
 
 **Correct API shape:**
 
@@ -374,7 +369,7 @@ WafStack to pass the Gateway URL to the ap-northeast-1 WebApp.
 | `lib/stacks/demo/demo-webapp-stack.ts` | `webSearchGatewayUrl` prop → `WEB_SEARCH_GATEWAY_URL` / `WEB_SEARCH_GATEWAY_REGION` env var |
 | `tests/web-search-gateway-stack.test.ts` | CDK assertion tests (11/11 pass) |
 
-**Configuration (uses the §9.1 VERIFIED shape):**
+**Configuration (uses the shape verified in §9.1):**
 - IAM Role: `bedrock-agentcore.amazonaws.com` trust + `aws:SourceAccount` condition
 - Gateway: `AwsCustomResource` (create/update/delete), `protocolType: MCP`, `authorizerType: AWS_IAM`
 - Web Search target: `mcp.connector.source.connectorId: "web-search"` + `GATEWAY_IAM_ROLE`
@@ -391,7 +386,7 @@ npx jest tests/ --no-coverage                                                # 5
 ```
 
 **Difference vs the Step 4 PoC scripts:** the §10 scripts interim-used the `mcpServer` shape;
-this CDK stack (Step 6) adopts the `connector` shape VERIFIED in §9.1.
+this CDK stack (Step 6) adopts the `connector` shape verified in §9.1.
 
 ---
 

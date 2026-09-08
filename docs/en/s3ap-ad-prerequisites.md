@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-13
 **Verified Environment**: ap-northeast-1 (Tokyo), ONTAP 9.17.1P7D1
-**Status**: E2E Verified
+**Status**: E2E Verified. Evidence tiers are shown with the inline labels defined in the [Evidence Policy](evidence-policy.md)
 
 ---
 
@@ -46,7 +46,9 @@ Actual cause: SVM has lost connectivity to AD domain controllers.
 
 ## Recommended Architecture Patterns
 
-### Internet-origin AP + VPC-external Lambda (Verified, Recommended)
+### Internet-origin AP + VPC-external Lambda (Recommended)
+
+**[verified 2026-07-13 / ap-northeast-1]** S3 AP data operations worked in this configuration (ONTAP 9.17.1P7D1).
 
 ```
 Lambda (no VPC) → Internet-origin S3 AP → FSx for ONTAP Volume
@@ -85,7 +87,7 @@ AP resource policy is only needed for:
 
 ### FlexClone Discovery Delay
 
-After creating a FlexClone, the FSx API (`DescribeVolumes`) takes **12–36 minutes** to discover the volume (measured, trend increasing).
+**[verified 2026-07-13 / ap-northeast-1]** After creating a FlexClone, the FSx API (`DescribeVolumes`) takes **12–36 minutes** to discover the volume (ONTAP 9.17.1P7D1; observed repeatedly, trend increasing). **This is a measurement from this test environment and cannot be quoted as a service specification.**
 
 ### Recommended Timing Budget for Step Functions
 
