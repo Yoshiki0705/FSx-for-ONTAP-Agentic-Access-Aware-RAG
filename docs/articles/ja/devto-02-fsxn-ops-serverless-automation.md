@@ -28,7 +28,7 @@ cover_image: https://raw.githubusercontent.com/Yoshiki0705/FSx-for-ONTAP-Agentic
 | パターン | S3 AP の役割 | ONTAP REST API の役割 |
 |---------|-------------|---------------------|
 | AI/RAG 前処理 | ファイル一覧取得・コンテンツ読み取り | ACL・セキュリティスタイル取得 |
-| 権限メタデータ自動生成 | `.metadata.json` 書き込み | NTFS ACL 読み取り |
+| 権限メタデータの初回生成（非既定・任意経路） | `.metadata.json` 書き込み | NTFS ACL 読み取り |
 | 容量監視 | — | ボリューム使用率取得・リサイズ |
 | SnapMirror DR | — | フェイルオーバー/フェイルバック制御 |
 
@@ -80,7 +80,7 @@ s3.put_object(Bucket=s3_ap_arn, Key="docs/report.md.metadata.json", Body=metadat
 }
 ```
 
-これにより手動の `.metadata.json` 管理が不要に — ONTAP の NTFS ACL から自動生成されます。
+ONTAP の NTFS ACL から `.metadata.json` を生成できます。**ただし条件が 2 つあります。** 既定では動かず、自前埋め込みサーバー経路で `ENV_AUTO_METADATA=true` を設定したときだけ走ります。そして再処理の判定が `mtime` なので、生成されるのはファイルの初回取り込み時（および内容が変わったとき）だけで、**ACL だけを変更しても再生成されません。** ACL 変更を検索結果に反映する運用は別途必要です（[権限メタデータ変更の整合性モデル](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/blob/main/docs/permission-consistency.md)）。
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "権限を守りながら AI で検索する — Amazon FSx for NetApp ONTAP + Bedrock で実現する Permission-Aware RAG"
 published: false
-description: "NTFS ACL / UNIX 権限を維持したまま企業ファイルサーバーを AI 検索。FSx for ONTAP + S3 Access Point + Amazon Bedrock + S3 Vectors で CDK ワンコマンドデプロイ。PoC 月額 $430 から。"
+description: "ファイル単位の権限メタデータと利用者の SID / UID+GID を検索時に突き合わせて企業ファイルサーバーを AI 検索。FSx for ONTAP + S3 Access Point + Amazon Bedrock + S3 Vectors で CDK ワンコマンドデプロイ。PoC 月額 $430 から。"
 tags: aws, amazonfsxfornetappontap, bedrock, rag
 series: "Permission-Aware RAG with FSx for ONTAP"
 cover_image: https://raw.githubusercontent.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/main/docs/screenshots/v4-kb-mode-ja.png
@@ -9,7 +9,7 @@ cover_image: https://raw.githubusercontent.com/Yoshiki0705/FSx-for-ONTAP-Agentic
 
 ## TL;DR
 
-- FSx for ONTAP 上の企業文書を、**ユーザーごとのファイル権限（NTFS ACL / SID / UID+GID）を維持したまま** AI で検索・回答
+- FSx for ONTAP 上の企業文書を、**ファイル単位の権限メタデータと利用者の SID / UID+GID を検索時に突き合わせて** AI で検索・回答（メタデータのない文書は Fail-Closed で除外）
 - 同じ質問でも管理者は機密文書込み、一般ユーザーは公開情報のみで回答が変わる
 - S3 Vectors（月数ドル）をデフォルトベクトルストアに採用し、PoC 月額 ~$430 から開始可能
 - `npx cdk deploy --all` でフルスタックデプロイ（7 CDK スタック）
@@ -93,8 +93,9 @@ FSx for ONTAP Volume (/data)
 ```
 
 - Bedrock KB が S3 AP 経由で直接ドキュメントを読み取り
-- `.metadata.json` に `allowed_group_sids` を記述するだけで権限が RAG に反映
+- `.metadata.json` に `allowed_group_sids` を記述すると、その SID が検索時の判定に使われる
 - 既存の Windows 共有フォルダ（SMB）はそのまま使い続けられる
+- **この権限メタデータは NTFS ACL の射影ではありません。** S3 Access Point 経由の要求は 1 つのファイルシステム ID で認可されるため、ファイルごとの ACL は利用者の認可に引き継がれません。ACL を変更したら `.metadata.json` を更新する運用が必要です（[権限メタデータ変更の整合性モデル](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/blob/main/docs/permission-consistency.md)）
 
 ---
 
@@ -209,12 +210,12 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 | アプローチ | 適するケース | トレードオフ |
 |-----------|-------------|-------------|
-| **本システム（FSx for ONTAP + カスタム RAG）** | 既存ファイルサーバーの NTFS ACL / UNIX 権限をそのまま RAG に反映したい。データ移行なし | CDK でのデプロイ・運用が必要。カスタム実装のため保守は自組織 |
-| **Amazon Q Business** | マネージドな企業向け AI アシスタントを短期間で導入したい。S3、SharePoint 等のコネクタを使う | FSx for ONTAP のファイルレベル ACL をそのまま反映する仕組みは自前で構築が必要。マネージド故のカスタマイズ制約あり |
+| **本システム（FSx for ONTAP + カスタム RAG）** | ファイル単位の権限境界を RAG にも持ち込みたい。データ移行なし | CDK でのデプロイ・運用が必要。カスタム実装のため保守は自組織。権限メタデータの保守も自組織（ACL 変更は自動反映されない） |
+| **Amazon Q Business** | マネージドな企業向け AI アシスタントを短期間で導入したい。S3、SharePoint 等のコネクタを使う | FSx for ONTAP のファイル単位の権限を反映する仕組みは自前で構築が必要。マネージド故のカスタマイズ制約あり |
 | **Amazon Kendra + GenAI** | ドキュメント検索（キーワード + セマンティック）が主目的で、LLM 生成は補助的 | 権限制御は ACL トークンベース（コネクタ依存）。FSx for ONTAP 用コネクタは提供されていないためカスタム開発が必要 |
 | **Bedrock Knowledge Bases（マネージド）** | S3 / Web クローラーを使ったマネージド RAG を素早く構築したい | メタデータフィルタによる権限制御は可能だが、SID/ACL の動的解決は自前で実装。Agentic Retrieval でのフィルタ維持は検証が必要 |
 
-> **選び方**: 「既存 NAS のファイル権限をそのまま AI に反映する」要件が強い場合は本システムのアプローチが適します。「マネージドサービスで素早く始めたい」場合は Amazon Q Business や Bedrock Knowledge Bases（マネージド）から始め、権限要件に応じてカスタマイズを検討するのが現実的です。
+> **選び方**: 「ファイル単位の権限境界を AI 検索にも持ち込む」要件が強い場合は本システムのアプローチが適します。ただし権限メタデータの保守が前提になります。「マネージドサービスで素早く始めたい」場合は Amazon Q Business や Bedrock Knowledge Bases（マネージド）から始め、権限要件に応じてカスタマイズを検討するのが現実的です。
 
 ---
 
