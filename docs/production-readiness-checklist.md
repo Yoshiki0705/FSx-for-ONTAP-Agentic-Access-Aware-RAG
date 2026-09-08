@@ -209,7 +209,7 @@ npx cdk deploy --all --require-approval broadening
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [permission-consistency.md](permission-consistency.md) | 権限変更時の整合性モデル |
+| [permission-consistency.md](permission-consistency.md) | 権限メタデータ変更の整合性モデル |
 | [governance-and-audit.md](governance-and-audit.md) | ガバナンス・監査設計 |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | マルチテナント展開パターン |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | 安全な実験ガイド |

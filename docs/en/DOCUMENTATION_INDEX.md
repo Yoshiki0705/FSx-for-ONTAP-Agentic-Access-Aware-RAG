@@ -32,7 +32,7 @@
 | [poc-success-criteria-template.md](poc-success-criteria-template.md) | PoC success criteria template (stakeholder definitions, Go/No-Go criteria, next-phase conditions, completion report template) |
 | [data-readiness-assessment.md](data-readiness-assessment.md) | Data readiness assessment template (data location/classification/permission structure/quality/compliance checks, approval flow) |
 | [partner-faq.md](partner-faq.md) | Partner FAQ (12 questions and answers for customer proposals, proposal resource list) |
-| [permission-consistency.md](permission-consistency.md) | Permission change consistency model (ACL change propagation flow, max latency, emergency permission revocation procedures) |
+| [permission-consistency.md](permission-consistency.md) | Permission metadata consistency model (propagation paths, max latency, why ACL changes do not arrive, emergency revocation procedures) |
 | [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP sizing & performance guide (scale-based configurations, S3 AP considerations, QoS, vector store selection) |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | Multi-tenant & partner deployment patterns (account isolation/SVM isolation/hybrid, cost estimation templates) |
 | [governance-and-audit.md](governance-and-audit.md) | Governance & audit design (audit log schema, Responsible AI, Guardrails policies, industry-specific use cases) |
@@ -128,7 +128,7 @@
 ### Phase 3: Production & Enterprise Design
 
 11. **production-readiness-checklist.md** — Production readiness checklist
-12. **permission-consistency.md** — Permission change consistency model
+12. **permission-consistency.md** — Permission metadata consistency model
 13. **fsxn-sizing-and-performance.md** — FSx for ONTAP sizing & performance
 14. **governance-and-audit.md** — Governance & audit design
 15. **partner-deployment-patterns.md** — Multi-tenant deployment patterns

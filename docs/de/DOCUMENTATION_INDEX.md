@@ -34,7 +34,7 @@
 | [poc-success-criteria-template.md](poc-success-criteria-template.md) | PoC-Erfolgskriterien-Vorlage (Stakeholder-Definitionen, Go/No-Go-Kriterien, Bedingungen für die nächste Phase, Abschlussberichtsvorlage) |
 | [data-readiness-assessment.md](data-readiness-assessment.md) | Datenbereitschafts-Bewertungsvorlage (Datenstandort/-klassifizierung/-Berechtigungsstruktur/-qualität/-Compliance-Prüfungen, Genehmigungsfluss) |
 | [partner-faq.md](partner-faq.md) | Partner-FAQ (12 Fragen und Antworten für Kundenangebote, Liste der Angebotsressourcen) |
-| [permission-consistency.md](permission-consistency.md) | Konsistenzmodell für Berechtigungsänderungen (ACL-Änderung → Metadaten-Neugenerierung → KB-Neusynchronisierung → Cache-Invalidierung, maximale Latenz, Notfall-Berechtigungsentzugsverfahren) |
+| [permission-consistency.md](permission-consistency.md) | Konsistenzmodell für Berechtigungsmetadaten (Propagierungspfade, maximale Latenz, warum ACL-Änderungen nicht ankommen, Notfall-Entzugsverfahren) |
 | [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP Dimensionierungs- und Leistungsleitfaden (skalenbasierte Konfigurationen, S3 AP-Überlegungen, QoS, Vektorspeicher-Auswahl) |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | Multi-Tenant- und Partner-Bereitstellungsmuster (Kontoisolierung/SVM-Isolierung/Hybrid, Kostenschätzungsvorlagen) |
 | [governance-and-audit.md](governance-and-audit.md) | Governance- und Audit-Design (Audit-Log-Schema, Responsible AI, Guardrails-Richtlinien, branchenspezifische Anwendungsfälle) |
@@ -129,7 +129,7 @@
 ### Phase 3: Produktion und Enterprise-Design
 
 11. **production-readiness-checklist.md** — Produktionsbereitschafts-Checkliste
-12. **permission-consistency.md** — Konsistenzmodell für Berechtigungsänderungen
+12. **permission-consistency.md** — Konsistenzmodell für Berechtigungsmetadaten
 13. **fsxn-sizing-and-performance.md** — FSx for ONTAP Dimensionierung und Leistung
 14. **governance-and-audit.md** — Governance- und Audit-Design
 15. **partner-deployment-patterns.md** — Multi-Tenant-Bereitstellungsmuster

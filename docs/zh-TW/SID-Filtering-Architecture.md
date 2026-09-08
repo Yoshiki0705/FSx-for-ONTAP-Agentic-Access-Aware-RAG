@@ -103,7 +103,7 @@ DynamoDB user-access 資料表
 
 Bedrock KB 搜尋結果中的每個引用都包含從 S3 上的 `.metadata.json` 檔案匯入的中繼資料。
 
-> **`.metadata.json` 的建立方式**：本系統包含由 AD Sync Lambda（`lambda/agent-core-ad-sync/`）和 FSx 權限服務（`lambda/permissions/fsx-permission-service.ts`）實作的自動 NTFS ACL 擷取。在示範環境中，為驗證目的手動放置範例資料。詳情請參閱 [docs/embedding-server-design.md](embedding-server-design.md) 的「中繼資料結構」章節。
+> **`.metadata.json` 的建立方式**：AD Sync Lambda（`lambda/agent-core-ad-sync/`）從 AD 擷取使用者 SID 並儲存至 DynamoDB，並不讀取檔案 ACL。讀取檔案 NTFS ACL 的程式碼（`lambda/permissions/fsx-permission-service.ts`）雖然存在，但沒有任何 CDK 堆疊部署它。在示範環境中，為驗證目的手動放置範例資料。詳情請參閱 [docs/embedding-server-design.md](embedding-server-design.md) 的「中繼資料結構」章節。
 
 ```
 文件中繼資料（.metadata.json）

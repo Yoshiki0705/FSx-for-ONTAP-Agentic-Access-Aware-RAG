@@ -365,6 +365,6 @@ ORDER BY total_denied DESC;
 | 文件 | 說明 |
 |------|------|
 | [production-readiness-checklist.md](production-readiness-checklist.md) | 生產就緒檢查清單 |
-| [permission-consistency.md](permission-consistency.md) | 權限變更一致性模型 |
+| [permission-consistency.md](permission-consistency.md) | 權限中繼資料變更一致性模型 |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID 過濾架構 |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | 安全實驗指南 |

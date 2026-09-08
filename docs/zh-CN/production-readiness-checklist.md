@@ -175,7 +175,7 @@ npx cdk deploy --all --require-approval broadening
 
 | 文档 | 描述 |
 |------|------|
-| [permission-consistency.md](permission-consistency.md) | 权限变更一致性模型 |
+| [permission-consistency.md](permission-consistency.md) | 权限元数据变更一致性模型 |
 | [governance-and-audit.md](governance-and-audit.md) | 治理与审计设计 |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | 多租户部署模式 |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | 安全实验指南 |

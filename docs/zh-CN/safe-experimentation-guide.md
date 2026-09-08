@@ -248,4 +248,4 @@ aws opensearchserverless list-collections --region ap-northeast-1
 | [evaluation.md](evaluation.md) | RAG / Agent 评估指标 |
 | [production-readiness-checklist.md](production-readiness-checklist.md) | 生产就绪检查清单 |
 | [governance-and-audit.md](governance-and-audit.md) | 治理与审计设计 |
-| [permission-consistency.md](permission-consistency.md) | 权限变更一致性模型 |
+| [permission-consistency.md](permission-consistency.md) | 权限元数据变更一致性模型 |

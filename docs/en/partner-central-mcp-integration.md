@@ -194,7 +194,7 @@ Please create an opportunity:
 - Customer: [Customer Name] (Manufacturing)
 - Workload: Permission-aware AI search for design drawings and technical documents stored on FSx for ONTAP
 - Challenge: Searching technical documents scattered across departments takes an average of 15 min/search
-- Solution: Permission-aware RAG (automatic NTFS ACL reflection)
+- Solution: Permission-aware RAG (permission metadata matched against caller SIDs at query time)
 - Expected outcome: 60% reduction in design review preparation time
 - Estimated monthly spend: $3,000-5,000
 - Expected close: [Date]

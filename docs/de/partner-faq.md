@@ -19,7 +19,7 @@
 
 ### Q2. Wer konfiguriert die Berechtigungen? Ist eine zusätzliche Einrichtung erforderlich?
 
-**A**: Bestehende NTFS ACLs / UNIX-Berechtigungen werden direkt in der RAG-Suche berücksichtigt. Eine zusätzliche Berechtigungskonfiguration ist nicht erforderlich. Wenn Dateiserver-Administratoren Ordnerberechtigungen wie gewohnt festlegen, werden diese automatisch auf die RAG-Suchergebnisse angewendet.
+**A**: Die Berechtigungsentscheidung der RAG-Suche prüft zur Abfragezeit die Berechtigungsmetadaten jeder Datei (`.metadata.json`) gegen die aus AD synchronisierten SIDs des Aufrufers. **NTFS ACLs von Ordnern werden nicht unverändert automatisch übernommen.** Anfragen über einen S3 Access Point werden mit einer einzigen Dateisystemidentität autorisiert, daher gehen datei-individuelle ACLs nicht in die Endbenutzer-Autorisierung ein. Entsprechend sind eine initiale Befüllung der Berechtigungsmetadaten und ein Aktualisierungsverfahren bei ACL-Änderungen erforderlich. Details im [Konsistenzmodell für Berechtigungsmetadaten](permission-consistency.md).
 
 **Funktionsweise**: Berechtigungsinformationen (SID/UID/GID) werden in der `.metadata.json` jeder Datei gespeichert, und zur Suchzeit werden die Ergebnisse durch Abgleich mit den Berechtigungen des Benutzers gefiltert.
 

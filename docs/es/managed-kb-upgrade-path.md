@@ -301,7 +301,7 @@ Supere todos los siguientes elementos antes de la decisión de viabilidad de la 
 | [Guía de arquitectura de stack CDK](stack-architecture-comparison.md) | Comparación de configuraciones de almacén vectorial (incl. columna Managed KB) |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Diseño del filtrado SID |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | Enfoque de autorización independiente del vector store |
-| [Modelo de consistencia de permisos](permission-consistency.md) | Flujo de propagación de cambios ACL / latencia aceptable |
+| [Modelo de consistencia de metadatos de permisos](permission-consistency.md) | Flujo de propagación de los metadatos de permisos / latencia aceptable |
 | [Diseño de gobernanza y auditoría](governance-and-audit.md) | Requisitos de registro de auditoría / lineage |
 | [Runbook de operaciones](operations-runbook.md) | Operaciones ONTAP (procedimiento de creación FlexClone) |
 

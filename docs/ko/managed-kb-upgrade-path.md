@@ -301,7 +301,7 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 | [CDK 스택 아키텍처 가이드](stack-architecture-comparison.md) | 벡터 스토어 구성 비교(Managed KB 열 포함) |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID 필터링 설계 |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | 벡터 스토어 비의존 인가 방식 |
-| [권한 정합성 모델](permission-consistency.md) | ACL 변경 반영 플로우 / 허용 지연 |
+| [권한 메타데이터 변경 일관성 모델](permission-consistency.md) | 권한 메타데이터 반영 플로우 / 허용 지연 |
 | [거버넌스·감사 설계](governance-and-audit.md) | 감사 로그 / lineage 요건 |
 | [운영 Runbook](operations-runbook.md) | ONTAP 조작(FlexClone 작성 절차) |
 

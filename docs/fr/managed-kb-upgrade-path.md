@@ -301,7 +301,7 @@ Validez tous les éléments suivants avant la décision de faisabilité de la mi
 | [Guide d'architecture de stack CDK](stack-architecture-comparison.md) | Comparaison des configurations de vector store (incl. colonne Managed KB) |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Conception du filtrage SID |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | Approche d'autorisation indépendante du vector store |
-| [Modèle de cohérence des permissions](permission-consistency.md) | Flux de propagation des changements ACL / latence acceptable |
+| [Modèle de cohérence des métadonnées de permission](permission-consistency.md) | Flux de propagation des métadonnées de permission / latence acceptable |
 | [Conception de gouvernance et d'audit](governance-and-audit.md) | Exigences de journal d'audit / lineage |
 | [Runbook d'exploitation](operations-runbook.md) | Opérations ONTAP (procédure de création FlexClone) |
 

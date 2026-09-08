@@ -160,6 +160,6 @@ KB Auto-SyncのエラーがPermission-aware RAGのセキュリティに影響し
 
 ## 関連ドキュメント
 
-- [権限整合性モデル](permission-consistency.md) — ACL変更伝播フローとKBインデックス更新の関係
+- [Modelo de consistencia de metadatos de permisos](permission-consistency.md) — relación entre la actualización de los metadatos de permisos y la del índice del KB (incluido por qué los cambios de ACL no se reflejan automáticamente)
 - [CloudWatch ダッシュボードガイド](cloudwatch-dashboard-guide.md) — 監視メトリクスの見方
 - [本番化チェックリスト](production-readiness-checklist.md) — KB Auto-Syncの本番化要件

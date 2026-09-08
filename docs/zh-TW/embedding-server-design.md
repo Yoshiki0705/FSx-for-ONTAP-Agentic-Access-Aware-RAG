@@ -181,7 +181,7 @@ AOSS 索引以 `dynamic: false` 建立。這表示：
 
 #### 如何取得 `.metadata.json` 的 SID 資訊
 
-本系統具有從 NTFS ACL 自動擷取 SID 的機制。
+從 NTFS ACL 擷取 SID 的程式碼是存在的。部署狀況請參見下文「正式環境的自動化選項」表。
 
 | 元件 | 實作檔案 | 功能 |
 |------|---------|------|
@@ -213,13 +213,15 @@ demo 堆疊不使用上述自動化，而是透過以下手動步驟設定 SID �
 | 方法 | 說明 |
 |------|------|
 | AD Sync Lambda | 透過 SSM 自動擷取 AD 使用者 SID 並儲存至 DynamoDB（已實作） |
-| FSx Permission Service | 透過 SSM 的 Get-Acl 擷取 NTFS ACL（已實作） |
-| ONTAP REST API | 透過 FSx for ONTAP 管理端點直接擷取 ACL（已實作：`ENV_AUTO_METADATA=true`） |
-| S3 Access Point | 透過 S3 AP 存取檔案時自動套用 NTFS ACL（CDK 支援：`useS3AccessPoint=true`） |
+| FSx Permission Service | 透過 SSM 的 Get-Acl 擷取 NTFS ACL（程式碼存在，但沒有任何 CDK 堆疊部署它） |
+| ONTAP REST API | 透過 FSx for ONTAP 管理端點直接擷取 ACL（已實作：`ENV_AUTO_METADATA=true`，僅限本嵌入伺服器路徑） |
+| S3 Access Point | 並非將逐檔案 ACL 用於授權的機制（見下文）。權限由 `.metadata.json` 承載 |
 
 #### 使用 S3 Access Point 時（選項 C）
 
-當 Bedrock KB 透過 S3 Access Point 匯入文件時，NTFS ACL 會透過 S3 Access Point 的 `FileSystemIdentity`（WINDOWS 類型）自動套用。但是，Bedrock KB Retrieve API 回傳的中繼資料是否包含 ACL 資訊取決於 S3 Access Point 的實作。目前，透過 `.metadata.json` 管理 SID 是可靠的方法。
+透過 S3 Access Point 的請求，皆以 Access Point 上設定的單一檔案系統身分（`FileSystemIdentity`）進行授權。逐檔案的 NTFS ACL 不會針對發出請求的最終使用者進行評估，Bedrock KB 的匯入也以這一個身分執行。**因此，原始檔案的 ACL 在經由 S3 Access Point 的路徑上不會傳遞至最終使用者的授權。**
+
+本系統在搜尋時比對的是 `.metadata.json` 中的 SID 清單，而非 ACL 的投影。其產生來源因路徑而異：Transfer Family 路徑使用管理員維護的 DynamoDB 對應表，本嵌入伺服器路徑在 `ENV_AUTO_METADATA=true` 時使用 ONTAP REST API，示範環境使用手動放置的檔案。
 
 #### `.metadata.json` 格式
 

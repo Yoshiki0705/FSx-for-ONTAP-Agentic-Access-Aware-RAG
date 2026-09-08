@@ -4,7 +4,7 @@
 
 **🌐 Language / 言語:** [日本語](README.md) | [English](README.en.md) | [한국어](README.ko.md) | **简体中文** | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
-> 针对存储在 FSx for ONTAP 上的企业数据，提供在查询时自动应用 NTFS ACL / UNIX 权限的 Permission-aware RAG + Agentic AI 参考实现。AWS CDK 单命令部署，支持从 PoC 到生产评估。
+> 针对存储在 FSx for ONTAP 上的企业数据，提供在检索时将每个文档的权限元数据与调用者的 SID / UID・GID 进行比对的 Permission-aware RAG + Agentic AI 参考实现。AWS CDK 单命令部署，支持从 PoC 到生产评估。
 
 ---
 
@@ -54,7 +54,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 **处理流程**: 用户认证 → 从 DynamoDB 获取 SID → Bedrock KB 向量检索 → SID 匹配过滤 → 仅使用授权文档生成回答
 
 主要特性:
-- **Permission-aware RAG** — 在检索时自动应用 NTFS ACL / UNIX 权限（Fail-Closed）
+- **Permission-aware RAG** — 在检索时将文档的权限元数据与调用者的 SID / UID・GID 进行比对（Fail-Closed）
 - **Agentic AI** — KB 模式（文档搜索）与 Agent 模式（多步推理）一键切换
 - **Smart Routing** — 根据查询复杂度自动选择 Haiku / Sonnet / Opus（成本降低 40-60%）
 - **低成本** — 默认使用 S3 Vectors（每月数美元）
@@ -83,6 +83,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自动化 | 17 个行业无服务器模式 |
 | [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Athena / Glue / EMR / SageMaker 集成 |
 | [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability | 无需 EC2 即可将审计日志投递到 Datadog / Splunk / Grafana |
+| [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | 落地决策 | 数据利用领域中心页：S3 AP 授权特性、限制与设计选项 |
 
 </details>
 

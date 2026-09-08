@@ -181,7 +181,7 @@ Each document requires a corresponding `.metadata.json` file. By including NTFS 
 
 #### How to Obtain SID Information for `.metadata.json`
 
-This system has a mechanism to automatically retrieve SIDs from NTFS ACLs.
+Code for retrieving SIDs from NTFS ACLs exists. For deployment status, see the "Automation Options for Production" table below.
 
 | Component | Implementation File | Function |
 |-----------|-------------------|----------|
@@ -213,13 +213,15 @@ The demo stack does not use the above automation and sets up SID data through th
 | Method | Description |
 |--------|-------------|
 | AD Sync Lambda | Automatically retrieves AD user SIDs via SSM and stores them in DynamoDB (implemented) |
-| FSx Permission Service | Retrieves NTFS ACL via Get-Acl through SSM (implemented) |
-| ONTAP REST API | Directly retrieves ACL via FSx for ONTAP management endpoint (implemented: `ENV_AUTO_METADATA=true`) |
-| S3 Access Point | NTFS ACL is automatically applied when accessing files via S3 AP (CDK supported: `useS3AccessPoint=true`) |
+| FSx Permission Service | Retrieves NTFS ACL via Get-Acl through SSM (code exists, but is not deployed by any CDK stack) |
+| ONTAP REST API | Directly retrieves ACL via FSx for ONTAP management endpoint (implemented: `ENV_AUTO_METADATA=true`; this embedding server path only) |
+| S3 Access Point | Not a mechanism for using per-file ACLs in authorization (see below). Permissions are carried in `.metadata.json` |
 
 #### When Using S3 Access Point (Option C)
 
-When Bedrock KB ingests documents via S3 Access Point, NTFS ACL is automatically applied through the S3 Access Point's `FileSystemIdentity` (WINDOWS type). However, whether the metadata returned by the Bedrock KB Retrieve API includes ACL information depends on the S3 Access Point implementation. At this time, SID management via `.metadata.json` is the reliable method.
+Requests through an S3 Access Point are authorized as the single file system identity (`FileSystemIdentity`) configured on the access point. Per-file NTFS ACLs are not evaluated against the requesting end user, and Bedrock KB ingestion also runs as that one identity. **The original per-file ACLs therefore do not carry over to end-user authorization on any path that goes through an S3 Access Point.**
+
+What this system matches at query time is the SID list in `.metadata.json`, which is not a projection of the ACL. Its origin differs per path: the Transfer Family path uses an administrator-managed DynamoDB mapping, this embedding server path uses the ONTAP REST API when `ENV_AUTO_METADATA=true`, and the demo environment uses files placed by hand.
 
 #### `.metadata.json` Format
 

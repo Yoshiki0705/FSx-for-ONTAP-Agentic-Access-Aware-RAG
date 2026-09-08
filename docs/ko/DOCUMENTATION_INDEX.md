@@ -34,7 +34,7 @@
 | [poc-success-criteria-template.md](poc-success-criteria-template.md) | PoC 성공 기준 템플릿 (이해관계자 정의, Go/No-Go 판정 기준, 다음 단계 조건, 완료 보고서 템플릿) |
 | [data-readiness-assessment.md](data-readiness-assessment.md) | 데이터 레디니스 평가 템플릿 (데이터 소재·분류·권한 구조·품질·컴플라이언스 확인, 승인 플로우) |
 | [partner-faq.md](partner-faq.md) | 파트너 FAQ (고객 제안 시의 12가지 질문과 답변, 제안 리소스 목록) |
-| [permission-consistency.md](permission-consistency.md) | 권한 변경 일관성 모델 (ACL 변경 → 메타데이터 재생성 → KB 재동기화 → 캐시 무효화 흐름, 최대 지연, 긴급 권한 박탈 절차) |
+| [permission-consistency.md](permission-consistency.md) | 권한 메타데이터 변경 일관성 모델 (반영 경로, 최대 지연, ACL 변경이 도달하지 않는 이유, 긴급 권한 박탈 절차) |
 | [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP 성능 및 용량 설계 가이드 (규모별 구성, S3 AP 고려사항, QoS, 벡터 스토어 선정) |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | 멀티테넌트 및 파트너 배포 패턴 (계정 분리/SVM 분리/하이브리드, 비용 추정 템플릿) |
 | [governance-and-audit.md](governance-and-audit.md) | 거버넌스 및 감사 설계 (감사 로그 스키마, Responsible AI, Guardrails 정책, 업종별 사용 사례) |
@@ -129,7 +129,7 @@
 ### 3단계: 프로덕션 및 엔터프라이즈 설계
 
 11. **production-readiness-checklist.md** — 프로덕션 준비 체크리스트
-12. **permission-consistency.md** — 권한 변경 일관성 모델
+12. **permission-consistency.md** — 권한 메타데이터 변경 일관성 모델
 13. **fsxn-sizing-and-performance.md** — FSx for ONTAP 성능 및 용량 설계
 14. **governance-and-audit.md** — 거버넌스 및 감사 설계
 15. **partner-deployment-patterns.md** — 멀티테넌트 배포 패턴

@@ -4,7 +4,7 @@
 
 **🌐 Language / 言語:** [日本語](README.md) | **English** | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
-> A reference implementation providing Permission-aware RAG + Agentic AI over enterprise data on FSx for ONTAP, with NTFS ACL / UNIX permissions automatically enforced at query time. Single-command AWS CDK deployment. Supports PoC through production evaluation.
+> A reference implementation providing Permission-aware RAG + Agentic AI over enterprise data on FSx for ONTAP, matching per-document permission metadata against the caller's SID / UID-GID at query time (Fail-Closed). Single-command AWS CDK deployment. Supports PoC through production evaluation.
 
 ---
 
@@ -28,7 +28,7 @@
 | Architecture | [Architecture Decision Records](docs/en/architecture-decision-records.md) | Rationale for 6 key design decisions |
 | Architecture | [Stack Architecture Comparison](docs/en/stack-architecture-comparison.md) | Vector store & deployment topology comparison |
 | Permissions | [SID Filtering Architecture](docs/en/SID-Filtering-Architecture.md) | How permission matching works |
-| Permissions | [Permission Consistency Model](docs/en/permission-consistency.md) | ACL propagation flow, latency, emergency revocation |
+| Permissions | [Permission Consistency Model](docs/en/permission-consistency.md) | Permission metadata update flow, latency, emergency revocation |
 | Auth | [Auth & User Management](docs/en/auth-and-user-management.md) | OIDC / SAML / LDAP integration |
 | Auth | [Auth Mode Setup Guide](demo-data/guides/auth-mode-setup-guide.md) | Sample configs + one-shot setup scripts |
 | Operations | [CloudWatch Dashboard Guide](docs/en/cloudwatch-dashboard-guide.md) | Metrics, alarms, troubleshooting |
@@ -66,7 +66,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 **Flow**: User auth → fetch SIDs from DynamoDB → Bedrock KB vector search → SID matching filter → generate answer from permitted documents only
 
 Key features:
-- **Permission-aware RAG** — NTFS ACL / UNIX permissions enforced at query time (Fail-Closed)
+- **Permission-aware RAG** — per-document permission metadata matched against the caller's SID / UID-GID at query time (Fail-Closed)
 - **Agentic AI** — Toggle between document search (KB mode) and autonomous multi-step reasoning (Agent mode)
 - **Smart Routing** — Auto-selects Haiku / Sonnet / Opus based on query complexity (40-60% cost reduction, [benchmark](docs/en/benchmark-scenarios.md))
 - **Low cost** — S3 Vectors (a few dollars/month) as default
@@ -99,6 +99,7 @@ For the comprehensive S3 AP compatibility matrix, see [fsxn-lakehouse-integratio
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless automation | 17 industry serverless patterns (FPolicy event-driven) |
 | [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Athena / Glue / EMR / SageMaker integration |
 | [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability | Audit log delivery to Datadog / Splunk / Grafana without EC2 |
+| [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | Adoption decisions | Data-utilization domain hub: S3 AP authorization behaviour, constraints, and design options |
 
 **Common foundation**: All repos use FSx for ONTAP S3 Access Points, extending data utilization without disrupting NFS/SMB workloads.
 

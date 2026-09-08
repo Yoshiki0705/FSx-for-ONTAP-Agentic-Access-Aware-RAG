@@ -34,7 +34,7 @@
 | [poc-success-criteria-template.md](poc-success-criteria-template.md) | Plantilla de criterios de éxito de PoC (definiciones de partes interesadas, criterios Go/No-Go, condiciones de la siguiente fase, plantilla de informe de finalización) |
 | [data-readiness-assessment.md](data-readiness-assessment.md) | Plantilla de evaluación de preparación de datos (ubicación/clasificación/estructura de permisos/calidad/cumplimiento de datos, flujo de aprobación) |
 | [partner-faq.md](partner-faq.md) | FAQ de socios (12 preguntas y respuestas para propuestas a clientes, lista de recursos de propuesta) |
-| [permission-consistency.md](permission-consistency.md) | Modelo de consistencia de cambios de permisos (cambio ACL → regeneración de metadatos → re-sincronización KB → invalidación de caché, latencia máxima, procedimientos de revocación de permisos de emergencia) |
+| [permission-consistency.md](permission-consistency.md) | Modelo de consistencia de metadatos de permisos (rutas de propagación, latencia máxima, por qué los cambios de ACL no llegan, procedimientos de revocación de emergencia) |
 | [fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | Guía de dimensionamiento y rendimiento de FSx for ONTAP (configuraciones por escala, consideraciones S3 AP, QoS, selección de almacén de vectores) |
 | [partner-deployment-patterns.md](partner-deployment-patterns.md) | Patrones de despliegue multi-tenant y de socios (aislamiento de cuenta/aislamiento SVM/híbrido, plantillas de estimación de costos) |
 | [governance-and-audit.md](governance-and-audit.md) | Diseño de gobernanza y auditoría (esquema de registro de auditoría, IA responsable, políticas de Guardrails, casos de uso por industria) |
@@ -129,7 +129,7 @@
 ### Fase 3: Producción y diseño empresarial
 
 11. **production-readiness-checklist.md** — Lista de verificación de preparación para producción
-12. **permission-consistency.md** — Modelo de consistencia de cambios de permisos
+12. **permission-consistency.md** — Modelo de consistencia de metadatos de permisos
 13. **fsxn-sizing-and-performance.md** — Dimensionamiento y rendimiento de FSx for ONTAP
 14. **governance-and-audit.md** — Diseño de gobernanza y auditoría
 15. **partner-deployment-patterns.md** — Patrones de despliegue multi-tenant

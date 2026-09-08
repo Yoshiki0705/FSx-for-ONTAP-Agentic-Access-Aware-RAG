@@ -19,7 +19,7 @@
 
 ### Q2. Who configures permissions? Is additional setup required?
 
-**A**: Existing NTFS ACLs / UNIX permissions are automatically reflected in RAG search results. No additional permission configuration is needed. When file server administrators set folder permissions as usual, those permissions are automatically applied to RAG search results.
+**A**: Permission decisions for RAG search match each file's permission metadata (`.metadata.json`) against the caller's SIDs synced from AD at query time. **Folder NTFS ACLs are not reflected automatically as-is.** Requests through an S3 Access Point are authorized as a single file system identity, so per-file ACLs do not carry over to end-user authorization. This means the permission metadata has to be populated initially and updated when ACLs change. See the [Permission Metadata Consistency Model](permission-consistency.md) for details.
 
 **How it works**: Permission information (SID/UID/GID) is recorded in each file's `.metadata.json`, and at search time, results are filtered by matching against the user's permissions.
 

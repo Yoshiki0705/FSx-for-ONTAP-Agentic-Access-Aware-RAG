@@ -301,7 +301,7 @@ Erfüllen Sie alle folgenden Punkte vor der Migrationsfähigkeitsentscheidung.
 | [CDK-Stack-Architekturleitfaden](stack-architecture-comparison.md) | Vergleich der Vektorspeicher-Konfigurationen (inkl. Managed-KB-Spalte) |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID-Filterungsdesign |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | Vektorspeicher-unabhängiger Autorisierungsansatz |
-| [Berechtigungskonsistenzmodell](permission-consistency.md) | ACL-Änderungspropagierungsfluss / akzeptable Latenz |
+| [Konsistenzmodell für Berechtigungsmetadaten](permission-consistency.md) | Propagierungsfluss der Berechtigungsmetadaten / akzeptable Latenz |
 | [Governance- und Audit-Design](governance-and-audit.md) | Audit-Log- / Lineage-Anforderungen |
 | [Betriebs-Runbook](operations-runbook.md) | ONTAP-Operationen (FlexClone-Erstellungsverfahren) |
 

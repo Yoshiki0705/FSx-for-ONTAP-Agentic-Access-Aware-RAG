@@ -4,7 +4,7 @@
 
 **🌐 Language / 言語:** **日本語** | [English](README.en.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md)
 
-> FSx for ONTAP に保存された企業データに対して、NTFS ACL / UNIX 権限を自動反映した Permission-aware RAG + Agentic AI を提供するリファレンス実装です。AWS CDK ワンコマンドデプロイ。PoC から本番検討まで対応。
+> FSx for ONTAP に保存された企業データに対して、文書ごとの権限メタデータと利用者の SID / UID・GID を検索時に突き合わせる Permission-aware RAG + Agentic AI を提供するリファレンス実装です。AWS CDK ワンコマンドデプロイ。PoC から本番検討まで対応。
 
 ---
 
@@ -28,7 +28,7 @@
 | アーキテクチャ | [Architecture Decision Records](docs/architecture-decision-records.md) | 6 つの主要意思決定の根拠 |
 | アーキテクチャ | [スタック構成比較](docs/stack-architecture-comparison.md) | ベクトルストア・デプロイ構成の比較 |
 | 権限制御 | [SID フィルタリング設計](docs/SID-Filtering-Architecture.md) | 権限照合の仕組み |
-| 権限制御 | [権限整合性モデル](docs/permission-consistency.md) | ACL 伝播フロー・遅延・緊急剥奪 |
+| 権限制御 | [権限整合性モデル](docs/permission-consistency.md) | 権限メタデータの更新フロー・遅延・緊急剥奪 |
 | 認証 | [認証・ユーザー管理](docs/auth-and-user-management.md) | OIDC / SAML / LDAP 連携 |
 | 認証 | [認証モード別セットアップ](demo-data/guides/auth-mode-setup-guide.md) | 構成サンプル + ワンショットスクリプト |
 | 運用 | [CloudWatch ダッシュボード](docs/cloudwatch-dashboard-guide.md) | メトリクス・アラーム・トラブルシュート |
@@ -66,7 +66,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 **処理フロー**: ユーザー認証 → DynamoDB から SID 取得 → Bedrock KB ベクトル検索 → SID 照合でフィルタ → 許可ドキュメントのみで回答生成
 
 主な特徴:
-- **Permission-aware RAG** — NTFS ACL / UNIX 権限を検索時に自動反映（Fail-Closed）
+- **Permission-aware RAG** — 文書の権限メタデータと利用者の SID / UID・GID を検索時に突き合わせ（Fail-Closed）
 - **Agentic AI** — KB モード（文書検索）と Agent モード（多段階推論）をワンクリック切替
 - **Smart Routing** — クエリ複雑度で Haiku / Sonnet / Opus を自動選択（コスト 40-60% 削減、[ベンチマーク](docs/benchmark-scenarios.md)）
 - **低コスト** — S3 Vectors（月数ドル）をデフォルト採用
@@ -99,6 +99,7 @@ S3 AP の包括的な互換性マトリクスは [fsxn-lakehouse-integrations](h
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自動化 | 17 業種別サーバーレスパターン（FPolicy イベント駆動） |
 | [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Athena / Glue / EMR / SageMaker 統合 |
 | [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability | 監査ログを Datadog / Splunk / Grafana へ EC2 不要で配信 |
+| [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/ja/domains/data-utilization) | 導入判断 | データ活用ドメインのハブ。S3 AP の認可特性・制約・設計上の選択肢 |
 
 **共通基盤**: 全リポジトリが FSx for ONTAP S3 Access Points を使用し、NFS/SMB を中断せずデータ活用を拡張します。
 

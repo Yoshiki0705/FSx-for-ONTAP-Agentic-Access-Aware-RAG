@@ -4,7 +4,7 @@
 
 **🌐 Language / 言語:** [日本語](README.md) | [English](README.en.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [Français](README.fr.md) | **Deutsch** | [Español](README.es.md)
 
-> Referenzimplementierung für Permission-aware RAG + Agentic AI auf Unternehmensdaten in FSx for ONTAP. NTFS ACL / UNIX-Berechtigungen werden zur Abfragezeit automatisch angewendet. Einzeiliges AWS CDK Deployment. Von PoC bis Produktionsbewertung.
+> Referenzimplementierung für Permission-aware RAG + Agentic AI auf Unternehmensdaten in FSx for ONTAP. Die Berechtigungsmetadaten je Dokument werden zur Abfragezeit gegen SID / UID-GID des Aufrufers geprüft (Fail-Closed). Einzeiliges AWS CDK Deployment. Von PoC bis Produktionsbewertung.
 
 ---
 
@@ -54,7 +54,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 **Ablauf**: Benutzerauthentifizierung → SID aus DynamoDB abrufen → Bedrock KB Vektorsuche → SID-Abgleichfilter → Antwort nur aus berechtigten Dokumenten generieren
 
 Hauptmerkmale:
-- **Permission-aware RAG** — NTFS ACL / UNIX-Berechtigungen automatisch bei Abfrage angewendet (Fail-Closed)
+- **Permission-aware RAG** — Berechtigungsmetadaten des Dokuments gegen SID / UID-GID des Aufrufers zur Abfragezeit geprüft (Fail-Closed)
 - **Agentic AI** — Umschalten zwischen KB-Modus (Dokumentensuche) und Agent-Modus (mehrstufige Schlussfolgerung)
 - **Smart Routing** — Automatische Auswahl von Haiku / Sonnet / Opus nach Abfragekomplexität (40-60% Kostenreduktion)
 - **Geringe Kosten** — S3 Vectors (wenige Dollar/Monat) als Standard
@@ -81,6 +81,7 @@ Hauptmerkmale:
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless | 17 branchenspezifische Serverless-Muster |
 | [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Athena / Glue / EMR / SageMaker Integration |
 | [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability | Audit-Log-Zustellung an Datadog / Splunk / Grafana ohne EC2 |
+| [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | Einführungsentscheidungen | Hub der Domäne data-utilization: Autorisierungsverhalten des S3 AP, Einschränkungen und Designoptionen |
 
 </details>
 

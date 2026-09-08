@@ -231,7 +231,7 @@ for (const tenant of tenants) {
 | Aspect | Before (Current State) | After (With This System) |
 |--------|----------------------|--------------------------|
 | File search | Manual exploration of shared folders, low search accuracy | AI presents optimal documents within permission scope |
-| Permission management | Risk of permission boundaries disappearing during AI use | Existing NTFS ACL directly reflected in AI |
+| Permission management | Risk of permission boundaries disappearing during AI use | Boundary preserved by matching permission metadata against caller SIDs (ACL changes require a propagation procedure) |
 | Knowledge utilization | Knowledge silos between departments, person-dependent | Cross-organizational knowledge search while respecting permissions |
 | Operational overhead | Data copy and permission reconfiguration needed for AI | Connect data on FSx directly to AI |
 

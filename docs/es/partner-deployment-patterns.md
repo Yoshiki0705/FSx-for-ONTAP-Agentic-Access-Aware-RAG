@@ -231,7 +231,7 @@ for (const tenant of tenants) {
 | Aspecto | Antes (Estado actual) | Después (Con este sistema) |
 |---------|----------------------|---------------------------|
 | Búsqueda de archivos | Exploración manual de carpetas compartidas, baja precisión de búsqueda | La IA presenta documentos óptimos dentro del alcance de permisos |
-| Gestión de permisos | Riesgo de que los límites de permisos desaparezcan durante el uso de IA | Las ACL NTFS existentes se reflejan directamente en la IA |
+| Gestión de permisos | Riesgo de que los límites de permisos desaparezcan durante el uso de IA | Límite preservado al contrastar los metadatos de permisos con los SID del solicitante (los cambios de ACL requieren un procedimiento de propagación) |
 | Utilización del conocimiento | Silos de conocimiento entre departamentos, dependencia de personas | Búsqueda de conocimiento inter-organizacional respetando permisos |
 | Sobrecarga operativa | Se necesita copia de datos y reconfiguración de permisos para IA | Conectar datos en FSx directamente a la IA |
 

@@ -104,7 +104,7 @@ DynamoDB user-access table
 
 Chaque citation dans les résultats de recherche Bedrock KB contient des métadonnées ingérées depuis les fichiers `.metadata.json` sur S3.
 
-> **Comment `.metadata.json` est créé** : Ce système inclut la récupération automatique des ACL NTFS implémentée par l'AD Sync Lambda (`lambda/agent-core-ad-sync/`) et le service de permissions FSx (`lambda/permissions/fsx-permission-service.ts`). Dans l'environnement de démonstration, des données d'exemple sont placées manuellement à des fins de vérification. Pour plus de détails, voir la section "Structure des métadonnées" dans [docs/embedding-server-design.md](embedding-server-design.md).
+> **Comment `.metadata.json` est créé** : l'AD Sync Lambda (`lambda/agent-core-ad-sync/`) récupère les SID des utilisateurs depuis AD et les stocke dans DynamoDB ; elle ne lit pas les ACL des fichiers. Du code qui lit les ACL NTFS des fichiers (`lambda/permissions/fsx-permission-service.ts`) existe, mais aucune stack CDK ne le déploie. Dans l'environnement de démonstration, des données d'exemple sont placées manuellement à des fins de vérification. Pour plus de détails, voir la section "Structure des métadonnées" dans [docs/embedding-server-design.md](embedding-server-design.md).
 
 ```
 Document Metadata (.metadata.json)

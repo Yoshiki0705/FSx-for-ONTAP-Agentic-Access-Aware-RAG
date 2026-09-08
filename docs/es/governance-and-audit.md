@@ -365,6 +365,6 @@ Flujo de aprobación cuando se requiere acceso a datos de máximo secreto:
 | Documento | Descripción |
 |-----------|-------------|
 | [production-readiness-checklist.md](production-readiness-checklist.md) | Lista de verificación de preparación para producción |
-| [permission-consistency.md](permission-consistency.md) | Modelo de consistencia de cambios de permisos |
+| [permission-consistency.md](permission-consistency.md) | Modelo de consistencia de metadatos de permisos |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Arquitectura de filtrado SID |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Guía de experimentación segura |

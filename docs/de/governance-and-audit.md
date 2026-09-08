@@ -365,6 +365,6 @@ Genehmigungsfluss, wenn Zugriff auf streng geheime Daten erforderlich ist:
 | Dokument | Beschreibung |
 |----------|--------------|
 | [production-readiness-checklist.md](production-readiness-checklist.md) | Checkliste für die Produktionsbereitschaft |
-| [permission-consistency.md](permission-consistency.md) | Konsistenzmodell für Berechtigungsänderungen |
+| [permission-consistency.md](permission-consistency.md) | Konsistenzmodell für Berechtigungsmetadaten |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID-Filterarchitektur |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Leitfaden für sicheres Experimentieren |
