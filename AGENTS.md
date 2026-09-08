@@ -55,6 +55,10 @@ bash demo-data/scripts/test-transfer-family-e2e.sh --stack-prefix perm-rag-demo 
 python3 scripts/check-doc-links.py
 python3 scripts/check-doc-links.py --selftest
 
+# 依存関係の脆弱性ゲート（CI: Security Scan / dependency-scan ジョブ）
+python3 scripts/check-dependency-audit.py
+python3 scripts/check-dependency-audit.py --selftest
+
 # WebApp イメージの事前検証（ECR にプッシュする前）
 bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 ```
@@ -299,6 +303,13 @@ WafStack (us-east-1) → WebSearchGatewayStack (us-east-1, optional: enableWebSe
 | Renovate | `renovate.json` | Automated dependency updates (npm, pip, Dockerfile, GitHub Actions); grouped PRs, weekly (Mon, Asia/Tokyo), keeps Actions SHA-pinned (`pinDigests`), majors gated via Dependency Dashboard, OSV/vulnerability alerts on |
 
 > **Renovate** is driven by the [Renovate GitHub App](https://github.com/apps/renovate), which must be enabled for this repository separately (Settings → GitHub Apps). The `renovate.json` config alone does not activate updates. Renovate preserves the SHA-pinning policy via `helpers:pinGitHubActionDigests` + per-manager `pinDigests: true`, so it does not conflict with the zizmor SHA-pinning lint.
+
+### Dependency Vulnerability Policy
+
+- **critical / high はゲートで落とす。** moderate / low は報告のみ
+- 対象は `package-lock.json` を持つ workspace すべて（root / `docker/nextjs` / `lambda/agent-core-ad-sync`）。`npm audit` は lockfile だけで動くため CI で `npm ci` は不要
+- 上流に修正が無い、またはメジャー更新を要する critical / high は `.security/dependency-audit-allowlist.json` に登録する。**各エントリに理由と `review_by`（再確認期限）が必須で、期限を過ぎたエントリはゲートで落ちる**（放置による恒久的な例外を防ぐ）
+- 件数で減点する方式は使わない。以前のゲートは「1 件あたり −20 点、80 点未満で失敗」だったため、上流に修正が無い推移的依存が 1 つでもあると恒久的に赤で、赤であること自体が情報を持たなかった
 
 ### Local Security Checks
 
