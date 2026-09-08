@@ -19,6 +19,21 @@
 | Produktionsreife prüfen | [Produktionsreife-Checkliste](docs/de/production-readiness-checklist.md) | — |
 | Kosten schätzen | [Kostenschätzungs-Arbeitsblatt](docs/de/cost-estimation-worksheet.md) | — |
 
+## Vorher zu entscheiden / Was dieses Repository nicht abdeckt
+
+Dieses Repository trägt die **Implementierung und die Messungen**. Die **Entscheidungen** — ob FSx for ONTAP passt, ob Daten über einen S3 Access Point bereitgestellt werden, welche Schicht die Berechtigungen hält — liegen im [FSx for ONTAP Adoption Playbook](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook).
+
+| Zuerst entscheiden | Wo die Grundlage liegt |
+|--------------------|------------------------|
+| Ob FSx for ONTAP zum Problem passt (einschließlich der Fälle, in denen nicht) | [Entscheidungsbäume](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/reference/decision-trees) |
+| Voraussetzungen und Einschränkungen der Bereitstellung über einen S3 Access Point (gleiches Konto, gleiche Region und die Eigenschaft, dass jede Anfrage unter einer einzigen Identität autorisiert wird) | [Domäne data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) |
+| Auf welcher Schicht die Autorisierung entsteht und was das Auditprotokoll behält | [Domäne security-governance](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/security-governance) |
+| NFS-/SMB-Koexistenz und Active-Directory-Identitätsdesign | [Domäne multiprotocol-identity](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/multiprotocol-identity) |
+
+**Hier nicht abgedeckt**: Storage-Auswahl, Migrationsverfahren, Block-Storage, Performance- und Kostendesign. All das liegt auf der Playbook-Seite.
+
+**Hier abgedeckt**: eine RAG-Implementierung, die Berechtigungsmetadaten je Dokument in einem Index hält und sie zur Abfragezeit gegen SID / UID-GID des Aufrufers prüft (Amazon Bedrock + AWS CDK), die Deployment- und Betriebsverfahren sowie Messungen für diese Architektur. **Ursprüngliche datei-individuelle ACLs gehen auf Pfaden über einen S3 Access Point nicht in die Endbenutzer-Autorisierung ein; Berechtigungen werden daher als separater Index gepflegt** ([Konsistenzmodell für Berechtigungsmetadaten](docs/de/permission-consistency.md)).
+
 <details><summary>📂 Alle Funktionen & Design-Leitfäden</summary>
 
 | Kategorie | Leitfaden | Inhalt |

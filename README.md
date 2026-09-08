@@ -20,6 +20,21 @@
 | 本番化を判断する | [本番化チェックリスト](docs/production-readiness-checklist.md) | — |
 | コストを見積もる | [コスト見積もりワークシート](docs/cost-estimation-worksheet.md) | — |
 
+## 先に決めておくこと / ここで扱わないこと
+
+このリポジトリは **実装と実測**を扱います。FSx for ONTAP を採るか、S3 Access Point でデータを出すか、権限をどの層で持つかという**判断**は [FSx for ONTAP Adoption Playbook](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook) 側にあります。
+
+| 先に決めておくこと | 判断材料 |
+|-----------------|---------|
+| FSx for ONTAP が課題に合うか（合わない条件を含む） | [決定木](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/ja/reference/decision-trees) |
+| S3 Access Point でデータを出す前提と制約（同一アカウント・同一リージョン、全要求が 1 つの ID で認可される性質） | [data-utilization ドメイン](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/ja/domains/data-utilization) |
+| 認可がどの層で成立するか、監査に何が残るか | [security-governance ドメイン](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/ja/domains/security-governance) |
+| NFS / SMB 共存と Active Directory の ID 設計 | [multiprotocol-identity ドメイン](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/ja/domains/multiprotocol-identity) |
+
+**ここで扱わないこと**: ストレージの選定、移行方式、ブロックストレージ・性能・コストの設計。いずれも Playbook 側です。
+
+**ここで扱うこと**: 文書ごとの権限メタデータを索引に持ち、検索時に利用者の SID / UID・GID と突き合わせる RAG の実装（Amazon Bedrock + AWS CDK）、デプロイと運用の手順、この構成での実測。**元ファイルの ACL は S3 Access Point を通る経路では利用者の認可に引き継がれないため、権限は別の索引として保守します**（[権限メタデータ変更の整合性モデル](docs/permission-consistency.md)）。
+
 <details><summary>📂 全機能・設計ガイド一覧</summary>
 
 | カテゴリ | ガイド | 内容 |

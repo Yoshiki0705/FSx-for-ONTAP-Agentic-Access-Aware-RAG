@@ -19,6 +19,21 @@
 | 評估正式環境就緒度 | [正式環境就緒檢查清單](docs/zh-TW/production-readiness-checklist.md) | — |
 | 估算成本 | [成本估算工作表](docs/zh-TW/cost-estimation-worksheet.md) | — |
 
+## 來之前需要決定的事 / 本儲存庫不涉及的內容
+
+本儲存庫處理**實作與實測**。是否採用 FSx for ONTAP、是否透過 S3 Access Point 公開資料、權限放在哪一層等**判斷**，在 [FSx for ONTAP Adoption Playbook](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook) 一側。
+
+| 需要先決定的事 | 判斷依據 |
+|--------------|---------|
+| FSx for ONTAP 是否契合課題（含不契合的條件） | [決策樹](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/reference/decision-trees) |
+| 透過 S3 Access Point 公開資料的前提與限制（同一帳戶、同一區域，以及所有請求以單一身分授權的性質） | [data-utilization 領域](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) |
+| 授權在哪一層成立、稽核日誌保留什麼 | [security-governance 領域](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/security-governance) |
+| NFS / SMB 共存與 Active Directory 身分設計 | [multiprotocol-identity 領域](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/multiprotocol-identity) |
+
+**本儲存庫不涉及**：儲存選型、遷移方式、區塊儲存·效能·成本設計。以上均在 Playbook 一側。
+
+**本儲存庫涉及**：將每份文件的權限中繼資料保存於索引中，並在搜尋時與呼叫者的 SID / UID・GID 進行比對的 RAG 實作（Amazon Bedrock + AWS CDK）、部署與維運程序，以及本架構的實測。**原始檔案的 ACL 在經由 S3 Access Point 的路徑上不會傳遞至最終使用者的授權，因此權限作為獨立索引來維護**（[權限中繼資料變更一致性模型](docs/zh-TW/permission-consistency.md)）。
+
 <details><summary>📂 全部功能與設計指南</summary>
 
 | 類別 | 指南 | 內容 |
