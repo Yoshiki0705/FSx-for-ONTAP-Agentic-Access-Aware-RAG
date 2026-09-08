@@ -718,11 +718,16 @@ export class DemoWebAppStack extends cdk.Stack {
       },
     ]);
 
-    NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/Monitoring/AlertsTopic/Resource`, [
-      {
-        id: 'AwsSolutions-SNS3',
-        reason: 'SNS Topic is used for internal CloudWatch Alarm notifications only (email subscription). Publishers are AWS services (CloudWatch) over internal AWS endpoints. TLS enforcement on topic policy not required for service-to-service communication. See: https://docs.aws.amazon.com/sns/latest/dg/sns-security-best-practices.html',
-      },
-    ]);
+    // Monitoring/AlertsTopic は enableMonitoring=true のときだけ生成されるため、
+    // 抑制もガードする。無条件に適用すると、パスが解決できず cdk-nag が
+    // 「Suppression path ... did not match any resource」で synth を失敗させる。
+    if (props.enableMonitoring) {
+      NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/Monitoring/AlertsTopic/Resource`, [
+        {
+          id: 'AwsSolutions-SNS3',
+          reason: 'SNS Topic is used for internal CloudWatch Alarm notifications only (email subscription). Publishers are AWS services (CloudWatch) over internal AWS endpoints. TLS enforcement on topic policy not required for service-to-service communication. See: https://docs.aws.amazon.com/sns/latest/dg/sns-security-best-practices.html',
+        },
+      ]);
+    }
   }
 }
