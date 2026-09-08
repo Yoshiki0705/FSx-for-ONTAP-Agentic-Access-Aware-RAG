@@ -5,6 +5,14 @@
 
 ## Build & Test Commands
 
+**Single entry point: `make help`.** Every check below is available as a `make` target running the identical command, and `make synth` reads its ten lane definitions from `.github/workflows/ci-cd.yml` so the Makefile and CI cannot drift apart. [llms.txt](llms.txt) states how to read this repository.
+
+```bash
+# 単一入口
+make all     # 型検査 + Jest + リンク + 証跡ラベル + 依存関係
+make synth   # CI と同じ 10 レーン
+```
+
 ```bash
 # TypeScript compilation check (run first — catches type errors before synth)
 npx tsc --noEmit
@@ -373,6 +381,7 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Optimization resources not synthesized | `enableAgentOptimization=true` without `enableAgentCoreGateway=true` | Optimization requires Gateway; set both. Also run `npx tsc` before synth (stale JS) |
 | AgentCore Optimization L1 construct missing | Preview feature not in CloudFormation yet | Construct uses AwsCustomResource (SDK); Recommendations/A/B tests run via agentcore CLI post-deploy |
 | Jest tests hang/timeout in CI | CDK property test `numRuns: 100` × VPC stacks | Use `numRuns: 5` for CDK stack property tests |
+| `make test` fails locally in 6 aws-sdk-client-mock suites (26 tests) while CI passes 751/751 | **[hypothesis]** Node version difference — reproduced on Node 26.4.0, **unverified** against Node 22 locally | Use the Node version in `.nvmrc` (22), which is what CI runs. Affected: `ldap-connector`, `agent-core-ad-sync`, `identity-sync-lambda`, `cache-ttl.prop`, `dynamodb-save-format.prop`, `ad-sync-lambda.property` |
 | Snapshot test fails after unrelated change | CDK asset hash or schema drift | Run `npx jest --updateSnapshot` after reviewing diff |
 | Test imports `vitest` in Jest directory | Wrong test runner dependency | Remove vitest import; use Jest globals (`describe/it/expect`) |
 | E2E test fails in CI | Real AWS resources required | Prefix with `e2e-`; excluded via `jest.config.js` |

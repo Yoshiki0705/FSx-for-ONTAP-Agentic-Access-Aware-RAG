@@ -39,7 +39,9 @@ def find_broken(roots: list[str]) -> tuple[int, list[tuple[str, int, str]]]:
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
             for filename in filenames:
-                if not filename.endswith('.md'):
+                # llms.txt は AI 向けの入口で Markdown 記法のリンクを持つ。
+                # 拡張子で外すと、この 1 ファイルだけ検査されずに腐る。
+                if not filename.endswith('.md') and filename != 'llms.txt':
                     continue
                 path = os.path.join(dirpath, filename)
                 scanned += 1

@@ -1,0 +1,93 @@
+# FSx for ONTAP Agentic Access-Aware RAG
+
+> A deployable AWS CDK implementation of permission-aware RAG over Amazon FSx for NetApp ONTAP.
+> Documents are reached through an FSx for ONTAP S3 Access Point; per-document permission metadata
+> is kept in a separate index and matched against the user's SID / UID / GID **at query time**,
+> after retrieval. The original NTFS ACLs are not carried through the S3 Access Point path, so the
+> permission index is maintained separately rather than projected from the ACLs.
+
+This repository is the implementation and measurement side. For lifecycle- and topic-organized
+guidance on adopting FSx for ONTAP (assess → design → migrate → build → operate → optimize), see
+the [FSx for ONTAP Adoption Playbook](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook).
+Content is not duplicated between the two: guidance lives there, running code and measurements live
+here.
+
+## How to read this repository
+
+Claims about how a product or service behaves carry an inline evidence label. The four tiers are
+shared with the Adoption Playbook, so the same word means the same thing in both repositories.
+
+- `verified` — reproduced by the author; the label carries the date and the Region.
+- `documented` — stated in AWS or NetApp documentation; a source accompanies it.
+- `field-observation` — observed once, reproduction not confirmed. Not a general rule.
+- `hypothesis` — reasoned but unverified. Not a basis for a design decision.
+
+Do not present `field-observation` or `hypothesis` content as established fact. A number is only
+meaningful together with the date, Region, and configuration stated next to it. Two distinctions
+matter throughout: a sample run is not a production estimate, and **code existing in this repository
+does not mean it is deployed** — some modules are present but referenced by no stack.
+
+Definition and enforcement: [Evidence Policy](docs/en/evidence-policy.md), checked by
+`scripts/check-evidence.py`.
+
+Naming: "Amazon FSx for NetApp ONTAP" on first mention, "FSx for ONTAP" thereafter.
+
+## Entry points
+
+- [README (Japanese)](README.md) — primary hub: architecture, feature flags, deployment.
+- [README (English)](README.en.md) — same structure in English.
+- [AGENTS.md](AGENTS.md) — conventions, build and test commands, feature flags, and the pitfalls
+  table for coding agents. Read this before changing code.
+- [Evidence Policy](docs/en/evidence-policy.md) — the four tiers, their required metadata, and what
+  they do not answer.
+- [Permission Metadata Consistency Model](docs/en/permission-consistency.md) — how permission data
+  propagates, where it is fail-closed, and what it never reaches. Read this before relying on the
+  permission boundary.
+- [Threat Model](docs/en/threat-model.md) — threat categories, attack paths, and the preconditions
+  each mitigation depends on.
+- [SID Filtering Architecture](docs/en/SID-Filtering-Architecture.md) — how retrieved chunks are
+  matched against the caller's identity.
+- [S3 AP + AD Prerequisites](docs/en/s3ap-ad-prerequisites.md) — verified constraints when the SVM
+  is joined to Active Directory, including why `HeadBucket` succeeds while data operations fail.
+- [Stack Architecture Comparison](docs/en/stack-architecture-comparison.md) — vector store and
+  deployment variants.
+
+## Running the checks
+
+`make help` lists every check. The same commands run in CI.
+
+- `make all` — the fast checks: type check, Jest tests, documentation links, evidence labels,
+  dependency severity policy.
+- `make synth` — `cdk synth` across the ten feature-flag combinations. The flags are read from
+  `.github/workflows/ci-cd.yml` so the two cannot drift apart.
+- `make secrets` / `make actions` — gitleaks and zizmor.
+
+Each detector runs its own `--selftest` before the real check: a gate passing is not evidence that
+the gate ran.
+
+## Languages
+
+Documentation is written in Japanese first and mirrored in English; six further languages (ko,
+zh-CN, zh-TW, fr, de, es) exist under `docs/<lang>/` with partial coverage. Japanese and English are
+kept in structural parity. Where a translation is absent the link points at the English version
+rather than a placeholder.
+
+## What is here
+
+- `bin/`, `lib/` — CDK application and stacks (networking, security, storage, AI, web app,
+  Transfer Family, embedding).
+- `docker/nextjs/` — Next.js 15 frontend running on Lambda; permission filtering, smart routing,
+  and the chat surface.
+- `lambda/`, `automation/` — Python and TypeScript functions: KB auto-sync, FSx for ONTAP
+  operations, Transfer Family ingestion.
+- `tests/` — CDK assertions and property-based tests; `tests/permission-matrix/` holds the
+  permission scenarios.
+- `benchmarks/` — measurement scripts and recorded results. Read the evidence label before quoting
+  a number.
+- `docs/` — design, operations, and investigation documents in up to eight languages.
+
+## What is not here
+
+- Guidance on choosing or migrating to FSx for ONTAP. That is the Adoption Playbook's scope.
+- A production-ready deployment. This is a demonstration: removal policies are destructive, and
+  several capabilities are opt-in behind feature flags precisely because they are unverified.

@@ -51,6 +51,7 @@ This repository holds the **implementation and the measurements**. The **decisio
 | Operations | [FSx for ONTAP Sizing](docs/en/fsxn-sizing-and-performance.md) | Scale-based config, QoS, vector store selection |
 | Security | [Threat Model](docs/en/threat-model.md) | 10 threat categories, attack paths, mitigations |
 | How to read | [Evidence Policy](docs/en/evidence-policy.md) | How far each statement can be trusted (`verified` / `documented` / `field-observation` / `hypothesis`) |
+| For AI | [llms.txt](llms.txt) | How to read this repository, its entry points, and its checks, in one file |
 | Security | [Governance & Audit Design](docs/en/governance-and-audit.md) | Audit logs, Responsible AI, Guardrails |
 | Data | [Chunking Strategy Guide](docs/en/chunking-strategy-guide.md) | FIXED_SIZE / HIERARCHICAL / SEMANTIC |
 | Data | [S3 Vectors SID Architecture](docs/en/s3-vectors-sid-architecture-guide.md) | Metadata constraints & filtering implementation |
@@ -127,20 +128,21 @@ For the comprehensive S3 AP compatibility matrix, see [fsxn-lakehouse-integratio
 
 <details><summary>🔧 For developers</summary>
 
+Every check has a single entry point in the `Makefile`, running the same commands as CI.
+
 ```bash
-# TypeScript type check
-npx tsc --noEmit
+make help    # list the available targets
 
-# CDK synth (feature flag combination testing)
-npx cdk synth --quiet
-npx cdk synth --quiet -c enableTransferFamily=true
-npx cdk synth --quiet -c enableGuardrails=true -c enableAgentCoreGateway=true
+make all     # the fast checks (types, Jest, links, evidence labels, dependencies)
+make synth   # cdk synth across the same ten lanes as CI (flags read from ci-cd.yml)
 
-# Tests
-npx jest --no-coverage
-cd docker/nextjs && npx vitest run
-cd automation/transfer-family && python3 -m pytest tests/ -v
+make test-frontend  # Vitest (known flaky)
+make test-python    # pytest for the Python Lambdas
+make secrets        # gitleaks
+make actions        # zizmor
 ```
+
+Each detector runs its own `--selftest` before the real check: **a gate passing is not evidence that the gate ran**, so we confirm every time that it fails on input it must reject.
 
 For project structure, coding conventions, and CI pipeline details, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
