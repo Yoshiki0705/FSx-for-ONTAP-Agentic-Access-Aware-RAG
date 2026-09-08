@@ -50,6 +50,7 @@
 | 運用 | [KB Auto-Sync エラーハンドリング](docs/kb-auto-sync-error-handling.md) | リトライ・手動復旧 |
 | 運用 | [FSx for ONTAP サイジング](docs/fsxn-sizing-and-performance.md) | 規模別構成・QoS・ベクトルストア選定 |
 | セキュリティ | [脅威モデル](docs/threat-model.md) | 10 脅威カテゴリ・攻撃経路・緩和策 |
+| 読み方 | [証跡の区分ポリシー](docs/evidence-policy.md) | どの記述をどこまで信頼して適用できるか（`verified` / `documented` / `field-observation` / `hypothesis`） |
 | セキュリティ | [ガバナンス・監査設計](docs/governance-and-audit.md) | 監査ログ・Responsible AI・Guardrails |
 | データ | [チャンキング戦略選定](docs/chunking-strategy-guide.md) | FIXED_SIZE / HIERARCHICAL / SEMANTIC |
 | データ | [S3 Vectors SID 設計](docs/s3-vectors-sid-architecture-guide.md) | メタデータ制約・フィルタリング実装 |

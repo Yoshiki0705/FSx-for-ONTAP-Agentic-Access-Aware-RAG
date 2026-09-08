@@ -15,13 +15,7 @@
 
 將在 AWS Summit New York 2026（2026-06-17）達成 GA 的 [AgentCore Web Search Tool](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/)，作為**Hybrid Search 選項**加入本儲存庫的 Permission-aware RAG 模式中的設計探討。
 
-證據層級:
-
-| 層級 | 定義 | 本文件中的處理 |
-|------|------|------------|
-| Public evidence | 可從 AWS 官方文件·部落格驗證 | 附出處連結 |
-| Project-context | 本專案/關聯儲存庫的設計判斷·實作 | 標註為「本專案」「關聯儲存庫」 |
-| Unverified | 未驗證的前提·API 形狀 | 標註 ⚠️ UNVERIFIED |
+證據層級使用[證據分級政策](../../en/evidence-policy.md)的 4 個詞（`verified` / `documented` / `field-observation` / `hypothesis`），以行內標籤置於主張之前。
 
 > ⚠️ **Distinction discipline**: AgentCore Web Search Tool 的「功能的存在（GA）」屬於 public evidence，但本儲存庫 CDK 整合中具體的 target 設定·端點·區域限制包含**未驗證**項目。請參閱下文的驗證要點。
 
@@ -34,7 +28,7 @@
 | # | 機制 | 實作狀況 | 角色 |
 |---|------|---------|------|
 | A | **Claude Platform on AWS Web Search** | 已實作（`docker/nextjs/src/lib/claude-platform/`） | KB 分數下降時/明確要求時的後援。`callWithWebSearch` + `routeInvocation` |
-| B | **AgentCore Web Search Gateway target** | 部分實作·⚠️UNVERIFIED（`lib/constructs/agentcore-gateway-construct.ts` 的 `enableWebSearch`） | Gateway 的 built-in connector target。本次工作階段中新增，但 target 設定未驗證 |
+| B | **AgentCore Web Search Gateway target** | 部分實作（`lib/constructs/agentcore-gateway-construct.ts` 的 `enableWebSearch`） | Gateway 的 built-in connector target。本次工作階段中新增，但 target 設定未驗證. 新增時 target 設定尚**未驗證**（處於 **[hypothesis]** 階段）。形狀隨後在 §9.1 中確認 |
 | C | **本次調查的對象** | 未實作 | 基於 A/B，將 AgentCore Web Search Tool 設計為 Permission-aware RAG 的正式 Hybrid Search 選項 |
 
 ### 1.1 現有機制 A 已提供的內容（可重複使用）
@@ -110,7 +104,7 @@ UI 切換開關應**重複使用現有的 `useWebSearch` 路徑**，後端的路
 ### 4.1 區域限制（待確認）
 
 - 根據關聯儲存庫的經驗，**Web Search Tool 僅支援 us-east-1**（記錄為 Project-context）。
-- ⚠️ UNVERIFIED: 需在 AWS 官方區域可用性表中確認。請在 [Regional product services](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/) 中確認。
+- **[documented]** Web Search Tool 僅在 us-east-1 提供。來源: [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/)
 - **重要的不一致**: 本次工作階段新增的 `enableWebSearch`（機制 B）將 Web Search target 加入了 **ap-northeast-1 的主 Gateway**。若 us-east-1 限制屬實，則**此配置有誤**，需將 Web Search 用 Gateway 分離至 us-east-1。
 
 ### 4.2 現有的 us-east-1 跨區域 precedent
@@ -223,7 +217,7 @@ const wafStack = new DemoWafStack(app, `${stackPrefix}-Waf`, {
 
 慣例:
 - 日英雙語（`docs/investigations/` = 日語，`docs/en/investigations/` = 英語）
-- 明示證據層級，未驗證項目標註 ⚠️ UNVERIFIED
+- 證據層級以[證據分級政策](../../en/evidence-policy.md)的行內標籤標註
 - 務必在開頭整理與現有實作的關係（防止重複造輪子）
 - 中立框架（right-tool-for-the-job 而非 competing tools）
 
@@ -237,7 +231,7 @@ const wafStack = new DemoWafStack(app, `${stackPrefix}-Waf`, {
 |----|--------------|------|------|
 | 1 | **強化提示注入防禦** | 將現有機制 A 的 Web 結果包覆於 `<web_search_results>`，並在 system prompt 中加入非信任資料指示 | 最小變更·最高的安全價值。無需變更 CDK。立即消除 §6.3 的現有缺失 |
 | 2 | **UI 切換開關** | Zustand `webSearchEnabled` + 聊天 UI 切換開關 + verified/reference 徽章分離 | 後端接收入口已存在。僅前端即可完成。使用者價值可見 |
-| 3 | **消除 us-east-1 不一致** | 確定將 ap-northeast-1 gateway 的 `enableWebSearch` 撤除 or 遷移至 us-east-1 的方針 | 使本次工作階段引入的 UNVERIFIED 實作達成一致。防止誤部署 |
+| 3 | **消除 us-east-1 不一致** | 確定將 ap-northeast-1 gateway 的 `enableWebSearch` 撤除 or 遷移至 us-east-1 的方針 | 使本次工作階段引入的 實作達成一致。防止誤部署 |
 | 4 | **us-east-1 Gateway（Option B / PoC）** | 將關聯儲存庫的 `agentcore-gateway-role.yaml` 套用於 us-east-1，手動建立 Web Search target，透過 env 接收 endpoint | 在真實環境中驗證 target 設定·區域限制（§4.1） |
 | 5 | **Lambda WebSearchClient（inline）** | 將 `web_search_client.py` 引入 `lambda/web-search/`（inline），呼叫 us-east-1 Gateway | 依 §5 的方式實作。PoC 驗證之後 |
 | 6 | **CDK IaC 化（Option A / 生產）** | 以 WafStack 模式將 us-east-1 Gateway 堆疊 IaC 化 | 在 PoC 確定設定後確保可重現性 |
@@ -257,13 +251,15 @@ const wafStack = new DemoWafStack(app, `${stackPrefix}-Waf`, {
 
 | # | 項目 | 狀態 | 對應 |
 |---|------|------|------|
-| R1 | Web Search Tool 的 us-east-1 限制 | ✅ **VERIFIED** | 官方文件明確記載「available in the US East (N. Virginia) us-east-1 Region」。已透過 PoC 確認 |
+| R1 | Web Search Tool 的 us-east-1 限制 | **[documented]** | 官方文件明確記載僅限 us-east-1. [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/) |
 | R2 | 本次工作階段的 `enableWebSearch`（ap-northeast-1 gateway）配置錯誤 | ✅ **已解決** | 在步驟 3 中撤除·改為 synth-time warning |
-| R3 | createGatewayTarget 的 Web Search target 設定 | ✅ **VERIFIED** | 已確認正式 API 形狀（下文 §9.1） |
+| R3 | createGatewayTarget 的 Web Search target 設定 | **[verified 2026-06-18 / us-east-1]** | 已確認正式 API 形狀（下文 §9.1） |
 | R4 | Web 結果的注入 | ✅ 已在設計中因應 | `<web_search_results>` 隔離 + `WEB_SEARCH_SAFETY_INSTRUCTION`（步驟 1） |
 | R5 | 機制 A（Claude Platform）與機制 C（AgentCore）的角色重疊 | 待整理 | 透過 env 切換 + 從 UI 隱藏引擎（§3） |
 
-### 9.1 Web Search target 設定（VERIFIED — 2026-06-18 PoC 執行結果）
+### 9.1 Web Search target 設定
+
+**[verified 2026-06-18 / us-east-1]** PoC 執行結果。
 
 **正確的 API 形狀:**
 

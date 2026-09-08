@@ -50,6 +50,7 @@ This repository holds the **implementation and the measurements**. The **decisio
 | Operations | [KB Auto-Sync Error Handling](docs/en/kb-auto-sync-error-handling.md) | Retry & manual recovery |
 | Operations | [FSx for ONTAP Sizing](docs/en/fsxn-sizing-and-performance.md) | Scale-based config, QoS, vector store selection |
 | Security | [Threat Model](docs/en/threat-model.md) | 10 threat categories, attack paths, mitigations |
+| How to read | [Evidence Policy](docs/en/evidence-policy.md) | How far each statement can be trusted (`verified` / `documented` / `field-observation` / `hypothesis`) |
 | Security | [Governance & Audit Design](docs/en/governance-and-audit.md) | Audit logs, Responsible AI, Guardrails |
 | Data | [Chunking Strategy Guide](docs/en/chunking-strategy-guide.md) | FIXED_SIZE / HIERARCHICAL / SEMANTIC |
 | Data | [S3 Vectors SID Architecture](docs/en/s3-vectors-sid-architecture-guide.md) | Metadata constraints & filtering implementation |

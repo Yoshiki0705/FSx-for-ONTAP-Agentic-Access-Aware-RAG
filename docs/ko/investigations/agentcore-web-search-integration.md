@@ -15,13 +15,7 @@
 
 AWS Summit New York 2026(2026-06-17)에서 GA가 된 [AgentCore Web Search Tool](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/)을 본 리포지토리의 Permission-aware RAG 패턴에 **Hybrid Search 옵션**으로 추가하기 위한 설계 검토.
 
-증거 계층:
-
-| 계층 | 정의 | 본 문서에서의 취급 |
-|------|------|------------|
-| Public evidence | AWS 공식 문서·블로그에서 검증 가능 | 출처 링크 포함 |
-| Project-context | 본 프로젝트/연계 리포지토리의 설계 판단·구현 | "본 프로젝트", "연계 리포지토리"로 명시 |
-| Unverified | 미검증 전제·API 형상 | ⚠️ UNVERIFIED로 명시 |
+증거 구분은 [증거 구분 정책](../../en/evidence-policy.md)의 4개 단어(`verified` / `documented` / `field-observation` / `hypothesis`)를 사용하며, 주장 바로 앞에 인라인 라벨로 표기한다.
 
 > ⚠️ **Distinction discipline**: AgentCore Web Search Tool의 「기능의 존재(GA)」는 public evidence이지만, 본 리포지토리의 CDK 통합에서의 구체적인 target 구성·엔드포인트·리전 제약은 **미검증**을 포함한다. 후술하는 검증 포인트를 참조.
 
@@ -34,7 +28,7 @@ AWS Summit New York 2026(2026-06-17)에서 GA가 된 [AgentCore Web Search Tool]
 | # | 메커니즘 | 구현 상황 | 역할 |
 |---|------|---------|------|
 | A | **Claude Platform on AWS Web Search** | 구현 완료(`docker/nextjs/src/lib/claude-platform/`) | KB 스코어 저하 시/명시적 요청 시의 폴백. `callWithWebSearch` + `routeInvocation` |
-| B | **AgentCore Web Search Gateway target** | 부분 구현·⚠️UNVERIFIED(`lib/constructs/agentcore-gateway-construct.ts`의 `enableWebSearch`) | Gateway의 built-in connector target. 본 세션에서 추가했으나 target 구성은 미검증 |
+| B | **AgentCore Web Search Gateway target** | 부분 구현(`lib/constructs/agentcore-gateway-construct.ts`의 `enableWebSearch`) | Gateway의 built-in connector target. 본 세션에서 추가했으나 target 구성은 미검증. 추가 시점에는 target 구성이 **미검증**이었다(**[hypothesis]** 단계). 형상은 이후 §9.1에서 확인 |
 | C | **본 조사의 대상** | 미구현 | A/B를 토대로 AgentCore Web Search Tool을 Permission-aware RAG의 정식 Hybrid Search 옵션으로 설계 |
 
 ### 1.1 기존 메커니즘 A가 이미 제공하는 것(재사용 가능)
@@ -110,7 +104,7 @@ UI 토글은 **기존 `useWebSearch` 경로를 재사용**하고, 백엔드의 �
 ### 4.1 리전 제약(확인 필요)
 
 - 연계 리포지토리의 지견으로는 **Web Search Tool은 us-east-1만 지원**(Project-context로 기록).
-- ⚠️ UNVERIFIED: AWS 공식 리전 가용성 표에서의 확인이 필요. [Regional product services](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)에서 확인 필요.
+- **[documented]** Web Search Tool은 us-east-1에서만 사용할 수 있다. 출처: [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/)
 - **중요한 불일치**: 본 세션에서 추가한 `enableWebSearch`(메커니즘 B)는 **ap-northeast-1의 메인 Gateway**에 Web Search target을 추가하고 있다. us-east-1 제약이 사실이라면 **이 배치는 오류**이며, Web Search용 Gateway는 us-east-1에 분리할 필요가 있다.
 
 ### 4.2 기존 us-east-1 크로스 리전 precedent
@@ -223,7 +217,7 @@ FSx for ONTAP AI/RAG 아키텍처 리뷰의 비협상 요건에 직결된다.
 
 규약:
 - 일·영 이중 언어(`docs/investigations/` = 일본어, `docs/en/investigations/` = 영어)
-- 증거 계층을 명시하고, 미검증 항목은 ⚠️ UNVERIFIED로 기재
+- 증거 구분은 [증거 구분 정책](../../en/evidence-policy.md)의 인라인 라벨로 명시
 - 기존 구현과의 관계를 반드시 서두에서 정리(바퀴의 재발명 방지)
 - 중립적 프레이밍(competing tools가 아니라 right-tool-for-the-job)
 
@@ -237,7 +231,7 @@ FSx for ONTAP AI/RAG 아키텍처 리뷰의 비협상 요건에 직결된다.
 |----|--------------|------|------|
 | 1 | **프롬프트 인젝션 방어 보강** | 기존 메커니즘 A의 Web 결과를 `<web_search_results>`로 감싸고, 비신뢰 데이터 지시를 system prompt에 추가 | 최소 변경·최고의 보안 가치. CDK 변경 불필요. §6.3의 기존 결함을 즉시 해소 |
 | 2 | **UI 토글** | Zustand `webSearchEnabled` + 채팅 UI 토글 + verified/reference 배지 분리 | 백엔드 수신부는 기존. 프런트만으로 완결. 사용자 가치가 보임 |
-| 3 | **us-east-1 불일치 해소** | ap-northeast-1 gateway의 `enableWebSearch`를 철거 or us-east-1 이설하는 방침 확정 | 본 세션에서 넣은 UNVERIFIED 구현의 정합화. 오배포 방지 |
+| 3 | **us-east-1 불일치 해소** | ap-northeast-1 gateway의 `enableWebSearch`를 철거 or us-east-1 이설하는 방침 확정 | 본 세션에서 넣은 구현의 정합화. 오배포 방지 |
 | 4 | **us-east-1 Gateway(Option B / PoC)** | 연계 리포지토리의 `agentcore-gateway-role.yaml`을 us-east-1에 적용, Web Search target을 수동 생성, endpoint를 env로 수신 | 실 환경에서 target 구성·리전 제약(§4.1)을 검증 |
 | 5 | **Lambda WebSearchClient(inline)** | `web_search_client.py`를 `lambda/web-search/`에 가져오기(inline), us-east-1 Gateway를 호출 | §5의 방식에 따라 구현. PoC 검증 후 |
 | 6 | **CDK IaC화(Option A / 운영)** | us-east-1 Gateway 스택을 WafStack 패턴으로 IaC화 | PoC에서 구성 확정 후 재현성을 확보 |
@@ -257,13 +251,15 @@ FSx for ONTAP AI/RAG 아키텍처 리뷰의 비협상 요건에 직결된다.
 
 | # | 항목 | 상태 | 대응 |
 |---|------|------|------|
-| R1 | Web Search Tool의 us-east-1 제약 | ✅ **VERIFIED** | 공식 문서에 「available in the US East (N. Virginia) us-east-1 Region」이라고 명기. PoC에서 확인 완료 |
+| R1 | Web Search Tool의 us-east-1 제약 | **[documented]** | 공식 문서에 us-east-1 한정으로 명기. [Announcing web search on Amazon Bedrock AgentCore](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/) |
 | R2 | 본 세션의 `enableWebSearch`(ap-northeast-1 gateway)의 배치 오류 | ✅ **해결 완료** | 스텝 3에서 철거·synth-time warning화 |
-| R3 | createGatewayTarget의 Web Search target 구성 | ✅ **VERIFIED** | 정식 API 형상 확인(아래 §9.1) |
+| R3 | createGatewayTarget의 Web Search target 구성 | **[verified 2026-06-18 / us-east-1]** | 정식 API 형상 확인(아래 §9.1) |
 | R4 | Web 결과의 인젝션 | ✅ 설계로 대응 | `<web_search_results>` 격리 + `WEB_SEARCH_SAFETY_INSTRUCTION`(스텝 1) |
 | R5 | 메커니즘 A(Claude Platform)와 메커니즘 C(AgentCore)의 역할 중복 | 정리 필요 | env에서의 전환 + UI에서는 엔진을 은폐(§3) |
 
-### 9.1 Web Search target 구성(VERIFIED — 2026-06-18 PoC 실행 결과)
+### 9.1 Web Search target 구성
+
+**[verified 2026-06-18 / us-east-1]** PoC 실행 결과.
 
 **올바른 API 형상:**
 
