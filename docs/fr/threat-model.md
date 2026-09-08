@@ -3,6 +3,7 @@
 **🌐 Language:** [日本語](../threat-model.md) | [English](../en/threat-model.md) | [한국어](../ko/threat-model.md) | [简体中文](../zh-CN/threat-model.md) | [繁體中文](../zh-TW/threat-model.md) | **Français** | [Deutsch](../de/threat-model.md) | [Español](../es/threat-model.md)
 
 **Date de création** : 2026-05-21  
+**Mise à jour** : 2026-09-07 (atténuations et évaluation de T4 corrigées après vérification de l'implémentation)  
 **Statut** : Brouillon  
 **Public cible** : Architectes sécurité, responsables de la modélisation des menaces, RSSI
 
@@ -82,12 +83,12 @@ Ce document est un modèle de menaces qui organise les principales menaces, vect
 
 | Élément | Détails |
 |---------|---------|
-| **Menace** | Les ACL de fichiers ont été modifiées mais les métadonnées du magasin vectoriel ou le cache de permissions conservent les anciennes autorisations |
-| **Vecteur d'attaque** | Modification ACL → Métadonnées non mises à jour → Recherche possible avec les anciennes permissions |
-| **Impact** | Moyen — Accès possible pendant une certaine période après la révocation des permissions (maximum 35 minutes) |
-| **Mesures d'atténuation existantes** | KB Auto-Sync (intervalle de 15 minutes), TTL du cache de permissions (5 minutes), procédure de révocation d'urgence |
-| **Recommandations supplémentaires** | Détection immédiate des événements de modification ACL (FSx Audit Log → EventBridge), réduction du TTL du cache, journal d'audit des modifications de permissions |
-| **Risque résiduel** | Le modèle Eventually Consistent rend impossible la réplication en temps réel parfait. En cas d'urgence, la révocation manuelle est utilisée |
+| **Menace** | L'ACL d'un fichier change mais l'index de permissions (`.metadata.json`) ne suit pas : un index plus permissif que l'ACL continue d'être utilisé pour la recherche |
+| **Vecteur d'attaque** | Modification ACL → `.metadata.json` non mis à jour → recherche possible avec les anciennes permissions |
+| **Impact** | Élevé — persiste indéfiniment jusqu'à ce qu'un opérateur régénère `.metadata.json`. Ne se résorbe pas avec le temps |
+| **Mesures d'atténuation existantes** | Procédure de révocation d'urgence (suppression dans `user-access` côté utilisateur + purge forcée du cache + invalidation de session), TTL du cache de permissions (5 minutes — mais avec un index permissif, cela ne fait que remettre en cache la décision permissive), journal d'audit |
+| **Recommandations supplémentaires** | Établir un chemin ACL → métadonnées de permission (automatisé ou documenté comme procédure d'exploitation), audit périodique des écarts entre les ACL et `.metadata.json`, détection des événements de modification d'ACL (FSx Audit Log → EventBridge), règle d'exploitation interdisant d'utiliser les changements d'ACL comme mécanisme de révocation |
+| **Risque résiduel** | Élevé — l'index de permissions n'est pas une projection de l'ACL et aucun mécanisme ne suit automatiquement les changements d'ACL. **KB Auto-Sync ne propage que les modifications de `.metadata.json` ; il ne détecte pas les changements d'ACL** (sa comparaison porte sur `size` / `lastModified` / `ETag`). Le Fail-Closed couvre les documents sans métadonnées, pas des métadonnées présentes mais trop permissives |
 
 **Détails** : Voir [permission-consistency.md](permission-consistency.md)
 
@@ -180,13 +181,15 @@ Ce document est un modèle de menaces qui organise les principales menaces, vect
 | T1: Prompt Injection | — | ✅ | — | — | — | — | ✅ | — |
 | T2: Retrieval Poisoning | — | ✅ | — | — | ✅ | — | ✅ | — |
 | T3: Cross-User Leakage | — | — | ✅ | ✅ | — | — | ✅ | — |
-| T4: Stale ACL | — | — | — | ✅ | — | — | ✅ | — |
+| T4: Stale ACL | — | — | — | — | — | — | ✅ | — |
 | T5: Over-Permissive Cache | — | — | ✅ | ✅ | — | — | ✅ | — |
 | T6: Agent Tool Abuse | — | ✅ | — | — | ✅ | — | ✅ | ✅ |
 | T7: Audit Log Tampering | — | — | — | — | ✅ | ✅ | — | — |
 | T8: Misconfigured IdP | — | — | — | ✅ | ✅ | — | ✅ | — |
 | T9: Metadata Leakage | — | — | — | — | ✅ | ✅ | ✅ | — |
 | T10: Cost Abuse | ✅ | — | — | — | — | — | ✅ | ✅ |
+
+> **À propos du Fail-Closed pour T4** : le Fail-Closed se déclenche lorsque les métadonnées de permission ne peuvent pas être récupérées. Lorsque les métadonnées existent et sont plus permissives que l'ACL, la vérification passe : ce n'est donc pas une atténuation de T4.
 
 ---
 
@@ -197,7 +200,7 @@ Ce document est un modèle de menaces qui organise les principales menaces, vect
 | T1: Prompt Injection | Élevé | Moyen | Moyen | P1 |
 | T2: Retrieval Poisoning | Faible | Élevé | Faible | P2 |
 | T3: Cross-User Leakage | Faible | Élevé | Faible | P1 |
-| T4: Stale ACL | Moyen | Moyen | Moyen | P2 |
+| T4: Stale ACL | Élevée | Élevé | Élevé | P1 |
 | T5: Over-Permissive Cache | Faible | Élevé | Faible | P3 |
 | T6: Agent Tool Abuse | Moyen | Élevé | Moyen | P1 |
 | T7: Audit Log Tampering | Faible | Élevé | Faible | P2 |
@@ -215,13 +218,14 @@ Ce document est un modèle de menaces qui organise les principales menaces, vect
 2. **Implémentation du Human Approval pour les appels d'outils Agent** — Contre-mesure T6
 3. **Établissement d'un processus d'audit régulier de la configuration IdP** — Contre-mesure T8
 4. **Intégration des tests de matrice de permissions dans le CI/CD** — Contre-mesure T3
+5. **Établissement d'un chemin ACL → métadonnées de permission** — Contre-mesure T4. L'automatiser, ou le documenter comme procédure d'exploitation
 
 ### Réponse à court terme (P2)
 
-5. **Protection des journaux d'audit par S3 Object Lock** — Contre-mesure T7
-6. **Détection immédiate des événements de modification ACL** — Contre-mesure T4
-7. **Validation du contenu lors de l'injection de documents** — Contre-mesure T2
-8. **AWS Budgets + quota de requêtes par utilisateur** — Contre-mesure T10
+6. **Protection des journaux d'audit par S3 Object Lock** — Contre-mesure T7
+7. **Audit périodique des écarts entre les ACL et `.metadata.json`** — Contre-mesure T4
+8. **Validation du contenu lors de l'injection de documents** — Contre-mesure T2
+9. **AWS Budgets + quota de requêtes par utilisateur** — Contre-mesure T10
 
 ### Réponse à moyen terme (P3)
 

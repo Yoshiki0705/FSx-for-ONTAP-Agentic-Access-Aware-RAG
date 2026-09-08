@@ -3,6 +3,7 @@
 **🌐 Language:** **日本語** | [English](en/threat-model.md) | [한국어](ko/threat-model.md) | [简体中文](zh-CN/threat-model.md) | [繁體中文](zh-TW/threat-model.md) | [Français](fr/threat-model.md) | [Deutsch](de/threat-model.md) | [Español](es/threat-model.md)
 
 **作成日**: 2026-05-21  
+**更新日**: 2026-09-07（T4 の緩和策と評価を実装確認にもとづき修正）  
 **ステータス**: ドラフト  
 **対象**: セキュリティアーキテクト、脅威モデリング担当者、CISO 向け
 
@@ -83,12 +84,12 @@
 
 | 項目 | 内容 |
 |------|------|
-| **脅威** | ファイル ACL が変更されたが、ベクトルストアのメタデータや権限キャッシュに古い権限が残存する |
-| **攻撃経路** | ACL 変更 → メタデータ未更新 → 旧権限で検索可能 |
-| **影響** | 中 — 権限剥奪後も一定期間アクセス可能（最大 35 分） |
-| **既存の緩和策** | KB Auto-Sync（15 分間隔）、権限キャッシュ TTL（5 分）、緊急権限剥奪手順 |
-| **追加推奨** | ACL 変更イベントの即時検出（FSx Audit Log → EventBridge）、キャッシュ TTL の短縮検討、権限変更監査ログ |
-| **残存リスク** | Eventually Consistent モデルのため、完全なリアルタイム反映は不可能。緊急時は手動剥奪で対応 |
+| **脅威** | ファイル ACL が変更されても権限索引（`.metadata.json`）が追随せず、索引が ACL より緩いまま検索に使われ続ける |
+| **攻撃経路** | ACL 変更 → `.metadata.json` 未更新 → 旧権限で検索可能 |
+| **影響** | 高 — 運用者が `.metadata.json` を再生成するまで期限なく継続する。時間の経過では回復しない |
+| **既存の緩和策** | 緊急権限剥奪手順（利用者側の `user-access` 削除 + キャッシュ強制クリア + セッション無効化）、権限キャッシュ TTL（5 分。ただし索引が緩い場合は緩い判定をキャッシュし直すだけ）、監査ログ |
+| **追加推奨** | ACL → 権限メタデータの反映手順の確立（自動化または運用手順の明文化）、ACL と `.metadata.json` の定期差分監査、ACL 変更イベントの検出（FSx Audit Log → EventBridge）、ACL 変更を剥奪手段として使わない運用規約 |
+| **残存リスク** | 高 — 権限索引は ACL の射影ではなく、ACL 変更を自動で追随する機構が実装されていない。**KB Auto-Sync は `.metadata.json` の変更を伝播するだけで、ACL 変更を検出しない**（差分判定は `size` / `lastModified` / `ETag`）。Fail-Closed はメタデータが無い文書には効くが、メタデータが存在して緩い場合には効かない |
 
 **詳細**: [permission-consistency.md](permission-consistency.md) を参照
 
@@ -181,13 +182,15 @@
 | T1: Prompt Injection | — | ✅ | — | — | — | — | ✅ | — |
 | T2: Retrieval Poisoning | — | ✅ | — | — | ✅ | — | ✅ | — |
 | T3: Cross-User Leakage | — | — | ✅ | ✅ | — | — | ✅ | — |
-| T4: Stale ACL | — | — | — | ✅ | — | — | ✅ | — |
+| T4: Stale ACL | — | — | — | — | — | — | ✅ | — |
 | T5: Over-Permissive Cache | — | — | ✅ | ✅ | — | — | ✅ | — |
 | T6: Agent Tool Abuse | — | ✅ | — | — | ✅ | — | ✅ | ✅ |
 | T7: Audit Log Tampering | — | — | — | — | ✅ | ✅ | — | — |
 | T8: Misconfigured IdP | — | — | — | ✅ | ✅ | — | ✅ | — |
 | T9: Metadata Leakage | — | — | — | — | ✅ | ✅ | ✅ | — |
 | T10: Cost Abuse | ✅ | — | — | — | — | — | ✅ | ✅ |
+
+> **T4 の Fail-Closed について**: Fail-Closed が働くのは権限メタデータが取得できない場合です。メタデータが存在して ACL より緩い場合は判定が通るため、T4 の緩和策にはなりません。
 
 ---
 
@@ -198,7 +201,7 @@
 | T1: Prompt Injection | 高 | 中 | 中 | P1 |
 | T2: Retrieval Poisoning | 低 | 高 | 低 | P2 |
 | T3: Cross-User Leakage | 低 | 高 | 低 | P1 |
-| T4: Stale ACL | 中 | 中 | 中 | P2 |
+| T4: Stale ACL | 高 | 高 | 高 | P1 |
 | T5: Over-Permissive Cache | 低 | 高 | 低 | P3 |
 | T6: Agent Tool Abuse | 中 | 高 | 中 | P1 |
 | T7: Audit Log Tampering | 低 | 高 | 低 | P2 |
@@ -216,13 +219,14 @@
 2. **Agent ツール呼び出しの Human Approval 実装** — T6 対策
 3. **IdP 設定の定期監査プロセス確立** — T8 対策
 4. **権限マトリクステストの CI/CD 組み込み** — T3 対策
+5. **ACL → 権限メタデータの反映手順の確立** — T4 対策。自動化するか、運用手順として明文化する
 
 ### 短期対応（P2）
 
-5. **S3 Object Lock による監査ログ保護** — T7 対策
-6. **ACL 変更イベントの即時検出** — T4 対策
-7. **ドキュメント投入時のコンテンツ検証** — T2 対策
-8. **AWS Budgets + ユーザー別クエリ上限** — T10 対策
+6. **S3 Object Lock による監査ログ保護** — T7 対策
+7. **ACL と `.metadata.json` の定期差分監査** — T4 対策
+8. **ドキュメント投入時のコンテンツ検証** — T2 対策
+9. **AWS Budgets + ユーザー別クエリ上限** — T10 対策
 
 ### 中期対応（P3）
 

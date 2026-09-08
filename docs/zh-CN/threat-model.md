@@ -3,6 +3,7 @@
 **🌐 Language:** [日本語](../threat-model.md) | [English](../en/threat-model.md) | [한국어](../ko/threat-model.md) | **简体中文** | [繁體中文](../zh-TW/threat-model.md) | [Français](../fr/threat-model.md) | [Deutsch](../de/threat-model.md) | [Español](../es/threat-model.md)
 
 **创建日期**: 2026-05-21  
+**更新日期**: 2026-09-07（依据实现核实，修正 T4 的缓解措施与评估）  
 **状态**: 草案  
 **目标受众**: 安全架构师、威胁建模负责人、CISO
 
@@ -82,12 +83,12 @@
 
 | 项目 | 内容 |
 |------|------|
-| **威胁** | 文件 ACL 已变更，但向量存储的元数据或权限缓存中仍残留旧权限 |
-| **攻击路径** | ACL 变更 → 元数据未更新 → 以旧权限可检索 |
-| **影响** | 中 — 权限撤销后仍可在一定时间内访问（最长 35 分钟） |
-| **现有缓解措施** | KB Auto-Sync（15 分钟间隔）、权限缓存 TTL（5 分钟）、紧急权限撤销流程 |
-| **追加建议** | ACL 变更事件的即时检测（FSx Audit Log → EventBridge）、考虑缩短缓存 TTL、权限变更审计日志 |
-| **残余风险** | 由于采用 Eventually Consistent 模型，无法实现完全实时反映。紧急情况下通过手动撤销应对 |
+| **威胁** | 文件 ACL 变更后权限索引（`.metadata.json`）并未跟随，比 ACL 更宽松的索引持续被用于检索 |
+| **攻击路径** | ACL 变更 → `.metadata.json` 未更新 → 以旧权限可检索 |
+| **影响** | 高 — 在运维人员重新生成 `.metadata.json` 之前无期限持续，不会随时间自行恢复 |
+| **现有缓解措施** | 紧急权限吊销步骤（用户侧删除 `user-access` + 强制清除缓存 + 使会话失效）、权限缓存 TTL（5 分钟，但索引宽松时只是重新缓存宽松的判定）、审计日志 |
+| **追加建议** | 建立 ACL → 权限元数据的反映流程（自动化或明文化为运维流程）、ACL 与 `.metadata.json` 的定期差异审计、ACL 变更事件检测（FSx Audit Log → EventBridge）、不将 ACL 变更用作吊销手段的运维规约 |
+| **残余风险** | 高 — 权限索引并非 ACL 的投影，且没有实现自动跟随 ACL 变更的机制。**KB Auto-Sync 只传播 `.metadata.json` 的变更，不检测 ACL 变更**（差异判定基于 `size` / `lastModified` / `ETag`）。Fail-Closed 对没有元数据的文档有效，但对元数据存在且过于宽松的情况无效 |
 
 **详细信息**: 参见 [permission-consistency.md](permission-consistency.md)
 
@@ -180,13 +181,15 @@
 | T1: Prompt Injection | — | ✅ | — | — | — | — | ✅ | — |
 | T2: Retrieval Poisoning | — | ✅ | — | — | ✅ | — | ✅ | — |
 | T3: Cross-User Leakage | — | — | ✅ | ✅ | — | — | ✅ | — |
-| T4: Stale ACL | — | — | — | ✅ | — | — | ✅ | — |
+| T4: Stale ACL | — | — | — | — | — | — | ✅ | — |
 | T5: Over-Permissive Cache | — | — | ✅ | ✅ | — | — | ✅ | — |
 | T6: Agent Tool Abuse | — | ✅ | — | — | ✅ | — | ✅ | ✅ |
 | T7: Audit Log Tampering | — | — | — | — | ✅ | ✅ | — | — |
 | T8: Misconfigured IdP | — | — | — | ✅ | ✅ | — | ✅ | — |
 | T9: Metadata Leakage | — | — | — | — | ✅ | ✅ | ✅ | — |
 | T10: Cost Abuse | ✅ | — | — | — | — | — | ✅ | ✅ |
+
+> **关于 T4 的 Fail-Closed**：Fail-Closed 在无法获取权限元数据时生效。元数据存在且比 ACL 更宽松时判定会通过，因此并不构成 T4 的缓解措施。
 
 ---
 
@@ -197,7 +200,7 @@
 | T1: Prompt Injection | 高 | 中 | 中 | P1 |
 | T2: Retrieval Poisoning | 低 | 高 | 低 | P2 |
 | T3: Cross-User Leakage | 低 | 高 | 低 | P1 |
-| T4: Stale ACL | 中 | 中 | 中 | P2 |
+| T4: Stale ACL | 高 | 高 | 高 | P1 |
 | T5: Over-Permissive Cache | 低 | 高 | 低 | P3 |
 | T6: Agent Tool Abuse | 中 | 高 | 中 | P1 |
 | T7: Audit Log Tampering | 低 | 高 | 低 | P2 |
@@ -215,13 +218,14 @@
 2. **实现 Agent 工具调用的 Human Approval** — T6 对策
 3. **建立 IdP 配置的定期审计流程** — T8 对策
 4. **将权限矩阵测试纳入 CI/CD** — T3 对策
+5. **建立 ACL → 权限元数据的反映流程** — T4 对策。自动化，或明文化为运维流程
 
 ### 短期应对（P2）
 
-5. **通过 S3 Object Lock 保护审计日志** — T7 对策
-6. **ACL 变更事件的即时检测** — T4 对策
-7. **文档导入时的内容验证** — T2 对策
-8. **AWS Budgets + 用户级查询上限** — T10 对策
+6. **通过 S3 Object Lock 保护审计日志** — T7 对策
+7. **ACL 与 `.metadata.json` 的定期差异审计** — T4 对策
+8. **文档导入时的内容验证** — T2 对策
+9. **AWS Budgets + 用户级查询上限** — T10 对策
 
 ### 中期应对（P3）
 
