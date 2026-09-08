@@ -344,10 +344,66 @@ jobs:
             dist/
           retention-days: 7
 
+  # フィーチャーフラグ別の CDK synth（走査範囲を広げるためのゲート）
+  #
+  # build-test は既定コンテキストしか synth しないため、特定フラグでのみ生成される
+  # リソースに対する不整合（cdk-nag 抑制パスの解決失敗、抑制の欠落など）を
+  # 検出できなかった。フラグごとに独立ジョブで synth し、失敗した組み合わせが
+  # ジョブ名で分かるようにする。
+  synth-matrix:
+    name: CDK Synth (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ''
+          # NOTE: enableTransferFamily のレーンは未追加。cdk-nag の未解決の指摘が
+          # 12 件あり（IAM5 6 / IAM4 2 / L1 2 / SQS4 / SMG4）、そのうち SQS4（TLS 強制）と
+          # SMG4（シークレットの自動ローテーション）は抑制で片付けるべきでない実指摘。
+          # 追加手順と指摘の一覧は追跡 issue を参照。
+          - name: kb-auto-sync
+            flags: '-c enableKbAutoSync=true'
+          - name: monitoring
+            flags: '-c enableMonitoring=true'
+          - name: voice-chat-webrtc
+            flags: '-c enableVoiceChat=true -c voiceChatMode=webrtc'
+          - name: guardrails-gateway-websearch
+            flags: '-c enableGuardrails=true -c enableAgentCoreGateway=true -c enableWebSearch=true'
+          - name: agent-gateway-optimization
+            flags: '-c enableAgent=true -c enableAgentCoreGateway=true -c enableAgentOptimization=true'
+          - name: kb-search-hybrid
+            flags: '-c kbSearchType=HYBRID'
+          - name: chunking-hierarchical
+            flags: '-c kbChunkingStrategy=HIERARCHICAL'
+          - name: chunking-semantic
+            flags: '-c kbChunkingStrategy=SEMANTIC'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: CDK synth
+        run: |
+          echo "🏗️ cdk synth (${{ matrix.name }})"
+          npx cdk synth --quiet ${{ matrix.flags }}
+
   # 基本的な品質ゲート
   quality-gate:
     runs-on: ubuntu-latest
-    needs: [quick-tests, full-tests, build-test]
+    needs: [quick-tests, full-tests, build-test, synth-matrix]
     if: always()
     outputs:
       gate-status: ${{ steps.evaluate-quality.outputs.gate-status }}
@@ -399,8 +455,12 @@ jobs:
             full_execution_time="0"
           fi
           
-          # ビルドテスト結果
+          # ビルドテスト結果（既定 synth + フラグ別 synth 行列の両方を要求）
           build_status="${{ needs.build-test.result }}"
+          synth_matrix_status="${{ needs.synth-matrix.result }}"
+          if [[ "$build_status" == "success" && "$synth_matrix_status" != "success" ]]; then
+            build_status="$synth_matrix_status"
+          fi
           
           # 品質スコア計算
           quality_score=0
@@ -438,7 +498,7 @@ jobs:
           echo "📊 品質評価結果:"
           echo "  - クイックテスト成功率: $quick_success_rate%"
           echo "  - フルテスト成功率: $full_success_rate%"
-          echo "  - ビルドステータス: $build_status"
+          echo "  - ビルドステータス: $build_status（build-test=${{ needs.build-test.result }} / synth-matrix=$synth_matrix_status）"
           echo "  - 品質スコア: $quality_score/100"
           echo "  - 品質ゲート: $gate_status"
 
@@ -454,6 +514,7 @@ jobs:
           | クイックテスト成功率 | ${{ needs.quick-tests.outputs.success-rate || '0' }}% | ≥95% | ${{ (needs.quick-tests.outputs.success-rate >= '95') && '✅' || '❌' }} |
           | フルテスト成功率 | ${{ needs.full-tests.outputs.success-rate || 'N/A' }}% | ≥95% | ${{ (needs.full-tests.outputs.success-rate >= '95') && '✅' || '❌' }} |
           | ビルドステータス | ${{ needs.build-test.result }} | success | ${{ (needs.build-test.result == 'success') && '✅' || '❌' }} |
+          | Synth 行列（フラグ別） | ${{ needs.synth-matrix.result }} | success | ${{ (needs.synth-matrix.result == 'success') && '✅' || '❌' }} |
           | 品質スコア | ${{ steps.evaluate-quality.outputs.gate-score }}/100 | ≥80 | ${{ (steps.evaluate-quality.outputs.gate-score >= '80') && '✅' || '❌' }} |
           
           ## 🎯 品質ゲート結果
