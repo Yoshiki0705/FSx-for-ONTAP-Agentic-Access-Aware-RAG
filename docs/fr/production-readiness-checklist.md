@@ -144,7 +144,7 @@ Ce document fournit une liste de vérification des éléments à valider lors de
 
 ### 8. Tests
 
-- [ ] Exécuter les tests de matrice de permissions (voir [tests/permission-matrix/](../tests/permission-matrix/))
+- [ ] Exécuter les tests de matrice de permissions (voir [tests/permission-matrix/](../../tests/permission-matrix/))
 - [ ] Tests de charge (2x les utilisateurs simultanés attendus)
 - [ ] Tests de sécurité (tests de pénétration)
 - [ ] Tests DR (basculement / retour)

@@ -244,7 +244,7 @@ Après la fin de l'atelier, envisagez les actions suivantes :
 
 | Document | Contenu |
 |----------|---------|
-| [README.md](../README.md) | Vue d'ensemble du système, procédure de déploiement |
+| [README.md](../../README.fr.md) | Vue d'ensemble du système, procédure de déploiement |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Guide d'expérimentation sûre |
 | [evaluation.md](evaluation.md) | Métriques d'évaluation RAG / Agent |
 | [threat-model.md](threat-model.md) | Modèle de menaces |

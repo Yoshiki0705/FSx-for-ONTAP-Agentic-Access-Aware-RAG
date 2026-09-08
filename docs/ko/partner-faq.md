@@ -166,7 +166,7 @@ npx cdk destroy <stack-name>
 npx cdk destroy --all --force
 ```
 
-**관련 문서**: [배포 트러블슈팅](deployment-troubleshooting.md)
+**관련 문서**: [배포 트러블슈팅](../deployment-troubleshooting.md)
 
 ---
 
@@ -174,7 +174,7 @@ npx cdk destroy --all --force
 
 | 리소스 | 용도 | 링크 |
 |---------|------|--------|
-| 업종별 데모 데이터 | 고객 업종에 맞춘 데모 | [demo-data/industry-packs/](../demo-data/industry-packs/) |
+| 업종별 데모 데이터 | 고객 업종에 맞춘 데모 | [demo-data/industry-packs/](../../demo-data/industry-packs/) |
 | 90분 워크숍 | 핸즈온 체험 | [PoC 워크숍 가이드](poc-workshop-guide.md) |
 | 비용 추정 | 제안서 첨부용 | [비용 추정 워크시트](cost-estimation-worksheet.md) |
 | PoC 성공 기준 | 고객 합의용 | [PoC 성공 기준 템플릿](poc-success-criteria-template.md) |

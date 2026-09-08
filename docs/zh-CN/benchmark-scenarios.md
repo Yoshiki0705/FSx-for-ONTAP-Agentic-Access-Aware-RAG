@@ -106,7 +106,7 @@ bash benchmarks/scripts/run-benchmark.sh \
 
 ## 理论基准估算值
 
-> 详情请参阅 [benchmarks/results/baseline-estimates.md](../benchmarks/results/baseline-estimates.md)
+> 详情请参阅 [benchmarks/results/baseline-estimates.md](../../benchmarks/results/baseline-estimates.md)
 
 | 规模 | Retrieve P50 (S3V) | Retrieve P50 (AOSS) | End-to-End P50 | KB Sync（初始） |
 |------|--------------------|--------------------|----------------|----------------|

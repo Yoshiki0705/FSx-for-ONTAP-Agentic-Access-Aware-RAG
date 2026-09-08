@@ -148,5 +148,3 @@ Se realizó verificación E2E de la configuración S3 Vectors con los 6 stacks d
 |-----------|-----------|
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Detalles del diseño de filtrado SID |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | Tabla comparativa de 3 configuraciones y lecciones de implementación |
-| [.kiro/specs/s3-vectors-integration/design.md](../.kiro/specs/s3-vectors-integration/design.md) | Documento de diseño técnico |
-| [.kiro/specs/s3-vectors-integration/requirements.md](../.kiro/specs/s3-vectors-integration/requirements.md) | Documento de requisitos |

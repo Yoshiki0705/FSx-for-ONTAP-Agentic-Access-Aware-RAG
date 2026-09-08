@@ -404,10 +404,30 @@ jobs:
           echo "🏗️ cdk synth (${{ matrix.name }})"
           npx cdk synth --quiet ${{ matrix.flags }}
 
+  # ドキュメントの相対リンク切れ検査
+  #
+  # 読者（人と AI）が辿れない参照を落とす。gitignore 対象（development/ や
+  # .kiro/ 配下）へのリンクは、リポジトリを clone しただけの読者には存在しない。
+  doc-links:
+    name: Doc Links
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Verify the checker detects a broken link
+        run: python3 scripts/check-doc-links.py --selftest
+
+      - name: Check documentation links
+        run: python3 scripts/check-doc-links.py
+
   # 基本的な品質ゲート
   quality-gate:
     runs-on: ubuntu-latest
-    needs: [quick-tests, full-tests, build-test, synth-matrix]
+    needs: [quick-tests, full-tests, build-test, synth-matrix, doc-links]
     if: always()
     outputs:
       gate-status: ${{ steps.evaluate-quality.outputs.gate-status }}
@@ -462,8 +482,12 @@ jobs:
           # ビルドテスト結果（既定 synth + フラグ別 synth 行列の両方を要求）
           build_status="${{ needs.build-test.result }}"
           synth_matrix_status="${{ needs.synth-matrix.result }}"
+          doc_links_status="${{ needs.doc-links.result }}"
           if [[ "$build_status" == "success" && "$synth_matrix_status" != "success" ]]; then
             build_status="$synth_matrix_status"
+          fi
+          if [[ "$build_status" == "success" && "$doc_links_status" != "success" ]]; then
+            build_status="$doc_links_status"
           fi
           
           # 品質スコア計算
@@ -519,6 +543,7 @@ jobs:
           | フルテスト成功率 | ${{ needs.full-tests.outputs.success-rate || 'N/A' }}% | ≥95% | ${{ (needs.full-tests.outputs.success-rate >= '95') && '✅' || '❌' }} |
           | ビルドステータス | ${{ needs.build-test.result }} | success | ${{ (needs.build-test.result == 'success') && '✅' || '❌' }} |
           | Synth 行列（フラグ別） | ${{ needs.synth-matrix.result }} | success | ${{ (needs.synth-matrix.result == 'success') && '✅' || '❌' }} |
+          | ドキュメントのリンク | ${{ needs.doc-links.result }} | success | ${{ (needs.doc-links.result == 'success') && '✅' || '❌' }} |
           | 品質スコア | ${{ steps.evaluate-quality.outputs.gate-score }}/100 | ≥80 | ${{ (steps.evaluate-quality.outputs.gate-score >= '80') && '✅' || '❌' }} |
           
           ## 🎯 品質ゲート結果

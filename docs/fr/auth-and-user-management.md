@@ -419,11 +419,11 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 - Test LDAP en environnement réel: ✅ OpenLDAP (EC2 dans VPC) → LDAP Connector → DynamoDB (uid:10001, gid:5001, source:OIDC-LDAP)
 - Test ONTAP name-mapping en environnement réel: ✅ Connexion ONTAP REST API → 3 règles name-mapping créées/récupérées → resolveWindowsUser vérifié
 
-![Page de connexion (Hybride SAML + OIDC)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![Page de connexion (Hybride SAML + OIDC)](../screenshots/signin-page-saml-oidc-hybrid.png)
 
-![Page de connexion Auth0 OIDC](../docs/screenshots/oidc-auth0-login-page.png)
+![Page de connexion Auth0 OIDC](../screenshots/oidc-auth0-login-page.png)
 
-![Page de chat après connexion OIDC réussie](../docs/screenshots/oidc-auth0-signin-success.png)
+![Page de chat après connexion OIDC réussie](../screenshots/oidc-auth0-signin-success.png)
 
 ---
 

@@ -6,7 +6,7 @@
 **目標區域**: 主堆疊 ap-northeast-1 / Web Search Tool 位於 us-east-1（詳見下文·待確認）
 **狀態**: 調查文件（設計探討 / 未實作）
 **相關**:
-- 現有實作: [claude-platform-integration.md](../claude-platform-integration.md)（Claude Platform on AWS Web Search 後援）
+- 現有實作: [claude-platform-integration.md](../../claude-platform-integration.md)（Claude Platform on AWS Web Search 後援）
 - 來源（其他儲存庫的先行產出物）: `fsxn-s3ap-serverless-patterns/docs/investigations/agentcore-web-search-fsxn-integration.md`, `shared/web_search_client.py`, `shared/cfn/agentcore-gateway-role.yaml`
 
 ---
@@ -310,34 +310,28 @@ agentcore.create_gateway_target(
 
 ## 10. Step 4 產出物（PoC 部署自動化）
 
-將自動化 §9.1 手動 PoC 的指令碼與範本加入本儲存庫。
+§9.1 的手動 PoC 是以本機工作環境中的指令碼與 CFn 範本自動化的。**這些內容並未包含在本儲存庫中**（`development/` 屬於 `.gitignore` 對象）。由於其建立 target 時使用的是 `mcpServer` 形狀的暫定實作，因此也未作為產出物保留。
 
-| 檔案 | 用途 |
-|---------|------|
-| `development/cfn/agentcore-web-search-gateway-role.yaml` | us-east-1 IAM 角色 CFn 範本 |
-| `development/scripts/web-search/deploy-us-east-1-gateway.sh` | Phase 1-3 自動部署（Role → Gateway → Target） |
-| `development/scripts/web-search/teardown-us-east-1-gateway.sh` | 逆序撤除（Target → Gateway → CFn Stack） |
+**從本儲存庫可重現的手段是 §11 的 CDK 堆疊。** 以下命令會建立 us-east-1 的 Gateway 與 Web Search target。
 
-**用法:**
 ```bash
-# 部署
-bash development/scripts/web-search/deploy-us-east-1-gateway.sh
+# 部署（IAM 角色 → Gateway → Web Search target）
+npx cdk deploy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 
 # 確認產出物
 aws bedrock-agent-core get-gateway --gateway-identifier <ID> --region us-east-1
 
 # 撤除
-bash development/scripts/web-search/teardown-us-east-1-gateway.sh
+npx cdk destroy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 ```
 
-**注意:** 指令碼內的 `create-gateway-target` 使用的並非 §9.1 中確認的 `connector` 形狀，
-而是 `mcpServer` 形狀（建立時點的暫定實作）。在遷移至生產時應修正為 `connector` 形狀。
+CDK 側使用的是 §9.1 中確認的 `connector` 形狀（`mcp.connector.source.connectorId: "web-search"`）。
 
 ---
 
 ## 相關文件
 
-- [claude-platform-integration.md](../claude-platform-integration.md) — 現有 Web Search 後援（機制 A）
+- [claude-platform-integration.md](../../claude-platform-integration.md) — 現有 Web Search 後援（機制 A）
 - [SID-Filtering-Architecture.md](../SID-Filtering-Architecture.md) — Permission-aware 的授權邊界
 - [s3-vectors-sid-architecture-guide.md](../s3-vectors-sid-architecture-guide.md) — 主向量儲存（維持 S3 Vectors 的判斷）
 - [managed-kb-migration-evaluation.md](../managed-kb-migration-evaluation.md) — 不採用 Managed KB 判斷的相關探討

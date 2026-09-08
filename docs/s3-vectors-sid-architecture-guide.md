@@ -282,5 +282,3 @@ Agentモードの知見：
 |-------------|------|
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SIDフィルタリング設計詳細 |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3構成比較表・実装知見 |
-| [.kiro/specs/s3-vectors-integration/design.md](../.kiro/specs/s3-vectors-integration/design.md) | 技術設計書 |
-| [.kiro/specs/s3-vectors-integration/requirements.md](../.kiro/specs/s3-vectors-integration/requirements.md) | 要件定義書 |

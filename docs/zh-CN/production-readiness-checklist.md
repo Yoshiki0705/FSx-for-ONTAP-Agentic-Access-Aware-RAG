@@ -144,7 +144,7 @@
 
 ### 8. 测试
 
-- [ ] 执行权限矩阵测试（参见 [tests/permission-matrix/](../tests/permission-matrix/)）
+- [ ] 执行权限矩阵测试（参见 [tests/permission-matrix/](../../tests/permission-matrix/)）
 - [ ] 负载测试（预期并发用户数的 2 倍）
 - [ ] 安全测试（渗透测试）
 - [ ] DR 测试（故障转移 / 故障恢复）

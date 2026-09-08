@@ -224,7 +224,7 @@ StorageStack은 `existingFileSystemId`/`existingSvmId`/`existingVolumeId` 파라
 
 | 문서 | 내용 |
 |------|------|
-| [README.md](../README.md) | 배포 절차 및 CDK 컨텍스트 파라미터 목록 |
+| [README.md](../../README.ko.md) | 배포 절차 및 CDK 컨텍스트 파라미터 목록 |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID 필터링 설계 및 데이터 수집 경로 상세 |
 | [embedding-server-design.md](embedding-server-design.md) | Embedding 서버 설계 (ONTAP ACL 자동 취득 포함) |
 | [ui-specification.md](ui-specification.md) | UI 사양 (카드 UI, KB/Agent 모드 전환) |

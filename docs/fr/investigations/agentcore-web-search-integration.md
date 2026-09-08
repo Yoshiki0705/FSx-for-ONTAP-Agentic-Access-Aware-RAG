@@ -6,7 +6,7 @@
 **Région cible** : Stack principale ap-northeast-1 / Web Search Tool en us-east-1 (voir ci-dessous · à vérifier)
 **Statut** : Document d'investigation (exploration de conception / non implémenté)
 **Connexes** :
-- Implémentation existante : [claude-platform-integration.md](../claude-platform-integration.md) (repli Claude Platform on AWS Web Search)
+- Implémentation existante : [claude-platform-integration.md](../../claude-platform-integration.md) (repli Claude Platform on AWS Web Search)
 - Origine (artefacts antérieurs d'un autre dépôt) : `fsxn-s3ap-serverless-patterns/docs/investigations/agentcore-web-search-fsxn-integration.md`, `shared/web_search_client.py`, `shared/cfn/agentcore-gateway-role.yaml`
 
 ---
@@ -310,34 +310,28 @@ agentcore.create_gateway_target(
 
 ## 10. Livrables de l'étape 4 (automatisation du déploiement PoC)
 
-Des scripts et modèles automatisant le PoC manuel du §9.1 ont été ajoutés à ce dépôt.
+Le PoC manuel du §9.1 a été automatisé par des scripts et un modèle CFn dans un espace de travail local. **Ceux-ci ne font pas partie de ce dépôt** (`development/` est ignoré par git). Ils créaient la target avec la forme provisoire `mcpServer`, ils n'ont donc pas été conservés comme livrables.
 
-| Fichier | Usage |
-|---------|------|
-| `development/cfn/agentcore-web-search-gateway-role.yaml` | Modèle CFn de rôle IAM us-east-1 |
-| `development/scripts/web-search/deploy-us-east-1-gateway.sh` | Déploiement automatisé Phase 1-3 (Role → Gateway → Target) |
-| `development/scripts/web-search/teardown-us-east-1-gateway.sh` | Démantèlement en ordre inverse (Target → Gateway → CFn Stack) |
+**Le chemin reproductible depuis ce dépôt est la stack CDK du §11.** Elle crée le Gateway us-east-1 et la target Web Search.
 
-**Utilisation :**
 ```bash
-# Déploiement
-bash development/scripts/web-search/deploy-us-east-1-gateway.sh
+# Déploiement (rôle IAM → Gateway → target Web Search)
+npx cdk deploy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 
 # Vérification des livrables
 aws bedrock-agent-core get-gateway --gateway-identifier <ID> --region us-east-1
 
 # Démantèlement
-bash development/scripts/web-search/teardown-us-east-1-gateway.sh
+npx cdk destroy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 ```
 
-**Attention :** le `create-gateway-target` du script utilise non pas la forme `connector` confirmée au §9.1,
-mais la forme `mcpServer` (implémentation provisoire au moment de la création). Lors du passage en production, corriger vers la forme `connector`.
+Le chemin CDK utilise la forme `connector` confirmée au §9.1 (`mcp.connector.source.connectorId: "web-search"`).
 
 ---
 
 ## Documents connexes
 
-- [claude-platform-integration.md](../claude-platform-integration.md) — Repli Web Search existant (mécanisme A)
+- [claude-platform-integration.md](../../claude-platform-integration.md) — Repli Web Search existant (mécanisme A)
 - [SID-Filtering-Architecture.md](../SID-Filtering-Architecture.md) — Frontière d'autorisation Permission-aware
 - [s3-vectors-sid-architecture-guide.md](../s3-vectors-sid-architecture-guide.md) — Magasin de vecteurs principal (décision de conserver S3 Vectors)
 - [managed-kb-migration-evaluation.md](../managed-kb-migration-evaluation.md) — Examen connexe à la décision de non-adoption de Managed KB

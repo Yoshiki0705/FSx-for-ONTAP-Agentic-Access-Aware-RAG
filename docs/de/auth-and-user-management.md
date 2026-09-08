@@ -400,11 +400,11 @@ Match -> ALLOW, No match -> DENY
 - LDAP Live-Umgebungstest: ✅ OpenLDAP (EC2 im VPC) → LDAP Connector → DynamoDB (uid:10001, gid:5001, source:OIDC-LDAP)
 - ONTAP Name-Mapping Live-Umgebungstest: ✅ ONTAP REST API Verbindung → 3 Name-Mapping-Regeln erstellt/abgerufen → resolveWindowsUser verifiziert
 
-![Anmeldeseite (SAML + OIDC Hybrid)](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![Anmeldeseite (SAML + OIDC Hybrid)](../screenshots/signin-page-saml-oidc-hybrid.png)
 
-![Auth0 OIDC-Anmeldeseite](../docs/screenshots/oidc-auth0-login-page.png)
+![Auth0 OIDC-Anmeldeseite](../screenshots/oidc-auth0-login-page.png)
 
-![Chat-Seite nach erfolgreicher OIDC-Anmeldung](../docs/screenshots/oidc-auth0-signin-success.png)
+![Chat-Seite nach erfolgreicher OIDC-Anmeldung](../screenshots/oidc-auth0-signin-success.png)
 
 ---
 

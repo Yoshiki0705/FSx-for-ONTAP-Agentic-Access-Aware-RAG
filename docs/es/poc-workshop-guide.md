@@ -244,7 +244,7 @@ Después de completar el taller, considere lo siguiente:
 
 | Documento | Contenido |
 |-----------|-----------|
-| [README.md](../README.md) | Visión general del sistema, procedimiento de despliegue |
+| [README.md](../../README.es.md) | Visión general del sistema, procedimiento de despliegue |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | Guía de experimentación segura |
 | [evaluation.md](evaluation.md) | Métricas de evaluación RAG / Agent |
 | [threat-model.md](threat-model.md) | Modelo de amenazas |

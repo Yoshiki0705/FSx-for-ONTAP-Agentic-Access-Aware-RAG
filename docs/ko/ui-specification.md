@@ -421,7 +421,7 @@ Agent 호환 모델 목록 (유지보수 불필요)
 └─────────────────────────┘
 ```
 
-![Agent Mode Sidebar](screenshots/agent-mode-sidebar.png)
+![Agent Mode Sidebar](../screenshots/agent-mode-sidebar.png)
 
 ### 워크플로우 선택
 
@@ -474,7 +474,7 @@ KB Retrieve API → SID 필터링 → Converse API
 
 채팅 영역의 초기 상태(사용자 메시지가 없는 경우)에 카드 그리드를 표시하는 기능입니다. KB 모드에서는 14개의 목적별 카드(문서 검색, 요약 작성 등), Agent 모드에서는 14개의 워크플로우 카드(재무 분석, 프로젝트 관리, 프레젠테이션 작성 등)가 제시되어 원클릭으로 프롬프트를 입력할 수 있습니다.
 
-![KB Mode Card Grid](screenshots/kb-mode-cards-full.png)
+![KB Mode Card Grid](../screenshots/kb-mode-cards-full.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -615,7 +615,7 @@ interface CardData {
 | `agent-contract` | 📄 | contract | 계약서 검토 |
 | `agent-onboarding` | 🎓 | onboarding | 온보딩 자료 작성 |
 
-![Agent Mode Card Grid](screenshots/agent-mode-card-grid.png)
+![Agent Mode Card Grid](../screenshots/agent-mode-card-grid.png)
 
 ### 표시 조건
 
@@ -658,7 +658,7 @@ const hasUserMessages = currentSession?.messages?.some(m => m.role === 'user') ?
 
 채팅 중(사용자 메시지 1개 이상 존재 시) 채팅 입력 영역 위에 "🔄 워크플로우 선택으로 돌아가기" 버튼이 표시됩니다. 클릭하면 새 세션이 생성되어 카드 그리드로 돌아갑니다.
 
-![Chat Response + Citation + Back Button](screenshots/kb-mode-chat-citation.png)
+![Chat Response + Citation + Back Button](../screenshots/kb-mode-chat-citation.png)
 
 | 항목 | 설명 |
 |------|------|
@@ -995,7 +995,7 @@ Agent Directory(`/[locale]/genai/agents`)는 Bedrock Agent를 카탈로그 형�
 - 헤더의 "📋 Agent 목록" 링크를 통해 접근
 - 내비게이션 바의 "Agent 목록" 탭을 통해 접근
 
-![Agent Directory — 엔터프라이즈 탭이 있는 목록 화면](screenshots/agent-directory-enterprise.png)
+![Agent Directory — 엔터프라이즈 탭이 있는 목록 화면](../screenshots/agent-directory-enterprise.png)
 
 ### 내비게이션 바
 
@@ -1063,7 +1063,7 @@ Agent 카드 클릭 시 표시되는 상세 화면입니다.
 | 스케줄 생성 | EventBridge Scheduler로 cron 정기 실행 설정 (`enableAgentSchedules` 시) |
 | 삭제 | Agent 이름을 포함한 확인 다이얼로그 → Delete API 실행 |
 
-![Agent 상세 패널 (Export, Sharing, Schedule 기능 포함)](screenshots/agent-detail-panel.png)
+![Agent 상세 패널 (Export, Sharing, Schedule 기능 포함)](../screenshots/agent-detail-panel.png)
 
 ### Agent 편집 폼
 
@@ -1099,7 +1099,7 @@ Agent 카드 클릭 시 표시되는 상세 화면입니다.
 
 템플릿 값이 미리 채워지지만, 모든 필드(Agent 이름, 설명, 시스템 프롬프트, 모델)를 생성 전에 편집할 수 있습니다.
 
-![Agent 생성 폼](screenshots/agent-creator-form.png)
+![Agent 생성 폼](../screenshots/agent-creator-form.png)
 
 #### 생성 흐름
 

@@ -295,4 +295,4 @@ aws fsx update-file-system \
 | [permission-consistency.md](permission-consistency.md) | 权限元数据变更一致性模型 |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | S3 Vectors + SID 架构 |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3 种配置比较 |
-| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx for ONTAP 运维自动化 |
+| [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | FSx for ONTAP 运维自动化 |

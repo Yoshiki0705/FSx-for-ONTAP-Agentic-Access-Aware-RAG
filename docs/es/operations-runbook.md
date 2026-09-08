@@ -139,14 +139,45 @@ done
 
 Después de cambios en el código fuente, la caché de capas Docker reutiliza fuentes antiguas. Usar `--no-cache` por defecto resuelve este problema.
 
-### Procedimiento recomendado
+### Procedimiento
 
 ```bash
-# Use the local script (development/ is gitignored)
-./development/scripts/deploy-webapp.sh
+ECR_REGISTRY="123456789012.dkr.ecr.ap-northeast-1.amazonaws.com"
+ECR_REPO="permission-aware-rag-webapp"
+LAMBDA_FUNCTION="v4-test-demo-webapp"
 
-# Default: builds with --no-cache
-# To use cache: ./development/scripts/deploy-webapp.sh --use-cache
+# 1. Autenticación en ECR
+aws ecr get-login-password --region ap-northeast-1 \
+  | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+# 2. Build (--no-cache garantiza que se reflejen los cambios de código)
+docker buildx build --platform linux/amd64 \
+  --provenance=false --sbom=false --output type=docker \
+  --no-cache \
+  -t ${ECR_REGISTRY}/${ECR_REPO}:latest \
+  -f docker/nextjs/Dockerfile docker/nextjs
+
+# 3. Push
+docker push ${ECR_REGISTRY}/${ECR_REPO}:latest
+
+# 4. Anotar el digest (para seguimiento del despliegue)
+aws ecr describe-images --repository-name $ECR_REPO \
+  --image-ids imageTag=latest --region ap-northeast-1 \
+  --query 'imageDetails[0].imageDigest' --output text
+
+# 5. Actualizar la función Lambda
+aws lambda update-function-code \
+  --function-name $LAMBDA_FUNCTION \
+  --image-uri ${ECR_REGISTRY}/${ECR_REPO}:latest \
+  --region ap-northeast-1
+
+# 6. Esperar a que termine la actualización
+aws lambda wait function-updated --function-name $LAMBDA_FUNCTION --region ap-northeast-1
+
+# 7. Invalidar la caché de CloudFront
+aws cloudfront create-invalidation \
+  --distribution-id E5KCQ177G2665 \
+  --paths "/*"
 ```
 
 ### Resolución de problemas: cambios no reflejados

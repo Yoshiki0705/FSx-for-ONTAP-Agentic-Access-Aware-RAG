@@ -245,7 +245,7 @@ aws resourcegroupstaggingapi get-resources \
 
 | 文档 | 内容 |
 |------|------|
-| [README.md](../README.md) | 系统全貌、部署步骤 |
+| [README.md](../../README.zh-CN.md) | 系统全貌、部署步骤 |
 | [safe-experimentation-guide.md](safe-experimentation-guide.md) | 安全实验指南 |
 | [evaluation.md](evaluation.md) | RAG / Agent 评估指标 |
 | [threat-model.md](threat-model.md) | 威胁模型 |

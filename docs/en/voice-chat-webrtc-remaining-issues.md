@@ -81,8 +81,8 @@
 ## 🔗 Related Documents
 
 - [Deployment Troubleshooting](deployment-troubleshooting.md) — Section 16-19
-- [CHANGELOG](../CHANGELOG.md) — [4.2.0] Voice Chat Phase 2 section
-- [README Implementation Overview](../README.md) — Row 18.1
+- [CHANGELOG](../../CHANGELOG.md) — [4.2.0] Voice Chat Phase 2 section
+- [README Implementation Overview](../../README.en.md) — Row 18.1
 
 ## 🔗 External References
 

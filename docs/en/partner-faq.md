@@ -174,7 +174,7 @@ npx cdk destroy --all --force
 
 | Resource | Purpose | Link |
 |----------|---------|------|
-| Industry-specific demo data | Demos tailored to customer industry | [demo-data/industry-packs/](../demo-data/industry-packs/) |
+| Industry-specific demo data | Demos tailored to customer industry | [demo-data/industry-packs/](../../demo-data/industry-packs/) |
 | 90-minute workshop | Hands-on experience | [PoC Workshop Guide](poc-workshop-guide.md) |
 | Cost estimation | Proposal attachment | [Cost Estimation Worksheet](cost-estimation-worksheet.md) |
 | PoC success criteria | Customer agreement | [PoC Success Criteria Template](poc-success-criteria-template.md) |

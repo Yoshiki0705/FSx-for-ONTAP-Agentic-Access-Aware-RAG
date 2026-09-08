@@ -144,7 +144,7 @@ Este documento proporciona una lista de verificación de elementos a confirmar a
 
 ### 8. Pruebas
 
-- [ ] Ejecutar pruebas de matriz de permisos (ver [tests/permission-matrix/](../tests/permission-matrix/))
+- [ ] Ejecutar pruebas de matriz de permisos (ver [tests/permission-matrix/](../../tests/permission-matrix/))
 - [ ] Pruebas de carga (2x usuarios concurrentes esperados)
 - [ ] Pruebas de seguridad (pruebas de penetración)
 - [ ] Pruebas de DR (conmutación por error / conmutación por recuperación)
