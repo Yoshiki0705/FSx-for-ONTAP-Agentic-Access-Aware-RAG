@@ -15,8 +15,8 @@
 経験者向けの最短手順:
 
 ```bash
-git clone https://github.com/Yoshiki0705/Permission-aware-RAG-FSxN-CDK.git
-cd Permission-aware-RAG-FSxN-CDK && npm ci
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG && npm ci
 
 # 1. CDK ブートストラップ（両リージョン — アカウントごとに1回）
 npx cdk bootstrap aws://ACCOUNT_ID/ap-northeast-1
@@ -187,8 +187,8 @@ npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output t
 ### 3.2 クローンとインストール
 
 ```bash
-git clone https://github.com/Yoshiki0705/Permission-aware-RAG-FSxN-CDK.git
-cd Permission-aware-RAG-FSxN-CDK
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG
 npm ci
 ```
 

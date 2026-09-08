@@ -15,8 +15,8 @@
 For experienced users who want the fastest path:
 
 ```bash
-git clone https://github.com/Yoshiki0705/Permission-aware-RAG-FSxN-CDK.git
-cd Permission-aware-RAG-FSxN-CDK && npm ci
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG && npm ci
 
 # 1. Bootstrap CDK (both regions — required once per account)
 npx cdk bootstrap aws://ACCOUNT_ID/ap-northeast-1
@@ -187,8 +187,8 @@ npx cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output t
 ### 3.2 Clone and Install
 
 ```bash
-git clone https://github.com/Yoshiki0705/Permission-aware-RAG-FSxN-CDK.git
-cd Permission-aware-RAG-FSxN-CDK
+git clone https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG.git
+cd FSx-for-ONTAP-Agentic-Access-Aware-RAG
 npm ci
 ```
 
