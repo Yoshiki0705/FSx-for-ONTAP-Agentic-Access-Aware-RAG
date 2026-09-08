@@ -123,7 +123,7 @@ lam = boto3.client('lambda', region_name='ap-northeast-1')
 config = lam.get_function_configuration(FunctionName='<function-name>')
 env = config['Environment']['Variables']
 env['CLAUDE_PLATFORM_MODE'] = 'web-search-only'
-env['CLAUDE_PLATFORM_API_KEY'] = 'arn:aws:secretsmanager:ap-northeast-1:178625946981:secret:claude-platform-api-key'
+env['CLAUDE_PLATFORM_API_KEY'] = 'arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:claude-platform-api-key'
 env['ENABLE_WEB_SEARCH'] = 'true'
 lam.update_function_configuration(FunctionName='<function-name>', Environment={'Variables': env})
 "

@@ -17,8 +17,8 @@ import {
 
 describe('sanitizeWebSearchQuery', () => {
   it('removes AWS Account IDs (12 digits)', () => {
-    const result = sanitizeWebSearchQuery('Check account 178625946981 for S3 access');
-    expect(result).not.toContain('178625946981');
+    const result = sanitizeWebSearchQuery('Check account 123456789012 for S3 access');
+    expect(result).not.toContain('123456789012');
     expect(result).toContain('Check account');
   });
 
