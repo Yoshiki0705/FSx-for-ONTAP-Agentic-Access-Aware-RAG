@@ -20,6 +20,21 @@
 | Assess production readiness | [Production Readiness Checklist](docs/en/production-readiness-checklist.md) | — |
 | Estimate costs | [Cost Estimation Worksheet](docs/en/cost-estimation-worksheet.md) | — |
 
+## Decide before you arrive / What this repository does not cover
+
+This repository holds the **implementation and the measurements**. The **decisions** — whether FSx for ONTAP fits, whether to expose data through an S3 Access Point, which layer holds the permissions — live in the [FSx for ONTAP Adoption Playbook](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook).
+
+| Decide first | Where the basis is |
+|--------------|--------------------|
+| Whether FSx for ONTAP fits the problem (including when it does not) | [Decision trees](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/reference/decision-trees) |
+| Preconditions and constraints for exposing data via an S3 Access Point (same account, same Region, and the property that every request is authorized as one identity) | [data-utilization domain](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) |
+| Which layer authorization is established at, and what the audit trail retains | [security-governance domain](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/security-governance) |
+| NFS / SMB coexistence and Active Directory identity design | [multiprotocol-identity domain](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/multiprotocol-identity) |
+
+**Not covered here**: storage selection, migration method, block storage, performance and cost design. All of those are on the Playbook side.
+
+**Covered here**: a RAG implementation that keeps per-document permission metadata in an index and matches it against the caller's SID / UID-GID at query time (Amazon Bedrock + AWS CDK), the deployment and operations procedures, and measurements for this architecture. **Original per-file ACLs do not carry over to end-user authorization on any path through an S3 Access Point, so permissions are maintained as a separate index** ([Permission Metadata Consistency Model](docs/en/permission-consistency.md)).
+
 <details><summary>📂 All features & design guides</summary>
 
 | Category | Guide | Description |

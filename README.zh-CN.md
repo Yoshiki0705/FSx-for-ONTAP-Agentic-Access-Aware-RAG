@@ -19,6 +19,21 @@
 | 评估生产就绪性 | [生产就绪检查清单](docs/zh-CN/production-readiness-checklist.md) | — |
 | 估算成本 | [成本估算工作表](docs/zh-CN/cost-estimation-worksheet.md) | — |
 
+## 来之前需要决定的事 / 本仓库不涉及的内容
+
+本仓库处理**实现与实测**。是否采用 FSx for ONTAP、是否通过 S3 Access Point 暴露数据、权限放在哪一层等**判断**，在 [FSx for ONTAP Adoption Playbook](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook) 一侧。
+
+| 需要先决定的事 | 判断依据 |
+|--------------|---------|
+| FSx for ONTAP 是否契合课题（含不契合的条件） | [决策树](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/reference/decision-trees) |
+| 通过 S3 Access Point 暴露数据的前提与限制（同一账户、同一区域，以及所有请求以单一身份授权的性质） | [data-utilization 领域](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) |
+| 授权在哪一层成立、审计日志保留什么 | [security-governance 领域](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/security-governance) |
+| NFS / SMB 共存与 Active Directory 身份设计 | [multiprotocol-identity 领域](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/multiprotocol-identity) |
+
+**本仓库不涉及**：存储选型、迁移方式、块存储·性能·成本设计。以上均在 Playbook 一侧。
+
+**本仓库涉及**：将每个文档的权限元数据保存在索引中，并在检索时与调用者的 SID / UID・GID 进行比对的 RAG 实现（Amazon Bedrock + AWS CDK）、部署与运维步骤，以及本架构的实测。**原始文件的 ACL 在经由 S3 Access Point 的路径上不会传递到最终用户的授权，因此权限作为独立索引来维护**（[权限元数据变更一致性模型](docs/zh-CN/permission-consistency.md)）。
+
 <details><summary>📂 全部功能与设计指南</summary>
 
 | 类别 | 指南 | 内容 |

@@ -19,6 +19,21 @@
 | Évaluer la maturité production | [Checklist de production](docs/fr/production-readiness-checklist.md) | — |
 | Estimer les coûts | [Feuille d'estimation des coûts](docs/fr/cost-estimation-worksheet.md) | — |
 
+## À décider avant d'arriver ici / Ce que ce dépôt ne couvre pas
+
+Ce dépôt porte l'**implémentation et les mesures**. Les **décisions** — FSx for ONTAP convient-il, faut-il exposer les données via un S3 Access Point, quelle couche porte les permissions — se trouvent dans le [FSx for ONTAP Adoption Playbook](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook).
+
+| À décider d'abord | Où se trouve la base |
+|-------------------|----------------------|
+| Si FSx for ONTAP convient au problème (y compris les cas où il ne convient pas) | [Arbres de décision](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/reference/decision-trees) |
+| Prérequis et contraintes de l'exposition via S3 Access Point (même compte, même Région, et le fait que toute requête est autorisée sous une seule identité) | [domaine data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) |
+| À quelle couche l'autorisation est établie et ce que conserve la piste d'audit | [domaine security-governance](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/security-governance) |
+| Coexistence NFS / SMB et conception des identités Active Directory | [domaine multiprotocol-identity](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/multiprotocol-identity) |
+
+**Non couvert ici** : choix du stockage, méthode de migration, stockage bloc, conception des performances et des coûts. Tout cela est du côté du Playbook.
+
+**Couvert ici** : une implémentation RAG qui conserve les métadonnées de permission par document dans un index et les confronte au SID / UID-GID de l'appelant au moment de la requête (Amazon Bedrock + AWS CDK), les procédures de déploiement et d'exploitation, et les mesures pour cette architecture. **Les ACL d'origine par fichier ne sont pas reportées sur l'autorisation de l'utilisateur final sur les chemins passant par un S3 Access Point ; les permissions sont donc maintenues comme un index distinct** ([Modèle de cohérence des métadonnées de permission](docs/fr/permission-consistency.md)).
+
 <details><summary>📂 Liste complète des fonctionnalités et guides</summary>
 
 | Catégorie | Guide | Contenu |

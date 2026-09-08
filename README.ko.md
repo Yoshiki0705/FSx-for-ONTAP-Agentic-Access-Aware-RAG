@@ -19,6 +19,21 @@
 | 프로덕션 준비도 확인하기 | [프로덕션 준비 체크리스트](docs/ko/production-readiness-checklist.md) | — |
 | 비용 추정하기 | [비용 추정 워크시트](docs/ko/cost-estimation-worksheet.md) | — |
 
+## 오기 전에 결정할 것 / 여기서 다루지 않는 것
+
+이 리포지토리는 **구현과 실측**을 다룹니다. FSx for ONTAP를 채택할지, S3 Access Point로 데이터를 노출할지, 권한을 어느 계층에서 가질지에 대한 **판단**은 [FSx for ONTAP Adoption Playbook](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook) 쪽에 있습니다.
+
+| 먼저 결정할 것 | 판단 근거 |
+|--------------|---------|
+| FSx for ONTAP가 과제에 맞는지(맞지 않는 조건 포함) | [결정 트리](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/reference/decision-trees) |
+| S3 Access Point로 데이터를 노출하는 전제와 제약(동일 계정·동일 리전, 모든 요청이 하나의 ID로 인가되는 성질) | [data-utilization 도메인](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) |
+| 인가가 어느 계층에서 성립하는지, 감사 로그에 무엇이 남는지 | [security-governance 도메인](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/security-governance) |
+| NFS / SMB 공존과 Active Directory ID 설계 | [multiprotocol-identity 도메인](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/multiprotocol-identity) |
+
+**여기서 다루지 않는 것**: 스토리지 선정, 마이그레이션 방식, 블록 스토리지·성능·비용 설계. 모두 Playbook 쪽입니다.
+
+**여기서 다루는 것**: 문서별 권한 메타데이터를 인덱스로 보유하고 검색 시점에 호출자의 SID / UID・GID와 대조하는 RAG 구현(Amazon Bedrock + AWS CDK), 배포 및 운영 절차, 이 구성에서의 실측. **원본 파일의 ACL은 S3 Access Point를 경유하는 경로에서 최종 사용자의 인가로 이어지지 않으므로, 권한은 별도의 인덱스로 유지합니다**([권한 메타데이터 변경 일관성 모델](docs/ko/permission-consistency.md)).
+
 <details><summary>📂 전체 기능 및 설계 가이드 목록</summary>
 
 | 카테고리 | 가이드 | 내용 |
