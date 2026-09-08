@@ -2,7 +2,7 @@
 
 ## 概要
 
-Permission-aware RAGシステムの動作検証手順です。NTFS ACLのSID（Security Identifier）に基づく権限フィルタリングにより、2種類のユーザーで同じ質問に対して異なる検索結果が返ることを確認します。
+Permission-aware RAGシステムの動作検証手順です。SID（Security Identifier）に基づく権限フィルタリングにより、2種類のユーザーで同じ質問に対して異なる検索結果が返ることを確認します。
 
 ## SIDフィルタリングの仕組み
 
