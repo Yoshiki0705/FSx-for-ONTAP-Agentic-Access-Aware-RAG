@@ -22,6 +22,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
 export interface DemoWebSearchGatewayStackProps extends cdk.StackProps {
@@ -218,5 +219,26 @@ export class DemoWebSearchGatewayStack extends cdk.Stack {
 
     cdk.Tags.of(this).add('Project', projectName);
     cdk.Tags.of(this).add('Environment', environment);
+
+    // ─── cdk-nag suppressions ──────────────────────────────────────────────────
+    // このスタックは enableWebSearch=true のときだけ synth されるため、
+    // 抑制が無いまま長く気づかれていなかった。CI の synth 行列に
+    // enableWebSearch を追加したことで、以降は指摘が出れば検出される。
+    NagSuppressions.addStackSuppressions(this, [
+      {
+        id: 'AwsSolutions-IAM4',
+        reason: 'AWSLambdaBasicExecutionRole is attached by CDK to the AwsCustomResource provider and the log-retention Lambda. Required for CloudWatch Logs. See: https://docs.aws.amazon.com/lambda/latest/dg/security-iam-awsmanpol.html',
+        appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'The Gateway and its target are created by AwsCustomResource in this same stack, so their IDs do not exist at synth time. The Gateway role must therefore be granted on the target path pattern, and the log group name embeds the Gateway ID. InvokeWebSearchTool targets a service-managed connector that has no ARN. The control-plane statements (Create/Update/Delete/GetGateway, *GatewayTarget) and the CDK log-retention Lambda policy are scoped by action, not resource.',
+        appliesTo: [
+          'Resource::*',
+          'Resource::arn:aws:bedrock-agentcore:us-east-1:<AWS::AccountId>:gateway/*/target/*',
+          'Resource::arn:aws:logs:us-east-1:<AWS::AccountId>:log-group:/aws/bedrock-agentcore/gateway/*',
+        ],
+      },
+    ]);
   }
 }

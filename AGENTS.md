@@ -11,14 +11,24 @@ npx tsc --noEmit
 
 # CDK synthesis (feature flag variants — test all combinations)
 npx cdk synth --quiet
-npx cdk synth --quiet -c enableTransferFamily=true
+# enableTransferFamily は 3 つの追加コンテキストが必須（未指定なら bin/demo-app.ts が throw）。
+# ただし現状この組み合わせは cdk-nag の未解決指摘 12 件で失敗する（CI の行列にも未追加）。
+npx cdk synth --quiet -c enableTransferFamily=true \
+  -c s3AccessPointArn=arn:aws:s3:ap-northeast-1:111122223333:accesspoint/ci-dummy-ap \
+  -c transferFamilyS3ApAlias=ci-dummy-alias -c kbDataSourceId=CIDUMMYDS1
 npx cdk synth --quiet -c enableKbAutoSync=true
+npx cdk synth --quiet -c enableMonitoring=true
 npx cdk synth --quiet -c enableVoiceChat=true -c voiceChatMode=webrtc
 npx cdk synth --quiet -c enableGuardrails=true -c enableAgentCoreGateway=true -c enableWebSearch=true
 npx cdk synth --quiet -c enableAgent=true -c enableAgentCoreGateway=true -c enableAgentOptimization=true
 npx cdk synth --quiet -c kbSearchType=HYBRID
 npx cdk synth --quiet -c kbChunkingStrategy=HIERARCHICAL
 npx cdk synth --quiet -c kbChunkingStrategy=SEMANTIC
+
+# 上記のうち transfer-family 以外の 9 通りが CI の synth-matrix ジョブ
+# （.github/workflows/ci-cd.yml）のレーンと同一。
+# フラグを追加したら、そのフラグでのみ生成されるリソースが増えるため、
+# 行列にレーンを 1 本足す。既定 synth だけでは cdk-nag の抑制漏れを検出できない。
 
 # CDK tests (Jest + fast-check property tests)
 npx jest --no-coverage

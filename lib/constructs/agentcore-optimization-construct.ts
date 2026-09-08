@@ -22,6 +22,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
 export interface AgentCoreOptimizationConstructProps {
@@ -229,5 +230,32 @@ export class AgentCoreOptimizationConstruct extends Construct {
       }),
       description: 'AgentCore Optimization workflow guide (JSON)',
     });
+
+    // ─── cdk-nag suppressions ───────────────────────────────────
+    // このコンストラクトは enableAgentOptimization=true のときだけ生成されるため、
+    // 抑制が無いまま気づかれていなかった。CI の synth 行列に同フラグを追加した。
+    NagSuppressions.addResourceSuppressions(
+      this,
+      [
+        {
+          id: 'AwsSolutions-IAM4',
+          reason: 'AWSLambdaBasicExecutionRole is attached by CDK to the AwsCustomResource provider and the log-retention Lambda. Required for CloudWatch Logs. See: https://docs.aws.amazon.com/lambda/latest/dg/security-iam-awsmanpol.html',
+          appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+        },
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Configuration bundles, recommendations, and A/B tests are created at runtime by the agentcore CLI/SDK (Preview), so their IDs do not exist at synth time. Each statement is already scoped to a single resource type and to the account/region; the wildcard is only on the resource ID. Log group names embed the runtime/function ID. Foundation-model access is required by the evaluator model.',
+          appliesTo: [
+            'Resource::arn:aws:bedrock-agentcore:<AWS::Region>:<AWS::AccountId>:configuration-bundle/*',
+            'Resource::arn:aws:bedrock-agentcore:<AWS::Region>:<AWS::AccountId>:recommendation/*',
+            'Resource::arn:aws:bedrock-agentcore:<AWS::Region>:<AWS::AccountId>:ab-test/*',
+            'Resource::arn:aws:logs:<AWS::Region>:<AWS::AccountId>:log-group:/aws/bedrock-agentcore/runtimes/*',
+            'Resource::arn:aws:logs:<AWS::Region>:<AWS::AccountId>:log-group:/aws/lambda/perm-rag-demo-demo-*',
+            'Resource::arn:aws:bedrock:<AWS::Region>::foundation-model/*',
+          ],
+        },
+      ],
+      true,
+    );
   }
 }
