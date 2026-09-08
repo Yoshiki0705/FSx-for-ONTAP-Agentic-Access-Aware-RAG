@@ -1,6 +1,8 @@
 # Deployment Guide: Integration with Existing FSx for ONTAP Environment
 
-**Language:** [日本語](deployment-guide.ja.md) | **English** | [한국어](ko/deployment-guide.md) | [简体中文](zh-CN/deployment-guide.md) | [繁體中文](zh-TW/deployment-guide.md) | [Français](fr/deployment-guide.md) | [Deutsch](de/deployment-guide.md) | [Español](es/deployment-guide.md)
+**Language:** [日本語](deployment-guide.ja.md) | **English**
+
+> Only Japanese and English exist for this guide. For other languages, start from the localized README and use this guide for the deployment steps.
 
 **Created**: 2026-07  
 **Status**: Active  
@@ -430,8 +432,9 @@ aws cloudfront list-distributions \
 ### 7.2 Updating the Application
 
 ```bash
-# Frontend-only update (~3 min)
-bash development/scripts/deploy-webapp.sh
+# Frontend-only update (~3 min): build+push the image, then update the Lambda.
+# Full command sequence: operations-runbook.md §3 "WebApp Docker Build & Deploy"
+
 
 # Full stack update (if CDK constructs changed)
 npx cdk deploy --all --require-approval never

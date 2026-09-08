@@ -295,4 +295,4 @@ For small to medium environments, use S3 Vectors (a few dollars/month) to avoid 
 | [permission-consistency.md](permission-consistency.md) | Permission Metadata Consistency Model |
 | [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) | S3 Vectors + SID Architecture |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3-Configuration Comparison |
-| [automation/fsxn-ops/README.md](../automation/fsxn-ops/README.md) | FSx for ONTAP Operations Automation |
+| [automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md) | FSx for ONTAP Operations Automation |

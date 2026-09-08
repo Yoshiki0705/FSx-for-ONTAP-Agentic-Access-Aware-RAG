@@ -6,7 +6,7 @@
 **目标区域**: 主堆栈 ap-northeast-1 / Web Search Tool 位于 us-east-1（详见下文·待确认）
 **状态**: 调查文档（设计探讨 / 未实现）
 **相关**:
-- 现有实现: [claude-platform-integration.md](../claude-platform-integration.md)（Claude Platform on AWS Web Search 回退）
+- 现有实现: [claude-platform-integration.md](../../claude-platform-integration.md)（Claude Platform on AWS Web Search 回退）
 - 来源（其他仓库的先行产出物）: `fsxn-s3ap-serverless-patterns/docs/investigations/agentcore-web-search-fsxn-integration.md`, `shared/web_search_client.py`, `shared/cfn/agentcore-gateway-role.yaml`
 
 ---
@@ -310,34 +310,28 @@ agentcore.create_gateway_target(
 
 ## 10. Step 4 产出物（PoC 部署自动化）
 
-将自动化 §9.1 手动 PoC 的脚本与模板添加至本仓库。
+§9.1 的手动 PoC 是用本地工作环境中的脚本与 CFn 模板自动化的。**这些内容并未包含在本仓库中**（`development/` 属于 `.gitignore` 对象）。由于其创建 target 时使用的是 `mcpServer` 形状的临时实现，因此也未作为产出物保留。
 
-| 文件 | 用途 |
-|---------|------|
-| `development/cfn/agentcore-web-search-gateway-role.yaml` | us-east-1 IAM 角色 CFn 模板 |
-| `development/scripts/web-search/deploy-us-east-1-gateway.sh` | Phase 1-3 自动部署（Role → Gateway → Target） |
-| `development/scripts/web-search/teardown-us-east-1-gateway.sh` | 逆序撤除（Target → Gateway → CFn Stack） |
+**从本仓库可复现的手段是 §11 的 CDK 堆栈。** 以下命令会创建 us-east-1 的 Gateway 与 Web Search target。
 
-**用法:**
 ```bash
-# 部署
-bash development/scripts/web-search/deploy-us-east-1-gateway.sh
+# 部署（IAM 角色 → Gateway → Web Search target）
+npx cdk deploy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 
 # 确认产出物
 aws bedrock-agent-core get-gateway --gateway-identifier <ID> --region us-east-1
 
 # 撤除
-bash development/scripts/web-search/teardown-us-east-1-gateway.sh
+npx cdk destroy '*-WebSearchGateway' -c enableWebSearch=true -c enableAgentCoreGateway=true
 ```
 
-**注意:** 脚本内的 `create-gateway-target` 使用的并非 §9.1 中确认的 `connector` 形状，
-而是 `mcpServer` 形状（创建时点的临时实现）。在迁移至生产时应修正为 `connector` 形状。
+CDK 侧使用的是 §9.1 中确认的 `connector` 形状（`mcp.connector.source.connectorId: "web-search"`）。
 
 ---
 
 ## 相关文档
 
-- [claude-platform-integration.md](../claude-platform-integration.md) — 现有 Web Search 回退（机制 A）
+- [claude-platform-integration.md](../../claude-platform-integration.md) — 现有 Web Search 回退（机制 A）
 - [SID-Filtering-Architecture.md](../SID-Filtering-Architecture.md) — Permission-aware 的授权边界
 - [s3-vectors-sid-architecture-guide.md](../s3-vectors-sid-architecture-guide.md) — 主向量存储（保持 S3 Vectors 的判断）
 - [managed-kb-migration-evaluation.md](../managed-kb-migration-evaluation.md) — 不采用 Managed KB 判断的相关探讨

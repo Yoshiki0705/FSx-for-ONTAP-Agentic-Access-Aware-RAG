@@ -419,11 +419,11 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 - LDAP 實環境測試: ✅ OpenLDAP (VPC 內 EC2) → LDAP Connector → DynamoDB (uid:10001, gid:5001, source:OIDC-LDAP)
 - ONTAP name-mapping 實環境測試: ✅ ONTAP REST API 連線 → 3條 name-mapping 規則建立/取得 → resolveWindowsUser 驗證
 
-![登入畫面（SAML + OIDC 混合）](../docs/screenshots/signin-page-saml-oidc-hybrid.png)
+![登入畫面（SAML + OIDC 混合）](../screenshots/signin-page-saml-oidc-hybrid.png)
 
-![Auth0 OIDC 登入頁面](../docs/screenshots/oidc-auth0-login-page.png)
+![Auth0 OIDC 登入頁面](../screenshots/oidc-auth0-login-page.png)
 
-![OIDC 登入成功後的聊天畫面](../docs/screenshots/oidc-auth0-signin-success.png)
+![OIDC 登入成功後的聊天畫面](../screenshots/oidc-auth0-signin-success.png)
 
 ---
 

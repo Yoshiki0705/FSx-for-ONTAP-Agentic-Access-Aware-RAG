@@ -153,7 +153,7 @@ Para que los usuarios de Transfer Family puedan leer y escribir archivos, el usu
 
 ### Detalles del servidor Transfer Family
 
-![Transfer Family Server Detail](screenshots/transfer-family-server-detail.png)
+![Transfer Family Server Detail](../screenshots/transfer-family-server-detail.png)
 
 - Status: **Online**
 - Protocol: **SFTP**
@@ -164,14 +164,14 @@ Para que los usuarios de Transfer Family puedan leer y escribir archivos, el usu
 
 ### Supervisión de la Ingestion Trigger Lambda
 
-![Ingestion Trigger Lambda](screenshots/transfer-family-ingestion-trigger-lambda.png)
+![Ingestion Trigger Lambda](../screenshots/transfer-family-ingestion-trigger-lambda.png)
 
 - Nombre de la función Lambda: `v4-test-demo-ingestion-trigger`
 - Éxito de ejecución confirmado
 
 ### Ingesta de Bedrock KB completada
 
-![KB Ingestion Complete](screenshots/transfer-family-kb-ingestion-complete.png)
+![KB Ingestion Complete](../screenshots/transfer-family-kb-ingestion-complete.png)
 
 - Knowledge Base ID: `OBKM84FBQK`
 - Data Source ID: `XPJGH2MCBN`

@@ -139,14 +139,45 @@ done
 
 소스 코드 변경 후, Docker 레이어 캐시가 이전 소스를 재사용합니다. 기본적으로 `--no-cache`를 사용하면 이 문제가 해결됩니다.
 
-### 권장 절차
+### 절차
 
 ```bash
-# Use the local script (development/ is gitignored)
-./development/scripts/deploy-webapp.sh
+ECR_REGISTRY="123456789012.dkr.ecr.ap-northeast-1.amazonaws.com"
+ECR_REPO="permission-aware-rag-webapp"
+LAMBDA_FUNCTION="v4-test-demo-webapp"
 
-# Default: builds with --no-cache
-# To use cache: ./development/scripts/deploy-webapp.sh --use-cache
+# 1. ECR 인증
+aws ecr get-login-password --region ap-northeast-1 \
+  | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+# 2. 빌드(--no-cache로 소스 변경을 확실히 반영)
+docker buildx build --platform linux/amd64 \
+  --provenance=false --sbom=false --output type=docker \
+  --no-cache \
+  -t ${ECR_REGISTRY}/${ECR_REPO}:latest \
+  -f docker/nextjs/Dockerfile docker/nextjs
+
+# 3. 푸시
+docker push ${ECR_REGISTRY}/${ECR_REPO}:latest
+
+# 4. Digest 확인(배포 추적용)
+aws ecr describe-images --repository-name $ECR_REPO \
+  --image-ids imageTag=latest --region ap-northeast-1 \
+  --query 'imageDetails[0].imageDigest' --output text
+
+# 5. Lambda 갱신
+aws lambda update-function-code \
+  --function-name $LAMBDA_FUNCTION \
+  --image-uri ${ECR_REGISTRY}/${ECR_REPO}:latest \
+  --region ap-northeast-1
+
+# 6. 갱신 완료 대기
+aws lambda wait function-updated --function-name $LAMBDA_FUNCTION --region ap-northeast-1
+
+# 7. CloudFront 캐시 무효화
+aws cloudfront create-invalidation \
+  --distribution-id E5KCQ177G2665 \
+  --paths "/*"
 ```
 
 ### 트러블슈팅: 변경 사항 미반영

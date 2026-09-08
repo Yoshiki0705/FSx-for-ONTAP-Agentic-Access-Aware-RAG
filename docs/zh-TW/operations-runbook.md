@@ -139,14 +139,45 @@ done
 
 原始碼變更後，Docker 層快取會重複使用舊的原始碼。預設使用 `--no-cache` 可解決此問題。
 
-### 建議流程
+### 流程
 
 ```bash
-# Use the local script (development/ is gitignored)
-./development/scripts/deploy-webapp.sh
+ECR_REGISTRY="123456789012.dkr.ecr.ap-northeast-1.amazonaws.com"
+ECR_REPO="permission-aware-rag-webapp"
+LAMBDA_FUNCTION="v4-test-demo-webapp"
 
-# Default: builds with --no-cache
-# To use cache: ./development/scripts/deploy-webapp.sh --use-cache
+# 1. ECR 認證
+aws ecr get-login-password --region ap-northeast-1 \
+  | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+# 2. 建置（--no-cache 確保反映原始碼變更）
+docker buildx build --platform linux/amd64 \
+  --provenance=false --sbom=false --output type=docker \
+  --no-cache \
+  -t ${ECR_REGISTRY}/${ECR_REPO}:latest \
+  -f docker/nextjs/Dockerfile docker/nextjs
+
+# 3. 推送
+docker push ${ECR_REGISTRY}/${ECR_REPO}:latest
+
+# 4. 確認 Digest（用於部署追蹤）
+aws ecr describe-images --repository-name $ECR_REPO \
+  --image-ids imageTag=latest --region ap-northeast-1 \
+  --query 'imageDetails[0].imageDigest' --output text
+
+# 5. 更新 Lambda
+aws lambda update-function-code \
+  --function-name $LAMBDA_FUNCTION \
+  --image-uri ${ECR_REGISTRY}/${ECR_REPO}:latest \
+  --region ap-northeast-1
+
+# 6. 等待更新完成
+aws lambda wait function-updated --function-name $LAMBDA_FUNCTION --region ap-northeast-1
+
+# 7. 使 CloudFront 快取失效
+aws cloudfront create-invalidation \
+  --distribution-id E5KCQ177G2665 \
+  --paths "/*"
 ```
 
 ### 故障排除：變更未生效

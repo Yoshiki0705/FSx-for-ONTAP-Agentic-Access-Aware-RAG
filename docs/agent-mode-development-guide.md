@@ -831,7 +831,7 @@ docker build --no-cache --pull \
 mv docker/nextjs/.dockerignore.bak docker/nextjs/.dockerignore
 
 # 6. Docker Image検証（必須！）
-./development/scripts/temp/verify-docker-image.sh \
+bash scripts/verify-docker-image.sh \
   permission-aware-rag-webapp:agent-mode-fix-v22
 
 if [ $? -ne 0 ]; then
@@ -910,49 +910,19 @@ echo "✅ Container Refresh完了"
 
 **全てのDockerイメージは、ECRにプッシュする前に必ず検証する**
 
-**検証スクリプト**: `development/scripts/temp/verify-docker-image.sh`
+**検証スクリプト**: [`scripts/verify-docker-image.sh`](../scripts/verify-docker-image.sh)
 
 ```bash
-#!/bin/bash
-set -euo pipefail
-
-IMAGE_NAME=$1
-
-echo "🔍 Docker Image検証開始: $IMAGE_NAME"
-
-# 検証項目（10項目）
-checks_passed=0
-checks_total=10
-
-# 1. イメージの存在確認
-if docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
-  echo "✅ 1/10: イメージが存在します"
-  ((checks_passed++))
-else
-  echo "❌ 1/10: イメージが存在しません"
-fi
-
-# 2. /app/server.js の存在確認（最重要）
-if docker run --rm --entrypoint ls "$IMAGE_NAME" /app/server.js > /dev/null 2>&1; then
-  echo "✅ 2/10: /app/server.js が存在します"
-  ((checks_passed++))
-else
-  echo "❌ 2/10: /app/server.js が存在しません"
-fi
-
-# 3-10: その他の検証項目...
-
-echo ""
-echo "📊 検証結果: $checks_passed/$checks_total 合格"
-
-if [ $checks_passed -eq $checks_total ]; then
-  echo "✅ 全ての検証に合格しました"
-  exit 0
-else
-  echo "❌ 検証に失敗しました"
-  exit 1
-fi
+bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 ```
+
+検査は 3 項目で、いずれも過去に実際に起きた失敗に対応している。1 つでも不合格なら終了コード 1 を返すので、プッシュ前のゲートとして使える。
+
+| # | 検査 | 落ちるときの原因 |
+|---|------|----------------|
+| 1 | イメージが存在する | ビルドの取り違え、タグ違い |
+| 2 | `/app/server.js` がある | Next.js standalone 出力の欠落（`output: 'standalone'`、Dockerfile の COPY） |
+| 3 | アーキテクチャが amd64 | Apple Silicon で arm64 をビルドした（`--platform linux/amd64` の指定漏れ） |
 
 
 ### デプロイメント検証

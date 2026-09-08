@@ -224,7 +224,7 @@ The following features are currently not implemented but are designed to be adde
 
 | Document | Content |
 |----------|---------|
-| [README.md](../README.md) | Deployment procedures and CDK context parameter list |
+| [README.md](../../README.en.md) | Deployment procedures and CDK context parameter list |
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID filtering design and data ingestion path details |
 | [embedding-server-design.md](embedding-server-design.md) | Embedding server design (including ONTAP ACL auto-retrieval) |
 | [ui-specification.md](ui-specification.md) | UI specification (card UI, KB/Agent mode switching) |

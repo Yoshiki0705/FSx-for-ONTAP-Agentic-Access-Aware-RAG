@@ -1122,14 +1122,14 @@ docker buildx build --platform linux/amd64 \
   -f docker/nextjs/Dockerfile docker/nextjs
 ```
 
-### deploy-webapp.sh の改善（2026-06-08 適用済み）
+### 手順に組み込む項目
 
-`development/scripts/deploy-webapp.sh` はデフォルトで `--no-cache` を使用するよう変更済み:
+上のビルドコマンドに加えて、次の 4 点を手順に入れておくと原因追跡が速くなる:
 
-- デフォルト: `--no-cache`（ソース変更を確実に反映）
-- `--use-cache` オプション: 依存関係のみの更新時に高速ビルド
-- デプロイ後に ECR image digest を出力（追跡用）
-- Lambda に反映されたイメージ URI を確認出力
+- ソース変更時は `--no-cache` を付ける（依存のみの更新なら省略してよい）
+- デプロイ後に ECR image digest を記録する（`aws ecr describe-images ... --query 'imageDetails[0].imageDigest'`）
+- Lambda に反映されたイメージ URI を確認する（`aws lambda get-function --query 'Code.ImageUri'`）
+- コマンド一式は [operations-runbook.md](operations-runbook.md) の「3. WebApp Docker ビルド＆デプロイ」にある
 
 ### 予防策
 

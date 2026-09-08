@@ -249,7 +249,7 @@ Export lessons:
 
 #### Export Console Screen
 
-![S3 Vectors → OpenSearch Serverless Export Configuration Screen](screenshots/s3vectors-export-to-opensearch.png)
+![S3 Vectors → OpenSearch Serverless Export Configuration Screen](../screenshots/s3vectors-export-to-opensearch.png)
 
 The console automates the following:
 - Creation of OpenSearch Serverless vector collection (max OCU: 100)
@@ -282,5 +282,3 @@ The console automates the following:
 |----------|---------|
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID filtering design details |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3-configuration comparison table and implementation lessons |
-| [.kiro/specs/s3-vectors-integration/design.md](../.kiro/specs/s3-vectors-integration/design.md) | Technical design document |
-| [.kiro/specs/s3-vectors-integration/requirements.md](../.kiro/specs/s3-vectors-integration/requirements.md) | Requirements document |

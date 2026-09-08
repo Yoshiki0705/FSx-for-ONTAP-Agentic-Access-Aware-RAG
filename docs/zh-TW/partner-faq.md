@@ -166,7 +166,7 @@ npx cdk destroy <stack-name>
 npx cdk destroy --all --force
 ```
 
-**相關文件**: [部署疑難排解](deployment-troubleshooting.md)
+**相關文件**: [部署疑難排解](../deployment-troubleshooting.md)
 
 ---
 
@@ -174,7 +174,7 @@ npx cdk destroy --all --force
 
 | 資源 | 用途 | 連結 |
 |---------|------|--------|
-| 產業專屬示範資料 | 針對客戶產業客製化的示範 | [demo-data/industry-packs/](../demo-data/industry-packs/) |
+| 產業專屬示範資料 | 針對客戶產業客製化的示範 | [demo-data/industry-packs/](../../demo-data/industry-packs/) |
 | 90 分鐘工作坊 | 實作體驗 | [PoC 工作坊指南](poc-workshop-guide.md) |
 | 成本估算 | 用於提案附件 | [成本估算工作表](cost-estimation-worksheet.md) |
 | PoC 成功標準 | 用於客戶共識 | [PoC 成功標準範本](poc-success-criteria-template.md) |

@@ -78,4 +78,4 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 | ONTAP API 執行 | 透過 Lambda 安全執行 ONTAP REST API |
 | 資料預處理 | 透過 FSx for ONTAP S3 Access Point 進行 AI/分析預處理 |
 
-詳情：[automation/fsxn-ops/README.md](../../automation/fsxn-ops/README.md)
+詳情：[automation/fsxn-ops/README.md](../../../automation/fsxn-ops/README.md)

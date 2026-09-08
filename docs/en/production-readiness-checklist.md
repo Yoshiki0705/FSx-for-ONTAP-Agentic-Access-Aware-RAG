@@ -144,7 +144,7 @@ This document provides a checklist of items to verify when migrating the Permiss
 
 ### 8. Testing
 
-- [ ] Execute permission matrix tests (see [tests/permission-matrix/](../tests/permission-matrix/))
+- [ ] Execute permission matrix tests (see [tests/permission-matrix/](../../tests/permission-matrix/))
 - [ ] Load testing (2x expected concurrent users)
 - [ ] Security testing (penetration testing)
 - [ ] DR testing (failover / failback)

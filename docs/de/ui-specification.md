@@ -422,7 +422,7 @@ Workflow selection has been integrated into the central card grid, so it has bee
 └─────────────────────────┘
 ```
 
-![Agent Mode Sidebar](screenshots/agent-mode-sidebar.png)
+![Agent Mode Sidebar](../screenshots/agent-mode-sidebar.png)
 
 ### Workflow Selection
 
@@ -475,7 +475,7 @@ Response + Citation display
 
 A feature that displays a card grid in the initial state of the chat area (when no user messages exist). In KB mode, 14 purpose-specific cards (document search, summary creation, etc.) are presented, and in Agent mode, 14 workflow cards (financial analysis, project management, presentation creation, etc.) are presented, allowing users to input prompts with a single click.
 
-![KB Mode Card Grid](screenshots/kb-mode-cards-full.png)
+![KB Mode Card Grid](../screenshots/kb-mode-cards-full.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -616,7 +616,7 @@ interface CardData {
 | `agent-contract` | 📄 | contract | Contract review |
 | `agent-onboarding` | 🎓 | onboarding | Onboarding materials creation |
 
-![Agent Mode Card Grid](screenshots/agent-mode-card-grid.png)
+![Agent Mode Card Grid](../screenshots/agent-mode-card-grid.png)
 
 ### Display Conditions
 
@@ -659,7 +659,7 @@ const hasUserMessages = currentSession?.messages?.some(m => m.role === 'user') ?
 
 During a chat (when one or more user messages exist), a "🔄 Return to workflow selection" button is displayed above the chat input area. Clicking it creates a new session and returns to the card grid.
 
-![Chat Response + Citation + Back Button](screenshots/kb-mode-chat-citation.png)
+![Chat Response + Citation + Back Button](../screenshots/kb-mode-chat-citation.png)
 
 | Item | Description |
 |------|-------------|
@@ -1141,7 +1141,7 @@ Agent Directory (`/[locale]/genai/agents`) is a dedicated screen for listing and
 - Access via the "📋 Agent List" link in the header
 - Access via the "Agent List" tab in the navigation bar
 
-![Agent Directory — List Screen with Enterprise Tabs](screenshots/agent-directory-enterprise.png)
+![Agent Directory — List Screen with Enterprise Tabs](../screenshots/agent-directory-enterprise.png)
 
 ### Navigation Bar
 
@@ -1218,7 +1218,7 @@ A detail screen displayed when an Agent card is clicked.
 | Create Schedule | Sets up cron periodic execution with EventBridge Scheduler (when `enableAgentSchedules`) |
 | Delete | Confirmation dialog including Agent name → Execute Delete API |
 
-![Agent Detail Panel (with Export, Sharing, and Schedule features)](screenshots/agent-detail-panel.png)
+![Agent Detail Panel (with Export, Sharing, and Schedule features)](../screenshots/agent-detail-panel.png)
 
 ### Agent Edit Form
 
@@ -1254,7 +1254,7 @@ Displayed when "Create from Template" is clicked on a template card, or when an 
 
 Template values are pre-filled, but all fields (Agent name, description, system prompt, model) can be edited before creation.
 
-![Agent Creation Form](screenshots/agent-creator-form.png)
+![Agent Creation Form](../screenshots/agent-creator-form.png)
 
 #### Creation Flow
 
@@ -1378,11 +1378,11 @@ Toggle button click
 
 #### KB Mode Sidebar
 
-![KB Mode Sidebar](screenshots/kb-mode-sidebar.png)
+![KB Mode Sidebar](../screenshots/kb-mode-sidebar.png)
 
 #### Agent Mode Sidebar
 
-![Agent Mode Sidebar](screenshots/agent-mode-sidebar.png)
+![Agent Mode Sidebar](../screenshots/agent-mode-sidebar.png)
 
 ---
 
@@ -1506,11 +1506,11 @@ When enterprise features are enabled, three tabs are displayed in Agent Director
 
 #### Shared Agents Tab
 
-![Shared Agents Tab](screenshots/agent-directory-shared-tab.png)
+![Shared Agents Tab](../screenshots/agent-directory-shared-tab.png)
 
 #### Schedule Tasks Tab
 
-![Schedule Tasks Tab](screenshots/agent-directory-schedules-tab.png)
+![Schedule Tasks Tab](../screenshots/agent-directory-schedules-tab.png)
 
 ### API List
 

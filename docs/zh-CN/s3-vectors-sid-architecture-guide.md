@@ -249,7 +249,7 @@ Agent 模式经验教训：
 
 #### 导出控制台界面
 
-![S3 Vectors → OpenSearch Serverless 导出配置界面](screenshots/s3vectors-export-to-opensearch.png)
+![S3 Vectors → OpenSearch Serverless 导出配置界面](../screenshots/s3vectors-export-to-opensearch.png)
 
 控制台自动化以下操作：
 - 创建 OpenSearch Serverless 向量集合（最大 OCU：100）
@@ -282,5 +282,3 @@ Agent 模式经验教训：
 |----------|---------|
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | SID 过滤设计详情 |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | 3 种配置对比表和实施经验教训 |
-| [.kiro/specs/s3-vectors-integration/design.md](../.kiro/specs/s3-vectors-integration/design.md) | 技术设计文档 |
-| [.kiro/specs/s3-vectors-integration/requirements.md](../.kiro/specs/s3-vectors-integration/requirements.md) | 需求文档 |

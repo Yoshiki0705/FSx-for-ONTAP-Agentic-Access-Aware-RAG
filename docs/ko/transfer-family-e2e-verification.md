@@ -153,7 +153,7 @@ Transfer Family 사용자가 파일을 읽고 쓰려면 FSx for ONTAP 볼륨에�
 
 ### Transfer Family 서버 상세
 
-![Transfer Family Server Detail](screenshots/transfer-family-server-detail.png)
+![Transfer Family Server Detail](../screenshots/transfer-family-server-detail.png)
 
 - Status: **Online**
 - Protocol: **SFTP**
@@ -164,14 +164,14 @@ Transfer Family 사용자가 파일을 읽고 쓰려면 FSx for ONTAP 볼륨에�
 
 ### Ingestion Trigger Lambda 모니터링
 
-![Ingestion Trigger Lambda](screenshots/transfer-family-ingestion-trigger-lambda.png)
+![Ingestion Trigger Lambda](../screenshots/transfer-family-ingestion-trigger-lambda.png)
 
 - Lambda 함수명: `v4-test-demo-ingestion-trigger`
 - 실행 성공 확인
 
 ### Bedrock KB 인제스션 완료
 
-![KB Ingestion Complete](screenshots/transfer-family-kb-ingestion-complete.png)
+![KB Ingestion Complete](../screenshots/transfer-family-kb-ingestion-complete.png)
 
 - Knowledge Base ID: `OBKM84FBQK`
 - Data Source ID: `XPJGH2MCBN`

@@ -255,5 +255,3 @@ Leçons de l'export :
 |----------|---------|
 | [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) | Détails de la conception du filtrage SID |
 | [stack-architecture-comparison.md](stack-architecture-comparison.md) | Tableau de comparaison des 3 configurations et leçons d'implémentation |
-| [.kiro/specs/s3-vectors-integration/design.md](../.kiro/specs/s3-vectors-integration/design.md) | Document de conception technique |
-| [.kiro/specs/s3-vectors-integration/requirements.md](../.kiro/specs/s3-vectors-integration/requirements.md) | Document d'exigences |

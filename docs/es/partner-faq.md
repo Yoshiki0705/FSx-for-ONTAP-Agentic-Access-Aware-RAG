@@ -166,7 +166,7 @@ npx cdk destroy <stack-name>
 npx cdk destroy --all --force
 ```
 
-**Documento relacionado**: [Solución de problemas de despliegue](deployment-troubleshooting.md)
+**Documento relacionado**: [Solución de problemas de despliegue](../deployment-troubleshooting.md)
 
 ---
 
@@ -174,7 +174,7 @@ npx cdk destroy --all --force
 
 | Recurso | Uso | Enlace |
 |---------|------|--------|
-| Datos de demostración específicos del sector | Demos adaptadas al sector del cliente | [demo-data/industry-packs/](../demo-data/industry-packs/) |
+| Datos de demostración específicos del sector | Demos adaptadas al sector del cliente | [demo-data/industry-packs/](../../demo-data/industry-packs/) |
 | Taller de 90 minutos | Experiencia práctica | [Guía del taller de PoC](poc-workshop-guide.md) |
 | Estimación de costos | Adjunto a la propuesta | [Hoja de cálculo de estimación de costos](cost-estimation-worksheet.md) |
 | Criterios de éxito del PoC | Acuerdo con el cliente | [Plantilla de criterios de éxito del PoC](poc-success-criteria-template.md) |

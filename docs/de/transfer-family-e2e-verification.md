@@ -153,7 +153,7 @@ Damit Transfer Family-Benutzer Dateien lesen und schreiben können, muss der Dat
 
 ### Details des Transfer Family-Servers
 
-![Transfer Family Server Detail](screenshots/transfer-family-server-detail.png)
+![Transfer Family Server Detail](../screenshots/transfer-family-server-detail.png)
 
 - Status: **Online**
 - Protocol: **SFTP**
@@ -164,14 +164,14 @@ Damit Transfer Family-Benutzer Dateien lesen und schreiben können, muss der Dat
 
 ### Überwachung der Ingestion Trigger Lambda
 
-![Ingestion Trigger Lambda](screenshots/transfer-family-ingestion-trigger-lambda.png)
+![Ingestion Trigger Lambda](../screenshots/transfer-family-ingestion-trigger-lambda.png)
 
 - Name der Lambda-Funktion: `v4-test-demo-ingestion-trigger`
 - Erfolgreiche Ausführung bestätigt
 
 ### Bedrock KB Ingestion abgeschlossen
 
-![KB Ingestion Complete](screenshots/transfer-family-kb-ingestion-complete.png)
+![KB Ingestion Complete](../screenshots/transfer-family-kb-ingestion-complete.png)
 
 - Knowledge Base ID: `OBKM84FBQK`
 - Data Source ID: `XPJGH2MCBN`
