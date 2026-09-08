@@ -143,10 +143,10 @@ jobs:
             SECURITY_SCORE=$((SECURITY_SCORE - ESLINT_ISSUES * 5))
           fi
           
-          # npm脆弱性による減点
-          if [[ $NPM_VULNS -gt 0 ]]; then
-            SECURITY_SCORE=$((SECURITY_SCORE - NPM_VULNS * 20))
-          fi
+          # npm 脆弱性はここでは減点しない。
+          # 依存関係の判定は dependency-scan ジョブ（重大度と許容リストで判定）が持つ。
+          # ここで件数×20 を引くと、上流に修正が無い推移的依存が 1 つあるだけで
+          # 恒久的に 80 を割り、静的解析の結果が読めなくなる。
           
           # TypeScript型安全性による減点
           if [[ "$TS_SECURITY" == "failed" ]]; then
@@ -206,67 +206,39 @@ jobs:
           node-version: '20'
           cache: 'npm'
       
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run dependency vulnerability scan
+      # npm audit は lockfile だけで動くため npm ci は不要
+      - name: Verify the audit gate detects an unallowed high
+        run: python3 scripts/check-dependency-audit.py --selftest
+
+      - name: Run dependency vulnerability gate
         id: scan-deps
         run: |
-          echo "🔍 依存関係脆弱性スキャン実行中..."
-          
-          # npm auditの詳細実行
+          echo "🔍 依存関係脆弱性ゲート実行中..."
+          # 判定: critical / high は落とす（許容リストに理由と再確認期限があるものを除く）
+          #       moderate / low は報告のみ
+          # 対象: package-lock.json を持つ workspace すべて
+          #       （root / docker/nextjs / lambda/agent-core-ad-sync）
           set +e
-          npm audit --json > dependency-audit.json 2>&1
-          AUDIT_EXIT_CODE=$?
+          python3 scripts/check-dependency-audit.py | tee dependency-audit-report.txt
+          GATE_EXIT=${PIPESTATUS[0]}
           set -e
-          
-          # 結果解析
-          if [[ -f "dependency-audit.json" ]] && command -v jq >/dev/null 2>&1; then
-            CRITICAL_VULNS=$(jq -r '.metadata.vulnerabilities.critical // 0' dependency-audit.json)
-            HIGH_VULNS=$(jq -r '.metadata.vulnerabilities.high // 0' dependency-audit.json)
-            MODERATE_VULNS=$(jq -r '.metadata.vulnerabilities.moderate // 0' dependency-audit.json)
-            LOW_VULNS=$(jq -r '.metadata.vulnerabilities.low // 0' dependency-audit.json)
-            
-            TOTAL_VULNS=$((CRITICAL_VULNS + HIGH_VULNS + MODERATE_VULNS + LOW_VULNS))
+          if [[ $GATE_EXIT -eq 0 ]]; then
+            echo "scan-status=pass" >> $GITHUB_OUTPUT
           else
-            CRITICAL_VULNS=0
-            HIGH_VULNS=0
-            MODERATE_VULNS=0
-            LOW_VULNS=0
-            TOTAL_VULNS=0
+            echo "scan-status=fail" >> $GITHUB_OUTPUT
           fi
-          
-          # スキャン状態判定
-          if [[ $CRITICAL_VULNS -gt 0 ]]; then
-            SCAN_STATUS="critical"
-          elif [[ $HIGH_VULNS -gt 0 ]]; then
-            SCAN_STATUS="high"
-          elif [[ $MODERATE_VULNS -gt 0 ]]; then
-            SCAN_STATUS="moderate"
-          elif [[ $LOW_VULNS -gt 0 ]]; then
-            SCAN_STATUS="low"
-          else
-            SCAN_STATUS="clean"
-          fi
-          
-          echo "dependency-vulnerabilities=$TOTAL_VULNS" >> $GITHUB_OUTPUT
-          echo "scan-status=$SCAN_STATUS" >> $GITHUB_OUTPUT
-          
-          echo "📊 依存関係脆弱性スキャン結果:"
-          echo "  Critical: $CRITICAL_VULNS"
-          echo "  High: $HIGH_VULNS"
-          echo "  Moderate: $MODERATE_VULNS"
-          echo "  Low: $LOW_VULNS"
-          echo "  Total: $TOTAL_VULNS"
-          echo "  Status: $SCAN_STATUS"
-      
+          # 報告用の件数（判定には使わない）
+          TOTAL=$(grep -cE '^  (critical|high|moderate|low) ' dependency-audit-report.txt || true)
+          echo "dependency-vulnerabilities=$TOTAL" >> $GITHUB_OUTPUT
+          exit $GATE_EXIT
+
       - name: Upload dependency scan results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dependency-scan-results-${{ github.run_number }}
           path: |
-            dependency-audit.json
+            dependency-audit-report.txt
           retention-days: 30
 
   # セキュリティゲート評価
@@ -278,52 +250,41 @@ jobs:
     
     outputs:
       security-gate-status: ${{ steps.evaluate.outputs.security-gate-status }}
-      overall-security-score: ${{ steps.evaluate.outputs.overall-security-score }}
+      static-analysis-result: ${{ steps.evaluate.outputs.static-analysis-result }}
+      dependency-result: ${{ steps.evaluate.outputs.dependency-result }}
     
     steps:
       - name: Evaluate security gate
         id: evaluate
         run: |
           echo "🔍 セキュリティゲート評価実行中..."
-          
-          # セキュリティ結果の取得
-          VULNERABILITIES_FOUND="${{ needs.static-analysis.outputs.vulnerabilities-found }}"
-          SECURITY_SCORE="${{ needs.static-analysis.outputs.security-score }}"
-          DEPENDENCY_VULNS="${{ needs.dependency-scan.outputs.dependency-vulnerabilities }}"
+          # 判定は 2 つのジョブの結果をそのまま使う。
+          # 以前は「脆弱性 1 件あたり −20 点、80 点未満で失敗」という算術で、
+          # 上流に修正が無い推移的依存が 1 つでもあると恒久的に赤になり、
+          # 赤であること自体が情報を持たなくなっていた。
+          STATIC_RESULT="${{ needs.static-analysis.result }}"
+          DEPENDENCY_RESULT="${{ needs.dependency-scan.result }}"
           DEPENDENCY_STATUS="${{ needs.dependency-scan.outputs.scan-status }}"
-          
-          # 総合セキュリティスコア計算
-          OVERALL_SCORE=$SECURITY_SCORE
-          
-          # 依存関係脆弱性による減点
-          case "$DEPENDENCY_STATUS" in
-            "critical") OVERALL_SCORE=$((OVERALL_SCORE - 50)) ;;
-            "high") OVERALL_SCORE=$((OVERALL_SCORE - 30)) ;;
-            "moderate") OVERALL_SCORE=$((OVERALL_SCORE - 15)) ;;
-            "low") OVERALL_SCORE=$((OVERALL_SCORE - 5)) ;;
-          esac
-          
-          # 最小値0に制限
-          if [[ $OVERALL_SCORE -lt 0 ]]; then
-            OVERALL_SCORE=0
-          fi
-          
-          # セキュリティゲート判定
-          if [[ $OVERALL_SCORE -ge 80 && "$DEPENDENCY_STATUS" != "critical" ]]; then
+
+          if [[ "$STATIC_RESULT" == "success" && "$DEPENDENCY_RESULT" == "success" ]]; then
             GATE_STATUS="PASS"
           else
             GATE_STATUS="FAIL"
           fi
-          
+
           echo "security-gate-status=$GATE_STATUS" >> $GITHUB_OUTPUT
-          echo "overall-security-score=$OVERALL_SCORE" >> $GITHUB_OUTPUT
-          
+          echo "static-analysis-result=$STATIC_RESULT" >> $GITHUB_OUTPUT
+          echo "dependency-result=$DEPENDENCY_RESULT" >> $GITHUB_OUTPUT
+
           echo "📊 セキュリティゲート評価結果:"
-          echo "  静的解析スコア: $SECURITY_SCORE/100"
-          echo "  依存関係状態: $DEPENDENCY_STATUS"
-          echo "  総合セキュリティスコア: $OVERALL_SCORE/100"
-          echo "  セキュリティゲート: $GATE_STATUS"
-      
+          echo "  静的解析: $STATIC_RESULT"
+          echo "  依存関係ゲート: $DEPENDENCY_RESULT（$DEPENDENCY_STATUS）"
+          echo "  判定: $GATE_STATUS"
+          echo ""
+          echo "  依存関係ゲートの方針: critical / high は落とす"
+          echo "  （.security/dependency-audit-allowlist.json に理由と再確認期限があるものを除く）"
+          echo "  moderate / low は報告のみ"
+
       - name: Create security report
         run: |
           cat > security-report.md << EOF
@@ -335,7 +296,8 @@ jobs:
           |------|------|------|
           | 静的コード解析 | ${{ needs.static-analysis.outputs.security-score }}/100 | ${{ needs.static-analysis.outputs.vulnerabilities-found == 'false' && '✅ 安全' || '⚠️ 要確認' }} |
           | 依存関係脆弱性 | ${{ needs.dependency-scan.outputs.dependency-vulnerabilities }} 件 | ${{ needs.dependency-scan.outputs.scan-status == 'clean' && '✅ 安全' || '⚠️ 要対応' }} |
-          | 総合セキュリティスコア | ${{ steps.evaluate.outputs.overall-security-score }}/100 | ${{ steps.evaluate.outputs.security-gate-status == 'PASS' && '✅ 合格' || '❌ 不合格' }} |
+          | 依存関係ゲート（critical / high、許容リスト除く） | ${{ steps.evaluate.outputs.dependency-result }} | ${{ steps.evaluate.outputs.dependency-result == 'success' && '✅ 合格' || '❌ 不合格' }} |
+          | 総合判定 | ${{ steps.evaluate.outputs.security-gate-status }} | ${{ steps.evaluate.outputs.security-gate-status == 'PASS' && '✅ 合格' || '❌ 不合格' }} |
           
           ## 🎯 セキュリティゲート結果
           
@@ -367,7 +329,7 @@ jobs:
         with:
           script: |
             const gateStatus = '${{ steps.evaluate.outputs.security-gate-status }}';
-            const securityScore = '${{ steps.evaluate.outputs.overall-security-score }}';
+            const dependencyResult = '${{ steps.evaluate.outputs.dependency-result }}';
             const dependencyVulns = '${{ needs.dependency-scan.outputs.dependency-vulnerabilities }}';
             
             const emoji = gateStatus === 'PASS' ? '✅' : '❌';
@@ -376,7 +338,7 @@ jobs:
             const comment = `## ${emoji} セキュリティスキャン結果
             
             **ステータス**: ${status}  
-            **総合セキュリティスコア**: ${securityScore}/100  
+            **依存関係ゲート**: ${dependencyResult}  
             **依存関係脆弱性**: ${dependencyVulns} 件  
             **スキャンタイプ**: ${{ env.SCAN_TYPE }}  
             
@@ -397,7 +359,7 @@ jobs:
         if: steps.evaluate.outputs.security-gate-status == 'FAIL'
         run: |
           echo "❌ セキュリティゲートが失敗しました"
-          echo "総合セキュリティスコア: ${{ steps.evaluate.outputs.overall-security-score }}/100"
+          echo "依存関係ゲート: ${{ steps.evaluate.outputs.dependency-result }}"
           echo "依存関係脆弱性: ${{ needs.dependency-scan.outputs.dependency-vulnerabilities }} 件"
           exit 1
 
@@ -413,7 +375,7 @@ jobs:
         id: prepare
         run: |
           GATE_STATUS="${{ needs.security-gate.outputs.security-gate-status }}"
-          SECURITY_SCORE="${{ needs.security-gate.outputs.overall-security-score }}"
+          DEPENDENCY_RESULT="${{ needs.security-gate.outputs.dependency-result }}"
           DEPENDENCY_VULNS="${{ needs.dependency-scan.outputs.dependency-vulnerabilities }}"
           
           if [[ "$GATE_STATUS" == "FAIL" ]]; then
@@ -427,7 +389,7 @@ jobs:
           fi
           
           NOTIFICATION_BODY="**セキュリティゲート**: $GATE_STATUS
-          **総合スコア**: $SECURITY_SCORE/100
+          **依存関係ゲート**: $DEPENDENCY_RESULT
           **依存関係脆弱性**: $DEPENDENCY_VULNS 件
           **実行時刻**: $(date '+%Y/%m/%d %H:%M:%S UTC')
           **緊急度**: $URGENCY
@@ -460,7 +422,7 @@ jobs:
       #     python3 development/scripts/notifications/slack-notifier.py \
       #       --webhook-url "$SLACK_WEBHOOK_URL" \
       #       --type alert \
-      #       --data '{"alert_level": "${{ needs.security-gate.outputs.security-gate-status == 'FAIL' && 'high' || 'low' }}", "security_score": ${{ needs.security-gate.outputs.overall-security-score }}}'
+      #       --data '{"alert_level": "${{ needs.security-gate.outputs.security-gate-status == 'FAIL' && 'high' || 'low' }}", "dependency_gate": "${{ needs.security-gate.outputs.dependency-result }}"}'
       #   env:
       #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -482,7 +444,7 @@ jobs:
           echo "**セキュリティゲート**: ${{ needs.security-gate.result }}"
           echo "**通知**: ${{ needs.security-notification.result }}"
           echo ""
-          echo "**総合セキュリティスコア**: ${{ needs.security-gate.outputs.overall-security-score }}/100"
+          echo "**依存関係ゲート**: ${{ needs.security-gate.outputs.dependency-result }}"
           echo "**脆弱性検出**: ${{ needs.static-analysis.outputs.vulnerabilities-found }}"
           echo "**依存関係脆弱性**: ${{ needs.dependency-scan.outputs.dependency-vulnerabilities }} 件"
           echo ""

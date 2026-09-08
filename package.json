@@ -64,7 +64,7 @@
     "@aws-sdk/client-sns": "^3.1090.0",
     "@aws-sdk/client-ssm": "^3.1090.0",
     "@aws-sdk/lib-dynamodb": "^3.1090.0",
-    "aws-cdk-lib": "^2.261.0",
+    "aws-cdk-lib": "^2.268.0",
     "cdk-docker-image-deployment": "^0.0.987",
     "cdk-nag": "^2.38.1",
     "constructs": "^10.3.0",
@@ -85,7 +85,8 @@
   "author": "NetApp Japan Tech Team",
   "license": "SEE LICENSE IN LICENSE",
   "overrides": {
-    "handlebars": "^4.7.9"
+    "handlebars": "^4.7.9",
+    "brace-expansion": "^5.0.9"
   },
   "repository": {
     "type": "git",
