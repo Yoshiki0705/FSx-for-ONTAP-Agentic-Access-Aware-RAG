@@ -35,11 +35,18 @@ const customJestConfig = {
   ],
   
   // 無視するファイル・ディレクトリ
+  //
+  // src/__tests__/ は Vitest の担当（vitest.config.ts の include と同じ範囲）。
+  // testMatch がここも拾っていたため、Jest が `from 'vitest'` を含む 121 ファイルを
+  // 実行しようとして 90 suite が失敗していた。実行器ごとに担当を分ける。
+  // src/__tests__.disabled/ は名前のとおり無効化された旧テスト群。
   testPathIgnorePatterns: [
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
     '<rootDir>/coverage/',
     '<rootDir>/dist/',
+    '<rootDir>/src/__tests__/',
+    '<rootDir>/src/__tests__.disabled/',
   ],
   
   // 変換対象外のファイル

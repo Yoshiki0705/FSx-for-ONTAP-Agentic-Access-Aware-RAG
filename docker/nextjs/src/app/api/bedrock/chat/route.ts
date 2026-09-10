@@ -821,8 +821,23 @@ async function invokeBedrockModel(
 }
 
 export async function POST(request: NextRequest) {
-  // リクエストボディを一度だけ読み込む
-  const { message, userId, modelId } = await request.json();
+  // リクエストボディを一度だけ読み込む。
+  //
+  // ここは try の外にあり、壊れた JSON が来ると例外がハンドラを抜けて
+  // 制御されていない 500 になっていた。呼び出し側は原因を判別できないため、
+  // 400 として返す。
+  let message: string | undefined;
+  let userId: string | undefined;
+  let modelId: string | undefined;
+  try {
+    ({ message, userId, modelId } = await request.json());
+  } catch {
+    return NextResponse.json({
+      success: false,
+      error: 'リクエストボディが JSON として解釈できません',
+      timestamp: new Date().toISOString(),
+    }, { status: 400 });
+  }
   const clientIP = getClientIpAddress(request);
   
   // Cookieからリージョンを取得
