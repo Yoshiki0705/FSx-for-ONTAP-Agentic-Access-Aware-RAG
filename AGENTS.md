@@ -308,9 +308,9 @@ WafStack (us-east-1) → WebSearchGatewayStack (us-east-1, optional: enableWebSe
 | zizmor | `.github/workflows/zizmor.yml` | GitHub Actions security linting (SHA-pinning, credential persistence, injection) |
 | gitleaks | `.github/workflows/gitleaks.yml` | Secret detection — custom rules in `.gitleaks.toml` |
 | OpenSSF Scorecard | `.github/workflows/scorecard.yml` | Automated security health scoring |
-| Renovate | `renovate.json` | Automated dependency updates (npm, pip, Dockerfile, GitHub Actions); grouped PRs, weekly (Mon, Asia/Tokyo), keeps Actions SHA-pinned (`pinDigests`), majors gated via Dependency Dashboard, OSV/vulnerability alerts on |
+| Dependabot | `.github/dependabot.yml` | Automated dependency updates (npm, GitHub Actions); weekly, grouped for `@aws-sdk/*` and `aws-cdk*`, majors ignored for `aws-cdk`, `aws-cdk-lib`, and `cdk-nag`. Keeps Actions pinned to a SHA with the version as a trailing comment, so it does not conflict with the zizmor SHA-pinning lint |
 
-> **Renovate** is driven by the [Renovate GitHub App](https://github.com/apps/renovate), which must be enabled for this repository separately (Settings → GitHub Apps). The `renovate.json` config alone does not activate updates. Renovate preserves the SHA-pinning policy via `helpers:pinGitHubActionDigests` + per-manager `pinDigests: true`, so it does not conflict with the zizmor SHA-pinning lint.
+> **One update bot, not two.** Both Dependabot and Renovate were configured, and both opened pull requests for the same updates — the five individual Actions bumps from Dependabot overlapped with Renovate's single grouped `github-actions` PR. Renovate stopped producing updates after 2026-08-12 (its GitHub App has to be enabled separately, and the config file alone does not activate it), while Dependabot stayed active. `renovate.json` was removed on that evidence. If Renovate is preferred later, enable the App first and remove `.github/dependabot.yml` in the same change — never leave both running.
 
 ### Dependency Vulnerability Policy
 
