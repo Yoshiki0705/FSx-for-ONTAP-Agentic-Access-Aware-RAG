@@ -67,8 +67,13 @@ export interface GuardrailsConfig {
   automatedReasoningThreshold?: number;
 }
 
+/** kbChunkingStrategy が取り得る値。CDK context の検証にも使う。 */
+export const KB_CHUNKING_STRATEGIES = ['FIXED_SIZE', 'HIERARCHICAL', 'SEMANTIC', 'NONE'] as const;
+
 /**
  * kbChunkingStrategy を Bedrock DataSource ChunkingConfiguration に変換する。
+ *
+ * 不正値は例外にする（`voiceChatMode` と同じ扱い）。
  * setup-kb-datasource.sh で使用される JSON を生成する。
  *
  * ⚠️ チャンキング戦略を変更した場合、DataSource の再同期（re-ingestion）が必要です。
@@ -108,14 +113,13 @@ export function buildChunkingConfiguration(strategy: string): Record<string, any
         chunkingStrategy: 'NONE',
       };
     default:
-      // Default to FIXED_SIZE for unknown values
-      return {
-        chunkingStrategy: 'FIXED_SIZE',
-        fixedSizeChunkingConfiguration: {
-          maxTokens: 300,
-          overlapPercentage: 10,
-        },
-      };
+      // 不正値を FIXED_SIZE に落とさない。落とすと CfnOutput は打ち間違えた
+      // 文字列を表示し、実際に配られる設定は FIXED_SIZE になるため、
+      // 表示と設定が食い違ったまま運用に入る。
+      throw new Error(
+        `Invalid kbChunkingStrategy: '${strategy}'. ` +
+        `Valid values are: ${KB_CHUNKING_STRATEGIES.join(', ')}`,
+      );
   }
 }
 
@@ -922,14 +926,17 @@ exports.handler = async (event) => {
     // setup-kb-datasource.sh に渡す。
     // ⚠️ チャンキング戦略を変更した場合、DataSource の再同期が必要です。
     const kbChunkingStrategy = this.node.tryGetContext('kbChunkingStrategy') || 'FIXED_SIZE';
+    // 不正値はここで synth を止める。表示する戦略名も設定から取り、
+    // 2 つの出力が食い違えないようにする。
+    const kbChunkingConfig = buildChunkingConfiguration(kbChunkingStrategy);
 
     new cdk.CfnOutput(this, 'KbChunkingStrategy', {
-      value: kbChunkingStrategy,
+      value: kbChunkingConfig.chunkingStrategy,
       description: 'KB chunking strategy (FIXED_SIZE|HIERARCHICAL|SEMANTIC|NONE). Changing requires DataSource re-sync.',
     });
 
     new cdk.CfnOutput(this, 'KbChunkingConfig', {
-      value: JSON.stringify(buildChunkingConfiguration(kbChunkingStrategy)),
+      value: JSON.stringify(kbChunkingConfig),
       description: 'Chunking configuration JSON for setup-kb-datasource.sh',
     });
 

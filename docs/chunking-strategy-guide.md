@@ -27,6 +27,8 @@ npx cdk synth --quiet -c kbChunkingStrategy=NONE
 
 > ⚠️ **チャンキング戦略を変更した場合、DataSource の再同期（re-ingestion）が必須です。**
 
+**この 4 つ以外の値は synth 時に例外になります。** 既定値へ黙って落とすと、`KbChunkingStrategy` 出力は打ち間違えた文字列を表示し、実際に配られる設定は `FIXED_SIZE` になるため、表示と設定が食い違ったまま運用に入ります。大文字小文字は正規化されます（`semantic` → `SEMANTIC`）。
+
 ---
 
 ## 戦略比較マトリクス

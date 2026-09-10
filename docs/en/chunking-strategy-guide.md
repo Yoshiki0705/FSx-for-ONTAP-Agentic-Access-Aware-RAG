@@ -25,7 +25,9 @@ npx cdk synth --quiet -c kbChunkingStrategy=SEMANTIC
 npx cdk synth --quiet -c kbChunkingStrategy=NONE
 ```
 
-> ⚠️ **チャンキング戦略を変更した場合、DataSource の再同期（re-ingestion）が必須です。**
+> ⚠️ **Changing the chunking strategy requires a DataSource re-sync (re-ingestion).**
+
+**Any value outside these four throws at synth time.** Coercing silently to the default would leave the `KbChunkingStrategy` output showing the typo while the emitted configuration said `FIXED_SIZE`, so the displayed value and the deployed configuration would disagree. Case is normalized (`semantic` → `SEMANTIC`).
 
 ---
 
