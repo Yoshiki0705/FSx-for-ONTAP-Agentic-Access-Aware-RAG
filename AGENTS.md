@@ -420,7 +420,7 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | AgentCore Gateway + Quick Desktop: Remote MCP 追加が永続化されない | Quick Desktop v0.1000.1495 の間欠的バグ | **Import 方式**（JSON ファイルからの読み込み）を使う。Local/Remote 直接追加は不安定 |
 | AgentCore Gateway `create-gateway-target` で Lambda not found | Gateway と Lambda のリージョン不一致 | Gateway と Lambda は**同一リージョン**に配置必須。クロスリージョン Lambda 呼び出しは不可 |
 | Quick Desktop サインインで「account name is invalid」 | IAM ユーザー名 ≠ QuickSight ユーザー名 | `aws quicksight list-users` で確認。Email ベースのサインインが最もシンプル |
-| FSx for ONTAP S3 AP + AgentCore MCP E2E 検証構成 | Internet-origin AP + VPC-external Lambda + AgentCore Gateway (同一リージョン) | **[verified 2026-07 / ap-northeast-1]** Gateway → Lambda → S3 AP (list/read/search) が動作 |
+| FSx for ONTAP S3 Access Points + AgentCore MCP E2E 検証構成 | Internet-origin AP + VPC-external Lambda + AgentCore Gateway (同一リージョン) | **[verified 2026-07 / ap-northeast-1]** Gateway → Lambda → S3 AP (list/read/search) が動作 |
 
 ## CI/Test Reliability
 
@@ -479,7 +479,7 @@ When updating model IDs (AWS Health notifications, EOL):
 - **「コードがある」と「デプロイされている」を区別する。** 例: `lambda/permissions/fsx-permission-service.ts` はどの CDK スタックからもデプロイされていない。
 
 ### Naming (NetApp / AWS)
-- 初出は **Amazon FSx for NetApp ONTAP**、以降 **FSx for ONTAP**。`FSxN` / 単独 `FSx` / `FSx ONTAP` は不可。アクセスポイントは **FSx for ONTAP S3 AP**。
+- 初出は **Amazon FSx for NetApp ONTAP**、以降 **FSx for ONTAP**。`FSxN` / 単独 `FSx` / `FSx ONTAP` は不可。アクセスポイントは **S3 Access Points** と略さずに書く（`S3 AP` は AWS が認めた略称ではない）。Amazon S3 のアクセスポイントと紛れる場所では **FSx for ONTAP S3 Access Points**。
 - NetApp Workload Factory / NetApp Console / BlueXP は提案しない。native 等価物（CloudWatch, ONTAP REST API, FabricPool, AWS DataSync, Snapshot/FlexClone/SnapMirror）に置換。
 - 例外: 外部引用タイトルの逐語引用（その行に `allow:naming` コメントを付与）。
 
