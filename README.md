@@ -51,8 +51,6 @@
 | 運用 | [FSx for ONTAP サイジング](docs/fsxn-sizing-and-performance.md) | 規模別構成・QoS・ベクトルストア選定 |
 | セキュリティ | [脅威モデル](docs/threat-model.md) | 10 脅威カテゴリ・攻撃経路・緩和策 |
 | 読み方 | [証跡の区分ポリシー](docs/evidence-policy.md) | どの記述をどこまで信頼して適用できるか（`verified` / `documented` / `field-observation` / `hypothesis`） |
-| 読み方 | [多言語ティア方針](docs/i18n-policy.md) | どの言語が原文と同じ内容を持つか。抄訳は開示バナーを持つ |
-| AI 向け | [llms.txt](llms.txt) | このリポジトリの読み方・入口・検査コマンドを 1 ファイルに集約（AI エージェント向け） |
 | セキュリティ | [ガバナンス・監査設計](docs/governance-and-audit.md) | 監査ログ・Responsible AI・Guardrails |
 | データ | [チャンキング戦略選定](docs/chunking-strategy-guide.md) | FIXED_SIZE / HIERARCHICAL / SEMANTIC |
 | データ | [S3 Vectors SID 設計](docs/s3-vectors-sid-architecture-guide.md) | メタデータ制約・フィルタリング実装 |
@@ -129,21 +127,20 @@ S3 AP の包括的な互換性マトリクスは [fsxn-lakehouse-integrations](h
 
 <details><summary>🔧 開発者向け</summary>
 
-検査の入口は `Makefile` に集約されています。CI と同じコマンドが走ります。
-
 ```bash
-make help    # 使えるターゲットの一覧
+# TypeScript 型チェック
+npx tsc --noEmit
 
-make all     # 速い検査（型検査・Jest・リンク・証跡ラベル・抄訳開示・依存関係）
-make synth   # CI と同じ 10 レーンの cdk synth（フラグは ci-cd.yml から読む）
+# CDK synth（フィーチャーフラグ組み合わせテスト）
+npx cdk synth --quiet
+npx cdk synth --quiet -c enableTransferFamily=true
+npx cdk synth --quiet -c enableGuardrails=true -c enableAgentCoreGateway=true
 
-make test-frontend  # Vitest（既知の flaky あり）
-make test-python    # Python Lambda の pytest
-make secrets        # gitleaks
-make actions        # zizmor
+# テスト
+npx jest --no-coverage
+cd docker/nextjs && npx vitest run
+cd automation/transfer-family && python3 -m pytest tests/ -v
 ```
-
-各検出器は本検査の前に `--selftest` を通します。**ゲートが成功したことは、ゲートが走った証拠ではないため**、落とすべき入力で落ちることを毎回確認しています。
 
 プロジェクト構成、コーディング規約、CI パイプラインの詳細は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
 
