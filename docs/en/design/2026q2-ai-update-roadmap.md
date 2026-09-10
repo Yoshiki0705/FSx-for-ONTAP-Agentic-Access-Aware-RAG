@@ -2,18 +2,18 @@
 
 ## Overview
 
-2026年3月〜6月のAWS AIアップデートを本プロジェクト（Permission-aware RAG with FSx for ONTAP）に統合するための実装ロードマップ。全7 Specを段階的に実装し、Permission境界の一貫性を維持しながら新機能を導入する。
+An implementation roadmap for integrating the AWS AI updates from March to June 2026 into this project (Permission-aware RAG with FSx for ONTAP). Seven specs are implemented in stages, introducing new capabilities while keeping the permission boundary consistent.
 
 ## Core Invariant: Permission Boundary Classification
 
-全Specを貫く不変条件として、以下の **Permission Boundary Type** を定義する。すべてのデータソースはこの分類に従い、UI・ログ・監査で一貫して使用する。
+The following **permission boundary types** are the invariant that runs through every spec. Every data source falls into one of them, and the classification is used consistently in the UI, in logs, and in audit records.
 
-| Type | Source | Permission保証 | Trust Level | UI表示 |
-|------|--------|---------------|-------------|--------|
-| `verified` | KB (FSx for ONTAP, SID-matched) | Fail-closed + SIDマッチング完了 | HIGH | 🔒 社内文書 |
-| `reference` | Web Search (Claude Platform) | 不適用（公開情報） | LOW | 🌐 参考情報（外部） |
-| `expanded` | Graph RAG expansion (Neptune) | Real-time SIDチェック済み（遅延あり） | MEDIUM | 🔗 関連ドキュメント |
-| `memory` | Agent Memory (AgentCore) | SIDスコープタグ付き | MEDIUM | 表示しない（内部利用） |
+| Type | Source | Permission guarantee | Trust level | Shown as |
+|------|--------|----------------------|-------------|----------|
+| `verified` | KB (FSx for ONTAP, SID-matched) | fail-closed, SID matching completed | HIGH | 🔒 internal document |
+| `reference` | Web Search (Claude Platform) | not applicable (public information) | LOW | 🌐 external reference |
+| `expanded` | Graph RAG expansion (Neptune) | real-time SID check (with delay) | MEDIUM | 🔗 related document |
+| `memory` | Agent Memory (AgentCore) | tagged with an SID scope | MEDIUM | not shown (internal use) |
 
 ## Implementation Phases
 
@@ -21,37 +21,37 @@
 
 **Spec: model-lifecycle-2026q2**
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| モデルID確認 & 更新 | Opus 4.8, Sonnet 4.6, Nova 2 Lite, GPT-5.5 GA | LOW |
-| RAGAS品質ゲート | Permission-matrix 31シナリオ + RAGAS回帰テスト | LOW |
-| CI/CD品質ゲート設定 | model-defaults.ts変更時の自動評価 | LOW |
+| Task | Content | Risk |
+|------|---------|------|
+| Confirm and update model IDs | Opus 4.8, Sonnet 4.6, Nova 2 Lite, GPT-5.5 GA | LOW |
+| RAGAS quality gate | 31 permission-matrix scenarios plus a RAGAS regression run | LOW |
+| CI/CD quality gate | automatic evaluation when model-defaults.ts changes | LOW |
 
-**完了条件**: 全テストパス + RAGAS baseline確立
+**Exit criteria**: all tests pass and a RAGAS baseline is established.
 
 ---
 
 ### Phase 1: Core Hardening (Week 3-5)
 
-**Spec: cost-optimization-bedrock** (Prompt Caching部分のみ)
+**Spec: cost-optimization-bedrock** (prompt caching only)
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| Prompt構造分離 | Static/Dynamic segment分割 | LOW |
-| Cache invalidation | Permission rule version hash | LOW |
-| コストメトリクス | CacheHit/Miss率可視化 | LOW |
+| Task | Content | Risk |
+|------|---------|------|
+| Separate the prompt structure | split static and dynamic segments | LOW |
+| Cache invalidation | hash of the permission rule version | LOW |
+| Cost metrics | expose the cache hit/miss ratio | LOW |
 
-**Expected Impact**: トークンコスト30-90%削減
+**Expected impact**: 30-90% reduction in token cost.
 
 **Spec: guardrails-automated-reasoning**
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| Automated Reasoningポリシー定義 | Fail-closed + SID matching形式検証 | MEDIUM |
-| コンテキスト依存Guardrails | 権限レベル別プロファイル | MEDIUM |
-| Adversarial test set | 意図的Permission違反テスト | LOW |
+| Task | Content | Risk |
+|------|---------|------|
+| Define the Automated Reasoning policy | formal verification of fail-closed behaviour and SID matching | MEDIUM |
+| Context-dependent guardrails | a profile per permission level | MEDIUM |
+| Adversarial test set | deliberate permission-violation tests | LOW |
 
-**完了条件**: Guardrail有効時にPermission違反を検知・ブロック
+**Exit criteria**: with guardrails enabled, permission violations are detected and blocked.
 
 ---
 
@@ -59,14 +59,14 @@
 
 **Spec: agentcore-gateway-modernization**
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| Gateway構築 | CDK construct + IAM認証 | MEDIUM |
-| Permission Interceptor | Lambda + DynamoDB Permission check | MEDIUM |
-| MCP Server登録 | FSx for ONTAP/KB/Capacity各ツール | LOW |
-| Observability | 構造化ログ + X-Ray | LOW |
+| Task | Content | Risk |
+|------|---------|------|
+| Build the Gateway | CDK construct plus IAM authentication | MEDIUM |
+| Permission Interceptor | Lambda plus a DynamoDB permission check | MEDIUM |
+| Register MCP servers | the FSx for ONTAP, KB, and capacity tools | LOW |
+| Observability | structured logs plus X-Ray | LOW |
 
-**完了条件**: 全エージェントツール通信がGateway経由 + Permission Interceptor通過
+**Exit criteria**: every agent tool call goes through the Gateway and passes the Permission Interceptor.
 
 ---
 
@@ -74,96 +74,96 @@
 
 **Spec: claude-platform-integration**
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| Web Search統合 | Claude Platform API接続 + サニタイザー | MEDIUM |
-| Permission Boundary分類 | verified/reference分離表示 | LOW |
-| Citations | ソース帰属 + boundary type表示 | LOW |
-| MCP Connector | Gateway経由FSxNツール公開 | LOW |
+| Task | Content | Risk |
+|------|---------|------|
+| Web Search integration | Claude Platform API plus the sanitizer | MEDIUM |
+| Permission boundary classification | display `verified` and `reference` separately | LOW |
+| Citations | source attribution plus the boundary type | LOW |
+| MCP connector | expose the FSx for ONTAP tools through the Gateway | LOW |
 
 **Spec: agent-framework-evolution** (MVP)
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| Strands SDK基盤 | 1エージェント（FSx for ONTAP Agent）のみ移行 | MEDIUM |
-| Memory Permission tagging | SIDスコープ付きメモリ | HIGH |
-| Tool decorator | @permission_required 強制 | LOW |
+| Task | Content | Risk |
+|------|---------|------|
+| Strands SDK foundation | migrate one agent only (the FSx for ONTAP agent) | MEDIUM |
+| Memory permission tagging | memory scoped by SID | HIGH |
+| Tool decorator | enforce `@permission_required` | LOW |
 
-**完了条件**: FSx for ONTAP AgentがStrands SDKで動作 + Memory安全性確認
+**Exit criteria**: the FSx for ONTAP agent runs on the Strands SDK and memory safety is confirmed.
 
 ---
 
 ### Phase 4: Advanced Capabilities (Week 15-20)
 
-**Spec: knowledge-base-multimodal** (Multimodal部分のみ)
+**Spec: knowledge-base-multimodal** (multimodal only)
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| Multimodal KB構成 | PDF画像/図表のvector化 | MEDIUM |
-| Permission inheritance | 親ドキュメントからの権限継承 | LOW |
-| UI統合 | 画像サムネイル + 統合ランキング | LOW |
+| Task | Content | Risk |
+|------|---------|------|
+| Multimodal KB configuration | vectorize images and figures from PDFs | MEDIUM |
+| Permission inheritance | inherit permissions from the parent document | LOW |
+| UI integration | image thumbnails plus unified ranking | LOW |
 
-**Spec: agent-framework-evolution** (Full)
+**Spec: agent-framework-evolution** (full)
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| RAG Agent Strands移行 | search_kb + citations ツール化 | MEDIUM |
-| Supervisor Agent | Multi-Agent orchestration | HIGH |
-| Claude Managed Agent | Simple query handler | LOW |
+| Task | Content | Risk |
+|------|---------|------|
+| Migrate the RAG agent to Strands | turn `search_kb` and citations into tools | MEDIUM |
+| Supervisor agent | multi-agent orchestration | HIGH |
+| Claude managed agent | handler for simple queries | LOW |
 
 ---
 
-### Phase 5: Graph & Full Integration (Week 21+)
+### Phase 5: Graph and Full Integration (Week 21+)
 
-**Spec: knowledge-base-multimodal** (GraphRAG部分)
+**Spec: knowledge-base-multimodal** (GraphRAG)
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| Neptune Analytics構築 | CDK + VPC統合 | HIGH |
-| Graph構築Lambda | Entity extraction + relationship detection | MEDIUM |
-| Real-time SID check | Graph展開結果のPermission検証 | HIGH |
-| Permission Graph | User→Group→Document可視化 | MEDIUM |
+| Task | Content | Risk |
+|------|---------|------|
+| Build Neptune Analytics | CDK plus VPC integration | HIGH |
+| Graph builder Lambda | entity extraction plus relationship detection | MEDIUM |
+| Real-time SID check | verify permissions on graph expansion results | HIGH |
+| Permission graph | visualize user → group → document | MEDIUM |
 
-**Spec: cost-optimization-bedrock** (Distillation + Batch)
+**Spec: cost-optimization-bedrock** (distillation and batch)
 
-| Task | 内容 | リスク |
-|------|------|--------|
-| Model Distillation pipeline | Training data + evaluation | MEDIUM |
-| Batch Inference | KB Auto-Sync metadata enrichment | LOW |
+| Task | Content | Risk |
+|------|---------|------|
+| Model distillation pipeline | training data plus evaluation | MEDIUM |
+| Batch inference | KB Auto-Sync metadata enrichment | LOW |
 
 ---
 
 ## Risk Register
 
-### Risk 1: Web Search → Permission Boundary Confusion
-- **Impact**: ユーザーがWeb検索結果を「社内検証済み情報」と誤認
-- **Likelihood**: HIGH (UIが不明瞭な場合)
+### Risk 1: Web Search results confused with the permission boundary
+- **Impact**: a user reads a web search result as internally verified information
+- **Likelihood**: HIGH (if the UI is ambiguous)
 - **Severity**: HIGH
-- **Mitigation**: Permission Boundary Classification + UI badge + Guardrail検証
+- **Mitigation**: permission boundary classification, a UI badge, and guardrail verification
 - **Owner**: Frontend team
 - **Phase**: Phase 3
 
-### Risk 2: Memory Cross-Scope Leakage
-- **Impact**: 高権限ユーザーのデータが低権限ユーザーに漏洩
-- **Likelihood**: MEDIUM (実装ミスの場合)
+### Risk 2: Memory leakage across scopes
+- **Impact**: data belonging to a higher-privileged user reaches a lower-privileged one
+- **Likelihood**: MEDIUM (given an implementation mistake)
 - **Severity**: CRITICAL
-- **Mitigation**: Memory Permission tagging + SIDスコープフィルタ + 監査ログ
+- **Mitigation**: memory permission tagging, an SID scope filter, and audit logs
 - **Owner**: Agent team
 - **Phase**: Phase 3
 
-### Risk 3: Graph Expansion Stale Permission
-- **Impact**: 権限削除後5分以内にグラフ展開で旧権限文書が表示される
+### Risk 3: Stale permissions in graph expansion
+- **Impact**: within five minutes of a permission being removed, graph expansion still surfaces the document
 - **Likelihood**: MEDIUM
 - **Severity**: MEDIUM
-- **Mitigation**: Real-time SID check + expanded boundary type表示
+- **Mitigation**: real-time SID check plus display of the `expanded` boundary type
 - **Owner**: Backend team
 - **Phase**: Phase 5
 
-### Risk 4: Model Update Quality Regression
-- **Impact**: 新モデルがPermission判定を誤り機密情報漏洩
-- **Likelihood**: LOW (品質ゲートあり)
+### Risk 4: Quality regression from a model update
+- **Impact**: a new model misjudges permissions and confidential information leaks
+- **Likelihood**: LOW (a quality gate exists)
 - **Severity**: CRITICAL
-- **Mitigation**: RAGAS + Permission-matrix CI gate + ベースライン比較
+- **Mitigation**: RAGAS plus the permission-matrix CI gate, compared against the baseline
 - **Owner**: ML team
 - **Phase**: Phase 0
 
@@ -171,19 +171,19 @@
 
 ## Cost Tier Architecture
 
-| Tier | 追加機能 | 月額増分(見込) | 対象 |
-|------|---------|--------------|------|
-| Essential | Model Update + Prompt Caching + Guardrails AR | ~$50-100 | 全環境 |
-| Professional | + Gateway + Citations + Web Search + Registry | ~$200-400 | Standard環境 |
-| Enterprise | + Strands Multi-Agent + Multimodal + GraphRAG + Distillation + Memory | ~$800-1500 | Enterprise環境 |
+| Tier | Added capabilities | Estimated monthly increment | Intended for |
+|------|--------------------|------------------------------|--------------|
+| Essential | model update, prompt caching, Automated Reasoning guardrails | ~$50-100 | every environment |
+| Professional | plus Gateway, citations, Web Search, Registry | ~$200-400 | standard environments |
+| Enterprise | plus Strands multi-agent, multimodal, GraphRAG, distillation, memory | ~$800-1500 | enterprise environments |
 
 ---
 
 ## Quality Gates (All Phases)
 
-- [ ] Permission-matrix 31シナリオ全通過
-- [ ] RAGAS evaluation baseline維持
+- [ ] All 31 permission-matrix scenarios pass
+- [ ] The RAGAS evaluation baseline is maintained
 - [ ] `npx tsc --noEmit` → `npx cdk synth --quiet` → `npx jest --no-coverage` → `npx vitest run`
-- [ ] CDK synth: 全feature flag組み合わせ成功
-- [ ] Security: IAM最小権限、Fail-closed原則維持
-- [ ] Observability: 全新機能にCloudWatchメトリクス/ログあり
+- [ ] CDK synth succeeds for every feature-flag combination
+- [ ] Security: least-privilege IAM, fail-closed behaviour preserved
+- [ ] Observability: every new capability emits CloudWatch metrics and logs

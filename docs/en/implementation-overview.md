@@ -695,7 +695,9 @@ Automatically routes queries based on complexity. Short factual queries are rout
 |---------|-------------|--------------|
 | Character count | ≤100 chars (+0.3) | >100 chars (+0.3) |
 | Sentence count | 1 sentence (+0.2) | Multiple sentences (+0.2) |
+<!-- allow:source-language:start --> <!-- keywords the classifier matches literally -->
 | Analytical keywords | None | Present (+0.3) (比較/分析/要約/explain/compare/analyze/summarize) |
+<!-- allow:source-language:end -->
 | Multiple questions | None | 2+ question marks (+0.2) |
 
 Score < 0.5 → simple, ≥ 0.5 → complex. Confidence = |score - 0.5| × 2.

@@ -109,6 +109,7 @@ The 3-tier routing's `full-context` classification is triggered only when **both
 ### Document Analysis Intent Keywords
 
 #### Japanese
+<!-- allow:source-language:start --> <!-- literal Japanese queries that trigger full-context routing -->
 - この文書を要約
 - レポート全体を分析
 - 文書全体
@@ -117,6 +118,7 @@ The 3-tier routing's `full-context` classification is triggered only when **both
 - 資料全体
 - 報告書を要約
 - ファイル全体
+<!-- allow:source-language:end -->
 
 #### English
 - summarize this document

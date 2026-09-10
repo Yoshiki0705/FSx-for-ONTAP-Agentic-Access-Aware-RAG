@@ -2,164 +2,164 @@
 
 ## Overview
 
-KB Auto-Sync（`enableKbAutoSync=true`）のエラー発生時のフロー、リトライ戦略、アラート、および手動復旧手順を定義する。
+This document defines the failure flow, retry strategy, alerting, and manual recovery procedures for KB Auto-Sync (`enableKbAutoSync=true`).
 
-## エラー検出メカニズム
+## Error Detection Mechanisms
 
-### CloudWatch Alarm（自動検出）
+### CloudWatch Alarm (automatic detection)
 
 ```
-EventBridge Scheduler (5分間隔)
-  → Lambda実行
-    → 成功: メトリクス正常
-    → 失敗: Lambda Errorsメトリクス +1
-      → 3回連続エラー: CloudWatch Alarm発報
-        → SNS通知（enableMonitoring=true時）
+EventBridge Scheduler (every 5 min)
+  → Lambda invocation
+    → success: metrics normal
+    → failure: Lambda Errors metric +1
+      → 3 consecutive errors: CloudWatch Alarm fires
+        → SNS notification (when enableMonitoring=true)
 ```
 
-**アラーム設定:**
-- 名前: `${prefix}-kb-auto-sync-errors`
-- 閾値: 1エラー × 3連続期間
-- 期間: ポーリング間隔と同じ（デフォルト5分）
-- 欠落データ: NOT_BREACHING（Lambda未実行時はアラームなし）
+**Alarm configuration:**
+- Name: `${prefix}-kb-auto-sync-errors`
+- Threshold: 1 error × 3 consecutive periods
+- Period: same as the polling interval (5 minutes by default)
+- Missing data: NOT_BREACHING (no alarm while the Lambda is not running)
 
-### EMFメトリクス（詳細監視）
+### EMF metrics (detailed monitoring)
 
-KB Auto-Sync Lambda は以下のカスタムメトリクスを出力:
+The KB Auto-Sync Lambda emits the following custom metrics:
 
-| メトリクス名 | Namespace | 意味 |
-|-------------|-----------|------|
-| `FilesScanned` | `KbAutoSync` | スキャンしたファイル数 |
-| `FilesChanged` | `KbAutoSync` | 変更検出されたファイル数 |
-| `IngestionJobTriggered` | `KbAutoSync` | インジェスションジョブ開始数 |
-| `IngestionJobFailed` | `KbAutoSync` | インジェスションジョブ失敗数 |
-| `InventoryDiffErrors` | `KbAutoSync` | インベントリ差分計算エラー数 |
+| Metric | Namespace | Meaning |
+|--------|-----------|---------|
+| `FilesScanned` | `KbAutoSync` | Number of files scanned |
+| `FilesChanged` | `KbAutoSync` | Number of files detected as changed |
+| `IngestionJobTriggered` | `KbAutoSync` | Number of ingestion jobs started |
+| `IngestionJobFailed` | `KbAutoSync` | Number of ingestion jobs that failed |
+| `InventoryDiffErrors` | `KbAutoSync` | Number of inventory diff computation errors |
 
-## エラーパターンと対応
+## Failure Patterns and Responses
 
-### Pattern 1: S3 Access Point ListObjectsV2 エラー
+### Pattern 1: S3 Access Point ListObjectsV2 error
 
-**原因**: FSx for ONTAP S3 AP接続エラー、IAM権限不足、S3 AP削除済み
+**Cause**: FSx for ONTAP S3 AP connectivity failure, insufficient IAM permissions, or a deleted S3 AP.
 
-**動作**:
-- Lambda はエラーをログに出力して例外スロー
-- CloudWatch Alarm が3回連続後に発報
-- DynamoDBインベントリは変更されない（アトミック性維持）
+**Behaviour**:
+- The Lambda logs the error and throws.
+- The CloudWatch Alarm fires after three consecutive failures.
+- The DynamoDB inventory is left unchanged, preserving atomicity.
 
-**手動復旧**:
+**Manual recovery**:
 ```bash
-# 1. S3 AP存在確認
+# 1. Confirm the S3 AP exists
 aws fsx describe-s3-access-points --volume-id <VOLUME_ID> --region ap-northeast-1
 
-# 2. Lambda環境変数のS3 AP ARN確認
+# 2. Check the S3 AP ARN in the Lambda environment
 aws lambda get-function-configuration \
   --function-name ${PREFIX}-kb-auto-sync \
   --query 'Environment.Variables.S3_ACCESS_POINT_ARN'
 
-# 3. 手動実行テスト
+# 3. Test with a manual invocation
 aws lambda invoke --function-name ${PREFIX}-kb-auto-sync /dev/stdout
 ```
 
-### Pattern 2: Bedrock KB Ingestion Job 失敗
+### Pattern 2: Bedrock KB ingestion job failure
 
-**原因**: KBデータソース設定エラー、S3 APアクセス権限エラー、チャンキング/パーシングエラー
+**Cause**: KB data source misconfiguration, S3 AP permission errors, or chunking/parsing errors.
 
-**動作**:
-- Lambda は `StartIngestionJob` → `GetIngestionJob` でステータス追跡
-- ジョブステータスが `FAILED` の場合:
-  - DynamoDBインベントリのファイルを `status: "failed"` に更新
-  - 次回ポーリング時に再取り込みを試行しない（無限リトライ防止）
-  - `IngestionJobFailed` メトリクス出力
-- ジョブステータスが `IN_PROGRESS` の場合:
-  - 重複ジョブは起動しない（IN_PROGRESS排他制御）
+**Behaviour**:
+- The Lambda tracks status with `StartIngestionJob` followed by `GetIngestionJob`.
+- When the job status is `FAILED`:
+  - The file is marked `status: "failed"` in the DynamoDB inventory.
+  - It is not re-ingested on the next poll, which prevents an infinite retry loop.
+  - The `IngestionJobFailed` metric is emitted.
+- When the job status is `IN_PROGRESS`:
+  - No duplicate job is started (IN_PROGRESS acts as a mutual exclusion).
 
-**手動復旧**:
+**Manual recovery**:
 ```bash
-# 1. 失敗ジョブの詳細確認
+# 1. Inspect the failed job
 aws bedrock-agent list-ingestion-jobs \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID> \
   --filters '[{"attribute":"STATUS","operator":"EQ","values":["FAILED"]}]'
 
-# 2. 失敗ファイルのインベントリ確認
+# 2. Find the failed files in the inventory
 aws dynamodb scan \
   --table-name ${PREFIX}-kb-sync-inventory \
   --filter-expression "#s = :failed" \
   --expression-attribute-names '{"#s": "status"}' \
   --expression-attribute-values '{":failed": {"S": "failed"}}'
 
-# 3. 失敗ファイルのインベントリをリセット（再取り込み可能に）
+# 3. Reset the inventory entry so the file can be ingested again
 aws dynamodb delete-item \
   --table-name ${PREFIX}-kb-sync-inventory \
   --key '{"fileKey": {"S": "<file_key>"}}'
 
-# 4. 手動インジェスション実行
+# 4. Start ingestion manually
 aws bedrock-agent start-ingestion-job \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID>
 ```
 
-### Pattern 3: DynamoDB インベントリテーブルエラー
+### Pattern 3: DynamoDB inventory table error
 
-**原因**: DynamoDB容量超過、権限エラー、テーブル削除
+**Cause**: DynamoDB capacity exhaustion, permission errors, or a deleted table.
 
-**動作**:
-- Lambda は例外スローで即時終了
-- Fail-safe: インベントリ更新なし → 次回ポーリングで再スキャン
-- CloudWatch Alarm が3回連続後に発報
+**Behaviour**:
+- The Lambda throws and terminates immediately.
+- Fail-safe: no inventory update, so the next poll rescans from scratch.
+- The CloudWatch Alarm fires after three consecutive failures.
 
-**手動復旧**:
+**Manual recovery**:
 ```bash
-# インベントリテーブル存在確認
+# Confirm the inventory table exists
 aws dynamodb describe-table --table-name ${PREFIX}-kb-sync-inventory
 
-# テーブルが存在しない場合: CDK再デプロイ
+# If the table is missing, redeploy with CDK
 npx cdk deploy ${STACK_PREFIX}-AI -c enableKbAutoSync=true
 ```
 
-### Pattern 4: Lambda タイムアウト（5分超過）
+### Pattern 4: Lambda timeout (beyond 5 minutes)
 
-**原因**: 大量ファイルスキャン（>10,000ファイル）、ListObjectsV2の高レイテンシ
+**Cause**: Scanning a large number of files (>10,000), or high ListObjectsV2 latency.
 
-**動作**:
-- Lambda は5分でタイムアウト → Errorsメトリクス
-- 部分的にスキャンされたファイルはインベントリに記録されない（アトミック性維持）
+**Behaviour**:
+- The Lambda times out at 5 minutes and the Errors metric increments.
+- Partially scanned files are not recorded in the inventory, preserving atomicity.
 
-**対策**:
-- `kbAutoSyncIntervalMinutes` を長めに設定（15分等）
-- ファイル数が非常に多い場合は S3 AP のプレフィックス分割を検討
+**Mitigation**:
+- Set `kbAutoSyncIntervalMinutes` to a longer interval (for example 15 minutes).
+- For very large file counts, consider splitting the S3 AP by prefix.
 
-## リトライ戦略
+## Retry Strategy
 
-| エラーパターン | 自動リトライ | リトライ間隔 | 最大リトライ |
-|--------------|-------------|-------------|------------|
-| S3 AP接続エラー | ✅（次回ポーリング） | ポーリング間隔（5分） | 無制限（アラームで検知） |
-| KB Ingestion失敗 | ❌（手動リセット要） | — | — |
-| DynamoDB エラー | ✅（次回ポーリング） | ポーリング間隔（5分） | 無制限（アラームで検知） |
-| Lambda タイムアウト | ✅（次回ポーリング） | ポーリング間隔（5分） | 無制限（アラームで検知） |
+| Failure pattern | Automatic retry | Retry interval | Maximum retries |
+|-----------------|-----------------|----------------|-----------------|
+| S3 AP connectivity error | ✅ (next poll) | polling interval (5 min) | unbounded (detected by the alarm) |
+| KB ingestion failure | ❌ (manual reset required) | — | — |
+| DynamoDB error | ✅ (next poll) | polling interval (5 min) | unbounded (detected by the alarm) |
+| Lambda timeout | ✅ (next poll) | polling interval (5 min) | unbounded (detected by the alarm) |
 
-**設計判断**: Dead Letter Queue (DLQ) は採用していない。EventBridge Scheduler経由の定期ポーリングパターンでは、失敗した処理は次回ポーリングで自動的にリトライされるため、DLQは不要。ただし、KB Ingestion Job自体の失敗は自動リトライしない（データ品質問題の可能性があるため手動確認を要求）。
+**Design decision**: there is no Dead Letter Queue. In a scheduled polling pattern driven by EventBridge Scheduler, a failed run is retried automatically on the next poll, so a DLQ adds nothing. A failed KB ingestion job is the exception and is *not* retried automatically, because it may indicate a data quality problem that a human should look at.
 
-## インジェスション失敗時のFail-Closed原則
+## Fail-Closed Behaviour When Ingestion Fails
 
-KB Auto-SyncのエラーがPermission-aware RAGのセキュリティに影響しないことを保証する:
+KB Auto-Sync failures do not weaken the permission boundary of the RAG pipeline:
 
-1. **インベントリ未更新 = 既存インデックスが維持される** — 新ファイルが検索対象に入らないだけで、既存ファイルのPermission制御は維持
-2. **失敗したファイルは `status: "failed"` でマーク** — 次回ポーリングで自動再取り込みしない（手動確認後にリセット）
-3. **IN_PROGRESSジョブ排他制御** — 二重インジェスションによるデータ不整合を防止
-4. **Permission metadata (.metadata.json) なしファイル** — KBに取り込まれてもRAG検索時にFail-closedフィルタで除外される（Fail-closed原則は常に適用）
+1. **An un-updated inventory leaves the existing index in place.** New files simply do not become searchable; permission control over existing files is unaffected.
+2. **Failed files are marked `status: "failed"`.** They are not re-ingested automatically; the entry is reset after a human has looked at it.
+3. **IN_PROGRESS jobs are mutually exclusive.** This prevents the data inconsistency that a double ingestion would cause.
+4. **Files without permission metadata (`.metadata.json`)** are excluded by the fail-closed filter at retrieval time even if they reach the KB. The fail-closed rule always applies.
 
-## 監視ダッシュボード
+## Monitoring Dashboard
 
-`enableMonitoring=true` 時、CloudWatchダッシュボードに以下のウィジェットが追加される:
+When `enableMonitoring=true`, the CloudWatch dashboard gains these widgets:
 
-- **KB Auto-Sync Errors**: Lambda Errors メトリクス（5分間隔）
-- **Ingestion Job Status**: 成功/失敗/進行中のジョブ数
-- **Files Changed**: ポーリングあたりの変更検出ファイル数
-- **Scan Duration**: Lambda実行時間（P50/P90/P99）
+- **KB Auto-Sync Errors**: the Lambda Errors metric (5-minute periods)
+- **Ingestion Job Status**: counts of succeeded, failed, and in-progress jobs
+- **Files Changed**: files detected as changed per poll
+- **Scan Duration**: Lambda execution time (P50/P90/P99)
 
-## 関連ドキュメント
+## Related Documents
 
-- [Permission Metadata Consistency Model](permission-consistency.md) — how permission metadata updates relate to KB index updates (including why ACL changes are not reflected automatically)
-- [CloudWatch ダッシュボードガイド](cloudwatch-dashboard-guide.md) — 監視メトリクスの見方
-- [本番化チェックリスト](production-readiness-checklist.md) — KB Auto-Syncの本番化要件
+- [Permission Metadata Consistency Model](permission-consistency.md) — how permission metadata updates relate to KB index updates, including why ACL changes are not reflected automatically
+- [CloudWatch Dashboard Guide](cloudwatch-dashboard-guide.md) — how to read the monitoring metrics
+- [Production Readiness Checklist](production-readiness-checklist.md) — requirements before running KB Auto-Sync in production

@@ -461,6 +461,13 @@ jobs:
       - name: Report per-language coverage
         run: python3 scripts/check-i18n.py --report
 
+      # 節の数を見る検査では、見出しごと原文のまま置かれた doc を検出できない
+      - name: Verify the checker rejects untranslated source text
+        run: python3 scripts/check-untranslated.py --selftest
+
+      - name: Check for untranslated source text in docs/en
+        run: python3 scripts/check-untranslated.py
+
   # 基本的な品質ゲート
   quality-gate:
     runs-on: ubuntu-latest

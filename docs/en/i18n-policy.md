@@ -47,6 +47,22 @@ When a translation covers only part of the original, place these two lines immed
 
 **Section count is used because it can be counted.** Semantic equivalence is not machine-checkable, so the check only sees whether a translation dropped whole sections. **A section that was thinned out rather than dropped is not detected.** That is the limit of the detector, and its scope is printed at runtime.
 
+### Detecting untranslated source text
+
+The section-count check **passes a document that was left in the source language, headings and all**, because the counts still match. Two files were in exactly that state.
+
+`python3 scripts/check-untranslated.py` (run `--selftest` first) finds Japanese left in `docs/en/`. **Its scope is the tier-2 English tree only.** Tier 3 is partial by policy and therefore out of scope, which the run prints every time.
+
+Where source-language text is intentional — i18n key tables, language names shown to the user, keywords the classifier matches literally, Japanese example queries — wrap it in a region:
+
+```markdown
+<!-- allow:source-language:start --> <!-- say why it stays -->
+| `signin.adSignIn` | ADでサインイン | Sign in with AD |
+<!-- allow:source-language:end -->
+```
+
+A region rather than a per-line marker, because an HTML comment inside a table row is visible to readers. **An unclosed region is itself a violation**: leaving it open excludes everything after it and the detector goes quiet.
+
 `--report` prints per-language coverage. **That table is not written into a document as a fixed value:** it would then depend on a human to update, and nobody would notice when it went stale.
 
 ---

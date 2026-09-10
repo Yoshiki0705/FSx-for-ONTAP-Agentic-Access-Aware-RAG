@@ -138,11 +138,13 @@ Voice chat applies **the same permission filtering as text input**:
 
 Voice chat supports the following 8 languages:
 
+<!-- allow:source-language:start --> <!-- language names shown to the user -->
 - 🇯🇵 日本語
 - 🇺🇸 English
 - 🇰🇷 한국어
 - 🇨🇳 简体中文
 - 🇹🇼 繁體中文
+<!-- allow:source-language:end -->
 - 🇫🇷 Français
 - 🇩🇪 Deutsch
 - 🇪🇸 Español
