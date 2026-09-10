@@ -308,7 +308,7 @@ WafStack (us-east-1) → WebSearchGatewayStack (us-east-1, optional: enableWebSe
 | zizmor | `.github/workflows/zizmor.yml` | GitHub Actions security linting (SHA-pinning, credential persistence, injection) |
 | gitleaks | `.github/workflows/gitleaks.yml` | Secret detection — custom rules in `.gitleaks.toml` |
 | OpenSSF Scorecard | `.github/workflows/scorecard.yml` | Automated security health scoring |
-| Dependabot | `.github/dependabot.yml` | Automated dependency updates (npm, GitHub Actions); weekly, grouped for `@aws-sdk/*` and `aws-cdk*`, majors ignored for `aws-cdk`, `aws-cdk-lib`, and `cdk-nag`. Keeps Actions pinned to a SHA with the version as a trailing comment, so it does not conflict with the zizmor SHA-pinning lint |
+| Dependabot | `.github/dependabot.yml` | Automated dependency updates (npm, GitHub Actions); weekly, grouped for `@aws-sdk/*` and `aws-cdk*`, majors ignored for `aws-cdk`, `aws-cdk-lib`, `cdk-nag`, and `typescript` (each with the reason in the config). Keeps Actions pinned to a SHA with the version as a trailing comment, so it does not conflict with the zizmor SHA-pinning lint |
 
 > **One update bot, not two.** Both Dependabot and Renovate were configured, and both opened pull requests for the same updates — the five individual Actions bumps from Dependabot overlapped with Renovate's single grouped `github-actions` PR. Renovate stopped producing updates after 2026-08-12 (its GitHub App has to be enabled separately, and the config file alone does not activate it), while Dependabot stayed active. `renovate.json` was removed on that evidence. If Renovate is preferred later, enable the App first and remove `.github/dependabot.yml` in the same change — never leave both running.
 
@@ -390,6 +390,7 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Missing `await` on async in fc.property | Returns Promise instead of value | Use `fc.asyncProperty` + `async` callback |
 | New required prop breaks test compile | Props interface extended | Add new prop to ALL test constructor calls |
 | Docker cache — source changes not reflected | Docker layer cache reuses old source | Always use `--no-cache` for source changes |
+| Frontend Vitest failed intermittently (episodic-memory, kbSelector) | Same cause as the scheduled CI failure: `fc.date()` generates `new Date(NaN)` and the test's own arbitrary called `.toISOString()` on it | `noInvalidDate: true` on both arbitraries. 937/937 across four consecutive runs afterwards |
 | SID filter returns empty (permission deny all) | KB returns comma-separated SIDs | Fixed in `578435b`; parseDocumentSIDs handles all formats |
 | ONTAP version cannot be retrieved via AWS API | `describe-file-systems` lacks version | Use SSM + ONTAP REST API (see operations-runbook.md) |
 | Agent `foundationModel` on-demand error | Inference profiles not accepted by Agent API | **CORRECTED (2026-07-19)**: Agent API now accepts inference profile IDs (e.g., `jp.anthropic.claude-haiku-4-5-20251001-v1:0`) but IAM role MUST include `arn:aws:bedrock:*:*:inference-profile/*`. Old `claude-3-haiku-20240307` is LEGACY/blocked |

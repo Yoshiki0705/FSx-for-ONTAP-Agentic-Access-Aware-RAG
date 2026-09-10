@@ -19,6 +19,14 @@ updates:
       # across 5 stacks. Pin to v2 until migration is explicitly planned.
       - dependency-name: "cdk-nag"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 removes `alwaysStrict: false` and `moduleResolution: node10`.
+      # Setting moduleResolution to node16 then requires `module: node16`, which
+      # turns the 3 `require()` call sites in demo-ai-stack.ts and the `process`
+      # globals into 15 compile errors (measured 2026-09-10 with typescript@7.0.2).
+      # That is a module-system migration with ts-node and Jest in the loop, not a
+      # version bump. Pin to 5.x until it is planned as its own change.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     # Group updates for AWS SDK packages
     groups:
       aws-sdk:
