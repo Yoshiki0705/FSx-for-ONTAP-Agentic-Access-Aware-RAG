@@ -1,23 +1,23 @@
-# Automated Reasoning 策略部署前驗證步驟
+# Automated Reasoning 政策的部署前驗證
 
 **建立日期**: 2026-06-07  
-**適用對象**: Guardrails Automated Reasoning 有効化時の事前検証
+**讀者**: 啟用 Guardrails Automated Reasoning 之前的負責人
 
 ---
 
-## 概要
+## 概述
 
-Automated Reasoning Policy のルール表現が Bedrock API に受け入れられるかを、CDK デプロイ前に CLI で事前検証する手順。ルール表現の形式が API 仕様と合わない場合、CDK deploy がロールバックされてしまうため、事前検証が重要。
+本文說明在 CDK 部署之前，使用 CLI 確認 Bedrock API 是否接受 Automated Reasoning 政策規則運算式的步驟。若運算式形式與 API 規範不符，CDK 部署會回滾，因此事先確認更划算。
 
-## 事前検証手順
+## 步驟
 
-### Step 1: ポリシー作成テスト
+### 步驟 1：嘗試建立政策
 
 ```bash
-# 1. ポリシーのルール定義を確認
+# 1. 檢視規則定義
 cat lib/guardrails/permission-reasoning-policy.ts
 
-# 2. CLI でポリシー作成を試行（dry-run相当）
+# 2. 使用 CLI 嘗試建立（最接近 dry run 的方式）
 aws bedrock create-automated-reasoning-policy \
   --name "test-permission-reasoning-$(date +%s)" \
   --description "Verification test — will be deleted" \
@@ -32,27 +32,27 @@ aws bedrock create-automated-reasoning-policy \
   --region ap-northeast-1 \
   2>&1
 
-# 成功時の出力例:
+# 成功時的輸出範例：
 # {
 #   "automatedReasoningPolicyArn": "arn:aws:bedrock:ap-northeast-1:123456789012:automated-reasoning-policy/xxx",
 #   ...
 # }
 
-# 失敗時の出力例:
+# 失敗時的輸出範例：
 # An error occurred (ValidationException) when calling the CreateAutomatedReasoningPolicy operation: ...
 ```
 
-### Step 2: ポリシー削除（テスト用）
+### 步驟 2：刪除測試政策
 
 ```bash
-# テスト用ポリシーを削除
+# 刪除為測試建立的政策
 aws bedrock delete-automated-reasoning-policy \
   --automated-reasoning-policy-identifier <POLICY_ARN_FROM_STEP_1> \
   --force-delete \
   --region ap-northeast-1
 ```
 
-### Step 3: 全ルールの一括検証スクリプト
+### 步驟 3：以一個腳本驗證全部規則
 
 ```bash
 #!/bin/bash
@@ -64,7 +64,7 @@ POLICY_NAME="verify-permission-reasoning-$(date +%s)"
 
 echo "Creating test policy: ${POLICY_NAME}"
 
-# CDK構成と同じルールを使用
+# 使用與 CDK 設定相同的規則
 RESULT=$(aws bedrock create-automated-reasoning-policy \
   --name "${POLICY_NAME}" \
   --description "Deployment verification — auto-delete" \
@@ -83,7 +83,7 @@ RESULT=$(aws bedrock create-automated-reasoning-policy \
 if echo "${RESULT}" | grep -q "automatedReasoningPolicyArn"; then
   POLICY_ARN=$(echo "${RESULT}" | python3 -c "import sys,json; print(json.load(sys.stdin)['automatedReasoningPolicyArn'])")
   echo "✅ Policy created successfully: ${POLICY_ARN}"
-  
+
   # Clean up
   echo "Deleting test policy..."
   aws bedrock delete-automated-reasoning-policy \
@@ -98,20 +98,20 @@ else
 fi
 ```
 
-## トラブルシューティング
+## 疑難排解
 
-| エラー | 原因 | 対応 |
-|--------|------|------|
-| `ValidationException: Invalid expression` | ルール表現がAPI仕様に合わない | 表現を簡潔にするか、形式論理構文に変更 |
-| `ServiceQuotaExceededException` | ポリシー数上限に達した | 不要なテストポリシーを削除 |
-| `AccessDeniedException` | IAM権限不足 | `bedrock:CreateAutomatedReasoningPolicy` 権限を確認 |
+| 錯誤 | 原因 | 應對 |
+|---|---|---|
+| `ValidationException: Invalid expression` | 運算式與 API 接受的形式不符 | 簡化敘述，或改寫為形式邏輯語法 |
+| `ServiceQuotaExceededException` | 已達政策數量上限 | 刪除殘留的測試政策 |
+| `AccessDeniedException` | IAM 權限不足 | 確認具備 `bedrock:CreateAutomatedReasoningPolicy` |
 
-## CDKデプロイとの関係
+## 與 CDK 部署的關係
 
-CDK の `enableGuardrails=true` + `guardrailsConfig.enableAutomatedReasoning=true` でデプロイすると:
+使用 `enableGuardrails=true` + `guardrailsConfig.enableAutomatedReasoning=true` 部署時：
 
-1. `CfnAutomatedReasoningPolicy` リソースが作成される
-2. そのARNが `CfnGuardrail` の `automatedReasoningPolicyConfig.policies` に渡される
-3. Guardrail適用時に、モデル出力がポリシーに対して形式検証される
+1. 建立 `CfnAutomatedReasoningPolicy` 資源。
+2. 將其 ARN 傳遞給 `CfnGuardrail` 的 `automatedReasoningPolicyConfig.policies`。
+3. 每次 Guardrail 生效時，都會針對該政策對模型輸出進行形式驗證。
 
-事前にこのドキュメントの手順でルールの受け入れを確認してからデプロイすること。
+請先依上述步驟確認規則被接受，再進行部署。

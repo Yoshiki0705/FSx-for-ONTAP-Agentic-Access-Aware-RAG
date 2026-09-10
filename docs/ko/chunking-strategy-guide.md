@@ -4,168 +4,170 @@
 
 **작성일**: 2026-06-07  
 **상태**: 초판  
-**대상**: RAG品質チューニング担当、データエンジニア
+**대상**: RAG 품질 튜닝 담당자, 데이터 엔지니어
 
 ---
 
-## 概要
+## 개요
 
-Bedrock Knowledge Base のチャンキング戦略は、RAG の検索精度・応答品質・コストに直接影響する。本ガイドでは、FSx for ONTAP 上のドキュメント特性に応じた最適な戦略選択を支援する。
+Bedrock Knowledge Base의 청킹 전략은 검색 정확도, 응답 품질, 비용에 직접 영향을 줍니다. 이 가이드는 FSx for ONTAP에 있는 문서 특성에 맞는 전략 선택을 돕습니다.
 
 ---
 
-## 利用可能な戦略
+## 사용 가능한 전략
 
-CDKコンテキスト `kbChunkingStrategy` で設定:
+CDK 컨텍스트 `kbChunkingStrategy`로 설정합니다:
 
 ```bash
-npx cdk synth --quiet -c kbChunkingStrategy=FIXED_SIZE    # デフォルト
+npx cdk synth --quiet -c kbChunkingStrategy=FIXED_SIZE    # 기본값
 npx cdk synth --quiet -c kbChunkingStrategy=HIERARCHICAL
 npx cdk synth --quiet -c kbChunkingStrategy=SEMANTIC
 npx cdk synth --quiet -c kbChunkingStrategy=NONE
 ```
 
-> ⚠️ **チャンキング戦略を変更した場合、DataSource の再同期（re-ingestion）が必須です。**
+> ⚠️ **청킹 전략을 변경하면 데이터 소스 재동기화(재인제스션)가 필요합니다.**
+
+**이 네 가지 이외의 값은 synth 시점에 예외가 됩니다.** 조용히 기본값으로 되돌리면 `KbChunkingStrategy` 출력에는 잘못 입력한 문자열이, 실제 설정에는 `FIXED_SIZE`가 담겨 표시와 배포 설정이 어긋납니다. 대소문자는 정규화됩니다(`semantic` → `SEMANTIC`).
 
 ---
 
-## 戦略比較マトリクス
+## 전략 비교
 
-| 戦略 | チャンクサイズ | オーバーラップ | 検索精度 | コスト | 適用シナリオ |
-|------|-------------|-------------|---------|--------|------------|
-| **FIXED_SIZE** | 300トークン | 10% | ⭐⭐⭐ | 💰 低 | 汎用、初期デプロイ、構造が均一な文書 |
-| **HIERARCHICAL** | Parent: 1500 / Child: 300 | 60トークン | ⭐⭐⭐⭐ | 💰💰 中 | 長文レポート、階層構造文書、技術文書 |
-| **SEMANTIC** | 最大300トークン | 自動（意味単位） | ⭐⭐⭐⭐⭐ | 💰💰💰 高 | 多様な文書、FAQ、対話形式、議事録 |
-| **NONE** | 文書全体 | なし | ⭐⭐ | 💰 最低 | 短い文書（<300トークン）、メタデータのみ |
-
----
-
-## データ特性×戦略 推奨マトリクス
-
-| ドキュメント特性 | 推奨戦略 | 理由 |
-|----------------|---------|------|
-| **設計書・仕様書**（階層構造、長文） | HIERARCHICAL | 章→節→段落の階層を維持し、広いコンテキストと精密な検索を両立 |
-| **契約書・法的文書**（条文単位） | SEMANTIC | 条文間の意味的境界を自動検出し、条文を分割しない |
-| **FAQ・Q&A集**（短い質問-回答ペア） | SEMANTIC | 質問と回答を同一チャンクに保持 |
-| **議事録・メール**（対話形式） | SEMANTIC | 話題の切り替わりで自然に分割 |
-| **マニュアル・手順書**（ステップバイステップ） | HIERARCHICAL | 手順全体（Parent）と個別ステップ（Child）を階層化 |
-| **財務レポート**（表・数値データ含む） | FIXED_SIZE | 表構造が複雑な場合、固定サイズが安定 |
-| **短い通知・お知らせ**（<1ページ） | NONE | 文書全体が1チャンクに収まる場合、分割不要 |
-| **混在コーパス**（多種多様な文書） | SEMANTIC | 文書タイプを問わず意味的に適切な分割 |
+| 전략 | 청크 크기 | 오버랩 | 검색 정확도 | 비용 | 적합한 경우 |
+|---|---|---|---|---|---|
+| **FIXED_SIZE** | 300 토큰 | 10% | ⭐⭐⭐ | 💰 낮음 | 범용, 초기 배포, 구조가 균일한 문서 |
+| **HIERARCHICAL** | parent 1500 / child 300 | 60 토큰 | ⭐⭐⭐⭐ | 💰💰 중간 | 장문 보고서, 계층 구조 문서, 기술 문서 |
+| **SEMANTIC** | ≤300 토큰 | 자동(의미 단위) | ⭐⭐⭐⭐⭐ | 💰💰💰 높음 | 다양한 문서, FAQ, 대화 형식, 회의록 |
+| **NONE** | 문서 전체 | 없음 | ⭐⭐ | 💰 가장 낮음 | 짧은 문서(<300 토큰), 메타데이터만 |
 
 ---
 
-## 業種別推奨
+## 문서 특성과 권장 전략
 
-| 業種 | 主要ドキュメント | 推奨戦略 | 備考 |
-|------|----------------|---------|------|
-| **製造** | 設計図面（テキスト部分）、品質規格、作業手順書 | HIERARCHICAL | 図面はマルチモーダルKBと併用 |
-| **金融** | 規制文書、内部レポート、コンプライアンス報告 | SEMANTIC | 条文の意味的完全性を維持 |
-| **公共** | 政策文書、通達、議事録 | SEMANTIC | 議事録の話題単位分割が重要 |
-| **医療** | 臨床ガイドライン、手順書、研究論文 | HIERARCHICAL | 章立て構造を活用 |
-| **法務** | 契約書、判例、法令 | SEMANTIC | 条文分割を避ける |
-| **教育** | 教材、シラバス、研究資料 | FIXED_SIZE | 均一な構造、コスト重視 |
-| **保険** | 査定基準、不正検知レポート | HIERARCHICAL | 階層的な判定基準に適合 |
-
----
-
-## パフォーマンス特性
-
-### インジェスション時間
-
-| 戦略 | 1,000ドキュメント（推定） | 10,000ドキュメント（推定） |
-|------|------------------------|--------------------------|
-| FIXED_SIZE | ~5分 | ~30分 |
-| HIERARCHICAL | ~8分 | ~50分 |
-| SEMANTIC | ~15分 | ~90分 |
-| NONE | ~3分 | ~15分 |
-
-> SEMANTIC戦略は各チャンク境界で追加のモデル呼び出しを行うため、インジェスション時間とコストが増加する。
-
-### 検索レイテンシ
-
-チャンキング戦略は検索レイテンシに直接影響しない（ベクトル検索のパフォーマンスはインデックスサイズに依存）。ただし、HIERARCHICAL は Parent/Child の2段階検索を行うため、わずかに（~50ms）レイテンシが増加する可能性がある。
+| 문서 특성 | 권장 | 이유 |
+|---|---|---|
+| **설계서·명세서**(계층 구조, 장문) | HIERARCHICAL | 장 → 절 → 단락의 계층을 유지해 넓은 컨텍스트와 정밀한 검색을 함께 얻습니다 |
+| **계약서·법률 문서**(조문 단위) | SEMANTIC | 조문 사이의 의미 경계를 감지하고 조문을 쪼개지 않습니다 |
+| **FAQ**(짧은 질문-답변 쌍) | SEMANTIC | 질문과 답변을 같은 청크에 유지합니다 |
+| **회의록·메일**(대화 형식) | SEMANTIC | 주제가 바뀌는 지점에서 자연스럽게 분할합니다 |
+| **매뉴얼·절차서**(단계별) | HIERARCHICAL | 절차 전체가 parent, 각 단계가 child가 됩니다 |
+| **재무 보고서**(표·수치 포함) | FIXED_SIZE | 표 구조가 복잡할 때 고정 크기가 더 안정적입니다 |
+| **짧은 공지**(1페이지 미만) | NONE | 문서 전체가 한 청크에 들어가면 분할이 필요 없습니다 |
+| **혼재 코퍼스**(다양한 문서 유형) | SEMANTIC | 유형과 무관하게 의미상 타당한 분할이 됩니다 |
 
 ---
 
-## Permission-Aware RAG との関係
+## 업종별
 
-**重要**: チャンキング戦略に関わらず、Permission filtering は常に**ドキュメント単位**で適用される。
+| 업종 | 주요 문서 | 권장 | 비고 |
+|---|---|---|---|
+| **제조** | 도면(텍스트 부분), 품질 규격, 작업 절차서 | HIERARCHICAL | 도면은 멀티모달 KB와 함께 사용 |
+| **금융** | 규제 문서, 내부 보고서, 컴플라이언스 보고 | SEMANTIC | 조문의 의미적 완전성을 유지 |
+| **공공** | 정책 문서, 통달, 회의록 | SEMANTIC | 회의록의 주제 단위 분할이 중요 |
+| **의료** | 임상 가이드라인, 절차서, 연구 논문 | HIERARCHICAL | 장 구성 구조를 활용 |
+| **법무** | 계약서, 판례, 법령 | SEMANTIC | 조문 분할을 피함 |
+| **교육** | 교재, 실라버스, 연구 자료 | FIXED_SIZE | 균일한 구조, 비용 중시 |
+| **보험** | 심사 기준, 부정 탐지 보고서 | HIERARCHICAL | 계층적 판정 기준에 적합 |
+
+---
+
+## 성능 특성
+
+### 인제스션 시간
+
+| 전략 | 1,000 문서(추정) | 10,000 문서(추정) |
+|---|---|---|
+| FIXED_SIZE | ~5 분 | ~30 분 |
+| HIERARCHICAL | ~8 분 | ~50 분 |
+| SEMANTIC | ~15 분 | ~90 분 |
+| NONE | ~3 분 | ~15 분 |
+
+> SEMANTIC은 후보 경계마다 모델 호출을 추가로 수행하므로 인제스션 시간과 비용이 늘어납니다.
+
+### 검색 지연
+
+청킹 전략은 검색 지연에 직접 영향을 주지 않습니다(벡터 검색 성능은 인덱스 크기에 의존). 다만 HIERARCHICAL은 parent/child 2단 검색을 수행하므로 지연이 약간(~50ms) 늘어날 수 있습니다.
+
+---
+
+## 권한 인식 RAG와의 관계
+
+**중요**: 청킹 전략과 무관하게 권한 필터링은 항상 **문서 단위**로 적용됩니다.
 
 ```
-文書A (SID: [Admin, Engineering])
-  ├── Chunk 1 → SID: [Admin, Engineering] (親文書から継承)
-  ├── Chunk 2 → SID: [Admin, Engineering] (親文書から継承)
-  └── Chunk 3 → SID: [Admin, Engineering] (親文書から継承)
+문서 A (SID: [Admin, Engineering])
+  ├── Chunk 1 → SID: [Admin, Engineering] (문서에서 상속)
+  ├── Chunk 2 → SID: [Admin, Engineering] (문서에서 상속)
+  └── Chunk 3 → SID: [Admin, Engineering] (문서에서 상속)
 ```
 
-- `.metadata.json` のSID情報は文書単位で付与される
-- チャンクレベルのPermission差別化は不可（ドキュメント全体に同一Permission）
-- 同一ドキュメント内で異なるPermissionが必要な場合、ドキュメントを分割して別ファイルにする
+- `.metadata.json`의 SID 정보는 문서 단위로 부여됩니다.
+- 청크 단위의 권한 차별화는 불가능하며, 문서 전체가 하나의 권한 집합을 가집니다.
+- 같은 문서 안에서 다른 권한이 필요하면 문서를 분할해 별도 파일로 만듭니다.
 
 ---
 
-## 戦略変更手順
+## 전략 변경 절차
 
 ```bash
-# 1. 現在の戦略を確認
+# 1. 현재 전략 확인
 grep kbChunkingStrategy cdk.context.json
 
-# 2. CDKコンテキスト更新
-# cdk.context.json を編集するか、コマンドラインで指定
+# 2. CDK 컨텍스트 갱신
+# cdk.context.json을 편집하거나 커맨드라인으로 지정
 
-# 3. CDK差分確認
+# 3. CDK 차분 확인
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. デプロイ（DataSource設定更新のみ）
+# 4. 배포(데이터 소스 설정만 갱신)
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 5. DataSource再同期（必須！）
+# 5. 데이터 소스 재동기화(필수)
 aws bedrock-agent start-ingestion-job \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID> \
   --region ap-northeast-1
 
-# 6. 再インジェスション完了を待機
+# 6. 재인제스션 완료 대기
 aws bedrock-agent get-ingestion-job \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID> \
   --ingestion-job-id <JOB_ID>
 
-# 7. 品質評価（RAGASで比較）
+# 7. 품질 평가(RAGAS로 비교)
 cd tests/rag-evaluation
 python3 evaluate.py --kb-id <KB_ID> --model-id <MODEL_ID> --region ap-northeast-1
 ```
 
 ---
 
-## 評価方法
+## 평가 방법
 
-戦略変更後は必ず以下で品質を測定:
+전략 변경 후에는 반드시 다음을 측정합니다:
 
-1. **RAGAS評価**: `tests/rag-evaluation/` で Faithfulness, Answer Relevancy, Context Precision を比較
-2. **Permission-matrix回帰テスト**: 31シナリオで権限フィルタリングが正常か確認
-3. **応答時間測定**: P50/P95/P99 レイテンシを CloudWatch で確認
-4. **コスト比較**: インジェスションコスト + クエリコストの合計で比較
+1. **RAGAS 평가**: `tests/rag-evaluation/`으로 Faithfulness, Answer Relevancy, Context Precision을 비교합니다.
+2. **권한 매트릭스 회귀**: 31개 시나리오에서 권한 필터링이 정상인지 확인합니다.
+3. **응답 시간**: CloudWatch에서 P50/P95/P99 지연을 확인합니다.
+4. **비용**: 인제스션 비용과 쿼리 비용의 합으로 비교합니다.
 
 ---
 
-## CDK実装詳細
+## CDK 구현
 
-`lib/stacks/demo/demo-ai-stack.ts` の `buildChunkingConfiguration()` 関数:
+`lib/stacks/demo/demo-ai-stack.ts`의 `buildChunkingConfiguration()`:
 
 ```typescript
 // FIXED_SIZE: maxTokens=300, overlapPercentage=10
 // HIERARCHICAL: parent=1500, child=300, overlapTokens=60
 // SEMANTIC: maxTokens=300, bufferSize=1, breakpointPercentileThreshold=95
-// NONE: チャンキングなし（文書全体を1ベクトル化）
+# NONE: 청킹 없음(문서 전체를 하나의 벡터로)
 ```
 
 ---
 
-## 関連ドキュメント
+## 관련 문서
 
-- [FSx for ONTAP サイジング・性能設計](fsxn-sizing-and-performance.md)
-- [RAG / Agent 評価フレームワーク](evaluation.md)
-- [コスト見積もりワークシート](cost-estimation-worksheet.md)
+- [FSx for ONTAP 사이징·성능 설계](fsxn-sizing-and-performance.md)
+- [RAG / Agent 평가 프레임워크](evaluation.md)
+- [비용 견적 워크시트](cost-estimation-worksheet.md)
 - [Architecture Decision Records](architecture-decision-records.md)

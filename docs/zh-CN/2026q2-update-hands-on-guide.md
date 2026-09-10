@@ -174,8 +174,6 @@ npx cdk deploy ${PREFIX}-AI -c enableGuardrails=false
 ---
 
 ## 関連ドキュメント
-
-- [2026 Q2 AI Update Roadmap](design/2026q2-ai-update-roadmap.md)
 - [チャンキング戦略選定ガイド](chunking-strategy-guide.md)
 - [コスト見積もりワークシート](cost-estimation-worksheet.md)
 - [本番化チェックリスト](production-readiness-checklist.md)
