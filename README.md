@@ -134,11 +134,11 @@ S3 AP の包括的な互換性マトリクスは [fsxn-lakehouse-integrations](h
 ```bash
 make help    # 使えるターゲットの一覧
 
-make all     # 速い検査（型検査・Jest・リンク・証跡ラベル・抄訳開示・依存関係）
+make all     # 速い検査（型検査・Jest・Python・リンク・証跡ラベル・抄訳開示・依存関係）
 make synth   # CI と同じ 10 レーンの cdk synth（フラグは ci-cd.yml から読む）
 
 make test-frontend  # Vitest（既知の flaky あり）
-make test-python    # Python Lambda の pytest
+make test-python    # Python Lambda の pytest（118 件 / 依存は .venv に自動用意）
 make secrets        # gitleaks
 make actions        # zizmor
 ```
