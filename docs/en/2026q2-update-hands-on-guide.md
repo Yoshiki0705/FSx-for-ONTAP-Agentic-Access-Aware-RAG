@@ -10,56 +10,56 @@
 
 ## Overview
 
-2026 Q2 AI Update（Phase 0-5）で追加された新機能を体験するハンズオンガイド。既存のデプロイ環境に対して、新機能を段階的に有効化して動作確認します。
+A hands-on guide to the features added in the 2026 Q2 AI update (phases 0-5). You enable them one at a time on an existing deployment and confirm each works.
 
 ---
 
 ## Prerequisites
 
-- 既にデプロイ済みの Permission-aware RAG 環境
-- AWS CLI 設定済み
+- An already-deployed Permission-aware RAG environment
+- AWS CLI configured
 - Node.js 22+, npm
 
 ---
 
-## Step 1: モデル更新確認（5分）
+## Step 1: confirm the model update (5 min)
 
-Phase 0 で更新されたモデルIDの動作を確認します。
+Check that the model IDs updated in phase 0 behave as expected.
 
 ```bash
-# 現在のモデル設定確認
+# Current model configuration
 grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defaults.ts
 
-# 期待値:
+# Expected:
 # DEFAULT_CHAT_MODEL = 'anthropic.claude-sonnet-4-6'
 # FALLBACK_MODEL_ID = 'amazon.nova-2-lite-v1:0'
 ```
 
-チャットUIでクエリを送信し、レスポンスメタデータの `modelId` が新モデルになっていることを確認。
+Send a query from the chat UI and confirm that `modelId` in the response metadata names the new model.
 
 ---
 
-## Step 2: Prompt Caching 効果確認（10分）
+## Step 2: confirm the effect of prompt caching (10 min)
 
-> **前提条件**: Prompt Caching は **Anthropic Claude モデルのみ** 対応です。デフォルト構成（モデル未選択 → Nova 2 Lite fallback）ではキャッシュが効きません。以下の手順の前に、サイドバーの「AIモデル選択」で **Claude Sonnet 4.6** または **Claude Opus 4.8** を選択してください。
+> **Prerequisite**: prompt caching works with **Anthropic Claude models only**. In the default configuration (no model selected, falling back to Nova 2 Lite) nothing is cached. Before the steps below, pick **Claude Sonnet 4.6** or **Claude Opus 4.8** under model selection in the sidebar.
 
-同一セッション内で連続クエリを送信し、キャッシュヒットを確認します。
+Send consecutive queries within one session and confirm a cache hit.
 
 ```bash
-# 1. チャットUIで質問を送信
-# 2. 5分以内に2回目の質問を送信
-# 3. CloudWatch Logs で確認:
+# 1. Ask a question in the chat UI
+# 2. Ask a second question within 5 minutes
+# 3. Check CloudWatch Logs:
 aws logs filter-log-events \
   --log-group-name "/aws/lambda/${PREFIX}-webapp" \
   --filter-pattern '"Cache hit"' \
   --start-time $(date -d '5 minutes ago' +%s000) \
   --region ap-northeast-1
 
-# 期待されるログ:
+# Expected log line:
 # [Converse] Cache hit: 550/1200 input tokens cached (46%)
 ```
 
-CloudWatch メトリクスで確認:
+Check the CloudWatch metric:
 ```bash
 aws cloudwatch get-metric-statistics \
   --namespace "RAG/TokenUsage" \
@@ -73,9 +73,9 @@ aws cloudwatch get-metric-statistics \
 
 ---
 
-## Step 3: Automated Reasoning Guardrails（15分）
+## Step 3: Automated Reasoning Guardrails (15 min)
 
-Permission違反を意図的に誘発し、Automated Reasoningがブロックすることを確認します。
+Deliberately provoke a permission violation and confirm that Automated Reasoning blocks it.
 
 ```bash
 # 1. Guardrails有効でデプロイ
@@ -96,7 +96,7 @@ aws logs filter-log-events \
 
 ---
 
-## Step 4: AgentCore Gateway + Permission Interceptor（15分）
+## Step 4: AgentCore Gateway and the Permission Interceptor (15 min)
 
 ```bash
 # 1. Gateway有効でデプロイ
@@ -121,9 +121,9 @@ aws logs filter-log-events \
 
 ---
 
-## Step 5: Citations + Permission Boundary 確認（10分）
+## Step 5: citations and the permission boundary (10 min)
 
-チャットUIでクエリを送信し、レスポンスのCitationsを確認します。
+Send a query from the chat UI and inspect the citations in the response.
 
 ```bash
 # API レスポンスの citations フィールドを確認
@@ -138,7 +138,7 @@ curl -s ${CLOUDFRONT_URL}/api/bedrock/kb/retrieve \
 
 ---
 
-## Step 6: Graph RAG（オプション、5分）
+## Step 6: Graph RAG (optional, 5 min)
 
 ```bash
 # 1. Graph RAG有効でデプロイ（Neptune Analytics起動に~10分）
@@ -158,7 +158,7 @@ aws cloudformation describe-stacks \
 
 ## Cleanup
 
-新機能を無効化してコストを節約:
+Disable the new features to save cost:
 
 ```bash
 # Graph RAG無効化（Neptune Analytics停止）
