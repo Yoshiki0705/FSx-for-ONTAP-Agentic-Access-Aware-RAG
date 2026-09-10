@@ -9,7 +9,8 @@
 # 過去にこれで検出器が走っていなかったことがあるため、全ターゲットを宣言する。
 
 .PHONY: help all lint test test-frontend test-python docs evidence deps secrets actions \
-        synth synth-default build clean i18n i18n-report untranslated test-frontend-jest
+        synth synth-default build clean i18n i18n-report untranslated test-frontend-jest \
+        workflow-paths
 
 WORKFLOW := .github/workflows/ci-cd.yml
 
@@ -21,7 +22,7 @@ help: ## 使えるターゲットを表示する
 	@echo
 	@echo "all は速い検査だけを走らせます（synth と E2E は含みません）。"
 
-all: lint test test-frontend-jest test-python docs evidence i18n untranslated deps ## 速い検査をまとめて走らせる（型検査・Jest・Python・doc 検査・依存関係）
+all: lint test test-frontend-jest test-python docs evidence i18n untranslated workflow-paths deps ## 速い検査をまとめて走らせる（型検査・Jest・Python・doc 検査・依存関係）
 
 lint: ## TypeScript の型検査（npx tsc --noEmit）
 	npx tsc --noEmit
@@ -47,9 +48,11 @@ test-frontend-jest: ## フロントエンドの Jest（route handler と utils�
 # 入っていない環境では collection エラーで落ちた。**走らないターゲットは
 # 検査ではない**ので、venv が無ければ作ってから実行する。
 # 依存は requirements-dev.txt があればそちら、無ければ requirements.txt。
-PY_DIRS := automation/transfer-family automation/fsxn-ops lambda/kb-auto-sync
+# pytest にパスを渡さないのは、収集範囲が各ディレクトリで違うため
+# （3 つは pytest.ini の testpaths=tests、tests/permission-matrix は直下）。
+PY_DIRS := automation/transfer-family automation/fsxn-ops lambda/kb-auto-sync tests/permission-matrix
 
-test-python: ## Python Lambda の pytest（3 ディレクトリ / 依存は .venv に用意する）
+test-python: ## Python の pytest（4 ディレクトリ / 依存は .venv に用意する）
 	@for d in $(PY_DIRS); do \
 		if [ ! -x "$$d/.venv/bin/python" ]; then \
 			echo "--- $$d: .venv を作成 ---"; \
@@ -59,7 +62,7 @@ test-python: ## Python Lambda の pytest（3 ディレクトリ / 依存は .ven
 			"$$d/.venv/bin/pip" install -q -r "$$req" || exit 1; \
 		fi; \
 		echo "--- $$d ---"; \
-		( cd "$$d" && .venv/bin/python -m pytest tests/ -q ) || exit 1; \
+		( cd "$$d" && .venv/bin/python -m pytest -q ) || exit 1; \
 	done
 
 # 検出器は本検査の前に --selftest を通す。
@@ -90,6 +93,10 @@ deps: ## 依存関係の脆弱性を重大度方針で検査
 
 secrets: ## シークレット検出（gitleaks）
 	gitleaks detect --config .gitleaks.toml --no-git --source .
+
+workflow-paths: ## ワークフローが参照するリポジトリ内パスの存在を検査
+	python3 scripts/check-workflow-paths.py --selftest
+	python3 scripts/check-workflow-paths.py
 
 actions: ## GitHub Actions のセキュリティリント（zizmor）
 	zizmor .github/workflows/

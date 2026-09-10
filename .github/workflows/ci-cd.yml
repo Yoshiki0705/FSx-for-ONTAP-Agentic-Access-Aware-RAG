@@ -94,23 +94,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Setup test environment
-        run: |
-          mkdir -p development/logs/testing
-
-      - name: Run quick integration tests
+      # 以前はここで development/scripts/testing/quick_integration_test.sh を
+      # 探し、無ければ fallback として tsc + jest を走らせていた。
+      # そのスクリプトは gitignore された development/ 配下にあり CI には
+      # 存在しないため、**毎回 fallback が実行されていた**。分岐を外して、
+      # 実際に走るものだけを書く。
+      - name: Run quick tests
         id: quick-tests
         run: |
           echo "🚀 クイックテスト実行開始"
-          if [ -f development/scripts/testing/quick_integration_test.sh ]; then
-            chmod +x development/scripts/testing/quick_integration_test.sh
-            ./development/scripts/testing/quick_integration_test.sh --mode quick --verbose > test_output.log 2>&1
-          else
-            echo "⚠️ quick_integration_test.sh not found, running standard tests"
-            # Fallback: run TypeScript compilation + CDK Jest tests
-            npx tsc --noEmit > test_output.log 2>&1 || true
-            npx jest --no-coverage --passWithNoTests --forceExit --testTimeout=30000 >> test_output.log 2>&1
-          fi
+          npx tsc --noEmit > test_output.log 2>&1 || true
+          npx jest --no-coverage --passWithNoTests --forceExit --testTimeout=30000 >> test_output.log 2>&1
           echo "exit_code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
 
@@ -181,7 +175,6 @@ jobs:
           name: quick-test-results
           path: |
             test_output.log
-            development/logs/testing/
           retention-days: 30
 
       - name: Comment PR with quick test results
@@ -243,22 +236,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Setup test environment
-        run: |
-          mkdir -p development/logs/testing
-
-      - name: Run full integration tests
+      - name: Run full tests
         id: full-tests
         run: |
           echo "🚀 フルテスト実行開始"
-          if [ -f development/scripts/testing/quick_integration_test.sh ]; then
-            chmod +x development/scripts/testing/quick_integration_test.sh
-            ./development/scripts/testing/quick_integration_test.sh --mode full --verbose > full_test_output.log 2>&1
-          else
-            echo "⚠️ quick_integration_test.sh not found, running standard tests"
-            npx tsc --noEmit > full_test_output.log 2>&1 || true
-            npx jest --no-coverage --passWithNoTests >> full_test_output.log 2>&1
-          fi
+          npx tsc --noEmit > full_test_output.log 2>&1 || true
+          npx jest --no-coverage --passWithNoTests >> full_test_output.log 2>&1
           echo "exit_code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
 
@@ -299,7 +282,6 @@ jobs:
           name: full-test-results
           path: |
             full_test_output.log
-            development/logs/testing/
           retention-days: 30
 
       - name: Fail job if full tests failed
@@ -436,6 +418,24 @@ jobs:
       - name: Check documentation links
         run: python3 scripts/check-doc-links.py
 
+  workflow-paths:
+    name: Workflow Paths
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # 存在しないスクリプトを呼ぶステップは、走っているように見えて
+      # 何も検査しない。実際に 3 本のワークフローがそうなっていた。
+      - name: Verify the checker rejects a missing path
+        run: python3 scripts/check-workflow-paths.py --selftest
+
+      - name: Check workflow path references
+        run: python3 scripts/check-workflow-paths.py
+
   evidence:
     name: Evidence Labels
     runs-on: ubuntu-latest
@@ -527,6 +527,10 @@ jobs:
             requirements: requirements.txt
           - dir: lambda/kb-auto-sync
             requirements: requirements-dev.txt
+          # 31 シナリオの権限マトリクス。pr-check.yml の pr-tests でしか
+          # 走っておらず、そのジョブは CI/CD Pipeline と重複していたため削除した。
+          - dir: tests/permission-matrix
+            requirements: requirements-dev.txt
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -546,14 +550,16 @@ jobs:
 
       # これらのテストは CI では一度も走っていなかった。118 件が手元の
       # make test-python だけで守られている状態だった。
+      # パスを渡さないのは収集範囲がディレクトリごとに違うため
+      # （3 つは pytest.ini の testpaths=tests、tests/permission-matrix は直下）
       - name: pytest
         working-directory: ${{ matrix.dir }}
-        run: python -m pytest tests/ -q
+        run: python -m pytest -q
 
   # 基本的な品質ゲート
   quality-gate:
     runs-on: ubuntu-latest
-    needs: [quick-tests, full-tests, build-test, synth-matrix, doc-links, evidence, i18n, frontend-tests, python-tests]
+    needs: [quick-tests, full-tests, build-test, synth-matrix, doc-links, evidence, i18n, frontend-tests, python-tests, workflow-paths]
     if: always()
     outputs:
       gate-status: ${{ steps.evaluate-quality.outputs.gate-status }}

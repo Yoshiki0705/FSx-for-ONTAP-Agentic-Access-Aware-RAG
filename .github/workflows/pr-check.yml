@@ -61,7 +61,9 @@ jobs:
               *.json|*.yml|*.yaml|*.toml|*.ini)
                 has_config_changes=true
                 ;;
-              development/scripts/*)
+              # development/ は gitignore されているので CI では現れない。
+              # 分類の網羅性のために残す（存在確認ではない）。
+              development/scripts/*)  # allow:missing-path
                 has_code_changes=true
                 ;;
             esac
@@ -193,118 +195,10 @@ jobs:
           fi
 
   # テスト実行（コード変更がある場合のみ）
-  pr-tests:
-    runs-on: ubuntu-latest
-    needs: [pr-analysis, pr-quick-check]
-    if: needs.pr-analysis.outputs.has-code-changes == 'true'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Setup Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Python test dependencies
-        run: |
-          pip install pytest hypothesis moto boto3
-
-      - name: Run Jest tests
-        run: |
-          echo "🧪 Jest テスト実行中..."
-          npx jest --no-coverage --passWithNoTests --forceExit --testTimeout=30000
-
-      - name: Run Python permission-matrix tests
-        run: |
-          echo "🧪 権限マトリクステスト実行中..."
-          cd tests/permission-matrix && python3 -m pytest -v
-
-      - name: Run Python Lambda tests (fsxn-ops)
-        run: |
-          echo "🧪 FSx ONTAP Ops テスト実行中..."
-          cd automation/fsxn-ops && python3 -m pytest tests/ -v || echo "⚠️ fsxn-ops tests skipped (dependencies may be missing)"
-        continue-on-error: true
-
-      - name: Run CDK synth with feature flags
-        run: |
-          echo "🧪 CDK synth (feature flags) 実行中..."
-          npx cdk synth --quiet
-          npx cdk synth --quiet -c enableKbAutoSync=true
-
-      - name: Setup test environment
-        run: |
-          mkdir -p development/logs/testing
-          if [ -f development/scripts/testing/quick_integration_test.sh ]; then
-            chmod +x development/scripts/testing/quick_integration_test.sh
-          fi
-
-      - name: Run integration tests
-        id: pr-tests
-        run: |
-          echo "🧪 PR統合テスト実行中..."
-          if [ -f development/scripts/testing/quick_integration_test.sh ]; then
-            ./development/scripts/testing/quick_integration_test.sh --mode quick --verbose > pr_test_output.log 2>&1
-          else
-            echo "⚠️ quick_integration_test.sh not found, skipping integration tests"
-            echo "総テスト数: 0" > pr_test_output.log
-            echo "成功: 0" >> pr_test_output.log
-            echo "失敗: 0" >> pr_test_output.log
-          fi
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-        continue-on-error: true
-
-      - name: Parse test results
-        id: parse-results
-        run: |
-          if [[ -f "pr_test_output.log" ]]; then
-            total_tests=$(grep -o "総テスト数: [0-9]*" pr_test_output.log | grep -o "[0-9]*" || echo "0")
-            passed_tests=$(grep -o "成功: [0-9]*" pr_test_output.log | grep -o "[0-9]*" || echo "0")
-            failed_tests=$(grep -o "失敗: [0-9]*" pr_test_output.log | grep -o "[0-9]*" || echo "0")
-            execution_time=$(grep -o "総実行時間: [0-9]*ms" pr_test_output.log | grep -o "[0-9]*" || echo "0")
-            
-            echo "total-tests=$total_tests" >> $GITHUB_OUTPUT
-            echo "passed-tests=$passed_tests" >> $GITHUB_OUTPUT
-            echo "failed-tests=$failed_tests" >> $GITHUB_OUTPUT
-            echo "execution-time=$execution_time" >> $GITHUB_OUTPUT
-            
-            if [[ $total_tests -gt 0 ]]; then
-              success_rate=$(echo "scale=2; $passed_tests * 100 / $total_tests" | bc -l)
-              echo "success-rate=$success_rate" >> $GITHUB_OUTPUT
-            else
-              echo "success-rate=0" >> $GITHUB_OUTPUT
-            fi
-          fi
-
-      - name: Upload PR test results
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
-        with:
-          name: pr-test-results
-          path: |
-            pr_test_output.log
-            development/logs/testing/
-          retention-days: 14
-
-      - name: Fail if tests failed
-        if: steps.pr-tests.outputs.exit_code != '0'
-        run: |
-          echo "❌ PRテストが失敗しました"
-          exit 1
-
   # PR結果サマリー
   pr-summary:
     runs-on: ubuntu-latest
-    needs: [pr-analysis, pr-quick-check, security-check, pr-tests]
+    needs: [pr-analysis, pr-quick-check, security-check]
     if: always()
     steps:
       - name: Create PR summary
@@ -314,10 +208,9 @@ jobs:
             const prAnalysis = ${{ toJson(needs.pr-analysis) }};
             const quickCheck = ${{ toJson(needs.pr-quick-check) }};
             const securityCheck = ${{ toJson(needs.security-check) }};
-            const prTests = ${{ toJson(needs.pr-tests) }};
             
             // 全体的なステータス判定
-            const allSuccess = [quickCheck, securityCheck, prTests]
+            const allSuccess = [quickCheck, securityCheck]
               .filter(job => job.result !== 'skipped')
               .every(job => job.result === 'success');
             
@@ -325,7 +218,6 @@ jobs:
             const statusText = allSuccess ? '合格' : '要修正';
             
             // テスト結果の取得
-            const testResults = prTests.outputs || {};
             
             const summary = `## 🔍 PR チェック結果: ${statusEmoji} ${statusText}
             
@@ -340,16 +232,9 @@ jobs:
             |-------------|-----------|------|
             | コード品質チェック | ${quickCheck.result === 'success' ? '✅ 合格' : quickCheck.result === 'skipped' ? '⏭️ スキップ' : '❌ 失敗'} | Lint, TypeScript, Build |
             | セキュリティチェック | ${securityCheck.result === 'success' ? '✅ 合格' : securityCheck.result === 'skipped' ? '⏭️ スキップ' : '❌ 失敗'} | 脆弱性, 機密情報 |
-            | 統合テスト | ${prTests.result === 'success' ? '✅ 合格' : prTests.result === 'skipped' ? '⏭️ スキップ' : '❌ 失敗'} | ${testResults['total-tests'] || '0'}個のテスト |
-            
-            ${testResults['total-tests'] ? `
-            ### 📈 テスト詳細
-            - **総テスト数**: ${testResults['total-tests']}
-            - **成功**: ${testResults['passed-tests']}
-            - **失敗**: ${testResults['failed-tests']}
-            - **成功率**: ${testResults['success-rate']}%
-            - **実行時間**: ${testResults['execution-time']}ms
-            ` : ''}
+
+            > テストは CI/CD Pipeline が実行します（Jest / Vitest / Python / cdk synth 11 レーン）。
+            > このワークフローで二重に実行していたため、その分を外しました。
             
             ### 🎯 次のステップ
             ${allSuccess ? 

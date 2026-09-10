@@ -138,7 +138,8 @@ make all     # the fast checks (types, Jest, Python, links, evidence labels, i18
 make synth   # cdk synth across the same ten lanes as CI (flags read from ci-cd.yml)
 
 make test-frontend  # Vitest (known flaky)
-make test-python    # pytest for the Python Lambdas (118 tests; the venvs are created if missing)
+make test-python    # pytest for the Python suites (149 tests; the venvs are created if missing)
+make workflow-paths # every path a workflow references exists
 make secrets        # gitleaks
 make actions        # zizmor
 ```

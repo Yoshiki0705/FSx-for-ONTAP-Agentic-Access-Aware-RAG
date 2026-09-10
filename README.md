@@ -138,7 +138,8 @@ make all     # 速い検査（型検査・Jest・Python・リンク・証跡ラ�
 make synth   # CI と同じ 10 レーンの cdk synth（フラグは ci-cd.yml から読む）
 
 make test-frontend  # Vitest（既知の flaky あり）
-make test-python    # Python Lambda の pytest（118 件 / 依存は .venv に自動用意）
+make test-python    # Python の pytest（149 件 / 依存は .venv に自動用意）
+make workflow-paths # ワークフローの参照先が存在するか
 make secrets        # gitleaks
 make actions        # zizmor
 ```
