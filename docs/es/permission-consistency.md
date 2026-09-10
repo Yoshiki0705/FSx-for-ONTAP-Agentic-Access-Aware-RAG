@@ -219,6 +219,8 @@ El administrador cambia la ACL de /confidential/ (herencia activada)
 
 ## Niveles de garantía de consistencia
 
+**El control de acceso por horario (`enableAdvancedPermissions`) falla en dos direcciones distintas.** Un defecto de configuración — zona horaria no válida u hora que no puede leerse como `HH:mm` — falla en abierto: la restricción horaria se descarta y se permite el acceso, para no bloquear a los usuarios. **En cambio, un reloj ilegible se deniega**, porque permitir el acceso sin poder determinar si estamos dentro de la ventana eliminaría la restricción en silencio. En ambos casos la comparación de SID se aplica por separado, de modo que esta rama nunca debilita la decisión basada en el índice de permisos.
+
 | Nivel | Garantía | Implementación |
 |-------|----------|----------------|
 | **Fail-Closed** | Denegar todo cuando no se puede obtener la información de SID | Ante error de DynamoDB / registro ausente |

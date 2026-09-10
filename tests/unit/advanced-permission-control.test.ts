@@ -224,7 +224,9 @@ describe('Property 2: スケジュール評価の正当性', () => {
     fc.assert(
       fc.property(
         scheduleArb,
-        fc.date({ min: new Date('2025-01-01'), max: new Date('2027-12-31') }),
+        // noInvalidDate: この property は有効な時計での意味論を検査する。
+        // 無効な Date の契約は下の決定的なテストで固定する。
+        fc.date({ min: new Date('2025-01-01'), max: new Date('2027-12-31'), noInvalidDate: true }),
         (schedule, now) => {
           // startTime >= endTime の場合はスキップ（範囲が無効）
           const start = parseTimeToMinutes(schedule.startTime);
@@ -257,6 +259,33 @@ describe('Property 2: スケジュール評価の正当性', () => {
       ),
       { numRuns: 30 }
     );
+  });
+
+  // 2026-09-08 に CI の定期実行が落ちた原因。fc.date() が既定で生成する
+  // `new Date(NaN)` に対して evaluateSchedule が toISOString() で RangeError を
+  // 投げ、結果を返せずに例外が呼び出し側へ抜けていた。
+  it('無効な Date は例外ではなく拒否として返る', () => {
+    const schedule = {
+      timezone: 'Asia/Tokyo',
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      startTime: '00:00',
+      endTime: '23:59',
+    };
+    const result = evaluateSchedule(schedule, new Date(NaN));
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('invalid_time');
+    expect(result.evaluatedAt).toBe('invalid');
+  });
+
+  it('無効な Date でも例外を投げない（曜日が許可されている場合も拒否）', () => {
+    const schedule = {
+      timezone: 'Asia/Tokyo',
+      daysOfWeek: [0],
+      startTime: '00:00',
+      endTime: '00:01',
+    };
+    expect(() => evaluateSchedule(schedule, new Date('not a date'))).not.toThrow();
+    expect(evaluateSchedule(schedule, new Date('not a date')).allowed).toBe(false);
   });
 });
 

@@ -219,6 +219,8 @@ Administrator changes the ACL on /confidential/ (inheritance enabled)
 
 ## Consistency guarantees
 
+**Time-based access control (`enableAdvancedPermissions`) fails in two different directions.** A configuration defect — an invalid timezone, or a time that cannot be read as `HH:mm` — fails open: the time restriction is dropped and access is allowed, to avoid locking users out. **An unreadable clock is denied instead**, because allowing access without being able to tell whether we are inside the window would silently remove the restriction. In both cases SID matching is applied separately, so this branch never weakens the permission-index decision.
+
 | Level | Guarantee | Implementation |
 |-------|-----------|----------------|
 | **Fail-Closed** | Deny everything when SID information cannot be retrieved | On DynamoDB error / missing record |
