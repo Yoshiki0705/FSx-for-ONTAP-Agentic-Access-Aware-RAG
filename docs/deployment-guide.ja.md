@@ -483,7 +483,7 @@ aws lambda update-function-configuration \
 ### 7.5 バックアップとリカバリ
 
 - **FSx for ONTAP**: 既存の顧客バックアップポリシーで管理（Snapshot/SnapMirror）
-- **DynamoDB**: ポイントインタイムリカバリがデフォルトで有効
+- **DynamoDB**: これらのスタックが作るテーブルはすべてポイントインタイムリカバリ有効。デモ用リソースには `RemovalPolicy.DESTROY` が付いたままなので、PITR が守るのはテーブル内の誤った書き込みや削除で、スタックの破棄ではありません
 - **S3 Vectors / KB**: ソース（FSx for ONTAP ボリューム）から再インデックス可能
 - **Cognito**: `aws cognito-idp list-users` でエクスポート
 

@@ -97,7 +97,7 @@ This document provides a checklist of items to verify when migrating the Permiss
 ### 3. Availability & DR
 
 - [ ] Confirm FSx for ONTAP Multi-AZ configuration
-- [ ] Enable DynamoDB Point-in-Time Recovery (PITR)
+- [x] Enable DynamoDB Point-in-Time Recovery (PITR) — enabled by the stacks for every table; pinned by `tests/transfer-family-stack.test.ts`
 - [ ] Enable S3 versioning
 - [ ] Configure backup schedule (FSx automatic backups)
 - [ ] Define and verify RTO / RPO

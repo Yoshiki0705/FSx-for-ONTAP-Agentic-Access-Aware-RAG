@@ -97,7 +97,7 @@
 ### 3. 可用性与灾难恢复
 
 - [ ] 确认 FSx for ONTAP Multi-AZ 配置
-- [ ] 启用 DynamoDB 时间点恢复（PITR）
+- [x] 启用 DynamoDB 时间点恢复（PITR） — 由堆栈对所有表默认启用；由 `tests/transfer-family-stack.test.ts` 固定
 - [ ] 启用 S3 版本控制
 - [ ] 配置备份计划（FSx 自动备份）
 - [ ] 定义并验证 RTO / RPO
