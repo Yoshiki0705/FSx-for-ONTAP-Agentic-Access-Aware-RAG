@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../poc-workshop-guide.md) | [English](../en/poc-workshop-guide.md) | [한국어](../ko/poc-workshop-guide.md) | [简体中文](../zh-CN/poc-workshop-guide.md) | **繁體中文** | [Français](../fr/poc-workshop-guide.md) | [Deutsch](../de/poc-workshop-guide.md) | [Español](../es/poc-workshop-guide.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 節譯**: 本翻譯僅涵蓋日文原版的一部分。完整內容請參閱[日文版](../poc-workshop-guide.md)。
+
 **建立日期**: 2026-05-21  
 **狀態**: 草案  
 **目標對象**: 解決方案架構師、合作夥伴工程師、客戶雲端團隊

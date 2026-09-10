@@ -2,6 +2,9 @@
 
 **🌐 語言:** [日本語](../operations-runbook.md) | [English](../en/operations-runbook.md) | **繁體中文**
 
+<!-- i18n:abridged -->
+> **⚠️ 節譯**: 本翻譯僅涵蓋日文原版的一部分。完整內容請參閱[日文版](../operations-runbook.md)。
+
 **建立日期**: 2026-06-08  
 **狀態**: 運營中  
 **對象**: 維運人員、開發者、合作夥伴

@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../production-readiness-checklist.md) | **English** | [한국어](../ko/production-readiness-checklist.md) | [简体中文](../zh-CN/production-readiness-checklist.md) | [繁體中文](../zh-TW/production-readiness-checklist.md) | [Français](../fr/production-readiness-checklist.md) | [Deutsch](../de/production-readiness-checklist.md) | [Español](../es/production-readiness-checklist.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Abridged**: This translation covers part of the Japanese original. See the [Japanese version](../production-readiness-checklist.md) for the complete content.
+
 **Created**: 2026-05-21  
 **Status**: Draft  
 **Audience**: Teams considering PoC → Production migration

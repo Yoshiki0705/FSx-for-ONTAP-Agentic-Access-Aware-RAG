@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../claude-platform-integration.md) | **English**
 
+<!-- i18n:abridged -->
+> **⚠️ Abridged**: This translation covers part of the Japanese original. See the [Japanese version](../claude-platform-integration.md) for the complete content.
+
 **Created**: 2026-06-08  
 **Status**: Implementation complete, not yet activated  
 **Audience**: Developers, Operations staff

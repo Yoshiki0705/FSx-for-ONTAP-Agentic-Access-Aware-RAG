@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../partner-deployment-patterns.md) | [English](../en/partner-deployment-patterns.md) | [한국어](../ko/partner-deployment-patterns.md) | **简体中文** | [繁體中文](../zh-TW/partner-deployment-patterns.md) | [Français](../fr/partner-deployment-patterns.md) | [Deutsch](../de/partner-deployment-patterns.md) | [Español](../es/partner-deployment-patterns.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 节译**: 本翻译仅涵盖日文原版的一部分。完整内容请参阅[日文版](../partner-deployment-patterns.md)。
+
 **创建日期**: 2026-05-21  
 **状态**: 草案  
 **目标读者**: 合作伙伴公司、SaaS 提供商、多租户架构师

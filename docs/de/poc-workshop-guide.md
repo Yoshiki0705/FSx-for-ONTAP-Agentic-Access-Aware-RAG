@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../poc-workshop-guide.md) | [English](../en/poc-workshop-guide.md) | [한국어](../ko/poc-workshop-guide.md) | [简体中文](../zh-CN/poc-workshop-guide.md) | [繁體中文](../zh-TW/poc-workshop-guide.md) | [Français](../fr/poc-workshop-guide.md) | **Deutsch** | [Español](../es/poc-workshop-guide.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Gekürzte Übersetzung**: Diese Übersetzung deckt nur einen Teil des japanischen Originals ab. Der vollständige Inhalt steht in der [japanischen Version](../poc-workshop-guide.md).
+
 **Erstellungsdatum**: 2026-05-21  
 **Status**: Entwurf  
 **Zielgruppe**: Lösungsarchitekten, Partner-Ingenieure, Kunden-Cloud-Teams

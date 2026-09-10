@@ -51,6 +51,7 @@ This repository holds the **implementation and the measurements**. The **decisio
 | Operations | [FSx for ONTAP Sizing](docs/en/fsxn-sizing-and-performance.md) | Scale-based config, QoS, vector store selection |
 | Security | [Threat Model](docs/en/threat-model.md) | 10 threat categories, attack paths, mitigations |
 | How to read | [Evidence Policy](docs/en/evidence-policy.md) | How far each statement can be trusted (`verified` / `documented` / `field-observation` / `hypothesis`) |
+| How to read | [Language Tiers](docs/en/i18n-policy.md) | Which languages carry the full content; abridged translations disclose it in a banner |
 | For AI | [llms.txt](llms.txt) | How to read this repository, its entry points, and its checks, in one file |
 | Security | [Governance & Audit Design](docs/en/governance-and-audit.md) | Audit logs, Responsible AI, Guardrails |
 | Data | [Chunking Strategy Guide](docs/en/chunking-strategy-guide.md) | FIXED_SIZE / HIERARCHICAL / SEMANTIC |
@@ -133,7 +134,7 @@ Every check has a single entry point in the `Makefile`, running the same command
 ```bash
 make help    # list the available targets
 
-make all     # the fast checks (types, Jest, links, evidence labels, dependencies)
+make all     # the fast checks (types, Jest, links, evidence labels, i18n disclosure, dependencies)
 make synth   # cdk synth across the same ten lanes as CI (flags read from ci-cd.yml)
 
 make test-frontend  # Vitest (known flaky)

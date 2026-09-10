@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../ui-specification.md) | [English](../en/ui-specification.md) | **한국어** | [简体中文](../zh-CN/ui-specification.md) | [繁體中文](../zh-TW/ui-specification.md) | [Français](../fr/ui-specification.md) | [Deutsch](../de/ui-specification.md) | [Español](../es/ui-specification.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../ui-specification.md)을 참조하십시오.
+
 **작성일**: 2026-03-26  
 **대상 독자**: 개발자 및 운영자  
 **애플리케이션**: Permission-aware RAG 챗봇

@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../embedding-server-design.md) | [English](../en/embedding-server-design.md) | **한국어** | [简体中文](../zh-CN/embedding-server-design.md) | [繁體中文](../zh-TW/embedding-server-design.md) | [Français](../fr/embedding-server-design.md) | [Deutsch](../de/embedding-server-design.md) | [Español](../es/embedding-server-design.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../embedding-server-design.md)을 참조하십시오.
+
 **작성일**: 2026-03-26  
 **대상 독자**: 개발자 및 운영자  
 **소스 코드**: `docker/embed/`

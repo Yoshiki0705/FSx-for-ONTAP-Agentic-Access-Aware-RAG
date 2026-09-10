@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../deployment-troubleshooting.md) | **English**
 
+<!-- i18n:abridged -->
+> **⚠️ Abridged**: This translation covers part of the Japanese original. See the [Japanese version](../deployment-troubleshooting.md) for the complete content.
+
 This document covers known issues and their solutions when deploying to AWS environments.
 
 ---

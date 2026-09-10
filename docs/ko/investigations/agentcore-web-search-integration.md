@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../../investigations/agentcore-web-search-integration.md) | [English](../../en/investigations/agentcore-web-search-integration.md) | **한국어** | [简体中文](../../zh-CN/investigations/agentcore-web-search-integration.md) | [繁體中文](../../zh-TW/investigations/agentcore-web-search-integration.md) | [Français](../../fr/investigations/agentcore-web-search-integration.md) | [Deutsch](../../de/investigations/agentcore-web-search-integration.md) | [Español](../../es/investigations/agentcore-web-search-integration.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../../investigations/agentcore-web-search-integration.md)을 참조하십시오.
+
 **작성일**: 2026-06-18
 **대상 리전**: 메인 스택 ap-northeast-1 / Web Search Tool은 us-east-1(후술·확인 필요)
 **상태**: 조사 문서(설계 검토 / 미구현)

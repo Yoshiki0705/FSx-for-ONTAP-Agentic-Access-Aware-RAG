@@ -26,6 +26,8 @@ import tempfile
 
 LINK = re.compile(r'\[[^\]]*\]\(([^)\s]+)\)')
 SKIP_PREFIX = ('http://', 'https://', 'mailto:', 'tel:', 'data:', '#', '~')
+FENCE = re.compile(r'^\s*(```|~~~)')
+
 SKIP_DIRS = {
     'node_modules', '.git', 'cdk.out', '.venv', '.next', 'dist',
     '.pytest_cache', '.hypothesis', '__pycache__',
@@ -46,7 +48,15 @@ def find_broken(roots: list[str]) -> tuple[int, list[tuple[str, int, str]]]:
                 path = os.path.join(dirpath, filename)
                 scanned += 1
                 with open(path, encoding='utf-8', errors='replace') as handle:
+                    in_fence = False
                     for lineno, line in enumerate(handle, 1):
+                        # コードフェンスの内側はリンクとして描画されない。
+                        # 書き方の例示（バナーの雛形など）を実リンクと誤認しないため除く。
+                        if FENCE.match(line):
+                            in_fence = not in_fence
+                            continue
+                        if in_fence:
+                            continue
                         for target in LINK.findall(line):
                             if target.startswith(SKIP_PREFIX):
                                 continue
@@ -72,6 +82,7 @@ def selftest() -> int:
         with open(os.path.join(tmp, 'index.md'), 'w', encoding='utf-8') as handle:
             handle.write(
                 '[live](exists.md)\n'
+                '```\n[fenced-dead](also-no-such-file.md)\n```\n'
                 '[dead](no-such-file.md)\n'
                 '[external](https://example.com/none.md)\n'
                 '[anchor](#section)\n'
@@ -82,7 +93,7 @@ def selftest() -> int:
         if targets != ['no-such-file.md']:
             print(f'❌ selftest: 期待 ["no-such-file.md"] に対して {targets}')
             return 2
-    print('✅ selftest: リンク切れ 1 件を検出し、外部 URL・アンカー・~/ を除外した')
+    print('✅ selftest: リンク切れ 1 件を検出し、外部 URL・アンカー・~/・フェンス内を除外した')
     return 0
 
 

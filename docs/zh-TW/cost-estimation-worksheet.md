@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../cost-estimation-worksheet.md) | [English](../en/cost-estimation-worksheet.md) | [한국어](../ko/cost-estimation-worksheet.md) | [简体中文](../zh-CN/cost-estimation-worksheet.md) | **繁體中文** | [Français](../fr/cost-estimation-worksheet.md) | [Deutsch](../de/cost-estimation-worksheet.md) | [Español](../es/cost-estimation-worksheet.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 節譯**: 本翻譯僅涵蓋日文原版的一部分。完整內容請參閱[日文版](../cost-estimation-worksheet.md)。
+
 **建立日期**: 2026-05-23  
 **狀態**: 草稿  
 **對象**: 專案經理、合作夥伴提案負責人、預算制定者

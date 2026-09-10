@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../auth-and-user-management.md) | [English](../en/auth-and-user-management.md) | [한국어](../ko/auth-and-user-management.md) | [简体中文](../zh-CN/auth-and-user-management.md) | [繁體中文](../zh-TW/auth-and-user-management.md) | **Français** | [Deutsch](../de/auth-and-user-management.md) | [Español](../es/auth-and-user-management.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../auth-and-user-management.md) pour le contenu complet.
+
 **Date de création** : 2026-04-02
 **Version** : 3.4.0
 

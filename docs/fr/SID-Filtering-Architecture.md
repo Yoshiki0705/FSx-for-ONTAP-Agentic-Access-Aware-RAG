@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../SID-Filtering-Architecture.md) | [English](../en/SID-Filtering-Architecture.md) | [한국어](../ko/SID-Filtering-Architecture.md) | [简体中文](../zh-CN/SID-Filtering-Architecture.md) | [繁體中文](../zh-TW/SID-Filtering-Architecture.md) | **Français** | [Deutsch](../de/SID-Filtering-Architecture.md) | [Español](../es/SID-Filtering-Architecture.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../SID-Filtering-Architecture.md) pour le contenu complet.
+
 ## Vue d'ensemble
 
 Ce système exploite les SID (Security Identifiers) des ACL NTFS pour filtrer les résultats de recherche RAG par utilisateur. Les informations de permissions d'accès du système de fichiers FSx for NetApp ONTAP sont stockées comme métadonnées dans la base de données vectorielle, et les vérifications de permissions sont effectuées en temps réel lors des recherches.

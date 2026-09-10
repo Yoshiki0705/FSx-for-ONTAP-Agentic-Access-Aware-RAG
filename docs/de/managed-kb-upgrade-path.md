@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../managed-kb-upgrade-path.md) | [English](../en/managed-kb-upgrade-path.md) | [한국어](../ko/managed-kb-upgrade-path.md) | [简体中文](../zh-CN/managed-kb-upgrade-path.md) | [繁體中文](../zh-TW/managed-kb-upgrade-path.md) | [Français](../fr/managed-kb-upgrade-path.md) | **Deutsch** | [Español](../es/managed-kb-upgrade-path.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Gekürzte Übersetzung**: Diese Übersetzung deckt nur einen Teil des japanischen Originals ab. Der vollständige Inhalt steht in der [japanischen Version](../managed-kb-upgrade-path.md).
+
 **Erstellungsdatum**: 2026-06-18
 **Zielregion**: ap-northeast-1 (Tokio) — Managed KB ist in der Region Tokio verfügbar (GA 2026-06-17)
 **Status**: Validierungsverfahrensdokument (Migration nicht implementiert / bestehender Pfad beibehalten)
