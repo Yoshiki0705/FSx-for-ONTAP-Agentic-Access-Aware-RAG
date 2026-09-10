@@ -51,7 +51,9 @@ When a translation covers only part of the original, place these two lines immed
 
 The section-count check **passes a document that was left in the source language, headings and all**, because the counts still match. Two files were in exactly that state.
 
-`python3 scripts/check-untranslated.py` (run `--selftest` first) finds Japanese left in `docs/en/`. **Its scope is the tier-2 English tree only.** Tier 3 is partial by policy and therefore out of scope, which the run prints every time.
+`python3 scripts/check-untranslated.py` (run `--selftest` first) finds source-language text left in **all seven translated trees**. For ko and zh it looks only for kana, which are specific to Japanese, because Han characters legitimately appear in those languages; for the Latin-script trees (en, fr, de, es) it looks for both Han characters and kana.
+
+**Its scope was originally the tier-2 English tree only.** After the tier-3 backlog was cleared in 2026-09 — six languages × six files, about 1,587 lines — the scope was widened. Narrowing it again would stop the same state, a copy of the original with only its headings translated, from being detected.
 
 Where source-language text is intentional — i18n key tables, language names shown to the user, keywords the classifier matches literally, Japanese example queries — wrap it in a region:
 

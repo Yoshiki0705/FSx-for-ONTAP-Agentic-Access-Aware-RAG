@@ -1548,8 +1548,10 @@ When AD SAML federation is enabled (`enableAdFederation=true`), an "Sign in with
 
 | Item | Description |
 |------|-------------|
+<!-- allow:source-language:start --> <!-- i18n key table: the ja column is the literal string -->
 | Label | `signin.adSignIn` translation key (Japanese: "ADでサインイン", English: "Sign in with AD") |
 | Description Text | `signin.adSignInDesc` translation key (Japanese: "Active Directory認証を使用", English: "Use Active Directory authentication") |
+<!-- allow:source-language:end -->
 | Placement | Above the email/password form, separated by a divider (`signin.orDivider`: "or") |
 | Style | Primary button (same style as the existing sign-in button) |
 
@@ -1596,10 +1598,12 @@ The `/api/auth/callback` route receives the authorization code and performs the 
 
 | Translation Key | ja | en |
 |----------------|----|----|
+<!-- allow:source-language:start --> <!-- i18n key table: the ja column is the literal string -->
 | `signin.adSignIn` | ADでサインイン | Sign in with AD |
 | `signin.adSignInDesc` | Active Directory認証を使用 | Use Active Directory authentication |
 | `signin.orDivider` | または | or |
 | `signin.emailSignIn` | メール/パスワードでサインイン | Sign in with email/password |
+<!-- allow:source-language:end -->
 
 ### Related Files
 

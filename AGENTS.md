@@ -490,7 +490,8 @@ When updating model IDs (AWS Health notifications, EOL):
 
 ### Bilingual docs (JA primary + EN)
 - JA/EN parity を維持（セクション構成/数の一致、inline note の対応）。片方を変更したら同じ変更で両方に反映。
-- **翻訳が原文の一部しか訳していない場合は開示バナーを付ける**（`<!-- i18n:abridged -->` + 読者向けの 1 行）。ティアと検査は [多言語ティア方針](docs/i18n-policy.md) / `scripts/check-i18n.py`。未翻訳はティア 3 の範囲で、プレースホルダのページを作らない。
+- **翻訳が原文の一部しか訳していない場合は開示バナーを付ける**（`<!-- i18n:abridged -->` + 読者向けの 1 行）。ティアと検査は [多言語ティア方針](docs/i18n-policy.md) / `scripts/check-i18n.py`。未翻訳のファイルはティア 3 の範囲で、プレースホルダのページを作らない。
+- **ただし「翻訳ディレクトリに置かれた原文のコピー」は未翻訳ではなく虚偽表示。** `scripts/check-untranslated.py` が 7 言語すべてを検査する。意図的に原文を残す箇所（i18n キー表、literal に照合するキーワード）は `<!-- allow:source-language:start -->` … `end` で囲み、理由を書く。
 
 ### Technical reference / guide docs
 - 必須要素: エグゼクティブサマリの結論、FAQ/よくある誤解、選択フローチャート（mermaid 可）、OT/IT セキュリティ考慮（該当時）、段階的導入ステップ、Related Documents（逆リンク）、≥10 の inline role-based lens レビュー。

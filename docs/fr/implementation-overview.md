@@ -459,7 +459,9 @@ Route automatiquement les requêtes en fonction de leur complexité. Les requêt
 |-----------------|-----------------|-------------------|
 | Nombre de caractères | ≤100 caractères (+0.3) | >100 caractères (+0.3) |
 | Nombre de phrases | 1 phrase (+0.2) | Plusieurs phrases (+0.2) |
+<!-- allow:source-language:start --> <!-- keywords the classifier matches literally -->
 | Mots-clés analytiques | Aucun | Présents (+0.3) (比較/分析/要約/explain/compare/analyze/summarize) |
+<!-- allow:source-language:end -->
 | Questions multiples | Aucune | 2+ points d'interrogation (+0.2) |
 
 Score < 0.5 → simple, ≥ 0.5 → complexe. Confiance = |score - 0.5| × 2.

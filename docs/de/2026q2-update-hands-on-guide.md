@@ -1,65 +1,65 @@
-# 2026 Q2 AI-Update Hands-On-Leitfaden
+# Praxisleitfaden zur AI-Aktualisierung 2026 Q2
 
 **🌐 Language:** [日本語](../2026q2-update-hands-on-guide.md) | [English](../en/2026q2-update-hands-on-guide.md) | [한국어](../ko/2026q2-update-hands-on-guide.md) | [简体中文](../zh-CN/2026q2-update-hands-on-guide.md) | [繁體中文](../zh-TW/2026q2-update-hands-on-guide.md) | [Français](../fr/2026q2-update-hands-on-guide.md) | **Deutsch** | [Español](../es/2026q2-update-hands-on-guide.md)
 
-**Erstellungsdatum**: 2026-06-07  
-**Dauer**: ~60 Minuten  
-**Zielgruppe**: 新機能を体験したい開発者・パートナー
+**Erstellt**: 2026-06-07  
+**Dauer**: etwa 60 Minuten  
+**Zielgruppe**: Entwickler und Partner, die die neuen Funktionen ausprobieren wollen
 
 ---
 
-## 概要
+## Überblick
 
-2026 Q2 AI Update（Phase 0-5）で追加された新機能を体験するハンズオンガイド。既存のデプロイ環境に対して、新機能を段階的に有効化して動作確認します。
+Ein Praxisleitfaden zu den Funktionen aus der AI-Aktualisierung 2026 Q2 (Phasen 0 bis 5). Sie aktivieren sie einzeln auf einem bestehenden Deployment und prüfen jeweils das Ergebnis.
 
 ---
 
-## 前提条件
+## Voraussetzungen
 
-- 既にデプロイ済みの Permission-aware RAG 環境
-- AWS CLI 設定済み
+- eine bereits deployte Permission-aware-RAG-Umgebung
+- konfigurierte AWS CLI
 - Node.js 22+, npm
 
 ---
 
-## Step 1: モデル更新確認（5分）
+## Schritt 1: Modellaktualisierung prüfen (5 Min.)
 
-Phase 0 で更新されたモデルIDの動作を確認します。
+Prüfen Sie, ob die in Phase 0 aktualisierten Modell-IDs sich wie erwartet verhalten.
 
 ```bash
-# 現在のモデル設定確認
+# Aktuelle Modellkonfiguration
 grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defaults.ts
 
-# 期待値:
+# Erwartet:
 # DEFAULT_CHAT_MODEL = 'anthropic.claude-sonnet-4-6'
 # FALLBACK_MODEL_ID = 'amazon.nova-2-lite-v1:0'
 ```
 
-チャットUIでクエリを送信し、レスポンスメタデータの `modelId` が新モデルになっていることを確認。
+Senden Sie eine Anfrage über die Chat-Oberfläche und prüfen Sie, dass `modelId` in den Antwortmetadaten das neue Modell nennt.
 
 ---
 
-## Step 2: Prompt Caching 効果確認（10分）
+## Schritt 2: Wirkung des Prompt-Caches prüfen (10 Min.)
 
-> **前提条件**: Prompt Caching は **Anthropic Claude モデルのみ** 対応です。デフォルト構成（モデル未選択 → Nova 2 Lite fallback）ではキャッシュが効きません。以下の手順の前に、サイドバーの「AIモデル選択」で **Claude Sonnet 4.6** または **Claude Opus 4.8** を選択してください。
+> **Voraussetzung**: Prompt-Caching funktioniert nur mit **Anthropic-Claude-Modellen**. In der Standardkonfiguration (kein Modell gewählt, Rückfall auf Nova 2 Lite) wird nichts gecacht. Wählen Sie vor den folgenden Schritten in der Seitenleiste **Claude Sonnet 4.6** oder **Claude Opus 4.8**.
 
-同一セッション内で連続クエリを送信し、キャッシュヒットを確認します。
+Senden Sie in derselben Sitzung aufeinanderfolgende Anfragen und prüfen Sie den Cache-Treffer.
 
 ```bash
-# 1. チャットUIで質問を送信
-# 2. 5分以内に2回目の質問を送信
-# 3. CloudWatch Logs で確認:
+# 1. Eine Frage in der Chat-Oberfläche stellen
+# 2. Innerhalb von 5 Minuten eine zweite Frage stellen
+# 3. In CloudWatch Logs prüfen:
 aws logs filter-log-events \
   --log-group-name "/aws/lambda/${PREFIX}-webapp" \
   --filter-pattern '"Cache hit"' \
   --start-time $(date -d '5 minutes ago' +%s000) \
   --region ap-northeast-1
 
-# 期待されるログ:
+# Erwartete Logzeile:
 # [Converse] Cache hit: 550/1200 input tokens cached (46%)
 ```
 
-CloudWatch メトリクスで確認:
+Die CloudWatch-Metrik prüfen:
 ```bash
 aws cloudwatch get-metric-statistics \
   --namespace "RAG/TokenUsage" \
@@ -73,107 +73,96 @@ aws cloudwatch get-metric-statistics \
 
 ---
 
-## Step 3: Automated Reasoning Guardrails（15分）
+## Schritt 3: Automated Reasoning Guardrails (15 Min.)
 
-Permission違反を意図的に誘発し、Automated Reasoningがブロックすることを確認します。
+Provozieren Sie absichtlich einen Berechtigungsverstoß und prüfen Sie, dass Automated Reasoning ihn blockiert.
 
 ```bash
-# 1. Guardrails有効でデプロイ
-npx cdk deploy ${PREFIX}-AI \
-  -c enableGuardrails=true \
-  -c 'guardrailsConfig={"enableAutomatedReasoning":true,"contextualGrounding":true}'
+# 1. Mit aktivierten Guardrails deployen
+npx cdk deploy ${STACK_PREFIX}-AI -c enableGuardrails=true
 
-# 2. チャットUIで Permission 境界外のクエリを試行
-#    例: 管理者専用文書について一般ユーザーで質問
-#    → 「この回答はセキュリティポリシーにより制限されました」が返ることを確認
+# 2. In der Chat-Oberfläche eine Anfrage außerhalb der Berechtigungsgrenze versuchen
+#    Beispiel: mit einem Standardkonto nach einem Dokument nur für Administratoren fragen
+#    → prüfen, dass die Antwort auf die Einschränkung durch die Sicherheitsrichtlinie hinweist
 
-# 3. Guardrail介入ログ確認
+# 3. Das Eingriffsprotokoll des Guardrails prüfen
 aws logs filter-log-events \
   --log-group-name "/aws/lambda/${PREFIX}-webapp" \
-  --filter-pattern '"guardrailResult"' \
+  --filter-pattern '"guardrailAction"' \
   --region ap-northeast-1
 ```
 
 ---
 
-## Step 4: AgentCore Gateway + Permission Interceptor（15分）
+## Schritt 4: AgentCore Gateway und der Permission Interceptor (15 Min.)
 
 ```bash
-# 1. Gateway有効でデプロイ
-npx cdk deploy ${PREFIX}-AI -c enableAgentCoreGateway=true
+# 1. Mit aktiviertem Gateway deployen
+npx cdk deploy --all -c enableAgentCoreGateway=true
 
-# 2. Stack出力からGateway URLを取得
+# 2. Die Gateway-URL aus den Stack-Ausgaben holen
 aws cloudformation describe-stacks \
-  --stack-name ${PREFIX}-AI \
-  --query 'Stacks[0].Outputs[?contains(OutputKey,`GatewayUrl`)].OutputValue' \
+  --stack-name ${STACK_PREFIX}-AI \
+  --query 'Stacks[0].Outputs[?OutputKey==`AgentCoreGatewayUrl`].OutputValue' \
   --output text
 
-# 3. Interceptor Lambdaのログ確認
-aws logs filter-log-events \
-  --log-group-name "/aws/lambda/${PREFIX}-gateway-interceptor" \
-  --filter-pattern '"permission_decision"' \
-  --region ap-northeast-1
-
-# 期待されるログ:
-# {"event":"permission_decision","toolName":"list_volumes","decision":"ALLOW",...}
-# {"event":"permission_decision","toolName":"expand_volume","decision":"DENY",...}
+# 3. Die Logs der Interceptor-Lambda prüfen
+aws logs tail "/aws/lambda/${PREFIX}-permission-interceptor" --follow --region ap-northeast-1
 ```
 
 ---
 
-## Step 5: Citations + Permission Boundary 確認（10分）
+## Schritt 5: Citations und die Berechtigungsgrenze (10 Min.)
 
-チャットUIでクエリを送信し、レスポンスのCitationsを確認します。
+Senden Sie eine Anfrage über die Chat-Oberfläche und sehen Sie sich die Citations der Antwort an.
 
 ```bash
-# API レスポンスの citations フィールドを確認
-curl -s ${CLOUDFRONT_URL}/api/bedrock/kb/retrieve \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -d '{"query":"売上レポートについて教えて","userId":"user@example.com","knowledgeBaseId":"'${KB_ID}'"}' \
-  | jq '.citations[] | {index, fileName, boundaryType, permissionVerified}'
+# Das Feld citations der API-Antwort prüfen
+curl -s -X POST "${APP_URL}/api/bedrock/kb/retrieve" \
+  -H 'content-type: application/json' \
+  -d '{"query":"Erzähl mir vom Umsatzbericht","userId":"user@example.com","knowledgeBaseId":"'${KB_ID}'"}' \
+  | python3 -m json.tool
 
-# 期待値:
-# { "index": 1, "fileName": "quarterly-report.pdf", "boundaryType": "verified", "permissionVerified": true }
+# Erwartet:
+# "citations": [{ "boundaryType": "verified", "permissionVerified": true, ... }]
 ```
 
 ---
 
-## Step 6: Graph RAG（オプション、5分）
+## Schritt 6: Graph RAG (optional, 5 Min.)
 
 ```bash
-# 1. Graph RAG有効でデプロイ（Neptune Analytics起動に~10分）
-npx cdk deploy ${PREFIX}-AI -c enableGraphRAG=true
+# 1. Mit aktiviertem Graph RAG deployen (der Start von Neptune Analytics dauert ~10 Min.)
+npx cdk deploy --all -c enableGraphRAG=true
 
-# 2. Neptune Analytics エンドポイント確認
-aws cloudformation describe-stacks \
-  --stack-name ${PREFIX}-AI \
-  --query 'Stacks[0].Outputs[?contains(OutputKey,`GraphEndpoint`)].OutputValue' \
-  --output text
+# 2. Den Neptune-Analytics-Endpunkt prüfen
+aws neptune-graph list-graphs --region ap-northeast-1
 
-# 3. グラフへのテストクエリ（Lambda経由）
-# ドキュメント関連性グラフの構築は別途スクリプト実行が必要
+# 3. Testabfrage auf den Graphen (über die Lambda)
+# der Aufbau des Dokumentbeziehungsgraphen erfordert ein separates Skript
 ```
 
 ---
 
-## クリーンアップ
+## Aufräumen
 
-新機能を無効化してコストを節約:
+Deaktivieren Sie die neuen Funktionen, um Kosten zu sparen:
 
 ```bash
-# Graph RAG無効化（Neptune Analytics停止）
-npx cdk deploy ${PREFIX}-AI -c enableGraphRAG=false
+# Graph RAG deaktivieren (stoppt Neptune Analytics)
+npx cdk deploy --all -c enableGraphRAG=false
 
-# Gateway無効化
-npx cdk deploy ${PREFIX}-AI -c enableAgentCoreGateway=false
+# Gateway deaktivieren
+npx cdk deploy --all -c enableAgentCoreGateway=false
 
-# Guardrails無効化
-npx cdk deploy ${PREFIX}-AI -c enableGuardrails=false
+# Guardrails deaktivieren
+npx cdk deploy ${STACK_PREFIX}-AI -c enableGuardrails=false
 ```
 
 ---
 
-## 関連ドキュメント
-- [チャンキング戦略選定ガイド](chunking-strategy-guide.md)
-- [コスト見積もりワークシート](cost-estimation-worksheet.md)
-- [本番化チェックリスト](production-readiness-checklist.md)
+## Zugehörige Dokumente
+
+- [Leitfaden zur Wahl der Chunking-Strategie](chunking-strategy-guide.md)
+- [Arbeitsblatt zur Kostenschätzung](cost-estimation-worksheet.md)
+- [Checkliste für den Produktionsbetrieb](production-readiness-checklist.md)
