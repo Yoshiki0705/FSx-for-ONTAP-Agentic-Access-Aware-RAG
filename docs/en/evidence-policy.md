@@ -12,7 +12,7 @@ The vocabulary is shared with the [FSx for ONTAP Adoption Playbook](https://gith
 
 | Tier | Meaning | Required detail |
 |------|---------|-----------------|
-| `verified` | Actually reproduced in the stated environment | Date and Region (e.g. `verified 2026-07-19 / ap-northeast-1`) |
+| `verified` | Actually reproduced in the stated environment | Date and environment (e.g. `verified 2026-07-19 / ap-northeast-1`). **For a claim about the development environment, use `local`** (e.g. `verified 2026-09-10 / local`) and state the OS and runtime versions in the body |
 | `documented` | Stated in AWS / NetApp official documentation, or in the records of another project that measured it | Source URL or document name |
 | `field-observation` | Observed once, reproduction not confirmed | An explicit "reproduction not confirmed" |
 | `hypothesis` | Reasoned but unverified | An explicit "unverified" |
