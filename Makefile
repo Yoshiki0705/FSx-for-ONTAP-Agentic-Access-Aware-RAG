@@ -21,7 +21,7 @@ help: ## 使えるターゲットを表示する
 	@echo
 	@echo "all は速い検査だけを走らせます（synth と E2E は含みません）。"
 
-all: lint test test-frontend-jest docs evidence i18n untranslated deps ## 速い検査をまとめて走らせる（lint / test / frontend jest / docs / evidence / i18n / untranslated / deps）
+all: lint test test-frontend-jest test-python docs evidence i18n untranslated deps ## 速い検査をまとめて走らせる（型検査・Jest・Python・doc 検査・依存関係）
 
 lint: ## TypeScript の型検査（npx tsc --noEmit）
 	npx tsc --noEmit
@@ -41,10 +41,26 @@ test-frontend: ## フロントエンドの Vitest（src/__tests__ 配下）
 test-frontend-jest: ## フロントエンドの Jest（route handler と utils）
 	cd docker/nextjs && npx jest --no-coverage
 
-test-python: ## Python Lambda の pytest（3 ディレクトリ）
-	cd automation/transfer-family && python3 -m pytest tests/ -q
-	cd automation/fsxn-ops && python3 -m pytest tests/ -q
-	cd lambda/kb-auto-sync && python3 -m pytest tests/ -q
+# Python の依存は各ディレクトリの .venv に入れる。
+#
+# 以前はシステムの python3 を直に呼んでいたため、hypothesis や moto が
+# 入っていない環境では collection エラーで落ちた。**走らないターゲットは
+# 検査ではない**ので、venv が無ければ作ってから実行する。
+# 依存は requirements-dev.txt があればそちら、無ければ requirements.txt。
+PY_DIRS := automation/transfer-family automation/fsxn-ops lambda/kb-auto-sync
+
+test-python: ## Python Lambda の pytest（3 ディレクトリ / 依存は .venv に用意する）
+	@for d in $(PY_DIRS); do \
+		if [ ! -x "$$d/.venv/bin/python" ]; then \
+			echo "--- $$d: .venv を作成 ---"; \
+			python3 -m venv "$$d/.venv" || exit 1; \
+			req="$$d/requirements-dev.txt"; \
+			[ -f "$$req" ] || req="$$d/requirements.txt"; \
+			"$$d/.venv/bin/pip" install -q -r "$$req" || exit 1; \
+		fi; \
+		echo "--- $$d ---"; \
+		( cd "$$d" && .venv/bin/python -m pytest tests/ -q ) || exit 1; \
+	done
 
 # 検出器は本検査の前に --selftest を通す。
 # 「ゲートが成功した」ことは「ゲートが走った」ことの証拠ではないため、

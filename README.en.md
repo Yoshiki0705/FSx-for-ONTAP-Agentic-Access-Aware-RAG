@@ -134,11 +134,11 @@ Every check has a single entry point in the `Makefile`, running the same command
 ```bash
 make help    # list the available targets
 
-make all     # the fast checks (types, Jest, links, evidence labels, i18n disclosure, dependencies)
+make all     # the fast checks (types, Jest, Python, links, evidence labels, i18n disclosure, dependencies)
 make synth   # cdk synth across the same ten lanes as CI (flags read from ci-cd.yml)
 
 make test-frontend  # Vitest (known flaky)
-make test-python    # pytest for the Python Lambdas
+make test-python    # pytest for the Python Lambdas (118 tests; the venvs are created if missing)
 make secrets        # gitleaks
 make actions        # zizmor
 ```
