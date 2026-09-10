@@ -34,7 +34,9 @@ const episodeGen: fc.Arbitrary<Episode> = fc.record({
   ),
   outcome: episodeOutcomeGen,
   reflection: fc.string({ minLength: 0, maxLength: 200 }),
-  createdAt: fc.date().map((d) => d.toISOString()),
+  // noInvalidDate: fc.date() は既定で `new Date(NaN)` を生成し、toISOString() が
+  // RangeError を投げる。seed 依存で落ちるため flaky に見えるが、原因は生成側。
+  createdAt: fc.date({ noInvalidDate: true }).map((d) => d.toISOString()),
   score: fc.option(fc.double({ min: 0, max: 1, noNaN: true }), { nil: undefined }),
   metadata: fc.constant(undefined),
 });

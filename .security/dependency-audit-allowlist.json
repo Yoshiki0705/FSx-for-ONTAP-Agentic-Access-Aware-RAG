@@ -5,15 +5,5 @@
     "各エントリに理由と review_by（再確認期限）を必須とし、期限を過ぎたエントリはゲートで落ちる。",
     "放置して恒久的な例外になることを防ぐための仕組みで、期限が来たら再評価して更新するか修正する。"
   ],
-  "allowed": [
-    {
-      "workspace": "docker/nextjs",
-      "package": "postcss",
-      "severity": "high",
-      "advisory": "GHSA-7fh5-64p2-3v2j (PostCSS line return parsing error)",
-      "reason": "next 15.x が内部にバンドルしている postcss で、この workspace から直接更新できない。npm audit の fix は next@16 へのメジャー更新。フレームワークのメジャー更新はアプリ全体の検証を伴うため、依存関係ゲートとは別に扱う。影響はビルド時の CSS 解析に限られ、デプロイ後の実行時経路には現れない。",
-      "upstream": "next 15.x にパッチ版 postcss が入るか、next 16 へ移行するまで",
-      "review_by": "2026-12-31"
-    }
-  ]
+  "allowed": []
 }

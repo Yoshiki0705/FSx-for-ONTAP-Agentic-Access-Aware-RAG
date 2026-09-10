@@ -128,7 +128,9 @@ const kbSummaryArb: fc.Arbitrary<KnowledgeBaseSummary> = fc.record({
   description: fc.option(fc.string({ minLength: 0, maxLength: 200 }), { nil: undefined }),
   status: kbStatusArb,
   updatedAt: fc.option(
-    fc.date({ min: new Date('2020-01-01'), max: new Date('2030-01-01') }).map((d) => d.toISOString()),
+    // noInvalidDate: min/max を与えても fc.date() は無効な Date を生成しうる
+    fc.date({ min: new Date('2020-01-01'), max: new Date('2030-01-01'), noInvalidDate: true })
+      .map((d) => d.toISOString()),
     { nil: undefined }
   ),
   dataSourceCount: fc.integer({ min: 0, max: 100 }),
