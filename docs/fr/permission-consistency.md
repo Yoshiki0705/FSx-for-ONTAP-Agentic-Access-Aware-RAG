@@ -219,6 +219,8 @@ L'administrateur modifie l'ACL de /confidential/ (héritage activé)
 
 ## Niveaux de garantie de cohérence
 
+**Le contrôle d'accès horaire (`enableAdvancedPermissions`) échoue dans deux directions différentes.** Un défaut de configuration — fuseau horaire invalide, ou heure illisible au format `HH:mm` — échoue en mode ouvert : la restriction horaire est abandonnée et l'accès est autorisé, afin de ne pas verrouiller les utilisateurs. **Une horloge illisible est en revanche refusée**, car autoriser sans pouvoir déterminer si l'on se trouve dans la plage supprimerait silencieusement la restriction. Dans les deux cas, la comparaison des SID s'applique séparément : cette branche n'affaiblit jamais la décision fondée sur l'index de permissions.
+
 | Niveau | Garantie | Implémentation |
 |--------|----------|----------------|
 | **Fail-Closed** | Tout refuser lorsque les informations de SID ne peuvent pas être récupérées | Erreur DynamoDB / enregistrement absent |

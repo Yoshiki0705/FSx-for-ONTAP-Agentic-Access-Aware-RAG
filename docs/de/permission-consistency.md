@@ -219,6 +219,8 @@ Administrator ändert die ACL von /confidential/ (Vererbung aktiv)
 
 ## Konsistenzgarantien
 
+**Die zeitbasierte Zugriffssteuerung (`enableAdvancedPermissions`) scheitert in zwei unterschiedliche Richtungen.** Ein Konfigurationsfehler — eine ungültige Zeitzone oder eine nicht als `HH:mm` lesbare Zeit — führt zu Fail-Open: die Zeitbeschränkung entfällt und der Zugriff wird erlaubt, um Nutzer nicht auszusperren. **Eine unlesbare Uhr wird dagegen abgelehnt**, denn eine Freigabe, ohne feststellen zu können, ob man innerhalb des Zeitfensters liegt, würde die Beschränkung stillschweigend aufheben. In beiden Fällen wird der SID-Vergleich separat angewandt; dieser Zweig schwächt die Entscheidung anhand des Berechtigungsindex nie.
+
 | Ebene | Garantie | Implementierung |
 |-------|----------|-----------------|
 | **Fail-Closed** | Alles verweigern, wenn SID-Informationen nicht abgerufen werden können | Bei DynamoDB-Fehler / fehlendem Datensatz |

@@ -15,7 +15,7 @@ export interface AccessSchedule {
 
 export interface ScheduleEvaluationResult {
   allowed: boolean;
-  reason: string;    // "within_schedule" | "outside_schedule" | "no_schedule" | "invalid_schedule_fallback"
+  reason: string;    // "within_schedule" | "outside_schedule" | "no_schedule" | "invalid_schedule_fallback" | "invalid_time"
   evaluatedAt: string;
   localTime: string;
 }
@@ -40,6 +40,23 @@ export function evaluateSchedule(
   now?: Date
 ): ScheduleEvaluationResult {
   const currentTime = now || new Date();
+
+  // 無効な Date（`new Date(NaN)` など）を先に弾く。
+  // toISOString() は無効な Date で RangeError を投げるため、この行より前で
+  // 判定しないと関数が結果を返せずに例外が呼び出し側へ抜ける。
+  //
+  // 設定の不備（無効なタイムゾーンや時刻形式）はロックアウトを避けるために
+  // フェイルオープンだが、**時計が読めない場合は拒否する**。時間帯の内か外かを
+  // 判定できないまま許可すると、時間制限が黙って外れる。
+  if (Number.isNaN(currentTime.getTime())) {
+    return {
+      allowed: false,
+      reason: 'invalid_time',
+      evaluatedAt: 'invalid',
+      localTime: 'invalid',
+    };
+  }
+
   const evaluatedAt = currentTime.toISOString();
 
   // スケジュール未設定 → 常に許可
