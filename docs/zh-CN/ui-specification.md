@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../ui-specification.md) | [English](../en/ui-specification.md) | [한국어](../ko/ui-specification.md) | **简体中文** | [繁體中文](../zh-TW/ui-specification.md) | [Français](../fr/ui-specification.md) | [Deutsch](../de/ui-specification.md) | [Español](../es/ui-specification.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 节译**: 本翻译仅涵盖日文原版的一部分。完整内容请参阅[日文版](../ui-specification.md)。
+
 **创建日期**: 2026-03-26  
 **目标读者**: 开发人员和运维人员  
 **应用**: Permission-aware RAG Chatbot

@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../production-readiness-checklist.md) | [English](../en/production-readiness-checklist.md) | [한국어](../ko/production-readiness-checklist.md) | **简体中文** | [繁體中文](../zh-TW/production-readiness-checklist.md) | [Français](../fr/production-readiness-checklist.md) | [Deutsch](../de/production-readiness-checklist.md) | [Español](../es/production-readiness-checklist.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 节译**: 本翻译仅涵盖日文原版的一部分。完整内容请参阅[日文版](../production-readiness-checklist.md)。
+
 **创建日期**: 2026-05-21  
 **状态**: 草案  
 **目标读者**: 考虑从 PoC 迁移到生产环境的团队

@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../production-readiness-checklist.md) | [English](../en/production-readiness-checklist.md) | [한국어](../ko/production-readiness-checklist.md) | [简体中文](../zh-CN/production-readiness-checklist.md) | [繁體中文](../zh-TW/production-readiness-checklist.md) | **Français** | [Deutsch](../de/production-readiness-checklist.md) | [Español](../es/production-readiness-checklist.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../production-readiness-checklist.md) pour le contenu complet.
+
 **Créé le** : 2026-05-21  
 **Statut** : Brouillon  
 **Public cible** : Équipes envisageant la migration PoC → Production

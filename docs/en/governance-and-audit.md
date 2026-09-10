@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../governance-and-audit.md) | **English** | [한국어](../ko/governance-and-audit.md) | [简体中文](../zh-CN/governance-and-audit.md) | [繁體中文](../zh-TW/governance-and-audit.md) | [Français](../fr/governance-and-audit.md) | [Deutsch](../de/governance-and-audit.md) | [Español](../es/governance-and-audit.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Abridged**: This translation covers part of the Japanese original. See the [Japanese version](../governance-and-audit.md) for the complete content.
+
 **Created**: 2026-05-21  
 **Status**: Draft  
 **Audience**: Security officers, compliance officers, public/healthcare/financial sector

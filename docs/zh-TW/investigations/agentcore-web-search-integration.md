@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../../investigations/agentcore-web-search-integration.md) | [English](../../en/investigations/agentcore-web-search-integration.md) | [한국어](../../ko/investigations/agentcore-web-search-integration.md) | [简体中文](../../zh-CN/investigations/agentcore-web-search-integration.md) | **繁體中文** | [Français](../../fr/investigations/agentcore-web-search-integration.md) | [Deutsch](../../de/investigations/agentcore-web-search-integration.md) | [Español](../../es/investigations/agentcore-web-search-integration.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 節譯**: 本翻譯僅涵蓋日文原版的一部分。完整內容請參閱[日文版](../../investigations/agentcore-web-search-integration.md)。
+
 **建立日期**: 2026-06-18
 **目標區域**: 主堆疊 ap-northeast-1 / Web Search Tool 位於 us-east-1（詳見下文·待確認）
 **狀態**: 調查文件（設計探討 / 未實作）

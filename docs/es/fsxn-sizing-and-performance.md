@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../fsxn-sizing-and-performance.md) | [English](../en/fsxn-sizing-and-performance.md) | [한국어](../ko/fsxn-sizing-and-performance.md) | [简体中文](../zh-CN/fsxn-sizing-and-performance.md) | [繁體中文](../zh-TW/fsxn-sizing-and-performance.md) | [Français](../fr/fsxn-sizing-and-performance.md) | [Deutsch](../de/fsxn-sizing-and-performance.md) | **Español**
 
+<!-- i18n:abridged -->
+> **⚠️ Traducción parcial**: esta traducción cubre solo una parte del original japonés. Consulte la [versión japonesa](../fsxn-sizing-and-performance.md) para el contenido completo.
+
 **Creado**: 2026-05-21  
 **Estado**: Borrador  
 **Audiencia**: Arquitectos de infraestructura, administradores de almacenamiento

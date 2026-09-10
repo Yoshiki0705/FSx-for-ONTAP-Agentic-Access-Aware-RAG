@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../cost-estimation-worksheet.md) | [English](../en/cost-estimation-worksheet.md) | [한국어](../ko/cost-estimation-worksheet.md) | [简体中文](../zh-CN/cost-estimation-worksheet.md) | [繁體中文](../zh-TW/cost-estimation-worksheet.md) | [Français](../fr/cost-estimation-worksheet.md) | [Deutsch](../de/cost-estimation-worksheet.md) | **Español**
 
+<!-- i18n:abridged -->
+> **⚠️ Traducción parcial**: esta traducción cubre solo una parte del original japonés. Consulte la [versión japonesa](../cost-estimation-worksheet.md) para el contenido completo.
+
 **Fecha de creación**: 2026-05-23  
 **Estado**: Borrador  
 **Audiencia**: Gerentes de proyecto, responsables de propuestas de socios, planificadores de presupuesto

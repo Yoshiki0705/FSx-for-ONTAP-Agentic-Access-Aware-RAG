@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../agent-mode-development-guide.md) | **English**
 
+<!-- i18n:abridged -->
+> **⚠️ Abridged**: This translation covers part of the Japanese original. See the [Japanese version](../agent-mode-development-guide.md) for the complete content.
+
 **Created**: 2026-01-19  
 **Last Updated**: 2026-01-19  
 **Purpose**: Sharing insights and best practices for Agent mode UI/UX implementation

@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../partner-deployment-patterns.md) | [English](../en/partner-deployment-patterns.md) | [한국어](../ko/partner-deployment-patterns.md) | [简体中文](../zh-CN/partner-deployment-patterns.md) | [繁體中文](../zh-TW/partner-deployment-patterns.md) | **Français** | [Deutsch](../de/partner-deployment-patterns.md) | [Español](../es/partner-deployment-patterns.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../partner-deployment-patterns.md) pour le contenu complet.
+
 **Créé le** : 2026-05-21  
 **Statut** : Brouillon  
 **Public cible** : Entreprises partenaires, fournisseurs SaaS, architectes multi-locataires

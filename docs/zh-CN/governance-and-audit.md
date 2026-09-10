@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../governance-and-audit.md) | [English](../en/governance-and-audit.md) | [한국어](../ko/governance-and-audit.md) | **简体中文** | [繁體中文](../zh-TW/governance-and-audit.md) | [Français](../fr/governance-and-audit.md) | [Deutsch](../de/governance-and-audit.md) | [Español](../es/governance-and-audit.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 节译**: 本翻译仅涵盖日文原版的一部分。完整内容请参阅[日文版](../governance-and-audit.md)。
+
 **创建日期**: 2026-05-21  
 **状态**: 草案  
 **目标读者**: 安全负责人、合规负责人、公共/医疗/金融行业

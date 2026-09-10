@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../managed-kb-upgrade-path.md) | [English](../en/managed-kb-upgrade-path.md) | **한국어** | [简体中文](../zh-CN/managed-kb-upgrade-path.md) | [繁體中文](../zh-TW/managed-kb-upgrade-path.md) | [Français](../fr/managed-kb-upgrade-path.md) | [Deutsch](../de/managed-kb-upgrade-path.md) | [Español](../es/managed-kb-upgrade-path.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../managed-kb-upgrade-path.md)을 참조하십시오.
+
 **작성일**: 2026-06-18
 **대상 리전**: ap-northeast-1 (도쿄) — Managed KB는 도쿄 리전에서 사용 가능 (2026-06-17 GA)
 **상태**: 검증 절차 문서 (마이그레이션 미실시 / 기존 경로 유지)

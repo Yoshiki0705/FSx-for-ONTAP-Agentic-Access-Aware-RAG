@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../fsxn-sizing-and-performance.md) | [English](../en/fsxn-sizing-and-performance.md) | [한국어](../ko/fsxn-sizing-and-performance.md) | [简体中文](../zh-CN/fsxn-sizing-and-performance.md) | [繁體中文](../zh-TW/fsxn-sizing-and-performance.md) | **Français** | [Deutsch](../de/fsxn-sizing-and-performance.md) | [Español](../es/fsxn-sizing-and-performance.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../fsxn-sizing-and-performance.md) pour le contenu complet.
+
 **Créé le** : 2026-05-21  
 **Statut** : Brouillon  
 **Public cible** : Architectes d'infrastructure, administrateurs de stockage

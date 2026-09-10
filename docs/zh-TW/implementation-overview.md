@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../implementation-overview.md) | [English](../en/implementation-overview.md) | [한국어](../ko/implementation-overview.md) | [简体中文](../zh-CN/implementation-overview.md) | **繁體中文** | [Français](../fr/implementation-overview.md) | [Deutsch](../de/implementation-overview.md) | [Español](../es/implementation-overview.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 節譯**: 本翻譯僅涵蓋日文原版的一部分。完整內容請參閱[日文版](../implementation-overview.md)。
+
 **建立日期**: 2026-03-25  
 **版本**: 3.4.0
 

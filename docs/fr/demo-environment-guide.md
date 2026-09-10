@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../demo-environment-guide.md) | [English](../en/demo-environment-guide.md) | [한국어](../ko/demo-environment-guide.md) | [简体中文](../zh-CN/demo-environment-guide.md) | [繁體中文](../zh-TW/demo-environment-guide.md) | **Français** | [Deutsch](../de/demo-environment-guide.md) | [Español](../es/demo-environment-guide.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../demo-environment-guide.md) pour le contenu complet.
+
 **Dernière mise à jour** : 2026-03-25  
 **Région** : ap-northeast-1 (Tokyo)
 

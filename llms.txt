@@ -67,10 +67,16 @@ the gate ran.
 
 ## Languages
 
-Documentation is written in Japanese first and mirrored in English; six further languages (ko,
-zh-CN, zh-TW, fr, de, es) exist under `docs/<lang>/` with partial coverage. Japanese and English are
-kept in structural parity. Where a translation is absent the link points at the English version
-rather than a placeholder.
+Japanese is the source language and the only complete tree; it lives directly under `docs/` rather
+than `docs/ja/`. English mirrors it, and six further languages (ko, zh-CN, zh-TW, fr, de, es) hold
+partial translations under `docs/<lang>/`.
+
+**A translation that covers only part of the original says so in a banner** at the top of the file
+(`<!-- i18n:abridged -->`), so "a translation exists" is never mistaken for "the same content is
+readable". Where a translation is absent the link points at the Japanese or English version rather
+than a placeholder page. Tiers and the check: [Language Tiers](docs/en/i18n-policy.md), enforced by
+`scripts/check-i18n.py`; `python3 scripts/check-i18n.py --report` prints the current per-language
+coverage rather than restating it here, where it would go stale.
 
 ## What is here
 

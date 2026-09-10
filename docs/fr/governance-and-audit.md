@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../governance-and-audit.md) | [English](../en/governance-and-audit.md) | [한국어](../ko/governance-and-audit.md) | [简体中文](../zh-CN/governance-and-audit.md) | [繁體中文](../zh-TW/governance-and-audit.md) | **Français** | [Deutsch](../de/governance-and-audit.md) | [Español](../es/governance-and-audit.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../governance-and-audit.md) pour le contenu complet.
+
 **Créé le** : 2026-05-21  
 **Statut** : Brouillon  
 **Public cible** : Responsables sécurité, responsables conformité, secteurs public/santé/finance

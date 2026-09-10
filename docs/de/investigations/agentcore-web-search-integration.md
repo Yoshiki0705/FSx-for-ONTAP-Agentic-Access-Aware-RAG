@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../../investigations/agentcore-web-search-integration.md) | [English](../../en/investigations/agentcore-web-search-integration.md) | [한국어](../../ko/investigations/agentcore-web-search-integration.md) | [简体中文](../../zh-CN/investigations/agentcore-web-search-integration.md) | [繁體中文](../../zh-TW/investigations/agentcore-web-search-integration.md) | [Français](../../fr/investigations/agentcore-web-search-integration.md) | **Deutsch** | [Español](../../es/investigations/agentcore-web-search-integration.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Gekürzte Übersetzung**: Diese Übersetzung deckt nur einen Teil des japanischen Originals ab. Der vollständige Inhalt steht in der [japanischen Version](../../investigations/agentcore-web-search-integration.md).
+
 **Erstellt am**: 2026-06-18
 **Zielregion**: Haupt-Stack ap-northeast-1 / Web Search Tool in us-east-1 (siehe unten · zu verifizieren)
 **Status**: Untersuchungsdokument (Designprüfung / nicht implementiert)

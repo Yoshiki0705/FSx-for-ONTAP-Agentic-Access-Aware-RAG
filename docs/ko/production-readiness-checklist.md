@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../production-readiness-checklist.md) | [English](../en/production-readiness-checklist.md) | **한국어** | [简体中文](../zh-CN/production-readiness-checklist.md) | [繁體中文](../zh-TW/production-readiness-checklist.md) | [Français](../fr/production-readiness-checklist.md) | [Deutsch](../de/production-readiness-checklist.md) | [Español](../es/production-readiness-checklist.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../production-readiness-checklist.md)을 참조하십시오.
+
 **작성일**: 2026-05-21  
 **상태**: 초안  
 **대상**: PoC → 프로덕션 마이그레이션을 검토하는 팀

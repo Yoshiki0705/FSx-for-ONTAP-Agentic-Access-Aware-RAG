@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../safe-experimentation-guide.md) | [English](../en/safe-experimentation-guide.md) | [한국어](../ko/safe-experimentation-guide.md) | [简体中文](../zh-CN/safe-experimentation-guide.md) | **繁體中文** | [Français](../fr/safe-experimentation-guide.md) | [Deutsch](../de/safe-experimentation-guide.md) | [Español](../es/safe-experimentation-guide.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 節譯**: 本翻譯僅涵蓋日文原版的一部分。完整內容請參閱[日文版](../safe-experimentation-guide.md)。
+
 **建立日期**: 2026-05-21  
 **狀態**: 草案  
 **目標讀者**: PoC 使用者、開發人員、評估人員

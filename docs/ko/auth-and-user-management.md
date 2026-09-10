@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../auth-and-user-management.md) | [English](../en/auth-and-user-management.md) | **한국어** | [简体中文](../zh-CN/auth-and-user-management.md) | [繁體中文](../zh-TW/auth-and-user-management.md) | [Français](../fr/auth-and-user-management.md) | [Deutsch](../de/auth-and-user-management.md) | [Español](../es/auth-and-user-management.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../auth-and-user-management.md)을 참조하십시오.
+
 **작성일**: 2026-04-02
 **버전**: 3.4.0
 

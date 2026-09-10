@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../embedding-server-design.md) | **English** | [한국어](../ko/embedding-server-design.md) | [简体中文](../zh-CN/embedding-server-design.md) | [繁體中文](../zh-TW/embedding-server-design.md) | [Français](../fr/embedding-server-design.md) | [Deutsch](../de/embedding-server-design.md) | [Español](../es/embedding-server-design.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Abridged**: This translation covers part of the Japanese original. See the [Japanese version](../embedding-server-design.md) for the complete content.
+
 **Created**: 2026-03-26  
 **Audience**: Developers & Operators  
 **Source Code**: `docker/embed/`

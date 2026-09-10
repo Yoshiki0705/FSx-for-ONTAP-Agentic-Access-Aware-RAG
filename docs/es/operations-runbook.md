@@ -2,6 +2,9 @@
 
 **🌐 Idioma:** [日本語](../operations-runbook.md) | [English](../en/operations-runbook.md) | **Español**
 
+<!-- i18n:abridged -->
+> **⚠️ Traducción parcial**: esta traducción cubre solo una parte del original japonés. Consulte la [versión japonesa](../operations-runbook.md) para el contenido completo.
+
 **Creación**: 2026-06-08  
 **Estado**: Operativo  
 **Audiencia**: Personal de operaciones, Desarrolladores, Partners

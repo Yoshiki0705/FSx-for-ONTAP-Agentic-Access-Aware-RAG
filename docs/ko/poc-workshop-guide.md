@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../poc-workshop-guide.md) | [English](../en/poc-workshop-guide.md) | **한국어** | [简体中文](../zh-CN/poc-workshop-guide.md) | [繁體中文](../zh-TW/poc-workshop-guide.md) | [Français](../fr/poc-workshop-guide.md) | [Deutsch](../de/poc-workshop-guide.md) | [Español](../es/poc-workshop-guide.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../poc-workshop-guide.md)을 참조하십시오.
+
 **작성일**: 2026-05-21  
 **상태**: 초안  
 **대상**: 솔루션 아키텍트, 파트너 엔지니어, 고객 클라우드 팀

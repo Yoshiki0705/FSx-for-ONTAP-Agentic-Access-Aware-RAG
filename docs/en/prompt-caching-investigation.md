@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../prompt-caching-investigation.md) | **English**
 
+<!-- i18n:abridged -->
+> **⚠️ Abridged**: This translation covers part of the Japanese original. See the [Japanese version](../prompt-caching-investigation.md) for the complete content.
+
 **Created**: 2026-06-08  
 **Status**: Under Investigation  
 **Audience**: Developers, Architects

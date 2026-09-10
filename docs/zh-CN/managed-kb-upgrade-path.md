@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../managed-kb-upgrade-path.md) | [English](../en/managed-kb-upgrade-path.md) | [한국어](../ko/managed-kb-upgrade-path.md) | **简体中文** | [繁體中文](../zh-TW/managed-kb-upgrade-path.md) | [Français](../fr/managed-kb-upgrade-path.md) | [Deutsch](../de/managed-kb-upgrade-path.md) | [Español](../es/managed-kb-upgrade-path.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 节译**: 本翻译仅涵盖日文原版的一部分。完整内容请参阅[日文版](../managed-kb-upgrade-path.md)。
+
 **创建日期**: 2026-06-18
 **目标区域**: ap-northeast-1（东京）— Managed KB 在东京区域可用（2026-06-17 GA）
 **状态**: 验证步骤文档（未实施迁移 / 保留现有路径）

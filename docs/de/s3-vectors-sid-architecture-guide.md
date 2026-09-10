@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../s3-vectors-sid-architecture-guide.md) | [English](../en/s3-vectors-sid-architecture-guide.md) | [한국어](../ko/s3-vectors-sid-architecture-guide.md) | [简体中文](../zh-CN/s3-vectors-sid-architecture-guide.md) | [繁體中文](../zh-TW/s3-vectors-sid-architecture-guide.md) | [Français](../fr/s3-vectors-sid-architecture-guide.md) | **Deutsch** | [Español](../es/s3-vectors-sid-architecture-guide.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Gekürzte Übersetzung**: Diese Übersetzung deckt nur einen Teil des japanischen Originals ab. Der vollständige Inhalt steht in der [japanischen Version](../s3-vectors-sid-architecture-guide.md).
+
 **Erstellt**: 2026-03-29
 **Verifizierungsumgebung**: ap-northeast-1 (Tokio)
 **Status**: CDK-Deployment verifiziert, SID-Filterung verifiziert

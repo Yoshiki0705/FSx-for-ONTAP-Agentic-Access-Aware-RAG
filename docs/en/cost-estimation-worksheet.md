@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../cost-estimation-worksheet.md) | **English** | [한국어](../ko/cost-estimation-worksheet.md) | [简体中文](../zh-CN/cost-estimation-worksheet.md) | [繁體中文](../zh-TW/cost-estimation-worksheet.md) | [Français](../fr/cost-estimation-worksheet.md) | [Deutsch](../de/cost-estimation-worksheet.md) | [Español](../es/cost-estimation-worksheet.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Abridged**: This translation covers part of the Japanese original. See the [Japanese version](../cost-estimation-worksheet.md) for the complete content.
+
 **Created**: 2026-05-23  
 **Status**: Draft  
 **Audience**: Project managers, partner proposal leads, budget planners

@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../cost-estimation-worksheet.md) | [English](../en/cost-estimation-worksheet.md) | **한국어** | [简体中文](../zh-CN/cost-estimation-worksheet.md) | [繁體中文](../zh-TW/cost-estimation-worksheet.md) | [Français](../fr/cost-estimation-worksheet.md) | [Deutsch](../de/cost-estimation-worksheet.md) | [Español](../es/cost-estimation-worksheet.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../cost-estimation-worksheet.md)을 참조하십시오.
+
 **작성일**: 2026-05-23  
 **상태**: 초안  
 **대상**: 프로젝트 매니저, 파트너 제안 담당자, 예산 수립자

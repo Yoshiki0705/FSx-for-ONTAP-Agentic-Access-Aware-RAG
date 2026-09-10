@@ -9,7 +9,7 @@
 # 過去にこれで検出器が走っていなかったことがあるため、全ターゲットを宣言する。
 
 .PHONY: help all lint test test-frontend test-python docs evidence deps secrets actions \
-        synth synth-default build clean
+        synth synth-default build clean i18n i18n-report
 
 WORKFLOW := .github/workflows/ci-cd.yml
 
@@ -21,7 +21,7 @@ help: ## 使えるターゲットを表示する
 	@echo
 	@echo "all は速い検査だけを走らせます（synth と E2E は含みません）。"
 
-all: lint test docs evidence deps ## 速い検査をまとめて走らせる（lint / test / docs / evidence / deps）
+all: lint test docs evidence i18n deps ## 速い検査をまとめて走らせる（lint / test / docs / evidence / i18n / deps）
 
 lint: ## TypeScript の型検査（npx tsc --noEmit）
 	npx tsc --noEmit
@@ -51,6 +51,13 @@ docs: ## ドキュメントの相対リンク検査
 evidence: ## 証跡ラベルの検査（docs/evidence-policy.md）
 	python3 scripts/check-evidence.py --selftest
 	python3 scripts/check-evidence.py
+
+i18n: ## 翻訳の抄訳開示を検査（docs/i18n-policy.md）
+	python3 scripts/check-i18n.py --selftest
+	python3 scripts/check-i18n.py
+
+i18n-report: ## 言語ごとの網羅状況を出力する
+	python3 scripts/check-i18n.py --report
 
 deps: ## 依存関係の脆弱性を重大度方針で検査
 	python3 scripts/check-dependency-audit.py --selftest

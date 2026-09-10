@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../partner-deployment-patterns.md) | [English](../en/partner-deployment-patterns.md) | **한국어** | [简体中文](../zh-CN/partner-deployment-patterns.md) | [繁體中文](../zh-TW/partner-deployment-patterns.md) | [Français](../fr/partner-deployment-patterns.md) | [Deutsch](../de/partner-deployment-patterns.md) | [Español](../es/partner-deployment-patterns.md)
 
+<!-- i18n:abridged -->
+> **⚠️ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../partner-deployment-patterns.md)을 참조하십시오.
+
 **작성일**: 2026-05-21  
 **상태**: 초안  
 **대상**: 파트너 기업, SaaS 제공업체, 멀티 테넌트 아키텍트

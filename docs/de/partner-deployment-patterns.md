@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../partner-deployment-patterns.md) | [English](../en/partner-deployment-patterns.md) | [한국어](../ko/partner-deployment-patterns.md) | [简体中文](../zh-CN/partner-deployment-patterns.md) | [繁體中文](../zh-TW/partner-deployment-patterns.md) | [Français](../fr/partner-deployment-patterns.md) | **Deutsch** | [Español](../es/partner-deployment-patterns.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Gekürzte Übersetzung**: Diese Übersetzung deckt nur einen Teil des japanischen Originals ab. Der vollständige Inhalt steht in der [japanischen Version](../partner-deployment-patterns.md).
+
 **Erstellt**: 2026-05-21  
 **Status**: Entwurf  
 **Zielgruppe**: Partnerunternehmen, SaaS-Anbieter, Multi-Tenant-Architekten

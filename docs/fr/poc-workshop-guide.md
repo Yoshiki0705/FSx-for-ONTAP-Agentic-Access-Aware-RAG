@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../poc-workshop-guide.md) | [English](../en/poc-workshop-guide.md) | [한국어](../ko/poc-workshop-guide.md) | [简体中文](../zh-CN/poc-workshop-guide.md) | [繁體中文](../zh-TW/poc-workshop-guide.md) | **Français** | [Deutsch](../de/poc-workshop-guide.md) | [Español](../es/poc-workshop-guide.md)
 
+<!-- i18n:abridged -->
+> **⚠️ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../poc-workshop-guide.md) pour le contenu complet.
+
 **Date de création** : 2026-05-21  
 **Statut** : Brouillon  
 **Public cible** : Architectes solutions, ingénieurs partenaires, équipes cloud clients
