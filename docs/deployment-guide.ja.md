@@ -131,6 +131,39 @@ bash --version    # >= 4.0
 | Lambda SG | DynamoDB VPC エンドポイント | TCP 443 | user-access テーブル |
 | Lambda SG | Secrets Manager エンドポイント | TCP 443 | ONTAP 認証情報 |
 
+### AD 参加 SVM での追加要件（S3 Access Point 利用時）
+
+**[documented]** AD 参加 SVM（CIFS 有効）上で FSx for ONTAP S3 AP を使う場合、**S3 AP のデータ操作すべて**（ListObjectsV2 / GetObject / PutObject）に AD ドメインコントローラへの到達性が必要です。ONTAP がデータ操作ごとに `unix→win` の逆引きネームマッピングを行うためです。出典: [FSx for ONTAP S3 Access Point + AD 前提条件ガイド](s3ap-ad-prerequisites.md)（ap-northeast-1 / ONTAP 9.17.1P7D1 で確認した内容と復旧手順）。
+
+> **`HeadBucket` は判定に使えません。** S3 層だけで完結するため、AD DC に到達できなくても成功します。データ操作の AccessDenied を IAM やポリシーの問題と読み違える原因になります。
+
+必要な通信（SVM の ENI → AD DC）:
+
+| ポート | プロトコル | サービス |
+|--------|-----------|---------|
+| 53 | TCP/UDP | DNS |
+| 88 | TCP/UDP | Kerberos |
+| 389 | TCP/UDP | LDAP |
+| 445 | TCP | SMB/CIFS |
+| 636 | TCP | LDAPS |
+
+デプロイ前の確認:
+
+```bash
+# SVM が AD 参加しているか
+aws fsx describe-storage-virtual-machines \
+  --storage-virtual-machine-ids svm-0123456789abcdef0 \
+  --query 'StorageVirtualMachines[0].ActiveDirectoryConfiguration'
+```
+
+**KB Auto-Sync の AD 診断を有効にする**: `cdk.context.json` に `svmId` を置くと、AccessDenied 時に Lambda が FSx API で SVM の AD 状態を確認し、AD DC 到達性の問題かどうかを診断結果に記録します。
+
+```json
+{ "svmId": "svm-0123456789abcdef0" }
+```
+
+**この値が無いと診断は動きません。** 診断コード自体は `lambda/kb-auto-sync/handler.py` に実装されていますが、`SVM_ID` が渡らない限り実行されません（`svmId` 未指定時は環境変数も IAM 許可も付きません）。
+
 ---
 
 ## 2. アーキテクチャ概要

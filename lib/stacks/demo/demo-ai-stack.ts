@@ -2424,6 +2424,9 @@ ${langInstruction}`,
           dataSourceId,
           s3AccessPointArn,
           intervalMinutes,
+          // svmId を渡すと AccessDenied 時の AD DC 到達性診断が有効になる。
+          // handler 側の診断は既に実装されているが、この値が無いと実行されない。
+          svmId: (this.node.tryGetContext('svmId') as string) || undefined,
         });
       }
     }
