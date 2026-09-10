@@ -33,6 +33,9 @@ import tempfile
 LABEL = re.compile(r'\[(verified|documented|field-observation|hypothesis)([^\]]*)\]')
 DATE = re.compile(r'\b(\d{4})-(\d{2})(?:-(\d{2}))?\b')
 REGION = re.compile(r'\b[a-z]{2}-[a-z]+-\d\b')
+# 開発環境についての主張はリージョンを持たない。環境を書かせる要件は同じなので、
+# `local` を認めるかわりに本文で OS・ランタイム版を示すことを求める（ポリシー参照）。
+LOCAL_ENV = re.compile(r'\blocal\b')
 URL = re.compile(r'https?://')
 SOURCE_WORDS = ('出典', 'Source', 'source')
 FIELD_WORDS = (
@@ -78,8 +81,10 @@ def check_text(path: str, lines: list[str], today: dt.date) -> list[str]:
                             problems.append(f'{where}: verified の日付 {found.group(0)} が未来です')
                     except ValueError:
                         problems.append(f'{where}: verified の日付 {found.group(0)} が日付として読めません')
-                if not REGION.search(rest):
-                    problems.append(f'{where}: verified にリージョンがありません')
+                if not REGION.search(rest) and not LOCAL_ENV.search(rest):
+                    problems.append(
+                        f'{where}: verified に環境がありません'
+                        f'（リージョン、または開発環境なら local）')
             elif tier == 'documented':
                 if not URL.search(context) and not any(w in context for w in SOURCE_WORDS):
                     problems.append(f'{where}: documented に出典（URL か文書名）がありません')
@@ -162,6 +167,8 @@ def selftest() -> int:
             (['**[verified 2026-12 / ap-northeast-1]** 動作した。'], 1),
         'verified にリージョンが無ければ落ちる':
             (['**[verified 2026-07-19]** 動作した。'], 1),
+        '開発環境の主張は local を環境として認める':
+            (['**[verified 2026-09-08 / local]** 手元で再現した。'], 0),
         'verified の未来日付は落ちる':
             (['**[verified 2027-01-01 / ap-northeast-1]** 動作した。'], 1),
         'documented に URL があれば通る':

@@ -27,10 +27,9 @@ lint: ## TypeScript の型検査（npx tsc --noEmit）
 	npx tsc --noEmit
 
 # Node の版は .nvmrc（22）に合わせる。CI も 22 で実行している。
-# **[hypothesis]** 手元の Node 26.4.0 では aws-sdk-client-mock を使う 7 suite のうち
-# 6 suite（26 テスト）が落ちる。CI（Node 22）では 751 件すべて通るため版差を疑っているが、
-# Node 22 を手元に用意して比較していないので原因は**未検証**。
-test: ## CDK / Lambda の Jest テスト（Node は .nvmrc の 22 を使う）
+# 過去に手元だけ 26 件落ちたのは版差ではなく lambda/*/node_modules による
+# @aws-sdk の二重解決だった（jest.config.js の moduleNameMapper で固定済み）。
+test: ## CDK / Lambda の Jest テスト
 	npx jest --no-coverage --forceExit
 
 test-frontend: ## フロントエンドの Vitest（既知の flaky あり: 単独実行では通るテストが全体実行で落ちる）
