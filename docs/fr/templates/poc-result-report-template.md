@@ -1,104 +1,104 @@
-# Modèle de rapport de résultats PoC
+# Modèle de rapport de résultats de PoC
 
 **🌐 Language:** [日本語](../../templates/poc-result-report-template.md) | [English](../../en/templates/poc-result-report-template.md) | [한국어](../../ko/templates/poc-result-report-template.md) | [简体中文](../../zh-CN/templates/poc-result-report-template.md) | [繁體中文](../../zh-TW/templates/poc-result-report-template.md) | **Français** | [Deutsch](../../de/templates/poc-result-report-template.md) | [Español](../../es/templates/poc-result-report-template.md)
 
-**Utilisation** : パートナー/SIが顧客にPoC実施結果を報告するためのフォーマット
+**Objet**: format permettant à un partenaire ou à un intégrateur de restituer les résultats d'un PoC au client.
 
 ---
 
-## 1. エグゼクティブサマリー
+## 1. Résumé
 
-| 項目 | 内容 |
-|------|------|
-| 顧客名 | _____ |
-| 実施期間 | YYYY/MM/DD — YYYY/MM/DD |
-| 対象業務 | _____ |
-| 対象ドキュメント数 | _____ 件 |
-| 対象ユーザー数 | _____ 人 |
-| 全体評価 | ☐ 本番移行推奨 / ☐ 追加検証要 / ☐ 見送り |
-
----
-
-## 2. 定量評価結果
-
-### 2.1 RAG 品質指標
-
-| 指標 | 目標値 | 実測値 | 判定 |
-|------|--------|--------|------|
-| Faithfulness (事実整合性) | ≥ 0.85 | _____ | ☐ Pass / ☐ Fail |
-| Answer Relevancy (回答関連性) | ≥ 0.80 | _____ | ☐ Pass / ☐ Fail |
-| Context Precision (コンテキスト精度) | ≥ 0.75 | _____ | ☐ Pass / ☐ Fail |
-| Permission 違反数 | 0 | _____ | ☐ Pass / ☐ Fail |
-
-### 2.2 パフォーマンス指標
-
-| 指標 | 目標値 | 実測値 | 判定 |
-|------|--------|--------|------|
-| 応答時間 (P50) | ≤ 3s | _____ s | ☐ Pass / ☐ Fail |
-| 応答時間 (P95) | ≤ 8s | _____ s | ☐ Pass / ☐ Fail |
-| Prompt Cache ヒット率 | ≥ 50% | _____ % | ☐ Pass / ☐ Fail |
-
-### 2.3 ビジネス効果指標
-
-| 指標 | PoC前 | PoC後 | 改善率 |
-|------|-------|-------|--------|
-| 検索時間（1件あたり） | _____ 分 | _____ 秒 | _____ % |
-| 一次回答率 | _____ % | _____ % | _____ pt |
-| 権限外情報へのアクセス | _____ 件 | 0 件 | 100% |
+| Élément | Contenu |
+|---|---|
+| Client | _____ |
+| Période | YYYY/MM/DD — YYYY/MM/DD |
+| Processus métier visé | _____ |
+| Documents concernés | _____ |
+| Utilisateurs concernés | _____ |
+| Évaluation globale | ☐ Passage en production recommandé / ☐ Validation complémentaire nécessaire / ☐ Abandon |
 
 ---
 
-## 3. 権限制御検証結果
+## 2. Résultats quantitatifs
 
-| テストシナリオ | 結果 | 備考 |
-|--------------|------|------|
-| 管理者ユーザー → 全文書アクセス | ☐ Pass / ☐ Fail | |
-| 一般ユーザー → 公開文書のみ | ☐ Pass / ☐ Fail | |
-| グループ権限 → 所属部門文書のみ | ☐ Pass / ☐ Fail | |
-| 権限変更 → 即時反映 | ☐ Pass / ☐ Fail | 最大遅延: _____ 分 |
-| 権限なし文書 → 検索結果から除外 | ☐ Pass / ☐ Fail | |
+### 2.1 Qualité du RAG
+
+| Indicateur | Cible | Mesuré | Verdict |
+|---|---|---|---|
+| Fidélité (Faithfulness) | ≥ 0.85 | _____ | ☐ Pass / ☐ Fail |
+| Pertinence de la réponse | ≥ 0.80 | _____ | ☐ Pass / ☐ Fail |
+| Précision du contexte | ≥ 0.75 | _____ | ☐ Pass / ☐ Fail |
+| Violations de permission | 0 | _____ | ☐ Pass / ☐ Fail |
+
+### 2.2 Performance
+
+| Indicateur | Cible | Mesuré | Verdict |
+|---|---|---|---|
+| Temps de réponse (P50) | ≤ 3s | _____ s | ☐ Pass / ☐ Fail |
+| Temps de réponse (P95) | ≤ 8s | _____ s | ☐ Pass / ☐ Fail |
+| Taux de succès du cache de prompts | ≥ 50% | _____ % | ☐ Pass / ☐ Fail |
+
+### 2.3 Effets métier
+
+| Indicateur | Avant le PoC | Après le PoC | Amélioration |
+|---|---|---|---|
+| Temps de recherche (par requête) | _____ min | _____ s | _____ % |
+| Taux de résolution au premier niveau | _____ % | _____ % | _____ pt |
+| Accès à des informations hors permissions | _____ cas | 0 cas | 100% |
 
 ---
 
-## 4. コスト実績
+## 3. Vérification du contrôle des permissions
 
-| 項目 | 月額見込み | 備考 |
-|------|-----------|------|
+| Scénario de test | Résultat | Remarques |
+|---|---|---|
+| Administrateur → accès à tous les documents | ☐ Pass / ☐ Fail | |
+| Utilisateur standard → documents publics uniquement | ☐ Pass / ☐ Fail | |
+| Permission de groupe → documents de son service uniquement | ☐ Pass / ☐ Fail | |
+| Changement de permission → répercuté | ☐ Pass / ☐ Fail | Délai maximal: _____ min |
+| Document sans permission → exclu des résultats | ☐ Pass / ☐ Fail | |
+
+---
+
+## 4. Coûts constatés
+
+| Élément | Estimation mensuelle | Remarques |
+|---|---|---|
 | FSx for ONTAP | $_____ | |
-| Bedrock (推論) | $_____ | Smart Routing適用後 |
-| Bedrock (Embedding) | $_____ | 初回 + 差分 |
-| ベクトルストア | $_____ | S3 Vectors / OpenSearch |
-| その他 (Lambda, DynamoDB, CloudFront) | $_____ | |
-| **合計** | **$_____** | |
+| Bedrock (inférence) | $_____ | après Smart Routing |
+| Bedrock (embedding) | $_____ | initial + incrémental |
+| Magasin de vecteurs | $_____ | S3 Vectors / OpenSearch |
+| Autres (Lambda, DynamoDB, CloudFront) | $_____ | |
+| **Total** | **$_____** | |
 
 ---
 
-## 5. 検出された課題 & 推奨事項
+## 5. Problèmes relevés et recommandations
 
-| # | 課題 | 影響度 | 推奨対応 | 対応時期 |
-|---|------|--------|---------|---------|
-| 1 | | ☐ 高 / ☐ 中 / ☐ 低 | | |
-| 2 | | ☐ 高 / ☐ 中 / ☐ 低 | | |
-| 3 | | ☐ 高 / ☐ 中 / ☐ 低 | | |
-
----
-
-## 6. 本番移行に向けた Next Steps
-
-| # | アクション | 担当 | 期限 |
-|---|-----------|------|------|
-| 1 | セキュリティ評価（IAM最小権限、暗号化） | | |
-| 2 | 負荷テスト（想定ユーザー数の2倍） | | |
-| 3 | DR設計（Multi-AZ、バックアップ） | | |
-| 4 | 運用設計（Runbook、アラート） | | |
-| 5 | Go/No-Go 判定会議 | | |
+| # | Problème | Impact | Action recommandée | Échéance |
+|---|---|---|---|---|
+| 1 | | ☐ Élevé / ☐ Moyen / ☐ Faible | | |
+| 2 | | ☐ Élevé / ☐ Moyen / ☐ Faible | | |
+| 3 | | ☐ Élevé / ☐ Moyen / ☐ Faible | | |
 
 ---
 
-## 7. 添付資料
+## 6. Étapes vers la production
 
-- [ ] CloudWatch ダッシュボードスクリーンショット
-- [ ] RAGAS 評価結果 (JSON)
-- [ ] Permission-matrix テスト結果
-- [ ] コスト明細 (AWS Cost Explorer)
-- [ ] ユーザーアンケート結果（実施した場合）
+| # | Action | Responsable | Échéance |
+|---|---|---|---|
+| 1 | Évaluation de sécurité (IAM au moindre privilège, chiffrement) | | |
+| 2 | Test de charge (deux fois le nombre d'utilisateurs prévu) | | |
+| 3 | Conception de la reprise (Multi-AZ, sauvegardes) | | |
+| 4 | Conception de l'exploitation (runbook, alertes) | | |
+| 5 | Réunion de décision Go/No-Go | | |
+
+---
+
+## 7. Annexes
+
+- [ ] Captures du tableau de bord CloudWatch
+- [ ] Résultats de l'évaluation RAGAS (JSON)
+- [ ] Résultats des tests de la matrice de permissions
+- [ ] Détail des coûts (AWS Cost Explorer)
+- [ ] Résultats de l'enquête utilisateurs (le cas échéant)

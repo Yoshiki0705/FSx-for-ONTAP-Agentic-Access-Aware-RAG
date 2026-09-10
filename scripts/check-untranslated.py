@@ -31,17 +31,31 @@ import re
 import sys
 import tempfile
 
-CJK = re.compile(r'[\u3040-\u30ff\u4e00-\u9fff]')
+# Latin 系の言語には漢字もかなも現れない
+CJK = re.compile(r'[\u3041-\u3096\u30a1-\u30fa\u4e00-\u9fff]')
+# ko / zh には漢字が正当に現れるため、日本語固有のかなだけを見る。
+# 記号（・ ー）はかな範囲にあるが翻訳文にも出るので除く。
+KANA = re.compile(r'[\u3041-\u3096\u30a1-\u30fa]')
 FENCE = re.compile(r'^\s*(```|~~~)')
 ALLOW_START = 'allow:source-language:start'
 ALLOW_END = 'allow:source-language:end'
 LINK_TEXT = re.compile(r'\[[^\]]*\]\([^)]*\)')
-TARGET = 'docs/en'
-# 部分訳が方針の言語。範囲外であることを出力する。
-TIER3 = ['ko', 'zh-CN', 'zh-TW', 'fr', 'de', 'es']
+# 検査対象と、その言語で「原文が残っている」と判定するパターン。
+#
+# ティア 3 も 2026-09 に未翻訳を解消したので対象に含める。範囲を広げないと
+# 同じ状態（見出しだけ訳された原文のコピー）が再び入っても検出できない。
+TARGETS = {
+    'docs/en': CJK,
+    'docs/fr': CJK,
+    'docs/de': CJK,
+    'docs/es': CJK,
+    'docs/ko': KANA,
+    'docs/zh-CN': KANA,
+    'docs/zh-TW': KANA,
+}
 
 
-def check_file(path: str, lines: list[str]) -> list[str]:
+def check_file(path: str, lines: list[str], pattern: re.Pattern = CJK) -> list[str]:
     problems: list[str] = []
     in_fence = False
     in_allow = False
@@ -61,7 +75,7 @@ def check_file(path: str, lines: list[str]) -> list[str]:
         if '🌐' in line:
             continue
         # リンクの表示名（[日本語](...) など）は除いて判定する
-        if CJK.search(LINK_TEXT.sub('', line)):
+        if pattern.search(LINK_TEXT.sub('', line)):
             problems.append(f'{path}:{n}: 未翻訳の原文が残っています: {line.strip()[:80]}')
     # 閉じ忘れた許可領域は、以降のすべてを検査対象から外す。
     # 検出器が沈黙する形なので、それ自体を違反として扱う。
@@ -70,7 +84,7 @@ def check_file(path: str, lines: list[str]) -> list[str]:
     return problems
 
 
-def walk(root: str = TARGET) -> tuple[int, list[str]]:
+def walk(root: str, pattern: re.Pattern = CJK) -> tuple[int, list[str]]:
     problems: list[str] = []
     scanned = 0
     for dirpath, dirnames, filenames in os.walk(root):
@@ -81,7 +95,7 @@ def walk(root: str = TARGET) -> tuple[int, list[str]]:
             path = os.path.join(dirpath, filename)
             scanned += 1
             with open(path, encoding='utf-8', errors='replace') as handle:
-                problems.extend(check_file(path, handle.read().splitlines()))
+                problems.extend(check_file(path, handle.read().splitlines(), pattern))
     return scanned, problems
 
 
@@ -113,7 +127,7 @@ def selftest() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         with open(os.path.join(tmp, 'a.md'), 'w', encoding='utf-8') as handle:
             handle.write('# Title\nこれは未翻訳です。\n')
-        scanned, problems = walk(tmp)
+        scanned, problems = walk(tmp, CJK)
         passed = scanned == 1 and len(problems) == 1
         ok = ok and passed
         print(f"{'✅' if passed else '❌'} selftest: ディレクトリ走査が違反を返す")
@@ -123,10 +137,15 @@ def selftest() -> int:
 def main() -> int:
     if '--selftest' in sys.argv:
         return selftest()
-    scanned, problems = walk()
-    print(f'{TARGET} の Markdown {scanned} ファイルを検査、違反 {len(problems)} 件')
-    print(f'範囲外: ティア 3 の {", ".join(TIER3)}（部分訳が方針。'
-          f'docs/i18n-policy.md を参照）')
+    scanned = 0
+    problems: list[str] = []
+    for target, pattern in TARGETS.items():
+        count, found = walk(target, pattern)
+        scanned += count
+        problems.extend(found)
+    print(f'{len(TARGETS)} 言語の Markdown {scanned} ファイルを検査、違反 {len(problems)} 件')
+    print('ko / zh は漢字が正当に現れるため、日本語固有のかなだけを見ています。'
+          'Latin 系（en / fr / de / es）は漢字とかなの両方を見ます。')
     for problem in problems:
         print(problem)
     if problems:

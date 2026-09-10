@@ -573,9 +573,11 @@ npx cdk deploy --all -c enableAgent=true -c enableAgentSharing=true -c enableAge
 
 | 翻译鍵 | ja | en |
 |----------------|----|----|
+<!-- allow:source-language:start --> <!-- i18n key table: the ja column is the literal string -->
 | `signin.adSignIn` | ADでサインイン | Sign in with AD |
 | `signin.adSignInDesc` | Active Directory認証を使用 | Use Active Directory authentication |
 | `signin.orDivider` | または | or |
+<!-- allow:source-language:end -->
 
 ---
 

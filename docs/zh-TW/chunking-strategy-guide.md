@@ -3,169 +3,171 @@
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | [简体中文](../zh-CN/chunking-strategy-guide.md) | **繁體中文** | [Français](../fr/chunking-strategy-guide.md) | [Deutsch](../de/chunking-strategy-guide.md) | [Español](../es/chunking-strategy-guide.md)
 
 **建立日期**: 2026-06-07  
-**狀態**: 初版  
-**適用對象**: RAG品質チューニング担当、データエンジニア
+**狀態**: 第一版  
+**讀者**: RAG 品質調校負責人、資料工程師
 
 ---
 
-## 概要
+## 概述
 
-Bedrock Knowledge Base のチャンキング戦略は、RAG の検索精度・応答品質・コストに直接影響する。本ガイドでは、FSx for ONTAP 上のドキュメント特性に応じた最適な戦略選択を支援する。
+Bedrock Knowledge Base 的分塊策略直接影響檢索精度、回答品質與成本。本指南協助你依 FSx for ONTAP 上文件的特性選擇合適的策略。
 
 ---
 
-## 利用可能な戦略
+## 可用策略
 
-CDKコンテキスト `kbChunkingStrategy` で設定:
+透過 CDK context `kbChunkingStrategy` 設定：
 
 ```bash
-npx cdk synth --quiet -c kbChunkingStrategy=FIXED_SIZE    # デフォルト
+npx cdk synth --quiet -c kbChunkingStrategy=FIXED_SIZE    # 預設
 npx cdk synth --quiet -c kbChunkingStrategy=HIERARCHICAL
 npx cdk synth --quiet -c kbChunkingStrategy=SEMANTIC
 npx cdk synth --quiet -c kbChunkingStrategy=NONE
 ```
 
-> ⚠️ **チャンキング戦略を変更した場合、DataSource の再同期（re-ingestion）が必須です。**
+> ⚠️ **變更分塊策略後必須重新同步資料來源（重新擷取）。**
+
+**這四個以外的值會在 synth 階段拋出例外。** 若靜默回退到預設值，`KbChunkingStrategy` 輸出會顯示打錯的字串，而實際下發的設定是 `FIXED_SIZE`，導致顯示與部署設定不一致。大小寫會被正規化（`semantic` → `SEMANTIC`）。
 
 ---
 
-## 戦略比較マトリクス
+## 策略比較
 
-| 戦略 | チャンクサイズ | オーバーラップ | 検索精度 | コスト | 適用シナリオ |
-|------|-------------|-------------|---------|--------|------------|
-| **FIXED_SIZE** | 300トークン | 10% | ⭐⭐⭐ | 💰 低 | 汎用、初期デプロイ、構造が均一な文書 |
-| **HIERARCHICAL** | Parent: 1500 / Child: 300 | 60トークン | ⭐⭐⭐⭐ | 💰💰 中 | 長文レポート、階層構造文書、技術文書 |
-| **SEMANTIC** | 最大300トークン | 自動（意味単位） | ⭐⭐⭐⭐⭐ | 💰💰💰 高 | 多様な文書、FAQ、対話形式、議事録 |
-| **NONE** | 文書全体 | なし | ⭐⭐ | 💰 最低 | 短い文書（<300トークン）、メタデータのみ |
-
----
-
-## データ特性×戦略 推奨マトリクス
-
-| ドキュメント特性 | 推奨戦略 | 理由 |
-|----------------|---------|------|
-| **設計書・仕様書**（階層構造、長文） | HIERARCHICAL | 章→節→段落の階層を維持し、広いコンテキストと精密な検索を両立 |
-| **契約書・法的文書**（条文単位） | SEMANTIC | 条文間の意味的境界を自動検出し、条文を分割しない |
-| **FAQ・Q&A集**（短い質問-回答ペア） | SEMANTIC | 質問と回答を同一チャンクに保持 |
-| **議事録・メール**（対話形式） | SEMANTIC | 話題の切り替わりで自然に分割 |
-| **マニュアル・手順書**（ステップバイステップ） | HIERARCHICAL | 手順全体（Parent）と個別ステップ（Child）を階層化 |
-| **財務レポート**（表・数値データ含む） | FIXED_SIZE | 表構造が複雑な場合、固定サイズが安定 |
-| **短い通知・お知らせ**（<1ページ） | NONE | 文書全体が1チャンクに収まる場合、分割不要 |
-| **混在コーパス**（多種多様な文書） | SEMANTIC | 文書タイプを問わず意味的に適切な分割 |
+| 策略 | 分塊大小 | 重疊 | 檢索精度 | 成本 | 適用情境 |
+|---|---|---|---|---|---|
+| **FIXED_SIZE** | 300 token | 10% | ⭐⭐⭐ | 💰 低 | 通用、初次部署、結構一致的文件 |
+| **HIERARCHICAL** | parent 1500 / child 300 | 60 token | ⭐⭐⭐⭐ | 💰💰 中 | 長篇報告、階層結構文件、技術文件 |
+| **SEMANTIC** | ≤300 token | 自動（依語意單元） | ⭐⭐⭐⭐⭐ | 💰💰💰 高 | 文件類型多樣、FAQ、對話形式、會議紀錄 |
+| **NONE** | 整份文件 | 無 | ⭐⭐ | 💰 最低 | 短文件（<300 token）、僅中繼資料 |
 
 ---
 
-## 業種別推奨
+## 文件特性與建議策略
 
-| 業種 | 主要ドキュメント | 推奨戦略 | 備考 |
-|------|----------------|---------|------|
-| **製造** | 設計図面（テキスト部分）、品質規格、作業手順書 | HIERARCHICAL | 図面はマルチモーダルKBと併用 |
-| **金融** | 規制文書、内部レポート、コンプライアンス報告 | SEMANTIC | 条文の意味的完全性を維持 |
-| **公共** | 政策文書、通達、議事録 | SEMANTIC | 議事録の話題単位分割が重要 |
-| **医療** | 臨床ガイドライン、手順書、研究論文 | HIERARCHICAL | 章立て構造を活用 |
-| **法務** | 契約書、判例、法令 | SEMANTIC | 条文分割を避ける |
-| **教育** | 教材、シラバス、研究資料 | FIXED_SIZE | 均一な構造、コスト重視 |
-| **保険** | 査定基準、不正検知レポート | HIERARCHICAL | 階層的な判定基準に適合 |
-
----
-
-## パフォーマンス特性
-
-### インジェスション時間
-
-| 戦略 | 1,000ドキュメント（推定） | 10,000ドキュメント（推定） |
-|------|------------------------|--------------------------|
-| FIXED_SIZE | ~5分 | ~30分 |
-| HIERARCHICAL | ~8分 | ~50分 |
-| SEMANTIC | ~15分 | ~90分 |
-| NONE | ~3分 | ~15分 |
-
-> SEMANTIC戦略は各チャンク境界で追加のモデル呼び出しを行うため、インジェスション時間とコストが増加する。
-
-### 検索レイテンシ
-
-チャンキング戦略は検索レイテンシに直接影響しない（ベクトル検索のパフォーマンスはインデックスサイズに依存）。ただし、HIERARCHICAL は Parent/Child の2段階検索を行うため、わずかに（~50ms）レイテンシが増加する可能性がある。
+| 文件特性 | 建議 | 理由 |
+|---|---|---|
+| **設計文件·規格書**（階層結構、長篇） | HIERARCHICAL | 保留章 → 節 → 段的階層，兼顧寬廣脈絡與精確檢索 |
+| **合約·法律文件**（依條文） | SEMANTIC | 自動辨識條文之間的語意邊界，不切分條文 |
+| **FAQ**（簡短的問答配對） | SEMANTIC | 將問題與答案保留在同一個分塊 |
+| **會議紀錄·郵件**（對話形式） | SEMANTIC | 在話題轉換處自然分割 |
+| **手冊·操作步驟**（逐步） | HIERARCHICAL | 整體流程為 parent，各步驟為 child |
+| **財務報告**（含表格與數字） | FIXED_SIZE | 表格結構複雜時固定大小較穩定 |
+| **簡短公告**（不足一頁） | NONE | 整份能放入一個分塊時無需切分 |
+| **混合語料**（多種文件類型） | SEMANTIC | 無論類型都能得到語意上合理的切分 |
 
 ---
 
-## Permission-Aware RAG との関係
+## 依產業
 
-**重要**: チャンキング戦略に関わらず、Permission filtering は常に**ドキュメント単位**で適用される。
+| 產業 | 主要文件 | 建議 | 備註 |
+|---|---|---|---|
+| **製造** | 圖面（文字部分）、品質規格、作業指導書 | HIERARCHICAL | 圖面搭配多模態 KB 使用 |
+| **金融** | 法規文件、內部報告、法遵報告 | SEMANTIC | 維持條文的語意完整性 |
+| **公部門** | 政策文件、通知、會議紀錄 | SEMANTIC | 會議紀錄依話題切分很重要 |
+| **醫療** | 臨床指引、作業規程、研究論文 | HIERARCHICAL | 運用章節結構 |
+| **法務** | 合約、判例、法規 | SEMANTIC | 避免切分條文 |
+| **教育** | 教材、課程大綱、研究資料 | FIXED_SIZE | 結構一致，重視成本 |
+| **保險** | 核保標準、詐欺偵測報告 | HIERARCHICAL | 契合階層化判定標準 |
+
+---
+
+## 效能特性
+
+### 擷取時間
+
+| 策略 | 1,000 份文件（估算） | 10,000 份文件（估算） |
+|---|---|---|
+| FIXED_SIZE | ~5 分鐘 | ~30 分鐘 |
+| HIERARCHICAL | ~8 分鐘 | ~50 分鐘 |
+| SEMANTIC | ~15 分鐘 | ~90 分鐘 |
+| NONE | ~3 分鐘 | ~15 分鐘 |
+
+> SEMANTIC 會在每個候選邊界額外呼叫模型，因此擷取時間與成本都會上升。
+
+### 檢索延遲
+
+分塊策略不會直接影響檢索延遲（向量檢索效能取決於索引規模）。不過 HIERARCHICAL 會執行 parent/child 兩階段檢索，可能增加少量延遲（約 50ms）。
+
+---
+
+## 與權限感知 RAG 的關係
+
+**重要**：無論採用哪種分塊策略，權限篩選一律**以文件為單位**生效。
 
 ```
-文書A (SID: [Admin, Engineering])
-  ├── Chunk 1 → SID: [Admin, Engineering] (親文書から継承)
-  ├── Chunk 2 → SID: [Admin, Engineering] (親文書から継承)
-  └── Chunk 3 → SID: [Admin, Engineering] (親文書から継承)
+文件 A (SID: [Admin, Engineering])
+  ├── Chunk 1 → SID: [Admin, Engineering] (繼承自文件)
+  ├── Chunk 2 → SID: [Admin, Engineering] (繼承自文件)
+  └── Chunk 3 → SID: [Admin, Engineering] (繼承自文件)
 ```
 
-- `.metadata.json` のSID情報は文書単位で付与される
-- チャンクレベルのPermission差別化は不可（ドキュメント全体に同一Permission）
-- 同一ドキュメント内で異なるPermissionが必要な場合、ドキュメントを分割して別ファイルにする
+- `.metadata.json` 中的 SID 資訊以文件為單位附加。
+- 無法依分塊區分權限；整份文件共用一組權限。
+- 同一份文件內需要不同權限時，請拆分為獨立檔案。
 
 ---
 
-## 戦略変更手順
+## 變更策略的步驟
 
 ```bash
-# 1. 現在の戦略を確認
+# 1. 確認目前策略
 grep kbChunkingStrategy cdk.context.json
 
-# 2. CDKコンテキスト更新
-# cdk.context.json を編集するか、コマンドラインで指定
+# 2. 更新 CDK context
+# 編輯 cdk.context.json，或在命令列指定
 
-# 3. CDK差分確認
+# 3. 檢視 CDK 差異
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. デプロイ（DataSource設定更新のみ）
+# 4. 部署（僅更新資料來源設定）
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 5. DataSource再同期（必須！）
+# 5. 重新同步資料來源（必要）
 aws bedrock-agent start-ingestion-job \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID> \
   --region ap-northeast-1
 
-# 6. 再インジェスション完了を待機
+# 6. 等待重新擷取完成
 aws bedrock-agent get-ingestion-job \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID> \
   --ingestion-job-id <JOB_ID>
 
-# 7. 品質評価（RAGASで比較）
+# 7. 品質評估（以 RAGAS 比較）
 cd tests/rag-evaluation
 python3 evaluate.py --kb-id <KB_ID> --model-id <MODEL_ID> --region ap-northeast-1
 ```
 
 ---
 
-## 評価方法
+## 評估方法
 
-戦略変更後は必ず以下で品質を測定:
+變更策略後務必測量下列項目：
 
-1. **RAGAS評価**: `tests/rag-evaluation/` で Faithfulness, Answer Relevancy, Context Precision を比較
-2. **Permission-matrix回帰テスト**: 31シナリオで権限フィルタリングが正常か確認
-3. **応答時間測定**: P50/P95/P99 レイテンシを CloudWatch で確認
-4. **コスト比較**: インジェスションコスト + クエリコストの合計で比較
+1. **RAGAS 評估**：以 `tests/rag-evaluation/` 比較 Faithfulness、Answer Relevancy 與 Context Precision。
+2. **權限矩陣回歸**：確認 31 個情境中的權限篩選仍然正常。
+3. **回應時間**：在 CloudWatch 檢視 P50/P95/P99 延遲。
+4. **成本**：以擷取成本與查詢成本之和進行比較。
 
 ---
 
-## CDK実装詳細
+## CDK 實作
 
-`lib/stacks/demo/demo-ai-stack.ts` の `buildChunkingConfiguration()` 関数:
+`lib/stacks/demo/demo-ai-stack.ts` 中的 `buildChunkingConfiguration()`：
 
 ```typescript
 // FIXED_SIZE: maxTokens=300, overlapPercentage=10
 // HIERARCHICAL: parent=1500, child=300, overlapTokens=60
 // SEMANTIC: maxTokens=300, bufferSize=1, breakpointPercentileThreshold=95
-// NONE: チャンキングなし（文書全体を1ベクトル化）
+# NONE：不分塊（整份文件向量化為一個向量）
 ```
 
 ---
 
-## 関連ドキュメント
+## 相關文件
 
-- [FSx for ONTAP サイジング・性能設計](fsxn-sizing-and-performance.md)
-- [RAG / Agent 評価フレームワーク](evaluation.md)
-- [コスト見積もりワークシート](cost-estimation-worksheet.md)
+- [FSx for ONTAP 容量與效能設計](fsxn-sizing-and-performance.md)
+- [RAG / Agent 評估框架](evaluation.md)
+- [成本估算工作表](cost-estimation-worksheet.md)
 - [Architecture Decision Records](architecture-decision-records.md)

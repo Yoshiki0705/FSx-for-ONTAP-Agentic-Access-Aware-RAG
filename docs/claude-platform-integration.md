@@ -223,8 +223,6 @@ curl -X POST https://<cloudfront-url>/api/bedrock/kb/retrieve \
 ---
 
 ## 関連ドキュメント
-
-- [2026 Q2 AI Update Roadmap](design/2026q2-ai-update-roadmap.md) — Phase 3: Claude Platform
 - [Prompt Caching Investigation](prompt-caching-investigation.md) — Messages API 知見
 - [Operations Runbook](operations-runbook.md) — 運用手順
 - [Cost Estimation Worksheet](cost-estimation-worksheet.md) — コスト見積もり

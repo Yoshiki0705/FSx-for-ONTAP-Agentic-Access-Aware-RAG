@@ -1,65 +1,65 @@
-# 2026 Q2 AI 更新動手指南
+# 2026 Q2 AI 更新實作指南
 
 **🌐 Language:** [日本語](../2026q2-update-hands-on-guide.md) | [English](../en/2026q2-update-hands-on-guide.md) | [한국어](../ko/2026q2-update-hands-on-guide.md) | [简体中文](../zh-CN/2026q2-update-hands-on-guide.md) | **繁體中文** | [Français](../fr/2026q2-update-hands-on-guide.md) | [Deutsch](../de/2026q2-update-hands-on-guide.md) | [Español](../es/2026q2-update-hands-on-guide.md)
 
 **建立日期**: 2026-06-07  
-**所需時間**: 約60分鐘  
-**適用對象**: 新機能を体験したい開発者・パートナー
+**預計時間**: 約 60 分鐘  
+**讀者**: 想親自體驗新功能的開發者與合作夥伴
 
 ---
 
-## 概要
+## 概述
 
-2026 Q2 AI Update（Phase 0-5）で追加された新機能を体験するハンズオンガイド。既存のデプロイ環境に対して、新機能を段階的に有効化して動作確認します。
+本指南帶你體驗 2026 Q2 AI 更新（Phase 0-5）新增的功能。在既有部署環境上逐步啟用各項功能並確認其行為。
 
 ---
 
-## 前提条件
+## 前提條件
 
-- 既にデプロイ済みの Permission-aware RAG 環境
-- AWS CLI 設定済み
+- 已部署的 Permission-aware RAG 環境
+- 已設定 AWS CLI
 - Node.js 22+, npm
 
 ---
 
-## Step 1: モデル更新確認（5分）
+## Step 1：確認模型更新（5 分鐘）
 
-Phase 0 で更新されたモデルIDの動作を確認します。
+確認 Phase 0 中更新的模型 ID 是否如預期運作。
 
 ```bash
-# 現在のモデル設定確認
+# 檢視目前的模型設定
 grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defaults.ts
 
-# 期待値:
+# 期望值：
 # DEFAULT_CHAT_MODEL = 'anthropic.claude-sonnet-4-6'
 # FALLBACK_MODEL_ID = 'amazon.nova-2-lite-v1:0'
 ```
 
-チャットUIでクエリを送信し、レスポンスメタデータの `modelId` が新モデルになっていることを確認。
+在聊天介面送出查詢，確認回應中繼資料的 `modelId` 為新模型。
 
 ---
 
-## Step 2: Prompt Caching 効果確認（10分）
+## Step 2：確認 Prompt Caching 效果（10 分鐘）
 
-> **前提条件**: Prompt Caching は **Anthropic Claude モデルのみ** 対応です。デフォルト構成（モデル未選択 → Nova 2 Lite fallback）ではキャッシュが効きません。以下の手順の前に、サイドバーの「AIモデル選択」で **Claude Sonnet 4.6** または **Claude Opus 4.8** を選択してください。
+> **前提條件**：Prompt Caching 僅支援 **Anthropic Claude 模型**。預設設定（未選擇模型 → 回退到 Nova 2 Lite）下快取不會生效。執行以下步驟前，請在側邊欄的模型選擇中選擇 **Claude Sonnet 4.6** 或 **Claude Opus 4.8**。
 
-同一セッション内で連続クエリを送信し、キャッシュヒットを確認します。
+在同一工作階段中連續送出查詢，確認快取命中。
 
 ```bash
-# 1. チャットUIで質問を送信
-# 2. 5分以内に2回目の質問を送信
-# 3. CloudWatch Logs で確認:
+# 1. 在聊天介面提出問題
+# 2. 5 分鐘內提出第二個問題
+# 3. 在 CloudWatch Logs 中確認：
 aws logs filter-log-events \
   --log-group-name "/aws/lambda/${PREFIX}-webapp" \
   --filter-pattern '"Cache hit"' \
   --start-time $(date -d '5 minutes ago' +%s000) \
   --region ap-northeast-1
 
-# 期待されるログ:
+# 期望的日誌：
 # [Converse] Cache hit: 550/1200 input tokens cached (46%)
 ```
 
-CloudWatch メトリクスで確認:
+透過 CloudWatch 指標確認：
 ```bash
 aws cloudwatch get-metric-statistics \
   --namespace "RAG/TokenUsage" \
@@ -73,109 +73,96 @@ aws cloudwatch get-metric-statistics \
 
 ---
 
-## Step 3: Automated Reasoning Guardrails（15分）
+## Step 3：Automated Reasoning Guardrails（15 分鐘）
 
-Permission違反を意図的に誘発し、Automated Reasoningがブロックすることを確認します。
+刻意觸發權限違規，確認 Automated Reasoning 會攔截。
 
 ```bash
-# 1. Guardrails有効でデプロイ
-npx cdk deploy ${PREFIX}-AI \
-  -c enableGuardrails=true \
-  -c 'guardrailsConfig={"enableAutomatedReasoning":true,"contextualGrounding":true}'
+# 1. 啟用 Guardrails 部署
+npx cdk deploy ${STACK_PREFIX}-AI -c enableGuardrails=true
 
-# 2. チャットUIで Permission 境界外のクエリを試行
-#    例: 管理者専用文書について一般ユーザーで質問
-#    → 「この回答はセキュリティポリシーにより制限されました」が返ることを確認
+# 2. 在聊天介面嘗試超出權限邊界的查詢
+#    例：以一般使用者帳號詢問僅管理員可見的文件
+#    → 確認回傳「該回答已受安全政策限制」之類的提示
 
-# 3. Guardrail介入ログ確認
+# 3. 確認 Guardrail 介入日誌
 aws logs filter-log-events \
   --log-group-name "/aws/lambda/${PREFIX}-webapp" \
-  --filter-pattern '"guardrailResult"' \
+  --filter-pattern '"guardrailAction"' \
   --region ap-northeast-1
 ```
 
 ---
 
-## Step 4: AgentCore Gateway + Permission Interceptor（15分）
+## Step 4：AgentCore Gateway + Permission Interceptor（15 分鐘）
 
 ```bash
-# 1. Gateway有効でデプロイ
-npx cdk deploy ${PREFIX}-AI -c enableAgentCoreGateway=true
+# 1. 啟用 Gateway 部署
+npx cdk deploy --all -c enableAgentCoreGateway=true
 
-# 2. Stack出力からGateway URLを取得
+# 2. 從堆疊輸出取得 Gateway URL
 aws cloudformation describe-stacks \
-  --stack-name ${PREFIX}-AI \
-  --query 'Stacks[0].Outputs[?contains(OutputKey,`GatewayUrl`)].OutputValue' \
+  --stack-name ${STACK_PREFIX}-AI \
+  --query 'Stacks[0].Outputs[?OutputKey==`AgentCoreGatewayUrl`].OutputValue' \
   --output text
 
-# 3. Interceptor Lambdaのログ確認
-aws logs filter-log-events \
-  --log-group-name "/aws/lambda/${PREFIX}-gateway-interceptor" \
-  --filter-pattern '"permission_decision"' \
-  --region ap-northeast-1
-
-# 期待されるログ:
-# {"event":"permission_decision","toolName":"list_volumes","decision":"ALLOW",...}
-# {"event":"permission_decision","toolName":"expand_volume","decision":"DENY",...}
+# 3. 確認 Interceptor Lambda 的日誌
+aws logs tail "/aws/lambda/${PREFIX}-permission-interceptor" --follow --region ap-northeast-1
 ```
 
 ---
 
-## Step 5: Citations + Permission Boundary 確認（10分）
+## Step 5：Citations 與權限邊界確認（10 分鐘）
 
-チャットUIでクエリを送信し、レスポンスのCitationsを確認します。
+在聊天介面送出查詢，並檢視回應中的 Citations。
 
 ```bash
-# API レスポンスの citations フィールドを確認
-curl -s ${CLOUDFRONT_URL}/api/bedrock/kb/retrieve \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -d '{"query":"売上レポートについて教えて","userId":"user@example.com","knowledgeBaseId":"'${KB_ID}'"}' \
-  | jq '.citations[] | {index, fileName, boundaryType, permissionVerified}'
+# 確認 API 回應的 citations 欄位
+curl -s -X POST "${APP_URL}/api/bedrock/kb/retrieve" \
+  -H 'content-type: application/json' \
+  -d '{"query":"請介紹一下銷售報告","userId":"user@example.com","knowledgeBaseId":"'${KB_ID}'"}' \
+  | python3 -m json.tool
 
-# 期待値:
-# { "index": 1, "fileName": "quarterly-report.pdf", "boundaryType": "verified", "permissionVerified": true }
+# 期望值：
+# "citations": [{ "boundaryType": "verified", "permissionVerified": true, ... }]
 ```
 
 ---
 
-## Step 6: Graph RAG（オプション、5分）
+## Step 6：Graph RAG（選用，5 分鐘）
 
 ```bash
-# 1. Graph RAG有効でデプロイ（Neptune Analytics起動に~10分）
-npx cdk deploy ${PREFIX}-AI -c enableGraphRAG=true
+# 1. 啟用 Graph RAG 部署（Neptune Analytics 啟動約需 10 分鐘）
+npx cdk deploy --all -c enableGraphRAG=true
 
-# 2. Neptune Analytics エンドポイント確認
-aws cloudformation describe-stacks \
-  --stack-name ${PREFIX}-AI \
-  --query 'Stacks[0].Outputs[?contains(OutputKey,`GraphEndpoint`)].OutputValue' \
-  --output text
+# 2. 確認 Neptune Analytics 端點
+aws neptune-graph list-graphs --region ap-northeast-1
 
-# 3. グラフへのテストクエリ（Lambda経由）
-# ドキュメント関連性グラフの構築は別途スクリプト実行が必要
+# 3. 對圖執行測試查詢（透過 Lambda）
+# 建構文件關聯圖需要另外執行腳本
 ```
 
 ---
 
-## クリーンアップ
+## 清理
 
-新機能を無効化してコストを節約:
+停用新功能以節省成本：
 
 ```bash
-# Graph RAG無効化（Neptune Analytics停止）
-npx cdk deploy ${PREFIX}-AI -c enableGraphRAG=false
+# 停用 Graph RAG（停止 Neptune Analytics）
+npx cdk deploy --all -c enableGraphRAG=false
 
-# Gateway無効化
-npx cdk deploy ${PREFIX}-AI -c enableAgentCoreGateway=false
+# 停用 Gateway
+npx cdk deploy --all -c enableAgentCoreGateway=false
 
-# Guardrails無効化
-npx cdk deploy ${PREFIX}-AI -c enableGuardrails=false
+# 停用 Guardrails
+npx cdk deploy ${STACK_PREFIX}-AI -c enableGuardrails=false
 ```
 
 ---
 
-## 関連ドキュメント
+## 相關文件
 
-- [2026 Q2 AI Update Roadmap](design/2026q2-ai-update-roadmap.md)
-- [チャンキング戦略選定ガイド](chunking-strategy-guide.md)
-- [コスト見積もりワークシート](cost-estimation-worksheet.md)
-- [本番化チェックリスト](production-readiness-checklist.md)
+- [分塊策略選型指南](chunking-strategy-guide.md)
+- [成本估算工作表](cost-estimation-worksheet.md)
+- [生產就緒檢查清單](production-readiness-checklist.md)

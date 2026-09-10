@@ -1,165 +1,167 @@
 # KB Auto-Sync 错误处理设计
 
-## Overview
+**🌐 Language:** [日本語](../kb-auto-sync-error-handling.md) | [English](../en/kb-auto-sync-error-handling.md) | [한국어](../ko/kb-auto-sync-error-handling.md) | **简体中文** | [繁體中文](../zh-TW/kb-auto-sync-error-handling.md) | [Français](../fr/kb-auto-sync-error-handling.md) | [Deutsch](../de/kb-auto-sync-error-handling.md) | [Español](../es/kb-auto-sync-error-handling.md)
 
-KB Auto-Sync（`enableKbAutoSync=true`）のエラー発生時のフロー、リトライ戦略、アラート、および手動復旧手順を定義する。
+## 概述
 
-## エラー検出メカニズム
+本文档定义 KB Auto-Sync（`enableKbAutoSync=true`）发生错误时的流程、重试策略、告警以及手动恢复步骤。
 
-### CloudWatch Alarm（自動検出）
+## 错误检测机制
+
+### CloudWatch Alarm（自动检测）
 
 ```
-EventBridge Scheduler (5分間隔)
-  → Lambda実行
-    → 成功: メトリクス正常
-    → 失敗: Lambda Errorsメトリクス +1
-      → 3回連続エラー: CloudWatch Alarm発報
-        → SNS通知（enableMonitoring=true時）
+EventBridge Scheduler（每 5 分钟）
+  → 执行 Lambda
+    → 成功：指标正常
+    → 失败：Lambda Errors 指标 +1
+      → 连续 3 次错误：触发 CloudWatch Alarm
+        → SNS 通知（enableMonitoring=true 时）
 ```
 
-**アラーム設定:**
-- 名前: `${prefix}-kb-auto-sync-errors`
-- 閾値: 1エラー × 3連続期間
-- 期間: ポーリング間隔と同じ（デフォルト5分）
-- 欠落データ: NOT_BREACHING（Lambda未実行時はアラームなし）
+**告警配置：**
+- 名称：`${prefix}-kb-auto-sync-errors`
+- 阈值：1 个错误 × 连续 3 个周期
+- 周期：与轮询间隔相同（默认 5 分钟）
+- 缺失数据：NOT_BREACHING（Lambda 未运行时不告警）
 
-### EMFメトリクス（詳細監視）
+### EMF 指标（详细监控）
 
-KB Auto-Sync Lambda は以下のカスタムメトリクスを出力:
+KB Auto-Sync Lambda 输出以下自定义指标：
 
-| メトリクス名 | Namespace | 意味 |
-|-------------|-----------|------|
-| `FilesScanned` | `KbAutoSync` | スキャンしたファイル数 |
-| `FilesChanged` | `KbAutoSync` | 変更検出されたファイル数 |
-| `IngestionJobTriggered` | `KbAutoSync` | インジェスションジョブ開始数 |
-| `IngestionJobFailed` | `KbAutoSync` | インジェスションジョブ失敗数 |
-| `InventoryDiffErrors` | `KbAutoSync` | インベントリ差分計算エラー数 |
+| 指标 | Namespace | 含义 |
+|---|---|---|
+| `FilesScanned` | `KbAutoSync` | 扫描的文件数 |
+| `FilesChanged` | `KbAutoSync` | 检测到变更的文件数 |
+| `IngestionJobTriggered` | `KbAutoSync` | 启动的摄取作业数 |
+| `IngestionJobFailed` | `KbAutoSync` | 失败的摄取作业数 |
+| `InventoryDiffErrors` | `KbAutoSync` | 清单差分计算错误数 |
 
-## エラーパターンと対応
+## 错误模式与应对
 
-### Pattern 1: S3 Access Point ListObjectsV2 エラー
+### 模式 1：S3 Access Point ListObjectsV2 错误
 
-**原因**: FSx for ONTAP S3 AP接続エラー、IAM権限不足、S3 AP削除済み
+**原因**: FSx for ONTAP S3 AP 连接失败、IAM 权限不足，或 Access Point 已删除
 
-**動作**:
-- Lambda はエラーをログに出力して例外スロー
-- CloudWatch Alarm が3回連続後に発報
-- DynamoDBインベントリは変更されない（アトミック性維持）
+**行为**:
+- Lambda 记录错误并抛出异常
+- 连续三次失败后触发 CloudWatch Alarm
+- DynamoDB 清单保持不变，从而保证原子性
 
-**手動復旧**:
+**手动恢复**:
 ```bash
-# 1. S3 AP存在確認
+# 1. 确认 S3 Access Point 是否存在
 aws fsx describe-s3-access-points --volume-id <VOLUME_ID> --region ap-northeast-1
 
-# 2. Lambda環境変数のS3 AP ARN確認
+# 2. 检查 Lambda 环境变量中的 Access Point ARN
 aws lambda get-function-configuration \
   --function-name ${PREFIX}-kb-auto-sync \
   --query 'Environment.Variables.S3_ACCESS_POINT_ARN'
 
-# 3. 手動実行テスト
+# 3. 通过手动调用进行测试
 aws lambda invoke --function-name ${PREFIX}-kb-auto-sync /dev/stdout
 ```
 
-### Pattern 2: Bedrock KB Ingestion Job 失敗
+### 模式 2：Bedrock KB 摄取作业失败
 
-**原因**: KBデータソース設定エラー、S3 APアクセス権限エラー、チャンキング/パーシングエラー
+**原因**: KB 数据源配置错误、S3 Access Point 权限错误，或分块/解析错误
 
-**動作**:
-- Lambda は `StartIngestionJob` → `GetIngestionJob` でステータス追跡
-- ジョブステータスが `FAILED` の場合:
-  - DynamoDBインベントリのファイルを `status: "failed"` に更新
-  - 次回ポーリング時に再取り込みを試行しない（無限リトライ防止）
-  - `IngestionJobFailed` メトリクス出力
-- ジョブステータスが `IN_PROGRESS` の場合:
-  - 重複ジョブは起動しない（IN_PROGRESS排他制御）
+**行为**:
+- Lambda 使用 `StartIngestionJob` 后再用 `GetIngestionJob` 跟踪状态
+- 状态为 `FAILED` 时：
+  - 在 DynamoDB 清单中将该文件置为 `status: "failed"`
+  - 下次轮询不再重新摄取，从而避免无限重试
+  - 输出 `IngestionJobFailed` 指标
+- 状态为 `IN_PROGRESS` 时：
+  - 不启动重复作业（IN_PROGRESS 起到互斥作用）
 
-**手動復旧**:
+**手动恢复**:
 ```bash
-# 1. 失敗ジョブの詳細確認
+# 1. 查看失败的作业
 aws bedrock-agent list-ingestion-jobs \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID> \
   --filters '[{"attribute":"STATUS","operator":"EQ","values":["FAILED"]}]'
 
-# 2. 失敗ファイルのインベントリ確認
+# 2. 在清单中查找失败的文件
 aws dynamodb scan \
   --table-name ${PREFIX}-kb-sync-inventory \
   --filter-expression "#s = :failed" \
   --expression-attribute-names '{"#s": "status"}' \
   --expression-attribute-values '{":failed": {"S": "failed"}}'
 
-# 3. 失敗ファイルのインベントリをリセット（再取り込み可能に）
+# 3. 重置清单条目以便重新摄取
 aws dynamodb delete-item \
   --table-name ${PREFIX}-kb-sync-inventory \
   --key '{"fileKey": {"S": "<file_key>"}}'
 
-# 4. 手動インジェスション実行
+# 4. 手动启动摄取
 aws bedrock-agent start-ingestion-job \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID>
 ```
 
-### Pattern 3: DynamoDB インベントリテーブルエラー
+### 模式 3：DynamoDB 清单表错误
 
-**原因**: DynamoDB容量超過、権限エラー、テーブル削除
+**原因**: DynamoDB 容量耗尽、权限错误，或表被删除
 
-**動作**:
-- Lambda は例外スローで即時終了
-- Fail-safe: インベントリ更新なし → 次回ポーリングで再スキャン
-- CloudWatch Alarm が3回連続後に発報
+**行为**:
+- Lambda 抛出异常并立即结束
+- 故障安全：不更新清单，因此下次轮询会重新扫描全部内容
+- 连续三次失败后触发 CloudWatch Alarm
 
-**手動復旧**:
+**手动恢复**:
 ```bash
-# インベントリテーブル存在確認
+# 确认清单表是否存在
 aws dynamodb describe-table --table-name ${PREFIX}-kb-sync-inventory
 
-# テーブルが存在しない場合: CDK再デプロイ
+# 表不存在时使用 CDK 重新部署
 npx cdk deploy ${STACK_PREFIX}-AI -c enableKbAutoSync=true
 ```
 
-### Pattern 4: Lambda タイムアウト（5分超過）
+### 模式 4：Lambda 超时（超过 5 分钟）
 
-**原因**: 大量ファイルスキャン（>10,000ファイル）、ListObjectsV2の高レイテンシ
+**原因**: 扫描大量文件（>10,000 个）或 ListObjectsV2 延迟较高
 
-**動作**:
-- Lambda は5分でタイムアウト → Errorsメトリクス
-- 部分的にスキャンされたファイルはインベントリに記録されない（アトミック性維持）
+**行为**:
+- Lambda 在 5 分钟时超时，Errors 指标递增
+- 部分扫描的文件不会记录到清单中，从而保证原子性
 
-**対策**:
-- `kbAutoSyncIntervalMinutes` を長めに設定（15分等）
-- ファイル数が非常に多い場合は S3 AP のプレフィックス分割を検討
+**应对措施**:
+- 将 `kbAutoSyncIntervalMinutes` 设置得更长（例如 15 分钟）
+- 文件数极多时，考虑按前缀拆分 S3 Access Point
 
-## リトライ戦略
+## 重试策略
 
-| エラーパターン | 自動リトライ | リトライ間隔 | 最大リトライ |
-|--------------|-------------|-------------|------------|
-| S3 AP接続エラー | ✅（次回ポーリング） | ポーリング間隔（5分） | 無制限（アラームで検知） |
-| KB Ingestion失敗 | ❌（手動リセット要） | — | — |
-| DynamoDB エラー | ✅（次回ポーリング） | ポーリング間隔（5分） | 無制限（アラームで検知） |
-| Lambda タイムアウト | ✅（次回ポーリング） | ポーリング間隔（5分） | 無制限（アラームで検知） |
+| 错误模式 | 自动重试 | 重试间隔 | 最大次数 |
+|---|---|---|---|
+| S3 Access Point 连接错误 | ✅（下次轮询） | 轮询间隔（5 分钟） | 无限制（由告警发现） |
+| KB 摄取失败 | ❌（需手动重置） | — | — |
+| DynamoDB 错误 | ✅（下次轮询） | 轮询间隔（5 分钟） | 无限制（由告警发现） |
+| Lambda 超时 | ✅（下次轮询） | 轮询间隔（5 分钟） | 无限制（由告警发现） |
 
-**設計判断**: Dead Letter Queue (DLQ) は採用していない。EventBridge Scheduler経由の定期ポーリングパターンでは、失敗した処理は次回ポーリングで自動的にリトライされるため、DLQは不要。ただし、KB Ingestion Job自体の失敗は自動リトライしない（データ品質問題の可能性があるため手動確認を要求）。
+**设计判断**：不使用 Dead Letter Queue。在由 EventBridge Scheduler 驱动的周期性轮询模式中，失败的执行会在下次轮询自动重试，因此 DLQ 没有作用。例外是 KB 摄取作业失败——它**不会**自动重试，因为可能是数据质量问题，需要人工确认。
 
-## インジェスション失敗時のFail-Closed原則
+## 摄取失败时的 Fail-Closed 行为
 
-KB Auto-SyncのエラーがPermission-aware RAGのセキュリティに影響しないことを保証する:
+KB Auto-Sync 的错误不会削弱 RAG 管道的权限边界：
 
-1. **インベントリ未更新 = 既存インデックスが維持される** — 新ファイルが検索対象に入らないだけで、既存ファイルのPermission制御は維持
-2. **失敗したファイルは `status: "failed"` でマーク** — 次回ポーリングで自動再取り込みしない（手動確認後にリセット）
-3. **IN_PROGRESSジョブ排他制御** — 二重インジェスションによるデータ不整合を防止
-4. **Permission metadata (.metadata.json) なしファイル** — KBに取り込まれてもRAG検索時にFail-closedフィルタで除外される（Fail-closed原則は常に適用）
+1. **清单未更新时现有索引保持不变。** 新文件只是不会进入检索范围，现有文件的权限控制不受影响。
+2. **失败的文件标记为 `status: "failed"`。** 不会自动重新摄取；经人工确认后再重置该条目。
+3. **IN_PROGRESS 作业互斥**，可防止重复摄取导致的数据不一致。
+4. **没有权限元数据（`.metadata.json`）的文件**即使进入 KB，也会在检索时被 Fail-closed 过滤器排除。Fail-closed 原则始终生效。
 
-## 監視ダッシュボード
+## 监控面板
 
-`enableMonitoring=true` 時、CloudWatchダッシュボードに以下のウィジェットが追加される:
+当 `enableMonitoring=true` 时，CloudWatch 面板会增加以下小组件：
 
-- **KB Auto-Sync Errors**: Lambda Errors メトリクス（5分間隔）
-- **Ingestion Job Status**: 成功/失敗/進行中のジョブ数
-- **Files Changed**: ポーリングあたりの変更検出ファイル数
-- **Scan Duration**: Lambda実行時間（P50/P90/P99）
+- **KB Auto-Sync Errors**：Lambda Errors 指标（5 分钟周期）
+- **Ingestion Job Status**：成功/失败/进行中的作业数
+- **Files Changed**：每次轮询检测到变更的文件数
+- **Scan Duration**：Lambda 执行时间（P50/P90/P99）
 
-## 関連ドキュメント
+## 相关文档
 
-- [权限元数据变更一致性模型](permission-consistency.md) — 权限元数据更新与 KB 索引更新的关系（含 ACL 变更不会自动反映的原因）
-- [CloudWatch ダッシュボードガイド](cloudwatch-dashboard-guide.md) — 監視メトリクスの見方
-- [本番化チェックリスト](production-readiness-checklist.md) — KB Auto-Syncの本番化要件
+- [权限元数据一致性模型](permission-consistency.md) —— 权限更新与 KB 索引更新的关系，以及 ACL 变更为何不会自动反映
+- [CloudWatch 面板指南](cloudwatch-dashboard-guide.md) —— 如何解读监控指标
+- [生产就绪检查清单](production-readiness-checklist.md) —— 在生产环境运行 KB Auto-Sync 的前提条件

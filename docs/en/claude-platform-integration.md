@@ -102,7 +102,5 @@ aws secretsmanager create-secret \
 ---
 
 ## Related Documents
-
-- [2026 Q2 AI Update Roadmap](../design/2026q2-ai-update-roadmap.md) — Phase 3
 - [Prompt Caching Investigation](../prompt-caching-investigation.md)
 - [Operations Runbook](../operations-runbook.md)

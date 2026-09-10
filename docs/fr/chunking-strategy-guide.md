@@ -1,171 +1,173 @@
-# Guide de sélection de la stratégie de chunking
+# Guide de choix de la stratégie de découpage
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | [简体中文](../zh-CN/chunking-strategy-guide.md) | [繁體中文](../zh-TW/chunking-strategy-guide.md) | **Français** | [Deutsch](../de/chunking-strategy-guide.md) | [Español](../es/chunking-strategy-guide.md)
 
-**Date de création** : 2026-06-07  
-**Statut** : Première édition  
-**Public cible** : RAG品質チューニング担当、データエンジニア
+**Création**: 2026-06-07  
+**Statut**: Première édition  
+**Public cible**: responsables du réglage de la qualité RAG, ingénieurs de données
 
 ---
 
-## 概要
+## Vue d'ensemble
 
-Bedrock Knowledge Base のチャンキング戦略は、RAG の検索精度・応答品質・コストに直接影響する。本ガイドでは、FSx for ONTAP 上のドキュメント特性に応じた最適な戦略選択を支援する。
+La stratégie de découpage d'une Bedrock Knowledge Base agit directement sur la précision de la recherche, la qualité des réponses et le coût. Ce guide aide à choisir celle qui correspond aux caractéristiques des documents stockés sur FSx for ONTAP.
 
 ---
 
-## 利用可能な戦略
+## Stratégies disponibles
 
-CDKコンテキスト `kbChunkingStrategy` で設定:
+Se règle par le contexte CDK `kbChunkingStrategy` :
 
 ```bash
-npx cdk synth --quiet -c kbChunkingStrategy=FIXED_SIZE    # デフォルト
+npx cdk synth --quiet -c kbChunkingStrategy=FIXED_SIZE    # par défaut
 npx cdk synth --quiet -c kbChunkingStrategy=HIERARCHICAL
 npx cdk synth --quiet -c kbChunkingStrategy=SEMANTIC
 npx cdk synth --quiet -c kbChunkingStrategy=NONE
 ```
 
-> ⚠️ **チャンキング戦略を変更した場合、DataSource の再同期（re-ingestion）が必須です。**
+> ⚠️ **Changer la stratégie de découpage impose une resynchronisation de la source de données (réingestion).**
+
+**Toute valeur en dehors de ces quatre lève une erreur au moment du synth.** Retomber silencieusement sur la valeur par défaut laisserait la sortie `KbChunkingStrategy` afficher la faute de frappe alors que la configuration émise indiquerait `FIXED_SIZE` : la valeur affichée et la configuration déployée seraient en désaccord. La casse est normalisée (`semantic` → `SEMANTIC`).
 
 ---
 
-## 戦略比較マトリクス
+## Comparaison des stratégies
 
-| 戦略 | チャンクサイズ | オーバーラップ | 検索精度 | コスト | 適用シナリオ |
-|------|-------------|-------------|---------|--------|------------|
-| **FIXED_SIZE** | 300トークン | 10% | ⭐⭐⭐ | 💰 低 | 汎用、初期デプロイ、構造が均一な文書 |
-| **HIERARCHICAL** | Parent: 1500 / Child: 300 | 60トークン | ⭐⭐⭐⭐ | 💰💰 中 | 長文レポート、階層構造文書、技術文書 |
-| **SEMANTIC** | 最大300トークン | 自動（意味単位） | ⭐⭐⭐⭐⭐ | 💰💰💰 高 | 多様な文書、FAQ、対話形式、議事録 |
-| **NONE** | 文書全体 | なし | ⭐⭐ | 💰 最低 | 短い文書（<300トークン）、メタデータのみ |
-
----
-
-## データ特性×戦略 推奨マトリクス
-
-| ドキュメント特性 | 推奨戦略 | 理由 |
-|----------------|---------|------|
-| **設計書・仕様書**（階層構造、長文） | HIERARCHICAL | 章→節→段落の階層を維持し、広いコンテキストと精密な検索を両立 |
-| **契約書・法的文書**（条文単位） | SEMANTIC | 条文間の意味的境界を自動検出し、条文を分割しない |
-| **FAQ・Q&A集**（短い質問-回答ペア） | SEMANTIC | 質問と回答を同一チャンクに保持 |
-| **議事録・メール**（対話形式） | SEMANTIC | 話題の切り替わりで自然に分割 |
-| **マニュアル・手順書**（ステップバイステップ） | HIERARCHICAL | 手順全体（Parent）と個別ステップ（Child）を階層化 |
-| **財務レポート**（表・数値データ含む） | FIXED_SIZE | 表構造が複雑な場合、固定サイズが安定 |
-| **短い通知・お知らせ**（<1ページ） | NONE | 文書全体が1チャンクに収まる場合、分割不要 |
-| **混在コーパス**（多種多様な文書） | SEMANTIC | 文書タイプを問わず意味的に適切な分割 |
+| Stratégie | Taille de bloc | Chevauchement | Précision | Coût | Adaptée à |
+|---|---|---|---|---|---|
+| **FIXED_SIZE** | 300 jetons | 10% | ⭐⭐⭐ | 💰 faible | usage général, premier déploiement, documents de structure uniforme |
+| **HIERARCHICAL** | parent 1500 / enfant 300 | 60 jetons | ⭐⭐⭐⭐ | 💰💰 moyen | rapports longs, documents hiérarchiques, documentation technique |
+| **SEMANTIC** | ≤300 jetons | automatique (unités de sens) | ⭐⭐⭐⭐⭐ | 💰💰💰 élevé | corpus hétérogène, FAQ, dialogues, comptes rendus |
+| **NONE** | document entier | aucun | ⭐⭐ | 💰 le plus faible | documents courts (<300 jetons), métadonnées seulement |
 
 ---
 
-## 業種別推奨
+## Caractéristiques des documents et stratégie recommandée
 
-| 業種 | 主要ドキュメント | 推奨戦略 | 備考 |
-|------|----------------|---------|------|
-| **製造** | 設計図面（テキスト部分）、品質規格、作業手順書 | HIERARCHICAL | 図面はマルチモーダルKBと併用 |
-| **金融** | 規制文書、内部レポート、コンプライアンス報告 | SEMANTIC | 条文の意味的完全性を維持 |
-| **公共** | 政策文書、通達、議事録 | SEMANTIC | 議事録の話題単位分割が重要 |
-| **医療** | 臨床ガイドライン、手順書、研究論文 | HIERARCHICAL | 章立て構造を活用 |
-| **法務** | 契約書、判例、法令 | SEMANTIC | 条文分割を避ける |
-| **教育** | 教材、シラバス、研究資料 | FIXED_SIZE | 均一な構造、コスト重視 |
-| **保険** | 査定基準、不正検知レポート | HIERARCHICAL | 階層的な判定基準に適合 |
-
----
-
-## パフォーマンス特性
-
-### インジェスション時間
-
-| 戦略 | 1,000ドキュメント（推定） | 10,000ドキュメント（推定） |
-|------|------------------------|--------------------------|
-| FIXED_SIZE | ~5分 | ~30分 |
-| HIERARCHICAL | ~8分 | ~50分 |
-| SEMANTIC | ~15分 | ~90分 |
-| NONE | ~3分 | ~15分 |
-
-> SEMANTIC戦略は各チャンク境界で追加のモデル呼び出しを行うため、インジェスション時間とコストが増加する。
-
-### 検索レイテンシ
-
-チャンキング戦略は検索レイテンシに直接影響しない（ベクトル検索のパフォーマンスはインデックスサイズに依存）。ただし、HIERARCHICAL は Parent/Child の2段階検索を行うため、わずかに（~50ms）レイテンシが増加する可能性がある。
+| Caractéristiques | Recommandée | Pourquoi |
+|---|---|---|
+| **Documents de conception et spécifications** (hiérarchiques, longs) | HIERARCHICAL | conserve la hiérarchie chapitre → section → paragraphe, ce qui donne à la fois un contexte large et une recherche précise |
+| **Contrats et documents juridiques** (par article) | SEMANTIC | détecte la frontière sémantique entre les articles et n'en coupe aucun |
+| **FAQ** (paires question-réponse courtes) | SEMANTIC | garde la question et sa réponse dans le même bloc |
+| **Comptes rendus et courriels** (dialogue) | SEMANTIC | découpe naturellement là où le sujet change |
+| **Manuels et procédures** (étape par étape) | HIERARCHICAL | la procédure entière devient le parent et chaque étape un enfant |
+| **Rapports financiers** (tableaux et chiffres) | FIXED_SIZE | la taille fixe est plus stable lorsque la structure des tableaux est complexe |
+| **Avis courts** (moins d'une page) | NONE | aucun découpage nécessaire quand le document tient dans un bloc |
+| **Corpus mixte** (types variés) | SEMANTIC | produit un découpage sémantiquement raisonnable quel que soit le type |
 
 ---
 
-## Permission-Aware RAG との関係
+## Par secteur
 
-**重要**: チャンキング戦略に関わらず、Permission filtering は常に**ドキュメント単位**で適用される。
+| Secteur | Documents principaux | Recommandée | Remarques |
+|---|---|---|---|
+| **Industrie** | plans (parties textuelles), normes qualité, instructions de travail | HIERARCHICAL | associer les plans à un KB multimodal |
+| **Services financiers** | documents réglementaires, rapports internes, rapports de conformité | SEMANTIC | préserve l'intégrité sémantique des articles |
+| **Secteur public** | documents de politique, circulaires, comptes rendus | SEMANTIC | le découpage par sujet des comptes rendus compte |
+| **Santé** | recommandations cliniques, procédures, articles de recherche | HIERARCHICAL | exploite la structure en chapitres |
+| **Juridique** | contrats, jurisprudence, textes de loi | SEMANTIC | évite de couper les articles |
+| **Éducation** | supports de cours, programmes, documents de recherche | FIXED_SIZE | structure uniforme, sensible au coût |
+| **Assurance** | critères d'évaluation, rapports de détection de fraude | HIERARCHICAL | correspond à des critères de décision hiérarchiques |
+
+---
+
+## Caractéristiques de performance
+
+### Durée d'ingestion
+
+| Stratégie | 1,000 documents (estimation) | 10,000 documents (estimation) |
+|---|---|---|
+| FIXED_SIZE | ~5 min | ~30 min |
+| HIERARCHICAL | ~8 min | ~50 min |
+| SEMANTIC | ~15 min | ~90 min |
+| NONE | ~3 min | ~15 min |
+
+> SEMANTIC effectue un appel de modèle supplémentaire à chaque frontière candidate, ce qui augmente la durée d'ingestion et le coût.
+
+### Latence de recherche
+
+La stratégie de découpage n'agit pas directement sur la latence de recherche — la performance de la recherche vectorielle dépend de la taille de l'index. HIERARCHICAL effectue une recherche parent/enfant en deux temps et peut donc ajouter un peu de latence (~50 ms).
+
+---
+
+## Relation avec le RAG sensible aux permissions
+
+**Important** : quelle que soit la stratégie de découpage, le filtrage des permissions s'applique toujours **par document**.
 
 ```
-文書A (SID: [Admin, Engineering])
-  ├── Chunk 1 → SID: [Admin, Engineering] (親文書から継承)
-  ├── Chunk 2 → SID: [Admin, Engineering] (親文書から継承)
-  └── Chunk 3 → SID: [Admin, Engineering] (親文書から継承)
+Document A (SID: [Admin, Engineering])
+  ├── Chunk 1 → SID: [Admin, Engineering] (hérité du document)
+  ├── Chunk 2 → SID: [Admin, Engineering] (hérité du document)
+  └── Chunk 3 → SID: [Admin, Engineering] (hérité du document)
 ```
 
-- `.metadata.json` のSID情報は文書単位で付与される
-- チャンクレベルのPermission差別化は不可（ドキュメント全体に同一Permission）
-- 同一ドキュメント内で異なるPermissionが必要な場合、ドキュメントを分割して別ファイルにする
+- Les informations de SID dans `.metadata.json` sont attachées par document.
+- Des permissions différentes par bloc ne sont pas possibles ; l'ensemble du document porte un seul jeu de permissions.
+- Lorsqu'un document a besoin de permissions différentes selon ses parties, il faut le scinder en fichiers distincts.
 
 ---
 
-## 戦略変更手順
+## Changer de stratégie
 
 ```bash
-# 1. 現在の戦略を確認
+# 1. Vérifier la stratégie actuelle
 grep kbChunkingStrategy cdk.context.json
 
-# 2. CDKコンテキスト更新
-# cdk.context.json を編集するか、コマンドラインで指定
+# 2. Mettre à jour le contexte CDK
+# modifier cdk.context.json, ou passer la valeur en ligne de commande
 
-# 3. CDK差分確認
+# 3. Examiner le diff CDK
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. デプロイ（DataSource設定更新のみ）
+# 4. Déployer (met à jour uniquement la configuration de la source de données)
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 5. DataSource再同期（必須！）
+# 5. Resynchroniser la source de données (obligatoire)
 aws bedrock-agent start-ingestion-job \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID> \
   --region ap-northeast-1
 
-# 6. 再インジェスション完了を待機
+# 6. Attendre la fin de la réingestion
 aws bedrock-agent get-ingestion-job \
   --knowledge-base-id <KB_ID> \
   --data-source-id <DS_ID> \
   --ingestion-job-id <JOB_ID>
 
-# 7. 品質評価（RAGASで比較）
+# 7. Évaluer la qualité (comparer avec RAGAS)
 cd tests/rag-evaluation
 python3 evaluate.py --kb-id <KB_ID> --model-id <MODEL_ID> --region ap-northeast-1
 ```
 
 ---
 
-## 評価方法
+## Comment évaluer un changement
 
-戦略変更後は必ず以下で品質を測定:
+Après un changement de stratégie, mesurez toujours :
 
-1. **RAGAS評価**: `tests/rag-evaluation/` で Faithfulness, Answer Relevancy, Context Precision を比較
-2. **Permission-matrix回帰テスト**: 31シナリオで権限フィルタリングが正常か確認
-3. **応答時間測定**: P50/P95/P99 レイテンシを CloudWatch で確認
-4. **コスト比較**: インジェスションコスト + クエリコストの合計で比較
+1. **Évaluation RAGAS** : comparez fidélité, pertinence des réponses et précision du contexte avec `tests/rag-evaluation/`.
+2. **Régression de la matrice de permissions** : vérifiez que le filtrage se comporte toujours sur les 31 scénarios.
+3. **Temps de réponse** : contrôlez les latences P50/P95/P99 dans CloudWatch.
+4. **Coût** : comparez la somme du coût d'ingestion et du coût de requête.
 
 ---
 
-## CDK実装詳細
+## Implémentation CDK
 
-`lib/stacks/demo/demo-ai-stack.ts` の `buildChunkingConfiguration()` 関数:
+`buildChunkingConfiguration()` dans `lib/stacks/demo/demo-ai-stack.ts` :
 
 ```typescript
 // FIXED_SIZE: maxTokens=300, overlapPercentage=10
 // HIERARCHICAL: parent=1500, child=300, overlapTokens=60
 // SEMANTIC: maxTokens=300, bufferSize=1, breakpointPercentileThreshold=95
-// NONE: チャンキングなし（文書全体を1ベクトル化）
+# NONE : aucun découpage (le document entier devient un vecteur)
 ```
 
 ---
 
-## 関連ドキュメント
+## Documents associés
 
-- [FSx for ONTAP サイジング・性能設計](fsxn-sizing-and-performance.md)
-- [RAG / Agent 評価フレームワーク](evaluation.md)
-- [コスト見積もりワークシート](cost-estimation-worksheet.md)
+- [Dimensionnement et performance de FSx for ONTAP](fsxn-sizing-and-performance.md)
+- [Cadre d'évaluation RAG / Agent](evaluation.md)
+- [Feuille de calcul d'estimation des coûts](cost-estimation-worksheet.md)
 - [Architecture Decision Records](architecture-decision-records.md)

@@ -1,23 +1,23 @@
 # Verificación previa al despliegue de la política de Automated Reasoning
 
-**Fecha de creación**: 2026-06-07  
-**Destinatarios**: Guardrails Automated Reasoning 有効化時の事前検証
+**Creado**: 2026-06-07  
+**Público**: quien vaya a habilitar Guardrails Automated Reasoning, antes de desplegar
 
 ---
 
-## 概要
+## Descripción general
 
-Automated Reasoning Policy のルール表現が Bedrock API に受け入れられるかを、CDK デプロイ前に CLI で事前検証する手順。ルール表現の形式が API 仕様と合わない場合、CDK deploy がロールバックされてしまうため、事前検証が重要。
+Este procedimiento comprueba, con la CLI y antes de un despliegue de CDK, que la API de Bedrock acepta las expresiones de reglas de una política de Automated Reasoning. Si una expresión no coincide con lo que espera la API, el despliegue de CDK se revierte, y por eso conviene comprobarlo antes.
 
-## 事前検証手順
+## Procedimiento
 
-### Step 1: ポリシー作成テスト
+### Paso 1: intentar crear la política
 
 ```bash
-# 1. ポリシーのルール定義を確認
+# 1. Revisar las definiciones de reglas
 cat lib/guardrails/permission-reasoning-policy.ts
 
-# 2. CLI でポリシー作成を試行（dry-run相当）
+# 2. Intentar la creación con la CLI (lo más parecido a un dry run)
 aws bedrock create-automated-reasoning-policy \
   --name "test-permission-reasoning-$(date +%s)" \
   --description "Verification test — will be deleted" \
@@ -32,27 +32,27 @@ aws bedrock create-automated-reasoning-policy \
   --region ap-northeast-1 \
   2>&1
 
-# 成功時の出力例:
+# Ejemplo de salida en caso de éxito:
 # {
 #   "automatedReasoningPolicyArn": "arn:aws:bedrock:ap-northeast-1:123456789012:automated-reasoning-policy/xxx",
 #   ...
 # }
 
-# 失敗時の出力例:
+# Ejemplo de salida en caso de fallo:
 # An error occurred (ValidationException) when calling the CreateAutomatedReasoningPolicy operation: ...
 ```
 
-### Step 2: ポリシー削除（テスト用）
+### Paso 2: eliminar la política de prueba
 
 ```bash
-# テスト用ポリシーを削除
+# Eliminar la política creada para la prueba
 aws bedrock delete-automated-reasoning-policy \
   --automated-reasoning-policy-identifier <POLICY_ARN_FROM_STEP_1> \
   --force-delete \
   --region ap-northeast-1
 ```
 
-### Step 3: 全ルールの一括検証スクリプト
+### Paso 3: verificar todas las reglas en un script
 
 ```bash
 #!/bin/bash
@@ -64,7 +64,7 @@ POLICY_NAME="verify-permission-reasoning-$(date +%s)"
 
 echo "Creating test policy: ${POLICY_NAME}"
 
-# CDK構成と同じルールを使用
+# Usa las mismas reglas que la configuración de CDK
 RESULT=$(aws bedrock create-automated-reasoning-policy \
   --name "${POLICY_NAME}" \
   --description "Deployment verification — auto-delete" \
@@ -83,7 +83,7 @@ RESULT=$(aws bedrock create-automated-reasoning-policy \
 if echo "${RESULT}" | grep -q "automatedReasoningPolicyArn"; then
   POLICY_ARN=$(echo "${RESULT}" | python3 -c "import sys,json; print(json.load(sys.stdin)['automatedReasoningPolicyArn'])")
   echo "✅ Policy created successfully: ${POLICY_ARN}"
-  
+
   # Clean up
   echo "Deleting test policy..."
   aws bedrock delete-automated-reasoning-policy \
@@ -98,20 +98,20 @@ else
 fi
 ```
 
-## トラブルシューティング
+## Resolución de problemas
 
-| エラー | 原因 | 対応 |
-|--------|------|------|
-| `ValidationException: Invalid expression` | ルール表現がAPI仕様に合わない | 表現を簡潔にするか、形式論理構文に変更 |
-| `ServiceQuotaExceededException` | ポリシー数上限に達した | 不要なテストポリシーを削除 |
-| `AccessDeniedException` | IAM権限不足 | `bedrock:CreateAutomatedReasoningPolicy` 権限を確認 |
+| Error | Causa | Qué hacer |
+|---|---|---|
+| `ValidationException: Invalid expression` | la expresión no coincide con lo que acepta la API | simplificar la redacción o reescribirla en lógica formal |
+| `ServiceQuotaExceededException` | se alcanzó el límite de políticas | eliminar las políticas de prueba sobrantes |
+| `AccessDeniedException` | permisos de IAM insuficientes | comprobar que existe `bedrock:CreateAutomatedReasoningPolicy` |
 
-## CDKデプロイとの関係
+## Relación con el despliegue de CDK
 
-CDK の `enableGuardrails=true` + `guardrailsConfig.enableAutomatedReasoning=true` でデプロイすると:
+Desplegar con `enableGuardrails=true` y `guardrailsConfig.enableAutomatedReasoning=true`:
 
-1. `CfnAutomatedReasoningPolicy` リソースが作成される
-2. そのARNが `CfnGuardrail` の `automatedReasoningPolicyConfig.policies` に渡される
-3. Guardrail適用時に、モデル出力がポリシーに対して形式検証される
+1. Crea un recurso `CfnAutomatedReasoningPolicy`.
+2. Pasa su ARN a `automatedReasoningPolicyConfig.policies` en `CfnGuardrail`.
+3. Verifica formalmente la salida del modelo contra la política cada vez que se aplica el guardrail.
 
-事前にこのドキュメントの手順でルールの受け入れを確認してからデプロイすること。
+Confirme que las reglas se aceptan, con el procedimiento anterior, antes de desplegar.
