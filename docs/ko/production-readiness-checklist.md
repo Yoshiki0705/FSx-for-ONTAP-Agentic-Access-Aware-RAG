@@ -97,7 +97,7 @@
 ### 3. 가용성 & DR
 
 - [ ] FSx for ONTAP Multi-AZ 구성 확인
-- [ ] DynamoDB Point-in-Time Recovery (PITR) 활성화
+- [x] DynamoDB Point-in-Time Recovery (PITR) 활성화 — 스택이 모든 테이블에서 기본 활성화. `tests/transfer-family-stack.test.ts`가 고정합니다
 - [ ] S3 버전 관리 활성화
 - [ ] 백업 스케줄 구성 (FSx 자동 백업)
 - [ ] RTO / RPO 정의 및 검증

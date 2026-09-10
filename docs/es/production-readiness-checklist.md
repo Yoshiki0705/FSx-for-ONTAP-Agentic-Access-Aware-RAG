@@ -97,7 +97,7 @@ Este documento proporciona una lista de verificación de elementos a confirmar a
 ### 3. Disponibilidad y DR
 
 - [ ] Confirmar configuración Multi-AZ de FSx for ONTAP
-- [ ] Habilitar recuperación en un punto en el tiempo (PITR) de DynamoDB
+- [x] Habilitar recuperación en un punto en el tiempo (PITR) de DynamoDB — habilitada por los stacks en todas las tablas; fijada por `tests/transfer-family-stack.test.ts`
 - [ ] Habilitar versionado de S3
 - [ ] Configurar programación de respaldos (respaldos automáticos de FSx)
 - [ ] Definir y verificar RTO / RPO

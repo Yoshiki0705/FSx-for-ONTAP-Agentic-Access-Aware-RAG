@@ -97,7 +97,7 @@ Ce document fournit une liste de vérification des éléments à valider lors de
 ### 3. Disponibilité et DR
 
 - [ ] Confirmer la configuration Multi-AZ de FSx for ONTAP
-- [ ] Activer la récupération ponctuelle DynamoDB (PITR)
+- [x] Activer la récupération ponctuelle DynamoDB (PITR) — activée par les stacks pour chaque table ; verrouillée par `tests/transfer-family-stack.test.ts`
 - [ ] Activer le versionnement S3
 - [ ] Configurer le calendrier de sauvegarde (sauvegardes automatiques FSx)
 - [ ] Définir et vérifier le RTO / RPO

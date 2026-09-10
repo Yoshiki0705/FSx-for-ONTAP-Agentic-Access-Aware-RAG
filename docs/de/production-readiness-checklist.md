@@ -97,7 +97,7 @@ Dieses Dokument bietet eine Checkliste der zu überprüfenden Punkte bei der Mig
 ### 3. Verfügbarkeit & DR
 
 - [ ] FSx for ONTAP Multi-AZ-Konfiguration bestätigen
-- [ ] DynamoDB Point-in-Time Recovery (PITR) aktivieren
+- [x] DynamoDB Point-in-Time Recovery (PITR) aktivieren — von den Stacks für jede Tabelle aktiviert; durch `tests/transfer-family-stack.test.ts` festgeschrieben
 - [ ] S3-Versionierung aktivieren
 - [ ] Backup-Zeitplan konfigurieren (automatische FSx-Backups)
 - [ ] RTO / RPO definieren und verifizieren

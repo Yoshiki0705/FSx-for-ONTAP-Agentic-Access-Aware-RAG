@@ -483,7 +483,7 @@ aws lambda update-function-configuration \
 ### 7.5 Backup and Recovery
 
 - **FSx for ONTAP**: Managed by existing customer backup policy (Snapshots/SnapMirror)
-- **DynamoDB**: Point-in-time recovery enabled by default
+- **DynamoDB**: point-in-time recovery is enabled on every table created by these stacks. `RemovalPolicy.DESTROY` still applies to the demo resources, so PITR protects against accidental writes and deletes within a table, not against the stack being destroyed
 - **S3 Vectors / KB**: Re-indexable from source (FSx for ONTAP volume)
 - **Cognito**: Export via `aws cognito-idp list-users`
 

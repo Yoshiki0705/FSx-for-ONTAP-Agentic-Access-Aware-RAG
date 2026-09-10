@@ -100,7 +100,7 @@
 ### 3. 可用性・DR
 
 - [ ] FSx for ONTAP Multi-AZ 構成の確認
-- [ ] DynamoDB のポイントインタイムリカバリ（PITR）有効化
+- [x] DynamoDB のポイントインタイムリカバリ（PITR）有効化 — 全テーブルでスタック側が既定有効。`tests/transfer-family-stack.test.ts` が固定している
 - [ ] S3 バージョニング有効化
 - [ ] バックアップスケジュールの設定（FSx 自動バックアップ）
 - [ ] RTO / RPO の定義と検証

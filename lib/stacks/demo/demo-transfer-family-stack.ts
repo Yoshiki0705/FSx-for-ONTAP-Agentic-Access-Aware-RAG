@@ -124,12 +124,19 @@ export class DemoTransferFamilyStack extends cdk.Stack {
     // ========================================
 
     // スキャン状態テーブル
+    //
+    // PITR は 3 テーブルすべてで有効にする（AwsSolutions-DDB3）。
+    // StorageStack の permission-cache / user-access が既に有効なので、
+    // 同じリポジトリ内で扱いを分けない。PITR は継続バックアップの
+    // ストレージ量に対する課金で、この構成のテーブルはいずれも小さい。
+    // 既存テーブルへの後付けは置き換えを伴わない更新。
     const scanStateTable = new dynamodb.Table(this, 'ScanStateTable', {
       tableName: `${prefix}-transfer-scan-state`,
       partitionKey: { name: 'scanId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: 'ttl',
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
     scanStateTable.addGlobalSecondaryIndex({
       indexName: 'scanTimestamp-index',
@@ -139,20 +146,29 @@ export class DemoTransferFamilyStack extends cdk.Stack {
     this.scanStateTableName = scanStateTable.tableName;
 
     // ファイルインベントリテーブル
+    //
+    // 内容はスキャンで作り直せるが、失うと全ファイルが新規として扱われ、
+    // 取り込みが一巡する（embedding の費用が再度かかる）。復旧のほうが安い。
     const fileInventoryTable = new dynamodb.Table(this, 'FileInventoryTable', {
       tableName: `${prefix}-transfer-file-inventory`,
       partitionKey: { name: 'fileKey', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
     this.fileInventoryTableName = fileInventoryTable.tableName;
 
     // 権限マッピングテーブル
+    //
+    // **管理者が保守する原本で、他から作り直せない。** ここから
+    // .metadata.json が生成されるため、失うと権限の射影を再現できず、
+    // 手作業で入れ直すことになる。3 つの中で PITR の価値が最も高い。
     const permissionMappingTable = new dynamodb.Table(this, 'PermissionMappingTable', {
       tableName: `${prefix}-transfer-permission-mapping`,
       partitionKey: { name: 'userName', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
     this.permissionMappingTableName = permissionMappingTable.tableName;
 

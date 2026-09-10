@@ -178,6 +178,22 @@ describe('DemoTransferFamilyStack', () => {
       });
     });
 
+    // AwsSolutions-DDB3。3 テーブルとも PITR を有効にしている。
+    // 権限マッピングは管理者が保守する原本で他から作り直せず、インベントリは
+    // 失うと取り込みが一巡する。docs/deployment-guide.md は「PITR は既定で有効」と
+    // 書いているので、この 3 本が外れていると記述が偽になる。
+    test.each([
+      ['test-project-test-transfer-scan-state'],
+      ['test-project-test-transfer-file-inventory'],
+      ['test-project-test-transfer-permission-mapping'],
+    ])('%s has point-in-time recovery enabled', (tableName) => {
+      const template = createStack();
+      template.hasResourceProperties('AWS::DynamoDB::Table', {
+        TableName: tableName,
+        PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true },
+      });
+    });
+
     test('scan state table has GSI on scanTimestamp', () => {
       const template = createStack();
       template.hasResourceProperties('AWS::DynamoDB::Table', {
