@@ -19,6 +19,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as scheduler from 'aws-cdk-lib/aws-scheduler';
+import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
 export interface KbAutoSyncConstructProps {
@@ -34,6 +35,18 @@ export interface KbAutoSyncConstructProps {
   s3AccessPointArn: string;
   /** ポーリング間隔（分）。デフォルト: 5 */
   intervalMinutes?: number;
+  /**
+   * FSx for ONTAP SVM ID（省略可）。
+   *
+   * 渡すと Lambda に `SVM_ID` として届き、`lambda/kb-auto-sync/handler.py` の
+   * 診断（`_check_ad_dc_reachability_via_fsx`）が有効になる。**この値が無いと
+   * その診断コードは実行されない。**
+   *
+   * AD 参加 SVM では S3 AP のデータ操作ごとに `unix→win` の逆引きネーム
+   * マッピングが走るため、AD DC へ到達できないと AccessDenied になる。
+   * `HeadBucket` は S3 層だけで完結して成功するので、到達性の判定には使えない。
+   */
+  svmId?: string;
 }
 
 export class KbAutoSyncConstruct extends Construct {
@@ -82,6 +95,8 @@ export class KbAutoSyncConstruct extends Construct {
         KNOWLEDGE_BASE_ID: props.knowledgeBaseId,
         DATA_SOURCE_ID: props.dataSourceId,
         INVENTORY_TABLE_NAME: inventoryTable.tableName,
+        // 未指定なら env を置かない。handler は os.environ.get で空文字を見て診断を飛ばす
+        ...(props.svmId ? { SVM_ID: props.svmId } : {}),
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
@@ -112,6 +127,18 @@ export class KbAutoSyncConstruct extends Construct {
 
     inventoryTable.grantReadWriteData(fn);
 
+    // --- AD DC 到達性の診断（svmId を渡したときだけ） ---
+    if (props.svmId) {
+      fn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['fsx:DescribeStorageVirtualMachines'],
+          // FSx の Describe 系は resource-level 制約を持たないため * になる。
+          // 読み取りのみで、対象は呼び出し元アカウントの SVM に限られる。
+          resources: ['*'],
+        }),
+      );
+    }
+
     // --- EventBridge Scheduler (Task 4.3) ---
     const schedulerRole = new iam.Role(this, 'SchedulerRole', {
       roleName: `${prefix}-kb-sync-scheduler-role`,
@@ -140,6 +167,54 @@ export class KbAutoSyncConstruct extends Construct {
         cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
+
+    // --- cdk-nag の抑制 ---
+    //
+    // この construct は s3AccessPointArn と kbDataSourceId の両方が揃ったときだけ
+    // 生成される。CI の kb-auto-sync レーンは `-c enableKbAutoSync=true` だけを
+    // 渡していたため construct が作られず、**ここの IAM は一度も検査されていなかった**。
+    // レーンにダミー ARN を足したので、以下は実際に評価される。
+    //
+    // ARN は環境ごとに変わるので appliesTo は正規表現で書く。文字列で固定すると
+    // 別のアカウントやリージョンで抑制が外れ、synth が落ちる。
+    NagSuppressions.addResourceSuppressions(
+      fn.role!,
+      [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason:
+            'S3 Access Point 配下のオブジェクトを走査するため object/* が必要。'
+            + '許可は一覧と読み取りに限られ、対象は指定した Access Point の中だけ。',
+          appliesTo: [{ regex: '/^Resource::arn:aws:s3:.*accesspoint\\/.*\\/object\\/\\*$/g' }],
+        },
+        ...(props.svmId
+          ? [
+              {
+                id: 'AwsSolutions-IAM5',
+                reason:
+                  'fsx:DescribeStorageVirtualMachines は resource-level 制約を持たない'
+                  + 'ため * になる。読み取りのみで、返るのは呼び出し元アカウントの SVM。',
+                appliesTo: ['Resource::*'],
+              },
+            ]
+          : []),
+      ],
+      true,
+    );
+
+    NagSuppressions.addResourceSuppressions(
+      schedulerRole,
+      [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason:
+            'EventBridge Scheduler が Lambda を呼ぶ権限。grantInvoke が付ける'
+            + 'バージョン修飾子のワイルドカードで、対象はこの関数に限られる。',
+          appliesTo: [{ regex: '/^Resource::<.*\\.Arn>:\\*$/g' }],
+        },
+      ],
+      true,
+    );
 
     // --- Construct プロパティの公開 (Task 4.7) ---
     this.functionName = fn.functionName;

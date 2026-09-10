@@ -368,8 +368,20 @@ jobs:
               -c s3AccessPointArn=arn:aws:s3:ap-northeast-1:111122223333:accesspoint/ci-dummy-ap
               -c transferFamilyS3ApAlias=ci-dummy-alias
               -c kbDataSourceId=CIDUMMYDS1
+          # KbAutoSyncConstruct は s3AccessPointArn と kbDataSourceId の両方が
+          # 揃ったときだけ生成される。以前はフラグが 1 つだけで、construct が
+          # 作られないまま「このレーンは通っている」ことになっていた。
           - name: kb-auto-sync
-            flags: '-c enableKbAutoSync=true'
+            flags: >-
+              -c enableKbAutoSync=true
+              -c s3AccessPointArn=arn:aws:s3:ap-northeast-1:111122223333:accesspoint/ci-dummy-ap
+              -c kbDataSourceId=CIDUMMYDS1
+          - name: kb-auto-sync-svm-diagnostics
+            flags: >-
+              -c enableKbAutoSync=true
+              -c s3AccessPointArn=arn:aws:s3:ap-northeast-1:111122223333:accesspoint/ci-dummy-ap
+              -c kbDataSourceId=CIDUMMYDS1
+              -c svmId=svm-0123456789abcdef0
           - name: monitoring
             flags: '-c enableMonitoring=true'
           - name: voice-chat-webrtc

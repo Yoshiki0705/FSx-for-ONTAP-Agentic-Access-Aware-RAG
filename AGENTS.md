@@ -161,7 +161,8 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 | Flag | Default | Description |
 |------|---------|-------------|
 | `enableTransferFamily` | `false` | Transfer Family SFTP ingestion pipeline |
-| `enableKbAutoSync` | `false` | EventBridge Scheduler KB synchronization (polling-based) |
+| `enableKbAutoSync` | `false` | EventBridge Scheduler KB synchronization (polling-based). Requires `s3AccessPointArn` **and** `kbDataSourceId`; with either missing the construct is not created at all |
+| `svmId` | (none) | FSx for ONTAP SVM ID. Enables the AD DC reachability diagnostics in `lambda/kb-auto-sync/handler.py` — **the code is skipped unless this is set**, since it reads `SVM_ID` from the environment |
 | `enableAgent` | `false` | Bedrock Agent (single mode) |
 | `enableMultiAgent` | follows `enableAgent` | Multi-agent collaboration (Supervisor + Collaborators) |
 | `enableVoiceChat` | `false` | Voice chat (Phase 1: REST, Phase 2: WebRTC) |
@@ -408,6 +409,8 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | CDK synth uses old compiled JS | `.js` files not recompiled after `.ts` change | Run `npx tsc` before `cdk synth` when modifying stack code |
 | SSM domain join fails with schema error | `SsmAssociations` + custom SSM Document (`schemaVersion: '2.2'`) | Use `AWS::SSM::Association` (separate resource) with `AWS-JoinDirectoryServiceDomain` managed doc; never use `SsmAssociations` prop with `aws:domainJoin` |
 | S3 AP AccessDenied on AD-joined SVM | AD DC unreachable; ONTAP `unix→win` reverse name-mapping fails | HeadBucket succeeds (false positive) but data ops fail. Check SVM→AD DC connectivity (ports 53/88/389/445/636). See `docs/s3ap-ad-prerequisites.md` |
+| KB Auto-Sync AD diagnostics never run | The handler reads `SVM_ID`, but the stack passed nothing, so the diagnostic branch was dead code | Set `-c svmId=svm-...`. `tests/kb-auto-sync-construct.test.ts` pins the env var and the IAM statement in both directions |
+| A synth lane passes without exercising the feature it names | `kb-auto-sync` ran with `-c enableKbAutoSync=true` only, and `KbAutoSyncConstruct` needs `s3AccessPointArn` + `kbDataSourceId`, so nothing was built and its IAM was never nag-checked | Lane flags must be sufficient to instantiate the construct. Verify by checking the synthesized template for the resource, not by the lane going green |
 | S3 AP VPC-origin AP returns AccessDenied | VPC-origin AP + VPC Lambda + S3 Gateway EP — environment-dependent | Use Internet-origin AP (`NetworkOrigin: Internet`) + VPC-external Lambda (no `VpcConfig`). Same-account: no AP resource policy needed |
 | FlexClone not found by FSx API | FSx API sync delay: 12–36 min after ONTAP REST API creation | Static Wait (10 min) + polling loop (120s × 25 = 50 min); total 60 min budget in Step Functions |
 | AgentCore Gateway us-east-1 only assumption | Workshop examples use us-east-1 for simplicity | **[verified 2026-07 / ap-northeast-1]** 利用可能。Gateway + Lambda + S3 AP を同一リージョンに配置すること |

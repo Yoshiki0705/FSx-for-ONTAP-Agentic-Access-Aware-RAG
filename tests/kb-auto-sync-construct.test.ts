@@ -8,7 +8,7 @@
  */
 
 import * as cdk from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 import * as fc from 'fast-check';
 import { KbAutoSyncConstruct } from '../lib/constructs/kb-auto-sync-construct';
 
@@ -22,7 +22,9 @@ describe('KbAutoSyncConstruct', () => {
       'arn:aws:s3:ap-northeast-1:123456789012:accesspoint/test-ap',
   };
 
-  function createStack(props?: Partial<typeof defaultProps & { intervalMinutes?: number }>) {
+  function createStack(
+    props?: Partial<typeof defaultProps & { intervalMinutes?: number; svmId?: string }>,
+  ) {
     const app = new cdk.App();
     const stack = new cdk.Stack(app, 'TestStack');
     new KbAutoSyncConstruct(stack, 'KbAutoSync', {
@@ -205,6 +207,46 @@ describe('KbAutoSyncConstruct', () => {
         }),
         { numRuns: 100 }
       );
+    });
+  });
+
+  // AD DC 到達性の診断は lambda/kb-auto-sync/handler.py に実装済みだが、
+  // SVM_ID が渡らないと `os.environ.get("SVM_ID", "")` が空になり実行されない。
+  // 配線が外れても気づけるようにここで固定する。
+  describe('AD DC 到達性診断の配線（svmId）', () => {
+    test('svmId を渡すと SVM_ID が Lambda に届く', () => {
+      const template = createStack({ svmId: 'svm-0123456789abcdef0' });
+      template.hasResourceProperties('AWS::Lambda::Function', {
+        Environment: Match.objectLike({
+          Variables: Match.objectLike({ SVM_ID: 'svm-0123456789abcdef0' }),
+        }),
+      });
+    });
+
+    test('svmId を渡すと fsx:DescribeStorageVirtualMachines が付く', () => {
+      const template = createStack({ svmId: 'svm-0123456789abcdef0' });
+      template.hasResourceProperties('AWS::IAM::Policy', {
+        PolicyDocument: Match.objectLike({
+          Statement: Match.arrayWith([
+            Match.objectLike({
+              Action: 'fsx:DescribeStorageVirtualMachines',
+              Effect: 'Allow',
+              Resource: '*',
+            }),
+          ]),
+        }),
+      });
+    });
+
+    test('svmId を渡さないと SVM_ID も IAM も付かない', () => {
+      const template = createStack();
+      const fns = template.findResources('AWS::Lambda::Function');
+      for (const fn of Object.values(fns)) {
+        const vars = (fn as any).Properties?.Environment?.Variables ?? {};
+        expect(vars.SVM_ID).toBeUndefined();
+      }
+      const policies = JSON.stringify(template.findResources('AWS::IAM::Policy'));
+      expect(policies).not.toContain('fsx:DescribeStorageVirtualMachines');
     });
   });
 
