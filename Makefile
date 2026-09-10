@@ -9,7 +9,7 @@
 # 過去にこれで検出器が走っていなかったことがあるため、全ターゲットを宣言する。
 
 .PHONY: help all lint test test-frontend test-python docs evidence deps secrets actions \
-        synth synth-default build clean i18n i18n-report untranslated
+        synth synth-default build clean i18n i18n-report untranslated test-frontend-jest
 
 WORKFLOW := .github/workflows/ci-cd.yml
 
@@ -21,7 +21,7 @@ help: ## 使えるターゲットを表示する
 	@echo
 	@echo "all は速い検査だけを走らせます（synth と E2E は含みません）。"
 
-all: lint test docs evidence i18n untranslated deps ## 速い検査をまとめて走らせる（lint / test / docs / evidence / i18n / untranslated / deps）
+all: lint test test-frontend-jest docs evidence i18n untranslated deps ## 速い検査をまとめて走らせる（lint / test / frontend jest / docs / evidence / i18n / untranslated / deps）
 
 lint: ## TypeScript の型検査（npx tsc --noEmit）
 	npx tsc --noEmit
@@ -32,8 +32,14 @@ lint: ## TypeScript の型検査（npx tsc --noEmit）
 test: ## CDK / Lambda の Jest テスト
 	npx jest --no-coverage --forceExit
 
-test-frontend: ## フロントエンドの Vitest（既知の flaky あり: 単独実行では通るテストが全体実行で落ちる）
+# 実行器が 2 つあり担当が分かれている。Vitest は src/__tests__ 配下、
+# Jest は route handler と utils。jest.config.js の testMatch が Vitest の
+# 範囲まで拾っていたため、以前は 90 suite が失敗していた。
+test-frontend: ## フロントエンドの Vitest（src/__tests__ 配下）
 	cd docker/nextjs && npx vitest run
+
+test-frontend-jest: ## フロントエンドの Jest（route handler と utils）
+	cd docker/nextjs && npx jest --no-coverage
 
 test-python: ## Python Lambda の pytest（3 ディレクトリ）
 	cd automation/transfer-family && python3 -m pytest tests/ -q
