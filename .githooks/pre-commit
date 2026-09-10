@@ -1,8 +1,28 @@
 #!/bin/bash
-# Pre-commit hook: author email check + gitleaks secret scanning
+# Pre-commit hook: branch guard + author email check + gitleaks secret scanning
 # Setup: git config core.hooksPath .githooks
 
 set -euo pipefail
+
+# === 0. Branch guard ===
+# Commits belong on a branch, not on main. Reviewing after the fact costs a
+# revert plus a restore: it happened once (abc6e2f), and reverting it had to
+# resolve conflicts against two later merges.
+# Deliberate exception: ALLOW_MAIN_COMMIT=1 git commit …
+# symbolic-ref を使う。rev-parse HEAD はコミットが 1 つも無い repo で失敗し、
+# set -e のもとではフックごと落ちて最初のコミットを不可能にする。
+CURRENT_BRANCH=$(git symbolic-ref --short -q HEAD || true)
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+  if [ "${ALLOW_MAIN_COMMIT:-}" != "1" ]; then
+    echo "❌ ERROR: committing directly to '$CURRENT_BRANCH'"
+    echo "   Work on a branch and open a pull request:"
+    echo "     git switch -c <type>/<short-description>"
+    echo ""
+    echo "   If this is deliberate: ALLOW_MAIN_COMMIT=1 git commit ..."
+    exit 1
+  fi
+  echo "⚠️  committing to '$CURRENT_BRANCH' (ALLOW_MAIN_COMMIT=1)"
+fi
 
 # === 1. Author email check ===
 ALLOWED_EMAIL="40357845+Yoshiki0705@users.noreply.github.com"

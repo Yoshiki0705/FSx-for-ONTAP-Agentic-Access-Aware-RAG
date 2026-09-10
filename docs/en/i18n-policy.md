@@ -76,3 +76,4 @@ Where a translation does not exist, link to the Japanese original or the English
 |----------|---------|
 | [Evidence Policy](evidence-policy.md) | How far a statement can be trusted |
 | [AGENTS.md](../../AGENTS.md) | Conventions for AI agents |
+| [llms.txt](../../llms.txt) | How to read this repository (entry point for AI) |

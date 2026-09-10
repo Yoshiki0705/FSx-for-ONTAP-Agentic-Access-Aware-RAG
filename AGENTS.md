@@ -5,6 +5,14 @@
 
 ## Build & Test Commands
 
+**Single entry point: `make help`.** Every check below is available as a `make` target running the identical command, and `make synth` reads its ten lane definitions from `.github/workflows/ci-cd.yml` so the Makefile and CI cannot drift apart. [llms.txt](llms.txt) states how to read this repository.
+
+```bash
+# 単一入口
+make all     # 型検査 + Jest + リンク + 証跡ラベル + 抄訳開示 + 依存関係
+make synth   # CI と同じ 10 レーン
+```
+
 ```bash
 # TypeScript compilation check (run first — catches type errors before synth)
 npx tsc --noEmit
@@ -373,7 +381,7 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Optimization resources not synthesized | `enableAgentOptimization=true` without `enableAgentCoreGateway=true` | Optimization requires Gateway; set both. Also run `npx tsc` before synth (stale JS) |
 | AgentCore Optimization L1 construct missing | Preview feature not in CloudFormation yet | Construct uses AwsCustomResource (SDK); Recommendations/A/B tests run via agentcore CLI post-deploy |
 | Jest tests hang/timeout in CI | CDK property test `numRuns: 100` × VPC stacks | Use `numRuns: 5` for CDK stack property tests |
-| Local `npx jest` failed in 6 aws-sdk-client-mock suites (26 tests) while CI passed 751/751 | **[verified 2026-09-10 / local]** (macOS arm64; reproduced on Node 22.23.2 **and** 26.4.0, so it is not a version difference) `lambda/agent-core-ad-sync/node_modules` (created by running `npm install` in that directory) shadows the root `@aws-sdk` copy. The implementation resolves the nested copy while `mockClient` patches the root one, so command matching fails and `send()` returns `undefined`. CI never installs there, so it passed for the wrong reason — the absence of a directory | Fixed by pinning resolution in `jest.config.js` (`moduleNameMapper` for `@aws-sdk` and `@smithy` → `<rootDir>/node_modules`). Do not remove it: without it the suite's result depends on whether a developer ran `npm install` under `lambda/` |
+| Local `make test` failed in 6 aws-sdk-client-mock suites (26 tests) while CI passed 751/751 | **[verified 2026-09-10 / local]** (macOS arm64; reproduced on Node 22.23.2 **and** 26.4.0, so it is not a version difference) `lambda/agent-core-ad-sync/node_modules` (created by running `npm install` in that directory) shadows the root `@aws-sdk` copy. The implementation resolves the nested copy while `mockClient` patches the root one, so command matching fails and `send()` returns `undefined`. CI never installs there, so it passed for the wrong reason — the absence of a directory | Fixed by pinning resolution in `jest.config.js` (`moduleNameMapper` for `@aws-sdk` and `@smithy` → `<rootDir>/node_modules`). Do not remove it: without it the suite's result depends on whether a developer ran `npm install` under `lambda/` |
 | Snapshot test fails after unrelated change | CDK asset hash or schema drift | Run `npx jest --updateSnapshot` after reviewing diff |
 | Test imports `vitest` in Jest directory | Wrong test runner dependency | Remove vitest import; use Jest globals (`describe/it/expect`) |
 | E2E test fails in CI | Real AWS resources required | Prefix with `e2e-`; excluded via `jest.config.js` |
@@ -476,6 +484,10 @@ When updating model IDs (AWS Health notifications, EOL):
 
 ### Technical reference / guide docs
 - 必須要素: エグゼクティブサマリの結論、FAQ/よくある誤解、選択フローチャート（mermaid 可）、OT/IT セキュリティ考慮（該当時）、段階的導入ステップ、Related Documents（逆リンク）、≥10 の inline role-based lens レビュー。
+
+### Before committing anything
+- **コミットはブランチで行う。** `.githooks/pre-commit` が `main` / `master` への直接コミットを拒否する（意図的な場合のみ `ALLOW_MAIN_COMMIT=1`）。過去に 1 度直接コミットが入り、revert に 2 つの後続マージとの衝突解決が必要になった。
+- フックの有効化: `git config core.hooksPath .githooks`
 
 ### Before committing docs
 ```bash
