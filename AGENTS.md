@@ -361,8 +361,8 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Repository | Purpose |
 |-----------|---------|
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | 17 industry serverless patterns via S3 AP |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Athena/Glue/EMR/SageMaker integration via S3 AP |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | EC2-free audit log delivery to Datadog/Splunk/Grafana |
+| [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Athena/Glue/EMR/SageMaker integration via S3 AP |
+| [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | EC2-free audit log delivery to Datadog/Splunk/Grafana |
 
 ## Common Pitfalls & Solutions
 
