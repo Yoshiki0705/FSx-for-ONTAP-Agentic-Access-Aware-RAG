@@ -96,7 +96,7 @@ aws bedrock-agent create-data-source \
 | S3 AP は不可だが通常 S3 バケットなら可 | △ 条件付き | DataSync 等で S3 中継パスを検討（ACL メタデータ保持に追加検証必要） |
 | S3 コネクタ自体が同期失敗 | ❌ FAIL | 移行不成立。現行構成を維持 |
 
-> **本プロジェクトの想定**: S3 互換 API であれば接続可能と想定するが、S3 AP 固有の制約（[FSx for ONTAP S3 AP 互換性マトリクス](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/ja/compatibility-matrix.md) 記載の ListObjectsV2 レイテンシ等）が Managed KB のクローラに影響する可能性がある。
+> **本プロジェクトの想定**: S3 互換 API であれば接続可能と想定するが、S3 AP 固有の制約（[FSx for ONTAP S3 AP 互換性マトリクス](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/ja/compatibility-matrix.md) 記載の ListObjectsV2 レイテンシ等）が Managed KB のクローラに影響する可能性がある。
 
 ### 2.2 検証 V2: メタデータの保持
 
@@ -263,7 +263,7 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 
 ## 5. 監査・lineage 検証（Phase C / Optional）
 
-⚠️ **Validation Required**: Managed KB 経由のアクセスが、連携先（[fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations)）の Unity Catalog lineage に記録されるかは未確認。
+⚠️ **Validation Required**: Managed KB 経由のアクセスが、連携先（[FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations)）の Unity Catalog lineage に記録されるかは未確認。
 
 **検証観点**:
 

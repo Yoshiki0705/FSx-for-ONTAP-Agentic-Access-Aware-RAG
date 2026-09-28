@@ -99,7 +99,7 @@ aws bedrock-agent create-data-source \
 | S3 AP 不可行但普通 S3 桶可行 | △ 有条件 | 考虑基于 DataSync 的 S3 中继路径（ACL 元数据保留需额外验证） |
 | S3 连接器自身同步失败 | ❌ FAIL | 迁移不成立。保留现行配置 |
 
-> **本项目的假设**: 假设 S3 兼容 API 则可连接，但 S3 AP 特有的约束（[FSx for ONTAP S3 AP 兼容性矩阵](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md) 中记述的 ListObjectsV2 延迟等）可能影响 Managed KB 的爬虫。
+> **本项目的假设**: 假设 S3 兼容 API 则可连接，但 S3 AP 特有的约束（[FSx for ONTAP S3 AP 兼容性矩阵](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md) 中记述的 ListObjectsV2 延迟等）可能影响 Managed KB 的爬虫。
 
 ### 2.2 验证 V2: 元数据保留
 
@@ -266,7 +266,7 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 
 ## 5. 审计·lineage 验证 (Phase C / Optional)
 
-⚠️ **Validation Required**: 经由 Managed KB 的访问是否记录在联动对象（[fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations)）的 Unity Catalog lineage 中尚未确认。
+⚠️ **Validation Required**: 经由 Managed KB 的访问是否记录在联动对象（[FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations)）的 Unity Catalog lineage 中尚未确认。
 
 **验证视角**：
 

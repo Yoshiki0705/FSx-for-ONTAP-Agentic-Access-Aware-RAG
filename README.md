@@ -56,7 +56,7 @@
 | セキュリティ | [ガバナンス・監査設計](docs/governance-and-audit.md) | 監査ログ・Responsible AI・Guardrails |
 | データ | [チャンキング戦略選定](docs/chunking-strategy-guide.md) | FIXED_SIZE / HIERARCHICAL / SEMANTIC |
 | データ | [S3 Vectors SID 設計](docs/s3-vectors-sid-architecture-guide.md) | メタデータ制約・フィルタリング実装 |
-| データ | [S3 AP 互換性マトリクス](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md) | プラットフォーム別制約（外部リンク） |
+| データ | [S3 AP 互換性マトリクス](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md) | プラットフォーム別制約（外部リンク） |
 | パートナー | [パートナー展開パターン](docs/partner-deployment-patterns.md) | マルチテナント・コスト見積もり |
 | ベンチマーク | [ベンチマークシナリオ](docs/benchmark-scenarios.md) | 10K/100K/1M ファイル性能計測 |
 | デモ | [業種別デモデータ（7 業種）](demo-data/industry-packs/) | 行政・医療・法務・製造・建設・教育・保険 |
@@ -105,7 +105,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 | ベクトルストア | S3 Vectors（デフォルト、filterable 2KB 制限あり）/ OpenSearch Serverless（高性能） |
 | Responsible AI | AI 出力は補助的シグナル。最終判断は人間の責任。[詳細](docs/governance-and-audit.md) |
 
-S3 AP の包括的な互換性マトリクスは [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md) を参照してください。
+S3 AP の包括的な互換性マトリクスは [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md) を参照してください。
 
 </details>
 
@@ -115,8 +115,8 @@ S3 AP の包括的な互換性マトリクスは [fsxn-lakehouse-integrations](h
 |-----------|------|------|
 | **[本リポジトリ]** | AI / RAG | 権限フィルタリング付き RAG + Agentic AI |
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自動化 | 17 業種別サーバーレスパターン（FPolicy イベント駆動） |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Athena / Glue / EMR / SageMaker 統合 |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability | 監査ログを Datadog / Splunk / Grafana へ EC2 不要で配信 |
+| [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Athena / Glue / EMR / SageMaker 統合 |
+| [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability | 監査ログを Datadog / Splunk / Grafana へ EC2 不要で配信 |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/ja/domains/data-utilization) | 導入判断 | データ活用ドメインのハブ。S3 AP の認可特性・制約・設計上の選択肢 |
 
 **共通基盤**: 全リポジトリが FSx for ONTAP S3 Access Points を使用し、NFS/SMB を中断せずデータ活用を拡張します。

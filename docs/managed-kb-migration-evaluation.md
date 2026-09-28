@@ -5,7 +5,7 @@
 **作成日**: 2026-06-18
 **対象リージョン**: ap-northeast-1 (東京) — Managed KB は東京リージョンで利用可能
 **ステータス**: 検討ドキュメント（移行未実施 / 既存パス維持）
-**関連**: `fsxn-lakehouse-integrations/docs/ja/cross-repo-integration-strategy.md`（連携元）
+**関連**: `FSx-for-ONTAP-Lakehouse-Integrations/docs/ja/cross-repo-integration-strategy.md`（連携元）
 
 ---
 
