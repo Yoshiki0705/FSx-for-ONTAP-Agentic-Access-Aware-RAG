@@ -37,8 +37,10 @@ jobs:
       - name: Verify the detector fires
         run: python3 tools/ai_style_rules.py --selftest
 
+      # The tests are unittest.TestCase classes, so the stdlib runner runs them with no
+      # dependency install — keeping this gate self-contained like the stdlib-only detector.
       - name: Writing-style tests
-        run: python3 -m pytest scripts/tests/test_ai_style_rules.py scripts/tests/test_ai_style_strong_fixtures.py -q
+        run: python3 -m unittest scripts.tests.test_ai_style_rules scripts.tests.test_ai_style_strong_fixtures -v
 
       # argparse cannot reassemble positional paths that appear AFTER `--exclude VALUE`
       # options (reproduced on 3.12 and 3.14), so the positionals (docs/ README.md
