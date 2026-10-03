@@ -40,7 +40,7 @@ AWS Summit New York 2026（2026-06-17）で GA となった [AgentCore Web Searc
 - **ルーティング**: `routeInvocation()` が KB スコア閾値・ユーザー明示要求・`web:` プレフィックスで振り分け。
 - **ドメインブロックリスト**: `isDomainBlocked()` + `WEB_SEARCH_DOMAIN_BLOCKLIST`。
 
-### 1.2 既存機構 A に**欠けているもの**（本調査で補う）
+### 1.2 既存機構 A に欠けているもの（本調査で補う）
 
 - ⚠️ **プロンプトインジェクション防御の不足**: 現状は system prompt に「外部参照である」と添えるのみで、Web 結果を `<web_search_results>` 等の**非信頼データ境界で囲っていない**。検討事項4で補強する。
 
