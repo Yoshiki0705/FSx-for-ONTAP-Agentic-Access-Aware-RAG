@@ -111,11 +111,11 @@ AD User -> CloudFront UI -> "AD Sign-in" button
   -> OAuth Callback -> Session Cookie -> Chat UI
 ```
 
-When an AD user signs in via SAML, the following are all performed automatically:
+When an AD user signs in via SAML, the following three steps are all performed automatically.
 
-1. **Automatic Cognito User Creation** — A Cognito user is automatically generated from the email attribute in the SAML assertion
-2. **Automatic SID Retrieval** — AD Sync Lambda retrieves the user SID + group SIDs from AD
-3. **Automatic DynamoDB Registration** — The retrieved SID data is saved to the `user-access` table (24-hour cache)
+1. **Automatic Cognito User Creation** (a Cognito user is automatically generated from the email attribute in the SAML assertion)
+2. **Automatic SID Retrieval** (AD Sync Lambda retrieves the user SID + group SIDs from AD)
+3. **Automatic DynamoDB Registration** (the retrieved SID data is saved to the `user-access` table, 24-hour cache)
 
 No manual administrator work is required.
 
@@ -200,11 +200,11 @@ OIDC User -> CloudFront UI -> "Sign in with OIDC" button
   -> OAuth Callback -> Session Cookie -> Chat UI
 ```
 
-When an OIDC user signs in, the following are all performed automatically:
+When an OIDC user signs in, the following three steps are all performed automatically.
 
-1. **Automatic Cognito User Creation** — A Cognito user is automatically generated from the email attribute in the OIDC assertion
-2. **Automatic Permission Retrieval** — Identity Sync Lambda retrieves SID/UID/GID/group information from the LDAP server or OIDC claims
-3. **Automatic DynamoDB Registration** — The retrieved permission data is saved to the `user-access` table (24-hour cache)
+1. **Automatic Cognito User Creation** (a Cognito user is automatically generated from the email attribute in the OIDC assertion)
+2. **Automatic Permission Retrieval** (Identity Sync Lambda retrieves SID/UID/GID/group information from the LDAP server or OIDC claims)
+3. **Automatic DynamoDB Registration** (the retrieved permission data is saved to the `user-access` table, 24-hour cache)
 
 ### Configuration-Driven Auto-Activation
 
@@ -490,7 +490,7 @@ Chat page after Auth0 OIDC sign-in:
 
 ## Related Documents
 
-- [README.md — AD SAML Federation](../deployment-guide.md#appendix-d-auth-mode-configuration) — CDK deployment instructions
-- [docs/implementation-overview.md — Section 3: IAM Authentication](../en/implementation-overview.md#3-iam-authentication--lambda-function-url-iam-auth--cloudfront-oac) — Infrastructure-layer authentication design
-- [docs/SID-Filtering-Architecture.md](../en/SID-Filtering-Architecture.md) — Detailed SID filtering design
-- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) — FSx for ONTAP AD integration setup
+- [README.md: AD SAML Federation](../deployment-guide.md#appendix-d-auth-mode-configuration) (CDK deployment instructions)
+- [docs/implementation-overview.md Section 3: IAM Authentication](../en/implementation-overview.md#3-iam-authentication--lambda-function-url-iam-auth--cloudfront-oac) (infrastructure-layer authentication design)
+- [docs/SID-Filtering-Architecture.md](../en/SID-Filtering-Architecture.md) (detailed SID filtering design)
+- [demo-data/guides/ontap-setup-guide.md](../../demo-data/guides/ontap-setup-guide.md) (FSx for ONTAP AD integration setup)

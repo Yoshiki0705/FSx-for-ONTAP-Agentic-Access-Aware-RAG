@@ -108,27 +108,29 @@
 
 ## Recommended Reading Order
 
+The reading order is grouped by goal into three phases: initial setup, verification and evaluation, and production design.
+
 ### Phase 1: Initial Setup
 
-1. **README.md** — System overview (landing page)
-2. **deployment-guide.md** — Deployment steps, feature flags, WAF/Geo, auth mode configuration
-3. **auth-and-user-management.md** — Auth mode selection and user management
-4. **implementation-overview.md** — Detailed implementation across 22 aspects
-5. **SID-Filtering-Architecture.md** — Core feature technical details
-6. **safe-experimentation-guide.md** — Safe experimentation guide (must-read before starting PoC)
+1. **README.md** (system overview, landing page)
+2. **deployment-guide.md** (deployment steps, feature flags, WAF/Geo, auth mode configuration)
+3. **auth-and-user-management.md** (auth mode selection and user management)
+4. **implementation-overview.md** (detailed implementation across 22 aspects)
+5. **SID-Filtering-Architecture.md** (core feature technical details)
+6. **safe-experimentation-guide.md** (safe experimentation guide, must-read before starting PoC)
 
 ### Phase 2: Verification & Evaluation
 
-6. **demo-recording-guide.md** — Demo video recording guide
-7. **ontap-setup-guide.md** — FSx for ONTAP AD integration, CIFS share setup
-8. **demo-environment-guide.md** — Verification environment setup
-9. **demo-scenario.md** — Execute verification scenarios
-10. **evaluation.md** — PoC evaluation template
+7. **demo-recording-guide.md** (demo video recording guide)
+8. **ontap-setup-guide.md** (FSx for ONTAP AD integration, CIFS share setup)
+9. **demo-environment-guide.md** (verification environment setup)
+10. **demo-scenario.md** (execute verification scenarios)
+11. **evaluation.md** (PoC evaluation template)
 
 ### Phase 3: Production & Enterprise Design
 
-11. **production-readiness-checklist.md** — Production readiness checklist
-12. **permission-consistency.md** — Permission metadata consistency model
-13. **fsxn-sizing-and-performance.md** — FSx for ONTAP sizing & performance
-14. **governance-and-audit.md** — Governance & audit design
-15. **partner-deployment-patterns.md** — Multi-tenant deployment patterns
+12. **production-readiness-checklist.md** (production readiness checklist)
+13. **permission-consistency.md** (permission metadata consistency model)
+14. **fsxn-sizing-and-performance.md** (FSx for ONTAP sizing & performance)
+15. **governance-and-audit.md** (governance & audit design)
+16. **partner-deployment-patterns.md** (multi-tenant deployment patterns)

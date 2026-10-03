@@ -160,7 +160,8 @@ Within `DemoWebAppStack`:
 
 ### Post-Deployment Notes
 
-The IAM authentication + OAC configuration above is recommended for production use. However, if compatibility issues with POST requests (chat, etc.) occur in verification environments, the following manual adjustments may be required:
+The IAM authentication + OAC configuration above is recommended for production use. However, if compatibility issues with POST requests (chat, etc.) occur in verification environments, the following two manual adjustments may be required.
+
 - Change Lambda Function URL AuthType to `NONE`
 - Remove CloudFront OAC association
 
@@ -170,7 +171,8 @@ The IAM authentication + OAC configuration above is recommended for production u
 
 ### Implementation Details
 
-The vector database used for RAG search can be selected via the CDK context parameter `vectorStoreType`:
+The vector database used for RAG search can be selected from the following two options via the CDK context parameter `vectorStoreType`.
+
 - **S3 Vectors** (default): Low cost, sub-second latency. Used directly as a vector store for Bedrock KB
 - **Amazon OpenSearch Serverless (AOSS)**: High performance (~10ms), high cost (~$700/month)
 
@@ -541,10 +543,10 @@ When a card is clicked, AGENT_CATEGORY_MAP (10 categories: financial, project, h
 ### Workflow UI
 
 Preset workflows are placed in AgentModeSidebar:
-- 📊 Financial Report Analysis
-- 📝 Project Progress Check
-- 🔍 Cross-Document Search
-- 📋 HR Policy Review
+- Financial Report Analysis
+- Project Progress Check
+- Cross-Document Search
+- HR Policy Review
 
 ### Implementation Files
 
