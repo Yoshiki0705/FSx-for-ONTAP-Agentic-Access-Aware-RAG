@@ -14,7 +14,7 @@
 
 ---
 
-## 1. サイドバー — ユーザー情報セクション
+## 1. サイドバー: ユーザー情報セクション
 
 ### 表示内容
 
@@ -111,7 +111,7 @@ const SID_DIRECTORY_MAP: Record<string, string[]> = {
 
 ---
 
-## 2. サイドバー — Bedrockリージョンセクション
+## 2. サイドバー: Bedrockリージョンセクション
 
 ### 表示内容
 
@@ -200,7 +200,7 @@ Legacyモデルエラー、on-demand不可エラー、ValidationExceptionが発�
 
 ---
 
-## 4. チャットエリア — Introduction Message
+## 4. チャットエリア: Introduction Message
 
 ### 表示内容
 
@@ -220,7 +220,7 @@ Legacyモデルエラー、on-demand不可エラー、ValidationExceptionが発�
 
 ---
 
-## 5. チャットエリア — RAG検索フロー
+## 5. チャットエリア: RAG検索フロー
 
 ### 2段階方式（Retrieve + Converse）
 
@@ -372,7 +372,8 @@ Converse API（Agent用システムプロンプト付き）
 回答 + Citation表示
 ```
 
-**なぜハイブリッド方式か:**
+ハイブリッド方式を採用する理由は次のとおりです。
+
 - Bedrock Agent InvokeAgent APIはアプリ側でのSIDフィルタリングの余地がない
 - KB Retrieve APIはメタデータ（`allowed_group_sids`）を返すため、SIDフィルタリングが可能
 - 既存のSIDフィルタリングパイプラインをそのまま再利用できる
@@ -1042,7 +1043,7 @@ Agentモードのカードを「リサーチ系」8枚 + 「アウトプット�
 
 ---
 
-## 13. Citation Display — ファイルパス表示とアクセスレベルバッジ
+## 13. Citation Display: ファイルパス表示とアクセスレベルバッジ
 
 ### 概要
 
@@ -1070,7 +1071,7 @@ function extractFilePath(s3Uri: string, fileName: string): string {
 
 | `access_level` 値 | バッジ色 | 表示ラベル | 意味 |
 |-------------------|---------|-----------|------|
-| `public` | 緑（Green） | 全員アクセス可 | Everyone SID — 全ユーザーがアクセス可能 |
+| `public` | 緑（Green） | 全員アクセス可 | Everyone SID（全ユーザーがアクセス可能） |
 | `confidential` | 赤（Red） | 管理者のみ | Domain Admins SID のみアクセス可能 |
 | `restricted` | 黄（Yellow） | 特定グループ | 特定グループ（例: Engineering + Domain Admins） |
 | その他 / 未設定 | 黄（Yellow） | （raw値をそのまま表示） | 未分類のアクセスレベル |
@@ -1090,10 +1091,12 @@ function extractFilePath(s3Uri: string, fileName: string): string {
 }
 ```
 
-`access_level` はドキュメントの分類ラベル（表示用）であり、実際のアクセス制御は `allowed_group_sids` によるSIDフィルタリングで行われます。つまり：
+`access_level` はドキュメントの分類ラベル（表示用）であり、実際のアクセス制御は `allowed_group_sids` によるSIDフィルタリングで行われます。2 つのフィールドの用途は次のとおりです。
 
-- **`access_level`**: UI上のバッジ表示に使用（視覚的な分類）
-- **`allowed_group_sids`**: サーバーサイドのSIDマッチングに使用（実際の権限制御）
+| フィールド | 用途 |
+|-----------|------|
+| `access_level` | UI上のバッジ表示に使用（視覚的な分類） |
+| `allowed_group_sids` | サーバーサイドのSIDマッチングに使用（実際の権限制御） |
 
 両者は独立しており、`access_level` を変更してもアクセス制御には影響しません。
 
@@ -1125,7 +1128,7 @@ function getAccessLevelLabel(accessLevel: string): string {
 
 ---
 
-## 10. Agent Directory — Agent管理画面
+## 10. Agent Directory: Agent管理画面
 
 **最終更新**: 2026-03-29
 
@@ -1139,7 +1142,7 @@ Agent Directory（`/[locale]/genai/agents`）は、Bedrock Agentをカタログ�
 - ヘッダーの「📋 Agent一覧」リンクからアクセス
 - ナビゲーションバーの「Agent一覧」タブからアクセス
 
-![Agent Directory — エンタープライズタブ付き一覧画面](screenshots/agent-directory-enterprise.png)
+![Agent Directory: エンタープライズタブ付き一覧画面](screenshots/agent-directory-enterprise.png)
 
 ### ナビゲーションバー
 
@@ -1340,7 +1343,7 @@ AgentDirectoryPage (page.tsx)
 
 ---
 
-## 11. サイドバー — チャット履歴設定
+## 11. サイドバー: チャット履歴設定
 
 **最終更新**: 2026-03-29
 
@@ -1523,7 +1526,7 @@ CDKリソース:
 
 ---
 
-## 14. ADサインインUI — SAMLフェデレーション対応
+## 14. ADサインインUI: SAMLフェデレーション対応
 
 ### 概要
 
@@ -1547,7 +1550,7 @@ AD SAMLフェデレーション有効時（`enableAdFederation=true`）に、サ
 
 ### SAMLリダイレクトURL構築
 
-「ADでサインイン」ボタンクリック時に以下のURLにリダイレクトします:
+「ADでサインイン」ボタンクリック時のリダイレクト先URLは次のとおりです。
 
 ```
 https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authorize
@@ -1568,7 +1571,7 @@ https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authoriz
 
 ### OAuthコールバックフロー
 
-`/api/auth/callback` ルートが認可コードを受け取り、以下を実行します:
+`/api/auth/callback` ルートが認可コードを受け取り、次の 5 ステップを実行します。
 
 1. 認可コードをCognito Token Endpointでトークンに交換
 2. IDトークンからユーザー属性（email, custom:role, custom:ad_groups）を取得

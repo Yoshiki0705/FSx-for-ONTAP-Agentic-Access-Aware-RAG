@@ -17,7 +17,7 @@ This document describes the specifications of each UI element of the RAG chatbot
 
 ---
 
-## 1. Sidebar — User Information Section
+## 1. Sidebar: User Information Section
 
 ### Display Content
 
@@ -114,7 +114,7 @@ const SID_DIRECTORY_MAP: Record<string, string[]> = {
 
 ---
 
-## 2. Sidebar — Bedrock Region Section
+## 2. Sidebar: Bedrock Region Section
 
 ### Display Content
 
@@ -203,7 +203,7 @@ Automatically tries the next model when Legacy model errors, on-demand unavailab
 
 ---
 
-## 4. Chat Area — Introduction Message
+## 4. Chat Area: Introduction Message
 
 ### Display Content
 
@@ -223,7 +223,7 @@ Supports 8 languages (ja, en, de, es, fr, ko, zh-CN, zh-TW). Translation keys ar
 
 ---
 
-## 5. Chat Area — RAG Search Flow
+## 5. Chat Area: RAG Search Flow
 
 ### Two-Stage Method (Retrieve + Converse)
 
@@ -375,7 +375,8 @@ Converse API (with Agent system prompt)
 Response + Citation display
 ```
 
-**Why the hybrid method:**
+The hybrid method is adopted for the following reasons.
+
 - The Bedrock Agent InvokeAgent API does not allow SID filtering on the application side
 - The KB Retrieve API returns metadata (`allowed_group_sids`), enabling SID filtering
 - The existing SID filtering pipeline can be reused as-is
@@ -1047,7 +1048,7 @@ Expands Agent mode cards to a total of 14 cards: 8 "Research" + 6 "Output". Outp
 
 ---
 
-## 13. Citation Display — File Path Display and Access Level Badge
+## 13. Citation Display: File Path Display and Access Level Badge
 
 ### Overview
 
@@ -1075,7 +1076,7 @@ function extractFilePath(s3Uri: string, fileName: string): string {
 
 | `access_level` Value | Badge Color | Display Label | Meaning |
 |---------------------|-------------|--------------|---------|
-| `public` | Green | Accessible to all | Everyone SID — accessible to all users |
+| `public` | Green | Accessible to all | Everyone SID (accessible to all users) |
 | `confidential` | Red | Admins only | Accessible only to Domain Admins SID |
 | `restricted` | Yellow | Specific groups | Specific groups (e.g., Engineering + Domain Admins) |
 | Other / Not set | Yellow | (raw value displayed as-is) | Uncategorized access level |
@@ -1095,10 +1096,12 @@ Badge labels are retrieved from the `access_level` field in the `.metadata.json`
 }
 ```
 
-`access_level` is a classification label for documents (for display purposes), and actual access control is performed by SID filtering using `allowed_group_sids`. In other words:
+`access_level` is a classification label for documents (for display purposes), and actual access control is performed by SID filtering using `allowed_group_sids`. The two fields serve the following purposes.
 
-- **`access_level`**: Used for badge display in the UI (visual classification)
-- **`allowed_group_sids`**: Used for server-side SID matching (actual permission control)
+| Field | Purpose |
+|-------|---------|
+| `access_level` | Used for badge display in the UI (visual classification) |
+| `allowed_group_sids` | Used for server-side SID matching (actual permission control) |
 
 The two are independent, and changing `access_level` does not affect access control.
 
@@ -1130,7 +1133,7 @@ To change badge colors, edit the Tailwind CSS classes corresponding to the condi
 
 ---
 
-## 10. Agent Directory — Agent Management Screen
+## 10. Agent Directory: Agent Management Screen
 
 **Last Updated**: 2026-03-29
 
@@ -1144,7 +1147,7 @@ Agent Directory (`/[locale]/genai/agents`) is a dedicated screen for listing and
 - Access via the "📋 Agent List" link in the header
 - Access via the "Agent List" tab in the navigation bar
 
-![Agent Directory — List Screen with Enterprise Tabs](../screenshots/agent-directory-enterprise.png)
+![Agent Directory: List Screen with Enterprise Tabs](../screenshots/agent-directory-enterprise.png)
 
 ### Navigation Bar
 
@@ -1346,7 +1349,7 @@ AgentDirectoryPage (page.tsx)
 
 ---
 
-## 11. Sidebar — Chat History Settings
+## 11. Sidebar: Chat History Settings
 
 **Last Updated**: 2026-03-29
 
@@ -1531,7 +1534,7 @@ When enterprise features are enabled, three tabs are displayed in Agent Director
 
 ---
 
-## 14. AD Sign-In UI — SAML Federation Support
+## 14. AD Sign-In UI: SAML Federation Support
 
 ### Overview
 
@@ -1557,7 +1560,7 @@ When AD SAML federation is enabled (`enableAdFederation=true`), an "Sign in with
 
 ### SAML Redirect URL Construction
 
-Redirects to the following URL when the "Sign in with AD" button is clicked:
+Clicking the "Sign in with AD" button redirects to the following URL.
 
 ```
 https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authorize
@@ -1578,7 +1581,7 @@ https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authoriz
 
 ### OAuth Callback Flow
 
-The `/api/auth/callback` route receives the authorization code and performs the following:
+The `/api/auth/callback` route receives the authorization code and performs the following five steps.
 
 1. Exchange the authorization code for tokens at the Cognito Token Endpoint
 2. Retrieve user attributes (email, custom:role, custom:ad_groups) from the ID token

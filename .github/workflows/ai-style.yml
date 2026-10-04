@@ -1,0 +1,54 @@
+name: Writing Style (ai-style)
+
+# Standalone writing-style detector vendored byte-identically from the Hub
+# (fsxn-adoption-playbook tools/ai_style_rules.py). It is wired as its own workflow because
+# ci-cd.yml is on the writing-quality exclusion list, and a self-contained portable workflow
+# matches the agent-output-audit.yml precedent.
+#
+# The detector run below GATES (--fail): a fail-tier finding (D1/D2/D5/D14) in the ja/en corpus
+# exits 1 and fails the check. --summary still prints the full warning counts for visibility.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ai-style:
+    name: Writing Style (ai-style)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Verify the detector fires
+        run: python3 tools/ai_style_rules.py --selftest
+
+      # The tests are unittest.TestCase classes, so the stdlib runner runs them with no
+      # dependency install — keeping this gate self-contained like the stdlib-only detector.
+      - name: Writing-style tests
+        run: python3 -m unittest scripts.tests.test_ai_style_rules scripts.tests.test_ai_style_strong_fixtures -v
+
+      # argparse cannot reassemble positional paths that appear AFTER `--exclude VALUE`
+      # options (reproduced on 3.12 and 3.14), so the positionals (docs/ README.md
+      # README.en.md) are listed first, then the excludes, then --summary. Same scan set,
+      # same semantics. --fail makes a fail-tier finding (D1/D2/D5/D14) exit 1 and gate.
+      - name: Gate on writing-style fail-tier findings
+        run: >-
+          python3 tools/ai_style_rules.py docs/ README.md README.en.md
+          --exclude 'de/*' --exclude 'es/*' --exclude 'fr/*'
+          --exclude 'ko/*' --exclude 'zh-CN/*' --exclude 'zh-TW/*'
+          --exclude 'articles/*' --summary --fail

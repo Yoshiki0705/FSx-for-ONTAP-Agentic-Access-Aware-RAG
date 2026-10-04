@@ -157,7 +157,8 @@ AD FederationおよびOIDC/LDAP Federationモードでは「ゼロタッチユ�
 
 ### デプロイ後の注意事項
 
-本番運用では上記のIAM認証 + OAC構成が推奨されますが、検証環境でPOSTリクエスト（チャット等）の互換性問題が発生する場合は、以下の手動調整が必要になることがあります:
+本番運用では上記のIAM認証 + OAC構成が推奨されますが、検証環境でPOSTリクエスト（チャット等）の互換性問題が発生する場合は、次の 2 つの手動調整が必要になることがあります。
+
 - Lambda Function URL AuthType を `NONE` に変更
 - CloudFront OACの関連付けを解除
 
@@ -167,7 +168,8 @@ AD FederationおよびOIDC/LDAP Federationモードでは「ゼロタッチユ�
 
 ### 実装内容
 
-RAG検索で利用するベクトルデータベースとして、CDKコンテキストパラメータ`vectorStoreType`で以下を選択できます:
+RAG検索で利用するベクトルデータベースは、CDKコンテキストパラメータ`vectorStoreType`で次の 2 つから選択できます。
+
 - **S3 Vectors**（デフォルト）: 低コスト、サブ秒レイテンシ。Bedrock KBのベクトルストアとして直接利用
 - **Amazon OpenSearch Serverless（AOSS）**: 高パフォーマンス（~10ms）、高コスト（~$700/月）
 
@@ -538,10 +540,10 @@ AgentModeSidebarはCollapsiblePanelでSystem Settings（リージョン・モデ
 ### ワークフローUI
 
 AgentModeSidebarにプリセットワークフローを配置:
-- 📊 財務レポート分析
-- 📝 プロジェクト進捗確認
-- 🔍 ドキュメント横断検索
-- 📋 人事ポリシー確認
+- 財務レポート分析
+- プロジェクト進捗確認
+- ドキュメント横断検索
+- 人事ポリシー確認
 
 ### 実装ファイル
 

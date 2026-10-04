@@ -142,7 +142,7 @@ npx cdk deploy ${STACK_PREFIX}-AI -c enableKbAutoSync=true
 
 ## Fail-Closed Behaviour When Ingestion Fails
 
-KB Auto-Sync failures do not weaken the permission boundary of the RAG pipeline:
+KB Auto-Sync failures do not weaken the permission boundary of the RAG pipeline, for the following four reasons.
 
 1. **An un-updated inventory leaves the existing index in place.** New files simply do not become searchable; permission control over existing files is unaffected.
 2. **Failed files are marked `status: "failed"`.** They are not re-ingested automatically; the entry is reset after a human has looked at it.
@@ -160,6 +160,6 @@ When `enableMonitoring=true`, the CloudWatch dashboard gains these widgets:
 
 ## Related Documents
 
-- [Permission Metadata Consistency Model](permission-consistency.md) — how permission metadata updates relate to KB index updates, including why ACL changes are not reflected automatically
-- [CloudWatch Dashboard Guide](cloudwatch-dashboard-guide.md) — how to read the monitoring metrics
-- [Production Readiness Checklist](production-readiness-checklist.md) — requirements before running KB Auto-Sync in production
+- [Permission Metadata Consistency Model](permission-consistency.md) (how permission metadata updates relate to KB index updates, including why ACL changes are not reflected automatically)
+- [CloudWatch Dashboard Guide](cloudwatch-dashboard-guide.md) (how to read the monitoring metrics)
+- [Production Readiness Checklist](production-readiness-checklist.md) (requirements before running KB Auto-Sync in production)

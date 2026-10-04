@@ -142,12 +142,12 @@ npx cdk deploy ${STACK_PREFIX}-AI -c enableKbAutoSync=true
 
 ## インジェスション失敗時のFail-Closed原則
 
-KB Auto-SyncのエラーがPermission-aware RAGのセキュリティに影響しないことを保証する:
+KB Auto-SyncのエラーがPermission-aware RAGのセキュリティに影響しないことを、次の 4 点で保証します。
 
-1. **インベントリ未更新 = 既存インデックスが維持される** — 新ファイルが検索対象に入らないだけで、既存ファイルのPermission制御は維持
-2. **失敗したファイルは `status: "failed"` でマーク** — 次回ポーリングで自動再取り込みしない（手動確認後にリセット）
-3. **IN_PROGRESSジョブ排他制御** — 二重インジェスションによるデータ不整合を防止
-4. **Permission metadata (.metadata.json) なしファイル** — KBに取り込まれてもRAG検索時にFail-closedフィルタで除外される（Fail-closed原則は常に適用）
+1. **インベントリ未更新 = 既存インデックスが維持される**（新ファイルが検索対象に入らないだけで、既存ファイルのPermission制御は維持）
+2. **失敗したファイルは `status: "failed"` でマーク**（次回ポーリングで自動再取り込みしない。手動確認後にリセット）
+3. **IN_PROGRESSジョブ排他制御**（二重インジェスションによるデータ不整合を防止）
+4. **Permission metadata (.metadata.json) なしファイル**（KBに取り込まれてもRAG検索時にFail-closedフィルタで除外される。Fail-closed原則は常に適用）
 
 ## 監視ダッシュボード
 
@@ -160,6 +160,6 @@ KB Auto-SyncのエラーがPermission-aware RAGのセキュリティに影響し
 
 ## 関連ドキュメント
 
-- [権限メタデータ変更の整合性モデル](permission-consistency.md) — 権限メタデータの更新と KB インデックス更新の関係（ACL 変更は自動反映されない理由を含む）
-- [CloudWatch ダッシュボードガイド](cloudwatch-dashboard-guide.md) — 監視メトリクスの見方
-- [本番化チェックリスト](production-readiness-checklist.md) — KB Auto-Syncの本番化要件
+- [権限メタデータ変更の整合性モデル](permission-consistency.md)（権限メタデータの更新と KB インデックス更新の関係。ACL 変更が自動反映されない理由を含む）
+- [CloudWatch ダッシュボードガイド](cloudwatch-dashboard-guide.md)（監視メトリクスの見方）
+- [本番化チェックリスト](production-readiness-checklist.md)（KB Auto-Syncの本番化要件）
