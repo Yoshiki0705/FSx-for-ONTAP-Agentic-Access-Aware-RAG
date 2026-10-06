@@ -80,11 +80,15 @@ CloudWatch Custom Metrics:
 ```
 
 ### #5 FlexCache → S3 AP Migration Path
-**Status**: Design (awaiting AWS feature release)
+**Status**: Design (premise does not hold: an S3 Access Point cannot be attached to a FlexCache volume)
 
-**Migration Steps (future)**:
+**[documented]** The Amazon FSx API refuses to attach S3 Access Points to a FlexCache volume because of the volume type (error: `Amazon FSx is unable to attach S3access point because the volume is a FlexCache.`). The refusal is by volume type, not by ONTAP version, so upgrading ONTAP does not resolve it. Source: [measurement record in a sibling project (2026-07-24, ONTAP 9.18.1P3D1, item 26)](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/integrations/snapmirror-flexcache-multicloud/docs/BACKLOG.md), [Hub note (same refusal on two 9.18.1 patch levels in two Regions)](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/blob/main/docs/ja/domains/data-utilization/notes/serving-a-replication-destination-over-s3.md). The Hub note names a SnapMirror destination, rather than FlexCache, as the path for serving remote data over the S3 API.
+
+The steps below apply only if AWS removes this refusal. Whether that is planned has not been confirmed.
+
+**Migration Steps (only if the refusal above is removed)**:
 ```
-1. Attach S3 AP to FlexCache Cache Volume (after feature release)
+1. Attach S3 AP to FlexCache Cache Volume (currently refused by the Amazon FSx API)
 2. Set a parallel operation period for Embedding server path and S3 AP path
 3. Verify S3 AP path operation (run benchmarks)
 4. Stop the Embedding server

@@ -243,7 +243,7 @@ On an EC2 instance with an Amazon FSx for NetApp ONTAP volume mounted via CIFS/S
 |------|--------|---------------|--------|
 | Option A (default) | S3 bucket → Bedrock KB S3 data source | Always enabled | ✅ |
 | Option B (optional) | Embedding server (CIFS mount) → Direct vector store write | `-c enableEmbeddingServer=true` | ✅ (AOSS configuration only) |
-| Option C (optional) | S3 Access Point → Bedrock KB | Manual setup after deployment | ✅ SnapMirror supported, FlexCache coming soon |
+| Option C (optional) | S3 Access Point → Bedrock KB | Manual setup after deployment | ✅ SnapMirror supported. Cannot be attached to a FlexCache Cache volume (the Amazon FSx API refuses by volume type; an ONTAP version does not change this. [Measurement record](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/integrations/snapmirror-flexcache-multicloud/docs/BACKLOG.md)) |
 
 > **About S3 Access Point**: StorageStack automatically creates an S3 Access Point for the FSx for ONTAP volume. Depending on the volume's security style (NTFS/UNIX) and AD join status, an S3 AP with either WINDOWS or UNIX user type is created. This can be explicitly controlled via CDK context parameters `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`.
 
