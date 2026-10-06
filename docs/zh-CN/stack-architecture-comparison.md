@@ -127,7 +127,7 @@ StorageStack 可以通过 `existingFileSystemId`/`existingSvmId`/`existingVolume
 |------|----------------------|----------------------|--------------------------|--------------------------------|
 | **CDK 参数** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors`（默认） | 在配置 2 的基础上运行 `export-to-opensearch.sh` | ⚠️ 未实现（验证完成后添加） |
 | **成本** | 约 $700/月（2 个 OCU 始终运行） | 几美元/月（小规模） | S3 Vectors + AOSS OCU（仅在导出期间） | 按数据大小 + 检索次数的按需计费 |
-| **延迟** | 约 10ms | 亚秒级（冷启动），约 100ms（热启动） | 约 10ms（导出后 AOSS 搜索） | ⚠️ 未测量（多跳时多次检索累加） |
+| **延迟** | 约 10ms（未注明测量环境，未确认） | 亚秒级（冷启动），约 100ms（热启动）（未注明测量环境，未确认） | 约 10ms（导出后 AOSS 搜索，未注明测量环境，未确认） | ⚠️ 未测量（多跳时多次检索累加） |
 | **过滤** | 元数据过滤（`$eq`、`$ne`、`$in` 等） | 元数据过滤（`$eq`、`$in`、`$and`、`$or`） | 导出后使用 AOSS 过滤 | `filter` 运算符（含 `listContains`）+ `userContext`（⚠️ SID 匹配未验证） |
 | **元数据约束** | 无约束 | filterable 2KB/向量（自定义实际约 1KB），non-filterable 键最多 10 个 | 导出后遵循 AOSS 约束 | ⚠️ 托管存储内的约束未公开 |
 | **搜索方式** | 向量搜索 / Hybrid（取决于 kbSearchType） | 向量搜索 / Hybrid（取决于 kbSearchType） | AOSS 搜索功能 | 混合搜索 + Agentic Retrieval（多跳） |

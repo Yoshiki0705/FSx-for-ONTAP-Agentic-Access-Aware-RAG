@@ -240,7 +240,7 @@ Amazon FSx for NetApp ONTAPのボリュームをCIFS/SMBでマウントしたEC2
 |------|------|----------|------|
 | Option A（デフォルト） | S3バケット → Bedrock KB S3データソース | 常に有効 | ✅ |
 | Option B（オプション） | Embeddingサーバー（CIFSマウント）→ ベクトルストア直接書き込み | `-c enableEmbeddingServer=true` | ✅（AOSS構成時のみ） |
-| Option C（オプション） | S3 Access Point → Bedrock KB | デプロイ後に手動設定 | ✅ SnapMirror対応、FlexCache近日対応 |
+| Option C（オプション） | S3 Access Point → Bedrock KB | デプロイ後に手動設定 | ✅ SnapMirror対応。FlexCache Cache ボリュームには取り付け不可（Amazon FSx の API がボリューム種別を理由に拒否し、ONTAP のバージョンでは解決しない。[実測記録](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/integrations/snapmirror-flexcache-multicloud/docs/BACKLOG.md)） |
 
 > **S3 Access Pointについて**: StorageStackはFSx for ONTAPボリュームにS3 Access Pointを自動作成します。ボリュームのセキュリティスタイル（NTFS/UNIX）とAD参加状況に応じて、WINDOWSまたはUNIXユーザータイプのS3 APが作成されます。CDKコンテキストパラメータ `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` で明示的に制御可能です。
 

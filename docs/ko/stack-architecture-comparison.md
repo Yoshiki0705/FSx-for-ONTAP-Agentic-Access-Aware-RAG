@@ -127,7 +127,7 @@ StorageStack은 `existingFileSystemId`/`existingSvmId`/`existingVolumeId` 파라
 |------|----------------------|-----------------|--------------------------|--------------------------------|
 | **CDK 파라미터** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors` (기본값) | 구성 2 위에 `export-to-opensearch.sh` 실행 | ⚠️ 미구현 (검증 완료 후 추가 예정) |
 | **비용** | ~$700/월 (2 OCU 상시 가동) | 수 달러/월 (소규모) | S3 Vectors + AOSS OCU (내보내기 중에만) | 데이터 크기 + 검색 횟수 기반 온디맨드 과금 |
-| **지연 시간** | ~10ms | 서브초 (콜드), ~100ms (웜) | ~10ms (내보내기 후 AOSS 검색) | ⚠️ 미측정 (멀티홉 시 여러 검색으로 누적) |
+| **지연 시간** | ~10ms (측정 환경 미기재, 미확인) | 서브초 (콜드), ~100ms (웜) (측정 환경 미기재, 미확인) | ~10ms (내보내기 후 AOSS 검색, 측정 환경 미기재, 미확인) | ⚠️ 미측정 (멀티홉 시 여러 검색으로 누적) |
 | **필터링** | 메타데이터 필터 (`$eq`, `$ne`, `$in` 등) | 메타데이터 필터 (`$eq`, `$in`, `$and`, `$or`) | 내보내기 후 AOSS 필터링 | `filter` 연산자 (`listContains` 포함) + `userContext` (⚠️ SID 대조 미검증) |
 | **메타데이터 제약** | 제약 없음 | filterable 2KB/벡터 (실질적으로 커스텀 1KB), non-filterable 키 최대 10개 | 내보내기 후 AOSS 제약 적용 | ⚠️ 관리형 스토리지 내 제약 미공개 |
 | **검색 방식** | 벡터 검색 / Hybrid (kbSearchType 의존) | 벡터 검색 / Hybrid (kbSearchType 의존) | AOSS 검색 기능 | 하이브리드 검색 + Agentic Retrieval (멀티홉) |
