@@ -208,6 +208,13 @@ const existingFileSystemId: string | undefined = app.node.tryGetContext('existin
 const existingSvmId: string | undefined = app.node.tryGetContext('existingSvmId');
 const existingVolumeId: string | undefined = app.node.tryGetContext('existingVolumeId');
 
+// 既存VPC参照（指定時はVPC/NAT/サブネットを新規作成せず既存を使う）
+// existingPrivateSubnetIds / existingAvailabilityZones は別AZ2本以上を同順で指定する。
+const existingVpcId: string | undefined = app.node.tryGetContext('existingVpcId');
+const existingPrivateSubnetIds = app.node.tryGetContext('existingPrivateSubnetIds') as string[] | undefined;
+const existingAvailabilityZones = app.node.tryGetContext('existingAvailabilityZones') as string[] | undefined;
+const existingVpcCidr: string | undefined = app.node.tryGetContext('existingVpcCidr');
+
 // ボリューム・S3 APユーザー設定
 const volumeSecurityStyle = (app.node.tryGetContext('volumeSecurityStyle') || 'NTFS') as 'NTFS' | 'UNIX';
 const s3apUserType = app.node.tryGetContext('s3apUserType') as 'WINDOWS' | 'UNIX' | undefined;
@@ -244,8 +251,9 @@ const webSearchGatewayStack = enableWebSearch
 // Stack 2: NetworkingStack
 const networkingStack = new DemoNetworkingStack(app, `${stackPrefix}-Networking`, {
   projectName, environment, enableVpcEndpoints,
+  existingVpcId, existingPrivateSubnetIds, existingAvailabilityZones, existingVpcCidr,
   env: primaryEnv,
-  description: `[${projectName}] VPC, Subnets, Security Groups`,
+  description: `[${projectName}] ${existingVpcId ? 'Existing VPC + ' : ''}Subnets, Security Groups`,
 });
 
 // Stack 3: StorageStack (before SecurityStack for AD Federation dependency)
@@ -347,6 +355,7 @@ const imageTag = app.node.tryGetContext('imageTag') || 'latest';
 const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   projectName, environment,
   vpc: networkingStack.vpc,
+  privateSubnets: networkingStack.privateSubnets,
   lambdaSg: networkingStack.lambdaSg,
   userPool: securityStack.userPool,
   userPoolClient: securityStack.userPoolClient,

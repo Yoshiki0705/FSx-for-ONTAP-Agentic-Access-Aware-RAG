@@ -15,11 +15,23 @@ export interface DemoNetworkingStackProps extends cdk.StackProps {
   environment: string;
   /** VPCエンドポイントを有効化するか（デフォルト: false） */
   enableVpcEndpoints?: boolean;
+  /**
+   * 既存VPCのID。指定すると新規VPCを作らず既存VPCを参照する。
+   * 指定時は existingPrivateSubnetIds / existingAvailabilityZones も必須。
+   * NAT GatewayやVPCエンドポイントは既存VPCのものを使う（このスタックでは作らない）。
+   */
+  existingVpcId?: string;
+  /** 既存VPCを使うときのプライベートサブネットID（別AZ2本以上） */
+  existingPrivateSubnetIds?: string[];
+  /** 既存VPCを使うときの、existingPrivateSubnetIds に対応するAZ */
+  existingAvailabilityZones?: string[];
+  /** 既存VPCのCIDR（SG ingress で使う。未指定なら vpcCidrBlock を参照） */
+  existingVpcCidr?: string;
 }
 
 export class DemoNetworkingStack extends cdk.Stack {
-  /** デモ環境VPC */
-  public readonly vpc: ec2.Vpc;
+  /** デモ環境VPC（新規作成または既存参照） */
+  public readonly vpc: ec2.IVpc;
   /** プライベートサブネット（FSx, Lambda配置用） */
   public readonly privateSubnets: ec2.ISubnet[];
   /** パブリックサブネット */
@@ -32,36 +44,84 @@ export class DemoNetworkingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: DemoNetworkingStackProps) {
     super(scope, id, props);
 
-    const { projectName, environment, enableVpcEndpoints } = props;
+    const {
+      projectName, environment, enableVpcEndpoints,
+      existingVpcId, existingPrivateSubnetIds, existingAvailabilityZones, existingVpcCidr,
+    } = props;
     const prefix = `${projectName}-${environment}`;
 
-    // VPC（2 AZ、Public + Private サブネット）
-    this.vpc = new ec2.Vpc(this, 'Vpc', {
-      vpcName: `${prefix}-vpc`,
-      maxAzs: 2,
-      natGateways: 1,
-      subnetConfiguration: [
-        {
-          name: 'Public',
-          subnetType: ec2.SubnetType.PUBLIC,
-          cidrMask: 24,
-        },
-        {
-          name: 'Private',
-          subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
-          cidrMask: 24,
-        },
-      ],
-      flowLogs: {
-        'VpcFlowLog': {
-          destination: ec2.FlowLogDestination.toCloudWatchLogs(),
-          trafficType: ec2.FlowLogTrafficType.ALL,
-        },
-      },
-    });
+    // 新規作成分岐でのみ使う具体型のローカル変数。
+    // addGatewayEndpoint / addInterfaceEndpoint は ec2.Vpc 固有で IVpc には無いため、
+    // EP 作成はこのローカル変数に対して呼ぶ（import した IVpc には呼べない）。
+    let newVpc: ec2.Vpc | undefined;
 
-    this.privateSubnets = this.vpc.privateSubnets;
-    this.publicSubnets = this.vpc.publicSubnets;
+    if (existingVpcId) {
+      // 既存VPC参照分岐。NAT・サブネット・Flow Log は既存VPCのものを使う（ここでは作らない）。
+      // fromVpcAttributes でサブネットとAZを明示指定する。既存VPCのサブネットは
+      // aws-cdk:subnet-type タグを持たないことが多く、fromLookup + subnetType selection では
+      // "no Private subnet groups" で synth が落ちる。明示指定でタグ非依存にする。
+      if (!existingPrivateSubnetIds || existingPrivateSubnetIds.length < 2) {
+        throw new Error(
+          'existingVpcId を指定する場合は existingPrivateSubnetIds に別AZ2本以上を指定してください。',
+        );
+      }
+      if (!existingAvailabilityZones || existingAvailabilityZones.length !== existingPrivateSubnetIds.length) {
+        throw new Error(
+          'existingAvailabilityZones は existingPrivateSubnetIds と同数（同順）で指定してください。',
+        );
+      }
+
+      this.vpc = ec2.Vpc.fromVpcAttributes(this, 'Vpc', {
+        vpcId: existingVpcId,
+        availabilityZones: existingAvailabilityZones,
+        privateSubnetIds: existingPrivateSubnetIds,
+        vpcCidrBlock: existingVpcCidr,
+      });
+
+      this.privateSubnets = existingPrivateSubnetIds.map((id, i) =>
+        ec2.Subnet.fromSubnetAttributes(this, `ImportedPrivateSubnet${i}`, {
+          subnetId: id,
+          availabilityZone: existingAvailabilityZones[i],
+        }),
+      );
+      this.publicSubnets = [];
+
+      if (enableVpcEndpoints) {
+        // 既存VPCには既存のEPがある前提。重複作成は衝突を招くのでスキップする。
+        cdk.Annotations.of(this).addWarning(
+          'existingVpcId 指定時は enableVpcEndpoints を無視します（既存VPCのエンドポイントを使用）。',
+        );
+      }
+    } else {
+      // 新規作成分岐（従来どおり: 2 AZ、Public + Private、NAT 1本、Flow Log）
+      newVpc = new ec2.Vpc(this, 'Vpc', {
+        vpcName: `${prefix}-vpc`,
+        maxAzs: 2,
+        natGateways: 1,
+        subnetConfiguration: [
+          {
+            name: 'Public',
+            subnetType: ec2.SubnetType.PUBLIC,
+            cidrMask: 24,
+          },
+          {
+            name: 'Private',
+            subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+            cidrMask: 24,
+          },
+        ],
+        flowLogs: {
+          'VpcFlowLog': {
+            destination: ec2.FlowLogDestination.toCloudWatchLogs(),
+            trafficType: ec2.FlowLogTrafficType.ALL,
+          },
+        },
+      });
+
+      this.vpc = newVpc;
+      this.privateSubnets = newVpc.privateSubnets;
+      this.publicSubnets = newVpc.publicSubnets;
+    }
 
     // Lambda用セキュリティグループ
     this.lambdaSg = new ec2.SecurityGroup(this, 'LambdaSg', {
@@ -187,67 +247,70 @@ export class DemoNetworkingStack extends cdk.Stack {
     );
 
     // ========================================
-    // VPCエンドポイント（オプション）
+    // VPCエンドポイント（オプション、新規作成VPCのみ）
     // ========================================
     // NAT Gateway経由のインターネットアクセスを減らし、
     // AWSサービスへのプライベート接続を確立する。
-    if (enableVpcEndpoints) {
+    // addGatewayEndpoint / addInterfaceEndpoint は ec2.Vpc 固有のため、
+    // 新規作成分岐のローカル変数 newVpc に対して呼ぶ。既存VPC参照時は newVpc が
+    // undefined で、EP は既存VPCのものを使う（ここでは作らない）。
+    if (enableVpcEndpoints && newVpc) {
       // Gateway Endpoints（無料）
-      this.vpc.addGatewayEndpoint('S3Endpoint', {
+      newVpc.addGatewayEndpoint('S3Endpoint', {
         service: ec2.GatewayVpcEndpointAwsService.S3,
       });
-      this.vpc.addGatewayEndpoint('DynamoDbEndpoint', {
+      newVpc.addGatewayEndpoint('DynamoDbEndpoint', {
         service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
       });
 
       // Interface Endpoints（有料、セキュリティ要件に応じて有効化）
       const interfaceEndpointSg = new ec2.SecurityGroup(this, 'VpceInterfaceSg', {
-        vpc: this.vpc,
+        vpc: newVpc,
         securityGroupName: `${prefix}-vpce-sg`,
         description: 'Security group for VPC Interface Endpoints',
         allowAllOutbound: true,
       });
       interfaceEndpointSg.addIngressRule(
-        ec2.Peer.ipv4(this.vpc.vpcCidrBlock),
+        ec2.Peer.ipv4(newVpc.vpcCidrBlock),
         ec2.Port.tcp(443),
         'HTTPS from VPC',
       );
 
       // Bedrock Runtime
-      this.vpc.addInterfaceEndpoint('BedrockRuntimeEndpoint', {
+      newVpc.addInterfaceEndpoint('BedrockRuntimeEndpoint', {
         service: ec2.InterfaceVpcEndpointAwsService.BEDROCK_RUNTIME,
         securityGroups: [interfaceEndpointSg],
         privateDnsEnabled: true,
       });
 
       // Bedrock Agent Runtime
-      this.vpc.addInterfaceEndpoint('BedrockAgentRuntimeEndpoint', {
+      newVpc.addInterfaceEndpoint('BedrockAgentRuntimeEndpoint', {
         service: ec2.InterfaceVpcEndpointAwsService.BEDROCK_AGENT_RUNTIME,
         securityGroups: [interfaceEndpointSg],
         privateDnsEnabled: true,
       });
 
       // SSM（Session Manager / AD Sync Lambda用）
-      this.vpc.addInterfaceEndpoint('SsmEndpoint', {
+      newVpc.addInterfaceEndpoint('SsmEndpoint', {
         service: ec2.InterfaceVpcEndpointAwsService.SSM,
         securityGroups: [interfaceEndpointSg],
         privateDnsEnabled: true,
       });
-      this.vpc.addInterfaceEndpoint('SsmMessagesEndpoint', {
+      newVpc.addInterfaceEndpoint('SsmMessagesEndpoint', {
         service: ec2.InterfaceVpcEndpointAwsService.SSM_MESSAGES,
         securityGroups: [interfaceEndpointSg],
         privateDnsEnabled: true,
       });
 
       // Secrets Manager
-      this.vpc.addInterfaceEndpoint('SecretsManagerEndpoint', {
+      newVpc.addInterfaceEndpoint('SecretsManagerEndpoint', {
         service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
         securityGroups: [interfaceEndpointSg],
         privateDnsEnabled: true,
       });
 
       // CloudWatch Logs（Lambda ログ出力用）
-      this.vpc.addInterfaceEndpoint('CloudWatchLogsEndpoint', {
+      newVpc.addInterfaceEndpoint('CloudWatchLogsEndpoint', {
         service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
         securityGroups: [interfaceEndpointSg],
         privateDnsEnabled: true,

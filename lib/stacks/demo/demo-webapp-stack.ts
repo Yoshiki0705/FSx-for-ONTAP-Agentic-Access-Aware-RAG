@@ -28,6 +28,13 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   projectName: string;
   environment: string;
   vpc: ec2.IVpc;
+  /**
+   * WebApp Lambda を配置するプライベートサブネット。
+   * 指定するとこのサブネットに明示配置する。未指定なら subnetType（PRIVATE_WITH_EGRESS）で
+   * 選択する（新規作成VPC向け）。既存VPC参照時はサブネットに aws-cdk:subnet-type タグが
+   * 無く subnetType 選択が効かないため、明示指定する。
+   */
+  privateSubnets?: ec2.ISubnet[];
   lambdaSg: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
   userPoolClient: cognito.IUserPoolClient;
@@ -148,7 +155,7 @@ export class DemoWebAppStack extends cdk.Stack {
     super(scope, id, props);
 
     const {
-      projectName, environment, vpc, lambdaSg,
+      projectName, environment, vpc, privateSubnets, lambdaSg,
       userPool, userPoolClient, knowledgeBaseId, imageUri,
       wafWebAclArn, permissionCacheTable, userAccessTable, dataBucket,
       allowedCountries = ['JP'],
@@ -156,6 +163,12 @@ export class DemoWebAppStack extends cdk.Stack {
     } = props;
     const { agentId, agentAliasId } = props;
     const prefix = `${projectName}-${environment}`;
+
+    // Lambda のサブネット選択。privateSubnets が渡れば明示配置（既存VPC向け・タグ非依存）、
+    // 無ければ従来どおり subnetType で選択（新規作成VPC向け）。
+    const lambdaVpcSubnets: ec2.SubnetSelection = privateSubnets && privateSubnets.length > 0
+      ? { subnets: privateSubnets }
+      : { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS };
 
     // ========================================
     // Lambda Web Adapter（Next.jsコンテナ）
@@ -176,7 +189,7 @@ export class DemoWebAppStack extends cdk.Stack {
       memorySize: 1024,
       timeout: cdk.Duration.seconds(30),
       vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      vpcSubnets: lambdaVpcSubnets,
       securityGroups: [lambdaSg],
       environment: {
         // Cognito設定
@@ -283,7 +296,7 @@ export class DemoWebAppStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(30),
         memorySize: 256,
         vpc,
-        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        vpcSubnets: lambdaVpcSubnets,
         securityGroups: [lambdaSg],
         environment: {
           PERMISSION_CACHE_TABLE: permissionCacheTable.tableName,
