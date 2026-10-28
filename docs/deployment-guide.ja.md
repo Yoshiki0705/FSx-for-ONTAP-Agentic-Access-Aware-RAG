@@ -55,7 +55,7 @@ CDK デプロイ時にアカウントに作成される AWS リソース:
 
 | カテゴリ | リソース | 備考 |
 |---------|---------|------|
-| ネットワーク | VPC エンドポイント（または既存利用） | `skipVpcEndpoints` で制御 |
+| ネットワーク | 新規 VPC + NAT Gateway、または既存 VPC の参照 | `existingVpcId` 指定時は VPC・NAT Gateway・サブネット・VPC エンドポイントを作らず、セキュリティグループのみ作成 |
 | セキュリティ | Cognito User Pool、WAF WebACL | WAF は us-east-1 |
 | コンピュート | Lambda 関数（Next.js コンテナ） | ECR からプル |
 | ストレージ | S3 バケット（ベクトル）、DynamoDB テーブル | user-access 権限管理 |
@@ -248,9 +248,13 @@ cp cdk.context.existing-env.example.json cdk.context.json
   "existingSvmId": "svm-0123456789abcdef0",
   "existingVolumeId": "fsvol-0123456789abcdef0",
 
-  // === ネットワーク（既存VPCをインポートする場合） ===
-  // デフォルトでは CDK が新規 VPC を作成。既存を使う場合:
+  // === ネットワーク（既存 VPC を使う場合） ===
+  // デフォルトでは CDK が新規 VPC と NAT Gateway を作成。既存 VPC を使う場合は
+  // 次の 4 つを必ず一緒に指定（欠けると synth がキー名付きのエラーで止まる）:
   "existingVpcId": "vpc-0abc123def456",
+  "existingPrivateSubnetIds": ["subnet-0aaa111122223333a", "subnet-0bbb444455556666b"],
+  "existingAvailabilityZones": ["ap-northeast-1a", "ap-northeast-1c"],
+  "existingVpcCidr": "10.0.0.0/16",
 
   // === セキュリティ ===
   "allowedCountries": ["JP"],
@@ -378,32 +382,14 @@ aws cloudformation deploy \
 
 ### 5.2 競合の防止
 
-既存 VPC に上記サービスの VPC エンドポイントが既に存在する場合、CDK のデフォルト動作（新規作成）は以下のエラーで**失敗**します:
+`existingVpcId` を指定すると、このプロジェクトは VPC エンドポイントを一切作らないため、既存 VPC のエンドポイントと競合しません。この場合 `enableVpcEndpoints` は無視され、synth が警告を出します。Lambda は、既存 VPC にある次のいずれかで AWS サービスに到達します。
 
-```
-The VPC endpoint for this service already exists in this VPC
-```
+- 渡したプライベートサブネットのルートテーブルにある S3・DynamoDB の Gateway エンドポイント
+- 上記サービス向けの、そのサブネットから到達できる Interface エンドポイント、または NAT Gateway 経由のルート
 
-**解決方法**:
+`existingVpcId` を省略すると新規 VPC を作成します。エンドポイントは `enableVpcEndpoints=true` のときだけ作られます。別 VPC の FSx for ONTAP を使う場合は、`existingVpcId` を省略し、VPC ピアリングまたは Transit Gateway を構成します。
 
-#### 方法 A: 既存エンドポイントのインポート（推奨）
-
-`cdk.context.json` で指定:
-
-```jsonc
-{
-  // CDK 管理の VPC エンドポイント作成をスキップ
-  "skipVpcEndpoints": ["s3", "dynamodb", "bedrock-runtime", "secretsmanager"]
-}
-```
-
-#### 方法 B: エンドポイント競合のない既存 VPC を使用
-
-既存 VPC のルートテーブルに Gateway エンドポイントが含まれ、Interface エンドポイントが Lambda からアクセス可能なサブネットにあることを確認します。
-
-#### 方法 C: 新規 VPC にデプロイしてピアリング
-
-`existingVpcId` を省略 — CDK が専用 VPC を作成し、FSx for ONTAP VPC への VPC ピアリングまたは Transit Gateway を構成します。
+`scripts/preflight-check.sh` は、既存 VPC にあるエンドポイントを一覧します（節 9）。渡したサブネットから各サービスに到達できるかの確認に使えます。
 
 ### 5.3 Interface エンドポイント用セキュリティグループ
 
@@ -584,7 +570,7 @@ aws lambda update-function-configuration \
 
 | 症状 | 原因 | 解決方法 |
 |------|------|----------|
-| `VPC endpoint already exists` | 既存エンドポイントとの競合 | context に `skipVpcEndpoints` を設定 |
+| synth 時の `existingVpcCidr` / `existingAvailabilityZones` エラー | `existing*` の VPC キーの欠落、または `-c` で配列を渡した | 4 つの `existing*` VPC キーを `cdk.context.json` に設定（節 3.3 を参照） |
 | `Cannot resolve FSx file system` | FS ID またはリージョンの不一致 | `existingFileSystemId` がリージョンと一致しているか確認 |
 | `Lambda timeout on ONTAP call` | SG に管理 LIF への HTTPS ルールがない | Lambda SG から ONTAP 管理 LIF への TCP 443 ルールを追加 |
 | `S3 Access Point 403` | IAM または AP ポリシーの不足 | AP ARN に対する `s3:GetObject` を確認 |

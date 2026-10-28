@@ -17,7 +17,7 @@ export interface DemoNetworkingStackProps extends cdk.StackProps {
   enableVpcEndpoints?: boolean;
   /**
    * 既存VPCのID。指定すると新規VPCを作らず既存VPCを参照する。
-   * 指定時は existingPrivateSubnetIds / existingAvailabilityZones も必須。
+   * 指定時は existingPrivateSubnetIds / existingAvailabilityZones / existingVpcCidr も必須。
    * NAT GatewayやVPCエンドポイントは既存VPCのものを使う（このスタックでは作らない）。
    */
   existingVpcId?: string;
@@ -25,7 +25,7 @@ export interface DemoNetworkingStackProps extends cdk.StackProps {
   existingPrivateSubnetIds?: string[];
   /** 既存VPCを使うときの、existingPrivateSubnetIds に対応するAZ */
   existingAvailabilityZones?: string[];
-  /** 既存VPCのCIDR（SG ingress で使う。未指定なら vpcCidrBlock を参照） */
+  /** 既存VPCのCIDR（existingVpcId 指定時は必須。FSx SG の ingress に使う） */
   existingVpcCidr?: string;
 }
 
@@ -68,6 +68,15 @@ export class DemoNetworkingStack extends cdk.Stack {
       if (!existingAvailabilityZones || existingAvailabilityZones.length !== existingPrivateSubnetIds.length) {
         throw new Error(
           'existingAvailabilityZones は existingPrivateSubnetIds と同数（同順）で指定してください。',
+        );
+      }
+
+      // FSx SG の ingress が vpc.vpcCidrBlock を参照する。fromVpcAttributes に CIDR を
+      // 渡さないと、参照時点で CDK が "vpcCidrBlock was not supplied" の例外を投げる。
+      // 原因が分かりにくいので、ここで明示エラーにして早期に止める。
+      if (!existingVpcCidr) {
+        throw new Error(
+          'existingVpcId を指定する場合は existingVpcCidr（既存VPCのCIDR、例: 10.0.0.0/16）も指定してください。',
         );
       }
 

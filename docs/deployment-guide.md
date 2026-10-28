@@ -55,7 +55,7 @@ When you deploy with CDK, the following AWS resources are created in your accoun
 
 | Category | Resources | Notes |
 |----------|-----------|-------|
-| Networking | VPC Endpoints (or uses existing) | Skipped if `skipVpcEndpoints` set |
+| Networking | New VPC + NAT Gateway, or a reference to an existing VPC | With `existingVpcId`: no VPC, NAT Gateway, subnet, or VPC endpoint is created; only security groups |
 | Security | Cognito User Pool, WAF WebACL | WAF in us-east-1 |
 | Compute | Lambda function (Next.js container) | Container pulled from ECR |
 | Storage | S3 bucket (vectors), DynamoDB table | user-access permissions |
@@ -248,9 +248,13 @@ cp cdk.context.existing-env.example.json cdk.context.json
   "existingSvmId": "svm-0123456789abcdef0",
   "existingVolumeId": "fsvol-0123456789abcdef0",
 
-  // === Networking (if importing existing VPC) ===
-  // By default CDK creates a new VPC. To use existing:
+  // === Networking (if using an existing VPC) ===
+  // By default CDK creates a new VPC and a NAT Gateway. To use an existing VPC,
+  // set all four keys together (a missing one fails synth with a message naming it):
   "existingVpcId": "vpc-0abc123def456",
+  "existingPrivateSubnetIds": ["subnet-0aaa111122223333a", "subnet-0bbb444455556666b"],
+  "existingAvailabilityZones": ["ap-northeast-1a", "ap-northeast-1c"],
+  "existingVpcCidr": "10.0.0.0/16",
 
   // === Security ===
   "allowedCountries": ["JP"],
@@ -378,32 +382,14 @@ aws cloudformation deploy \
 
 ### 5.2 Conflict Prevention
 
-If your existing VPC already has VPC Endpoints for the above services, CDK's default behavior (creating new ones) will **fail** with:
+With `existingVpcId`, this project creates no VPC endpoints, so it cannot collide with endpoints the VPC already has. `enableVpcEndpoints` is ignored in that case and synth prints a warning. The Lambda functions reach AWS services through whichever of these the existing VPC provides:
 
-```
-The VPC endpoint for this service already exists in this VPC
-```
+- Gateway endpoints for S3 and DynamoDB in the route tables of the private subnets you pass.
+- Interface endpoints for the services above, reachable from those subnets, or a NAT Gateway route.
 
-**Resolution options**:
+Without `existingVpcId`, a new VPC is created. Endpoints are then created only when `enableVpcEndpoints=true`. To use a new VPC with FSx for ONTAP in another VPC, omit `existingVpcId` and configure VPC peering or Transit Gateway.
 
-#### Option A: Import existing endpoints (recommended)
-
-In `cdk.context.json`:
-
-```jsonc
-{
-  // Skip CDK-managed VPC Endpoint creation
-  "skipVpcEndpoints": ["s3", "dynamodb", "bedrock-runtime", "secretsmanager"]
-}
-```
-
-#### Option B: Use existing VPC with no endpoint conflicts
-
-Ensure the existing VPC's route tables include the Gateway Endpoints, and Interface Endpoints are in subnets accessible to the Lambda functions.
-
-#### Option C: Deploy into a new VPC with peering
-
-Omit `existingVpcId` — CDK creates a dedicated VPC and you configure VPC peering or Transit Gateway to the FSx for ONTAP VPC.
+`scripts/preflight-check.sh` lists the endpoints the existing VPC already has (section 9) so you can confirm the subnets you pass can reach the services.
 
 ### 5.3 Security Group for Interface Endpoints
 
@@ -584,7 +570,7 @@ aws lambda update-function-configuration \
 
 | Symptom | Cause | Resolution |
 |---------|-------|------------|
-| `VPC endpoint already exists` | Existing endpoint conflicts | Set `skipVpcEndpoints` in context |
+| `existingVpcCidr` / `existingAvailabilityZones` error at synth | A required `existing*` VPC key is missing, or an array was passed with `-c` | Set all four `existing*` VPC keys in `cdk.context.json` (see section 3.3) |
 | `Cannot resolve FSx file system` | Wrong FS ID or region | Verify `existingFileSystemId` matches region |
 | `Lambda timeout on ONTAP call` | SG missing HTTPS to mgmt LIF | Add TCP 443 rule from Lambda SG to ONTAP mgmt |
 | `S3 Access Point 403` | Missing IAM or AP policy | Check `s3:GetObject` on AP ARN |
