@@ -30,19 +30,28 @@
   "existingVolumeId": "fsvol-0123456789abcdef0",
 
   // === Existing VPC (optional — omit to create a new VPC) ===
-  // When specified, CDK imports this VPC instead of creating one.
+  // When specified, CDK references this VPC instead of creating one: no VPC,
+  // NAT Gateway, subnet, or VPC endpoint is created. Only security groups are.
+  // The four existing* VPC keys below are required together; a missing one
+  // fails synth with a message naming the key.
   // The VPC must have:
   //   - At least 2 private subnets in different AZs
   //   - Route to NAT Gateway or VPC Endpoints for AWS services
   //   - DNS resolution and DNS hostnames enabled
+  // existingPrivateSubnetIds and existingAvailabilityZones are matched by position.
+  //   aws ec2 describe-subnets --filters Name=vpc-id,Values=<vpc-id> \
+  //     --query 'Subnets[].[SubnetId,AvailabilityZone,CidrBlock]'
+  //   aws ec2 describe-vpcs --vpc-ids <vpc-id> --query 'Vpcs[0].CidrBlock'
+  // Put these in cdk.context.json, not on the command line: `-c` passes an
+  // array as one string and the length check fails.
   // "existingVpcId": "vpc-0abc123def456",
+  // "existingPrivateSubnetIds": ["subnet-0aaa111122223333a", "subnet-0bbb444455556666b"],
+  // "existingAvailabilityZones": ["ap-northeast-1a", "ap-northeast-1c"],
+  // "existingVpcCidr": "10.0.0.0/16",
 
-  // === VPC Endpoint Conflict Avoidance ===
-  // If the existing VPC already has VPC Endpoints for these services,
-  // list them here to prevent CDK from creating duplicates.
-  // Valid values: "s3", "dynamodb", "bedrock-runtime", "secretsmanager",
-  //              "sts", "ecr-api", "ecr-dkr", "logs"
-  // "skipVpcEndpoints": ["s3", "dynamodb"],
+  // === VPC endpoints for an existing VPC ===
+  // None are created (enableVpcEndpoints is ignored with a synth warning).
+  // Use the endpoints the VPC already has.
 
   // === Security ===
   // WAF geo-restriction (ISO 3166-1 alpha-2 country codes)

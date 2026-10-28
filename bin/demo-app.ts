@@ -18,7 +18,7 @@
  *   -c guardrailsConfig={}       Guardrails詳細設定（contentFilters, topicPolicies, piiConfig, contextualGrounding）
  *   -c enableKmsEncryption=true  KMS暗号化
  *   -c enableCloudTrail=true     CloudTrail監査ログ
- *   -c enableVpcEndpoints=true   VPCエンドポイント
+ *   -c enableVpcEndpoints=true   VPCエンドポイント（existingVpcId 指定時は無視される）
  *   -c vectorStoreType=s3vectors    Vector store type (s3vectors or opensearch-serverless)
  *   -c enableAgentCoreMemory=true    AgentCore Memory (短期・長期メモリ)
  *   -c enableAdvancedPermissions=true 時間ベースアクセス制御 + 権限判定監査ログ
@@ -38,6 +38,9 @@
  *   -c embeddingModel=xxx           埋め込みモデル（titan-text-v2, nova-multimodal）
  *   -c multimodalKbMode=xxx         マルチモーダルKBモード（replace, dual）
  *   -c enableVoiceChat=true         音声チャット（Amazon Nova Sonic）
+ *
+ * 既存VPCを使う場合は cdk.context.json に4つ一緒に指定する（-c では配列が文字列になり検証で落ちる）:
+ *   existingVpcId / existingPrivateSubnetIds / existingAvailabilityZones / existingVpcCidr
  */
 
 import 'source-map-support/register';
@@ -208,6 +211,13 @@ const existingFileSystemId: string | undefined = app.node.tryGetContext('existin
 const existingSvmId: string | undefined = app.node.tryGetContext('existingSvmId');
 const existingVolumeId: string | undefined = app.node.tryGetContext('existingVolumeId');
 
+// 既存VPC参照（指定時はVPC/NAT/サブネットを新規作成せず既存を使う）
+// existingPrivateSubnetIds / existingAvailabilityZones は別AZ2本以上を同順で指定する。
+const existingVpcId: string | undefined = app.node.tryGetContext('existingVpcId');
+const existingPrivateSubnetIds = app.node.tryGetContext('existingPrivateSubnetIds') as string[] | undefined;
+const existingAvailabilityZones = app.node.tryGetContext('existingAvailabilityZones') as string[] | undefined;
+const existingVpcCidr: string | undefined = app.node.tryGetContext('existingVpcCidr');
+
 // ボリューム・S3 APユーザー設定
 const volumeSecurityStyle = (app.node.tryGetContext('volumeSecurityStyle') || 'NTFS') as 'NTFS' | 'UNIX';
 const s3apUserType = app.node.tryGetContext('s3apUserType') as 'WINDOWS' | 'UNIX' | undefined;
@@ -244,8 +254,9 @@ const webSearchGatewayStack = enableWebSearch
 // Stack 2: NetworkingStack
 const networkingStack = new DemoNetworkingStack(app, `${stackPrefix}-Networking`, {
   projectName, environment, enableVpcEndpoints,
+  existingVpcId, existingPrivateSubnetIds, existingAvailabilityZones, existingVpcCidr,
   env: primaryEnv,
-  description: `[${projectName}] VPC, Subnets, Security Groups`,
+  description: `[${projectName}] ${existingVpcId ? 'Existing VPC + ' : ''}Subnets, Security Groups`,
 });
 
 // Stack 3: StorageStack (before SecurityStack for AD Federation dependency)
@@ -347,6 +358,7 @@ const imageTag = app.node.tryGetContext('imageTag') || 'latest';
 const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   projectName, environment,
   vpc: networkingStack.vpc,
+  privateSubnets: networkingStack.privateSubnets,
   lambdaSg: networkingStack.lambdaSg,
   userPool: securityStack.userPool,
   userPoolClient: securityStack.userPoolClient,

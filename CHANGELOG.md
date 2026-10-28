@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **既存 VPC の参照**: `existingVpcId` / `existingPrivateSubnetIds` / `existingAvailabilityZones` / `existingVpcCidr` の 4 つを指定すると、`DemoNetworkingStack` が VPC・NAT Gateway・サブネット・VPC エンドポイントを作らず、既存 VPC を参照してセキュリティグループだけを作る。WebApp Lambda は渡したサブネットに明示配置する（既存 VPC のサブネットは `aws-cdk:subnet-type` タグを持たないことが多く、`subnetType` 選択が効かないため）。`existingVpcId` を省略した場合の挙動は変わらない。ドキュメントは以前から `existingVpcId` を案内していたが、実装が無く黙って無視されていた
+- **Tests**: `tests/stacks/demo-networking-stack.test.ts`（11 件）— 新規作成分岐・既存 VPC 参照分岐・必須キー欠落時の throw
+### Changed
+- `existingVpcId` 指定時に `existingVpcCidr` を必須にした。省略すると FSx 用セキュリティグループの ingress が `vpcCidrBlock` を参照した時点で CDK が例外を投げ、原因が分かりにくかったため、キー名付きのエラーで止める
+- `enableVpcEndpoints` は `existingVpcId` 指定時に無視される（synth 警告）。`scripts/preflight-check.sh` の VPC エンドポイント節は「競合の検出」から「既存 VPC が private に到達できるサービスの確認」に変更
+### Removed
+- ドキュメントと preflight が案内していた `skipVpcEndpoints` の記述。実装が存在せず、既存 VPC 参照時はエンドポイントを作らないため解く問題が無い
 
 ## [4.4.0] - 2026-06-29
 
