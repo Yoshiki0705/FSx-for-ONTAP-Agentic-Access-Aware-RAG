@@ -499,7 +499,25 @@ aws lambda update-function-configuration \
 
 > 有効な値: `DEBUG`, `INFO`（デフォルト）, `WARN`, `ERROR`
 
-### 7.5 バックアップとリカバリ
+### 7.5 権限モデルの運用
+
+SID フィルタ自体は fail-closed（信頼できるメタデータを持たないドキュメントは検索結果から除外）ですが、フィルタが参照する権限データの「書き込み」と「変更の追跡」は運用側の責務です。以下は追加のハードニング指針です。
+
+**`user-access` テーブルへの書き込みは管理経路に限定する**
+
+> **セキュリティに関する補足**: SID フィルタはユーザーの SID/UID/GID を DynamoDB の `user-access` テーブルから読み取って判定します。このテーブルに広い書き込み権限を持つプリンシパルは、自分の SID を書き換えることでフィルタを迂回し、本来アクセスできないドキュメントを取得できます。`user-access` への書き込みは、運用者が管理する経路（`setup-user-access.sh`、専用の管理ロール、承認を伴う IaC）に限定し、アプリケーション実行ロールやエンドユーザーに `dynamodb:PutItem` / `UpdateItem` / `DeleteItem` を付与しないでください。読み取り（フィルタ経路）と書き込み（管理経路）の権限を分離します。
+
+**即時の権限剥奪が必要な場合のフィルタ経路の選択**
+
+Lambda フィルタ経路（`PERMISSION_FILTER_LAMBDA_ARN` 設定時に優先）は `(userId, ファイル名)` 単位の判定結果を `permission-cache` テーブルに **5 分** キャッシュします。インライン経路（Lambda 未設定時のフォールバック）は毎回評価し、結果をキャッシュしません。
+
+> **権限剥奪に関する補足**: `user-access` テーブルを編集して権限を剥奪した場合は、DynamoDB Streams を購読する cache-invalidator（`lib/constructs/cache-invalidator-construct.ts`）が該当エントリを削除するため、剥奪はほぼ即座に反映されます。一方、ドキュメント側の `.metadata.json`（`allowed_group_sids`）を変更して権限を絞った場合は Streams を経由しないため、Lambda 経路ではキャッシュ済みの `allowed=true` 判定が最大 5 分残ります。ドキュメントのメタデータ変更の即時反映が要件なら、インライン経路を使う（`PERMISSION_FILTER_LAMBDA_ARN` を設定しない）か、`permission-cache` テーブルの該当エントリを手動削除してください。キャッシュの TTL（`lambda/permissions/metadata-filter-handler.ts` の `CACHE_TTL_MINUTES = 5`）はコード定数で、環境変数では変更できません。TTL を下げるにはコード変更が必要です。トレードオフは、インラインはクエリごとに再評価するぶん DynamoDB 読み取りとレイテンシが増える点です。
+
+**権限変更の監査は運用者の責務**
+
+> **監査に関する補足**: `filterLog`（および `action: retrieve` の監査レコード）は、各クエリ時点でどのドキュメントが誰に許可/拒否されたかを記録します。しかし「誰がいつ権限を変更したか」（`user-access` の SID 変更、`.metadata.json` の `allowed_group_sids` 変更、FSx の ACL 変更）の履歴は、このスタックでは記録しません。権限変更の監査証跡が必要な場合は、利用者（運用者）側で用意してください。例: `user-access` テーブルの DynamoDB Streams を監査ログに転送する、権限変更を IaC / 承認フロー経由に限定して変更履歴を残す、AWS CloudTrail のデータイベントで `PutItem` / `UpdateItem` を記録する、など。
+
+### 7.6 バックアップとリカバリ
 
 - **FSx for ONTAP**: 既存のバックアップポリシーで管理（Snapshot/SnapMirror）
 - **DynamoDB**: これらのスタックが作るテーブルはすべてポイントインタイムリカバリ有効。デモ用リソースには `RemovalPolicy.DESTROY` が付いたままなので、PITR が守るのはテーブル内の誤った書き込みや削除で、スタックの破棄ではありません
