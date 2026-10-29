@@ -319,6 +319,33 @@ export class DemoWebAppStack extends cdk.Stack {
 
       // WebApp LambdaからPermission Filter Lambdaを呼び出す権限
       permFilterFn.grantInvoke(this.webAppFunction);
+
+      // The NodejsFunction creates its own execution role with the two standard Lambda managed
+      // policies, same as the WebApp function above. grantInvoke adds a function-ARN wildcard
+      // (arn:...:function:<name>:*) so it covers every version/alias of the one function.
+      NagSuppressions.addResourceSuppressions(permFilterFn, [
+        {
+          id: 'AwsSolutions-IAM4',
+          reason: 'AWSLambdaBasicExecutionRole and AWSLambdaVPCAccessExecutionRole are standard AWS managed policies for Lambda. Required for CloudWatch Logs and ENI management in VPC. See: https://docs.aws.amazon.com/lambda/latest/dg/security-iam-awsmanpol.html',
+          appliesTo: [
+            'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
+            'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole',
+          ],
+        },
+      ], true);
+      NagSuppressions.addResourceSuppressions(this.webAppFunction, [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'grantInvoke scopes lambda:InvokeFunction to the single permission-filter function ARN; the trailing :* covers its versions and aliases, which have no separate ARN at synth time.',
+          appliesTo: ['Resource::<PermFilterFn88DAD4BB.Arn>:*'],
+        },
+      ], true);
+      NagSuppressions.addResourceSuppressions(permFilterFn, [
+        {
+          id: 'AwsSolutions-L1',
+          reason: 'The permission filter uses Node.js 22.x which is the latest LTS. cdk-nag may flag this until the runtime metadata is updated. Same treatment as the other NODEJS_22_X functions in this project.',
+        },
+      ]);
     }
 
     // WebApp環境変数にPermission Filter Lambda ARNを追加
