@@ -9,7 +9,12 @@ set -euo pipefail
 # メール/パスワード認証のデモ・テスト用途でのみ使用してください。
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "${SCRIPT_DIR}/common.sh" 2>/dev/null || true
+# A failing step must say which line stopped the script (set -e alone exits silently).
+trap 'echo "❌ ${BASH_SOURCE[0]##*/}:${LINENO}: \"${BASH_COMMAND}\" が終了コード $? で失敗しました" >&2' ERR
+if [ -f "${SCRIPT_DIR}/common.sh" ]; then
+  # shellcheck source=/dev/null
+  source "${SCRIPT_DIR}/common.sh"
+fi
 
 # 設定
 USER_POOL_ID="${COGNITO_USER_POOL_ID:?環境変数 COGNITO_USER_POOL_ID を設定してください}"
@@ -22,112 +27,42 @@ echo "User Pool ID: ${USER_POOL_ID}"
 echo "Region: ${REGION}"
 echo ""
 
-# adminユーザー作成
-echo "📝 adminユーザーを作成中..."
-aws cognito-idp admin-create-user \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "admin@example.com" \
-  --user-attributes \
-    Name=email,Value="admin@example.com" \
-    Name=email_verified,Value=true \
-  --temporary-password "TempPass123!" \
-  --message-action SUPPRESS \
-  --region "${REGION}" || echo "  ⚠️ adminユーザーは既に存在します"
+# A user that already exists is the only failure tolerated. Any other error from create or
+# set-password stops the script with the line number (ERR trap above), instead of printing ✅.
+create_user() {
+  local email="$1" password="$2" label="$3" out
+  echo "📝 ${label}ユーザーを作成中..."
+  if ! out=$(aws cognito-idp admin-create-user \
+      --user-pool-id "${USER_POOL_ID}" \
+      --username "${email}" \
+      --user-attributes Name=email,Value="${email}" Name=email_verified,Value=true \
+      --temporary-password "TempPass123!" \
+      --message-action SUPPRESS \
+      --region "${REGION}" 2>&1); then
+    if [[ "${out}" == *UsernameExistsException* ]]; then
+      echo "  ⚠ ${label}ユーザーは既に存在します"
+    else
+      echo "❌ ${email} の作成に失敗しました: ${out}" >&2
+      return 1
+    fi
+  fi
+  if ! out=$(aws cognito-idp admin-set-user-password \
+      --user-pool-id "${USER_POOL_ID}" \
+      --username "${email}" \
+      --password "${password}" \
+      --permanent \
+      --region "${REGION}" 2>&1); then
+    echo "❌ ${email} のパスワード設定に失敗しました: ${out}" >&2
+    return 1
+  fi
+  echo "  ✅ ${email} (パスワード: ${password})"
+}
 
-# adminユーザーのパスワードを確定
-aws cognito-idp admin-set-user-password \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "admin@example.com" \
-  --password "DemoAdmin123!" \
-  --permanent \
-  --region "${REGION}" 2>/dev/null || true
-
-echo "  ✅ admin@example.com (パスワード: DemoAdmin123!)"
-
-# restrictedユーザー作成
-echo "📝 restrictedユーザーを作成中..."
-aws cognito-idp admin-create-user \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "user@example.com" \
-  --user-attributes \
-    Name=email,Value="user@example.com" \
-    Name=email_verified,Value=true \
-  --temporary-password "TempPass123!" \
-  --message-action SUPPRESS \
-  --region "${REGION}" || echo "  ⚠️ restrictedユーザーは既に存在します"
-
-aws cognito-idp admin-set-user-password \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "user@example.com" \
-  --password "DemoUser123!" \
-  --permanent \
-  --region "${REGION}" 2>/dev/null || true
-
-echo "  ✅ user@example.com (パスワード: DemoUser123!)"
-
-# engineerユーザー作成
-echo "📝 engineerユーザーを作成中..."
-aws cognito-idp admin-create-user \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "engineer@example.com" \
-  --user-attributes \
-    Name=email,Value="engineer@example.com" \
-    Name=email_verified,Value=true \
-  --temporary-password "TempPass123!" \
-  --message-action SUPPRESS \
-  --region "${REGION}" || echo "  ⚠️ engineerユーザーは既に存在します"
-
-aws cognito-idp admin-set-user-password \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "engineer@example.com" \
-  --password "DemoEngineer123!" \
-  --permanent \
-  --region "${REGION}" 2>/dev/null || true
-
-echo "  ✅ engineer@example.com (パスワード: DemoEngineer123!)"
-
-# financeユーザー作成
-echo "📝 financeユーザーを作成中..."
-aws cognito-idp admin-create-user \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "finance@example.com" \
-  --user-attributes \
-    Name=email,Value="finance@example.com" \
-    Name=email_verified,Value=true \
-  --temporary-password "TempPass123!" \
-  --message-action SUPPRESS \
-  --region "${REGION}" || echo "  ⚠️ financeユーザーは既に存在します"
-
-aws cognito-idp admin-set-user-password \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "finance@example.com" \
-  --password "DemoFinance123!" \
-  --permanent \
-  --region "${REGION}" 2>/dev/null || true
-
-echo "  ✅ finance@example.com (パスワード: DemoFinance123!)"
-
-# auditorユーザー作成
-echo "📝 auditorユーザーを作成中..."
-aws cognito-idp admin-create-user \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "auditor@example.com" \
-  --user-attributes \
-    Name=email,Value="auditor@example.com" \
-    Name=email_verified,Value=true \
-  --temporary-password "TempPass123!" \
-  --message-action SUPPRESS \
-  --region "${REGION}" || echo "  ⚠️ auditorユーザーは既に存在します"
-
-aws cognito-idp admin-set-user-password \
-  --user-pool-id "${USER_POOL_ID}" \
-  --username "auditor@example.com" \
-  --password "DemoAuditor123!" \
-  --permanent \
-  --region "${REGION}" 2>/dev/null || true
-
-echo "  ✅ auditor@example.com (パスワード: DemoAuditor123!)"
-
+create_user "admin@example.com" "DemoAdmin123!" "admin"
+create_user "user@example.com" "DemoUser123!" "restricted"
+create_user "engineer@example.com" "DemoEngineer123!" "engineer"
+create_user "finance@example.com" "DemoFinance123!" "finance"
+create_user "auditor@example.com" "DemoAuditor123!" "auditor"
 echo ""
 echo "=========================================="
 echo "✅ テストユーザー作成完了"

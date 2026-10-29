@@ -84,15 +84,13 @@ As experts pointed out, a hybrid design that separates indexes by tenant/custome
 | `allowed_group_sids` | SID filtering | non-filterable recommended | S3 Vectors filter is not needed since application-side filtering is done via Bedrock KB Retrieve API |
 | `access_level` | Access level display | non-filterable recommended | For UI display |
 | `doc_type` | Document type | non-filterable recommended | For future filtering |
-| `source_uri` | Source file path | non-filterable | Not searchable, reference only |
-| `chunk_text` | Chunk text | non-filterable | Not searchable, large data |
 
 #### S3 Vectors Metadata Constraints (Actual Values Discovered During Verification)
 
 | Constraint | Nominal Value | Effective Value with Bedrock KB | Mitigation |
 |-----------|---------------|-------------------------------|------------|
 | Filterable metadata | 2KB/vector | **Custom metadata up to 1KB** (remaining 1KB consumed by Bedrock KB internal metadata) | Minimize custom metadata |
-| Non-filterable metadata keys | Max 10 keys/index | 10 keys (5 Bedrock KB auto keys + 5 custom keys) | Prioritize Bedrock KB auto keys as non-filterable |
+| Non-filterable metadata keys | Max 10 keys/index | 10 keys (7 Bedrock KB keys + 3 custom keys) | Prioritize Bedrock KB auto keys as non-filterable |
 | Total metadata keys | Max 50 keys/vector | 35 keys (when using Bedrock KB) | No issue |
 
 #### Metadata Keys Automatically Added by Bedrock KB
@@ -106,6 +104,10 @@ The following keys are automatically stored by Bedrock KB in S3 Vectors. If not 
 | `x-amz-bedrock-kb-data-source-id` | Data source ID | ✅ |
 | `x-amz-bedrock-kb-source-uri` | Source URI | ✅ |
 | `x-amz-bedrock-kb-document-page-number` | PDF page number | ✅ |
+| `AMAZON_BEDROCK_TEXT` | Chunk text | ✅ |
+| `AMAZON_BEDROCK_METADATA` | Chunk metadata | ✅ |
+
+The instruction to make `AMAZON_BEDROCK_TEXT` and `AMAZON_BEDROCK_METADATA` non-filterable is in the [Bedrock chunking documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-chunking.html).
 
 > **Important**: Filterable metadata may exceed 2KB due to PDF page number metadata, etc. Include all Bedrock KB auto keys in `nonFilterableMetadataKeys` and make custom metadata non-filterable as much as possible.
 

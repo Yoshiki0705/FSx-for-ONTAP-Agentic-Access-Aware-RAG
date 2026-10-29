@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **既存 VPC の参照**: `existingVpcId` / `existingPrivateSubnetIds` / `existingAvailabilityZones` / `existingVpcCidr` の 4 つを指定すると、`DemoNetworkingStack` が VPC・NAT Gateway・サブネット・VPC エンドポイントを作らず、既存 VPC を参照してセキュリティグループだけを作る。WebApp Lambda は渡したサブネットに明示配置する（既存 VPC のサブネットは `aws-cdk:subnet-type` タグを持たないことが多く、`subnetType` 選択が効かないため）。`existingVpcId` を省略した場合の挙動は変わらない。ドキュメントは以前から `existingVpcId` を案内していたが、実装が無く黙って無視されていた
 - **Docs**: `docs/evaluation.md` の 3.3「実機での確認結果」（JA/EN）— 権限制御の 4 ケース（Admin、一般ユーザー、Everyone 文書、SID 未登録の Fail-Closed）を 2026-10-28 に実環境で確認した結果と、その範囲。取り込みと S3 Access Point の作成を手作業で通したことは本文と #228 に記載。他の 6 言語の翻訳には抄訳バナーを付けた
 - **Tests**: `tests/stacks/demo-networking-stack.test.ts`（11 件）— 新規作成分岐・既存 VPC 参照分岐・必須キー欠落時の throw
+### Fixed
+- **S3 Vectors のインデックス**: non-filterable キーに `AMAZON_BEDROCK_TEXT` と `AMAZON_BEDROCK_METADATA` を入れた（使われていない `source_uri` と `chunk_text` を外し、上限の 10 キーに収めた）。抜けていると Bedrock Knowledge Bases のチャンク本文が filterable メタデータに数えられ、2 KB の上限で取り込みが全件失敗した（#228）
+- **S3 Access Point のカスタムリソース**: `CreateAndAttachS3AccessPoint` を FSx の API リファレンスの形（`Name`、`Type`、`OntapConfiguration`）で送り、作成結果を `S3AccessPointAttachment.S3AccessPoint` から読むようにした。削除と更新は `Name` で行う。作成要求が拒否されたときは、ステータスコード付きで FAILED を返す（以前は SUCCESS のまま `NOT_CREATED` を返していた）。AD 参加待ちの延期は変えていない（#228）
+- **`setup-kb-datasource.sh`**: アクセスポイントの作成を `--type ONTAP --ontap-configuration` で行い、データソースの `bucketArn` を `arn:aws:s3:::<alias>` にした（#228）
+- **`create-demo-users.sh`**: 存在しない `common.sh` の `source` で、macOS の bash 3.2 が何も出力せずに終了していた。ファイルがあるときだけ読み込み、失敗した行を表示する。既存ユーザー以外の作成失敗とパスワード設定の失敗を握りつぶさず止める（#228）
+- **Tests**: `tests/unit/s3ap-and-s3vectors-request-shapes.test.ts`（8 件）、`tests/unit/demo-scripts-failure-reporting.test.ts`（6 件、スタブの `aws` でスクリプトを実行）
+
 ### Changed
 - `existingVpcId` 指定時に `existingVpcCidr` を必須にした。省略すると FSx 用セキュリティグループの ingress が `vpcCidrBlock` を参照した時点で CDK が例外を投げ、原因が分かりにくかったため、キー名付きのエラーで止める
 - `enableVpcEndpoints` は `existingVpcId` 指定時に無視される（synth 警告）。`scripts/preflight-check.sh` の VPC エンドポイント節は「競合の検出」から「既存 VPC が private に到達できるサービスの確認」に変更
