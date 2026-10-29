@@ -19,7 +19,9 @@ set -euo pipefail
 
 REGION="${AWS_REGION:-ap-northeast-1}"
 STACK_PREFIX="${STACK_PREFIX:-perm-rag-demo-demo}"
-DEMO_PASSWORD="${DEMO_PASSWORD:-DemoPass1234}"
+# The Cognito user pool requires upper, lower, number, and symbol (min length 8). A password
+# without a symbol is rejected with InvalidPasswordException, which stopped Step 5 in a real run.
+DEMO_PASSWORD="${DEMO_PASSWORD:-DemoPass1234!}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "============================================"
@@ -285,12 +287,25 @@ echo "👤 Step 5/5: Cognitoデモユーザー作成..."
 echo "  💡 AD Federation有効時は、ADユーザーがSAML経由で自動作成されるため、"
 echo "     手動ユーザー作成はデモ用途（メール/パスワード認証テスト）のみ必要です。"
 
+# The temporary password must also satisfy the pool policy (needs a symbol). A create failure
+# other than "user already exists" stops the script with its cause, instead of a swallowed error
+# followed by a success mark.
 for EMAIL in admin@example.com user@example.com; do
-  aws cognito-idp admin-create-user --user-pool-id "$USER_POOL_ID" --username "$EMAIL" \
-    --user-attributes Name=email,Value="$EMAIL" Name=email_verified,Value=true \
-    --temporary-password "TempPass1234" --message-action SUPPRESS --region "$REGION" 2>/dev/null || true
-  aws cognito-idp admin-set-user-password --user-pool-id "$USER_POOL_ID" --username "$EMAIL" \
-    --password "$DEMO_PASSWORD" --permanent --region "$REGION" 2>/dev/null
+  if ! OUT=$(aws cognito-idp admin-create-user --user-pool-id "$USER_POOL_ID" --username "$EMAIL" \
+      --user-attributes Name=email,Value="$EMAIL" Name=email_verified,Value=true \
+      --temporary-password "TempPass1234!" --message-action SUPPRESS --region "$REGION" 2>&1); then
+    if [[ "$OUT" == *UsernameExistsException* ]]; then
+      echo "  ⚠ $EMAIL は既に存在します"
+    else
+      echo "  ❌ $EMAIL の作成に失敗しました: $OUT" >&2
+      exit 1
+    fi
+  fi
+  if ! OUT=$(aws cognito-idp admin-set-user-password --user-pool-id "$USER_POOL_ID" --username "$EMAIL" \
+      --password "$DEMO_PASSWORD" --permanent --region "$REGION" 2>&1); then
+    echo "  ❌ $EMAIL のパスワード設定に失敗しました: $OUT" >&2
+    exit 1
+  fi
   echo "  ✅ $EMAIL (password: $DEMO_PASSWORD)"
 done
 echo ""
