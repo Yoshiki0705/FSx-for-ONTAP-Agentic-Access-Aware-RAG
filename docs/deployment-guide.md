@@ -499,7 +499,25 @@ aws lambda update-function-configuration \
 
 > Valid values: `DEBUG`, `INFO` (default), `WARN`, `ERROR`
 
-### 7.5 Backup and Recovery
+### 7.5 Permission Model Operations
+
+The SID filter itself is fail-closed (documents without trusted metadata are excluded from retrieval), but *writing* the permission data the filter reads, and *tracking changes* to it, are the operator's responsibility. The following are additional hardening notes.
+
+**Restrict writes to the `user-access` table to an administrative path**
+
+> **Security note**: The SID filter decides access by reading a user's SID/UID/GID from the DynamoDB `user-access` table. A principal with broad write access to this table can bypass the filter by editing its own SID to retrieve documents it should not see. Limit writes to `user-access` to an operator-controlled path (`setup-user-access.sh`, a dedicated administrative role, or IaC with an approval step), and do not grant `dynamodb:PutItem` / `UpdateItem` / `DeleteItem` to the application runtime role or to end users. Separate the read permission (filter path) from the write permission (administrative path).
+
+**Choosing the filter path when immediate revocation is required**
+
+The Lambda filter path (preferred when `PERMISSION_FILTER_LAMBDA_ARN` is set) caches each `(userId, fileName)` decision in the `permission-cache` table for **5 minutes**. The inline path (the fallback when the Lambda is not configured) re-evaluates on every request and caches nothing.
+
+> **Revocation note**: If you revoke access by editing the `user-access` table, the cache-invalidator that subscribes to its DynamoDB Streams (`lib/constructs/cache-invalidator-construct.ts`) deletes the affected entries, so the revocation takes effect almost immediately. If instead you tighten access by changing a document's `.metadata.json` (`allowed_group_sids`), that change does not flow through the stream, so a cached `allowed=true` decision can persist for up to 5 minutes on the Lambda path. When immediate effect for document-metadata changes is a requirement, use the inline path (leave `PERMISSION_FILTER_LAMBDA_ARN` unset), or delete the affected entries from the `permission-cache` table manually. The cache TTL (`CACHE_TTL_MINUTES = 5` in `lambda/permissions/metadata-filter-handler.ts`) is a code constant, not an environment variable — lowering the TTL requires a code change. The trade-off is that the inline path re-evaluates on every query, adding DynamoDB reads and latency.
+
+**Auditing permission changes is the operator's responsibility**
+
+> **Audit note**: `filterLog` (and the `action: retrieve` audit record) records which documents were allowed or denied to whom at each query time. It does not record the history of *who changed a permission and when* — SID changes in `user-access`, `allowed_group_sids` changes in `.metadata.json`, or FSx ACL changes. If you need an audit trail of permission changes, provide it on the operator side — for example, forward the `user-access` table's DynamoDB Streams to an audit log, restrict permission changes to an IaC / approval flow that retains change history, or record `PutItem` / `UpdateItem` via AWS CloudTrail data events.
+
+### 7.6 Backup and Recovery
 
 - **FSx for ONTAP**: Managed by existing customer backup policy (Snapshots/SnapMirror)
 - **DynamoDB**: point-in-time recovery is enabled on every table created by these stacks. `RemovalPolicy.DESTROY` still applies to the demo resources, so PITR protects against accidental writes and deletes within a table, not against the stack being destroyed
