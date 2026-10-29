@@ -25,22 +25,35 @@ import { Construct } from 'constructs';
  * Request and response shapes of the FSx S3 access point API, as plain JavaScript so the same
  * text runs inside the inline Lambda and in unit tests. Shapes follow the FSx API reference:
  * CreateAndAttachS3AccessPoint takes a top-level Name and Type, and the volume and the file
- * system identity under OntapConfiguration; DetachAndDeleteS3AccessPoint takes Name only; the
+ * system identity under OntapConfiguration; DetachAndDeleteS3AccessPoint takes Name; the
  * created access point is returned under S3AccessPointAttachment.S3AccessPoint.
+ *
+ * ClientRequestToken is listed as optional because the CLI and the SDKs fill it in. A request
+ * signed by hand, as this handler sends, is rejected without it ("A client request token must be
+ * specified", HTTP 400, observed on CreateAndAttachS3AccessPoint). It is derived from the
+ * CloudFormation request ID, so a retried delivery of the same event is idempotent.
  */
 export const S3AP_API_SHAPES_JS = `
-function buildCreateAndAttachRequest(name, volumeId, userType, userName) {
+function clientRequestToken(requestId, suffix) {
+  // FSx allows 1-63 characters of [A-Za-z0-9_.-].
+  const raw = String(requestId || '') + (suffix ? '-' + suffix : '');
+  const token = raw.replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 63);
+  if (!token) throw new Error('cannot derive a ClientRequestToken from request id ' + requestId);
+  return token;
+}
+function buildCreateAndAttachRequest(name, volumeId, userType, userName, token) {
   const identity = { Type: userType };
   if (userType === 'UNIX') identity.UnixUser = { Name: userName };
   else if (userType === 'WINDOWS') identity.WindowsUser = { Name: userName };
   return {
+    ClientRequestToken: token,
     Name: name,
     Type: 'ONTAP',
     OntapConfiguration: { VolumeId: volumeId, FileSystemIdentity: identity },
   };
 }
-function buildDetachAndDeleteRequest(name) {
-  return { Name: name };
+function buildDetachAndDeleteRequest(name, token) {
+  return { ClientRequestToken: token, Name: name };
 }
 function parseCreateAndAttachResponse(body) {
   const att = body && body.S3AccessPointAttachment;
@@ -667,7 +680,7 @@ exports.handler = async (event) => {
       console.log('Deleting S3 Access Point (best effort):', apName);
       try {
         const resp = await signedFsxRequest('POST', 'DetachAndDeleteS3AccessPoint',
-          buildDetachAndDeleteRequest(apName), region);
+          buildDetachAndDeleteRequest(apName, clientRequestToken(event.RequestId, 'del')), region);
         console.log('Delete response:', resp.statusCode, JSON.stringify(resp.body));
       } catch (delErr) {
         console.warn('Delete failed (best effort):', delErr.message);
@@ -727,7 +740,7 @@ exports.handler = async (event) => {
         console.log('Update: deleting old AP:', oldName);
         try {
           await signedFsxRequest('POST', 'DetachAndDeleteS3AccessPoint',
-            buildDetachAndDeleteRequest(oldName), region);
+            buildDetachAndDeleteRequest(oldName, clientRequestToken(event.RequestId, 'upd')), region);
           // 削除完了を待機
           await new Promise(r => setTimeout(r, 10000));
         } catch (e) {
@@ -747,7 +760,8 @@ exports.handler = async (event) => {
       console.log('WindowsUser domain prefix stripped:', props.FileSystemUserName, '->', fsUserName);
     }
     const createResp = await signedFsxRequest('POST', 'CreateAndAttachS3AccessPoint',
-      buildCreateAndAttachRequest(apName, volumeId, fsUserType, fsUserName), region);
+      buildCreateAndAttachRequest(apName, volumeId, fsUserType, fsUserName,
+        clientRequestToken(event.RequestId, 'new')), region);
 
     console.log('Create response:', JSON.stringify(createResp));
 
