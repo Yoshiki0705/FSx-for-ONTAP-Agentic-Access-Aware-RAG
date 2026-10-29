@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../evaluation.md) | [English](../en/evaluation.md) | [한국어](../ko/evaluation.md) | [简体中文](../zh-CN/evaluation.md) | **繁體中文** | [Français](../fr/evaluation.md) | [Deutsch](../de/evaluation.md) | [Español](../es/evaluation.md)
 
+<!-- i18n:abridged -->
+> **⚠ 節譯**: 本翻譯僅涵蓋日文原版的一部分。完整內容請參閱[日文版](../evaluation.md)。
+
 **建立日期**: 2026-05-21  
 **狀態**: 草案  
 **目標讀者**: PoC 評估人員、專案經理、品質保證人員

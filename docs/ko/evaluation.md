@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../evaluation.md) | [English](../en/evaluation.md) | **한국어** | [简体中文](../zh-CN/evaluation.md) | [繁體中文](../zh-TW/evaluation.md) | [Français](../fr/evaluation.md) | [Deutsch](../de/evaluation.md) | [Español](../es/evaluation.md)
 
+<!-- i18n:abridged -->
+> **⚠ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../evaluation.md)을 참조하십시오.
+
 **작성일**: 2026-05-21  
 **상태**: 초안  
 **대상**: PoC 평가자, 프로젝트 관리자, 품질 보증 담당자
