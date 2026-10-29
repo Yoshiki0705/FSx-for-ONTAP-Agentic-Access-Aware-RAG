@@ -61,8 +61,8 @@ else
   # WINDOWS ユーザータイプの場合は SVM が AD 参加済みである必要がある
   CREATE_RESULT=$(aws fsx create-and-attach-s3-access-point \
     --name "$S3AP_NAME" \
-    --volume-id "$VOLUME_ID" \
-    --file-system-identity '{"Type":"UNIX","UnixUser":{"Name":"root"}}' \
+    --type ONTAP \
+    --ontap-configuration "{\"VolumeId\":\"${VOLUME_ID}\",\"FileSystemIdentity\":{\"Type\":\"UNIX\",\"UnixUser\":{\"Name\":\"root\"}}}" \
     --region $REGION --output json 2>&1)
 
   echo "  作成結果: $CREATE_RESULT"
@@ -89,8 +89,9 @@ else
   echo "  Alias: $S3AP_ALIAS"
 fi
 
-if [ -z "$S3AP_ARN" ] || [ "$S3AP_ARN" = "None" ]; then
-  echo "❌ S3 AP ARN を取得できませんでした。SVM の AD 参加状態を確認してください。"
+# The data source is addressed by the alias, so the alias is what must be present.
+if [ -z "$S3AP_ALIAS" ] || [ "$S3AP_ALIAS" = "None" ]; then
+  echo "❌ S3 AP の Alias を取得できませんでした。SVM の AD 参加状態を確認してください。"
   exit 1
 fi
 
@@ -109,15 +110,15 @@ if [ -n "$EXISTING_DS" ] && [ "$EXISTING_DS" != "None" ]; then
   echo "  既存データソースを使用して同期します。"
   DS_ID="$EXISTING_DS"
 else
-  # S3 AP の ARN から S3 バケット ARN 形式に変換
-  # Bedrock KB は S3 AP ARN をそのまま bucketArn として受け付ける
+  # bucketArn には S3 AP の Alias をバケット名として入れた arn:aws:s3:::<alias> を渡す
+  # (FSx for ONTAP の Bedrock Knowledge Bases チュートリアルの形)。S3 AP の ARN は ValidationException になった
   DS_RESULT=$(aws bedrock-agent create-data-source \
     --knowledge-base-id $KB_ID \
     --name "${STACK_PREFIX}-s3ap-datasource" \
     --data-source-configuration "{
       \"type\": \"S3\",
       \"s3Configuration\": {
-        \"bucketArn\": \"${S3AP_ARN}\"
+        \"bucketArn\": \"arn:aws:s3:::${S3AP_ALIAS}\"
       }
     }" \
     --region $REGION --output json 2>&1)

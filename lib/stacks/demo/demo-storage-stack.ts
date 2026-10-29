@@ -21,6 +21,34 @@ import * as directoryservice from 'aws-cdk-lib/aws-directoryservice';
 import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 
+/**
+ * Request and response shapes of the FSx S3 access point API, as plain JavaScript so the same
+ * text runs inside the inline Lambda and in unit tests. Shapes follow the FSx API reference:
+ * CreateAndAttachS3AccessPoint takes a top-level Name and Type, and the volume and the file
+ * system identity under OntapConfiguration; DetachAndDeleteS3AccessPoint takes Name only; the
+ * created access point is returned under S3AccessPointAttachment.S3AccessPoint.
+ */
+export const S3AP_API_SHAPES_JS = `
+function buildCreateAndAttachRequest(name, volumeId, userType, userName) {
+  const identity = { Type: userType };
+  if (userType === 'UNIX') identity.UnixUser = { Name: userName };
+  else if (userType === 'WINDOWS') identity.WindowsUser = { Name: userName };
+  return {
+    Name: name,
+    Type: 'ONTAP',
+    OntapConfiguration: { VolumeId: volumeId, FileSystemIdentity: identity },
+  };
+}
+function buildDetachAndDeleteRequest(name) {
+  return { Name: name };
+}
+function parseCreateAndAttachResponse(body) {
+  const att = body && body.S3AccessPointAttachment;
+  const ap = (att && att.S3AccessPoint) || {};
+  return { arn: ap.ResourceARN || '', alias: ap.Alias || '' };
+}
+`;
+
 export interface DemoStorageStackProps extends cdk.StackProps {
   projectName: string;
   environment: string;
@@ -362,8 +390,8 @@ export class DemoStorageStack extends cdk.Stack {
         // S3 APポリシー: アカウント内の全プリンシパルにアクセスを許可
         SetAccessPointPolicy: 'true',
         AccountId: cdk.Aws.ACCOUNT_ID,
-        // AD設定がある場合、S3 AP作成はSVM AD参加後まで延期
-        // カスタムリソースLambdaはフォールバックしてSUCCESSを返す
+        // AD設定がある場合、S3 AP作成はSVM AD参加後まで延期（SUCCESS を返し、作成は post-deploy で行う）。
+        // それ以外で作成要求が拒否された場合は、ステータスコードを付けて FAILED を返す
         DeferIfAdRequired: hasAd ? 'true' : 'false',
         Timestamp: Date.now().toString(),
       },
@@ -530,6 +558,7 @@ export class DemoStorageStack extends cdk.Stack {
 const { FSxClient, DescribeVolumesCommand } = require('@aws-sdk/client-fsx');
 const https = require('https');
 const crypto = require('crypto');
+${S3AP_API_SHAPES_JS}
 
 // ========================================
 // CloudFormation レスポンス送信
@@ -635,29 +664,11 @@ exports.handler = async (event) => {
     // DELETE: S3 Access Pointの削除
     // ========================================
     if (event.RequestType === 'Delete') {
-      console.log('Deleting S3 Access Point (best effort)...');
+      console.log('Deleting S3 Access Point (best effort):', apName);
       try {
-        // PhysicalResourceIdからAP ARNを取得
-        const physicalId = event.PhysicalResourceId || '';
-        if (physicalId.startsWith('arn:aws:s3:')) {
-          // ARNが利用可能な場合はARNで削除
-          const resp = await signedFsxRequest('POST', 'DetachAndDeleteS3AccessPoint', {
-            S3AccessPointArn: physicalId,
-          }, region);
-          console.log('Delete by ARN response:', JSON.stringify(resp));
-        } else {
-          // ARNが利用不可（deferred/error）の場合はAP名で削除を試行
-          // これにより、S3 AP作成がフォールバックした場合でもクリーンアップが行われる
-          console.log('PhysicalResourceId is not an ARN, trying delete by name:', apName);
-          try {
-            const { FSxClient: FsxCli, DetachAndDeleteS3AccessPointCommand } = require('@aws-sdk/client-fsx');
-            const fsx = new FsxCli({ region });
-            await fsx.send(new DetachAndDeleteS3AccessPointCommand({ Name: apName }));
-            console.log('Delete by name succeeded:', apName);
-          } catch (nameErr) {
-            console.warn('Delete by name failed (may not exist):', nameErr.message);
-          }
-        }
+        const resp = await signedFsxRequest('POST', 'DetachAndDeleteS3AccessPoint',
+          buildDetachAndDeleteRequest(apName), region);
+        console.log('Delete response:', resp.statusCode, JSON.stringify(resp.body));
       } catch (delErr) {
         console.warn('Delete failed (best effort):', delErr.message);
       }
@@ -711,12 +722,12 @@ exports.handler = async (event) => {
     // Updateの場合、既存APを削除してから再作成
     if (event.RequestType === 'Update' && event.PhysicalResourceId) {
       const oldPhysicalId = event.PhysicalResourceId;
+      const oldName = (event.OldResourceProperties && event.OldResourceProperties.AccessPointName) || apName;
       if (oldPhysicalId.startsWith('arn:aws:s3:')) {
-        console.log('Update: deleting old AP:', oldPhysicalId);
+        console.log('Update: deleting old AP:', oldName);
         try {
-          await signedFsxRequest('POST', 'DetachAndDeleteS3AccessPoint', {
-            S3AccessPointArn: oldPhysicalId,
-          }, region);
+          await signedFsxRequest('POST', 'DetachAndDeleteS3AccessPoint',
+            buildDetachAndDeleteRequest(oldName), region);
           // 削除完了を待機
           await new Promise(r => setTimeout(r, 10000));
         } catch (e) {
@@ -735,29 +746,19 @@ exports.handler = async (event) => {
       fsUserName = parts[parts.length - 1];
       console.log('WindowsUser domain prefix stripped:', props.FileSystemUserName, '->', fsUserName);
     }
-    const s3ApConfig = {
-      Name: apName,
-    };
-
-    // FileSystemIdentityを設定
-    const fsIdentity = { Type: fsUserType };
-    if (fsUserType === 'UNIX') {
-      fsIdentity.UnixUser = { Name: fsUserName };
-    } else if (fsUserType === 'WINDOWS') {
-      fsIdentity.WindowsUser = { Name: fsUserName };
-    }
-
-    const createResp = await signedFsxRequest('POST', 'CreateAndAttachS3AccessPoint', {
-      VolumeId: volumeId,
-      S3AccessPointConfiguration: s3ApConfig,
-      FileSystemIdentity: fsIdentity,
-    }, region);
+    const createResp = await signedFsxRequest('POST', 'CreateAndAttachS3AccessPoint',
+      buildCreateAndAttachRequest(apName, volumeId, fsUserType, fsUserName), region);
 
     console.log('Create response:', JSON.stringify(createResp));
 
     if (createResp.statusCode >= 200 && createResp.statusCode < 300) {
-      const apArn = createResp.body?.S3AccessPointArn || '';
-      const apAlias = createResp.body?.S3AccessPointAlias || '';
+      const parsed = parseCreateAndAttachResponse(createResp.body);
+      const apArn = parsed.arn;
+      const apAlias = parsed.alias;
+      if (!apArn || !apAlias) {
+        throw new Error('CreateAndAttachS3AccessPoint returned ' + createResp.statusCode +
+          ' without S3AccessPointAttachment.S3AccessPoint: ' + JSON.stringify(createResp.body));
+      }
       console.log('S3 Access Point created:', { apArn, apAlias });
 
       // S3 APポリシーを設定（アカウント内の全プリンシパルにアクセスを許可）
@@ -796,33 +797,20 @@ exports.handler = async (event) => {
         NetworkOrigin: networkOrigin,
       });
     } else {
+      // A rejected request is a defect in the request or the environment, not something to
+      // defer: report the status code and fail the resource. (The AD-join case is handled
+      // above, before any request is sent.)
       const errMsg = JSON.stringify(createResp.body);
-      console.error('Create failed:', errMsg);
-
-      // API未対応やリージョン制限の場合はフォールバック
-      // （S3 AP作成失敗でもスタック全体は失敗させない）
-      // 注意: CloudFormationは空文字列のOutputを拒否するため、プレースホルダー値を返す
-      console.warn('Falling back: S3 AP creation deferred to post-deploy step');
-      const fallbackId = 'fsx-s3-ap-deferred-' + volumeId;
-      await sendCfnResponse(event, 'SUCCESS', fallbackId, {
-        AccessPointArn: 'NOT_CREATED',
-        AccessPointAlias: 'NOT_CREATED',
-        AccessPointName: apName,
-        VolumeId: volumeId,
-        Message: 'S3 AP creation deferred. Use CLI: aws fsx create-and-attach-s3-access-point --volume-id ' + volumeId,
-        Error: errMsg,
-      });
+      console.error('Create failed:', createResp.statusCode, errMsg);
+      await sendCfnResponse(event, 'FAILED', 'fsx-s3-ap-failed-' + volumeId, {},
+        ('CreateAndAttachS3AccessPoint returned ' + createResp.statusCode + ': ' + errMsg).slice(0, 900));
     }
   } catch (err) {
     console.error('Handler error:', err);
-    // スタック全体を失敗させないためSUCCESSを返す（S3 APは後から手動作成可能）
-    // 注意: CloudFormationは空文字列のOutputを拒否するため、プレースホルダー値を返す
-    const fallbackId = 'fsx-s3-ap-error-' + (volumeId || 'unknown');
-    await sendCfnResponse(event, 'SUCCESS', fallbackId, {
-      AccessPointArn: 'NOT_CREATED',
-      AccessPointAlias: 'NOT_CREATED',
-      Message: 'S3 AP creation failed: ' + err.message + '. Create manually post-deploy.',
-    });
+    // A failed Delete must not block stack deletion: the access point delete is best effort.
+    const status = event.RequestType === 'Delete' ? 'SUCCESS' : 'FAILED';
+    await sendCfnResponse(event, status, event.PhysicalResourceId || 'fsx-s3-ap-error-' + (volumeId || 'unknown'), {},
+      ('S3 access point handler error: ' + err.message).slice(0, 900));
   }
 };
     `;

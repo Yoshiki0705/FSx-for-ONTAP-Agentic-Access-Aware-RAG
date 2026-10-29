@@ -84,15 +84,13 @@ Bedrock KB Retrieve API → 搜索结果 + 元数据（allowed_group_sids）
 | `allowed_group_sids` | SID 过滤 | 建议 non-filterable | 由于通过 Bedrock KB Retrieve API 进行应用程序端过滤，不需要 S3 Vectors 过滤 |
 | `access_level` | 访问级别显示 | 建议 non-filterable | 用于 UI 显示 |
 | `doc_type` | 文档类型 | 建议 non-filterable | 用于未来过滤 |
-| `source_uri` | 源文件路径 | non-filterable | 不可搜索，仅供参考 |
-| `chunk_text` | 块文本 | non-filterable | 不可搜索，大数据 |
 
 #### S3 Vectors 元数据约束（验证中发现的实际值）
 
 | 约束 | 标称值 | 使用 Bedrock KB 时的有效值 | 缓解措施 |
 |-----------|---------------|-------------------------------|------------|
 | 可过滤元数据 | 2KB/向量 | **自定义元数据最多 1KB**（剩余 1KB 被 Bedrock KB 内部元数据消耗） | 最小化自定义元数据 |
-| Non-filterable 元数据键 | 最多 10 个键/索引 | 10 个键（5 个 Bedrock KB 自动键 + 5 个自定义键） | 优先将 Bedrock KB 自动键设为 non-filterable |
+| Non-filterable 元数据键 | 最多 10 个键/索引 | 10 个键（7 个 Bedrock KB 键 + 3 个自定义键） | 优先将 Bedrock KB 自动键设为 non-filterable |
 | 总元数据键 | 最多 50 个键/向量 | 35 个键（使用 Bedrock KB 时） | 无问题 |
 
 #### Bedrock KB 自动添加的元数据键
@@ -106,6 +104,10 @@ Bedrock KB Retrieve API → 搜索结果 + 元数据（allowed_group_sids）
 | `x-amz-bedrock-kb-data-source-id` | 数据源 ID | ✅ |
 | `x-amz-bedrock-kb-source-uri` | 源 URI | ✅ |
 | `x-amz-bedrock-kb-document-page-number` | PDF 页码 | ✅ |
+| `AMAZON_BEDROCK_TEXT` | 块文本 | ✅ |
+| `AMAZON_BEDROCK_METADATA` | 块元数据 | ✅ |
+
+将 `AMAZON_BEDROCK_TEXT` 和 `AMAZON_BEDROCK_METADATA` 设为 non-filterable 的说明见 [Bedrock 分块文档](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-chunking.html)。
 
 > **重要**：由于 PDF 页码元数据等原因，可过滤元数据可能超过 2KB。将所有 Bedrock KB 自动键包含在 `nonFilterableMetadataKeys` 中，并尽可能将自定义元数据设为 non-filterable。
 

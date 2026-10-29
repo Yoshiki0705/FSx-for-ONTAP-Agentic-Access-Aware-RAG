@@ -87,16 +87,16 @@ Wie Experten darauf hinwiesen, ist ein Hybriddesign, das Indizes nach Mandant/Ku
 | `allowed_group_sids` | SID-Filterung | non-filterable empfohlen | S3 Vectors-Filter nicht benötigt, da anwendungsseitige Filterung über Bedrock KB Retrieve API erfolgt |
 | `access_level` | Zugriffsebene-Anzeige | non-filterable empfohlen | Für UI-Anzeige |
 | `doc_type` | Dokumenttyp | non-filterable empfohlen | Für zukünftige Filterung |
-| `source_uri` | Quelldateipfad | non-filterable | Nicht durchsuchbar, nur Referenz |
-| `chunk_text` | Chunk-Text | non-filterable | Nicht durchsuchbar, große Daten |
 
 #### S3 Vectors Metadaten-Einschränkungen (Tatsächliche Werte bei Verifizierung entdeckt)
 
 | Einschränkung | Nennwert | Effektiver Wert mit Bedrock KB | Abhilfe |
 |--------------|----------|-------------------------------|---------|
 | Filterbare Metadaten | 2KB/Vektor | **Benutzerdefinierte Metadaten bis 1KB** (verbleibende 1KB durch Bedrock KB-interne Metadaten verbraucht) | Benutzerdefinierte Metadaten minimieren |
-| Non-filterable Metadatenschlüssel | Max 10 Schlüssel/Index | 10 Schlüssel (5 Bedrock KB-Auto-Schlüssel + 5 benutzerdefinierte Schlüssel) | Bedrock KB-Auto-Schlüssel als non-filterable priorisieren |
+| Non-filterable Metadatenschlüssel | Max 10 Schlüssel/Index | 10 Schlüssel (7 Bedrock KB-Schlüssel + 3 benutzerdefinierte Schlüssel) | Bedrock KB-Auto-Schlüssel als non-filterable priorisieren |
 | Gesamte Metadatenschlüssel | Max 50 Schlüssel/Vektor | 35 Schlüssel (bei Verwendung von Bedrock KB) | Kein Problem |
+
+Die Vorgabe, `AMAZON_BEDROCK_TEXT` und `AMAZON_BEDROCK_METADATA` als non-filterable anzulegen, steht in der [Bedrock-Dokumentation zum Chunking](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-chunking.html).
 
 ### 3. Vorab-Verifizierung unzureichender Berechtigungen
 

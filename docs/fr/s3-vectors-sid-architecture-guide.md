@@ -87,15 +87,13 @@ Comme les experts l'ont souligné, une conception hybride qui sépare les index 
 | `allowed_group_sids` | Filtrage SID | non-filterable recommandé | Le filtre S3 Vectors n'est pas nécessaire car le filtrage côté application est fait via l'API Retrieve de Bedrock KB |
 | `access_level` | Affichage du niveau d'accès | non-filterable recommandé | Pour l'affichage UI |
 | `doc_type` | Type de document | non-filterable recommandé | Pour le filtrage futur |
-| `source_uri` | Chemin du fichier source | non-filterable | Non recherchable, référence uniquement |
-| `chunk_text` | Texte du chunk | non-filterable | Non recherchable, données volumineuses |
 
 #### Contraintes de métadonnées S3 Vectors (valeurs réelles découvertes lors de la vérification)
 
 | Contrainte | Valeur nominale | Valeur effective avec Bedrock KB | Atténuation |
 |-----------|---------------|-------------------------------|------------|
 | Métadonnées filtrables | 2 Ko/vecteur | **Métadonnées personnalisées jusqu'à 1 Ko** (le 1 Ko restant est consommé par les métadonnées internes de Bedrock KB) | Minimiser les métadonnées personnalisées |
-| Clés de métadonnées non filtrables | Max 10 clés/index | 10 clés (5 clés auto Bedrock KB + 5 clés personnalisées) | Prioriser les clés auto Bedrock KB comme non filtrables |
+| Clés de métadonnées non filtrables | Max 10 clés/index | 10 clés (7 clés Bedrock KB + 3 clés personnalisées) | Prioriser les clés auto Bedrock KB comme non filtrables |
 | Total des clés de métadonnées | Max 50 clés/vecteur | 35 clés (lors de l'utilisation de Bedrock KB) | Pas de problème |
 
 #### Clés de métadonnées automatiquement ajoutées par Bedrock KB
@@ -109,6 +107,10 @@ Les clés suivantes sont automatiquement stockées par Bedrock KB dans S3 Vector
 | `x-amz-bedrock-kb-data-source-id` | ID de la source de données | ✅ |
 | `x-amz-bedrock-kb-source-uri` | URI source | ✅ |
 | `x-amz-bedrock-kb-document-page-number` | Numéro de page PDF | ✅ |
+| `AMAZON_BEDROCK_TEXT` | Texte du chunk | ✅ |
+| `AMAZON_BEDROCK_METADATA` | Métadonnées du chunk | ✅ |
+
+La consigne de déclarer `AMAZON_BEDROCK_TEXT` et `AMAZON_BEDROCK_METADATA` non filtrables figure dans la [documentation Bedrock sur le découpage](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-chunking.html).
 
 > **Important** : Les métadonnées filtrables peuvent dépasser 2 Ko en raison des métadonnées de numéro de page PDF, etc. Incluez toutes les clés auto Bedrock KB dans `nonFilterableMetadataKeys` et rendez les métadonnées personnalisées non filtrables autant que possible.
 
