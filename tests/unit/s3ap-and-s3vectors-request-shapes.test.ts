@@ -15,14 +15,15 @@ import { DemoAIStack } from '../../lib/stacks/demo/demo-ai-stack';
 import { DemoStorageStack, S3AP_API_SHAPES_JS } from '../../lib/stacks/demo/demo-storage-stack';
 
 type Shapes = {
-  buildCreateAndAttachRequest: (n: string, v: string, t: string, u: string) => any;
-  buildDetachAndDeleteRequest: (n: string) => any;
+  clientRequestToken: (requestId: string, suffix?: string) => string;
+  buildCreateAndAttachRequest: (n: string, v: string, t: string, u: string, token: string) => any;
+  buildDetachAndDeleteRequest: (n: string, token: string) => any;
   parseCreateAndAttachResponse: (b: any) => { arn: string; alias: string };
 };
 
 // The same text that is embedded in the inline Lambda.
 const shapes: Shapes = new Function(
-  `${S3AP_API_SHAPES_JS}; return { buildCreateAndAttachRequest, buildDetachAndDeleteRequest, parseCreateAndAttachResponse };`,
+  `${S3AP_API_SHAPES_JS}; return { clientRequestToken, buildCreateAndAttachRequest, buildDetachAndDeleteRequest, parseCreateAndAttachResponse };`,
 )();
 
 describe('S3 Vectors index non-filterable keys', () => {
@@ -57,7 +58,8 @@ describe('S3 Vectors index non-filterable keys', () => {
 
 describe('FSx S3 access point API shapes', () => {
   it('builds CreateAndAttachS3AccessPoint with Name, Type and OntapConfiguration (UNIX)', () => {
-    expect(shapes.buildCreateAndAttachRequest('demo-s3ap', 'fsvol-0123456789abcdef0', 'UNIX', 'root')).toEqual({
+    expect(shapes.buildCreateAndAttachRequest('demo-s3ap', 'fsvol-0123456789abcdef0', 'UNIX', 'root', 'tok-1')).toEqual({
+      ClientRequestToken: 'tok-1',
       Name: 'demo-s3ap',
       Type: 'ONTAP',
       OntapConfiguration: {
@@ -68,7 +70,7 @@ describe('FSx S3 access point API shapes', () => {
   });
 
   it('builds the WINDOWS identity under OntapConfiguration', () => {
-    const body = shapes.buildCreateAndAttachRequest('demo-s3ap', 'fsvol-0123456789abcdef0', 'WINDOWS', 'Admin');
+    const body = shapes.buildCreateAndAttachRequest('demo-s3ap', 'fsvol-0123456789abcdef0', 'WINDOWS', 'Admin', 'tok-2');
     expect(body.OntapConfiguration.FileSystemIdentity).toEqual({ Type: 'WINDOWS', WindowsUser: { Name: 'Admin' } });
     expect(body).not.toHaveProperty('VolumeId');
     expect(body).not.toHaveProperty('FileSystemIdentity');
@@ -76,7 +78,19 @@ describe('FSx S3 access point API shapes', () => {
   });
 
   it('deletes by Name, not by an ARN key', () => {
-    expect(shapes.buildDetachAndDeleteRequest('demo-s3ap')).toEqual({ Name: 'demo-s3ap' });
+    expect(shapes.buildDetachAndDeleteRequest('demo-s3ap', 'tok-3')).toEqual({ ClientRequestToken: 'tok-3', Name: 'demo-s3ap' });
+  });
+
+  it('derives a ClientRequestToken FSx accepts from the CloudFormation request ID', () => {
+    const id = 'bb3ef3b1-8e5a-4b4e-9c35-6f0b2a2e3d41';
+    const token = shapes.clientRequestToken(id, 'new');
+    expect(token).toBe(`${id}-new`);
+    expect(token).toMatch(/^[A-Za-z0-9_.-]{1,63}$/);
+    // Same event delivered twice gives the same token (idempotent); create and delete differ.
+    expect(shapes.clientRequestToken(id, 'new')).toBe(token);
+    expect(shapes.clientRequestToken(id, 'del')).not.toBe(token);
+    expect(shapes.clientRequestToken('x'.repeat(80) + '/+=', 'new')).toMatch(/^[A-Za-z0-9_.-]{1,63}$/);
+    expect(() => shapes.clientRequestToken('', '')).toThrow();
   });
 
   it('reads the ARN and alias from S3AccessPointAttachment.S3AccessPoint', () => {
@@ -101,8 +115,9 @@ describe('FSx S3 access point API shapes', () => {
     const code: string = (DemoStorageStack.prototype as any).getS3ApCreatorCode.call({});
     expect(() => new Function('require', 'exports', 'process', code)).not.toThrow();
     expect(code).toContain('function buildCreateAndAttachRequest(');
-    expect(code).toContain('buildCreateAndAttachRequest(apName, volumeId, fsUserType, fsUserName)');
-    expect(code).toContain('buildDetachAndDeleteRequest(apName)');
+    expect(code).toContain("clientRequestToken(event.RequestId, 'new')");
+    expect(code).toContain("buildDetachAndDeleteRequest(apName, clientRequestToken(event.RequestId, 'del'))");
+    expect(code).toContain("buildDetachAndDeleteRequest(oldName, clientRequestToken(event.RequestId, 'upd'))");
     expect(code).not.toContain('S3AccessPointConfiguration');
     expect(code).not.toContain('S3AccessPointArn:');
     expect(code).toMatch(/sendCfnResponse\(event, 'FAILED', 'fsx-s3-ap-failed-'/);
