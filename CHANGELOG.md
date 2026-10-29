@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **`guardrails.property.test.ts` Property 3（介入ログのプライバシー）の偽陽性と検証の穴**: 生成した秘匿テキストが、ログに正当に入るフィールド（`guardrailId` など）とたまたま同じ文字列になると、漏洩ではなく正当なフィールドでアサーションが落ちていた（反例: `guardrailId` と `blockedInputText` がともに `"onstructor"`）。秘匿テキストに固有の接頭辞（`SECRET_IN_` / `SECRET_OUT_`）を付けて偶発衝突を排除。あわせて、秘匿テキストを実際に関数へ渡し、返り値と `console.log` 出力の両方に現れないことを検査するよう直した（従来は呼び出し側が渡さない前提で、実装が秘匿を受け取っても落とすことを検証できていなかった。漏洩を注入すると落ちることを確認）
+- **`post-deploy-setup.sh` のデモユーザー作成**: 一時パスワードと `DEMO_PASSWORD` が記号を含まず、User Pool のパスワードポリシー（記号必須）に反して `InvalidPasswordException` で止まっていた（実機で観測）。両方を記号付きにし、既存ユーザー以外の作成失敗とパスワード設定の失敗を握りつぶさず原因付きで止める（#235）
 
 ### Added
+- **`docs/deployment-guide.md` / `.ja.md`**: クリーンアップ節に、撤去で止まりうる 2 箇所（CloudFront アクセスログバケットが空でない / Lambda の VPC ENI が残る）の解消手順と、reclaim `Retain` で取り込んだボリュームの Trident 記録の片付け（`tridentctl delete volume`）を追記。FAQ に、既存の検索・RAG 基盤や既存のオーケストレーション層を使う読者向けの当てはめ方（S3 Access Point は到達経路であって、上の層は用途で選ぶ。各選択肢の考慮点を対称に記載）と、inline / Lambda フィルタ経路の選び方を追記
+
 - **既存 VPC の参照**: `existingVpcId` / `existingPrivateSubnetIds` / `existingAvailabilityZones` / `existingVpcCidr` の 4 つを指定すると、`DemoNetworkingStack` が VPC・NAT Gateway・サブネット・VPC エンドポイントを作らず、既存 VPC を参照してセキュリティグループだけを作る。WebApp Lambda は渡したサブネットに明示配置する（既存 VPC のサブネットは `aws-cdk:subnet-type` タグを持たないことが多く、`subnetType` 選択が効かないため）。`existingVpcId` を省略した場合の挙動は変わらない。ドキュメントは以前から `existingVpcId` を案内していたが、実装が無く黙って無視されていた
 - **Docs**: `docs/evaluation.md` の 3.3「実機での確認結果」（JA/EN）— 権限制御の 4 ケース（Admin、一般ユーザー、Everyone 文書、SID 未登録の Fail-Closed）を 2026-10-28 に実環境で確認した結果と、その範囲。取り込みと S3 Access Point の作成を手作業で通したことは本文と #228 に記載。他の 6 言語の翻訳には抄訳バナーを付けた
 - **Tests**: `tests/stacks/demo-networking-stack.test.ts`（11 件）— 新規作成分岐・既存 VPC 参照分岐・必須キー欠落時の throw

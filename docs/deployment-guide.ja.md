@@ -6,7 +6,7 @@
 
 **作成日**: 2026-07  
 **ステータス**: アクティブ  
-**対象**: インフラエンジニア、パートナー/SI が顧客環境にデプロイする場合
+**対象**: インフラエンジニア、パートナー/SI が利用先の環境にデプロイする場合
 
 ---
 
@@ -170,7 +170,7 @@ aws fsx describe-storage-virtual-machines \
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  既存環境（顧客管理）                                              │
+│  既存環境（利用者管理）                                         │
 │                                                                   │
 │  ┌──────────────────┐   ┌──────────────────┐                    │
 │  │ FSx for ONTAP    │   │ VPC              │                    │
@@ -501,7 +501,7 @@ aws lambda update-function-configuration \
 
 ### 7.5 バックアップとリカバリ
 
-- **FSx for ONTAP**: 既存の顧客バックアップポリシーで管理（Snapshot/SnapMirror）
+- **FSx for ONTAP**: 既存のバックアップポリシーで管理（Snapshot/SnapMirror）
 - **DynamoDB**: これらのスタックが作るテーブルはすべてポイントインタイムリカバリ有効。デモ用リソースには `RemovalPolicy.DESTROY` が付いたままなので、PITR が守るのはテーブル内の誤った書き込みや削除で、スタックの破棄ではありません
 - **S3 Vectors / KB**: ソース（FSx for ONTAP ボリューム）から再インデックス可能
 - **Cognito**: `aws cognito-idp list-users` でエクスポート
@@ -604,6 +604,33 @@ aws cloudformation delete-stack --stack-name fsxn-ops-prod --region ap-northeast
 
 > **注意**: `cdk destroy` は Cognito User Pool を永久に削除します。必要な場合は事前にユーザーデータをエクスポート: `aws cognito-idp list-users --user-pool-id <pool-id>`
 
+**`cdk destroy` が止まりうる 2 箇所と、その解消方法**（撤去で観測）:
+
+- **CloudFront アクセスログバケットが空でない。** WebApp スタックのアクセスログ用 S3 バケットはログを集め続けるため、削除が「bucket you tried to delete is not empty」で失敗します。空にしてからスタックを再削除します。
+
+  ```bash
+  aws s3 rm "s3://$(aws cloudformation describe-stack-resources \
+    --stack-name <prefix>-WebApp --region <region> \
+    --query "StackResources[?LogicalResourceId=='AccessLogBucketDA470295'].PhysicalResourceId" \
+    --output text)" --recursive
+  aws cloudformation delete-stack --stack-name <prefix>-WebApp --region <region>
+  ```
+
+- **Networking スタック: Lambda の VPC ENI が残る。** VPC Lambda は関数の削除後も数分 ENI を残すため、セキュリティグループの削除が失敗します。ENI が `available` になってから削除し、スタックを再削除します。
+
+  ```bash
+  SG=$(aws cloudformation describe-stack-resources --stack-name <prefix>-Networking \
+    --region <region> --query "StackResources[?ResourceType=='AWS::EC2::SecurityGroup'].PhysicalResourceId" --output text)
+  for e in $(aws ec2 describe-network-interfaces --region <region> \
+      --filters Name=group-id,Values=$SG Name=status,Values=available \
+      --query "NetworkInterfaces[].NetworkInterfaceId" --output text); do
+    aws ec2 delete-network-interface --region <region> --network-interface-id "$e"
+  done
+  aws cloudformation delete-stack --stack-name <prefix>-Networking --region <region>
+  ```
+
+> **reclaim policy `Retain` で既存ボリュームを取り込んだ場合**: PVC と PV を削除しても ONTAP 上のボリュームは残ります（`Retain` の目的どおり）。Trident はそのボリュームの記録を持ち続けるため、後でバックエンドを削除すると「Backend is in a deleting state」で止まります。`tridentctl -n trident delete volume <pv-name>` で記録を消してください。ONTAP 上のボリューム自体は、不要になったら FSx API で削除します。
+
 ---
 
 ## 11. FAQ
@@ -647,6 +674,20 @@ CDK はジャンクションパス、エクスポートポリシー、CIFS 共�
 ### 「FSx for ONTAP S3 Access Point」とは？
 
 FSx for ONTAP S3 AP は、ONTAP ボリュームのデータを S3 API 経由で公開する機能です。Bedrock Knowledge Base などの AWS サービスが、NFS/SMB マウントなしで標準的な S3 `GetObject`/`ListObjectsV2` 呼び出しを使ってボリューム内のファイルを読み取れます。S3 Access Point はデプロイ後に作成され、元のファイルの NTFS ACL または UNIX パーミッションを尊重します。
+
+### すでに検索や RAG の基盤を運用しています。これはどこに当てはまりますか？
+
+再利用の価値があるのは、スタック全体ではなく到達の経路です。S3 Access Point を使うと、ONTAP ボリュームのデータを別の S3 バケットへコピーせずに、その場で S3 クライアントから読めます。その上の検索をどう組むかは別の選択で、どれにも考慮点があります。
+
+- **このスタック（Bedrock Knowledge Bases + S3 Vectors）。** 取り込み・チャンク分割・埋め込み・ベクトルストアがマネージドで、検索の手前に権限フィルタが入ります。考慮点: Bedrock KB のデータモデルと S3 Vectors のメタデータ上限（たとえば 1 インデックスあたり non-filterable なメタデータキーは最大 10 個）に合わせる必要があり、ここの権限フィルタは文書の `allowed_group_sids` とユーザーの SID を照合する方式なので、その SID を投入できることが前提です。
+- **既存のベクトルストアや検索エンジン（OpenSearch、pgvector、サードパーティのインデックス）。** 既存の取り込みの入力元を同じ S3 Access Point に向け、検索はそのまま使います。考慮点: 権限モデルは自分で持つことになります。本リポジトリの SID フィルタ（`docker/nextjs/src/lib/rag-pipeline/sid-filter.ts` と `lambda/permissions/` の Lambda）は移植の参考にできますが、別エンジンにそのまま載せられるものではありません。
+- **既存のエージェントやオーケストレーション層（LangChain、LlamaIndex、マネージドのアシスタント）。** オーケストレーションはそのままに、S3 Access Point を文書ソースの 1 つとして足します。考慮点: 権限フィルタは、結果を組み立てる場所で、モデルに渡る前に動かさないと fail-closed を保てません。
+
+いずれの場合も、アクセスポイントはデータをコピーしません。ファイルは ONTAP ボリュームに残り、NFS/SMB からも引き続き読めます。層の選択は「どれが優れているか」ではなく、すでに運用しているものに合わせて決めてください。下のストレージの到達経路はどれも同じです。
+
+### 権限フィルタは inline と Lambda のどちらを使うべきですか？
+
+両方とも本リポジトリにあり、同じ判定を返します。既定は **inline**（`usePermissionFilterLambda=false`）で、フィルタは Next.js の API 内で動き、リクエストごとに user-access テーブルを読むため、グループの追加・削除が即時に反映されます。**Lambda** 経路（`usePermissionFilterLambda=true`）はフィルタを専用の関数に出し、約 5 分の権限キャッシュを持つため、グループ変更はキャッシュの失効または消去まで反映されません。既定の簡潔さと即時反映なら inline、Web 層からフィルタを分離したいなら Lambda を選び、権限変更時はキャッシュを考慮してください。
 
 ---
 
