@@ -161,6 +161,24 @@ Permission Violation Rate = (権限外ドキュメント表示回数) / (全検�
 | SID 解決不能ユーザー | Fail-Closed（全拒否） | DynamoDB に SID データなし |
 | 権限削除直後の検索 | キャッシュ TTL 内は旧権限で検索可能 | 最大 5 分の遅延（緊急時は手動クリア） |
 
+### 3.3 実機での確認結果
+
+**[verified 2026-10-28 / ap-northeast-1]** 3.1 の 4 ケース（Admin、一般ユーザー、Everyone 文書、SID 未登録）を、実際にデプロイした環境で確認した。文書は、既存の Single-AZ の FSx for ONTAP に載せた使い捨てのボリュームと、使い捨ての S3 Access Point（internet-origin、UNIX ユーザー、Active Directory 非参加の SVM）から Amazon Bedrock Knowledge Base（ベクトルストアは S3 Vectors）へ取り込んだ。権限のフィルタは Web アプリ（Next.js）の API 内で行う経路（`usePermissionFilterLambda=false`、既定）で、応答の `filterLog.source` はすべて `inline` だった。
+
+| ケース | 主体と検索 | 取得 | 許可 | 拒否 | 方式 |
+|---|---|---:|---:|---:|---|
+| 1 | Admin（管理者ユーザー、Domain Admins、Everyone の SID を保有）が「会社の売上」を検索 | 6 | 6 | 0 | `SID_MATCHING` |
+| 2 | 一般ユーザー（個別ユーザーと Everyone の SID のみ）がケース 1 と同じクエリで検索 | 6 | 0 | 6 | `SID_MATCHING` |
+| 3 | SID 未登録のユーザー（DynamoDB に user-access のレコードなし）がケース 1 と同じクエリで検索 | 6 | 0 | 6 | `DENY_ALL` |
+| 4 | Admin が「製品の概要」を検索（対象は Everyone の文書） | 8 | 8 | 0 | `SID_MATCHING` |
+| 4 | 同じクエリを一般ユーザーが検索 | 8 | 3 | 5 | `SID_MATCHING` |
+
+ケース 2 と 3 は、ケース 1 と同じクエリで取得が 0 件ではなく 6 件あり、そのうえで全件が拒否されている。権限外の文書が「そもそも見つからなかった」のではなく、取得された後にフィルタで除かれたことを示す。ケース 4 の一般ユーザーに許可された 3 件は Everyone の文書で、Admin と共通の product-catalog.md と company-overview.md を含む。
+
+**範囲**: 各ケース 1 回の観測で、取り込んだ文書は 11 件（11 件成功、0 件失敗）の小規模である。3.1 のうちグループ追加直後とグループ削除直後、3.2 のエッジケース、Lambda 経路（`usePermissionFilterLambda=true`）、AD 参加済みの SVM、応答時間は確認していない。
+
+**この確認の前提**: 取り込みは初回に全件失敗し、S3 Vectors のインデックスを手作業で作り直して通した。原因（本文のキーが non-filterable に入っていない）はコードの欠陥で、[#228](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues/228) に記録している。S3 Access Point の作成も、CDK のカスタムリソースが失敗して延期に落ちたため、CLI で手作業で作成した（同じ Issue の 2）。つまり、権限のフィルタが期待どおりに動くことは確認できたが、CDK だけで最初から最後まで通ることは確認していない。
+
 ---
 
 ## 4. Agent 評価メトリクス

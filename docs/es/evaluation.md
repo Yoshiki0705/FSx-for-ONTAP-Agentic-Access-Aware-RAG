@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../evaluation.md) | [English](../en/evaluation.md) | [한국어](../ko/evaluation.md) | [简体中文](../zh-CN/evaluation.md) | [繁體中文](../zh-TW/evaluation.md) | [Français](../fr/evaluation.md) | [Deutsch](../de/evaluation.md) | **Español**
 
+<!-- i18n:abridged -->
+> **⚠ Traducción parcial**: esta traducción cubre solo una parte del original japonés. Consulte la [versión japonesa](../evaluation.md) para el contenido completo.
+
 **Creado**: 2026-05-21  
 **Estado**: Borrador  
 **Audiencia**: Evaluadores de PoC, gerentes de proyecto, personal de aseguramiento de calidad

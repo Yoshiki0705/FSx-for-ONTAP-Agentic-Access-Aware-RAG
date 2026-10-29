@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - **既存 VPC の参照**: `existingVpcId` / `existingPrivateSubnetIds` / `existingAvailabilityZones` / `existingVpcCidr` の 4 つを指定すると、`DemoNetworkingStack` が VPC・NAT Gateway・サブネット・VPC エンドポイントを作らず、既存 VPC を参照してセキュリティグループだけを作る。WebApp Lambda は渡したサブネットに明示配置する（既存 VPC のサブネットは `aws-cdk:subnet-type` タグを持たないことが多く、`subnetType` 選択が効かないため）。`existingVpcId` を省略した場合の挙動は変わらない。ドキュメントは以前から `existingVpcId` を案内していたが、実装が無く黙って無視されていた
+- **Docs**: `docs/evaluation.md` の 3.3「実機での確認結果」（JA/EN）— 権限制御の 4 ケース（Admin、一般ユーザー、Everyone 文書、SID 未登録の Fail-Closed）を 2026-10-28 に実環境で確認した結果と、その範囲。取り込みと S3 Access Point の作成を手作業で通したことは本文と #228 に記載。他の 6 言語の翻訳には抄訳バナーを付けた
 - **Tests**: `tests/stacks/demo-networking-stack.test.ts`（11 件）— 新規作成分岐・既存 VPC 参照分岐・必須キー欠落時の throw
 ### Changed
 - `existingVpcId` 指定時に `existingVpcCidr` を必須にした。省略すると FSx 用セキュリティグループの ingress が `vpcCidrBlock` を参照した時点で CDK が例外を投げ、原因が分かりにくかったため、キー名付きのエラーで止める
