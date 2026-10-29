@@ -14,6 +14,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -288,11 +289,19 @@ export class DemoWebAppStack extends cdk.Stack {
     // ========================================
     let permFilterFnArn = '';
     if (usePermissionFilterLambda) {
-      const permFilterFn = new lambda.Function(this, 'PermFilterFn', {
+      // The handler is TypeScript with relative imports. Shipping lambda/permissions as is gives
+      // the runtime .ts files it cannot load (MODULE_NOT_FOUND), and the WebApp then falls back to
+      // the inline filter without saying so. Bundle it with esbuild; the AWS SDK v3 comes from the
+      // runtime and is left external.
+      const permFilterFn = new lambdaNodejs.NodejsFunction(this, 'PermFilterFn', {
         functionName: `${prefix}-perm-filter`,
         runtime: lambda.Runtime.NODEJS_22_X,
-        handler: 'metadata-filter-handler.handler',
-        code: lambda.Code.fromAsset('lambda/permissions'),
+        entry: 'lambda/permissions/metadata-filter-handler.ts',
+        handler: 'handler',
+        bundling: {
+          externalModules: ['@aws-sdk/*'],
+          target: 'node22',
+        },
         timeout: cdk.Duration.seconds(30),
         memorySize: 256,
         vpc,

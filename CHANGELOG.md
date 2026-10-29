@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **S3 Access Point のカスタムリソース**: `CreateAndAttachS3AccessPoint` を FSx の API リファレンスの形（`Name`、`Type`、`OntapConfiguration`）で送り、作成結果を `S3AccessPointAttachment.S3AccessPoint` から読むようにした。削除と更新は `Name` で行う。作成要求が拒否されたときは、ステータスコード付きで FAILED を返す（以前は SUCCESS のまま `NOT_CREATED` を返していた）。AD 参加待ちの延期は変えていない（#228）
 - **`setup-kb-datasource.sh`**: アクセスポイントの作成を `--type ONTAP --ontap-configuration` で行い、データソースの `bucketArn` を `arn:aws:s3:::<alias>` にした（#228）
 - **`create-demo-users.sh`**: 存在しない `common.sh` の `source` で、macOS の bash 3.2 が何も出力せずに終了していた。ファイルがあるときだけ読み込み、失敗した行を表示する。既存ユーザー以外の作成失敗とパスワード設定の失敗を握りつぶさず止める（#228）
+- **Permission Filter Lambda**（`usePermissionFilterLambda=true`）: `lambda/permissions` の TypeScript をそのまま資産にしていたため、ランタイムがハンドラを読み込めなかった（ローカルで `MODULE_NOT_FOUND` を再現）。WebApp は呼び出しの失敗時に inline フィルタへ戻るため、要求は失敗せず `filterLog.source` が `inline` になるだけで、Lambda 経路は一度も使われていなかったとみられる。`NodejsFunction`（esbuild）でバンドルし、AWS SDK v3 はランタイムのものを使う。`tests/unit/perm-filter-lambda-bundling.test.ts` が合成した資産をランタイムと同じように読み込む
 - **Tests**: `tests/unit/s3ap-and-s3vectors-request-shapes.test.ts`（8 件）、`tests/unit/demo-scripts-failure-reporting.test.ts`（6 件、スタブの `aws` でスクリプトを実行）
 
 ### Changed
