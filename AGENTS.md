@@ -10,7 +10,7 @@
 ```bash
 # 単一入口
 make all     # 型検査 + Jest + リンク + 証跡ラベル + 抄訳開示 + 依存関係
-make synth   # CI と同じ 10 レーン
+make synth   # CI の synth-matrix と同じレーン
 ```
 
 ```bash
@@ -28,11 +28,20 @@ npx cdk synth --quiet -c enableMonitoring=true
 npx cdk synth --quiet -c enableVoiceChat=true -c voiceChatMode=webrtc
 npx cdk synth --quiet -c enableGuardrails=true -c enableAgentCoreGateway=true -c enableWebSearch=true
 npx cdk synth --quiet -c enableAgent=true -c enableAgentCoreGateway=true -c enableAgentOptimization=true
+# Step Functions tools Gateway。state machine ARN が 1 本も無いと bin/demo-app.ts が throw する。
+npx cdk synth --quiet -c enableSfnTools=true \
+  -c sfnFailoverArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failover \
+  -c sfnFailbackArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failback
+# 書き込み opt-in + Cedar 限定（PolicyEngine / Policy / StopExecution 権限はこのレーンでのみ生成）
+npx cdk synth --quiet -c enableSfnTools=true \
+  -c sfnFailoverArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failover \
+  -c sfnFailbackArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failback \
+  -c enableSfnWriteOps=true -c sfnWriteOpsRolePattern=snapmirror-operator
 npx cdk synth --quiet -c kbSearchType=HYBRID
 npx cdk synth --quiet -c kbChunkingStrategy=HIERARCHICAL
 npx cdk synth --quiet -c kbChunkingStrategy=SEMANTIC
 
-# 上記 10 通りが CI の synth-matrix ジョブ（.github/workflows/ci-cd.yml）のレーンと同一。
+# 上記が CI の synth-matrix ジョブ（.github/workflows/ci-cd.yml）のレーンと同一。
 # フラグを追加したら、そのフラグでのみ生成されるリソースが増えるため、
 # 行列にレーンを 1 本足す。既定 synth だけでは cdk-nag の抑制漏れを検出できない。
 
@@ -176,6 +185,11 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 | `enableWebSearch` | `false` | Web Search: when combined with `enableAgentCoreGateway=true`, synthesizes a dedicated us-east-1 `DemoWebSearchGatewayStack` (cross-region) hosting the Web Search target; sets `ENABLE_WEB_SEARCH` env var (Claude Platform mechanism A) and injects `WEB_SEARCH_GATEWAY_URL` (mechanism C) |
 | `policyEngineMode` | `"LOG_ONLY"` | Policy Engine enforcement (`"LOG_ONLY"` \| `"ENFORCE"`) |
 | `enableAgentOptimization` | `false` | AgentCore Optimization — Configuration Bundles + Recommendations + A/B Testing (Preview, requires enableAgentCoreGateway) |
+| `enableSfnTools` | `false` | Expose existing Step Functions workflows as agent tools via a dedicated `DemoSfnToolsGatewayStack` (separate Gateway, separate service role from the KB Gateway). Requires at least one state machine ARN (`sfnFailoverArn` / `sfnFailbackArn`); throws at synth time otherwise. Default scope is **read-only** (DescribeStateMachine / ListExecutions / DescribeExecution / GetExecutionHistory) |
+| `sfnFailoverArn` / `sfnFailbackArn` | (none) | State machine ARNs (STANDARD) to expose. Passed by context because `automation/fsxn-ops` is a separate SAM/CFn stack whose outputs are not CFn-Exported (no `Fn.importValue`). One target is created per workflow |
+| `enableSfnWriteOps` | `false` | Opt-in to expose write ops (`StartExecution` / `StopExecution`) on the Step Functions Gateway. Creates a Policy Engine and Cedar policies that `forbid` write ops unless the caller's role matches `sfnWriteOpsRolePattern` |
+| `sfnWriteOpsRolePattern` | (none) | Role-name substring allowed to call write ops (Cedar `principal.id like "*<pattern>*"`). With `enableSfnWriteOps=true` but no pattern, write ops are forbidden for everyone (safe default) |
+| `sfnPolicyEngineMode` | follows `policyEngineMode` | Enforcement mode for the Step Functions Gateway's Cedar policies (`LOG_ONLY` \| `ENFORCE`) |
 | `enableGraphRAG` | `false` | Graph RAG with Neptune Analytics (document relationship graph) |
 | `enableAgentRegistry` | `false` | Agent Registry integration |
 | `enableAdvancedPermissions` | `false` | Time-based access control + audit logging |

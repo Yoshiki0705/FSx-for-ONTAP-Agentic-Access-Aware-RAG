@@ -56,6 +56,7 @@ import { DemoWebAppStack } from '../lib/stacks/demo/demo-webapp-stack';
 import { DemoEmbeddingStack } from '../lib/stacks/demo/demo-embedding-stack';
 import { DemoTransferFamilyStack } from '../lib/stacks/demo/demo-transfer-family-stack';
 import { DemoWebSearchGatewayStack } from '../lib/stacks/demo/demo-web-search-gateway-stack';
+import { DemoSfnToolsGatewayStack, SfnWorkflowTarget } from '../lib/stacks/demo/demo-sfn-tools-gateway-stack';
 
 const app = new cdk.App();
 
@@ -168,6 +169,23 @@ const enableAgentCoreGateway = ctxBool('enableAgentCoreGateway') || enableAgentP
 // enableAgentCoreGateway=true が前提条件
 const enableWebSearch = ctxBool('enableWebSearch') && enableAgentCoreGateway;
 
+// Step Functions tools Gateway（オプション — 既存ワークフローをエージェントツール化）
+// 専用 Gateway で権限境界を分離する（KB Gateway とサービスロールを共有しない）。
+// 既存の SnapMirror フェイルオーバー/フェイルバック（automation/fsxn-ops、STANDARD）を
+// ステートマシン ARN の context で受け取り、読み取り系4操作を既定公開する。
+// 書き込み（StartExecution / StopExecution）は enableSfnWriteOps で opt-in し、
+// Cedar で sfnWriteOpsRolePattern のロールだけに許可する。
+//   -c enableSfnTools=true
+//   -c sfnFailoverArn=arn:aws:states:ap-northeast-1:ACCOUNT:stateMachine:fsxn-ops-snapmirror-failover
+//   -c sfnFailbackArn=arn:aws:states:ap-northeast-1:ACCOUNT:stateMachine:fsxn-ops-snapmirror-failback
+//   -c enableSfnWriteOps=true -c sfnWriteOpsRolePattern=snapmirror-operator
+const enableSfnTools = ctxBool('enableSfnTools');
+const sfnFailoverArn: string | undefined = app.node.tryGetContext('sfnFailoverArn');
+const sfnFailbackArn: string | undefined = app.node.tryGetContext('sfnFailbackArn');
+const enableSfnWriteOps = ctxBool('enableSfnWriteOps');
+const sfnWriteOpsRolePattern: string | undefined = app.node.tryGetContext('sfnWriteOpsRolePattern');
+const sfnPolicyEngineMode = (app.node.tryGetContext('sfnPolicyEngineMode') || policyEngineMode) as 'LOG_ONLY' | 'ENFORCE';
+
 // AgentCore Optimization（オプション — Preview: Configuration Bundles + A/B Testing）
 // enableAgentCoreGateway=true が前提条件
 const enableAgentOptimization = ctxBool('enableAgentOptimization') && enableAgentCoreGateway;
@@ -250,6 +268,43 @@ const webSearchGatewayStack = enableWebSearch
       description: `[${projectName}] AgentCore Web Search Gateway (us-east-1)`,
     })
   : undefined;
+
+// Stack 1c (Optional): SfnToolsGatewayStack (same region as the state machines)
+// 既存の Step Functions ワークフローをエージェントツール化する専用 Gateway。
+// 権限境界を KB Gateway から分離する。enableSfnTools=true + ステートマシン ARN で有効化。
+if (enableSfnTools) {
+  const sfnWorkflows: SfnWorkflowTarget[] = [];
+  if (sfnFailoverArn) {
+    sfnWorkflows.push({
+      name: 'snapmirrorFailover',
+      stateMachineArn: sfnFailoverArn,
+      description: 'SnapMirror planned failover orchestration (Standard). Input: '
+        + '{prod_management_lif, dr_management_lif, prod_svm, dr_svm, sns_topic_arn, initiated_by}',
+    });
+  }
+  if (sfnFailbackArn) {
+    sfnWorkflows.push({
+      name: 'snapmirrorFailback',
+      stateMachineArn: sfnFailbackArn,
+      description: 'SnapMirror planned failback orchestration (Standard).',
+    });
+  }
+  if (sfnWorkflows.length === 0) {
+    throw new Error(
+      'enableSfnTools=true requires at least one state machine ARN. '
+      + 'Pass -c sfnFailoverArn=arn:... and/or -c sfnFailbackArn=arn:...',
+    );
+  }
+  new DemoSfnToolsGatewayStack(app, `${stackPrefix}-SfnToolsGateway`, {
+    projectName, environment,
+    workflows: sfnWorkflows,
+    enableWriteOps: enableSfnWriteOps,
+    writeOpsRolePattern: sfnWriteOpsRolePattern,
+    policyEngineMode: sfnPolicyEngineMode,
+    env: primaryEnv,
+    description: `[${projectName}] AgentCore Step Functions tools Gateway`,
+  });
+}
 
 // Stack 2: NetworkingStack
 const networkingStack = new DemoNetworkingStack(app, `${stackPrefix}-Networking`, {
