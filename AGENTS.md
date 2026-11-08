@@ -488,6 +488,8 @@ When updating model IDs (AWS Health notifications, EOL):
 
 本リポジトリの文書に適用する writing-quality 基準は Hub に一元化してある（重複を避け、乖離を防ぐため）: https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/blob/main/docs/agent/writing-quality.md
 
+多段タスク（新パターン追加 / 検証ラン / IaC 変更）の判断記録・監査役・ばらつき測定の規律は [エージェント運用規律](docs/agent-operating-discipline.md) に接続だけを置く（本体はグローバル steering、ここは複製しない）。
+
 ### Evidence labels
 - 製品・サービスの挙動についての主張には [証跡の区分ポリシー](docs/evidence-policy.md) の 4 語を行内ラベルで付ける: `verified`（日付 + リージョン必須）/ `documented`（出典必須）/ `field-observation`（再現未確認と明記）/ `hypothesis`（未検証と明記）。
 - 旧表記（`VERIFIED` / `UNVERIFIED`）は使わない。`python3 scripts/check-evidence.py`（`--selftest` を先に実行）が検査する。旧表記そのものを説明する行には `<!-- allow:legacy-marker -->` を付ける <!-- allow:legacy-marker -->
