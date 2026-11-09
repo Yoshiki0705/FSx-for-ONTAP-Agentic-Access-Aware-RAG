@@ -74,3 +74,12 @@
 - [ ] 理論推定（`baseline-estimates.md`）と実測を取り違えない
 - [ ] 効果を主張する前に unchanged 構成のラン間ばらつきを測る（規律4）
 - [ ] 測定条件（日付・リージョン・構成・測定方法・実行回数）を数値に併記する
+
+### 依存更新（`npm audit fix` / lockfile 変更）
+
+- [ ] `npm audit fix` は直接の脆弱性以外（aws-cdk-lib minor、nested optional-peer、lockfile 付随パッケージ）も動かす。更新後に下を全て回す
+- [ ] 両 workspace で**隔離した実 `npm ci`**（package.json + lockfile だけを空ディレクトリにコピーして実行）。`--dry-run` は optional-peer の sync ずれを見逃す
+- [ ] `npx cdk synth` を **exit code** で判定する（末尾の schema mismatch 警告を成功と読まない）
+- [ ] `scripts/check-dependency-audit.py`、`docker/nextjs` は `npx vitest run` も（phantom dependency は clean regen でのみ露見する）
+- [ ] `aws-cdk-lib` を上げたら `aws-cdk` CLI も揃える（assembly schema version で結合。Dependabot の `aws-cdk` group と同じ）
+- [ ] 直接 import するのに package.json 未宣言の依存（phantom dependency）は transitive hoist で通っているだけ。`grep` で import を洗い、`dependencies` に宣言する
