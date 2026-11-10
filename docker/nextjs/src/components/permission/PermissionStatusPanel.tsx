@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Circle, Clock, Globe, Lock, BarChart3 } from 'lucide-react';
 
 interface PermissionSystemStatus {
   systemStatus: 'ACTIVE' | 'MAINTENANCE' | 'ERROR';
@@ -114,13 +115,13 @@ export function PermissionStatusPanel() {
     switch (currentStatus) {
       case 'ALLOWED':
       case 'ACTIVE':
-        return '🟢';
+        return <Circle className="w-3 h-3 inline-block align-baseline fill-current" aria-hidden="true" />;
       case 'RESTRICTED':
-        return '🟡';
+        return <Circle className="w-3 h-3 inline-block align-baseline fill-current" aria-hidden="true" />;
       case 'ERROR':
-        return '🔴';
+        return <Circle className="w-3 h-3 inline-block align-baseline fill-current" aria-hidden="true" />;
       default:
-        return '⚪';
+        return <Circle className="w-3 h-3 inline-block align-baseline fill-current" aria-hidden="true" />;
     }
   };
 
@@ -139,7 +140,7 @@ export function PermissionStatusPanel() {
       {/* 時間ベース制限 */}
       <div className="p-3 bg-gray-50 rounded-lg">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">⏰ 時間制限</span>
+          <span className="text-sm font-medium text-gray-700"><Clock className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />時間制限</span>
           <span className={`text-sm font-medium ${getStatusColor(status.timeBasedRestriction.currentStatus)}`}>
             {getStatusIcon(status.timeBasedRestriction.currentStatus)} {status.timeBasedRestriction.currentStatus}
           </span>
@@ -154,7 +155,7 @@ export function PermissionStatusPanel() {
       {/* 地理的制限 */}
       <div className="p-3 bg-gray-50 rounded-lg">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">🌍 地理制限</span>
+          <span className="text-sm font-medium text-gray-700"><Globe className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />地理制限</span>
           <span className={`text-sm font-medium ${getStatusColor(status.geographicRestriction.currentStatus)}`}>
             {getStatusIcon(status.geographicRestriction.currentStatus)} {status.geographicRestriction.currentStatus}
           </span>
@@ -169,9 +170,9 @@ export function PermissionStatusPanel() {
       {/* 動的権限 */}
       <div className="p-3 bg-gray-50 rounded-lg">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">🔒 動的権限</span>
+          <span className="text-sm font-medium text-gray-700"><Lock className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />動的権限</span>
           <span className="text-sm font-medium text-green-600">
-            🟢 有効
+            <Circle className="w-3 h-3 inline-block align-baseline fill-current" aria-hidden="true" /> 有効
           </span>
         </div>
         <div className="text-xs text-gray-600 space-y-1">
@@ -184,9 +185,9 @@ export function PermissionStatusPanel() {
       {/* 監査ログ */}
       <div className="p-3 bg-gray-50 rounded-lg">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">📊 監査ログ</span>
+          <span className="text-sm font-medium text-gray-700"><BarChart3 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />監査ログ</span>
           <span className="text-sm font-medium text-blue-600">
-            🔵 記録中
+            <Circle className="w-3 h-3 inline-block align-baseline fill-current" aria-hidden="true" /> 記録中
           </span>
         </div>
         <div className="text-xs text-gray-600 space-y-1">
