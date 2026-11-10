@@ -43,9 +43,7 @@ export function TaskCard({ card, isFavorite, isHighlighted, onFavoriteToggle, on
       }}
     >
       <div className="flex items-start justify-between">
-        <span className="text-2xl" role="img" aria-hidden="true">
-          {card.icon}
-        </span>
+        <card.icon className="w-6 h-6" aria-hidden="true" />
         <button
           type="button"
           aria-label={favoriteAriaLabel}

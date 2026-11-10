@@ -57,5 +57,5 @@ export const ANIMATION_DURATION = {
 // デバッグ設定
 export const DEBUG_CONFIG = {
   ENABLE_CONSOLE_LOGS: process.env.NODE_ENV === 'development',
-  LOG_PREFIX: '🔍 ModelSelector:',
+  LOG_PREFIX: 'ModelSelector:',
 } as const;

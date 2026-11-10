@@ -140,7 +140,7 @@ export function StateColorExamples() {
       {/* 成功メッセージ */}
       <div className={`p-4 rounded-lg border ${successColor.bg} ${successColor.text} ${successColor.border}`}>
         <div className="flex items-center space-x-2">
-          <span className="text-xl">{successColor.icon}</span>
+          <successColor.icon className="w-5 h-5" aria-hidden="true" />
           <span className="font-medium">成功: 操作が完了しました</span>
         </div>
       </div>
@@ -148,7 +148,7 @@ export function StateColorExamples() {
       {/* 警告メッセージ */}
       <div className={`p-4 rounded-lg border ${warningColor.bg} ${warningColor.text} ${warningColor.border}`}>
         <div className="flex items-center space-x-2">
-          <span className="text-xl">{warningColor.icon}</span>
+          <warningColor.icon className="w-5 h-5" aria-hidden="true" />
           <span className="font-medium">警告: 注意が必要です</span>
         </div>
       </div>
@@ -156,7 +156,7 @@ export function StateColorExamples() {
       {/* エラーメッセージ */}
       <div className={`p-4 rounded-lg border ${errorColor.bg} ${errorColor.text} ${errorColor.border}`}>
         <div className="flex items-center space-x-2">
-          <span className="text-xl">{errorColor.icon}</span>
+          <errorColor.icon className="w-5 h-5" aria-hidden="true" />
           <span className="font-medium">エラー: 問題が発生しました</span>
         </div>
       </div>
@@ -164,7 +164,7 @@ export function StateColorExamples() {
       {/* 情報メッセージ */}
       <div className={`p-4 rounded-lg border ${infoColor.bg} ${infoColor.text} ${infoColor.border}`}>
         <div className="flex items-center space-x-2">
-          <span className="text-xl">{infoColor.icon}</span>
+          <infoColor.icon className="w-5 h-5" aria-hidden="true" />
           <span className="font-medium">情報: お知らせがあります</span>
         </div>
       </div>

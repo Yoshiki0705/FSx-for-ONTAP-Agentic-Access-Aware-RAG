@@ -115,7 +115,7 @@ export function WorkflowSection({
                 </>
               ) : (
                 <>
-                  <span>{card.icon}</span>
+                  <card.icon className="w-4 h-4" aria-hidden="true" />
                   <span>{title}</span>
                 </>
               )}
