@@ -13,7 +13,7 @@ interface VoiceButtonProps {
 type VoiceButtonState = 'idle' | 'recording' | 'processing' | 'error';
 
 /**
- * 🎤 マイクボタンコンポーネント
+ * マイクボタンコンポーネント
  * VOICE_CHAT_ENABLED=false 時は非表示。
  */
 export function VoiceButton({

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HelpCircle, Trash2, XCircle } from 'lucide-react';
 import type { Episode } from '@/types/episode';
 
 interface EpisodeCardProps {
@@ -17,13 +17,13 @@ interface EpisodeCardProps {
 function StatusIcon({ status }: { status: string }) {
   switch (status) {
     case 'success':
-      return <span title="Success">✅</span>;
+      return <span title="Success" role="img" aria-label="Success"><CheckCircle2 className="w-4 h-4" aria-hidden="true" /></span>;
     case 'partial':
-      return <span title="Partial">⚠️</span>;
+      return <span title="Partial" role="img" aria-label="Partial"><AlertTriangle className="w-4 h-4" aria-hidden="true" /></span>;
     case 'failure':
-      return <span title="Failure">❌</span>;
+      return <span title="Failure" role="img" aria-label="Failure"><XCircle className="w-4 h-4" aria-hidden="true" /></span>;
     default:
-      return <span>❓</span>;
+      return <HelpCircle className="w-4 h-4" aria-hidden="true" />;
   }
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Star } from 'lucide-react';
 import { CardData } from '@/constants/card-constants';
 
 export interface TaskCardProps {
@@ -54,9 +55,9 @@ export function TaskCard({ card, isFavorite, isHighlighted, onFavoriteToggle, on
           }}
         >
           {isFavorite ? (
-            <span className="text-yellow-500">★</span>
+            <Star className="w-5 h-5 text-yellow-500" fill="currentColor" aria-hidden="true" />
           ) : (
-            <span className="text-gray-400 dark:text-gray-500">☆</span>
+            <Star className="w-5 h-5 text-gray-400 dark:text-gray-500" aria-hidden="true" />
           )}
         </button>
       </div>

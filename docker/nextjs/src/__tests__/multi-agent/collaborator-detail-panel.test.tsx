@@ -137,10 +137,9 @@ describe('CollaboratorDetailPanel', () => {
 
     it('shows role icon for the collaborator', () => {
       const { container, cleanup } = renderComponent(makeTrace());
-      const text = container.textContent ?? '';
 
-      // analysis → 📊
-      expect(text).toContain('📊');
+      // analysis → BarChart3 (identified by test id; lucide renders an svg)
+      expect(container.querySelector('[data-testid="role-icon-analysis"]')).not.toBeNull();
 
       cleanup();
     });
@@ -226,7 +225,7 @@ describe('CollaboratorDetailPanel', () => {
       const { container, cleanup } = renderComponent(permissionResolverTrace, false);
       const text = container.textContent ?? '';
 
-      expect(text).toContain('🔑 権限解決結果');
+      expect(text).toContain('権限解決結果');
       expect(text).toContain('S-1-5-21-1234');
       expect(text).toContain('S-1-5-21-5678');
       expect(text).toContain('1001');
@@ -255,7 +254,7 @@ describe('CollaboratorDetailPanel', () => {
       const { container, cleanup } = renderComponent(retrievalTrace, false);
       const text = container.textContent ?? '';
 
-      expect(text).toContain('📚 検索結果詳細');
+      expect(text).toContain('検索結果詳細');
       expect(text).toContain('kb-xxxx-yyyy');
       expect(text).toContain('3件');
       expect(text).toContain('2件');
@@ -290,7 +289,8 @@ describe('CollaboratorDetailPanel', () => {
       const { container, cleanup } = renderComponent(accessDeniedTrace);
       const text = container.textContent ?? '';
 
-      expect(text).toContain('🚫 拒否');
+      expect(text).toContain('拒否');
+      expect(container.querySelector('[data-testid="access-denied-icon"]')).not.toBeNull();
 
       cleanup();
     });
@@ -309,7 +309,8 @@ describe('CollaboratorDetailPanel', () => {
       const text = container.textContent ?? '';
 
       expect(text).not.toContain('アクセス拒否が発生しました');
-      expect(text).not.toContain('🚫 拒否');
+      expect(container.querySelector('[data-testid="access-denied-icon"]')).toBeNull();
+      expect(container.querySelector('[data-testid="access-denied-icon"]')).toBeNull();
 
       cleanup();
     });
@@ -404,8 +405,8 @@ describe('CollaboratorDetailPanel', () => {
       const { container, cleanup } = renderComponent(makeTrace(), false);
       const text = container.textContent ?? '';
 
-      expect(text).not.toContain('🔑 権限解決結果');
-      expect(text).not.toContain('📚 検索結果詳細');
+      expect(text).not.toContain('権限解決結果');
+      expect(text).not.toContain('検索結果詳細');
 
       cleanup();
     });
@@ -417,7 +418,7 @@ describe('CollaboratorDetailPanel', () => {
       );
       const text = container.textContent ?? '';
 
-      expect(text).not.toContain('📚 検索結果詳細');
+      expect(text).not.toContain('検索結果詳細');
 
       cleanup();
     });

@@ -11,6 +11,7 @@
 'use client';
 
 import React from 'react';
+import { Image, Search } from 'lucide-react';
 import { useMultimodalStore } from '@/store/useMultimodalStore';
 
 export type ImageAction = 'vision' | 'similarity';
@@ -35,7 +36,7 @@ export function ImageSearchAction({ onSelect, className = '' }: ImageSearchActio
         onClick={() => onSelect('vision')}
         className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
       >
-        🔍 Vision Analysis
+        <Search className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> Vision Analysis
       </button>
 
       {multimodalEnabled && (
@@ -45,7 +46,7 @@ export function ImageSearchAction({ onSelect, className = '' }: ImageSearchActio
           className="px-3 py-1.5 text-xs rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
           data-testid="similarity-search-button"
         >
-          🖼️ Similarity Search
+          <Image className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> Similarity Search
         </button>
       )}
     </div>

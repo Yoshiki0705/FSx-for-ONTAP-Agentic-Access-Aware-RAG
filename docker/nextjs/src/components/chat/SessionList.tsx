@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { useSessionStore } from '@/store/useSessionStore';
 import { SessionMetadata } from '@/types/chat';
 
@@ -178,8 +179,9 @@ export function SessionList() {
                       flexShrink: 0
                     }}
                     title="セッションを削除"
+                    aria-label="セッションを削除"
                   >
-                    🗑️
+                    <Trash2 className="w-5 h-5" aria-hidden="true" />️
                   </button>
                 </div>
               </div>
