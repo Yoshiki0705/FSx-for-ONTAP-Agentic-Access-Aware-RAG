@@ -35,7 +35,7 @@ node tools/check-ui.mjs --json docker/nextjs/src
 | off-grid-spacing | 1 | `6px` を `8px` に修正 |
 | looping-motion | 30 | 1 件は装飾の点滅だったので外して修正。29 件は進行中の表示なので残す |
 | hover-menu | 8 | 7 件はホバー表示を残し、タッチと focus では常時表示に修正。1 件は強調のみなので残す |
-| emoji | 440 | 未対応。下記 |
+| emoji | 440 | `lucide-react` に置き換え。下記「絵文字の置き換え」 |
 
 ## check-ui-ignore で残している行
 
@@ -58,8 +58,17 @@ node tools/check-ui.mjs --json docker/nextjs/src
 異なる本は `.tsx` が先に進んでおり、`.js` を消すと実行されるコードが変わります。削除は挙動の変更なので、この変更では行わず、別に判断します。
 このため `BedrockParameterPanel.tsx` と `LazyNetAppBrandSection.tsx` への修正は、`.js` が使われている間は画面に反映されない可能性があります。
 
-## 未対応の絵文字 440 件
+## 絵文字の置き換え
 
-画面の文字やアイコン代わりの絵文字（`constants/card-constants.ts`、`types/permission-boundary.ts`、`lib/color-utils.ts`、
-`bedrock-error-analyzer.ts` の表示文、各コンポーネントの見出しなど）です。
-`lucide-react` は既に依存に入っています。置き換えは画面全体の見た目に及ぶので、1 つの変更にまとめず別に扱います。
+実際の画面の絵文字 440 件は `lucide-react` のアイコンに置き換えました。アイコンを置けない文字列（`alert`、エラー文、チャット応答の Markdown、コメント）は、絵文字を削除して文だけにしています。
+`icon: '🔍'` のようなデータは型を `LucideIcon` に変えました。
+
+残る絵文字の指摘 38 件は、画面ではありません。
+
+| 残り | 件数 | 理由 |
+|---|---|---|
+| テスト | 30 | 画面ではない。コンポーネントを import しない自己完結のテストが絵文字を定数で持つ |
+| `examples/AccessibilityExample.tsx` | 5 | 他のファイルから読み込まれていない |
+| 同名の `.js` | 3 | 上記「同名の `.js`」 |
+
+検査の対象外で、絵文字が残っているもの: `src/messages/*.json`（8 言語の翻訳辞書。スクリプトが `.json` を読まない）、`console.*` の出力。

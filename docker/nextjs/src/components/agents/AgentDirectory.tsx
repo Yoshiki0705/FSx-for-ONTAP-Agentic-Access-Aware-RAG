@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useState } from 'react';
+import { Users, Zap, Download, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useAgentDirectoryStore } from '@/store/useAgentDirectoryStore';
@@ -126,12 +127,12 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
   const { agentRegistryEnabled, agentRegistryRegion: registryRegionFlag } = useFeatureFlags();
   const enableRegistry = agentRegistryEnabled;
   const registryRegion = registryRegionFlag;
-  const TABS: { key: typeof activeTab; label: string }[] = [
+  const TABS: { key: typeof activeTab; label: string; icon?: LucideIcon }[] = [
     { key: 'agents', label: t('tabs.agents') },
-    { key: 'teams', label: '👥 Teams' },
+    { key: 'teams', label: 'Teams', icon: Users },
     { key: 'shared', label: t('tabs.shared') },
     { key: 'schedules', label: t('tabs.schedules') },
-    { key: 'triggers', label: '⚡ Triggers' },
+    { key: 'triggers', label: 'Triggers', icon: Zap },
     ...(enableRegistry ? [{ key: 'registry' as const, label: `Registry (${registryRegion})` }] : []),
   ];
 
@@ -141,8 +142,8 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
 
       {viewMode === 'grid' && (
         <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-6">
-          {TABS.map(tab => (<button key={tab.key} onClick={() => handleTabChange(tab.key)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.key ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'}`}>{tab.label}</button>))}
-          <button onClick={() => setViewMode('import')} className="ml-auto px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 border border-gray-300 dark:border-gray-600 rounded-md">📥 {t('sharing.import')}</button>
+          {TABS.map(tab => (<button key={tab.key} onClick={() => handleTabChange(tab.key)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.key ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'}`}>{tab.icon && <tab.icon className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />}{tab.label}</button>))}
+          <button onClick={() => setViewMode('import')} className="ml-auto px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 border border-gray-300 dark:border-gray-600 rounded-md"><Download className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('sharing.import')}</button>
         </div>
       )}
 

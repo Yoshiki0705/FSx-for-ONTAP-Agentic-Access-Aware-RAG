@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { ProcessedModel } from './modelUtils';
 
@@ -167,7 +168,7 @@ export function AvailableModelsList({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <span className="text-green-600 font-medium">✅</span>
+                            <span className="text-green-600 font-medium"><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                             <span className="text-sm font-medium text-gray-900 group-hover:text-gray-700">
                               {model.name}
                             </span>
@@ -207,7 +208,7 @@ export function AvailableModelsList({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <span className="text-green-600 font-medium">✅</span>
+                  <span className="text-green-600 font-medium"><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                   <span className="text-sm font-medium text-gray-900 group-hover:text-gray-700">
                     {model.name}
                   </span>

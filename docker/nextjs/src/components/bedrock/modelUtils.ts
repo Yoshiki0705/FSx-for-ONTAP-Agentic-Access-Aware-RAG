@@ -115,7 +115,7 @@ export function handleModelSelection(
 ): void {
   if (targetModel && !targetModel.available) {
     // 利用不可能なモデルが選択された場合の警告
-    alert(`⚠️ このモデルは現在利用できません\n\nモデル: ${targetModel.name}\n理由: ${targetModel.reason || '不明'}\n\n利用可能なモデルを選択してください。`);
+    alert(`警告: このモデルは現在利用できません\n\nモデル: ${targetModel.name}\n理由: ${targetModel.reason || '不明'}\n\n利用可能なモデルを選択してください。`);
     return;
   }
   

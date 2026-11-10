@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import { Coins, Compass, DollarSign, Download, Lightbulb, Timer, Upload } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type {
   MultiAgentTraceResult,
   AgentTeamTraceEvent,
@@ -214,7 +216,7 @@ export default function CostSummary({
         aria-expanded={!isCollapsed}
       >
         <div className="flex items-center gap-2">
-          <span className="text-base" aria-hidden="true">💰</span>
+          <Coins className="w-5 h-5" aria-hidden="true" />
           <span className="font-semibold text-gray-900 dark:text-gray-100">
             コスト推定
           </span>
@@ -240,22 +242,22 @@ export default function CostSummary({
             <MetricCard
               label="合計実行時間"
               value={formatMs(trace.totalExecutionTimeMs)}
-              icon="⏱️"
+              icon={Timer}
             />
             <MetricCard
               label="入力トークン"
               value={formatTokens(trace.totalInputTokens)}
-              icon="📥"
+              icon={Download}
             />
             <MetricCard
               label="出力トークン"
               value={formatTokens(trace.totalOutputTokens)}
-              icon="📤"
+              icon={Upload}
             />
             <MetricCard
               label="推定コスト"
               value={formatCost(trace.estimatedCostUsd)}
-              icon="💵"
+              icon={DollarSign}
               highlight
             />
           </div>
@@ -282,7 +284,7 @@ export default function CostSummary({
           {trace.routingOverheadMs > 0 && (
             <div className="rounded-md bg-gray-50 dark:bg-gray-700/40 p-3">
               <div className="flex items-center gap-2 text-xs">
-                <span aria-hidden="true">🧭</span>
+                <Compass className="w-4 h-4" aria-hidden="true" />
                 <span className="text-gray-500 dark:text-gray-400">
                   Supervisorルーティングオーバーヘッド:
                 </span>
@@ -296,7 +298,7 @@ export default function CostSummary({
           {/* ── Single Agent mode comparison ── */}
           <div className="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 space-y-1">
             <div className="flex items-center gap-1.5 text-xs">
-              <span aria-hidden="true">💡</span>
+              <Lightbulb className="w-4 h-4" aria-hidden="true" />
               <span className="font-medium text-blue-800 dark:text-blue-200">
                 Single Agentモードでの推定:
               </span>
@@ -322,11 +324,11 @@ export default function CostSummary({
 interface MetricCardProps {
   label: string;
   value: string;
-  icon: string;
+  icon: LucideIcon;
   highlight?: boolean;
 }
 
-function MetricCard({ label, value, icon, highlight }: MetricCardProps) {
+function MetricCard({ label, value, icon: Icon, highlight }: MetricCardProps) {
   return (
     <div
       className={`rounded-md p-2.5 ${
@@ -337,7 +339,7 @@ function MetricCard({ label, value, icon, highlight }: MetricCardProps) {
       aria-label={`${label}: ${value}`}
     >
       <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
-        <span aria-hidden="true">{icon}</span>
+        <Icon className="w-3.5 h-3.5" aria-hidden="true" />
         <span>{label}</span>
       </div>
       <div

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { KeyRound, Lightbulb, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 
 
 interface SessionAttributesPanelProps {
@@ -73,7 +74,7 @@ export function SessionAttributesPanel({ attributes, onUpdate }: SessionAttribut
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-          💾 セッション属性 ({Object.keys(attributes).length})
+          <Save className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> セッション属性 ({Object.keys(attributes).length})
         </h3>
         <div className="text-xs text-gray-500 dark:text-gray-400">
           Bedrock Agentに渡されるセッション属性
@@ -125,7 +126,7 @@ export function SessionAttributesPanel({ attributes, onUpdate }: SessionAttribut
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">
-                      🔑 {key}
+                      <KeyRound className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {key}
                     </div>
                     <div className="text-xs text-gray-700 dark:text-gray-300 break-words">
                       {value}
@@ -136,15 +137,17 @@ export function SessionAttributesPanel({ attributes, onUpdate }: SessionAttribut
                       onClick={() => startEdit(key, value)}
                       className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
                       title="編集"
+                      aria-label="編集"
                     >
-                      ✏️
+                      <Pencil className="w-4 h-4" aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => handleDelete(key)}
                       className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                       title="削除"
+                      aria-label="削除"
                     >
-                      🗑️
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -161,7 +164,7 @@ export function SessionAttributesPanel({ attributes, onUpdate }: SessionAttribut
       {/* 新しい属性を追加 */}
       <div className="border-t dark:border-gray-700 pt-3">
         <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-          ➕ 新しい属性を追加
+          <Plus className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 新しい属性を追加
         </div>
         <div className="space-y-2">
           <input
@@ -191,7 +194,7 @@ export function SessionAttributesPanel({ attributes, onUpdate }: SessionAttribut
       {/* 使用例のヒント */}
       <details className="text-xs">
         <summary className="cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-          💡 使用例
+          <Lightbulb className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 使用例
         </summary>
         <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded space-y-2">
           <div>

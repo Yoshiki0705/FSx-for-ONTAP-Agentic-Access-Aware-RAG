@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { Wrench, AlertTriangle } from 'lucide-react';
 import { getCardsByMode, CardData } from '@/constants/card-constants';
 import { useAgentStore } from '@/store/useAgentStore';
 import { resolveAgentForCard } from '@/services/cardAgentBindingService';
@@ -84,7 +85,7 @@ export function WorkflowSection({
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-        🔧 {tSidebar('workflow')}
+        <Wrench className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{tSidebar('workflow')}
       </h3>
       <div className="space-y-1">
         {agentCards.map((card) => {
@@ -115,7 +116,7 @@ export function WorkflowSection({
                 </>
               ) : (
                 <>
-                  <span>{card.icon}</span>
+                  <card.icon className="w-4 h-4" aria-hidden="true" />
                   <span>{title}</span>
                 </>
               )}
@@ -125,7 +126,7 @@ export function WorkflowSection({
         {/* Error message display */}
         {errorMessage && !isResolving && (
           <div className="px-2 py-1.5 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md">
-            ⚠️ {errorMessage}
+            <AlertTriangle className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{errorMessage}
           </div>
         )}
       </div>

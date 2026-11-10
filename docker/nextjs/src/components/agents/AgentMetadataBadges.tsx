@@ -1,5 +1,6 @@
 'use client';
 
+import { User, Lock, ShieldCheck, Globe, Users, KeyRound, Ban, Library, Eye, Clock, Link, Plug, Wrench, type LucideIcon } from 'lucide-react';
 import type { ToolProfile, TrustLevel, DataBoundary } from '@/types/multi-agent';
 
 /**
@@ -30,10 +31,10 @@ const TRUST_LEVEL_STYLES: Record<TrustLevel, string> = {
   'admin-only': 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
 };
 
-const TRUST_LEVEL_ICONS: Record<TrustLevel, string> = {
-  'user-safe': '👤',
-  'team-safe': '🔒',
-  'admin-only': '🛡️',
+const TRUST_LEVEL_ICONS: Record<TrustLevel, LucideIcon> = {
+  'user-safe': User,
+  'team-safe': Lock,
+  'admin-only': ShieldCheck,
 };
 
 // ===== Data Boundary badge styles =====
@@ -45,26 +46,26 @@ const DATA_BOUNDARY_STYLES: Record<DataBoundary, string> = {
   'sensitive-admin': 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
 };
 
-const DATA_BOUNDARY_ICONS: Record<DataBoundary, string> = {
-  'public': '🌐',
-  'team-scoped': '👥',
-  'user-scoped': '🔑',
-  'sensitive-admin': '⛔',
+const DATA_BOUNDARY_ICONS: Record<DataBoundary, LucideIcon> = {
+  'public': Globe,
+  'team-scoped': Users,
+  'user-scoped': KeyRound,
+  'sensitive-admin': Ban,
 };
 
 // ===== Tool Profile icons =====
 
-const TOOL_PROFILE_ICONS: Record<string, string> = {
-  'kb-retrieve': '📚',
-  'vision-analyze': '👁️',
-  'access-check': '🔑',
-  'schedule-run': '⏰',
-  'share-agent': '🔗',
+const TOOL_PROFILE_ICONS: Record<string, LucideIcon> = {
+  'kb-retrieve': Library,
+  'vision-analyze': Eye,
+  'access-check': KeyRound,
+  'schedule-run': Clock,
+  'share-agent': Link,
 };
 
-function getToolProfileIcon(profile: string): string {
-  if (profile.startsWith('external-mcp:')) return '🔌';
-  return TOOL_PROFILE_ICONS[profile] ?? '🛠️';
+function getToolProfileIcon(profile: string): LucideIcon {
+  if (profile.startsWith('external-mcp:')) return Plug;
+  return TOOL_PROFILE_ICONS[profile] ?? Wrench;
 }
 
 function getToolProfileLabel(profile: string): string {
@@ -94,41 +95,50 @@ export function AgentMetadataBadges({
     <div className="flex items-center gap-1.5 flex-wrap" role="list" aria-label="Agent metadata">
       {/* Tool Profile badges — purple */}
       {hasToolProfiles &&
-        toolProfiles.map((profile) => (
+        toolProfiles.map((profile) => {
+          const ProfileIcon = getToolProfileIcon(profile);
+          return (
           <span
             key={profile}
             role="listitem"
             aria-label={`Tool profile: ${profile}`}
             className={`inline-flex items-center gap-0.5 rounded ${badgeSize} font-medium bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300`}
           >
-            <span aria-hidden="true">{getToolProfileIcon(profile)}</span>
+            <ProfileIcon className="w-3 h-3" aria-hidden="true" />
             {getToolProfileLabel(profile)}
           </span>
-        ))}
+          );
+        })}
 
       {/* Trust Level badge */}
-      {hasTrustLevel && (
+      {hasTrustLevel && (() => {
+        const TrustIcon = TRUST_LEVEL_ICONS[trustLevel];
+        return (
         <span
           role="listitem"
           aria-label={`Trust level: ${trustLevel}`}
           className={`inline-flex items-center gap-0.5 rounded ${badgeSize} font-medium ${TRUST_LEVEL_STYLES[trustLevel]}`}
         >
-          <span aria-hidden="true">{TRUST_LEVEL_ICONS[trustLevel]}</span>
+          <TrustIcon className="w-3 h-3" aria-hidden="true" />
           {trustLevel}
         </span>
-      )}
+        );
+      })()}
 
       {/* Data Boundary badge */}
-      {hasDataBoundary && (
+      {hasDataBoundary && (() => {
+        const BoundaryIcon = DATA_BOUNDARY_ICONS[dataBoundary];
+        return (
         <span
           role="listitem"
           aria-label={`Data boundary: ${dataBoundary}`}
           className={`inline-flex items-center gap-0.5 rounded ${badgeSize} font-medium ${DATA_BOUNDARY_STYLES[dataBoundary]}`}
         >
-          <span aria-hidden="true">{DATA_BOUNDARY_ICONS[dataBoundary]}</span>
+          <BoundaryIcon className="w-3 h-3" aria-hidden="true" />
           {dataBoundary}
         </span>
-      )}
+        );
+      })()}
     </div>
   );
 }

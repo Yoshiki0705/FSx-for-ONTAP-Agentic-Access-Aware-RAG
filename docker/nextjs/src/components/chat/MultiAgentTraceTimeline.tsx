@@ -1,6 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
+import {
+  BarChart3,
+  Bot,
+  CheckCircle2,
+  Circle,
+  Compass,
+  Eye,
+  FileText,
+  Library,
+  Loader2,
+  Lock,
+  SkipForward,
+  XCircle,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type {
   MultiAgentTraceResult,
   AgentTeamTraceEvent,
@@ -45,12 +60,12 @@ const ROLE_COLORS: Record<
   },
 };
 
-const ROLE_ICON: Record<CollaboratorRole, string> = {
-  'permission-resolver': '🔒',
-  retrieval: '📚',
-  analysis: '📊',
-  output: '📝',
-  vision: '👁️',
+const ROLE_ICON: Record<CollaboratorRole, LucideIcon> = {
+  'permission-resolver': Lock,
+  retrieval: Library,
+  analysis: BarChart3,
+  output: FileText,
+  vision: Eye,
 };
 
 // ===== Helpers =====
@@ -92,27 +107,28 @@ function TimelineBar({ trace, totalMs }: TimelineBarProps) {
   const widthPct =
     totalMs > 0 ? Math.max((trace.executionTimeMs / totalMs) * 100, 1) : 100;
 
-  const statusIcon =
+  const StatusIcon: LucideIcon =
     trace.status === 'COMPLETED'
-      ? '✅'
+      ? CheckCircle2
       : trace.status === 'FAILED'
-        ? '❌'
+        ? XCircle
         : trace.status === 'SKIPPED'
-          ? '⏭️'
+          ? SkipForward
           : trace.status === 'IN_PROGRESS'
-            ? '⏳'
-            : '○';
+            ? Loader2
+            : Circle;
+  const RoleIcon = ROLE_ICON[trace.collaboratorRole] ?? Bot;
 
   return (
     <div className="flex items-center gap-2 py-1 group" role="listitem">
       {/* Agent label */}
       <div className="w-36 flex-shrink-0 flex items-center gap-1.5 text-xs truncate">
-        <span aria-hidden="true">{ROLE_ICON[trace.collaboratorRole] ?? '🤖'}</span>
+        <RoleIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
         <span className={`font-medium ${colors.text} truncate`}>
           {trace.collaboratorName}
         </span>
         <span className="flex-shrink-0" aria-hidden="true">
-          {statusIcon}
+          <StatusIcon className="w-4 h-4" />
         </span>
       </div>
 
@@ -189,7 +205,7 @@ export default function MultiAgentTraceTimeline({
         aria-expanded={!isCollapsed}
       >
         <div className="flex items-center gap-2">
-          <span className="text-base" aria-hidden="true">📊</span>
+          <BarChart3 className="w-5 h-5" aria-hidden="true" />
           <span className="font-semibold text-gray-900 dark:text-gray-100">
             Agent実行トレース
           </span>
@@ -213,7 +229,7 @@ export default function MultiAgentTraceTimeline({
           {/* ── Routing decision section ── */}
           <div className="mt-3 rounded-md bg-gray-50 dark:bg-gray-700/40 p-3 space-y-1">
             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
-              🧭 ルーティング判断
+              <Compass className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> ルーティング判断
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
               <div>
@@ -242,7 +258,7 @@ export default function MultiAgentTraceTimeline({
           {/* ── Waterfall timeline ── */}
           <div>
             <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
-              ⏱️ タイムライン
+              ⏱ タイムライン
             </div>
 
             {/* Time axis */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 
 interface FeedbackButtonsProps {
   responseId: string;
@@ -10,7 +11,7 @@ interface FeedbackButtonsProps {
 }
 
 /**
- * 👍/👎 フィードバックボタン (#11, K-4)
+ * 高評価/低評価フィードバックボタン (#11, K-4)
  * チャット応答の下に表示し、ユーザーの評価を収集する。
  */
 export function FeedbackButtons({
@@ -52,7 +53,9 @@ export function FeedbackButtons({
   if (submitted) {
     return (
       <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
-        <span>{submitted === 'positive' ? '👍' : '👎'}</span>
+        {submitted === 'positive'
+          ? <ThumbsUp className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />
+          : <ThumbsDown className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />}
         <span>フィードバックありがとうございます</span>
       </div>
     );
@@ -67,7 +70,7 @@ export function FeedbackButtons({
         aria-label="良い回答"
         title="良い回答"
       >
-        <span className="text-sm">👍</span>
+        <ThumbsUp className="w-4 h-4" aria-hidden="true" />
       </button>
       <button
         onClick={() => handleFeedback('negative')}
@@ -76,7 +79,7 @@ export function FeedbackButtons({
         aria-label="改善が必要"
         title="改善が必要"
       >
-        <span className="text-sm">👎</span>
+        <ThumbsDown className="w-4 h-4" aria-hidden="true" />
       </button>
     </div>
   );

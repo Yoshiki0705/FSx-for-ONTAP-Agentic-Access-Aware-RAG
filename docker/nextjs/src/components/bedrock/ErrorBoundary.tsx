@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -31,7 +32,7 @@ export class ModelSelectorErrorBoundary extends Component<Props, State> {
       return this.props.fallback || (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="text-red-800 text-sm">
-            <div className="font-medium">⚠️ モデル選択コンポーネントでエラーが発生しました</div>
+            <div className="font-medium"><AlertTriangle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />モデル選択コンポーネントでエラーが発生しました</div>
             <div className="text-xs mt-1">ページを再読み込みしてください</div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import { Trophy, Sparkles, Globe, Bot, CheckCircle2, XCircle, Ban } from 'lucide-react';
 import { 
   RegionConfigManager, 
   SupportedRegion, 
@@ -274,12 +275,12 @@ export function RegionSelector({
           {/* 統計情報表示 */}
           <div className="flex items-center space-x-2 text-xs text-gray-600">
             <span className="flex items-center space-x-1">
-              <span className="text-green-600">✅</span>
+              <span className="text-green-600"><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
               <span>{supportedRegions.length}{t('supportedRegions')}</span>
             </span>
             {showUnsupportedRegions && unsupportedRegions.length > 0 && (
               <span className="flex items-center space-x-1">
-                <span className="text-red-600">❌</span>
+                <span className="text-red-600"><XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                 <span>{unsupportedRegions.length}</span>
               </span>
             )}
@@ -310,7 +311,7 @@ export function RegionSelector({
                 ? 'text-orange-600'
                 : 'text-green-600'
             }`}>
-              {currentRegionInfo?.isPrimary ? '🏆' : currentRegionInfo?.isNew ? '🆕' : '🌍'}
+              {currentRegionInfo?.isPrimary ? <Trophy className="w-5 h-5" aria-hidden="true" /> : currentRegionInfo?.isNew ? <Sparkles className="w-5 h-5" aria-hidden="true" /> : <Globe className="w-5 h-5" aria-hidden="true" />}
             </span>
             <span className={`font-semibold ${
               currentRegionInfo?.isPrimary 
@@ -338,7 +339,7 @@ export function RegionSelector({
           </div>
           {!isLoading && currentRegionInfo?.modelCount !== undefined && (
             <div className="flex items-center space-x-1">
-              <span className="text-gray-600">🤖</span>
+              <span className="text-gray-600"><Bot className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
               <span className={`text-xs font-bold ${
                 currentRegionInfo?.isPrimary 
                   ? 'text-blue-800' 
@@ -358,9 +359,9 @@ export function RegionSelector({
             ? 'text-orange-800'
             : 'text-green-800'
         }`}>
-          {currentRegionInfo?.isPrimary && `🏆 ${t('primaryRegion')}`}
-          {currentRegionInfo?.isNew && `🆕 ${t('newRegion')}`}
-          {!currentRegionInfo?.isPrimary && !currentRegionInfo?.isNew && `✅ ${t('supportedRegion')}`}
+          {currentRegionInfo?.isPrimary && <><Trophy className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('primaryRegion')}</>}
+          {currentRegionInfo?.isNew && <><Sparkles className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('newRegion')}</>}
+          {!currentRegionInfo?.isPrimary && !currentRegionInfo?.isNew && <><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('supportedRegion')}</>}
         </div>
       </div>
 
@@ -371,7 +372,7 @@ export function RegionSelector({
             {/* サポート対象リージョン */}
             <div>
               <div className="text-xs font-medium text-gray-700 mb-2 flex items-center space-x-2">
-                <span>✅ {t('supportedRegions')}</span>
+                <span><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('supportedRegions')}</span>
                 <span className="text-gray-500">({supportedRegions.length}リージョン)</span>
               </div>
               
@@ -405,10 +406,7 @@ export function RegionSelector({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <span className="text-lg">
-                              {region.isCurrentRegion 
-                                ? (region.isPrimary ? '🏆' : region.isNew ? '🆕' : '✅')
-                                : (region.isPrimary ? '🏆' : region.isNew ? '🆕' : '🌍')
-                              }
+                              {region.isPrimary ? <Trophy className="w-5 h-5" aria-hidden="true" /> : region.isNew ? <Sparkles className="w-5 h-5" aria-hidden="true" /> : region.isCurrentRegion ? <CheckCircle2 className="w-5 h-5" aria-hidden="true" /> : <Globe className="w-5 h-5" aria-hidden="true" />}
                             </span>
                             <div className="flex flex-col">
                               <span className="font-semibold">{region.regionName}</span>
@@ -428,7 +426,7 @@ export function RegionSelector({
                           <div className="flex items-center space-x-2">
                             {!isLoading && region.modelCount !== undefined && (
                               <div className="flex items-center space-x-1">
-                                <span className="text-gray-600">🤖</span>
+                                <span className="text-gray-600"><Bot className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                                 <span className="text-gray-700 text-xs font-medium">
                                   {t('modelCount', { count: region.modelCount })}
                                 </span>
@@ -444,9 +442,9 @@ export function RegionSelector({
                               ? 'text-orange-700'
                               : 'text-green-700'
                           }`}>
-                            {region.isPrimary && `🏆 ${t('primaryRegionInUse')}`}
-                            {region.isNew && `🆕 ${t('newRegionInUse')}`}
-                            {!region.isPrimary && !region.isNew && `✅ ${t('currentlyInUse')}`}
+                            {region.isPrimary && <><Trophy className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('primaryRegionInUse')}</>}
+                            {region.isNew && <><Sparkles className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('newRegionInUse')}</>}
+                            {!region.isPrimary && !region.isNew && <><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('currentlyInUse')}</>}
                           </div>
                         )}
                       </button>
@@ -465,7 +463,7 @@ export function RegionSelector({
                           
                           {region.isPrimary && (
                             <div className="mb-1">
-                              <span className="text-blue-300">🏆 {t('primaryRegion')}</span>
+                              <span className="text-blue-300"><Trophy className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('primaryRegion')}</span>
                             </div>
                           )}
                           
@@ -498,7 +496,7 @@ export function RegionSelector({
             {showUnsupportedRegions && unsupportedRegions.length > 0 && (
               <div>
                 <div className="text-xs font-medium text-gray-500 mb-2 flex items-center space-x-2">
-                  <span>❌ {t('unsupportedRegions')}</span>
+                  <span><XCircle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('unsupportedRegions')}</span>
                   <span className="text-gray-400">({unsupportedRegions.length}リージョン)</span>
                 </div>
                 <div className="space-y-1">
@@ -516,7 +514,7 @@ export function RegionSelector({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <span className="text-lg">❌</span>
+                            <span className="text-lg"><XCircle className="w-5 h-5" aria-hidden="true" /></span>
                             <div className="flex flex-col">
                               <span className="font-semibold text-gray-600">{region.regionName}</span>
                               <span className="text-xs text-gray-400 font-mono">({region.region})</span>
@@ -526,14 +524,14 @@ export function RegionSelector({
                             </span>
                           </div>
                           <div className="flex items-center space-x-1">
-                            <span className="text-gray-400">🚫</span>
+                            <span className="text-gray-400"><Ban className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                             <span className="text-gray-400 text-xs font-medium">
                               {t('modelCount', { count: 0 })}
                             </span>
                           </div>
                         </div>
                         <div className="text-gray-400 text-xs mt-2 font-medium">
-                          ❌ {t('currentlyUnsupported')}
+                          <XCircle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('currentlyUnsupported')}
                         </div>
                       </button>
                       
@@ -544,7 +542,7 @@ export function RegionSelector({
                           <div className="text-gray-200 mb-2">{region.description}</div>
                           
                           <div className="mb-2">
-                            <span className="text-red-300">❌ {t('currentlyUnsupported')}</span>
+                            <span className="text-red-300"><XCircle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('currentlyUnsupported')}</span>
                           </div>
                           
                           <div className="text-yellow-300 mb-2">

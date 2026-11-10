@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback } from 'react';
+import { Save } from 'lucide-react';
 import { useSafeTranslations } from '../../hooks/useSafeTranslations';
 import { AutoSaveIndicator } from './AutoSaveIndicator';
 import { SaveStatus } from '@/hooks/useChatHistory';
@@ -31,7 +32,7 @@ export function ChatHistorySettingsSection({
   return (
     <div className={`border-t border-gray-200 pt-4 mt-4 mb-6 ${className}`}>
       <h3 className="flex items-center gap-2 mb-4 text-base font-semibold text-gray-800">
-        💾 {t('chat.chatHistory', 'Chat History')}
+        <Save className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {t('chat.chatHistory', 'Chat History')}
       </h3>
       
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">

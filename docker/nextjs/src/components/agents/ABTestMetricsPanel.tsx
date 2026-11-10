@@ -10,6 +10,7 @@
  */
 
 import React from 'react';
+import { BarChart3, Lightbulb } from 'lucide-react';
 import type { ABTestMetrics } from '@/types/multi-agent';
 
 export interface ABTestMetricsPanelProps {
@@ -112,7 +113,7 @@ export default function ABTestMetricsPanel({
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
         <div className="flex items-center gap-2">
-          <span aria-hidden="true">📊</span>
+          <BarChart3 className="w-4 h-4" aria-hidden="true" />
           <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
             A/Bテスト メトリクス比較
           </h3>
@@ -208,7 +209,7 @@ export default function ABTestMetricsPanel({
       {/* Summary */}
       <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50">
         <div className="text-[11px] text-gray-500 dark:text-gray-400">
-          💡 緑色は改善、赤色は悪化を示します。差分はControl基準の変化率です。
+          <Lightbulb className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />緑色は改善、赤色は悪化を示します。差分はControl基準の変化率です。
         </div>
       </div>
     </div>

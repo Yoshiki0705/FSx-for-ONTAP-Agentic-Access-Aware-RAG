@@ -339,7 +339,7 @@ const PII_PATTERNS: Array<{ pattern: RegExp; type: string }> = [
  * ヒューリスティックベースのチャンク安全性評価。
  * GUARDRAIL_ID 未設定時のフォールバック。
  *
- * ⚠️ これは best-effort であり、セキュリティ保証ではない。
+ * 注意: これは best-effort であり、セキュリティ保証ではない。
  *   本格的なコンテンツ安全性には GUARDRAIL_ID を設定し ApplyGuardrail を使うこと。
  */
 export function evaluateChunkHeuristic(chunk: AllowedDocument): ChunkEvaluation {

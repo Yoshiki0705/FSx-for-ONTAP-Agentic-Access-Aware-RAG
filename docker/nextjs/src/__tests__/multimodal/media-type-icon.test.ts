@@ -1,8 +1,8 @@
 /**
  * Property 3: Media Type Icon Mapping
  *
- * For *any* search result, `mediaType` of `text` → 📄, `image` → 🖼️,
- * `video` → 🎥, `audio` → 🔊, and unknown values → default 📄.
+ * For *any* search result, `mediaType` of `text` → FileText, `image` → Image,
+ * `video` → Video, `audio` → Volume2, and unknown values → default FileText.
  * The mapping is bijective for known types and deterministic for all inputs.
  *
  * **Validates: Requirements 4.1**
@@ -10,6 +10,8 @@
 
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { FileText, Image, Video, Volume2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   getMediaTypeIcon,
   MEDIA_TYPE_ICONS,
@@ -19,11 +21,11 @@ import {
 // Expected mapping
 // ---------------------------------------------------------------------------
 
-const EXPECTED: Record<string, string> = {
-  text: '📄',
-  image: '🖼️',
-  video: '🎥',
-  audio: '🔊',
+const EXPECTED: Record<string, LucideIcon> = {
+  text: FileText,
+  image: Image,
+  video: Video,
+  audio: Volume2,
 };
 
 const VALID_TYPES = Object.keys(EXPECTED);
@@ -42,7 +44,7 @@ describe('Property 3: Media Type Icon Mapping', () => {
     );
   });
 
-  it('unknown mediaType strings always return the default icon (📄)', () => {
+  it('unknown mediaType strings always return the default icon (FileText)', () => {
     fc.assert(
       fc.property(
         fc.string({ minLength: 0, maxLength: 50 }).filter(
@@ -56,7 +58,7 @@ describe('Property 3: Media Type Icon Mapping', () => {
     );
   });
 
-  it('undefined / empty input returns the default icon (📄)', () => {
+  it('undefined / empty input returns the default icon (FileText)', () => {
     expect(getMediaTypeIcon(undefined)).toBe(EXPECTED.text);
     expect(getMediaTypeIcon('')).toBe(EXPECTED.text);
   });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Check, Folder, X } from 'lucide-react';
 
 export interface InfoBannerProps {
   username: string;
@@ -47,7 +48,7 @@ export function InfoBanner({
             </span>
           ) : (
             <span className="text-gray-600 dark:text-gray-400 truncate">
-              📁 {t('infoBanner.directoriesCount', { count: directoryCount })}
+              <Folder className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {t('infoBanner.directoriesCount', { count: directoryCount })}
             </span>
           )}
         </div>
@@ -175,9 +176,9 @@ function PermissionBadge({
     <span className="inline-flex items-center gap-1">
       {label}:{' '}
       {allowed ? (
-        <span className="text-green-600 dark:text-green-400">✅ {availableText}</span>
+        <span className="text-green-600 dark:text-green-400"><Check className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {availableText}</span>
       ) : (
-        <span className="text-red-600 dark:text-red-400">❌ {unavailableText}</span>
+        <span className="text-red-600 dark:text-red-400"><X className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {unavailableText}</span>
       )}
     </span>
   );
