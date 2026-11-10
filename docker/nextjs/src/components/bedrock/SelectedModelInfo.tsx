@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations, useLocale } from 'next-intl';
+import { CheckCircle2, XCircle, AlertTriangle, Lightbulb } from 'lucide-react';
 import { ProcessedModel } from './modelUtils';
 
 interface SelectedModelInfoProps {
@@ -39,7 +40,7 @@ export function SelectedModelInfo({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
           <span className={`text-lg font-medium ${model.available ? 'text-blue-700' : 'text-red-600'}`}>
-            {model.available ? '✅' : '❌'}
+            {model.available ? <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />}
           </span>
           <span className="text-sm font-medium text-gray-600">{t('currentlySelected')}</span>
         </div>
@@ -95,7 +96,7 @@ export function SelectedModelInfo({
         <div className="mt-3 space-y-2">
           <div className="p-2 bg-red-100 rounded border border-red-200">
             <div className="text-red-900 text-xs">
-              <span className="font-semibold">⚠️ {t('unavailableReason')}:</span>
+              <span className="font-semibold"><AlertTriangle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('unavailableReason')}:</span>
               <div className="mt-1 font-medium">{model.reason || t('unknownError')}</div>
             </div>
           </div>
@@ -104,7 +105,7 @@ export function SelectedModelInfo({
           {showRecommendations && availableModels.length > 0 && onModelChange && (
             <div className="p-2 bg-blue-50 rounded border border-blue-200">
               <div className="text-blue-900 text-xs">
-                <span className="font-semibold">💡 {t('recommendedAction')}:</span>
+                <span className="font-semibold"><Lightbulb className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('recommendedAction')}:</span>
                 <div className="mt-1 font-medium">
                   {t('selectFromAvailable')}
                   <div className="mt-1 space-y-1">
@@ -114,7 +115,7 @@ export function SelectedModelInfo({
                         onClick={() => onModelChange(availableModel.id)}
                         className="block w-full text-left px-2 py-1 bg-white rounded border border-blue-200 hover:bg-blue-50 text-blue-800 font-medium hover:text-blue-900 transition-colors"
                       >
-                        ✅ {availableModel.name} ({availableModel.provider})
+                        <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{availableModel.name} ({availableModel.provider})
                       </button>
                     ))}
                   </div>

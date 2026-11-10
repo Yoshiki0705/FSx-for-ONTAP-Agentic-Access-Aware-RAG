@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Globe, Bot, Check, CheckCircle2, XCircle, AlertTriangle, BarChart3 } from 'lucide-react';
 import { 
   AWS_REGIONS, 
   REGION_GROUP_NAMES, 
@@ -58,12 +59,12 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
     const regionInfo = getRegionInfo(newRegion);
     
     if (!regionInfo) {
-      alert('❌ 無効なリージョンです');
+      alert('無効なリージョンです');
       return;
     }
     
     if (!regionInfo.bedrockAvailable) {
-      alert(`❌ ${regionInfo.flag} ${regionInfo.displayName}\n\nこのリージョンではAmazon Bedrockが利用できません。\n別のリージョンを選択してください。`);
+      alert(`${regionInfo.flag} ${regionInfo.displayName}\n\nこのリージョンではAmazon Bedrockが利用できません。\n別のリージョンを選択してください。`);
       return;
     }
     
@@ -95,17 +96,17 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
             onRegionChange(newRegion);
           }
           
-          alert(`✅ リージョンを ${regionInfo.flag} ${regionInfo.displayName} に変更しました。\n\nページをリロードします。`);
+          alert(`リージョンを ${regionInfo.flag} ${regionInfo.displayName} に変更しました。\n\nページをリロードします。`);
           window.location.reload();
         } else {
-          alert(`❌ リージョン変更に失敗しました\n\n${data.error || '不明なエラー'}`);
+          alert(`リージョン変更に失敗しました\n\n${data.error || '不明なエラー'}`);
         }
       } else {
-        alert(`❌ リージョン変更APIの呼び出しに失敗しました\n\nHTTP ${response.status}`);
+        alert(`リージョン変更APIの呼び出しに失敗しました\n\nHTTP ${response.status}`);
       }
     } catch (error) {
       console.error('リージョン変更エラー:', error);
-      alert(`❌ リージョン変更中にエラーが発生しました\n\n${error instanceof Error ? error.message : '不明なエラー'}`);
+      alert(`リージョン変更中にエラーが発生しました\n\n${error instanceof Error ? error.message : '不明なエラー'}`);
     } finally {
       setIsChanging(false);
     }
@@ -130,7 +131,7 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
       <div className="p-3 rounded-lg border-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="text-2xl">{currentRegionInfo?.flag || '🌍'}</span>
+            <span className="text-2xl">{currentRegionInfo?.flag || <Globe className="w-6 h-6" aria-hidden="true" />}</span>
             <div className="flex flex-col">
               <span className="font-semibold text-blue-900 text-sm">
                 {currentRegionInfo?.displayName || currentRegion}
@@ -141,7 +142,9 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
             </div>
           </div>
           <div className="text-xs text-blue-800 font-medium">
-            {currentRegionInfo?.bedrockAvailable ? '✅ 利用可能' : '❌ 利用不可'}
+            {currentRegionInfo?.bedrockAvailable
+              ? <><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />利用可能</>
+              : <><XCircle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />利用不可</>}
           </div>
         </div>
       </div>
@@ -189,16 +192,16 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
                           <div className="flex items-center space-x-2">
                             {region.bedrockAvailable && (
                               <span className="text-xs text-gray-600 font-medium">
-                                🤖 {getAvailableModelsCount(region.id)}個
+                                <Bot className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{getAvailableModelsCount(region.id)}個
                               </span>
                             )}
                             {region.id === currentRegion && (
-                              <span className="text-blue-600 font-bold">✓</span>
+                              <span className="text-blue-600 font-bold"><Check className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                             )}
                             {region.bedrockAvailable ? (
-                              <span className="text-green-600 text-xs">✅</span>
+                              <span className="text-green-600 text-xs"><CheckCircle2 className="w-3 h-3" aria-hidden="true" /></span>
                             ) : (
-                              <span className="text-red-600 text-xs">❌</span>
+                              <span className="text-red-600 text-xs"><XCircle className="w-3 h-3" aria-hidden="true" /></span>
                             )}
                           </div>
                         </div>
@@ -213,7 +216,7 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
           {/* 注意事項 */}
           <div className="mt-4 p-2 bg-yellow-50 rounded border border-yellow-200">
             <div className="text-yellow-800 text-xs space-y-1">
-              <div className="font-medium">⚠️ 注意事項:</div>
+              <div className="font-medium"><AlertTriangle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />注意事項:</div>
               <div>• リージョン変更後、ページがリロードされます</div>
               <div>• 利用可能なモデルはリージョンによって異なります</div>
               <div>• 一部のモデルは自動的に最適なリージョンにルーティングされます</div>
@@ -223,7 +226,7 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
           {/* 統計情報 */}
           <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
             <div className="text-blue-800 text-xs space-y-1">
-              <div className="font-medium">📊 リージョン統計:</div>
+              <div className="font-medium"><BarChart3 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />リージョン統計:</div>
               <div>• 全リージョン: {AWS_REGIONS.length}個</div>
               <div>• Bedrock利用可能: {AWS_REGIONS.filter(r => r.bedrockAvailable).length}個</div>
               <div>• 現在: {currentRegionInfo?.flag} {currentRegionInfo?.displayName}</div>

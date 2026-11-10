@@ -5,7 +5,7 @@ import { useSidebarStore } from '@/store/useSidebarStore';
 
 export interface CollapsiblePanelProps {
   title: string;
-  icon?: string;
+  icon?: React.ReactNode;
   defaultExpanded?: boolean;
   storageKey: string;
   children: React.ReactNode;
@@ -36,7 +36,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
           transition-colors duration-150 cursor-pointer select-none"
       >
         <span className="flex items-center gap-1.5">
-          {icon && <span>{icon}</span>}
+          {icon && <span aria-hidden="true">{icon}</span>}
           <span>{title}</span>
         </span>
         <svg

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LogIn, User, Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import { LogIn, User, Lock, Eye, EyeOff, Shield, Diamond } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCSRFToken } from '@/hooks/useCSRFToken';
@@ -246,7 +246,7 @@ export default function SignInPage({ params }: SignInPageProps) {
               <LogIn className="h-6 w-6 text-white" />
             </div>
             <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
-              🔷 {t('title')}
+              <Diamond className="w-5 h-5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('title')}
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
               {t('subtitle')}
