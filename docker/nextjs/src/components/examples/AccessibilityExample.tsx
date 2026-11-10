@@ -4,9 +4,9 @@ import { useCustomTranslations } from '@/hooks/useCustomTranslations';
 import { useLocale } from 'next-intl';
 
 /**
- * アクセシビリティt("permissions.available")コンポーネントの使用例
+ * アクセシビリティ対応コンポーネントの使用例
  * 
- * このファイルは、実装したアクセシビリティt("permissions.available")コンポーネントの
+ * このファイルは、実装したアクセシビリティ対応コンポーネントの
  * 使用方法を示すサンプルです。
  */
 import { Button } from '../ui/Button';
@@ -180,7 +180,7 @@ export function AccessibilityExamples() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <h1 className="text-3xl font-bold text-center my-8">
-        アクセシビリティt("permissions.available")コンポーネント使用例
+        アクセシビリティ対応コンポーネント使用例
       </h1>
       
       <div className="space-y-8">
@@ -194,10 +194,10 @@ export function AccessibilityExamples() {
         <h3 className="font-bold mb-2">アクセシビリティのポイント</h3>
         <ul className="space-y-2 text-sm">
           <li>✅ WCAG 2.1 AAレベルのコントラスト比を確保</li>
-          <li>✅ キーボードナビゲーションt("permissions.available")（Tabキーで移動）</li>
+          <li>✅ キーボードナビゲーション対応（Tabキーで移動）</li>
           <li>✅ フォーカス表示の明確化（ring-2）</li>
-          <li>✅ カラーブラインドネスt("permissions.available")（色+アイコン）</li>
-          <li>✅ スクリーンリーダーt("permissions.available")（適切なARIA属性）</li>
+          <li>✅ カラーブラインドネス対応（色+アイコン）</li>
+          <li>✅ スクリーンリーダー対応（適切なARIA属性）</li>
         </ul>
       </div>
     </div>
