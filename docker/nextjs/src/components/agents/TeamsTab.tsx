@@ -214,7 +214,7 @@ export function TeamsTab({
             return (
               <div
                 key={team.teamId}
-                className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all"
+                className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-[box-shadow,border-color]"
               >
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
                   {team.teamName}

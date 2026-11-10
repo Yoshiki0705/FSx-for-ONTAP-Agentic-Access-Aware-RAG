@@ -101,7 +101,7 @@ export function CitationDisplay({ citations }: CitationDisplayProps) {
             </span>
           </div>
           {/* Responsible AI disclaimer: web results are unverified external data */}
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5 italic">
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5">
             {t('webDisclaimer')}
           </p>
           <div className="space-y-1">

@@ -54,7 +54,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       <div
         id={contentId}
         role="region"
-        className={`overflow-hidden transition-all duration-200 ease-in-out
+        className={`overflow-hidden transition-[max-height,opacity] duration-200 ease-in-out
           ${expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}
       >
         <div className="px-3 pb-3 pt-1">

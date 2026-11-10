@@ -66,7 +66,7 @@ export function ModeSwitcher({
     <div className={`relative ${className}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center space-x-2 px-4 py-2 text-sm font-bold text-white rounded-lg transition-all shadow-md hover:shadow-lg ${
+        className={`flex items-center space-x-2 px-4 py-2 text-sm font-bold text-white rounded-lg transition-[background-color,box-shadow] shadow-md hover:shadow-lg ${
           agentMode ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'
         }`}
         title={`${tCommon('mode.switch')}: ${currentMode.description}`}

@@ -59,7 +59,7 @@ interface KBModeSidebarProps {
  * KBモード固有の要素を表示：
  * - ユーザー情報
  * - FSxディレクトリ情報（アクセス権限）
- * - Bedrockt("region.region")選択
+ * - Bedrockリージョン選択
  * - チャット履歴設定
  * - AIモデル選択（通常のModelSelector）
  * - 権限制御状態
@@ -171,7 +171,7 @@ export function KBModeSidebar({
                           onSessionDelete(session.id);
                         }
                       }}
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded" // check-ui-ignore: 触って開く操作ではなく、タッチと focus では常時表示
                       title="削除"
                     >
                       <svg className="w-3 h-3 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

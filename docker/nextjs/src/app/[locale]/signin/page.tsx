@@ -38,15 +38,15 @@ function AuthOptionsSection({ locale }: { locale: string }) {
     return (
       <div className="mt-6 space-y-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 space-y-3">
-          <div className="w-full h-10 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
-          <div className="w-full h-10 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
+          <div /* check-ui-ignore: 読み込み中のスケルトン */ className="w-full h-10 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
+          <div /* check-ui-ignore: 読み込み中のスケルトン */ className="w-full h-10 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
         </div>
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-300 dark:border-gray-600" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 text-gray-500 dark:text-gray-400">
+            <span className="px-2 bg-blue-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
               {t('orDivider')}
             </span>
           </div>
@@ -134,7 +134,7 @@ function AuthOptionsSection({ locale }: { locale: string }) {
           <div className="w-full border-t border-gray-300 dark:border-gray-600" />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 text-gray-500 dark:text-gray-400">
+          <span className="px-2 bg-blue-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
             {t('orDivider')}
           </span>
         </div>
@@ -232,7 +232,7 @@ export default function SignInPage({ params }: SignInPageProps) {
       />
 
       {/* 右側: サインインフォーム */}
-      <div className="w-full lg:w-1/2 relative flex items-center justify-center p-6 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="w-full lg:w-1/2 relative flex items-center justify-center p-6 bg-blue-50 dark:bg-gray-900">
         {/* 言語・テーマ切り替えバー */}
         <div className="absolute top-4 right-4 flex items-center space-x-2 z-10">
           <ThemeToggle />

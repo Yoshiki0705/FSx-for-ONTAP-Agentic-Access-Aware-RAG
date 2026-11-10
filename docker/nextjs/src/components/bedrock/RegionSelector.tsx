@@ -392,10 +392,10 @@ export function RegionSelector({
                       <button
                         onClick={() => handleRegionChange(region.region)}
                         disabled={region.isCurrentRegion}
-                        className={`w-full text-left p-3 rounded-lg text-xs transition-all duration-200 transform hover:scale-[1.02] ${
+                        className={`w-full text-left p-3 rounded-lg text-xs transition-colors duration-200 ${
                           region.isCurrentRegion
                             ? region.isPrimary
-                              ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-900 border-2 border-blue-400 cursor-default shadow-md'
+                              ? 'bg-blue-100 text-blue-900 border-2 border-blue-400 cursor-default shadow-md'
                               : region.isNew
                               ? 'bg-gradient-to-r from-orange-100 to-yellow-100 text-orange-900 border-2 border-orange-400 cursor-default shadow-md'
                               : 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-900 border-2 border-green-400 cursor-default shadow-md'
@@ -420,7 +420,7 @@ export function RegionSelector({
                               </span>
                             )}
                             {region.isPrimary && !region.isCurrentRegion && (
-                              <span className="px-2 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 rounded-full text-xs font-bold border border-blue-200">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold border border-blue-200">
                                 {t('recommended')}
                               </span>
                             )}

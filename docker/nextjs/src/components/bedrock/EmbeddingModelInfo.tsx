@@ -31,7 +31,7 @@ export function EmbeddingModelInfo() {
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="animate-pulse">
+        <div /* check-ui-ignore: 読み込み中のスケルトン */ className="animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
           <div className="h-3 bg-gray-200 rounded w-1/2"></div>
         </div>

@@ -119,7 +119,7 @@ function TimelineBar({ trace, totalMs }: TimelineBarProps) {
       {/* Bar area */}
       <div className="flex-1 relative h-6 bg-gray-100 dark:bg-gray-700/40 rounded overflow-hidden">
         <div
-          className={`absolute top-0 h-full rounded ${colors.bar} opacity-80 group-hover:opacity-100 transition-opacity`}
+          className={`absolute top-0 h-full rounded ${colors.bar} opacity-80 group-hover:opacity-100 transition-opacity`} // check-ui-ignore: ホバーは強調のみで、メニューではない
           style={{
             left: `${leftPct}%`,
             width: `${widthPct}%`,

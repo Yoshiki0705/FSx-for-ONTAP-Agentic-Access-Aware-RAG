@@ -134,7 +134,7 @@ export default function MultiAgentExecutionStatus({
               key={id}
               className={`
                 flex items-center gap-2 py-0.5 text-gray-700 dark:text-gray-300
-                ${isRunning ? 'animate-pulse' : ''}
+                ${isRunning ? 'animate-pulse' : '' /* check-ui-ignore: 実行中の Collaborator のみ */}
               `}
             >
               {/* Tree connector */}

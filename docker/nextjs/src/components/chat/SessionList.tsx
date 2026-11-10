@@ -149,7 +149,7 @@ export function SessionList() {
                       })}</span>
                       <span>•</span>
                       <span style={{
-                        padding: '2px 6px',
+                        padding: '2px 8px',
                         borderRadius: '4px',
                         backgroundColor: session.mode === 'agent' ? '#e8f5e9' : '#fff3e0',
                         color: session.mode === 'agent' ? '#2e7d32' : '#e65100',

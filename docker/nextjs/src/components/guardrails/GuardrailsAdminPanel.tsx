@@ -79,7 +79,7 @@ export function GuardrailsAdminPanel({ enableGuardrails, isAdmin }: GuardrailsAd
       </div>
 
       {loading && (
-        <div className="text-xs text-gray-500 animate-pulse">Loading...</div>
+        <div /* check-ui-ignore: 読み込み中の表示 */ className="text-xs text-gray-500 animate-pulse">Loading...</div>
       )}
 
       {error && (

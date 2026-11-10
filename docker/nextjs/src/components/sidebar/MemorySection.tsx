@@ -295,7 +295,7 @@ export function MemorySection({ locale: _locale }: MemorySectionProps) {
                   <button
                     onClick={() => handleDelete(memory.id)}
                     disabled={deletingId === memory.id}
-                    className="flex-shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 disabled:opacity-50"
+                    className="flex-shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 disabled:opacity-50" // check-ui-ignore: 触って開く操作ではなく、タッチと focus では常時表示
                     aria-label={t('common.delete')}
                     title={t('common.delete')}
                   >

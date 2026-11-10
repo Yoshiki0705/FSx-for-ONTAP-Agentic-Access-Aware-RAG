@@ -339,7 +339,7 @@ export default function CollaboratorDetailPanel({
           {/* Token counts & execution time */}
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-md bg-white/60 dark:bg-gray-800/40 p-2 text-center">
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">
                 入力トークン
               </div>
               <div className="text-sm font-semibold tabular-nums text-gray-800 dark:text-gray-200">
@@ -347,7 +347,7 @@ export default function CollaboratorDetailPanel({
               </div>
             </div>
             <div className="rounded-md bg-white/60 dark:bg-gray-800/40 p-2 text-center">
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">
                 出力トークン
               </div>
               <div className="text-sm font-semibold tabular-nums text-gray-800 dark:text-gray-200">
@@ -355,7 +355,7 @@ export default function CollaboratorDetailPanel({
               </div>
             </div>
             <div className="rounded-md bg-white/60 dark:bg-gray-800/40 p-2 text-center">
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">
                 実行時間
               </div>
               <div className="text-sm font-semibold tabular-nums text-gray-800 dark:text-gray-200">

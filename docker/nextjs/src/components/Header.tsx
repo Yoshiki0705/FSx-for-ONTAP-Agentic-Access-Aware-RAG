@@ -82,7 +82,7 @@ export function Header({
 
   return (
     <header 
-      className="bg-blue-600 dark:bg-gray-800 shadow-lg transition-all duration-300"
+      className="bg-blue-600 dark:bg-gray-800 shadow-lg transition-[margin-left] duration-300"
       style={{
         marginLeft: showSidebarToggle ? 0 : `${headerMarginLeft}px`
       }}

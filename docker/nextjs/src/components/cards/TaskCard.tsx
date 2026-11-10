@@ -29,7 +29,7 @@ export function TaskCard({ card, isFavorite, isHighlighted, onFavoriteToggle, on
     <div
       role="button"
       tabIndex={0}
-      className={`relative flex flex-col gap-2 p-4 rounded-xl border shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer ${
+      className={`relative flex flex-col gap-2 p-4 rounded-xl border shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-[box-shadow,border-color] cursor-pointer ${
         isHighlighted
           ? 'border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20'
           : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
@@ -49,7 +49,7 @@ export function TaskCard({ card, isFavorite, isHighlighted, onFavoriteToggle, on
         <button
           type="button"
           aria-label={favoriteAriaLabel}
-          className="text-lg hover:scale-110 transition-transform"
+          className="text-lg hover:opacity-70 transition-opacity"
           onClick={(e) => {
             e.stopPropagation();
             onFavoriteToggle(card.id);

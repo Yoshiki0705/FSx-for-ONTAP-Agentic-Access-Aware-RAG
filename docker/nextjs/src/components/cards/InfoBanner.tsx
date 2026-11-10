@@ -56,7 +56,7 @@ export function InfoBanner({
 
       {/* Expanded details */}
       <div
-        className={`overflow-hidden transition-all duration-200 ease-in-out ${
+        className={`overflow-hidden transition-[max-height,opacity] duration-200 ease-in-out ${
           isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
@@ -186,9 +186,9 @@ function PermissionBadge({
 function LoadingDots() {
   return (
     <span className="inline-flex gap-0.5" aria-label="Loading">
-      <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse" />
-      <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse [animation-delay:150ms]" />
-      <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse [animation-delay:300ms]" />
+      <span /* check-ui-ignore: 読み込み中の点 */ className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse" />
+      <span /* check-ui-ignore: 読み込み中の点 */ className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse [animation-delay:150ms]" />
+      <span /* check-ui-ignore: 読み込み中の点 */ className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse [animation-delay:300ms]" />
     </span>
   );
 }

@@ -48,7 +48,7 @@ export function Toast({ message, type = 'info', duration = 3000, onClose }: Toas
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 max-w-md p-4 border rounded-lg shadow-lg transition-all duration-300 ${
+      className={`fixed top-4 right-4 z-50 max-w-md p-4 border rounded-lg shadow-lg transition-[opacity,transform] duration-300 ${
         typeStyles[type]
       } ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
     >
