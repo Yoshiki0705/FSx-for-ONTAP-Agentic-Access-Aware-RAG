@@ -141,7 +141,7 @@ function CostBar({ item, maxPercentage }: CostBarProps) {
       {/* Bar */}
       <div className="flex-1 relative h-5 bg-gray-100 dark:bg-gray-700/40 rounded overflow-hidden">
         <div
-          className={`absolute top-0 left-0 h-full rounded ${barColor} opacity-80 transition-all`}
+          className={`absolute top-0 left-0 h-full rounded ${barColor} opacity-80 transition-[width]`}
           style={{ width: `${barWidthPct}%` }}
         />
         {/* Cost label */}

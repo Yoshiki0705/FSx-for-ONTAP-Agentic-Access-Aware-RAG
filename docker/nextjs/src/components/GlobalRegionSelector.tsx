@@ -26,14 +26,14 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
   const [isExpanded, setIsExpanded] = useState(false);
   const [isChanging, setIsChanging] = useState(false);
   
-  // t("region.region")ごとの利用可能モデル数を計算
+  // リージョンごとの利用可能モデル数を計算
   const getAvailableModelsCount = (regionId: string): number => {
     return AVAILABLE_MODELS.filter(model => 
       isModelAvailableInRegion(model.id, regionId)
     ).length;
   };
   
-  // Cookieから現在のt("region.region")を取得
+  // Cookieから現在のリージョンを取得
   useEffect(() => {
     const getCookie = (name: string) => {
       const value = `; ${document.cookie}`;
@@ -52,16 +52,16 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
     const regionInfo = getRegionInfo(newRegion);
     
     if (!regionInfo) {
-      alert('❌ 無効なt("region.region")です');
+      alert('❌ 無効なリージョンです');
       return;
     }
     
     if (!regionInfo.bedrockAvailable) {
-      alert(`❌ ${regionInfo.flag} ${regionInfo.displayName}\n\nこのt("region.region")ではAmazon Bedrockが利用できません。\n別のt("region.region")を選択してください。`);
+      alert(`❌ ${regionInfo.flag} ${regionInfo.displayName}\n\nこのリージョンではAmazon Bedrockが利用できません。\n別のリージョンを選択してください。`);
       return;
     }
     
-    const message = `${regionInfo.flag} ${regionInfo.displayName} (${regionInfo.name})\n\nこのt("region.region")に切り替えますか？\n\n切り替え後、ページがリロードされます。`;
+    const message = `${regionInfo.flag} ${regionInfo.displayName} (${regionInfo.name})\n\nこのリージョンに切り替えますか？\n\n切り替え後、ページがリロードされます。`;
     
     if (!confirm(message)) {
       return;
@@ -70,7 +70,7 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
     setIsChanging(true);
     
     try {
-      // t("region.region")変更APIを呼び出し
+      // リージョン変更APIを呼び出し
       const response = await fetch('/api/bedrock/change-region', {
         method: 'POST',
         headers: {
@@ -89,17 +89,17 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
             onRegionChange(newRegion);
           }
           
-          alert(`✅ t("region.region")を ${regionInfo.flag} ${regionInfo.displayName} に変更しました！\n\nページをリロードします。`);
+          alert(`✅ リージョンを ${regionInfo.flag} ${regionInfo.displayName} に変更しました。\n\nページをリロードします。`);
           window.location.reload();
         } else {
-          alert(`❌ t("region.region")変更に失敗しました\n\n${data.error || '不明なエラー'}`);
+          alert(`❌ リージョン変更に失敗しました\n\n${data.error || '不明なエラー'}`);
         }
       } else {
-        alert(`❌ t("region.region")変更APIの呼び出しに失敗しました\n\nHTTP ${response.status}`);
+        alert(`❌ リージョン変更APIの呼び出しに失敗しました\n\nHTTP ${response.status}`);
       }
     } catch (error) {
-      console.error('t("region.region")変更エラー:', error);
-      alert(`❌ t("region.region")変更中にエラーが発生しました\n\n${error instanceof Error ? error.message : '不明なエラー'}`);
+      console.error('リージョン変更エラー:', error);
+      alert(`❌ リージョン変更中にエラーが発生しました\n\n${error instanceof Error ? error.message : '不明なエラー'}`);
     } finally {
       setIsChanging(false);
     }
@@ -111,7 +111,7 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-gray-700">グローバルt("region.region")</label>
+        <label className="text-xs font-medium text-gray-700">グローバルリージョン</label>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="text-xs text-blue-600 hover:text-blue-800 font-medium"
@@ -120,7 +120,7 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
         </button>
       </div>
       
-      {/* 現在のt("region.region")表示 */}
+      {/* 現在のリージョン表示 */}
       <div className="p-3 rounded-lg border-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -140,7 +140,7 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
         </div>
       </div>
       
-      {/* t("region.region")選択 */}
+      {/* リージョン選択 */}
       {isExpanded && (
         <div className="mt-2 p-3 bg-gray-50 rounded-md border border-gray-200 max-h-96 overflow-y-auto">
           <div className="space-y-4">
@@ -158,9 +158,9 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
                         key={region.id}
                         onClick={() => handleRegionChange(region.id)}
                         disabled={!region.bedrockAvailable || region.id === currentRegion || isChanging}
-                        className={`w-full text-left p-2.5 rounded-lg text-xs transition-all ${
+                        className={`w-full text-left p-2.5 rounded-lg text-xs transition-colors ${
                           region.id === currentRegion
-                            ? 'bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-400 cursor-default shadow-md'
+                            ? 'bg-blue-100 border-2 border-blue-400 cursor-default shadow-md'
                             : region.bedrockAvailable
                             ? 'bg-white border border-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:border-blue-400 cursor-pointer shadow-sm hover:shadow-md'
                             : 'bg-gray-100 border border-gray-200 cursor-not-allowed opacity-50'
@@ -208,17 +208,17 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
           <div className="mt-4 p-2 bg-yellow-50 rounded border border-yellow-200">
             <div className="text-yellow-800 text-xs space-y-1">
               <div className="font-medium">⚠️ 注意事項:</div>
-              <div>• t("region.region")変更後、ページがリロードされます</div>
-              <div>• 利用可能なモデルはt("region.region")によって異なります</div>
-              <div>• 一部のモデルは自動的に最適なt("region.region")にルーティングされます</div>
+              <div>• リージョン変更後、ページがリロードされます</div>
+              <div>• 利用可能なモデルはリージョンによって異なります</div>
+              <div>• 一部のモデルは自動的に最適なリージョンにルーティングされます</div>
             </div>
           </div>
           
           {/* 統計情報 */}
           <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
             <div className="text-blue-800 text-xs space-y-1">
-              <div className="font-medium">📊 t("region.region")統計:</div>
-              <div>• 全t("region.region"): {AWS_REGIONS.length}個</div>
+              <div className="font-medium">📊 リージョン統計:</div>
+              <div>• 全リージョン: {AWS_REGIONS.length}個</div>
               <div>• Bedrock利用可能: {AWS_REGIONS.filter(r => r.bedrockAvailable).length}個</div>
               <div>• 現在: {currentRegionInfo?.flag} {currentRegionInfo?.displayName}</div>
             </div>
@@ -229,7 +229,7 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
       {isChanging && (
         <div className="flex items-center justify-center space-x-2 text-xs text-gray-600 p-2">
           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-          <span>t("region.region")を変更中...</span>
+          <span>リージョンを変更中...</span>
         </div>
       )}
     </div>

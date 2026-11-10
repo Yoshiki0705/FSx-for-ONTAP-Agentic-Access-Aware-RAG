@@ -431,10 +431,10 @@ export function AgentRegionSelector({
                       <button
                         onClick={() => handleRegionChange(region.region)}
                         disabled={region.isCurrentRegion}
-                        className={`w-full text-left p-3 rounded-lg text-xs transition-all duration-200 transform hover:scale-[1.02] ${
+                        className={`w-full text-left p-3 rounded-lg text-xs transition-colors duration-200 ${
                           region.isCurrentRegion
                             ? region.isPrimary
-                              ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-900 border-2 border-blue-400 cursor-default shadow-md'
+                              ? 'bg-blue-100 text-blue-900 border-2 border-blue-400 cursor-default shadow-md'
                               : 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-900 border-2 border-green-400 cursor-default shadow-md'
                             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-400 cursor-pointer shadow-sm hover:shadow-md'
                         }`}
@@ -455,7 +455,7 @@ export function AgentRegionSelector({
                               {t('model.available')} (Agent)
                             </span>
                             {region.isPrimary && !region.isCurrentRegion && (
-                              <span className="px-2 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 rounded-full text-xs font-bold border border-blue-200">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold border border-blue-200">
                                 {t('region.recommended')}
                               </span>
                             )}

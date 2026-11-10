@@ -146,16 +146,16 @@ export default function ABTestMetricsPanel({
         <table className="w-full" aria-label="メトリクス比較テーブル">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700">
-              <th className="py-2 pr-4 text-left text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              <th className="py-2 pr-4 text-left text-[10px] text-gray-500 dark:text-gray-400">
                 メトリクス
               </th>
-              <th className="py-2 px-4 text-right text-[10px] uppercase tracking-wide text-blue-600 dark:text-blue-400">
+              <th className="py-2 px-4 text-right text-[10px] text-blue-600 dark:text-blue-400">
                 Control
               </th>
-              <th className="py-2 px-4 text-right text-[10px] uppercase tracking-wide text-orange-600 dark:text-orange-400">
+              <th className="py-2 px-4 text-right text-[10px] text-orange-600 dark:text-orange-400">
                 Experiment
               </th>
-              <th className="py-2 pl-4 text-right text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              <th className="py-2 pl-4 text-right text-[10px] text-gray-500 dark:text-gray-400">
                 差分
               </th>
             </tr>

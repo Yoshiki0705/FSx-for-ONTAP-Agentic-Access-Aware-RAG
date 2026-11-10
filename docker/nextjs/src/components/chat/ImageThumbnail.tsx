@@ -33,7 +33,7 @@ export function ImageThumbnail({ base64Data, mimeType, onClick }: ImageThumbnail
     >
       {/* Skeleton loader */}
       {isLoading && (
-        <div className="h-[120px] w-[120px] animate-pulse rounded-md bg-gray-200 dark:bg-gray-600" />
+        <div /* check-ui-ignore: 読み込み中のスケルトン */ className="h-[120px] w-[120px] animate-pulse rounded-md bg-gray-200 dark:bg-gray-600" />
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img

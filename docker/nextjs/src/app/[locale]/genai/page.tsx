@@ -1893,7 +1893,7 @@ function ChatbotPageContent() {
             ? `fixed top-0 left-0 h-full z-50 ${sidebarOpen ? 'w-80' : 'w-0'}`
             : `${sidebarOpen ? 'w-80' : 'w-0'} flex-shrink-0`
           }
-          transition-all duration-300 ease-in-out overflow-hidden bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
+          transition-[width] duration-300 ease-in-out overflow-hidden bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
         `}
         aria-hidden={!sidebarOpen}
       >
@@ -2144,7 +2144,7 @@ function ChatbotPageContent() {
       </div>
 
       {/* メインコンテンツ — Task 9.3: Chat_Area 最低幅 320px */}
-      <div className="flex-1 flex flex-col min-w-[320px] transition-all duration-300">
+      <div className="flex-1 flex flex-col min-w-[320px] transition-[width] duration-300">
         {/* ヘッダー — Flexbox左右グループレイアウト (Task 8.1) */}
         <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 flex-shrink-0">
           <div className="px-3 sm:px-4 lg:px-6">

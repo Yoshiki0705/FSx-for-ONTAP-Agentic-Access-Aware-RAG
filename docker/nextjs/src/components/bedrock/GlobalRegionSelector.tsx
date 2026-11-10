@@ -95,7 +95,7 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
             onRegionChange(newRegion);
           }
           
-          alert(`✅ リージョンを ${regionInfo.flag} ${regionInfo.displayName} に変更しました！\n\nページをリロードします。`);
+          alert(`✅ リージョンを ${regionInfo.flag} ${regionInfo.displayName} に変更しました。\n\nページをリロードします。`);
           window.location.reload();
         } else {
           alert(`❌ リージョン変更に失敗しました\n\n${data.error || '不明なエラー'}`);
@@ -164,9 +164,9 @@ export function GlobalRegionSelector({ onRegionChange }: GlobalRegionSelectorPro
                         key={region.id}
                         onClick={() => handleRegionChange(region.id)}
                         disabled={!region.bedrockAvailable || region.id === currentRegion || isChanging}
-                        className={`w-full text-left p-2.5 rounded-lg text-xs transition-all ${
+                        className={`w-full text-left p-2.5 rounded-lg text-xs transition-colors ${
                           region.id === currentRegion
-                            ? 'bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-400 cursor-default shadow-md'
+                            ? 'bg-blue-100 border-2 border-blue-400 cursor-default shadow-md'
                             : region.bedrockAvailable
                             ? 'bg-white border border-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:border-blue-400 cursor-pointer shadow-sm hover:shadow-md'
                             : 'bg-gray-100 border border-gray-200 cursor-not-allowed opacity-50'

@@ -180,7 +180,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
               {categoryKeys.map(k => <option key={k} value={k}>{k}</option>)}
             </select>
           </div>
-          {isLoading && agents.length === 0 && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-32 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />)}</div>}
+          {isLoading && agents.length === 0 && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <div /* check-ui-ignore: 読み込み中のスケルトン */ key={i} className="h-32 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />)}</div>}
           {!isLoading && error && <div className="text-center py-12"><p className="text-red-500 mb-4">{error}</p><button onClick={fetchAgents} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">{t('retry')}</button></div>}
           {!isLoading && !error && filteredAgents.length > 0 && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">{filteredAgents.map(a => <AgentCard key={a.agentId} agent={a} onClick={handleCardClick} />)}</div>}
           {!isLoading && !error && agents.length > 0 && filteredAgents.length === 0 && <p className="text-center text-gray-500 dark:text-gray-400 py-8">{t('noAgentsFound')}</p>}
@@ -263,7 +263,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
       {viewMode === 'grid' && activeTab === 'shared' && (
         <div>{sharedConfigs.length === 0 ? <p className="text-center text-gray-500 py-12">{t('sharing.noSharedConfigs')}</p> : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{sharedConfigs.map(c => (
-            <button key={c.key} onClick={() => handleSharedConfigClick(c.key)} className="w-full text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md transition-all">
+            <button key={c.key} onClick={() => handleSharedConfigClick(c.key)} className="w-full text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{c.agentName}</h3>
               <p className="text-xs text-gray-500 mt-1">{c.uploadedAt ? new Date(c.uploadedAt).toLocaleDateString(locale) : ''}</p>
               <p className="text-xs text-gray-400 mt-1">{(c.size / 1024).toFixed(1)} KB</p>

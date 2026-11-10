@@ -22,7 +22,7 @@ export function ExecutionHistoryList({ scheduleId, executions, isLoading }: Exec
     return (
       <div className="space-y-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-12 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+          <div /* check-ui-ignore: 読み込み中のスケルトン */ key={i} className="h-12 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
         ))}
       </div>
     );

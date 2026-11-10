@@ -59,7 +59,7 @@ export function FeedbackButtons({
   }
 
   return (
-    <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div /* check-ui-ignore: 触って開く操作ではなく、タッチと focus では常時表示 */ className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
       <button
         onClick={() => handleFeedback('positive')}
         disabled={isSubmitting}

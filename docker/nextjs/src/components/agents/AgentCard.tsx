@@ -33,7 +33,7 @@ export function AgentCard({ agent, categoryTag, onClick, toolProfiles, trustLeve
     <button
       type="button"
       onClick={() => onClick(agent.agentId)}
-      className="w-full text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer"
+      className="w-full text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-[box-shadow,border-color] cursor-pointer"
       aria-label={agent.agentName}
     >
       <div className="flex items-start justify-between mb-2">

@@ -26,7 +26,7 @@ export function RegistryCardGrid({ onCardClick, onLoadMore }: RegistryCardGridPr
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="h-32 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse"
+            className="h-32 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" // check-ui-ignore: 読み込み中のスケルトン
           />
         ))}
       </div>
