@@ -245,8 +245,8 @@ export default function SignInPage({ params }: SignInPageProps) {
             <div className="mx-auto h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center">
               <LogIn className="h-6 w-6 text-white" />
             </div>
-            <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
-              <Diamond className="w-5 h-5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('title')}
+            <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center justify-center gap-2">
+              <Diamond className="w-5 h-5 shrink-0" aria-hidden="true" />{t('title')}
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
               {t('subtitle')}

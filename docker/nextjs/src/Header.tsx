@@ -26,7 +26,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
-            <h1 className="text-2xl font-bold"><Diamond className="w-5 h-5 inline-block align-text-bottom mr-1" aria-hidden="true" />NetApp RAG System</h1>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><Diamond className="w-5 h-5 shrink-0" aria-hidden="true" />NetApp RAG System</h1>
             <span className="ml-4 text-sm opacity-75">Permission-aware with FSx ONTAP</span>
           </div>
           <div className="flex items-center space-x-4">
