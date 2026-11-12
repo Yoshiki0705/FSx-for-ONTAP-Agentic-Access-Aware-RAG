@@ -21,7 +21,7 @@
 
 ### 背景
 
-S3 Access Points 需要 ONTAP 9.14.1 以上版本。FSx for ONTAP AWS API（`describe-file-systems`）不會傳回版本資訊，需要直接存取 ONTAP REST API。
+S3 Access Points 需要 ONTAP 9.17.1 以上版本。FSx for ONTAP AWS API（`describe-file-systems`）不會傳回版本資訊，需要直接存取 ONTAP REST API。
 
 ### 先決條件
 
