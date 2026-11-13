@@ -10,29 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 画面のテンプレート的な書き方の検査と、画面の絵文字から `lucide-react` への置き換え。追跡されていたコンパイル出力 48 本を削除したため、本番ビルドが取り込むコードが変わる（下の「変更」を参照）。
 ### Added
 - **`tools/check-ui.mjs`**: Hub（FSx-for-ONTAP-Adoption-Playbook）の `tools/portable/check-ui/` から取り込んだ画面ソースの検査。unslop-ai-app（Apache 2.0）由来で、帰属は `NOTICE` と `tools/LICENSE`。`node tools/check-ui.mjs --json docker/nextjs/src` で実行する。初回は 686 ファイルで 633 件、仕分けと意図して残した 37 行（`check-ui-ignore`）は `tools/check-ui.md` に記録（#246）
+- **`docs/deployment-guide.md` / `.ja.md`**: クリーンアップ節に、撤去で止まりうる 2 箇所（CloudFront アクセスログバケットが空でない / Lambda の VPC ENI が残る）の解消手順と、reclaim `Retain` で取り込んだボリュームの Trident 記録の片付け（`tridentctl delete volume`）を追記。FAQ に、既存の検索・RAG 基盤や既存のオーケストレーション層を使う読者向けの当てはめ方（S3 Access Point は到達経路であって、上の層は用途で選ぶ。各選択肢の考慮点を対称に記載）と、inline / Lambda フィルタ経路の選び方を追記
+- **既存 VPC の参照**: `existingVpcId` / `existingPrivateSubnetIds` / `existingAvailabilityZones` / `existingVpcCidr` の 4 つを指定すると、`DemoNetworkingStack` が VPC・NAT Gateway・サブネット・VPC エンドポイントを作らず、既存 VPC を参照してセキュリティグループだけを作る。WebApp Lambda は渡したサブネットに明示配置する（既存 VPC のサブネットは `aws-cdk:subnet-type` タグを持たないことが多く、`subnetType` 選択が効かないため）。`existingVpcId` を省略した場合の挙動は変わらない。ドキュメントは以前から `existingVpcId` を案内していたが、実装が無く黙って無視されていた
+- **Docs**: `docs/evaluation.md` の 3.3「実機での確認結果」（JA/EN）— 権限制御の 4 ケース（Admin、一般ユーザー、Everyone 文書、SID 未登録の Fail-Closed）を 2026-10-28 に実環境で確認した結果と、その範囲。取り込みと S3 Access Point の作成を手作業で通したことは本文と #228 に記載。他の 6 言語の翻訳には抄訳バナーを付けた
+- **Tests**: `tests/stacks/demo-networking-stack.test.ts`（11 件）— 新規作成分岐・既存 VPC 参照分岐・必須キー欠落時の throw
 ### Changed
 - **画面の絵文字を `lucide-react` に置き換え**（#247）。`card-constants`、`color-utils`、`permission-boundary` のアイコンのデータは `string` から `LucideIcon` に変更。アイコンを置けない場所（`alert`、エラー文、チャット応答の Markdown、コメント）は絵文字を外して文だけにした。アイコンのみのボタンには `aria-label` を付けた。引用ラベルは `[社内文書]` / `[外部]`。`CollapsiblePanel` の `icon` は `ReactNode`
 - **画面のパターン**（#246）: `transition-all` を性質の指定に、派手なグラデーションを単色に、`uppercase tracking-wide` と斜体を削除、画面文言の「！」を「。」に変更。ホバーで出る操作は、タッチと focus では常時表示にした
 - **EOL の Node.js 18 と 20 の参照を削除**（#249）: `security-scan.yml` の Node を 20 から 22 に、未使用の `docker/app/Dockerfile`（Lambda `nodejs:18`）を削除。実行環境は Node 22（CI、`.nvmrc`、Docker `node:22-slim`、Lambda `nodejs22.x`）。この版のイメージは Node 22.23.5（2026-11-11 のセキュリティリリース）でビルドして確認した
 - **依存の更新（Dependabot）**: `@aws-sdk/*` 17 パッケージ（`^3.1090.0` から `^3.1161.0`、#198）、fast-check（4.9.0 から 4.10.2、#205）、`@types/node`（26.5.1 から 26.6.6、#241）。GitHub Actions は download-artifact 8.0.2（#222）、setup-node 7.1.0（#221）、codeql-action/upload-sarif 4.38.2（#214）、configure-aws-credentials 6.3.0（#197）、setup-python 7.0.0（#195、メジャー）。Actions は SHA ピンのままで、新しい SHA が公式タグと一致することを確認した。マージ後の `main` で `tsc --noEmit` と Jest（71 スイート、811 テスト）が通る
 - **Renovate の導入 PR（#215）を閉じた**: Dependabot と Renovate を併用すると同じ更新の PR が重複するため、`AGENTS.md` の方針（Dependabot のみ）に合わせた
+- `existingVpcId` 指定時に `existingVpcCidr` を必須にした。省略すると FSx 用セキュリティグループの ingress が `vpcCidrBlock` を参照した時点で CDK が例外を投げ、原因が分かりにくかったため、キー名付きのエラーで止める
+- `enableVpcEndpoints` は `existingVpcId` 指定時に無視される（synth 警告）。`scripts/preflight-check.sh` の VPC エンドポイント節は「競合の検出」から「既存 VPC が private に到達できるサービスの確認」に変更
 ### Fixed
 - **追跡されていた `tsc` の出力 48 本を `docker/nextjs/src` から削除**（#248）: `.js`、`.d.ts`、`.d.ts.map`。Next.js 15.5.29 は拡張子なしの import を `.js`、`.tsx`、`.ts` の順に解決するため、本番ビルドは古い `useChatStore.js` を束ねていた（ビルド成果物で確認）。削除後は現行の `.ts` / `.tsx` が使われる。`docker/nextjs/.gitignore` に `src/**/*.js`、`src/**/*.d.ts`、`src/**/*.d.ts.map` を追加。**本番で動くコードが変わる**ので、デプロイ後にサインイン、チャット送信、履歴保存を確認すること
 - **辞書キーの `t("...")` が文字のまま画面に出ていた箇所**（#246、#247）: `GlobalRegionSelector.tsx`、`KBModeSidebar.tsx`、`AdvancedFilters.tsx`、`InstallPrompt.tsx`、`VirtualChatHistory.tsx`、`AccessibilityExample.tsx` の日本語の語を戻した
 - **KB モードのサイドバーのディレクトリ数**（#251）: 3 件を列挙しながら「0個」と表示していた。`count: 0` で整形済みの文字列に後から `{count}` を置換していたため。表示する場所で実際の件数を渡すようにした。この挙動は絵文字の置き換えより前の `main` にもあった
 - **運用手順書の ONTAP の要件**（#250）: S3 Access Points に必要な ONTAP を 9.14.1 から 9.17.1 に訂正した（8 言語の `docs/**/operations-runbook.md`）。AWS のドキュメントは、アクセスポイントを作って FSx for ONTAP のボリュームに付けられるのは ONTAP 9.17.1 以降のファイルシステムだけと記載している **[documented]**（[Access points naming rules, restrictions, and limitations](https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/access-point-for-fsxn-restrictions-limitations-naming-rules.html)）。README と他の文書は 9.17.1 だった
-### Removed
-- **未使用の AWS SDK v2 の依存**（#255）: `cdk-docker-image-deployment` と `aws-sdk`（v2、devDependency）。`lib/`、`bin/`、`tests/`、スクリプトのどこからも import されていなかった。ロックファイルから 94 エントリが消え、追加と版の変更はない。`SECURITY.md` の「cdk-docker-image-deployment の AWS SDK v2」の節も削除した。Dependabot の #243（この依存の更新）は閉じた
-### Fixed
 - **`post-deploy-setup.sh` のデモユーザー作成**: 一時パスワードと `DEMO_PASSWORD` が記号を含まず、User Pool のパスワードポリシー（記号必須）に反して `InvalidPasswordException` で止まっていた（実機で観測）。両方を記号付きにし、既存ユーザー以外の作成失敗とパスワード設定の失敗を握りつぶさず原因付きで止める（#235）
-
-### Added
-- **`docs/deployment-guide.md` / `.ja.md`**: クリーンアップ節に、撤去で止まりうる 2 箇所（CloudFront アクセスログバケットが空でない / Lambda の VPC ENI が残る）の解消手順と、reclaim `Retain` で取り込んだボリュームの Trident 記録の片付け（`tridentctl delete volume`）を追記。FAQ に、既存の検索・RAG 基盤や既存のオーケストレーション層を使う読者向けの当てはめ方（S3 Access Point は到達経路であって、上の層は用途で選ぶ。各選択肢の考慮点を対称に記載）と、inline / Lambda フィルタ経路の選び方を追記
-
-- **既存 VPC の参照**: `existingVpcId` / `existingPrivateSubnetIds` / `existingAvailabilityZones` / `existingVpcCidr` の 4 つを指定すると、`DemoNetworkingStack` が VPC・NAT Gateway・サブネット・VPC エンドポイントを作らず、既存 VPC を参照してセキュリティグループだけを作る。WebApp Lambda は渡したサブネットに明示配置する（既存 VPC のサブネットは `aws-cdk:subnet-type` タグを持たないことが多く、`subnetType` 選択が効かないため）。`existingVpcId` を省略した場合の挙動は変わらない。ドキュメントは以前から `existingVpcId` を案内していたが、実装が無く黙って無視されていた
-- **Docs**: `docs/evaluation.md` の 3.3「実機での確認結果」（JA/EN）— 権限制御の 4 ケース（Admin、一般ユーザー、Everyone 文書、SID 未登録の Fail-Closed）を 2026-10-28 に実環境で確認した結果と、その範囲。取り込みと S3 Access Point の作成を手作業で通したことは本文と #228 に記載。他の 6 言語の翻訳には抄訳バナーを付けた
-- **Tests**: `tests/stacks/demo-networking-stack.test.ts`（11 件）— 新規作成分岐・既存 VPC 参照分岐・必須キー欠落時の throw
-### Fixed
 - **S3 Vectors のインデックス**: non-filterable キーに `AMAZON_BEDROCK_TEXT` と `AMAZON_BEDROCK_METADATA` を入れた（使われていない `source_uri` と `chunk_text` を外し、上限の 10 キーに収めた）。抜けていると Bedrock Knowledge Bases のチャンク本文が filterable メタデータに数えられ、2 KB の上限で取り込みが全件失敗した（#228）
 - **S3 Access Point のカスタムリソース**: `CreateAndAttachS3AccessPoint` を FSx の API リファレンスの形（`Name`、`Type`、`OntapConfiguration`）で送り、作成結果を `S3AccessPointAttachment.S3AccessPoint` から読むようにした。削除と更新は `Name` で行う。作成要求が拒否されたときは、ステータスコード付きで FAILED を返す（以前は SUCCESS のまま `NOT_CREATED` を返していた）。AD 参加待ちの延期は変えていない（#228）
 - **S3 Access Point のカスタムリソース（続き）**: 作成と削除の要求に `ClientRequestToken` を付けた。CLI と SDK は自動で付けるが、署名を自前で組むこのハンドラでは付かず、実環境で `CreateAndAttachS3AccessPoint` が `400 BadRequest: A client request token must be specified` を返した（上の修正で FAILED として表に出た）。トークンは CloudFormation の RequestId から作るので、同じイベントの再送は冪等になる。削除も同じ形にしたので、撤去時にアクセスポイントが黙って残らない
@@ -42,19 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Permission Filter Lambda の cdk-nag 抑制**: `usePermissionFilterLambda=true` の経路が cdk-nag を通ったことがなく、`NodejsFunction` の実行ロール（IAM4）と grantInvoke のワイルドカード（IAM5）、NODEJS_22_X の L1 で synth が失敗した。既存の関数と同じ理由で抑制を追加
 - **Permission Filter Lambda**（`usePermissionFilterLambda=true`）: `lambda/permissions` の TypeScript をそのまま資産にしていたため、ランタイムがハンドラを読み込めなかった（ローカルで `MODULE_NOT_FOUND` を再現）。WebApp は呼び出しの失敗時に inline フィルタへ戻るため、要求は失敗せず `filterLog.source` が `inline` になるだけで、Lambda 経路は一度も使われていなかったとみられる。`NodejsFunction`（esbuild）でバンドルし、AWS SDK v3 はランタイムのものを使う。`tests/unit/perm-filter-lambda-bundling.test.ts` が合成した資産をランタイムと同じように読み込む
 - **Tests**: `tests/unit/s3ap-and-s3vectors-request-shapes.test.ts`（8 件）、`tests/unit/demo-scripts-failure-reporting.test.ts`（6 件、スタブの `aws` でスクリプトを実行）
-
-### Changed
-- `existingVpcId` 指定時に `existingVpcCidr` を必須にした。省略すると FSx 用セキュリティグループの ingress が `vpcCidrBlock` を参照した時点で CDK が例外を投げ、原因が分かりにくかったため、キー名付きのエラーで止める
-- `enableVpcEndpoints` は `existingVpcId` 指定時に無視される（synth 警告）。`scripts/preflight-check.sh` の VPC エンドポイント節は「競合の検出」から「既存 VPC が private に到達できるサービスの確認」に変更
 ### Removed
+- **未使用の AWS SDK v2 の依存**（#255）: `cdk-docker-image-deployment` と `aws-sdk`（v2、devDependency）。`lib/`、`bin/`、`tests/`、スクリプトのどこからも import されていなかった。ロックファイルから 94 エントリが消え、追加と版の変更はない。`SECURITY.md` の「cdk-docker-image-deployment の AWS SDK v2」の節も削除した。Dependabot の #243（この依存の更新）は閉じた
 - ドキュメントと preflight が案内していた `skipVpcEndpoints` の記述。実装が存在せず、既存 VPC 参照時はエンドポイントを作らないため解く問題が無い
-
 ### Known limitations
 - **Agent モード**: `enableAgent=true` は、Bedrock Agents Classic の利用実績がないアカウントではデプロイできない。`bedrock:CreateAgent` が AccessDenied（"Bedrock Agents is in Maintenance Mode"）を返し、CloudFormation の `AWS::Bedrock::Agent` も失敗する **[verified 2026-11-13 / ap-northeast-1]**。AWS 側の記述は [Amazon Bedrock Agents Classic maintenance mode](https://docs.aws.amazon.com/bedrock/latest/userguide/agents-classic-maintenance-mode.html) **[documented]**。AgentCore Memory の作成は `enableAgent` の中にあるため、`enableAgentCoreMemory` も同じ制約を受ける（コードの確認）
 - **`@types/node` の major**: 実行環境は Node 22 だが、ルートの `@types/node` は 26 系、`docker/nextjs` と `lambda/agent-core-ad-sync`、`lambda/permissions` は 20 系、`docker/embed` と `lambda/agent-core-scheduler` は 22 系で揃っていない。Node 26 にしかない API でも型検査を通る。別の変更で 22 系に揃える（未対応）
 - **履歴の保存**: 既定の構成では保存されない。`useChatStore.saveChatHistory` はログ出力のみ（TODO）で、`loadChatHistory` が読む localStorage の `chatHistory_<user>` に書く処理がない。再読み込み後に履歴のキーがないことを実環境で確認した **[verified 2026-11-13 / ap-northeast-1]**
 - **この版の実環境での確認範囲**: 既存の FSx for ONTAP と既存の VPC を使った CDK のみの構成（Networking、Storage、Security、AI、WebApp と WAF）で、手作業なしにデプロイでき、11 文書の取り込み、Cognito でのサインイン、KB モードのチャットと引用の表示を確認した **[verified 2026-11-13 / ap-northeast-1]**。確認していないもの: Agent モード、履歴の保存、権限制御の 4 ケースの再確認、`projectName` と `environment` を既定以外にした構成（cdk-nag の IAM5 抑制が既定名に固定されているため synth が失敗する）
-
 ## [4.4.0] - 2026-06-29
 
 AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API を含む機能は
