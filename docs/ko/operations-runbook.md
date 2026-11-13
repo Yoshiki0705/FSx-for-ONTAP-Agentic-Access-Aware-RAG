@@ -21,7 +21,7 @@ Permission-aware RAG 시스템의 일상 운용, 검증, 트러블슈팅 절차�
 
 ### 배경
 
-S3 Access Points는 ONTAP 9.14.1 이상이 필요합니다. FSx for ONTAP AWS API(`describe-file-systems`)는 버전 정보를 반환하지 않으므로, ONTAP REST API에 직접 접근해야 합니다.
+S3 Access Points는 ONTAP 9.17.1 이상이 필요합니다. FSx for ONTAP AWS API(`describe-file-systems`)는 버전 정보를 반환하지 않으므로, ONTAP REST API에 직접 접근해야 합니다.
 
 ### 사전 조건
 

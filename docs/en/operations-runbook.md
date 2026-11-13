@@ -21,7 +21,7 @@ Runbook consolidating daily operations, verification, and troubleshooting proced
 
 ### Background
 
-S3 Access Points require ONTAP 9.14.1+. The FSx for ONTAP AWS API (`describe-file-systems`) does not return version information, requiring direct access to the ONTAP REST API.
+S3 Access Points require ONTAP 9.17.1+. The FSx for ONTAP AWS API (`describe-file-systems`) does not return version information, requiring direct access to the ONTAP REST API.
 
 ### Prerequisites
 
