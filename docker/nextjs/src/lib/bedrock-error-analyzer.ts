@@ -124,7 +124,7 @@ export class BedrockErrorAnalyzer {
       // その他のエラー
       return this.generateGenericError(error.message);
     } catch (analysisError: any) {
-      console.error(`❌ エラー分析失敗:`, analysisError);
+      console.error(`エラー分析失敗:`, analysisError);
       // 分析失敗時は元のエラーメッセージを返す
       return this.generateGenericError(error.message);
     }
@@ -198,11 +198,11 @@ export class BedrockErrorAnalyzer {
       });
     }
 
-    const message = `🔒 モデルアクセスエラー: ${modelName}
+    const message = `モデルアクセスエラー: ${modelName}
 
 このモデルへのアクセスが有効化されていません。
 
-📋 対処方法:
+対処方法:
 1. AWS Bedrockコンソールにアクセス
    ${consoleUrl}
 2. リージョンを「${region}」に設定
@@ -210,7 +210,7 @@ export class BedrockErrorAnalyzer {
 4. 「${providerName}」プロバイダーのモデルを有効化
 5. アクセス許可の承認を待つ（数分かかる場合があります）
 
-💡 ヒント: 一部のモデルは特定のリージョンでのみ利用可能です。
+ヒント: 一部のモデルは特定のリージョンでのみ利用可能です。
 
 認証状態: ${accessStatus.authorizationStatus || 'UNKNOWN'}
 エンタイトルメント: ${accessStatus.entitlementAvailability || 'UNKNOWN'}`;
@@ -232,15 +232,15 @@ export class BedrockErrorAnalyzer {
   ): ErrorAnalysisResult {
     const modelName = modelId.split('.')[1] || modelId;
 
-    const message = `🌍 リージョンエラー: このモデルは現在のリージョンで利用できません
+    const message = `リージョンエラー: このモデルは現在のリージョンで利用できません
 
 モデル「${modelName}」はリージョン「${region}」で利用できません。
 
-📋 対処方法:
+対処方法:
 1. 利用可能なリージョンに変更してください
 2. 推奨リージョン: us-east-1, us-west-2, eu-west-1
 
-💡 ヒント: リージョンセレクターから別のリージョンを選択してください。`;
+ヒント: リージョンセレクターから別のリージョンを選択してください。`;
 
     return {
       type: 'region_unavailable',
@@ -259,16 +259,16 @@ export class BedrockErrorAnalyzer {
    * レート制限エラーメッセージを生成
    */
   private static generateRateLimitError(): ErrorAnalysisResult {
-    const message = `⏱️ レート制限エラー: リクエストが多すぎます
+    const message = `レート制限エラー: リクエストが多すぎます
 
 しばらく待ってから再試行してください。
 
-📋 対処方法:
+対処方法:
 1. 30秒〜1分待ってから再試行
 2. リクエスト頻度を減らす
 3. 問題が続く場合は、AWS Bedrockのクォータを確認
 
-💡 ヒント: 連続してリクエストを送信すると、レート制限に達する可能性があります。`;
+ヒント: 連続してリクエストを送信すると、レート制限に達する可能性があります。`;
 
     return {
       type: 'rate_limit',
@@ -287,16 +287,16 @@ export class BedrockErrorAnalyzer {
    * クォータ制限エラーメッセージを生成
    */
   private static generateQuotaError(): ErrorAnalysisResult {
-    const message = `📊 クォータ制限エラー: 使用量制限に達しました
+    const message = `クォータ制限エラー: 使用量制限に達しました
 
 AWS Bedrockコンソールでクォータを確認してください。
 
-📋 対処方法:
+対処方法:
 1. AWS Service Quotasコンソールにアクセス
 2. Amazon Bedrockのクォータを確認
 3. 必要に応じてクォータ引き上げをリクエスト
 
-💡 ヒント: クォータ引き上げには数日かかる場合があります。`;
+ヒント: クォータ引き上げには数日かかる場合があります。`;
 
     return {
       type: 'quota',
@@ -309,11 +309,11 @@ AWS Bedrockコンソールでクォータを確認してください。
    * 汎用エラーメッセージを生成
    */
   private static generateGenericError(originalError: string): ErrorAnalysisResult {
-    const message = `❌ チャット処理中にエラーが発生しました
+    const message = `チャット処理中にエラーが発生しました
 
 ${originalError}
 
-📋 対処方法:
+対処方法:
 1. しばらく待ってから再試行
 2. 問題が続く場合は、管理者に連絡してください`;
 

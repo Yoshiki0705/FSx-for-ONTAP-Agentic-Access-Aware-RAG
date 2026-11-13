@@ -78,11 +78,15 @@ CloudWatch Custom Metrics:
 ```
 
 ### #5 FlexCache → S3 AP 移行パス
-**ステータス**: 設計（AWS機能リリース待ち）
+**ステータス**: 設計（前提が成り立っていない。FlexCache ボリュームには S3 Access Points を取り付けられない）
 
-**移行手順（将来）**:
+**[documented]** Amazon FSx の API は、FlexCache ボリュームへの S3 Access Points の取り付けをボリューム種別を理由に拒否する（エラー: `Amazon FSx is unable to attach S3access point because the volume is a FlexCache.`）。拒否の理由は ONTAP のバージョンではなくボリューム種別なので、ONTAP を上げても解決しない。出典: [別プロジェクトの実測記録（2026-07-24、ONTAP 9.18.1P3D1、項目 26）](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/integrations/snapmirror-flexcache-multicloud/docs/BACKLOG.md)、[Hub のノート（9.18.1 の 2 つのパッチレベル・2 リージョンで同じ拒否）](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/blob/main/docs/ja/domains/data-utilization/notes/serving-a-replication-destination-over-s3.md)。Hub のノートは、遠隔のデータを S3 API で読ませる経路として FlexCache の代わりに SnapMirror の宛先を挙げている。
+
+下の手順は、AWS がこの拒否を取り除いた場合にだけ成り立つ。取り除かれる予定があるかは確認していない。
+
+**移行手順（上の拒否が取り除かれた場合のみ）**:
 ```
-1. FlexCache Cache Volume に S3 AP をアタッチ（機能リリース後）
+1. FlexCache Cache Volume に S3 AP をアタッチ（現時点では Amazon FSx の API が拒否する）
 2. Embedding サーバー経由パスと S3 AP パスの並行運用期間を設定
 3. S3 AP パスの動作確認（ベンチマーク実行）
 4. Embedding サーバーの停止

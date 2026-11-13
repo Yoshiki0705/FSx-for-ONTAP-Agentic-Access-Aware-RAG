@@ -5,7 +5,7 @@
 **Erstellungsdatum**: 2026-06-18
 **Zielregion**: ap-northeast-1 (Tokio) — Managed KB ist in der Region Tokio verfügbar
 **Status**: Bewertungsdokument (Migration nicht durchgeführt / bestehender Pfad beibehalten)
-**Verwandt**: `fsxn-lakehouse-integrations/docs/ja/cross-repo-integration-strategy.md` (Ursprung)
+**Verwandt**: `FSx-for-ONTAP-Lakehouse-Integrations/docs/ja/cross-repo-integration-strategy.md` (Ursprung)
 
 ---
 

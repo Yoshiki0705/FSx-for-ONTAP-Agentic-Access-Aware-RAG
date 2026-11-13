@@ -316,7 +316,7 @@ const PayloadReferencingDetailsComponent: React.FC<{ details: PayloadReferencing
         </div>
         <div className="mt-2 bg-green-200 rounded-full h-2">
           <div 
-            className="bg-green-600 h-2 rounded-full transition-all duration-300"
+            className="bg-green-600 h-2 rounded-full transition-[width] duration-300"
             style={{ width: `${details.reductionPercentage}%` }}
           />
         </div>

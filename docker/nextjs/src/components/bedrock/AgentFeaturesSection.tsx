@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Lightbulb } from 'lucide-react';
 import { useCustomTranslations } from '@/hooks/useCustomTranslations';
 
 /**
@@ -61,7 +62,7 @@ export function AgentFeaturesSection({ locale }: AgentFeaturesSectionProps) {
         {/* Hint */}
         <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
           <p className="text-xs text-blue-700 dark:text-blue-300">
-            💡 {t('agent.hint')}: {t('agent.hintDesc')}
+            <Lightbulb className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('agent.hint')}: {t('agent.hintDesc')}
           </p>
         </div>
       </div>

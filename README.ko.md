@@ -86,7 +86,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 | 벡터 스토어 | S3 Vectors (기본, filterable 2KB 제한) / OpenSearch Serverless (고성능) |
 | Responsible AI | AI 출력은 보조 신호. 최종 판단은 사람의 책임. [상세](docs/ko/governance-and-audit.md) |
 
-S3 AP 포괄적 호환성 매트릭스는 [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)를 참조하세요.
+S3 AP 포괄적 호환성 매트릭스는 [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md)를 참조하세요.
 
 </details>
 
@@ -96,8 +96,8 @@ S3 AP 포괄적 호환성 매트릭스는 [fsxn-lakehouse-integrations](https://
 |-----------|------|------|
 | **[본 리포지토리]** | AI / RAG | 권한 필터링 RAG + Agentic AI |
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 자동화 | 17개 업종별 서버리스 패턴 |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Athena / Glue / EMR / SageMaker 통합 |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability | 감사 로그를 Datadog / Splunk / Grafana로 EC2 없이 전달 |
+| [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Athena / Glue / EMR / SageMaker 통합 |
+| [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability | 감사 로그를 Datadog / Splunk / Grafana로 EC2 없이 전달 |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | 도입 판단 | 데이터 활용 도메인 허브: S3 AP 인가 특성 · 제약 · 설계 선택지 |
 
 </details>

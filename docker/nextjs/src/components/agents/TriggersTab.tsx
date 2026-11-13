@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { Library, Siren, Clock, Zap, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
 
 interface TriggerConfig {
   triggerId: string;
@@ -114,10 +115,10 @@ export function TriggersTab({ locale }: TriggersTabProps) {
 
   const getTriggerIcon = (type: string) => {
     switch (type) {
-      case 'KB_INGESTION_COMPLETE': return '📚';
-      case 'BREAK_GLASS': return '🚨';
-      case 'SCHEDULE': return '⏰';
-      default: return '⚡';
+      case 'KB_INGESTION_COMPLETE': return <Library className="w-6 h-6" aria-hidden="true" />;
+      case 'BREAK_GLASS': return <Siren className="w-6 h-6" aria-hidden="true" />;
+      case 'SCHEDULE': return <Clock className="w-6 h-6" aria-hidden="true" />;
+      default: return <Zap className="w-6 h-6" aria-hidden="true" />;
     }
   };
 
@@ -141,7 +142,7 @@ export function TriggersTab({ locale }: TriggersTabProps) {
   if (triggers.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-4xl mb-4">⚡</div>
+        <Zap className="w-10 h-10 mx-auto mb-4" aria-hidden="true" />
         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
           No Event Triggers Configured
         </h3>
@@ -190,7 +191,9 @@ export function TriggersTab({ locale }: TriggersTabProps) {
                 {trigger.lastExecutionAt && (
                   <span className="text-xs text-gray-400">
                     Last: {new Date(trigger.lastExecutionAt).toLocaleString(locale)}
-                    {trigger.lastStatus === 'SUCCESS' ? ' ✅' : ' ❌'}
+                    {trigger.lastStatus === 'SUCCESS'
+                      ? <CheckCircle2 className="w-3.5 h-3.5 inline-block align-text-bottom ml-1 text-green-600" aria-label="SUCCESS" />
+                      : <XCircle className="w-3.5 h-3.5 inline-block align-text-bottom ml-1 text-red-600" aria-label="FAILED" />}
                   </span>
                 )}
                 <button
@@ -228,7 +231,7 @@ export function TriggersTab({ locale }: TriggersTabProps) {
       {selectedTrigger && (
         <div className="border-t pt-4 mt-4">
           <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
-            📋 Execution History
+            <ClipboardList className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />Execution History
           </h4>
           {executionsLoading ? (
             <div className="flex items-center justify-center py-4">
@@ -246,7 +249,9 @@ export function TriggersTab({ locale }: TriggersTabProps) {
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm"
                 >
                   <div className="flex items-center gap-2">
-                    <span>{exec.status === 'SUCCESS' ? '✅' : '❌'}</span>
+                    {exec.status === 'SUCCESS'
+                      ? <CheckCircle2 className="w-4 h-4 text-green-600" aria-label="SUCCESS" />
+                      : <XCircle className="w-4 h-4 text-red-600" aria-label="FAILED" />}
                     <span className="text-gray-700 dark:text-gray-300">
                       {new Date(exec.executedAt).toLocaleString(locale)}
                     </span>

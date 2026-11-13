@@ -147,7 +147,7 @@ export function AdvancedFilters({
         ">
           {/* ヘッダー */}
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold">フィルターt("sidebar.settings")</h3>
+            <h3 className="text-sm font-semibold">フィルター設定</h3>
             <button
               onClick={() => setIsOpen(false)}
               className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"

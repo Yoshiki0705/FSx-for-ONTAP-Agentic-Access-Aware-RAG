@@ -23,7 +23,7 @@ export function ChatHistoryList({
     return (
       <div className="space-y-2 p-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="animate-pulse">
+          <div /* check-ui-ignore: 読み込み中のスケルトン */ key={i} className="animate-pulse">
             <div className="h-16 bg-gray-200 rounded-lg"></div>
           </div>
         ))}

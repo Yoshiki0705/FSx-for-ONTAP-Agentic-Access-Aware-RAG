@@ -1,0 +1,13 @@
+[project]
+name = "sfn-agentcore-gateway-sample"
+version = "0.1.0"
+description = "Strands sample calling Step Functions tools via AgentCore Gateway (MCP)"
+requires-python = ">=3.12"
+
+# Pinned exactly. mcp-proxy-for-aws==1.7.0 pulls a compatible mcp; newer mcp on
+# Python 3.15 breaks the proxy's import (McpError was renamed to MCPError).
+# [verified 2026-10-31 / local] reproduced on macOS arm64, Python 3.15.
+dependencies = [
+    "strands-agents==1.62.0",
+    "mcp-proxy-for-aws==1.7.0",
+]

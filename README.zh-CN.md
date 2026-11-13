@@ -86,7 +86,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 | 向量存储 | S3 Vectors（默认，filterable 2KB 限制）/ OpenSearch Serverless（高性能） |
 | Responsible AI | AI 输出为辅助信号，最终决策由人负责。[详情](docs/zh-CN/governance-and-audit.md) |
 
-完整 S3 AP 兼容性矩阵请参见 [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)。
+完整 S3 AP 兼容性矩阵请参见 [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md)。
 
 </details>
 
@@ -96,8 +96,8 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 |------|------|------|
 | **[本仓库]** | AI / RAG | 权限过滤 RAG + Agentic AI |
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自动化 | 17 个行业无服务器模式 |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Athena / Glue / EMR / SageMaker 集成 |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability | 无需 EC2 即可将审计日志投递到 Datadog / Splunk / Grafana |
+| [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Athena / Glue / EMR / SageMaker 集成 |
+| [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability | 无需 EC2 即可将审计日志投递到 Datadog / Splunk / Grafana |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | 落地决策 | 数据利用领域中心页：S3 AP 授权特性、限制与设计选项 |
 
 </details>

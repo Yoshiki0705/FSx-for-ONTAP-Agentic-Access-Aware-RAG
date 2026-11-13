@@ -10,11 +10,12 @@
 'use client';
 
 import React from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { useMultimodalStore } from '@/store/useMultimodalStore';
 import { MEDIA_TYPE_ICONS } from './MediaTypeIndicator';
 import type { MediaTypeFilter as MediaTypeFilterValue } from '@/types/multimodal';
 
-const FILTER_OPTIONS: { value: MediaTypeFilterValue; label: string; icon?: string }[] = [
+const FILTER_OPTIONS: { value: MediaTypeFilterValue; label: string; icon?: LucideIcon }[] = [
   { value: 'all', label: 'All' },
   { value: 'text', label: 'Text', icon: MEDIA_TYPE_ICONS.text },
   { value: 'image', label: 'Image', icon: MEDIA_TYPE_ICONS.image },
@@ -57,7 +58,7 @@ export function MediaTypeFilter({ className = '' }: MediaTypeFilterProps) {
             `}
             aria-pressed={active}
           >
-            {opt.icon && <span className="mr-1">{opt.icon}</span>}
+            {opt.icon && <opt.icon className="w-4 h-4 mr-1 inline-block align-text-bottom" aria-hidden="true" />}
             {opt.label}
           </button>
         );

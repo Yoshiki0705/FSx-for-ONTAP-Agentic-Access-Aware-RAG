@@ -5,7 +5,7 @@
 **작성일**: 2026-06-18
 **대상 리전**: ap-northeast-1 (도쿄) — Managed KB는 도쿄 리전에서 사용 가능
 **상태**: 검토 문서 (마이그레이션 미실시 / 기존 경로 유지)
-**관련**: `fsxn-lakehouse-integrations/docs/ja/cross-repo-integration-strategy.md` (연계 출처)
+**관련**: `FSx-for-ONTAP-Lakehouse-Integrations/docs/ja/cross-repo-integration-strategy.md` (연계 출처)
 
 ---
 

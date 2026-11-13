@@ -137,7 +137,7 @@ export function buildPartialResponse(
       .filter((c) => c.status !== 'completed')
       .map((c) => `${c.name}(${c.status})`)
       .join(', ');
-    content += `\n\n---\n⚠️ 一部のCollaborator（${failedCollabs}）が応答できなかったため、部分的な回答です。`;
+    content += `\n\n---\n一部のCollaborator（${failedCollabs}）が応答できなかったため、部分的な回答です。`;
   }
 
   return {

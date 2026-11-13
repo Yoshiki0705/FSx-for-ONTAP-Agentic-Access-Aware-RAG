@@ -5,7 +5,7 @@
 **创建日期**: 2026-06-18
 **目标区域**: ap-northeast-1（东京）— Managed KB 在东京区域可用
 **状态**: 评估文档（未执行迁移 / 保留现有路径）
-**相关**: `fsxn-lakehouse-integrations/docs/ja/cross-repo-integration-strategy.md`（来源）
+**相关**: `FSx-for-ONTAP-Lakehouse-Integrations/docs/ja/cross-repo-integration-strategy.md`（来源）
 
 ---
 

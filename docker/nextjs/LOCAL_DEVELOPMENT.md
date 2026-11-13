@@ -240,7 +240,6 @@ Lambda 用の Docker イメージをビルドする際の注意事項:
   docker build --platform linux/amd64 --provenance=false --sbom=false \
     -f docker/nextjs/Dockerfile.prebuilt -t permission-aware-rag-webapp .
   ```
-- **`docker/app/Dockerfile`**: Lambda Web Adapter 用ではない（旧ファイル）。Lambda デプロイには `docker/nextjs/Dockerfile.prebuilt` を使用
 - **ECR プッシュ後の更新**: CDK は `latest` タグの変更を検出しないため、`aws lambda update-function-code` を直接使用
   ```bash
   aws lambda update-function-code --function-name <function-name> \

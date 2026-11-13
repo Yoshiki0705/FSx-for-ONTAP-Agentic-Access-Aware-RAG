@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { Bot, Users, Link, Clock, BarChart3, Download, Search, type LucideIcon } from 'lucide-react';
 import { useAgentTeamStore } from '@/store/useAgentTeamStore';
 import { AgentMetadataBadges } from './AgentMetadataBadges';
 import type { AgentTeamConfig, RoutingMode, TrustLevel } from '@/types/multi-agent';
@@ -18,12 +19,12 @@ import type { AgentTeamConfig, RoutingMode, TrustLevel } from '@/types/multi-age
 
 export type DirectoryTab = 'agents' | 'teams' | 'shared' | 'schedules' | 'ab-test';
 
-const DIRECTORY_TABS: { key: DirectoryTab; label: string; icon: string }[] = [
-  { key: 'agents', label: 'Agents', icon: '🤖' },
-  { key: 'teams', label: 'Teams', icon: '👥' },
-  { key: 'shared', label: 'Shared', icon: '🔗' },
-  { key: 'schedules', label: 'Sched.', icon: '⏰' },
-  { key: 'ab-test', label: 'A/B', icon: '📊' },
+const DIRECTORY_TABS: { key: DirectoryTab; label: string; icon: LucideIcon }[] = [
+  { key: 'agents', label: 'Agents', icon: Bot },
+  { key: 'teams', label: 'Teams', icon: Users },
+  { key: 'shared', label: 'Shared', icon: Link },
+  { key: 'schedules', label: 'Sched.', icon: Clock },
+  { key: 'ab-test', label: 'A/B', icon: BarChart3 },
 ];
 
 // ===== Filter tags =====
@@ -130,7 +131,7 @@ export function TeamsTab({
             aria-selected={activeTab === tab.key}
             role="tab"
           >
-            <span aria-hidden="true" className="mr-1">{tab.icon}</span>
+            <tab.icon className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />
             {tab.label}
           </button>
         ))}
@@ -139,7 +140,7 @@ export function TeamsTab({
             onClick={onImport}
             className="ml-auto px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 border border-gray-300 dark:border-gray-600 rounded-md"
           >
-            📥 Import
+            <Download className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />Import
           </button>
         )}
       </div>
@@ -147,7 +148,7 @@ export function TeamsTab({
       {/* ===== Search / Filter bar ===== */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
           <input
             type="text"
             placeholder="Search teams..."
@@ -214,7 +215,7 @@ export function TeamsTab({
             return (
               <div
                 key={team.teamId}
-                className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all"
+                className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-[box-shadow,border-color]"
               >
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
                   {team.teamName}
@@ -226,8 +227,8 @@ export function TeamsTab({
                 {/* Metadata row */}
                 <div className="flex flex-col gap-2 mb-3 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span>🤖 {team.collaborators.length} Agents</span>
-                    <span>📊 {ROUTING_MODE_LABELS[team.routingMode]}</span>
+                    <span><Bot className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{team.collaborators.length} Agents</span>
+                    <span><BarChart3 className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{ROUTING_MODE_LABELS[team.routingMode]}</span>
                   </div>
                 </div>
 

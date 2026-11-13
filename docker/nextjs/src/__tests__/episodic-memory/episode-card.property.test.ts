@@ -41,9 +41,9 @@ const episodeGen: fc.Arbitrary<Episode> = fc.record({
 // --- Pure logic: EpisodeCard rendering data extraction ---
 
 function extractCardDisplayData(episode: Episode) {
-  const statusIcon = episode.outcome?.status === 'success' ? '✅'
-    : episode.outcome?.status === 'partial' ? '⚠️'
-    : '❌';
+  const statusIcon = episode.outcome?.status === 'success' ? 'CheckCircle2'
+    : episode.outcome?.status === 'partial' ? 'AlertTriangle'
+    : 'XCircle';
 
   return {
     goalSummary: episode.goal || '—',
@@ -77,7 +77,7 @@ describe('Feature: episodic-memory, Property 4: エピソードカード表示�
         expect(data.createdAt).toBeTruthy();
 
         // ステータスアイコンが正しい
-        expect(['✅', '⚠️', '❌']).toContain(data.statusIcon);
+        expect(['CheckCircle2', 'AlertTriangle', 'XCircle']).toContain(data.statusIcon);
       }),
       { numRuns: 100 }
     );
