@@ -472,7 +472,6 @@ function ChatbotPageContent() {
     read: t('permissions.read'),
     write: t('permissions.write'),
     available: t('permissions.available'),
-    directories: t('permissions.directories', { count: 0 }),  // デフォルト count=0（実際の値は userDirectories 取得後に置換）
     
     // Chatt
     newChat: t('chat.newChat'),
@@ -2038,7 +2037,7 @@ function ChatbotPageContent() {
                     </div>
                   </div>
                   <div className="text-xs text-gray-600">
-                    <div><Folder className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{translations.directories.replace('{count}', userDirectories.accessibleDirectories.length.toString())}</div>
+                    <div><Folder className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('permissions.directories', { count: userDirectories.accessibleDirectories.length })}</div>
                     {userDirectories.accessibleDirectories.length > 0 && (
                       <div className="mt-1 ml-4 text-gray-500 dark:text-gray-500">
                         {userDirectories.accessibleDirectories.join(', ')}
