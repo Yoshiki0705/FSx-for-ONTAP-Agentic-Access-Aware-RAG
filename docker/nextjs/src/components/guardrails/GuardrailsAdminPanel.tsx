@@ -1,4 +1,5 @@
 'use client';
+import { ShieldCheck } from 'lucide-react';
 
 /**
  * GuardrailsAdminPanel
@@ -65,7 +66,7 @@ export function GuardrailsAdminPanel({ enableGuardrails, isAdmin }: GuardrailsAd
   return (
     <div className="p-3 space-y-3" data-testid="guardrails-admin-panel">
       <div className="flex items-center gap-2">
-        <span>🛡️</span>
+        <ShieldCheck className="w-4 h-4" aria-hidden="true" />
         <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
           {t('title')}
         </h3>
@@ -79,7 +80,7 @@ export function GuardrailsAdminPanel({ enableGuardrails, isAdmin }: GuardrailsAd
       </div>
 
       {loading && (
-        <div className="text-xs text-gray-500 animate-pulse">Loading...</div>
+        <div /* check-ui-ignore: 読み込み中の表示 */ className="text-xs text-gray-500 animate-pulse">Loading...</div>
       )}
 
       {error && (

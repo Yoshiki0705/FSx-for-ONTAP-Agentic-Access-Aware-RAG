@@ -49,7 +49,7 @@ export function InferenceProfileSelector({ profileArn, costTags, onProfileChange
 
       {/* Inference Profile Selector */}
       {isLoading ? (
-        <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mb-3" />
+        <div /* check-ui-ignore: 読み込み中のスケルトン */ className="h-10 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mb-3" />
       ) : error ? (
         <p className="text-xs text-red-500 mb-3">{error}</p>
       ) : (

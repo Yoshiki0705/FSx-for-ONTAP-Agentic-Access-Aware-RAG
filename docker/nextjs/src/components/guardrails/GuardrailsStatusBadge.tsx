@@ -6,13 +6,14 @@
  * Displays a visual badge indicating the Guardrails processing result
  * for a chat response message.
  *
- * - ✅ safe (green) — no filtering applied
- * - ⚠️ filtered (yellow/red) — content was filtered or blocked
- * - ⚠️ check unavailable (gray) — guardrails check failed
+ * - check icon: safe (green) — no filtering applied
+ * - warning icon: filtered (yellow/red) — content was filtered or blocked
+ * - warning icon: check unavailable (gray) — guardrails check failed
  * - Hidden when enableGuardrails=false
  */
 
 import { useState } from 'react';
+import { CheckCircle2, AlertTriangle, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export interface GuardrailResult {
@@ -47,28 +48,28 @@ export function GuardrailsStatusBadge({ guardrailResult, enableGuardrails }: Gua
 
   let badgeColor = '';
   let badgeText = '';
-  let badgeIcon = '';
+  let BadgeIcon: LucideIcon = AlertTriangle;
 
   switch (status) {
     case 'safe':
       badgeColor = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       badgeText = t('safe');
-      badgeIcon = '✅';
+      BadgeIcon = CheckCircle2;
       break;
     case 'filtered':
       badgeColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
       badgeText = t('filtered');
-      badgeIcon = '⚠️';
+      BadgeIcon = AlertTriangle;
       break;
     case 'blocked':
       badgeColor = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       badgeText = t('blocked');
-      badgeIcon = '⚠️';
+      BadgeIcon = AlertTriangle;
       break;
     case 'error':
       badgeColor = 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
       badgeText = t('checkUnavailable');
-      badgeIcon = '⚠️';
+      BadgeIcon = AlertTriangle;
       break;
     default:
       return null;
@@ -83,7 +84,7 @@ export function GuardrailsStatusBadge({ guardrailResult, enableGuardrails }: Gua
         aria-label={`Guardrails status: ${status}`}
         data-testid="guardrails-status-badge"
       >
-        <span>{badgeIcon}</span>
+        <BadgeIcon className="w-3.5 h-3.5" aria-hidden="true" />
         <span>{badgeText}</span>
       </button>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { XCircle } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { BedrockModel } from '../../config/bedrock-models';
 
@@ -107,7 +108,7 @@ export function UnavailableModelsList({
         className="flex items-center justify-between w-full text-left text-sm font-medium text-red-700 hover:text-red-900 mb-3"
       >
         <div className="flex items-center space-x-2">
-          <span>❌ {t('unavailableModels')} ({count}{t('count')})</span>
+          <span><XCircle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('unavailableModels')} ({count}{t('count')})</span>
         </div>
         <span className="ml-2 text-red-600">
           {(onToggle ? isExpanded : sectionExpanded) ? '▼' : '▶'}
@@ -150,7 +151,7 @@ export function UnavailableModelsList({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            <span className="text-red-600">❌</span>
+                            <span className="text-red-600"><XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                             <span className="font-medium text-gray-900">{model.name}</span>
                           </div>
                         </div>

@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { CheckCircle2, FlaskConical, AlertTriangle, XCircle, Folder, Save, Ban, Check, Globe, Bot, Lock, RefreshCw, Plus, Settings } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useChatStore } from '../../../store';
 import type { Message, ChatSession } from '../../../store';
@@ -108,7 +109,7 @@ async function generateFsxDirectoriesSection(
     
     if (!response.ok) {
       console.error('❌ [generateFsxDirectoriesSection] API error:', response.status);
-      return `\n\n**📁 ${tFsx('accessibleDirectories')}**\n${tFsx('errorLoadingDirectories')}`;
+      return `\n\n**${tFsx('accessibleDirectories')}**\n${tFsx('errorLoadingDirectories')}`;
     }
 
     const data = await response.json();
@@ -121,7 +122,7 @@ async function generateFsxDirectoriesSection(
     // 2. Check if directories exist
     if (!data.accessibleDirectories || data.accessibleDirectories.length === 0) {
       console.warn('⚠️ [generateFsxDirectoriesSection] No directories found');
-      return `\n\n**📁 ${tFsx('accessibleDirectories')}**\n${tFsx('noDirectories')}`;
+      return `\n\n**${tFsx('accessibleDirectories')}**\n${tFsx('noDirectories')}`;
     }
 
     // 3. Format directories list
@@ -135,7 +136,7 @@ async function generateFsxDirectoriesSection(
     // 4. Build FSx section
     const fsxSection = `
 
-**📁 ${tFsx('accessibleDirectories')}**
+**${tFsx('accessibleDirectories')}**
 
 **${tFsx('summary')}**
 • **${tFsx('totalDirectories')}**: ${data.totalDirectories}
@@ -149,7 +150,7 @@ ${directoriesList}`;
 
   } catch (error) {
     console.error('❌ [generateFsxDirectoriesSection] Error:', error);
-    return `\n\n**📁 ${tFsx('accessibleDirectories')}**\n${tFsx('errorLoadingDirectories')}`;
+    return `\n\n**${tFsx('accessibleDirectories')}**\n${tFsx('errorLoadingDirectories')}`;
   }
 }
 
@@ -273,7 +274,7 @@ const generateInitialMessageWithDirectories = (
         directoryNote = t('introduction.directoryType.actual', { fsxId });
         break;
       case 'sid-based':
-        directoryNote = t('introduction.directoryType.sidBased') || '🔐 SIDベースのアクセス権限';
+        directoryNote = t('introduction.directoryType.sidBased') || 'SIDベースのアクセス権限';
         break;
       case 'test':
         directoryNote = t('introduction.directoryType.test');
@@ -302,9 +303,9 @@ const generateInitialMessageWithDirectories = (
 **${t('introduction.yourPermissions')}**
 • **${t('introduction.user')}**: ${username}
 • **${t('introduction.role')}**: ${role || 'User'}${sidSection}
-• **📁 ${t('introduction.fsxDirectories') || 'FSxアクセス可能ディレクトリ'}**: ${directoryDisplay}
-• **🔍 ${t('introduction.ragDirectories') || 'RAG検索可能ディレクトリ'}**: ${ragDirectoryDisplay || directoryDisplay}${embeddedDirectoryDisplay && embeddedDirectoryDisplay === (ragDirectoryDisplay || directoryDisplay) ? `
-• **📚 ${t('introduction.embeddedDirectories') || 'Embedding対象ディレクトリ'}**: ${embeddedDirectoryDisplay}` : ''}
+• **${t('introduction.fsxDirectories') || 'FSxアクセス可能ディレクトリ'}**: ${directoryDisplay}
+• **${t('introduction.ragDirectories') || 'RAG検索可能ディレクトリ'}**: ${ragDirectoryDisplay || directoryDisplay}${embeddedDirectoryDisplay && embeddedDirectoryDisplay === (ragDirectoryDisplay || directoryDisplay) ? `
+• **${t('introduction.embeddedDirectories') || 'Embedding対象ディレクトリ'}**: ${embeddedDirectoryDisplay}` : ''}
 
 ${directoryNote}
 
@@ -1893,7 +1894,7 @@ function ChatbotPageContent() {
             ? `fixed top-0 left-0 h-full z-50 ${sidebarOpen ? 'w-80' : 'w-0'}`
             : `${sidebarOpen ? 'w-80' : 'w-0'} flex-shrink-0`
           }
-          transition-all duration-300 ease-in-out overflow-hidden bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
+          transition-[width] duration-300 ease-in-out overflow-hidden bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
         `}
         aria-hidden={!sidebarOpen}
       >
@@ -2024,10 +2025,10 @@ function ChatbotPageContent() {
                 <div className="space-y-1">
                   <div className="text-xs">
                     <div className="flex items-center space-x-1">
-                      {userDirectories.directoryType === 'actual' && <span className="text-green-600">✅</span>}
-                      {userDirectories.directoryType === 'test' && <span className="text-blue-600">🧪</span>}
-                      {userDirectories.directoryType === 'simulated' && <span className="text-yellow-600">⚠️</span>}
-                      {userDirectories.directoryType === 'unavailable' && <span className="text-red-600">❌</span>}
+                      {userDirectories.directoryType === 'actual' && <span className="text-green-600"><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" role="img" aria-label="実環境" /></span>}
+                      {userDirectories.directoryType === 'test' && <span className="text-blue-600"><FlaskConical className="w-4 h-4 inline-block align-text-bottom" role="img" aria-label="テスト" /></span>}
+                      {userDirectories.directoryType === 'simulated' && <span className="text-yellow-600"><AlertTriangle className="w-4 h-4 inline-block align-text-bottom" role="img" aria-label="シミュレーション" /></span>}
+                      {userDirectories.directoryType === 'unavailable' && <span className="text-red-600"><XCircle className="w-4 h-4 inline-block align-text-bottom" role="img" aria-label="利用不可" /></span>}
                       <span className="font-medium text-gray-700">
                         {userDirectories.directoryType === 'actual' && translations.fsxEnvironment}
                         {userDirectories.directoryType === 'test' && translations.testEnvironment}
@@ -2037,7 +2038,7 @@ function ChatbotPageContent() {
                     </div>
                   </div>
                   <div className="text-xs text-gray-600">
-                    <div>📁 {translations.directories.replace('{count}', userDirectories.accessibleDirectories.length.toString())}</div>
+                    <div><Folder className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{translations.directories.replace('{count}', userDirectories.accessibleDirectories.length.toString())}</div>
                     {userDirectories.accessibleDirectories.length > 0 && (
                       <div className="mt-1 ml-4 text-gray-500 dark:text-gray-500">
                         {userDirectories.accessibleDirectories.join(', ')}
@@ -2045,10 +2046,10 @@ function ChatbotPageContent() {
                     )}
                     <div className="flex items-center space-x-2 mt-1">
                       <span className={userDirectories.permissions.read ? 'text-green-600' : 'text-red-600'}>
-                        {userDirectories.permissions.read ? '✅' : '❌'} {translations.read}
+                        {userDirectories.permissions.read ? <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />} {translations.read}
                       </span>
                       <span className={userDirectories.permissions.write ? 'text-green-600' : 'text-red-600'}>
-                        {userDirectories.permissions.write ? '✅' : '❌'} {translations.write}
+                        {userDirectories.permissions.write ? <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />} {translations.write}
                       </span>
                     </div>
                   </div>
@@ -2080,27 +2081,27 @@ function ChatbotPageContent() {
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="text-base">{saveHistory ? '💾' : '🚫'}</span>
+                  <span className="text-base">{saveHistory ? <Save className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <Ban className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />}</span>
                   <div className="flex-1">
                     <div className="font-medium">{saveHistory ? translations.historySaving : translations.historyDisabled}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {saveHistory ? translations.autoSave : translations.sessionOnly}
                     </div>
                   </div>
-                  {saveHistory && <span className="text-green-600 dark:text-green-400">✓</span>}
+                  {saveHistory && <span className="text-green-600 dark:text-green-400"><Check className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>}
                 </div>
               </button>
             </div>
 
             {/* システム管理 CollapsiblePanel */}
-            <CollapsiblePanel title={tSidebar('systemSettings')} icon="⚙️" storageKey="system-settings">
+            <CollapsiblePanel title={tSidebar('systemSettings')} icon={<Settings className="w-4 h-4" />} storageKey="system-settings">
 
             {/* Bedrockリージョン選択セクション */}
             <div className="p-2 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{t('region.bedrockRegion')}</h3>
               <div className="text-xs text-gray-600 dark:text-gray-400">
-                <div>🌍 {RegionConfigManager.getRegionDisplayName(regionStore.selectedRegion)} ({regionStore.selectedRegion})</div>
-                <div>🤖 {availableModelCount}モデル利用可能</div>
+                <div><Globe className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{RegionConfigManager.getRegionDisplayName(regionStore.selectedRegion)} ({regionStore.selectedRegion})</div>
+                <div><Bot className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{availableModelCount}モデル利用可能</div>
               </div>
               <RegionSelector />
             </div>
@@ -2124,11 +2125,11 @@ function ChatbotPageContent() {
               <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{translations.permissionControl}</h3>
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
-                  <span className="text-green-600">✅</span>
+                  <span className="text-green-600"><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                   <span className="text-xs text-gray-600">{translations.available}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-blue-600">🔐</span>
+                  <span className="text-blue-600"><Lock className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                   <span className="text-xs text-gray-600">{translations.permissionControl}</span>
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
@@ -2144,7 +2145,7 @@ function ChatbotPageContent() {
       </div>
 
       {/* メインコンテンツ — Task 9.3: Chat_Area 最低幅 320px */}
-      <div className="flex-1 flex flex-col min-w-[320px] transition-all duration-300">
+      <div className="flex-1 flex flex-col min-w-[320px] transition-[width] duration-300">
         {/* ヘッダー — Flexbox左右グループレイアウト (Task 8.1) */}
         <header className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 flex-shrink-0">
           <div className="px-3 sm:px-4 lg:px-6">
@@ -2238,13 +2239,13 @@ function ChatbotPageContent() {
             
             {!currentSession && (
               <div className="text-center text-gray-500 dark:text-gray-400 mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                ⚠️ No current session (currentSession is null/undefined)
+                No current session (currentSession is null/undefined)
               </div>
             )}
             
             {currentSession && (!currentSession.messages || !Array.isArray(currentSession.messages) || currentSession.messages.length === 0) && (
               <div className="text-center text-gray-500 dark:text-gray-400 mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                ⚠️ No messages in session (messages: {JSON.stringify({
+                No messages in session (messages: {JSON.stringify({
                   exists: !!currentSession.messages,
                   isArray: Array.isArray(currentSession.messages),
                   length: currentSession.messages?.length
@@ -2431,7 +2432,7 @@ function ChatbotPageContent() {
                   }}
                   className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center space-x-1"
                 >
-                  <span>🔄</span>
+                  <span><RefreshCw className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                   <span>{t('chat.returnToWorkflow')}</span>
                 </button>
               </div>
@@ -2472,8 +2473,9 @@ function ChatbotPageContent() {
                 }}
                 className="px-3 py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex-shrink-0"
                 title={translations.newChatShortcut}
+                aria-label={translations.newChatShortcut}
               >
-                ➕
+                <Plus className="w-5 h-5" aria-hidden="true" />
               </button>
               <input
                 type="text"

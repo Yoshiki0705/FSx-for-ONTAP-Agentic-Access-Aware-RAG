@@ -10,6 +10,7 @@
 'use client';
 
 import React from 'react';
+import { FileText, Search, type LucideIcon } from 'lucide-react';
 import { useMultimodalStore } from '@/store/useMultimodalStore';
 import type { ActiveKBType } from '@/types/multimodal';
 
@@ -17,9 +18,9 @@ interface DualKBToggleProps {
   className?: string;
 }
 
-const KB_OPTIONS: { value: ActiveKBType; label: string; icon: string }[] = [
-  { value: 'text', label: 'Text Search', icon: '📄' },
-  { value: 'multimodal', label: 'Multimodal Search', icon: '🔍' },
+const KB_OPTIONS: { value: ActiveKBType; label: string; icon: LucideIcon }[] = [
+  { value: 'text', label: 'Text Search', icon: FileText },
+  { value: 'multimodal', label: 'Multimodal Search', icon: Search },
 ];
 
 export function DualKBToggle({ className = '' }: DualKBToggleProps) {
@@ -54,7 +55,7 @@ export function DualKBToggle({ className = '' }: DualKBToggleProps) {
               }
             `}
           >
-            <span className="mr-1">{opt.icon}</span>
+            <opt.icon className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />
             {opt.label}
           </button>
         );

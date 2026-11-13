@@ -99,8 +99,8 @@ describe('appendCitationList', () => {
 
     const result = appendCitationList(text, citations);
     expect(result).toContain('**Sources:**');
-    expect(result).toContain('[1] 🔒 report.pdf');
-    expect(result).toContain('[2] 🌐 AWS Docs');
+    expect(result).toContain('[1] [社内文書] report.pdf');
+    expect(result).toContain('[2] [外部] AWS Docs');
   });
 
   it('returns original text when no citations', () => {

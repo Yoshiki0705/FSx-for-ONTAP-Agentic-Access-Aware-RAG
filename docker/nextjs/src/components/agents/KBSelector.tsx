@@ -59,7 +59,7 @@ export function KBSelector({
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-14 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"
+              className="h-14 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" // check-ui-ignore: 読み込み中のスケルトン
             />
           ))}
         </div>

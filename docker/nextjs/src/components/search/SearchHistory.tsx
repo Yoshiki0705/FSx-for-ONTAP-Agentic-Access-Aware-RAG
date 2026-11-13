@@ -112,13 +112,7 @@ export function SearchHistory({
             {/* 削除ボタン */}
             <button
               onClick={() => onRemove(entry.query)}
-              className="
-                opacity-0 group-hover:opacity-100
-                text-gray-400 hover:text-red-600
-                dark:hover:text-red-400
-                transition-all
-                flex-shrink-0
-              "
+              className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-[opacity,color] flex-shrink-0" // check-ui-ignore: 触って開く操作ではなく、タッチと focus では常時表示
               aria-label={`"${entry.query}"を削除`}
             >
               <X className="w-4 h-4" />

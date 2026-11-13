@@ -50,7 +50,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     <div className={`relative ${className}`}>
       {isLoading && (
         <div 
-          className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse"
+          className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse" // check-ui-ignore: 読み込み中のスケルトン
           style={fill ? undefined : { width, height }}
         />
       )}

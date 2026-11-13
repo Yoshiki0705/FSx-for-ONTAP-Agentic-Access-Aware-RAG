@@ -5,6 +5,7 @@
  * Bedrock AgentとKnowledge Baseの切り替えUI
  */
 
+import { Bot, Library } from 'lucide-react';
 import { useChatStore } from '@/store/useChatStore';
 
 /**
@@ -25,12 +26,15 @@ export function AgentModeToggle() {
         fontWeight: 'bold',
         border: 'none',
         cursor: 'pointer',
-        display: 'block'
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
       }}
       aria-label={agentMode ? 'Agent モード' : 'KB モード'}
       title={agentMode ? 'Bedrock Agent モード' : 'Knowledge Base モード'}
     >
-      {agentMode ? '🤖 Agent' : '📚 KB'}
+      {agentMode ? <Bot className="w-4 h-4" aria-hidden="true" /> : <Library className="w-4 h-4" aria-hidden="true" />}
+      {agentMode ? 'Agent' : 'KB'}
     </button>
   );
 }

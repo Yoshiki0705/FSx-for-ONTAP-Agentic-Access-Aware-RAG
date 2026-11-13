@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../evaluation.md) | [English](../en/evaluation.md) | [한국어](../ko/evaluation.md) | [简体中文](../zh-CN/evaluation.md) | [繁體中文](../zh-TW/evaluation.md) | [Français](../fr/evaluation.md) | **Deutsch** | [Español](../es/evaluation.md)
 
+<!-- i18n:abridged -->
+> **⚠ Gekürzte Übersetzung**: Diese Übersetzung deckt nur einen Teil des japanischen Originals ab. Der vollständige Inhalt steht in der [japanischen Version](../evaluation.md).
+
 **Erstellt**: 2026-05-21  
 **Status**: Entwurf  
 **Zielgruppe**: PoC-Evaluierer, Projektmanager, Qualitätssicherungspersonal

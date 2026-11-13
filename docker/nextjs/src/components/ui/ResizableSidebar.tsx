@@ -82,7 +82,7 @@ export function ResizableSidebar({
       ref={sidebarRef}
       className={`${
         isOpen ? '' : 'w-0'
-      } transition-all duration-300 overflow-hidden bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 relative`}
+      } transition-[width] duration-300 overflow-hidden bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 relative`}
       style={{ width: isOpen ? `${width}px` : '0px' }}
     >
       {children}
@@ -90,7 +90,7 @@ export function ResizableSidebar({
       {/* リサイズハンドル - より目立つデザイン */}
       {isOpen && (
         <div
-          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize bg-blue-500 hover:bg-blue-600 transition-all z-10 ${
+          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize bg-blue-500 hover:bg-blue-600 transition-[background-color,width] z-10 ${
             isResizing ? 'w-2 bg-blue-600' : ''
           }`}
           onMouseDown={handleMouseDown}

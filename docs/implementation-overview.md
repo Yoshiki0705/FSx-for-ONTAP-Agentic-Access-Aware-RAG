@@ -1251,10 +1251,74 @@ TLS 証明書検証はデフォルトで有効 (`ONTAP_VERIFY_SSL=true`)。本�
 | CloudWatch Logs | ~$0.50 |
 | **合計** | **~$2.60** |
 
+### 19.1 既存ワークフローを AI エージェントのツールにする（AgentCore Gateway + Step Functions コネクタ）
+
+上記の Step Functions ワークフローは、ステートマシンに手を入れずに、Amazon Bedrock
+AgentCore Gateway 経由で AI エージェントのツールとして公開できる。Gateway の
+Step Functions コネクタ（`connectorId: "states"`）を使うと、ツール定義・認可・動かせる
+ステートマシンを Gateway 側でまとめて管理でき、Lambda や MCP サーバーを別に書く必要がない。
+
+判断（いつ動かすか・何を入力するか）はエージェントに任せ、手順（どのステップをどの順で
+実行するか）はステートマシンが強制する。承認の分岐や監査記録など、確実に守らせたいものは
+ワークフロー側に残せる。
+
+**[documented]** コネクタは 10 操作を公開でき、`StartExecution` / `StartSyncExecution` /
+`ListExecutions` / `DescribeStateMachine` は作成時にステートマシンを固定する（固定した ARN は
+ツールスキーマに現れず差し替え不可）。出典:
+https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-connector-step-functions.html
+
+#### 設計方針（このリポジトリ）
+
+DR フェイルオーバーは不可逆な切り替えのため、守りを 3 層に分ける。
+
+| 層 | 内容 |
+|----|------|
+| スコープ | 既定は読み取り系4操作のみ（`DescribeStateMachine` / `ListExecutions` / `DescribeExecution` / `GetExecutionHistory`）。副作用なし |
+| opt-in | 書き込み（`StartExecution` / `StopExecution`）は `enableSfnWriteOps=true` で明示的に有効化 |
+| Cedar | 書き込み opt-in 時は Policy Engine で、開始・停止を限定ロールの呼び出し元だけに許可（`sfnWriteOpsRolePattern`）。パターン未指定なら全ロール拒否 |
+
+Gateway は KB 検索用の Gateway とは別に立てる（`DemoSfnToolsGatewayStack`）。ターゲットは
+サービスロールを共有するため、DR 操作を KB 検索ツールと同じロールに同居させないための分離。
+ステートマシンは STANDARD なので、Express 専用の `StartSyncExecution` は使わず、
+`StartExecution` + `DescribeExecution` の非同期パターンで扱う。task token 系（`SendTask*`）は
+公開しない。
+
+#### 有効化
+
+```bash
+npx cdk deploy perm-rag-demo-demo-SfnToolsGateway --require-approval never \
+  -c enableSfnTools=true \
+  -c sfnFailoverArn=arn:aws:states:<region>:<account>:stateMachine:<standard-workflow>
+# 書き込みを有効化し、operator ロールだけに許可する場合
+#   -c enableSfnWriteOps=true -c sfnWriteOpsRolePattern=snapmirror-operator
+```
+
+ステートマシン ARN はコンテキストで渡す。`automation/fsxn-ops` は別の SAM / CFn スタックで、
+その出力に CFn Export が付いていないため `Fn.importValue` は使えない。
+
+#### 検証結果
+
+| 項目 | 結果 |
+|------|------|
+| `connectorId: "states"` の受理（Gateway + Target 作成） | **[verified 2026-10-31 / ap-northeast-1]** read-only でデプロイし CREATE_COMPLETE |
+| `tools/list` が読み取り系4ツールを公開 | **[verified 2026-10-31 / ap-northeast-1]** `<target>___<operation>` 形式。固定 ARN はスキーマから消える |
+| `DescribeStateMachine` の tool call | **[verified 2026-10-31 / ap-northeast-1]** `isError: False`、固定した STANDARD ステートマシンのメタデータを取得 |
+| 書き込み（`StartExecution`）の実動作 | **[hypothesis]** 実ワークフローに副作用があるため**未検証** |
+| Cedar `ENFORCE` の拒否経路 | **[hypothesis]** 書き込み検証とセットのため**未検証** |
+| 日本語入力の文字化け | **[field-observation]** 別報告で観測。読み取りに日本語入力経路が無く**再現未確認** |
+
+#### サンプルエージェント
+
+エージェント側からの呼び出し例は [`examples/sfn-agentcore-gateway/`](../examples/sfn-agentcore-gateway/README.md)
+（Strands Agents、スタンドアロン）。システムプロンプトに入力スキーマを与え、ツールを
+`snapmirror*` に絞り込む方法を示す。
+
 ### 関連ファイル
 
 | ファイル | 内容 |
 |---------|------|
+| `lib/stacks/demo/demo-sfn-tools-gateway-stack.ts` | Step Functions ツール Gateway（専用スタック） |
+| `examples/sfn-agentcore-gateway/` | Strands サンプルエージェント |
 | `automation/fsxn-ops/stepfunctions/snapmirror-failover.asl.json` | フェイルオーバー ASL |
 | `automation/fsxn-ops/stepfunctions/snapmirror-failback.asl.json` | フェイルバック ASL |
 | `automation/fsxn-ops/lambda/capacity_monitor/handler.py` | 容量監視 |

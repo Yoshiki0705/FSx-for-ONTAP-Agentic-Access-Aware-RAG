@@ -32,20 +32,20 @@ function BrandSectionSkeleton() {
           <div className="text-center">
             {/* ロゴスケルトン */}
             <div className="mb-8">
-              <div className="w-32 h-32 mx-auto bg-white bg-opacity-20 rounded-full animate-pulse"></div>
+              <div /* check-ui-ignore: 読み込み中のスケルトン */ className="w-32 h-32 mx-auto bg-white bg-opacity-20 rounded-full animate-pulse"></div>
             </div>
             
             {/* タイトルスケルトン */}
-            <div className="mb-4 h-12 bg-white bg-opacity-20 rounded animate-pulse"></div>
-            <div className="mb-6 h-8 bg-white bg-opacity-20 rounded animate-pulse"></div>
+            <div /* check-ui-ignore: 読み込み中のスケルトン */ className="mb-4 h-12 bg-white bg-opacity-20 rounded animate-pulse"></div>
+            <div /* check-ui-ignore: 読み込み中のスケルトン */ className="mb-6 h-8 bg-white bg-opacity-20 rounded animate-pulse"></div>
             
             {/* 説明スケルトン */}
-            <div className="mb-8 h-6 bg-white bg-opacity-20 rounded animate-pulse max-w-md mx-auto"></div>
+            <div /* check-ui-ignore: 読み込み中のスケルトン */ className="mb-8 h-6 bg-white bg-opacity-20 rounded animate-pulse max-w-md mx-auto"></div>
             
             {/* 技術ショーケーススケルトン */}
             <div className="grid grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white bg-opacity-10 rounded-lg p-4 animate-pulse">
+                <div /* check-ui-ignore: 読み込み中のスケルトン */ key={i} className="bg-white bg-opacity-10 rounded-lg p-4 animate-pulse">
                   <div className="h-8 bg-white bg-opacity-20 rounded mb-2"></div>
                   <div className="h-4 bg-white bg-opacity-20 rounded"></div>
                 </div>

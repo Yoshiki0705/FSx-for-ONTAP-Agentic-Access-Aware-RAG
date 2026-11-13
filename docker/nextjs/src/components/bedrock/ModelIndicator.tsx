@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Check } from 'lucide-react';
 import { truncateText } from '@/utils/truncateText';
 import { resolveModelForMode } from '@/utils/modelCompatibility';
 
@@ -242,7 +242,7 @@ export default function ModelIndicator({
                     {model.modelName}
                   </span>
                   {isSelected && (
-                    <span className="text-blue-500 flex-shrink-0">✓</span>
+                    <span className="text-blue-500 flex-shrink-0"><Check className="w-4 h-4" aria-hidden="true" /></span>
                   )}
                 </li>
               );

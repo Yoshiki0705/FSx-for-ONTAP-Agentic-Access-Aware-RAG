@@ -10,6 +10,8 @@
  */
 
 import React from 'react';
+import { Brain, Compass, FileText, Zap } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { RoutingMode } from '@/types/multi-agent';
 
 export interface RoutingModeDisplayProps {
@@ -23,15 +25,15 @@ export interface RoutingModeDisplayProps {
   isAutoRouted?: boolean;
 }
 
-const MODE_LABELS: Record<RoutingMode, { label: string; icon: string; description: string }> = {
+const MODE_LABELS: Record<RoutingMode, { label: string; icon: LucideIcon; description: string }> = {
   supervisor_router: {
     label: 'supervisor_router',
-    icon: '⚡',
+    icon: Zap,
     description: '低レイテンシモード — 最小限のCollaborator呼び出し',
   },
   supervisor: {
     label: 'supervisor',
-    icon: '🧠',
+    icon: Brain,
     description: 'フルモード — タスク分解と複数Collaborator協調',
   },
 };
@@ -54,7 +56,7 @@ export default function RoutingModeDisplay({
       aria-label="ルーティング判断"
     >
       <div className="flex items-center gap-2 text-sm">
-        <span aria-hidden="true">🧭</span>
+        <Compass className="w-4 h-4" aria-hidden="true" />
         <span className="font-semibold text-gray-700 dark:text-gray-300">
           ルーティング判断
         </span>
@@ -70,7 +72,7 @@ export default function RoutingModeDisplay({
         <div className="flex items-center gap-1.5">
           <span className="text-gray-500 dark:text-gray-400">モード:</span>
           <span className="font-mono font-medium text-gray-800 dark:text-gray-200">
-            {modeInfo.icon} {modeInfo.label}
+            <modeInfo.icon className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {modeInfo.label}
           </span>
         </div>
 
@@ -96,7 +98,7 @@ export default function RoutingModeDisplay({
       {/* Reason */}
       {reason && (
         <div className="text-xs text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-2">
-          <span className="text-gray-500 dark:text-gray-400">📝 判断理由: </span>
+          <span className="text-gray-500 dark:text-gray-400"><FileText className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 判断理由: </span>
           <span>{reason}</span>
         </div>
       )}
