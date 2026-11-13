@@ -56,7 +56,7 @@ This repository holds the **implementation and the measurements**. The **decisio
 | Security | [Governance & Audit Design](docs/en/governance-and-audit.md) | Audit logs, Responsible AI, Guardrails |
 | Data | [Chunking Strategy Guide](docs/en/chunking-strategy-guide.md) | FIXED_SIZE / HIERARCHICAL / SEMANTIC |
 | Data | [S3 Vectors SID Architecture](docs/en/s3-vectors-sid-architecture-guide.md) | Metadata constraints & filtering implementation |
-| Data | [S3 AP Compatibility Matrix](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md) | Platform-specific constraints (external) |
+| Data | [S3 AP Compatibility Matrix](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md) | Platform-specific constraints (external) |
 | Partners | [Partner Deployment Patterns](docs/en/partner-deployment-patterns.md) | Multi-tenancy, cost estimation |
 | Benchmarks | [Benchmark Scenarios](docs/en/benchmark-scenarios.md) | 10K/100K/1M file performance measurement |
 | Demo | [Industry Demo Data (7 industries)](demo-data/industry-packs/) | Government, healthcare, legal, manufacturing, construction, education, insurance |
@@ -105,7 +105,7 @@ Key features:
 | Vector store | S3 Vectors (default, 2KB filterable metadata limit) / OpenSearch Serverless (high perf) |
 | Responsible AI | AI output is an assistive signal. Final decisions are human responsibility. [Details](docs/en/governance-and-audit.md) |
 
-For the comprehensive S3 AP compatibility matrix, see [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md).
+For the comprehensive S3 AP compatibility matrix, see [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md).
 
 </details>
 
@@ -115,8 +115,8 @@ For the comprehensive S3 AP compatibility matrix, see [fsxn-lakehouse-integratio
 |-----------|---------|-------------|
 | **[This repo]** | AI / RAG | Permission-aware RAG + Agentic AI |
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless automation | 17 industry serverless patterns (FPolicy event-driven) |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Athena / Glue / EMR / SageMaker integration |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observability | Audit log delivery to Datadog / Splunk / Grafana without EC2 |
+| [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Athena / Glue / EMR / SageMaker integration |
+| [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability | Audit log delivery to Datadog / Splunk / Grafana without EC2 |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | Adoption decisions | Data-utilization domain hub: S3 AP authorization behaviour, constraints, and design options |
 
 **Common foundation**: All repos use FSx for ONTAP S3 Access Points, extending data utilization without disrupting NFS/SMB workloads.

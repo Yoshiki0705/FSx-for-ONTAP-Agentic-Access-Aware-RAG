@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { CheckCircle2, RefreshCw, XCircle, AlertTriangle, Trash2, HelpCircle, Plus, Rocket, Circle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/Button';
@@ -123,20 +124,20 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
   const getStatusIcon = (status: AgentStatus) => {
     switch (status) {
       case 'PREPARED':
-        return '✅';
+        return <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />;
       case 'CREATING':
       case 'PREPARING':
       case 'VERSIONING':
       case 'UPDATING':
-        return '🔄';
+        return <RefreshCw className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />;
       case 'FAILED':
-        return '❌';
+        return <XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />;
       case 'NOT_PREPARED':
-        return '⚠️';
+        return <AlertTriangle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />;
       case 'DELETING':
-        return '🗑️';
+        return <Trash2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />;
       default:
-        return '❓';
+        return <HelpCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />;
     }
   };
 
@@ -239,7 +240,7 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
           variant="outline"
           className="text-xs"
         >
-          ➕
+          <Plus className="w-4 h-4" aria-label="追加" />
         </Button>
       </div>
 
@@ -363,7 +364,9 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
             <div className="flex justify-between">
               <span className="text-gray-600">{t('active')}:</span>
               <span className={displayAgentInfo.isActive ? 'text-green-600' : 'text-gray-500'}>
-                {displayAgentInfo.isActive ? `🟢 ${t('activeStatus')}` : `⚫ ${t('inactiveStatus')}`}
+                {displayAgentInfo.isActive
+                  ? <><Circle className="w-3 h-3 inline-block align-baseline mr-1 fill-current" aria-hidden="true" />{t('activeStatus')}</>
+                  : <><Circle className="w-3 h-3 inline-block align-baseline mr-1" aria-hidden="true" />{t('inactiveStatus')}</>}
               </span>
             </div>
           )}
@@ -429,7 +432,7 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
             (displayAgentInfo && 'agentStatus' in displayAgentInfo && (displayAgentInfo.agentStatus === 'CREATING' || displayAgentInfo.agentStatus === 'DELETING'))
           }
         >
-          🚀 {t('createNew')}
+          <Rocket className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('createNew')}
         </Button>
 
         {selectedAgentId && displayAgentInfo && (
@@ -494,7 +497,7 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
               (displayAgentInfo && 'agentStatus' in displayAgentInfo && displayAgentInfo.agentStatus && (displayAgentInfo.agentStatus === 'CREATING' || displayAgentInfo.agentStatus === 'DELETING'))
             }
           >
-            🗑️ {
+            <Trash2 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{
               ((displayAgentInfo && 'status' in displayAgentInfo && displayAgentInfo.status === 'DELETING') ||
                (displayAgentInfo && 'agentStatus' in displayAgentInfo && displayAgentInfo.agentStatus === 'DELETING'))
                 ? t('deleting') 

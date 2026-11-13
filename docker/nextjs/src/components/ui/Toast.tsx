@@ -4,6 +4,7 @@ import { useCustomTranslations } from '@/hooks/useCustomTranslations';
 import { useLocale } from 'next-intl';
 
 import { useEffect, useState } from 'react';
+import { CheckCircle2, XCircle, Info, AlertTriangle } from 'lucide-react';
 
 export interface ToastProps {
   message: string;
@@ -40,20 +41,21 @@ export function Toast({ message, type = 'info', duration = 3000, onClose }: Toas
   };
 
   const icons = {
-    success: '✅',
-    error: '❌',
-    info: 'ℹ️',
-    warning: '⚠️',
+    success: CheckCircle2,
+    error: XCircle,
+    info: Info,
+    warning: AlertTriangle,
   };
+  const Icon = icons[type];
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 max-w-md p-4 border rounded-lg shadow-lg transition-all duration-300 ${
+      className={`fixed top-4 right-4 z-50 max-w-md p-4 border rounded-lg shadow-lg transition-[opacity,transform] duration-300 ${
         typeStyles[type]
       } ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
     >
       <div className="flex items-start space-x-3">
-        <span className="text-xl flex-shrink-0">{icons[type]}</span>
+        <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
         <div className="flex-1">
           <p className="text-sm font-medium">{message}</p>
         </div>

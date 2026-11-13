@@ -1,6 +1,22 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import {
+  BarChart3,
+  Bot,
+  CheckCircle2,
+  Circle,
+  Eye,
+  FileText,
+  Library,
+  Loader2,
+  Lock,
+  RefreshCw,
+  SkipForward,
+  Timer,
+  XCircle,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type {
   MultiAgentExecutionStatus as ExecutionStatusType,
   CollaboratorRole,
@@ -10,32 +26,32 @@ import type {
 
 const STATUS_DISPLAY: Record<
   'pending' | 'running' | 'completed' | 'failed' | 'skipped',
-  { icon: string; label: string }
+  { icon: LucideIcon; label: string }
 > = {
-  pending: { icon: '○', label: '待機中' },
-  running: { icon: '⏳', label: '実行中...' },
-  completed: { icon: '✅', label: '完了' },
-  failed: { icon: '❌', label: 'エラー' },
-  skipped: { icon: '⏭️', label: 'スキップ' },
+  pending: { icon: Circle, label: '待機中' },
+  running: { icon: Loader2, label: '実行中...' },
+  completed: { icon: CheckCircle2, label: '完了' },
+  failed: { icon: XCircle, label: 'エラー' },
+  skipped: { icon: SkipForward, label: 'スキップ' },
 };
 
 const PHASE_DISPLAY: Record<
   ExecutionStatusType['currentPhase'],
-  { icon: string; label: string }
+  { icon: LucideIcon; label: string }
 > = {
-  routing: { icon: '🔄', label: 'Supervisor: タスク分解中...' },
-  executing: { icon: '🔄', label: 'Supervisor: Collaborator実行中...' },
-  aggregating: { icon: '🔄', label: 'Supervisor: 結果統合中...' },
-  completed: { icon: '✅', label: 'Supervisor: 完了' },
-  error: { icon: '❌', label: 'Supervisor: エラー' },
+  routing: { icon: RefreshCw, label: 'Supervisor: タスク分解中...' },
+  executing: { icon: RefreshCw, label: 'Supervisor: Collaborator実行中...' },
+  aggregating: { icon: RefreshCw, label: 'Supervisor: 結果統合中...' },
+  completed: { icon: CheckCircle2, label: 'Supervisor: 完了' },
+  error: { icon: XCircle, label: 'Supervisor: エラー' },
 };
 
-const ROLE_ICON: Record<CollaboratorRole, string> = {
-  'permission-resolver': '🔒',
-  retrieval: '📚',
-  analysis: '📊',
-  output: '📝',
-  vision: '👁️',
+const ROLE_ICON: Record<CollaboratorRole, LucideIcon> = {
+  'permission-resolver': Lock,
+  retrieval: Library,
+  analysis: BarChart3,
+  output: FileText,
+  vision: Eye,
 };
 
 function formatMs(ms: number): string {
@@ -57,7 +73,7 @@ export interface MultiAgentExecutionStatusProps {
 /**
  * マルチエージェント実行中のリアルタイムステータス表示コンポーネント。
  *
- * - 各 Collaborator の状態表示: ○ 待機中 → ⏳ 実行中 → ✅ 完了 / ❌ エラー / ⏭️ スキップ
+ * - 各 Collaborator の状態表示: 待機中 → 実行中 → 完了 / エラー / スキップ（それぞれ専用アイコン）
  * - 実行時間のリアルタイム更新（100ms 間隔）
  * - 推定コスト表示
  * - パルスアニメーション（`animate-pulse`）を実行中 Collaborator に適用
@@ -97,6 +113,7 @@ export default function MultiAgentExecutionStatus({
   const collaborators = Array.from(collaboratorStatuses.entries());
 
   const phase = PHASE_DISPLAY[currentPhase];
+  const PhaseIcon = phase.icon;
 
   return (
     <div
@@ -116,7 +133,7 @@ export default function MultiAgentExecutionStatus({
               : ''
           }
         >
-          {phase.icon}
+          <PhaseIcon className="w-4 h-4" aria-hidden="true" />
         </span>
         <span>{phase.label}</span>
       </div>
@@ -126,7 +143,8 @@ export default function MultiAgentExecutionStatus({
         {collaborators.map(([id, collab], idx) => {
           const isLast = idx === collaborators.length - 1;
           const statusInfo = STATUS_DISPLAY[collab.status];
-          const roleIcon = ROLE_ICON[collab.role] ?? '🤖';
+          const RoleIcon = ROLE_ICON[collab.role] ?? Bot;
+          const StatusIcon = statusInfo.icon;
           const isRunning = collab.status === 'running';
 
           return (
@@ -134,7 +152,7 @@ export default function MultiAgentExecutionStatus({
               key={id}
               className={`
                 flex items-center gap-2 py-0.5 text-gray-700 dark:text-gray-300
-                ${isRunning ? 'animate-pulse' : ''}
+                ${isRunning ? 'animate-pulse' : '' /* check-ui-ignore: 実行中の Collaborator のみ */}
               `}
             >
               {/* Tree connector */}
@@ -144,7 +162,10 @@ export default function MultiAgentExecutionStatus({
 
               {/* Status icon */}
               <span className="flex-shrink-0 w-5 text-center" aria-hidden="true">
-                {statusInfo.icon}
+                <StatusIcon
+                  className="w-4 h-4 inline-block"
+                  data-testid={`status-icon-${collab.status}`}
+                />
               </span>
 
               {/* Agent name */}
@@ -159,7 +180,11 @@ export default function MultiAgentExecutionStatus({
 
               {/* Role icon + short status label */}
               <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                {roleIcon}
+                <RoleIcon
+                  className="w-3.5 h-3.5"
+                  aria-hidden="true"
+                  data-testid={`role-icon-${collab.role}`}
+                />
                 <span className="hidden sm:inline">{statusInfo.label}</span>
               </span>
             </li>
@@ -170,14 +195,14 @@ export default function MultiAgentExecutionStatus({
       {/* Footer: total elapsed time + estimated cost */}
       <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
         <span className="flex items-center gap-1">
-          ⏱️ 経過時間:
+          <Timer className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 経過時間:
           <span className="font-medium tabular-nums text-gray-700 dark:text-gray-300">
             {formatMs(elapsedMs)}
           </span>
         </span>
         <span className="text-gray-300 dark:text-gray-600">|</span>
         <span className="flex items-center gap-1" aria-label="Estimated cost">
-          📊 推定コスト:
+          <BarChart3 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 推定コスト:
           <span className="font-medium tabular-nums text-gray-700 dark:text-gray-300">
             {formatCost(estimatedCostUsd)}
           </span>

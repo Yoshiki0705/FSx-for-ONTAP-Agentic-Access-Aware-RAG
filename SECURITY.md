@@ -12,7 +12,12 @@ We release patches for security vulnerabilities for the following versions:
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability within this project, please open a GitHub issue with the label `security`. All security vulnerabilities will be promptly addressed.
+If you discover a security vulnerability within this project, please do **not** open a public GitHub issue, pull request, or discussion. A public report discloses the vulnerability before a fix is available.
+
+Report it privately instead, through GitHub's private vulnerability reporting:
+[open a private security advisory](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/security/advisories/new)
+(also reachable from the repository's **Security** tab → **Report a vulnerability**).
+The report is visible only to you and the repository maintainers. All security vulnerabilities will be promptly addressed.
 
 Please include the following information in your report:
 
@@ -97,4 +102,6 @@ This project follows AWS Well-Architected Framework security best practices and 
 
 ## Contact
 
-For security concerns, please open a GitHub issue with the label `security`.
+For security concerns, please report privately through a
+[private security advisory](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/security/advisories/new)
+rather than a public issue. See [Reporting a Vulnerability](#reporting-a-vulnerability).

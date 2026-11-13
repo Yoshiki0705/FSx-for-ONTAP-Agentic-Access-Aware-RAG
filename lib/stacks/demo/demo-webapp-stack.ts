@@ -14,6 +14,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -28,6 +29,13 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   projectName: string;
   environment: string;
   vpc: ec2.IVpc;
+  /**
+   * WebApp Lambda を配置するプライベートサブネット。
+   * 指定するとこのサブネットに明示配置する。未指定なら subnetType（PRIVATE_WITH_EGRESS）で
+   * 選択する（新規作成VPC向け）。既存VPC参照時はサブネットに aws-cdk:subnet-type タグが
+   * 無く subnetType 選択が効かないため、明示指定する。
+   */
+  privateSubnets?: ec2.ISubnet[];
   lambdaSg: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
   userPoolClient: cognito.IUserPoolClient;
@@ -148,7 +156,7 @@ export class DemoWebAppStack extends cdk.Stack {
     super(scope, id, props);
 
     const {
-      projectName, environment, vpc, lambdaSg,
+      projectName, environment, vpc, privateSubnets, lambdaSg,
       userPool, userPoolClient, knowledgeBaseId, imageUri,
       wafWebAclArn, permissionCacheTable, userAccessTable, dataBucket,
       allowedCountries = ['JP'],
@@ -156,6 +164,12 @@ export class DemoWebAppStack extends cdk.Stack {
     } = props;
     const { agentId, agentAliasId } = props;
     const prefix = `${projectName}-${environment}`;
+
+    // Lambda のサブネット選択。privateSubnets が渡れば明示配置（既存VPC向け・タグ非依存）、
+    // 無ければ従来どおり subnetType で選択（新規作成VPC向け）。
+    const lambdaVpcSubnets: ec2.SubnetSelection = privateSubnets && privateSubnets.length > 0
+      ? { subnets: privateSubnets }
+      : { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS };
 
     // ========================================
     // Lambda Web Adapter（Next.jsコンテナ）
@@ -176,7 +190,7 @@ export class DemoWebAppStack extends cdk.Stack {
       memorySize: 1024,
       timeout: cdk.Duration.seconds(30),
       vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      vpcSubnets: lambdaVpcSubnets,
       securityGroups: [lambdaSg],
       environment: {
         // Cognito設定
@@ -275,15 +289,23 @@ export class DemoWebAppStack extends cdk.Stack {
     // ========================================
     let permFilterFnArn = '';
     if (usePermissionFilterLambda) {
-      const permFilterFn = new lambda.Function(this, 'PermFilterFn', {
+      // The handler is TypeScript with relative imports. Shipping lambda/permissions as is gives
+      // the runtime .ts files it cannot load (MODULE_NOT_FOUND), and the WebApp then falls back to
+      // the inline filter without saying so. Bundle it with esbuild; the AWS SDK v3 comes from the
+      // runtime and is left external.
+      const permFilterFn = new lambdaNodejs.NodejsFunction(this, 'PermFilterFn', {
         functionName: `${prefix}-perm-filter`,
         runtime: lambda.Runtime.NODEJS_22_X,
-        handler: 'metadata-filter-handler.handler',
-        code: lambda.Code.fromAsset('lambda/permissions'),
+        entry: 'lambda/permissions/metadata-filter-handler.ts',
+        handler: 'handler',
+        bundling: {
+          externalModules: ['@aws-sdk/*'],
+          target: 'node22',
+        },
         timeout: cdk.Duration.seconds(30),
         memorySize: 256,
         vpc,
-        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        vpcSubnets: lambdaVpcSubnets,
         securityGroups: [lambdaSg],
         environment: {
           PERMISSION_CACHE_TABLE: permissionCacheTable.tableName,
@@ -297,6 +319,33 @@ export class DemoWebAppStack extends cdk.Stack {
 
       // WebApp LambdaからPermission Filter Lambdaを呼び出す権限
       permFilterFn.grantInvoke(this.webAppFunction);
+
+      // The NodejsFunction creates its own execution role with the two standard Lambda managed
+      // policies, same as the WebApp function above. grantInvoke adds a function-ARN wildcard
+      // (arn:...:function:<name>:*) so it covers every version/alias of the one function.
+      NagSuppressions.addResourceSuppressions(permFilterFn, [
+        {
+          id: 'AwsSolutions-IAM4',
+          reason: 'AWSLambdaBasicExecutionRole and AWSLambdaVPCAccessExecutionRole are standard AWS managed policies for Lambda. Required for CloudWatch Logs and ENI management in VPC. See: https://docs.aws.amazon.com/lambda/latest/dg/security-iam-awsmanpol.html',
+          appliesTo: [
+            'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
+            'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole',
+          ],
+        },
+      ], true);
+      NagSuppressions.addResourceSuppressions(this.webAppFunction, [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'grantInvoke scopes lambda:InvokeFunction to the single permission-filter function ARN; the trailing :* covers its versions and aliases, which have no separate ARN at synth time.',
+          appliesTo: ['Resource::<PermFilterFn88DAD4BB.Arn>:*'],
+        },
+      ], true);
+      NagSuppressions.addResourceSuppressions(permFilterFn, [
+        {
+          id: 'AwsSolutions-L1',
+          reason: 'The permission filter uses Node.js 22.x which is the latest LTS. cdk-nag may flag this until the runtime metadata is updated. Same treatment as the other NODEJS_22_X functions in this project.',
+        },
+      ]);
     }
 
     // WebApp環境変数にPermission Filter Lambda ARNを追加

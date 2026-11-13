@@ -1,6 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
+import {
+  AlertTriangle,
+  Ban,
+  Bot,
+  CheckCircle2,
+  Circle,
+  Eye,
+  FileText,
+  KeyRound,
+  Library,
+  BarChart3,
+  Loader2,
+  Lock,
+  SkipForward,
+  XCircle,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type {
   AgentTeamTraceEvent,
   CollaboratorRole,
@@ -39,23 +56,23 @@ const ROLE_COLORS: Record<
   },
 };
 
-const ROLE_ICON: Record<CollaboratorRole, string> = {
-  'permission-resolver': '🔒',
-  retrieval: '📚',
-  analysis: '📊',
-  output: '📝',
-  vision: '👁️',
+const ROLE_ICON: Record<CollaboratorRole, LucideIcon> = {
+  'permission-resolver': Lock,
+  retrieval: Library,
+  analysis: BarChart3,
+  output: FileText,
+  vision: Eye,
 };
 
 const STATUS_DISPLAY: Record<
   AgentTeamTraceEvent['status'],
-  { icon: string; label: string; className: string }
+  { icon: LucideIcon; label: string; className: string }
 > = {
-  PENDING: { icon: '○', label: '待機中', className: 'text-gray-500 dark:text-gray-400' },
-  IN_PROGRESS: { icon: '⏳', label: '実行中', className: 'text-yellow-600 dark:text-yellow-400' },
-  COMPLETED: { icon: '✅', label: '完了', className: 'text-green-600 dark:text-green-400' },
-  FAILED: { icon: '❌', label: 'エラー', className: 'text-red-600 dark:text-red-400' },
-  SKIPPED: { icon: '⏭️', label: 'スキップ', className: 'text-gray-500 dark:text-gray-400' },
+  PENDING: { icon: Circle, label: '待機中', className: 'text-gray-500 dark:text-gray-400' },
+  IN_PROGRESS: { icon: Loader2, label: '実行中', className: 'text-yellow-600 dark:text-yellow-400' },
+  COMPLETED: { icon: CheckCircle2, label: '完了', className: 'text-green-600 dark:text-green-400' },
+  FAILED: { icon: XCircle, label: 'エラー', className: 'text-red-600 dark:text-red-400' },
+  SKIPPED: { icon: SkipForward, label: 'スキップ', className: 'text-gray-500 dark:text-gray-400' },
 };
 
 // ===== Helpers =====
@@ -130,7 +147,7 @@ function PermissionResolverDetails({ trace }: { trace: AgentTeamTraceEvent }) {
   return (
     <div className="space-y-2">
       <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-        🔑 権限解決結果
+        <KeyRound className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 権限解決結果
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
         <div>
@@ -179,7 +196,7 @@ function RetrievalDetails({ trace }: { trace: AgentTeamTraceEvent }) {
   return (
     <div className="space-y-2">
       <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-        📚 検索結果詳細
+        <Library className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 検索結果詳細
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
         {kbId && (
@@ -226,7 +243,7 @@ function AccessDeniedWarning({ trace }: { trace: AgentTeamTraceEvent }) {
       role="alert"
     >
       <div className="flex items-start gap-2">
-        <span className="text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true">⚠️</span>
+        <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
         <div className="text-xs space-y-1">
           <div className="font-semibold text-red-700 dark:text-red-300">
             アクセス拒否が発生しました
@@ -277,6 +294,8 @@ export default function CollaboratorDetailPanel({
 
   const colors = getRoleColor(trace.collaboratorRole);
   const statusInfo = STATUS_DISPLAY[trace.status] ?? STATUS_DISPLAY.PENDING;
+  const RoleIcon = ROLE_ICON[trace.collaboratorRole] ?? Bot;
+  const StatusIcon = statusInfo.icon;
 
   return (
     <div
@@ -292,9 +311,11 @@ export default function CollaboratorDetailPanel({
         aria-expanded={!isCollapsed}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span aria-hidden="true">
-            {ROLE_ICON[trace.collaboratorRole] ?? '🤖'}
-          </span>
+          <RoleIcon
+            className="w-4 h-4 flex-shrink-0"
+            aria-hidden="true"
+            data-testid={`role-icon-${trace.collaboratorRole}`}
+          />
           <span className={`font-semibold ${colors.text} truncate`}>
             {trace.collaboratorName}
           </span>
@@ -302,14 +323,14 @@ export default function CollaboratorDetailPanel({
             className={`text-xs ${statusInfo.className} flex-shrink-0`}
             aria-label={`ステータス: ${statusInfo.label}`}
           >
-            {statusInfo.icon} {statusInfo.label}
+            <StatusIcon className="w-3.5 h-3.5 inline-block align-text-bottom" aria-hidden="true" /> {statusInfo.label}
           </span>
           {trace.accessDenied && (
             <span
               className="text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-1.5 py-0.5 rounded flex-shrink-0"
               aria-label="アクセス拒否"
             >
-              🚫 拒否
+              <Ban className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" data-testid="access-denied-icon" /> 拒否
             </span>
           )}
         </div>
@@ -339,7 +360,7 @@ export default function CollaboratorDetailPanel({
           {/* Token counts & execution time */}
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-md bg-white/60 dark:bg-gray-800/40 p-2 text-center">
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">
                 入力トークン
               </div>
               <div className="text-sm font-semibold tabular-nums text-gray-800 dark:text-gray-200">
@@ -347,7 +368,7 @@ export default function CollaboratorDetailPanel({
               </div>
             </div>
             <div className="rounded-md bg-white/60 dark:bg-gray-800/40 p-2 text-center">
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">
                 出力トークン
               </div>
               <div className="text-sm font-semibold tabular-nums text-gray-800 dark:text-gray-200">
@@ -355,7 +376,7 @@ export default function CollaboratorDetailPanel({
               </div>
             </div>
             <div className="rounded-md bg-white/60 dark:bg-gray-800/40 p-2 text-center">
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">
                 実行時間
               </div>
               <div className="text-sm font-semibold tabular-nums text-gray-800 dark:text-gray-200">

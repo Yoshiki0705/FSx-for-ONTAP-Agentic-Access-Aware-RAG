@@ -45,7 +45,7 @@ export function ConnectedKBList({ agentId, locale: _locale }: ConnectedKBListPro
         {[1, 2].map((i) => (
           <div
             key={i}
-            className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"
+            className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" // check-ui-ignore: 読み込み中のスケルトン
           />
         ))}
       </div>

@@ -99,7 +99,7 @@ aws bedrock-agent create-data-source \
 | S3 AP impossible mais un bucket S3 normal fonctionne | △ Conditionnel | Envisager un chemin de relais S3 basé sur DataSync (validation supplémentaire nécessaire pour la préservation des métadonnées ACL) |
 | La synchronisation du connecteur S3 elle-même échoue | ❌ FAIL | Migration non faisable. Conserver la configuration actuelle |
 
-> **Hypothèse du projet** : Nous supposons que la connexion est possible si l'API compatible S3 fonctionne, mais les contraintes spécifiques à S3 AP (comme la latence ListObjectsV2 notée dans la [matrice de compatibilité FSx for ONTAP S3 AP](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations/blob/main/docs/en/compatibility-matrix.md)) peuvent affecter le crawler de Managed KB.
+> **Hypothèse du projet** : Nous supposons que la connexion est possible si l'API compatible S3 fonctionne, mais les contraintes spécifiques à S3 AP (comme la latence ListObjectsV2 notée dans la [matrice de compatibilité FSx for ONTAP S3 AP](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md)) peuvent affecter le crawler de Managed KB.
 
 ### 2.2 Validation V2 : préservation des métadonnées
 
@@ -266,7 +266,7 @@ curl -X DELETE "https://<ontap-mgmt-ip>/api/storage/volumes/<clone-uuid>" \
 
 ## 5. Validation d'audit et de lineage (Phase C / Optionnel)
 
-⚠️ **Validation Required** : Savoir si l'accès via Managed KB est enregistré dans le lineage Unity Catalog de la cible d'intégration ([fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations)) n'est pas confirmé.
+⚠️ **Validation Required** : Savoir si l'accès via Managed KB est enregistré dans le lineage Unity Catalog de la cible d'intégration ([FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations)) n'est pas confirmé.
 
 **Aspects de validation** :
 

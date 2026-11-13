@@ -94,8 +94,8 @@ Características principales:
 |------------|-----|-------------|
 | **[Este repo]** | AI / RAG | RAG con filtrado de permisos + IA Agéntica |
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless | 17 patrones serverless por industria |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Analytics | Integración Athena / Glue / EMR / SageMaker |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | Observabilidad | Entrega de logs de auditoría a Datadog / Splunk / Grafana sin EC2 |
+| [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Integración Athena / Glue / EMR / SageMaker |
+| [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observabilidad | Entrega de logs de auditoría a Datadog / Splunk / Grafana sin EC2 |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | Decisiones de adopción | Hub del dominio data-utilization: comportamiento de autorización del S3 AP, restricciones y opciones de diseño |
 
 </details>

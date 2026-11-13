@@ -87,8 +87,10 @@ Los SIDs en este sistema son SIDs de grupo basados en ACL NTFS de Active Directo
 | Restricción | Valor nominal | Valor efectivo con Bedrock KB | Mitigación |
 |------------|---------------|-------------------------------|------------|
 | Metadatos filtrables | 2KB/vector | **Metadatos personalizados hasta 1KB** (1KB restante consumido por metadatos internos de Bedrock KB) | Minimizar metadatos personalizados |
-| Claves de metadatos non-filterable | Máx 10 claves/índice | 10 claves (5 claves auto de Bedrock KB + 5 claves personalizadas) | Priorizar claves auto de Bedrock KB como non-filterable |
+| Claves de metadatos non-filterable | Máx 10 claves/índice | 10 claves (7 claves de Bedrock KB + 3 claves personalizadas) | Priorizar claves auto de Bedrock KB como non-filterable |
 | Total de claves de metadatos | Máx 50 claves/vector | 35 claves (al usar Bedrock KB) | Sin problema |
+
+La indicación de declarar `AMAZON_BEDROCK_TEXT` y `AMAZON_BEDROCK_METADATA` como non-filterable está en la [documentación de Bedrock sobre fragmentación](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-chunking.html).
 
 ### 3. Verificación previa de permisos insuficientes
 

@@ -2,6 +2,9 @@
 
 **🌐 Language:** [日本語](../evaluation.md) | [English](../en/evaluation.md) | [한국어](../ko/evaluation.md) | [简体中文](../zh-CN/evaluation.md) | [繁體中文](../zh-TW/evaluation.md) | **Français** | [Deutsch](../de/evaluation.md) | [Español](../es/evaluation.md)
 
+<!-- i18n:abridged -->
+> **⚠ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../evaluation.md) pour le contenu complet.
+
 **Créé le** : 2026-05-21  
 **Statut** : Brouillon  
 **Public cible** : Évaluateurs PoC, chefs de projet, personnel d'assurance qualité

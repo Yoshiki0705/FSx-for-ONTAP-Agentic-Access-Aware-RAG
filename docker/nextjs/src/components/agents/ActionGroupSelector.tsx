@@ -80,7 +80,7 @@ export function ActionGroupSelector({ agentId, selectedGroups, onSelectionChange
 
       {isLoading && (
         <div className="space-y-2">
-          {[1, 2, 3].map(i => <div key={i} className="h-10 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />)}
+          {[1, 2, 3].map(i => <div /* check-ui-ignore: 読み込み中のスケルトン */ key={i} className="h-10 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />)}
         </div>
       )}
 

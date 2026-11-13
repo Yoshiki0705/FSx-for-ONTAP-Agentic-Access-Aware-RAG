@@ -215,7 +215,7 @@ export function ModeSwitchableSidebar(props: ModeSwitchableSidebarProps) {
 
   return (
     <div
-      className="fixed left-0 top-0 h-full bg-white dark:bg-gray-800 shadow-lg z-50 transition-all duration-300"
+      className="fixed left-0 top-0 h-full bg-white dark:bg-gray-800 shadow-lg z-50 transition-[transform,width] duration-300"
       style={{
         width: `${width}px`,
         transform: isOpen ? 'translateX(0)' : `translateX(-${width}px)`,

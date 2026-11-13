@@ -84,15 +84,13 @@ Bedrock KB Retrieve API → 搜尋結果 + 元資料（allowed_group_sids）
 | `allowed_group_sids` | SID 過濾 | 建議 non-filterable | 由於透過 Bedrock KB Retrieve API 進行應用程序端過濾，不需要 S3 Vectors 過濾 |
 | `access_level` | 存取級別顯示 | 建議 non-filterable | 用於 UI 顯示 |
 | `doc_type` | 文件類型 | 建議 non-filterable | 用於未來過濾 |
-| `source_uri` | 源文件路径 | non-filterable | 不可搜尋，僅供参考 |
-| `chunk_text` | 块文本 | non-filterable | 不可搜尋，大資料 |
 
 #### S3 Vectors 元資料約束（驗證中發現的實際值）
 
 | 約束 | 標称值 | 使用 Bedrock KB 時的有效值 | 缓解措施 |
 |-----------|---------------|-------------------------------|------------|
 | 可過濾元資料 | 2KB/向量 | **自訂元資料最多 1KB**（剩余 1KB 被 Bedrock KB 內部元資料消耗） | 最小化自訂元資料 |
-| Non-filterable 元資料鍵 | 最多 10 個鍵/索引 | 10 個鍵（5 個 Bedrock KB 自動鍵 + 5 個自訂鍵） | 优先將 Bedrock KB 自動鍵设為 non-filterable |
+| Non-filterable 元資料鍵 | 最多 10 個鍵/索引 | 10 個鍵（7 個 Bedrock KB 鍵 + 3 個自訂鍵） | 优先將 Bedrock KB 自動鍵设為 non-filterable |
 | 总元資料鍵 | 最多 50 個鍵/向量 | 35 個鍵（使用 Bedrock KB 時） | 無問題 |
 
 #### Bedrock KB 自動添加的元資料鍵
@@ -106,6 +104,10 @@ Bedrock KB Retrieve API → 搜尋結果 + 元資料（allowed_group_sids）
 | `x-amz-bedrock-kb-data-source-id` | 資料源 ID | ✅ |
 | `x-amz-bedrock-kb-source-uri` | 源 URI | ✅ |
 | `x-amz-bedrock-kb-document-page-number` | PDF 页码 | ✅ |
+| `AMAZON_BEDROCK_TEXT` | 區塊文字 | ✅ |
+| `AMAZON_BEDROCK_METADATA` | 區塊元資料 | ✅ |
+
+將 `AMAZON_BEDROCK_TEXT` 與 `AMAZON_BEDROCK_METADATA` 設為 non-filterable 的說明見 [Bedrock 分塊文件](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-chunking.html)。
 
 > **重要**：由於 PDF 页码元資料等原因，可過濾元資料可能超過 2KB。將所有 Bedrock KB 自動鍵包含在 `nonFilterableMetadataKeys` 中，並尽可能將自訂元資料设為 non-filterable。
 

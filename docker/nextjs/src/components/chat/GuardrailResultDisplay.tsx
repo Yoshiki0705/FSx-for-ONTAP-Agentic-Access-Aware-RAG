@@ -10,6 +10,7 @@
  */
 
 import React from 'react';
+import { AlertTriangle, Ban, CheckCircle2, Shield } from 'lucide-react';
 import type { MultiAgentTraceResult } from '@/types/multi-agent';
 
 export interface GuardrailResultDisplayProps {
@@ -18,9 +19,9 @@ export interface GuardrailResultDisplayProps {
 }
 
 const ASSESSMENT_DISPLAY = {
-  PASSED: { icon: '✅', label: '通過', className: 'text-green-600 dark:text-green-400' },
-  BLOCKED: { icon: '🚫', label: 'ブロック', className: 'text-red-600 dark:text-red-400' },
-  FILTERED: { icon: '⚠️', label: 'フィルタ適用', className: 'text-yellow-600 dark:text-yellow-400' },
+  PASSED: { icon: CheckCircle2, label: '通過', className: 'text-green-600 dark:text-green-400' },
+  BLOCKED: { icon: Ban, label: 'ブロック', className: 'text-red-600 dark:text-red-400' },
+  FILTERED: { icon: AlertTriangle, label: 'フィルタ適用', className: 'text-yellow-600 dark:text-yellow-400' },
 } as const;
 
 /**
@@ -32,6 +33,8 @@ export default function GuardrailResultDisplay({
   const inputInfo = ASSESSMENT_DISPLAY[guardrailResult.inputAssessment] ?? ASSESSMENT_DISPLAY.PASSED;
   const outputInfo = ASSESSMENT_DISPLAY[guardrailResult.outputAssessment] ?? ASSESSMENT_DISPLAY.PASSED;
 
+  const InputIcon = inputInfo.icon;
+  const OutputIcon = outputInfo.icon;
   const isInputBlocked = guardrailResult.inputAssessment === 'BLOCKED';
 
   return (
@@ -45,7 +48,7 @@ export default function GuardrailResultDisplay({
       aria-label="Guardrail評価結果"
     >
       <div className="flex items-center gap-2 text-sm">
-        <span aria-hidden="true">🛡️</span>
+        <Shield className="w-4 h-4" aria-hidden="true" />
         <span className="font-semibold text-gray-700 dark:text-gray-300">
           Guardrail評価
         </span>
@@ -56,7 +59,7 @@ export default function GuardrailResultDisplay({
         <div className="flex items-center gap-1.5">
           <span className="text-gray-500 dark:text-gray-400">入力評価:</span>
           <span className={`font-medium ${inputInfo.className}`}>
-            {inputInfo.icon} {inputInfo.label}
+            <InputIcon className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {inputInfo.label}
           </span>
         </div>
 
@@ -64,7 +67,7 @@ export default function GuardrailResultDisplay({
         <div className="flex items-center gap-1.5">
           <span className="text-gray-500 dark:text-gray-400">出力評価:</span>
           <span className={`font-medium ${outputInfo.className}`}>
-            {outputInfo.icon} {outputInfo.label}
+            <OutputIcon className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {outputInfo.label}
           </span>
         </div>
       </div>
@@ -85,7 +88,7 @@ export default function GuardrailResultDisplay({
           className="text-xs bg-red-100 dark:bg-red-900/30 rounded p-2 text-red-700 dark:text-red-300"
           role="alert"
         >
-          <span className="font-semibold">⚠️ 入力ブロック: </span>
+          <span className="font-semibold"><AlertTriangle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 入力ブロック: </span>
           Guardrailにより入力がブロックされたため、Collaborator Agentの呼び出しはスキップされました。
         </div>
       )}

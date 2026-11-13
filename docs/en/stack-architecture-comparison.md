@@ -127,7 +127,7 @@ The vector store configuration can be switched using the CDK context parameter `
 |------|----------------------|----------------------|--------------------------|--------------------------------|
 | **CDK Parameter** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors` (default) | Run `export-to-opensearch.sh` on top of configuration 2 | ⚠️ Not implemented (pending validation) |
 | **Cost** | ~$700/month (2 OCUs always running) | A few dollars/month (small scale) | S3 Vectors + AOSS OCU (only during export) | On-demand billing based on indexed data size + retrieval count |
-| **Latency** | ~10ms | Sub-second (cold), ~100ms (warm) | ~10ms (AOSS search after export) | ⚠️ Unmeasured (multi-hop adds multiple retrieval round trips) |
+| **Latency** | ~10ms (environment not stated; unverified) | Sub-second (cold), ~100ms (warm) (environment not stated; unverified) | ~10ms (AOSS search after export; environment not stated; unverified) | ⚠️ Unmeasured (multi-hop adds multiple retrieval round trips) |
 | **Filtering** | Metadata filter (`$eq`, `$ne`, `$in`, etc.) | Metadata filter (`$eq`, `$in`, `$and`, `$or`) | AOSS filtering after export | `filter` operators (incl. `listContains`) + `userContext` (⚠️ SID matching unverified) |
 | **Metadata Constraints** | No constraints | filterable 2KB/vector (effectively 1KB for custom), non-filterable keys max 10 | Follows AOSS constraints after export | ⚠️ Managed storage constraints undisclosed |
 | **Search Method** | Vector search / Hybrid (depends on kbSearchType) | Vector search / Hybrid (depends on kbSearchType) | AOSS search capabilities | Hybrid search + Agentic Retrieval (multi-hop) |

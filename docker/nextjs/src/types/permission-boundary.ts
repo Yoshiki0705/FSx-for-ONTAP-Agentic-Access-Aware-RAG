@@ -1,3 +1,5 @@
+import { Brain, Globe, Link, Lock } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 /**
  * Permission Boundary Classification — プロジェクト横断型定義
  *
@@ -61,13 +63,13 @@ export interface CitedResponse {
  */
 export const BOUNDARY_TYPE_DISPLAY: Record<PermissionBoundaryType, {
   label: { ja: string; en: string };
-  icon: string;
+  icon: LucideIcon;
   color: string;
   description: { ja: string; en: string };
 }> = {
   verified: {
     label: { ja: '社内文書', en: 'Internal Document' },
-    icon: '🔒',
+    icon: Lock,
     color: 'green',
     description: {
       ja: 'SIDマッチング済み。Permission-verified。',
@@ -76,7 +78,7 @@ export const BOUNDARY_TYPE_DISPLAY: Record<PermissionBoundaryType, {
   },
   reference: {
     label: { ja: '参考情報（外部）', en: 'Reference (External)' },
-    icon: '🌐',
+    icon: Globe,
     color: 'blue',
     description: {
       ja: '外部Web検索結果。Permission制御対象外。',
@@ -85,7 +87,7 @@ export const BOUNDARY_TYPE_DISPLAY: Record<PermissionBoundaryType, {
   },
   expanded: {
     label: { ja: '関連ドキュメント', en: 'Related Document' },
-    icon: '🔗',
+    icon: Link,
     color: 'orange',
     description: {
       ja: 'Graph展開による関連文書。リアルタイムSIDチェック済み。',
@@ -94,7 +96,7 @@ export const BOUNDARY_TYPE_DISPLAY: Record<PermissionBoundaryType, {
   },
   memory: {
     label: { ja: '記憶コンテキスト', en: 'Memory Context' },
-    icon: '🧠',
+    icon: Brain,
     color: 'purple',
     description: {
       ja: 'Agent Memoryからのコンテキスト。SIDスコープタグ付き。',

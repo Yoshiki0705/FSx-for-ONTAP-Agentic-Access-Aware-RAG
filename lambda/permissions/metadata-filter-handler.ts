@@ -154,12 +154,21 @@ async function setCachedResult(cacheKey: string, userId: string, documentId: str
 // ========================================
 
 /** ドキュメントメタデータからallowed_group_sidsを抽出 */
-function extractDocumentSIDs(metadata: Record<string, unknown>): string[] {
+export function extractDocumentSIDs(metadata: Record<string, unknown>): string[] {
   const raw = metadata?.allowed_group_sids
     ?? (metadata?.metadataAttributes as Record<string, unknown>)?.allowed_group_sids;
-  if (Array.isArray(raw)) return raw as string[];
+  // S3 Vectors returns each SID wrapped in literal double quotes (e.g. "S-1-5-21-...-512"), so the
+  // quotes must be stripped before matching user SIDs — otherwise every document is denied. This
+  // mirrors parseDocumentSIDs in docker/nextjs/src/lib/rag-pipeline/sid-filter.ts (the inline path).
+  const unquote = (s: unknown): string => (typeof s === 'string' ? s.replace(/^"|"$/g, '') : (s as string));
+  if (Array.isArray(raw)) return (raw as string[]).map(unquote);
   if (typeof raw === 'string') {
-    try { return JSON.parse(raw); } catch { return [raw]; }
+    try {
+      return (JSON.parse(raw) as string[]).map(unquote);
+    } catch {
+      if (raw.includes(',')) return raw.split(',').map(s => unquote(s.trim()));
+      return [unquote(raw)];
+    }
   }
   return [];
 }

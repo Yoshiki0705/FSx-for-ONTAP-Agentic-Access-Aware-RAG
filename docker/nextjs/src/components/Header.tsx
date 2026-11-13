@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Menu } from 'lucide-react';
+import { LogOut, User, Menu, Bot } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ThemeToggle } from './ui/ThemeToggle';
 import { LanguageSwitcher } from './ui/LanguageSwitcher';
@@ -82,7 +82,7 @@ export function Header({
 
   return (
     <header 
-      className="bg-blue-600 dark:bg-gray-800 shadow-lg transition-all duration-300"
+      className="bg-blue-600 dark:bg-gray-800 shadow-lg transition-[margin-left] duration-300"
       style={{
         marginLeft: showSidebarToggle ? 0 : `${headerMarginLeft}px`
       }}
@@ -109,7 +109,7 @@ export function Header({
               <div className="flex items-center space-x-1 sm:space-x-2">
                 {agentMode && (
                   <span className="px-1.5 sm:px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full font-medium whitespace-nowrap">
-                    🤖 Agent
+                    <Bot className="w-3 h-3 inline-block align-text-bottom mr-1" aria-hidden="true" />Agent
                   </span>
                 )}
                 {saveHistory && (

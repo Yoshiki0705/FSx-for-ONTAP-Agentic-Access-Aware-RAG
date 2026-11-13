@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import { CheckCircle2, Lightbulb } from 'lucide-react';
 import { useChatStore } from '../../store/useChatStore';
 
 // パラメータプリセット設定
@@ -122,13 +123,13 @@ export const BedrockParameterPanel: React.FC<BedrockParameterPanelProps> = ({
               onChange={(e) => setSaveHistory(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-[transform,border-color] peer-checked:bg-blue-600"></div>
           </label>
         </div>
         {saveHistory && (
           <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-xs text-blue-700">
-              ✅ チャット履歴が保存されます。過去の会話を後から参照できます。
+              <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />チャット履歴が保存されます。過去の会話を後から参照できます。
             </p>
           </div>
         )}
@@ -235,7 +236,7 @@ export const BedrockParameterPanel: React.FC<BedrockParameterPanelProps> = ({
       {/* 注意事項 */}
       <div className="p-2 bg-blue-50 border border-blue-200 rounded-md">
         <div className="text-xs text-blue-700">
-          <div className="font-medium mb-1">💡 ヒント</div>
+          <div className="font-medium mb-1"><Lightbulb className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />ヒント</div>
           <div>AIモデルの変更は上部の「AIモデル選択」セクションで行ってください。</div>
         </div>
       </div>
