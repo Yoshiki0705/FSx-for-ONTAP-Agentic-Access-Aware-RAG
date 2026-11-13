@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [4.5.0] - 2026-11-13
+画面のテンプレート的な書き方の検査と、画面の絵文字から `lucide-react` への置き換え。追跡されていたコンパイル出力 48 本を削除したため、本番ビルドが取り込むコードが変わる（下の「変更」を参照）。
+### Added
+- **`tools/check-ui.mjs`**: Hub（FSx-for-ONTAP-Adoption-Playbook）の `tools/portable/check-ui/` から取り込んだ画面ソースの検査。unslop-ai-app（Apache 2.0）由来で、帰属は `NOTICE` と `tools/LICENSE`。`node tools/check-ui.mjs --json docker/nextjs/src` で実行する。初回は 686 ファイルで 633 件、仕分けと意図して残した 37 行（`check-ui-ignore`）は `tools/check-ui.md` に記録（#246）
+### Changed
+- **画面の絵文字を `lucide-react` に置き換え**（#247）。`card-constants`、`color-utils`、`permission-boundary` のアイコンのデータは `string` から `LucideIcon` に変更。アイコンを置けない場所（`alert`、エラー文、チャット応答の Markdown、コメント）は絵文字を外して文だけにした。アイコンのみのボタンには `aria-label` を付けた。引用ラベルは `[社内文書]` / `[外部]`。`CollapsiblePanel` の `icon` は `ReactNode`
+- **画面のパターン**（#246）: `transition-all` を性質の指定に、派手なグラデーションを単色に、`uppercase tracking-wide` と斜体を削除、画面文言の「！」を「。」に変更。ホバーで出る操作は、タッチと focus では常時表示にした
+- **EOL の Node.js 18 と 20 の参照を削除**（#249）: `security-scan.yml` の Node を 20 から 22 に、未使用の `docker/app/Dockerfile`（Lambda `nodejs:18`）を削除。実行環境は Node 22（CI、`.nvmrc`、Docker `node:22-slim`、Lambda `nodejs22.x`）。この版のイメージは Node 22.23.5（2026-11-11 のセキュリティリリース）でビルドして確認した
+### Fixed
+- **追跡されていた `tsc` の出力 48 本を `docker/nextjs/src` から削除**（#248）: `.js`、`.d.ts`、`.d.ts.map`。Next.js 15.5.29 は拡張子なしの import を `.js`、`.tsx`、`.ts` の順に解決するため、本番ビルドは古い `useChatStore.js` を束ねていた（ビルド成果物で確認）。削除後は現行の `.ts` / `.tsx` が使われる。`docker/nextjs/.gitignore` に `src/**/*.js`、`src/**/*.d.ts`、`src/**/*.d.ts.map` を追加。**本番で動くコードが変わる**ので、デプロイ後にサインイン、チャット送信、履歴保存を確認すること
+- **辞書キーの `t("...")` が文字のまま画面に出ていた箇所**（#246、#247）: `GlobalRegionSelector.tsx`、`KBModeSidebar.tsx`、`AdvancedFilters.tsx`、`InstallPrompt.tsx`、`VirtualChatHistory.tsx`、`AccessibilityExample.tsx` の日本語の語を戻した
+- **KB モードのサイドバーのディレクトリ数**（#251）: 3 件を列挙しながら「0個」と表示していた。`count: 0` で整形済みの文字列に後から `{count}` を置換していたため。表示する場所で実際の件数を渡すようにした。この挙動は絵文字の置き換えより前の `main` にもあった
+### Known limitations
+- **Agent モード**: `enableAgent=true` は、Bedrock Agents Classic の利用実績がないアカウントではデプロイできない。`bedrock:CreateAgent` が AccessDenied（"Bedrock Agents is in Maintenance Mode"）を返し、CloudFormation の `AWS::Bedrock::Agent` も失敗する **[verified 2026-11-13 / ap-northeast-1]**。AWS 側の記述は [Amazon Bedrock Agents Classic maintenance mode](https://docs.aws.amazon.com/bedrock/latest/userguide/agents-classic-maintenance-mode.html) **[documented]**。AgentCore Memory の作成は `enableAgent` の中にあるため、`enableAgentCoreMemory` も同じ制約を受ける（コードの確認）
+- **履歴の保存**: 既定の構成では保存されない。`useChatStore.saveChatHistory` はログ出力のみ（TODO）で、`loadChatHistory` が読む localStorage の `chatHistory_<user>` に書く処理がない。再読み込み後に履歴のキーがないことを実環境で確認した **[verified 2026-11-13 / ap-northeast-1]**
+- **この版の実環境での確認範囲**: 既存の FSx for ONTAP と既存の VPC を使った CDK のみの構成（Networking、Storage、Security、AI、WebApp と WAF）で、手作業なしにデプロイでき、11 文書の取り込み、Cognito でのサインイン、KB モードのチャットと引用の表示を確認した **[verified 2026-11-13 / ap-northeast-1]**。確認していないもの: Agent モード、履歴の保存、権限制御の 4 ケースの再確認、`projectName` と `environment` を既定以外にした構成（cdk-nag の IAM5 抑制が既定名に固定されているため synth が失敗する）
 
 ### Fixed
 - **`post-deploy-setup.sh` のデモユーザー作成**: 一時パスワードと `DEMO_PASSWORD` が記号を含まず、User Pool のパスワードポリシー（記号必須）に反して `InvalidPasswordException` で止まっていた（実機で観測）。両方を記号付きにし、既存ユーザー以外の作成失敗とパスワード設定の失敗を握りつぶさず原因付きで止める（#235）
