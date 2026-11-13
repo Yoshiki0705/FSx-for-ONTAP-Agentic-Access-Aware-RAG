@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { Check } from 'lucide-react';
 import { useRegistryStore } from '@/store/useRegistryStore';
 import type { RegistryRecordDetail, RegistryImportResponse } from '@/types/registry';
 
@@ -48,7 +49,7 @@ export function RegistryImportDialog({ record, onClose }: RegistryImportDialogPr
         {result?.success && (
           <>
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-green-500 text-xl">✓</span>
+              <Check className="w-5 h-5 text-green-500" aria-hidden="true" />
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">Import Successful</h3>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">

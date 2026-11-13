@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
+import { KeyRound, Library, BarChart3, FileText, Eye, Bot, Download, AlertTriangle, type LucideIcon } from 'lucide-react';
 import type { AgentTeamTemplate } from '@/types/multi-agent';
 import { AgentMetadataBadges } from './AgentMetadataBadges';
 
@@ -14,16 +15,16 @@ import { AgentMetadataBadges } from './AgentMetadataBadges';
  */
 
 /** Collaborator role の表示用アイコンマッピング */
-const ROLE_ICONS: Record<string, string> = {
-  'permission-resolver': '🔑',
-  retrieval: '📚',
-  analysis: '📊',
-  output: '📝',
-  vision: '👁️',
+const ROLE_ICONS: Record<string, LucideIcon> = {
+  'permission-resolver': KeyRound,
+  retrieval: Library,
+  analysis: BarChart3,
+  output: FileText,
+  vision: Eye,
 };
 
-function getRoleIcon(role: string): string {
-  return ROLE_ICONS[role] ?? '🤖';
+function getRoleIcon(role: string): LucideIcon {
+  return ROLE_ICONS[role] ?? Bot;
 }
 
 /** RoutingMode の表示ラベル */
@@ -81,7 +82,7 @@ export function TemplateImportPreviewDialog({
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <span aria-hidden="true">📥</span>
+            <Download className="w-5 h-5" aria-hidden="true" />
             Team テンプレートインポート
           </h3>
         </div>
@@ -134,14 +135,16 @@ export function TemplateImportPreviewDialog({
               role="list"
               aria-label="Collaborator 一覧"
             >
-              {template.collaborators.map((collab, index) => (
+              {template.collaborators.map((collab, index) => {
+                const RoleIcon = getRoleIcon(collab.role);
+                return (
                 <li
                   key={`${collab.role}-${index}`}
                   className="px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750"
                   role="listitem"
                 >
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span aria-hidden="true">{getRoleIcon(collab.role)}</span>
+                    <RoleIcon className="w-4 h-4" aria-hidden="true" />
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {collab.agentName}
                     </span>
@@ -156,7 +159,8 @@ export function TemplateImportPreviewDialog({
                     compact
                   />
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </div>
 
@@ -165,9 +169,7 @@ export function TemplateImportPreviewDialog({
             className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg"
             role="alert"
           >
-            <span className="text-yellow-600 dark:text-yellow-400 shrink-0" aria-hidden="true">
-              ⚠️
-            </span>
+            <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-sm text-yellow-700 dark:text-yellow-300">
               シークレット情報は含まれていません。インポート後にIAMロール等の環境設定が必要です。
             </p>

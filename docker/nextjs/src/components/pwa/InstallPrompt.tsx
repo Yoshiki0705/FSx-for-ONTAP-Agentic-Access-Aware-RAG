@@ -96,7 +96,7 @@ export function InstallPrompt() {
         <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 mb-4 ml-15">
           <li>• オフラインでも利用可能</li>
           <li>• 高速な起動</li>
-          <li>• プッシュ通知t("permissions.available")</li>
+          <li>• プッシュ通知対応</li>
         </ul>
 
         {/* アクションボタン */}

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HelpCircle, Trash2, XCircle } from 'lucide-react';
 import type { Episode } from '@/types/episode';
 
 interface EpisodeCardProps {
@@ -17,13 +17,13 @@ interface EpisodeCardProps {
 function StatusIcon({ status }: { status: string }) {
   switch (status) {
     case 'success':
-      return <span title="Success">✅</span>;
+      return <span title="Success" role="img" aria-label="Success"><CheckCircle2 className="w-4 h-4" aria-hidden="true" /></span>;
     case 'partial':
-      return <span title="Partial">⚠️</span>;
+      return <span title="Partial" role="img" aria-label="Partial"><AlertTriangle className="w-4 h-4" aria-hidden="true" /></span>;
     case 'failure':
-      return <span title="Failure">❌</span>;
+      return <span title="Failure" role="img" aria-label="Failure"><XCircle className="w-4 h-4" aria-hidden="true" /></span>;
     default:
-      return <span>❓</span>;
+      return <HelpCircle className="w-4 h-4" aria-hidden="true" />;
   }
 }
 
@@ -70,7 +70,7 @@ export function EpisodeCard({ episode, onDelete, onSelect }: EpisodeCardProps) {
       {/* 削除ボタン（ホバー時表示） */}
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(episode.id); }}
-        className="flex-shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
+        className="flex-shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400" // check-ui-ignore: 触って開く操作ではなく、タッチと focus では常時表示
         aria-label={t('common.delete')}
         title={t('common.delete')}
       >

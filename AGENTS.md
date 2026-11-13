@@ -10,7 +10,7 @@
 ```bash
 # 単一入口
 make all     # 型検査 + Jest + リンク + 証跡ラベル + 抄訳開示 + 依存関係
-make synth   # CI と同じ 10 レーン
+make synth   # CI の synth-matrix と同じレーン
 ```
 
 ```bash
@@ -28,11 +28,20 @@ npx cdk synth --quiet -c enableMonitoring=true
 npx cdk synth --quiet -c enableVoiceChat=true -c voiceChatMode=webrtc
 npx cdk synth --quiet -c enableGuardrails=true -c enableAgentCoreGateway=true -c enableWebSearch=true
 npx cdk synth --quiet -c enableAgent=true -c enableAgentCoreGateway=true -c enableAgentOptimization=true
+# Step Functions tools Gateway。state machine ARN が 1 本も無いと bin/demo-app.ts が throw する。
+npx cdk synth --quiet -c enableSfnTools=true \
+  -c sfnFailoverArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failover \
+  -c sfnFailbackArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failback
+# 書き込み opt-in + Cedar 限定（PolicyEngine / Policy / StopExecution 権限はこのレーンでのみ生成）
+npx cdk synth --quiet -c enableSfnTools=true \
+  -c sfnFailoverArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failover \
+  -c sfnFailbackArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failback \
+  -c enableSfnWriteOps=true -c sfnWriteOpsRolePattern=snapmirror-operator
 npx cdk synth --quiet -c kbSearchType=HYBRID
 npx cdk synth --quiet -c kbChunkingStrategy=HIERARCHICAL
 npx cdk synth --quiet -c kbChunkingStrategy=SEMANTIC
 
-# 上記 10 通りが CI の synth-matrix ジョブ（.github/workflows/ci-cd.yml）のレーンと同一。
+# 上記が CI の synth-matrix ジョブ（.github/workflows/ci-cd.yml）のレーンと同一。
 # フラグを追加したら、そのフラグでのみ生成されるリソースが増えるため、
 # 行列にレーンを 1 本足す。既定 synth だけでは cdk-nag の抑制漏れを検出できない。
 
@@ -176,6 +185,11 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 | `enableWebSearch` | `false` | Web Search: when combined with `enableAgentCoreGateway=true`, synthesizes a dedicated us-east-1 `DemoWebSearchGatewayStack` (cross-region) hosting the Web Search target; sets `ENABLE_WEB_SEARCH` env var (Claude Platform mechanism A) and injects `WEB_SEARCH_GATEWAY_URL` (mechanism C) |
 | `policyEngineMode` | `"LOG_ONLY"` | Policy Engine enforcement (`"LOG_ONLY"` \| `"ENFORCE"`) |
 | `enableAgentOptimization` | `false` | AgentCore Optimization — Configuration Bundles + Recommendations + A/B Testing (Preview, requires enableAgentCoreGateway) |
+| `enableSfnTools` | `false` | Expose existing Step Functions workflows as agent tools via a dedicated `DemoSfnToolsGatewayStack` (separate Gateway, separate service role from the KB Gateway). Requires at least one state machine ARN (`sfnFailoverArn` / `sfnFailbackArn`); throws at synth time otherwise. Default scope is **read-only** (DescribeStateMachine / ListExecutions / DescribeExecution / GetExecutionHistory) |
+| `sfnFailoverArn` / `sfnFailbackArn` | (none) | State machine ARNs (STANDARD) to expose. Passed by context because `automation/fsxn-ops` is a separate SAM/CFn stack whose outputs are not CFn-Exported (no `Fn.importValue`). One target is created per workflow |
+| `enableSfnWriteOps` | `false` | Opt-in to expose write ops (`StartExecution` / `StopExecution`) on the Step Functions Gateway. Creates a Policy Engine and Cedar policies that `forbid` write ops unless the caller's role matches `sfnWriteOpsRolePattern` |
+| `sfnWriteOpsRolePattern` | (none) | Role-name substring allowed to call write ops (Cedar `principal.id like "*<pattern>*"`). With `enableSfnWriteOps=true` but no pattern, write ops are forbidden for everyone (safe default) |
+| `sfnPolicyEngineMode` | follows `policyEngineMode` | Enforcement mode for the Step Functions Gateway's Cedar policies (`LOG_ONLY` \| `ENFORCE`) |
 | `enableGraphRAG` | `false` | Graph RAG with Neptune Analytics (document relationship graph) |
 | `enableAgentRegistry` | `false` | Agent Registry integration |
 | `enableAdvancedPermissions` | `false` | Time-based access control + audit logging |
@@ -361,8 +375,8 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Repository | Purpose |
 |-----------|---------|
 | [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | 17 industry serverless patterns via S3 AP |
-| [fsxn-lakehouse-integrations](https://github.com/Yoshiki0705/fsxn-lakehouse-integrations) | Athena/Glue/EMR/SageMaker integration via S3 AP |
-| [fsxn-observability-integrations](https://github.com/Yoshiki0705/fsxn-observability-integrations) | EC2-free audit log delivery to Datadog/Splunk/Grafana |
+| [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Athena/Glue/EMR/SageMaker integration via S3 AP |
+| [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | EC2-free audit log delivery to Datadog/Splunk/Grafana |
 
 ## Common Pitfalls & Solutions
 
@@ -471,6 +485,10 @@ When updating model IDs (AWS Health notifications, EOL):
 
 > ユーザーレベル Kiro グローバル steering のミラー。steering 未ロードの環境でも従えるようにする。
 > CI: `.github/workflows/agent-output-audit.yml`（命名/中立性/リーク/parity）と `gitleaks.yml`（シークレット）。
+
+本リポジトリの文書に適用する writing-quality 基準は Hub に一元化してある（重複を避け、乖離を防ぐため）: https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/blob/main/docs/agent/writing-quality.md
+
+多段タスク（新パターン追加 / 検証ラン / IaC 変更）の判断記録・監査役・ばらつき測定の規律は [エージェント運用規律](docs/agent-operating-discipline.md) に接続だけを置く（本体はグローバル steering、ここは複製しない）。
 
 ### Evidence labels
 - 製品・サービスの挙動についての主張には [証跡の区分ポリシー](docs/evidence-policy.md) の 4 語を行内ラベルで付ける: `verified`（日付 + リージョン必須）/ `documented`（出典必須）/ `field-observation`（再現未確認と明記）/ `hypothesis`（未検証と明記）。

@@ -373,22 +373,27 @@ elif [[ -n "$VPC_ID" ]]; then
     EP_COUNT=$(echo "$EXISTING_EPS" | wc -l | tr -d ' ')
     green "Existing VPC Endpoints: $EP_COUNT found"
 
-    # Check for potential conflicts
-    CONFLICT_SERVICES=("s3" "dynamodb" "bedrock-runtime" "secretsmanager" "sts")
-    CONFLICTS_FOUND=()
+    # With existingVpcId this project creates no VPC endpoints, so nothing can
+    # collide. List which services the VPC already reaches privately so the
+    # operator can confirm the subnets in existingPrivateSubnetIds are enough.
+    REACHABLE_SERVICES=("s3" "dynamodb" "bedrock-runtime" "secretsmanager" "sts")
+    PRIVATE_FOUND=()
+    PRIVATE_MISSING=()
 
-    for SVC in "${CONFLICT_SERVICES[@]}"; do
+    for SVC in "${REACHABLE_SERVICES[@]}"; do
       if echo "$EXISTING_EPS" | grep -qi "$SVC"; then
-        CONFLICTS_FOUND+=("$SVC")
+        PRIVATE_FOUND+=("$SVC")
+      else
+        PRIVATE_MISSING+=("$SVC")
       fi
     done
 
-    if [[ ${#CONFLICTS_FOUND[@]} -gt 0 ]]; then
-      orange "Potential CDK conflicts: ${CONFLICTS_FOUND[*]}"
-      info "Add to cdk.context.json to prevent duplicate creation:"
-      info "  \"skipVpcEndpoints\": [$(printf '"%s",' "${CONFLICTS_FOUND[@]}" | sed 's/,$//')]"
-    else
-      green "No endpoint conflicts detected"
+    info "No endpoints are created for an existing VPC (enableVpcEndpoints is ignored)"
+    if [[ ${#PRIVATE_FOUND[@]} -gt 0 ]]; then
+      green "Private endpoints present: ${PRIVATE_FOUND[*]}"
+    fi
+    if [[ ${#PRIVATE_MISSING[@]} -gt 0 ]]; then
+      info "No endpoint for: ${PRIVATE_MISSING[*]} (needs a NAT Gateway route from the private subnets)"
     fi
 
     # Distinguish Gateway vs Interface

@@ -108,11 +108,11 @@ AD User -> CloudFront UI -> "AD Sign-in" button
   -> OAuth Callback -> Session Cookie -> Chat UI
 ```
 
-ADユーザーがSAML経由でサインインすると、以下が全て自動で行われます:
+ADユーザーがSAML経由でサインインすると、次の 3 つが全て自動で行われます。
 
-1. **Cognitoユーザー自動作成** — SAMLアサーションのメール属性からCognitoユーザーを自動生成
-2. **SID自動取得** — AD Sync LambdaがADからユーザーSID + グループSIDを取得
-3. **DynamoDB自動登録** — 取得したSIDデータを `user-access` テーブルに保存（24時間キャッシュ）
+1. **Cognitoユーザー自動作成**（SAMLアサーションのメール属性からCognitoユーザーを自動生成）
+2. **SID自動取得**（AD Sync LambdaがADからユーザーSID + グループSIDを取得）
+3. **DynamoDB自動登録**（取得したSIDデータを `user-access` テーブルに保存、24時間キャッシュ）
 
 管理者の手動作業は不要です。
 
@@ -197,11 +197,11 @@ OIDC User -> CloudFront UI -> "OIDCでサインイン" button
   -> OAuth Callback -> Session Cookie -> Chat UI
 ```
 
-OIDCユーザーがサインインすると、以下が全て自動で行われます:
+OIDCユーザーがサインインすると、次の 3 つが全て自動で行われます。
 
-1. **Cognitoユーザー自動作成** — OIDCアサーションのemail属性からCognitoユーザーを自動生成
-2. **権限情報自動取得** — Identity Sync LambdaがLDAPサーバーまたはOIDCクレームからSID/UID/GID/グループ情報を取得
-3. **DynamoDB自動登録** — 取得した権限データを `user-access` テーブルに保存（24時間キャッシュ）
+1. **Cognitoユーザー自動作成**（OIDCアサーションのemail属性からCognitoユーザーを自動生成）
+2. **権限情報自動取得**（Identity Sync LambdaがLDAPサーバーまたはOIDCクレームからSID/UID/GID/グループ情報を取得）
+3. **DynamoDB自動登録**（取得した権限データを `user-access` テーブルに保存、24時間キャッシュ）
 
 ### 設定駆動の自動有効化
 
@@ -570,7 +570,7 @@ Auth0 OIDCサインイン成功後のチャット画面:
 
 ## 関連ドキュメント
 
-- [README.md — AD SAMLフェデレーション](auth-and-user-management.md#モード2-ad-federationの場合) — CDKデプロイ手順
-- [docs/implementation-overview.md — セクション3: IAM認証](implementation-overview.md#3-iam認証--lambda-function-url-iam-auth--cloudfront-oac) — インフラ層の認証設計
-- [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) — SIDフィルタリングの詳細設計
-- [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md) — FSx for ONTAP AD連携設定
+- [README.md: AD SAMLフェデレーション](auth-and-user-management.md#モード2-ad-federationの場合)（CDKデプロイ手順）
+- [docs/implementation-overview.md セクション3: IAM認証](implementation-overview.md#3-iam認証--lambda-function-url-iam-auth--cloudfront-oac)（インフラ層の認証設計）
+- [docs/SID-Filtering-Architecture.md](SID-Filtering-Architecture.md)（SIDフィルタリングの詳細設計）
+- [demo-data/guides/ontap-setup-guide.md](../demo-data/guides/ontap-setup-guide.md)（FSx for ONTAP AD連携設定）

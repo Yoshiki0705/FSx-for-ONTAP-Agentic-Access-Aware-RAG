@@ -100,7 +100,7 @@ export function appendCitationList(
   if (citations.length === 0) return responseText;
 
   const citationLines = citations.map((c) => {
-    const typeLabel = c.boundaryType === 'verified' ? '🔒' : '🌐';
+    const typeLabel = c.boundaryType === 'verified' ? '[社内文書]' : '[外部]';
     return `[${c.index}] ${typeLabel} ${c.sourceName}`;
   });
 

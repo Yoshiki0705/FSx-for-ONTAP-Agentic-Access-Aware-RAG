@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useState } from 'react';
+import { Users, Zap, Download, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useAgentDirectoryStore } from '@/store/useAgentDirectoryStore';
@@ -126,12 +127,12 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
   const { agentRegistryEnabled, agentRegistryRegion: registryRegionFlag } = useFeatureFlags();
   const enableRegistry = agentRegistryEnabled;
   const registryRegion = registryRegionFlag;
-  const TABS: { key: typeof activeTab; label: string }[] = [
+  const TABS: { key: typeof activeTab; label: string; icon?: LucideIcon }[] = [
     { key: 'agents', label: t('tabs.agents') },
-    { key: 'teams', label: '👥 Teams' },
+    { key: 'teams', label: 'Teams', icon: Users },
     { key: 'shared', label: t('tabs.shared') },
     { key: 'schedules', label: t('tabs.schedules') },
-    { key: 'triggers', label: '⚡ Triggers' },
+    { key: 'triggers', label: 'Triggers', icon: Zap },
     ...(enableRegistry ? [{ key: 'registry' as const, label: `Registry (${registryRegion})` }] : []),
   ];
 
@@ -141,8 +142,8 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
 
       {viewMode === 'grid' && (
         <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-6">
-          {TABS.map(tab => (<button key={tab.key} onClick={() => handleTabChange(tab.key)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.key ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'}`}>{tab.label}</button>))}
-          <button onClick={() => setViewMode('import')} className="ml-auto px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 border border-gray-300 dark:border-gray-600 rounded-md">📥 {t('sharing.import')}</button>
+          {TABS.map(tab => (<button key={tab.key} onClick={() => handleTabChange(tab.key)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.key ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'}`}>{tab.icon && <tab.icon className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />}{tab.label}</button>))}
+          <button onClick={() => setViewMode('import')} className="ml-auto px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 border border-gray-300 dark:border-gray-600 rounded-md"><Download className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('sharing.import')}</button>
         </div>
       )}
 
@@ -180,7 +181,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
               {categoryKeys.map(k => <option key={k} value={k}>{k}</option>)}
             </select>
           </div>
-          {isLoading && agents.length === 0 && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-32 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />)}</div>}
+          {isLoading && agents.length === 0 && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <div /* check-ui-ignore: 読み込み中のスケルトン */ key={i} className="h-32 rounded-lg bg-gray-100 dark:bg-gray-800 animate-pulse" />)}</div>}
           {!isLoading && error && <div className="text-center py-12"><p className="text-red-500 mb-4">{error}</p><button onClick={fetchAgents} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">{t('retry')}</button></div>}
           {!isLoading && !error && filteredAgents.length > 0 && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">{filteredAgents.map(a => <AgentCard key={a.agentId} agent={a} onClick={handleCardClick} />)}</div>}
           {!isLoading && !error && agents.length > 0 && filteredAgents.length === 0 && <p className="text-center text-gray-500 dark:text-gray-400 py-8">{t('noAgentsFound')}</p>}
@@ -263,7 +264,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
       {viewMode === 'grid' && activeTab === 'shared' && (
         <div>{sharedConfigs.length === 0 ? <p className="text-center text-gray-500 py-12">{t('sharing.noSharedConfigs')}</p> : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{sharedConfigs.map(c => (
-            <button key={c.key} onClick={() => handleSharedConfigClick(c.key)} className="w-full text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md transition-all">
+            <button key={c.key} onClick={() => handleSharedConfigClick(c.key)} className="w-full text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{c.agentName}</h3>
               <p className="text-xs text-gray-500 mt-1">{c.uploadedAt ? new Date(c.uploadedAt).toLocaleDateString(locale) : ''}</p>
               <p className="text-xs text-gray-400 mt-1">{(c.size / 1024).toFixed(1)} KB</p>

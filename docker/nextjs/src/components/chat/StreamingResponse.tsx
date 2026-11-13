@@ -164,7 +164,7 @@ export default function StreamingResponse({
             <div className="whitespace-pre-wrap break-words">
               {displayedContent}
               {isStreaming && (
-                <span className="inline-block w-2 h-5 bg-blue-600 animate-pulse ml-1" />
+                <span /* check-ui-ignore: ストリーミング中のカーソル */ className="inline-block w-2 h-5 bg-blue-600 animate-pulse ml-1" />
               )}
             </div>
             

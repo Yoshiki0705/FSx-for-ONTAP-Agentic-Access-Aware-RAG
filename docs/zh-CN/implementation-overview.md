@@ -241,7 +241,7 @@ AOSS 配置（`vectorStoreType=opensearch-serverless`）：
 |------|--------|---------------|--------|
 | 选项 A（默认） | S3 存储桶 → Bedrock KB S3 数据源 | 始终启用 | ✅ |
 | 选项 B（可选） | Embedding 服务器（CIFS 挂载）→ 直接向量存储写入 | `-c enableEmbeddingServer=true` | ✅（仅 AOSS 配置） |
-| 选项 C（可选） | S3 Access Point → Bedrock KB | 部署后手动设置 | ✅ SnapMirror 支持，FlexCache 即将支持 |
+| 选项 C（可选） | S3 Access Point → Bedrock KB | 部署后手动设置 | ✅ SnapMirror 支持。无法挂接到 FlexCache Cache 卷（Amazon FSx API 以卷类型为由拒绝，ONTAP 版本无法解决。[测量记录](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/integrations/snapmirror-flexcache-multicloud/docs/BACKLOG.md)） |
 
 > **关于 S3 Access Point**：StorageStack 自动为 FSx for ONTAP 卷创建 S3 Access Point。根据卷的安全样式（NTFS/UNIX）和 AD 加入状态，将创建 WINDOWS 或 UNIX 用户类型的 S3 AP。可通过 CDK 上下文参数 `volumeSecurityStyle`、`s3apUserType`、`s3apUserName` 进行显式控制。
 

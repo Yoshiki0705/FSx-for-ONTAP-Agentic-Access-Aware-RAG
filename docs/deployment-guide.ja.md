@@ -6,7 +6,7 @@
 
 **作成日**: 2026-07  
 **ステータス**: アクティブ  
-**対象**: インフラエンジニア、パートナー/SI が顧客環境にデプロイする場合
+**対象**: インフラエンジニア、パートナー/SI が利用先の環境にデプロイする場合
 
 ---
 
@@ -55,7 +55,7 @@ CDK デプロイ時にアカウントに作成される AWS リソース:
 
 | カテゴリ | リソース | 備考 |
 |---------|---------|------|
-| ネットワーク | VPC エンドポイント（または既存利用） | `skipVpcEndpoints` で制御 |
+| ネットワーク | 新規 VPC + NAT Gateway、または既存 VPC の参照 | `existingVpcId` 指定時は VPC・NAT Gateway・サブネット・VPC エンドポイントを作らず、セキュリティグループのみ作成 |
 | セキュリティ | Cognito User Pool、WAF WebACL | WAF は us-east-1 |
 | コンピュート | Lambda 関数（Next.js コンテナ） | ECR からプル |
 | ストレージ | S3 バケット（ベクトル）、DynamoDB テーブル | user-access 権限管理 |
@@ -170,7 +170,7 @@ aws fsx describe-storage-virtual-machines \
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  既存環境（顧客管理）                                              │
+│  既存環境（利用者管理）                                         │
 │                                                                   │
 │  ┌──────────────────┐   ┌──────────────────┐                    │
 │  │ FSx for ONTAP    │   │ VPC              │                    │
@@ -248,9 +248,13 @@ cp cdk.context.existing-env.example.json cdk.context.json
   "existingSvmId": "svm-0123456789abcdef0",
   "existingVolumeId": "fsvol-0123456789abcdef0",
 
-  // === ネットワーク（既存VPCをインポートする場合） ===
-  // デフォルトでは CDK が新規 VPC を作成。既存を使う場合:
+  // === ネットワーク（既存 VPC を使う場合） ===
+  // デフォルトでは CDK が新規 VPC と NAT Gateway を作成。既存 VPC を使う場合は
+  // 次の 4 つを必ず一緒に指定（欠けると synth がキー名付きのエラーで止まる）:
   "existingVpcId": "vpc-0abc123def456",
+  "existingPrivateSubnetIds": ["subnet-0aaa111122223333a", "subnet-0bbb444455556666b"],
+  "existingAvailabilityZones": ["ap-northeast-1a", "ap-northeast-1c"],
+  "existingVpcCidr": "10.0.0.0/16",
 
   // === セキュリティ ===
   "allowedCountries": ["JP"],
@@ -378,32 +382,14 @@ aws cloudformation deploy \
 
 ### 5.2 競合の防止
 
-既存 VPC に上記サービスの VPC エンドポイントが既に存在する場合、CDK のデフォルト動作（新規作成）は以下のエラーで**失敗**します:
+`existingVpcId` を指定すると、このプロジェクトは VPC エンドポイントを一切作らないため、既存 VPC のエンドポイントと競合しません。この場合 `enableVpcEndpoints` は無視され、synth が警告を出します。Lambda は、既存 VPC にある次のいずれかで AWS サービスに到達します。
 
-```
-The VPC endpoint for this service already exists in this VPC
-```
+- 渡したプライベートサブネットのルートテーブルにある S3・DynamoDB の Gateway エンドポイント
+- 上記サービス向けの、そのサブネットから到達できる Interface エンドポイント、または NAT Gateway 経由のルート
 
-**解決方法**:
+`existingVpcId` を省略すると新規 VPC を作成します。エンドポイントは `enableVpcEndpoints=true` のときだけ作られます。別 VPC の FSx for ONTAP を使う場合は、`existingVpcId` を省略し、VPC ピアリングまたは Transit Gateway を構成します。
 
-#### 方法 A: 既存エンドポイントのインポート（推奨）
-
-`cdk.context.json` で指定:
-
-```jsonc
-{
-  // CDK 管理の VPC エンドポイント作成をスキップ
-  "skipVpcEndpoints": ["s3", "dynamodb", "bedrock-runtime", "secretsmanager"]
-}
-```
-
-#### 方法 B: エンドポイント競合のない既存 VPC を使用
-
-既存 VPC のルートテーブルに Gateway エンドポイントが含まれ、Interface エンドポイントが Lambda からアクセス可能なサブネットにあることを確認します。
-
-#### 方法 C: 新規 VPC にデプロイしてピアリング
-
-`existingVpcId` を省略 — CDK が専用 VPC を作成し、FSx for ONTAP VPC への VPC ピアリングまたは Transit Gateway を構成します。
+`scripts/preflight-check.sh` は、既存 VPC にあるエンドポイントを一覧します（節 9）。渡したサブネットから各サービスに到達できるかの確認に使えます。
 
 ### 5.3 Interface エンドポイント用セキュリティグループ
 
@@ -513,9 +499,27 @@ aws lambda update-function-configuration \
 
 > 有効な値: `DEBUG`, `INFO`（デフォルト）, `WARN`, `ERROR`
 
-### 7.5 バックアップとリカバリ
+### 7.5 権限モデルの運用
 
-- **FSx for ONTAP**: 既存の顧客バックアップポリシーで管理（Snapshot/SnapMirror）
+SID フィルタ自体は fail-closed（信頼できるメタデータを持たないドキュメントは検索結果から除外）ですが、フィルタが参照する権限データの「書き込み」と「変更の追跡」は運用側の責務です。以下は追加のハードニング指針です。
+
+**`user-access` テーブルへの書き込みは管理経路に限定する**
+
+> **セキュリティに関する補足**: SID フィルタはユーザーの SID/UID/GID を DynamoDB の `user-access` テーブルから読み取って判定します。このテーブルに広い書き込み権限を持つプリンシパルは、自分の SID を書き換えることでフィルタを迂回し、本来アクセスできないドキュメントを取得できます。`user-access` への書き込みは、運用者が管理する経路（`setup-user-access.sh`、専用の管理ロール、承認を伴う IaC）に限定し、アプリケーション実行ロールやエンドユーザーに `dynamodb:PutItem` / `UpdateItem` / `DeleteItem` を付与しないでください。読み取り（フィルタ経路）と書き込み（管理経路）の権限を分離します。
+
+**即時の権限剥奪が必要な場合のフィルタ経路の選択**
+
+Lambda フィルタ経路（`PERMISSION_FILTER_LAMBDA_ARN` 設定時に優先）は `(userId, ファイル名)` 単位の判定結果を `permission-cache` テーブルに **5 分** キャッシュします。インライン経路（Lambda 未設定時のフォールバック）は毎回評価し、結果をキャッシュしません。
+
+> **権限剥奪に関する補足**: `user-access` テーブルを編集して権限を剥奪した場合は、DynamoDB Streams を購読する cache-invalidator（`lib/constructs/cache-invalidator-construct.ts`）が該当エントリを削除するため、剥奪はほぼ即座に反映されます。一方、ドキュメント側の `.metadata.json`（`allowed_group_sids`）を変更して権限を絞った場合は Streams を経由しないため、Lambda 経路ではキャッシュ済みの `allowed=true` 判定が最大 5 分残ります。ドキュメントのメタデータ変更の即時反映が要件なら、インライン経路を使う（`PERMISSION_FILTER_LAMBDA_ARN` を設定しない）か、`permission-cache` テーブルの該当エントリを手動削除してください。キャッシュの TTL（`lambda/permissions/metadata-filter-handler.ts` の `CACHE_TTL_MINUTES = 5`）はコード定数で、環境変数では変更できません。TTL を下げるにはコード変更が必要です。トレードオフは、インラインはクエリごとに再評価するぶん DynamoDB 読み取りとレイテンシが増える点です。
+
+**権限変更の監査は運用者の責務**
+
+> **監査に関する補足**: `filterLog`（および `action: retrieve` の監査レコード）は、各クエリ時点でどのドキュメントが誰に許可/拒否されたかを記録します。しかし「誰がいつ権限を変更したか」（`user-access` の SID 変更、`.metadata.json` の `allowed_group_sids` 変更、FSx の ACL 変更）の履歴は、このスタックでは記録しません。権限変更の監査証跡が必要な場合は、利用者（運用者）側で用意してください。例: `user-access` テーブルの DynamoDB Streams を監査ログに転送する、権限変更を IaC / 承認フロー経由に限定して変更履歴を残す、AWS CloudTrail のデータイベントで `PutItem` / `UpdateItem` を記録する、など。
+
+### 7.6 バックアップとリカバリ
+
+- **FSx for ONTAP**: 既存のバックアップポリシーで管理（Snapshot/SnapMirror）
 - **DynamoDB**: これらのスタックが作るテーブルはすべてポイントインタイムリカバリ有効。デモ用リソースには `RemovalPolicy.DESTROY` が付いたままなので、PITR が守るのはテーブル内の誤った書き込みや削除で、スタックの破棄ではありません
 - **S3 Vectors / KB**: ソース（FSx for ONTAP ボリューム）から再インデックス可能
 - **Cognito**: `aws cognito-idp list-users` でエクスポート
@@ -584,7 +588,7 @@ aws lambda update-function-configuration \
 
 | 症状 | 原因 | 解決方法 |
 |------|------|----------|
-| `VPC endpoint already exists` | 既存エンドポイントとの競合 | context に `skipVpcEndpoints` を設定 |
+| synth 時の `existingVpcCidr` / `existingAvailabilityZones` エラー | `existing*` の VPC キーの欠落、または `-c` で配列を渡した | 4 つの `existing*` VPC キーを `cdk.context.json` に設定（節 3.3 を参照） |
 | `Cannot resolve FSx file system` | FS ID またはリージョンの不一致 | `existingFileSystemId` がリージョンと一致しているか確認 |
 | `Lambda timeout on ONTAP call` | SG に管理 LIF への HTTPS ルールがない | Lambda SG から ONTAP 管理 LIF への TCP 443 ルールを追加 |
 | `S3 Access Point 403` | IAM または AP ポリシーの不足 | AP ARN に対する `s3:GetObject` を確認 |
@@ -617,6 +621,33 @@ aws cloudformation delete-stack --stack-name fsxn-ops-prod --region ap-northeast
 **削除されないもの**: 既存の FSx for ONTAP ファイルシステム、SVM、ボリューム、VPC、サブネット、セキュリティグループは影響を受けません。CDK ブートストラップスタック（`CDKToolkit`）は将来の利用のため残ります。
 
 > **注意**: `cdk destroy` は Cognito User Pool を永久に削除します。必要な場合は事前にユーザーデータをエクスポート: `aws cognito-idp list-users --user-pool-id <pool-id>`
+
+**`cdk destroy` が止まりうる 2 箇所と、その解消方法**（撤去で観測）:
+
+- **CloudFront アクセスログバケットが空でない。** WebApp スタックのアクセスログ用 S3 バケットはログを集め続けるため、削除が「bucket you tried to delete is not empty」で失敗します。空にしてからスタックを再削除します。
+
+  ```bash
+  aws s3 rm "s3://$(aws cloudformation describe-stack-resources \
+    --stack-name <prefix>-WebApp --region <region> \
+    --query "StackResources[?LogicalResourceId=='AccessLogBucketDA470295'].PhysicalResourceId" \
+    --output text)" --recursive
+  aws cloudformation delete-stack --stack-name <prefix>-WebApp --region <region>
+  ```
+
+- **Networking スタック: Lambda の VPC ENI が残る。** VPC Lambda は関数の削除後も数分 ENI を残すため、セキュリティグループの削除が失敗します。ENI が `available` になってから削除し、スタックを再削除します。
+
+  ```bash
+  SG=$(aws cloudformation describe-stack-resources --stack-name <prefix>-Networking \
+    --region <region> --query "StackResources[?ResourceType=='AWS::EC2::SecurityGroup'].PhysicalResourceId" --output text)
+  for e in $(aws ec2 describe-network-interfaces --region <region> \
+      --filters Name=group-id,Values=$SG Name=status,Values=available \
+      --query "NetworkInterfaces[].NetworkInterfaceId" --output text); do
+    aws ec2 delete-network-interface --region <region> --network-interface-id "$e"
+  done
+  aws cloudformation delete-stack --stack-name <prefix>-Networking --region <region>
+  ```
+
+> **reclaim policy `Retain` で既存ボリュームを取り込んだ場合**: PVC と PV を削除しても ONTAP 上のボリュームは残ります（`Retain` の目的どおり）。Trident はそのボリュームの記録を持ち続けるため、後でバックエンドを削除すると「Backend is in a deleting state」で止まります。`tridentctl -n trident delete volume <pv-name>` で記録を消してください。ONTAP 上のボリューム自体は、不要になったら FSx API で削除します。
 
 ---
 
@@ -661,6 +692,20 @@ CDK はジャンクションパス、エクスポートポリシー、CIFS 共�
 ### 「FSx for ONTAP S3 Access Point」とは？
 
 FSx for ONTAP S3 AP は、ONTAP ボリュームのデータを S3 API 経由で公開する機能です。Bedrock Knowledge Base などの AWS サービスが、NFS/SMB マウントなしで標準的な S3 `GetObject`/`ListObjectsV2` 呼び出しを使ってボリューム内のファイルを読み取れます。S3 Access Point はデプロイ後に作成され、元のファイルの NTFS ACL または UNIX パーミッションを尊重します。
+
+### すでに検索や RAG の基盤を運用しています。これはどこに当てはまりますか？
+
+再利用の価値があるのは、スタック全体ではなく到達の経路です。S3 Access Point を使うと、ONTAP ボリュームのデータを別の S3 バケットへコピーせずに、その場で S3 クライアントから読めます。その上の検索をどう組むかは別の選択で、どれにも考慮点があります。
+
+- **このスタック（Bedrock Knowledge Bases + S3 Vectors）。** 取り込み・チャンク分割・埋め込み・ベクトルストアがマネージドで、検索の手前に権限フィルタが入ります。考慮点: Bedrock KB のデータモデルと S3 Vectors のメタデータ上限（たとえば 1 インデックスあたり non-filterable なメタデータキーは最大 10 個）に合わせる必要があり、ここの権限フィルタは文書の `allowed_group_sids` とユーザーの SID を照合する方式なので、その SID を投入できることが前提です。
+- **既存のベクトルストアや検索エンジン（OpenSearch、pgvector、サードパーティのインデックス）。** 既存の取り込みの入力元を同じ S3 Access Point に向け、検索はそのまま使います。考慮点: 権限モデルは自分で持つことになります。本リポジトリの SID フィルタ（`docker/nextjs/src/lib/rag-pipeline/sid-filter.ts` と `lambda/permissions/` の Lambda）は移植の参考にできますが、別エンジンにそのまま載せられるものではありません。
+- **既存のエージェントやオーケストレーション層（LangChain、LlamaIndex、マネージドのアシスタント）。** オーケストレーションはそのままに、S3 Access Point を文書ソースの 1 つとして足します。考慮点: 権限フィルタは、結果を組み立てる場所で、モデルに渡る前に動かさないと fail-closed を保てません。
+
+いずれの場合も、アクセスポイントはデータをコピーしません。ファイルは ONTAP ボリュームに残り、NFS/SMB からも引き続き読めます。層の選択は「どれが優れているか」ではなく、すでに運用しているものに合わせて決めてください。下のストレージの到達経路はどれも同じです。
+
+### 権限フィルタは inline と Lambda のどちらを使うべきですか？
+
+両方とも本リポジトリにあり、同じ判定を返します。既定は **inline**（`usePermissionFilterLambda=false`）で、フィルタは Next.js の API 内で動き、リクエストごとに user-access テーブルを読むため、グループの追加・削除が即時に反映されます。**Lambda** 経路（`usePermissionFilterLambda=true`）はフィルタを専用の関数に出し、約 5 分の権限キャッシュを持つため、グループ変更はキャッシュの失効または消去まで反映されません。既定の簡潔さと即時反映なら inline、Web 層からフィルタを分離したいなら Lambda を選び、権限変更時はキャッシュを考慮してください。
 
 ---
 

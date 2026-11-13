@@ -2964,8 +2964,10 @@ exports.handler = async (event) => {
 
     // カスタムリソース
     // S3 Vectors metadata: all keys are filterable by default.
-    // nonFilterableMetadataKeys: keys that should NOT be filterable (e.g., source_uri, chunk_text).
-    // allowed_group_sids is filterable by default (not listed in nonFilterableMetadataKeys).
+    // nonFilterableMetadataKeys: keys that should NOT be filterable. Bedrock Knowledge Bases
+    // stores the chunk text and its metadata under AMAZON_BEDROCK_TEXT and
+    // AMAZON_BEDROCK_METADATA; both must be non-filterable, or they count toward the 2 KB
+    // filterable-metadata limit and ingestion fails. An index allows at most 10 non-filterable keys.
     const s3VectorsResource = new cdk.CustomResource(this, 'S3VectorsResource', {
       serviceToken: s3VectorsCreatorFn.functionArn,
       properties: {
@@ -2985,8 +2987,8 @@ exports.handler = async (event) => {
           // SIDフィルタリングはアプリ側で実施するため、
           // S3 VectorsのQueryVectors filterは使用しない。
           // filterable metadata 2KB制限を回避するため全てnon-filterableにする。
-          'source_uri',
-          'chunk_text',
+          'AMAZON_BEDROCK_TEXT',
+          'AMAZON_BEDROCK_METADATA',
           'access_level',
           'doc_type',
           'allowed_group_sids',

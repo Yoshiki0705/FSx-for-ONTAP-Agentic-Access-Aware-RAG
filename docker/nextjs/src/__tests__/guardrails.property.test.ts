@@ -119,26 +119,43 @@ describe('Property 3: Intervention log privacy', () => {
       interventionType: interventionTypeArb,
       filterCategories: fc.array(filterCategoryArb, { minLength: 1, maxLength: 5 }),
       guardrailId: fc.string({ minLength: 1, maxLength: 30 }),
-      // These texts should NEVER appear in the log
-      blockedInputText: fc.string({ minLength: 10, maxLength: 200 }),
-      filteredOutputText: fc.string({ minLength: 10, maxLength: 200 }),
+      // These texts should NEVER appear in the log. A fixed, distinctive marker makes the
+      // check about leakage, not about an incidental collision: without it, a generated
+      // guardrailId/userId/sessionId can equal a generated secret and the assertion fails on
+      // the legitimate field rather than on a leak (observed counterexample: guardrailId and
+      // blockedInputText both "onstructor").
+      blockedInputText: fc.string({ minLength: 10, maxLength: 200 }).map((s) => `SECRET_IN_${s}`),
+      filteredOutputText: fc.string({ minLength: 10, maxLength: 200 }).map((s) => `SECRET_OUT_${s}`),
     });
 
     fc.assert(
       fc.property(paramsWithTextArb, (params) => {
         const { blockedInputText, filteredOutputText, ...logParams } = params;
-        const logEntry = logGuardrailIntervention(logParams);
 
-        // Serialize the log entry to check for text leakage
-        const serialized = JSON.stringify(logEntry);
+        // Pass the secret text IN as extra fields: the function must drop it, not just rely on
+        // the caller never handing it over. Capture the console output too, since that — not the
+        // returned object — is what actually reaches logs.
+        const logged: string[] = [];
+        const spy = vi.spyOn(console, 'log').mockImplementation((line: string) => {
+          logged.push(String(line));
+        });
+        let logEntry: ReturnType<typeof logGuardrailIntervention>;
+        try {
+          logEntry = logGuardrailIntervention({
+            ...logParams,
+            blockedInputText,
+            filteredOutputText,
+          } as Parameters<typeof logGuardrailIntervention>[0]);
+        } finally {
+          spy.mockRestore();
+        }
+
+        // Check both the returned entry and everything written to the console.
+        const serialized = JSON.stringify(logEntry) + '\n' + logged.join('\n');
 
         // The log entry must not contain the blocked/filtered text
-        if (blockedInputText.length >= 10) {
-          expect(serialized).not.toContain(blockedInputText);
-        }
-        if (filteredOutputText.length >= 10) {
-          expect(serialized).not.toContain(filteredOutputText);
-        }
+        expect(serialized).not.toContain(blockedInputText);
+        expect(serialized).not.toContain(filteredOutputText);
 
         // Verify the log entry has no 'inputText', 'outputText', 'text', 'content' fields
         expect(logEntry).not.toHaveProperty('inputText');

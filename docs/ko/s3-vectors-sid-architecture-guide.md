@@ -84,15 +84,13 @@ S3 Vectors의 모든 메타데이터는 기본적으로 filterable이므로, `al
 | `allowed_group_sids` | SID 필터링 | non-filterable 권장 | Bedrock KB Retrieve API를 통한 애플리케이션 측 필터링이므로 S3 Vectors 필터 불필요 |
 | `access_level` | 접근 수준 표시 | non-filterable 권장 | UI 표시용 |
 | `doc_type` | 문서 유형 | non-filterable 권장 | 향후 필터링용 |
-| `source_uri` | 소스 파일 경로 | non-filterable | 검색 불가, 참조용 |
-| `chunk_text` | 청크 텍스트 | non-filterable | 검색 불가, 대용량 데이터 |
 
 #### S3 Vectors 메타데이터 제약 (검증 중 발견된 실제 값)
 
 | 제약 | 명목 값 | Bedrock KB 사용 시 실효 값 | 완화 방법 |
 |------|--------|--------------------------|----------|
 | Filterable 메타데이터 | 2KB/벡터 | **커스텀 메타데이터 최대 1KB** (나머지 1KB는 Bedrock KB 내부 메타데이터가 소비) | 커스텀 메타데이터 최소화 |
-| Non-filterable 메타데이터 키 | 최대 10개 키/인덱스 | 10개 키 (Bedrock KB 자동 키 5개 + 커스텀 키 5개) | Bedrock KB 자동 키를 non-filterable로 우선 지정 |
+| Non-filterable 메타데이터 키 | 최대 10개 키/인덱스 | 10개 키 (Bedrock KB 키 7개 + 커스텀 키 3개) | Bedrock KB 자동 키를 non-filterable로 우선 지정 |
 | 총 메타데이터 키 | 최대 50개 키/벡터 | 35개 키 (Bedrock KB 사용 시) | 문제 없음 |
 
 #### Bedrock KB가 자동으로 추가하는 메타데이터 키
@@ -106,6 +104,10 @@ S3 Vectors의 모든 메타데이터는 기본적으로 filterable이므로, `al
 | `x-amz-bedrock-kb-data-source-id` | 데이터 소스 ID | ✅ |
 | `x-amz-bedrock-kb-source-uri` | 소스 URI | ✅ |
 | `x-amz-bedrock-kb-document-page-number` | PDF 페이지 번호 | ✅ |
+| `AMAZON_BEDROCK_TEXT` | 청크 텍스트 | ✅ |
+| `AMAZON_BEDROCK_METADATA` | 청크 메타데이터 | ✅ |
+
+`AMAZON_BEDROCK_TEXT`와 `AMAZON_BEDROCK_METADATA`를 non-filterable로 지정하라는 안내는 [Bedrock 청킹 문서](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-chunking.html)에 있습니다.
 
 > **중요**: PDF 페이지 번호 메타데이터 등으로 인해 filterable 메타데이터가 2KB를 초과할 수 있습니다. 모든 Bedrock KB 자동 키를 `nonFilterableMetadataKeys`에 포함하고, 커스텀 메타데이터도 가능한 한 non-filterable로 설정하세요.
 

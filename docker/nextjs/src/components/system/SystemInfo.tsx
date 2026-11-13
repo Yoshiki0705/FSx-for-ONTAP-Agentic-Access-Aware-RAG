@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CheckCircle2, AlertTriangle, XCircle, HelpCircle } from 'lucide-react';
 
 interface SystemStatus {
   status: 'healthy' | 'warning' | 'error';
@@ -57,7 +58,7 @@ export function SystemInfo() {
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="animate-pulse">
+        <div /* check-ui-ignore: 読み込み中のスケルトン */ className="animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
           <div className="space-y-2">
             <div className="h-3 bg-gray-200 rounded w-full"></div>
@@ -87,10 +88,10 @@ export function SystemInfo() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy': return '✅';
-      case 'warning': return '⚠️';
-      case 'error': return '❌';
-      default: return '❓';
+      case 'healthy': return <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />;
+      case 'warning': return <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" />;
+      case 'error': return <XCircle className="w-3.5 h-3.5" aria-hidden="true" />;
+      default: return <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />;
     }
   };
 
