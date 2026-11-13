@@ -13,7 +13,7 @@ interface VoiceButtonProps {
 type VoiceButtonState = 'idle' | 'recording' | 'processing' | 'error';
 
 /**
- * 🎤 マイクボタンコンポーネント
+ * マイクボタンコンポーネント
  * VOICE_CHAT_ENABLED=false 時は非表示。
  */
 export function VoiceButton({
@@ -58,7 +58,7 @@ export function VoiceButton({
       onClick={handleClick}
       disabled={disabled}
       className={`
-        relative p-2 rounded-full transition-all duration-200
+        relative p-2 rounded-full transition-colors duration-200
         focus:outline-none focus:ring-2 focus:ring-blue-500
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'}
         ${isRecording
@@ -82,7 +82,7 @@ export function VoiceButton({
 
       {/* 録音中パルスアニメーション */}
       {isRecording && (
-        <span className="absolute inset-0 rounded-full animate-ping bg-red-400 opacity-30" />
+        <span /* check-ui-ignore: 録音中の表示 */ className="absolute inset-0 rounded-full animate-ping bg-red-400 opacity-30" />
       )}
     </button>
   );

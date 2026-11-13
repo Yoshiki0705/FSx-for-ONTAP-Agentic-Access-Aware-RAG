@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { Check } from 'lucide-react';
 import { locales, localeNames, localeIcons, type Locale } from '../../i18n/config';
 
 interface LanguageSwitcherProps {
@@ -140,7 +141,7 @@ export function LanguageSwitcher({
                   <span className="mr-3">{localeIcons[locale]}</span>
                   {localeNames[locale]}
                   {currentLocale === locale && (
-                    <span className="ml-2 text-blue-600 dark:text-blue-400">✓</span>
+                    <Check className="ml-2 w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
                   )}
                 </button>
               ))}

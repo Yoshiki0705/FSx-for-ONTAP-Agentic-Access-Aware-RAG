@@ -95,7 +95,7 @@ export function WebSearchToggle({ disabled = false }: WebSearchToggleProps) {
               id="web-search-confirm-title"
               className="text-sm font-semibold text-gray-900 dark:text-gray-100"
             >
-              🌐 {t('confirmTitle')}
+              <Globe className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {t('confirmTitle')}
             </h3>
             <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
               {t('confirmDescription')}

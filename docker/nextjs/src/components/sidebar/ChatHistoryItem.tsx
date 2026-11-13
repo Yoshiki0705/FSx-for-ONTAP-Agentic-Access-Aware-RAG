@@ -38,8 +38,7 @@ export function ChatHistoryItem({ session, isActive, onClick, onDelete, locale }
           e.stopPropagation();
           onDelete();
         }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 
-                   transition-opacity duration-200 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30"
+        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30" // check-ui-ignore: 触って開く操作ではなく、タッチと focus では常時表示
         title={t('delete')}
       >
         <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

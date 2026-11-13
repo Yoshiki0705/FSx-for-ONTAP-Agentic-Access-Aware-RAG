@@ -108,27 +108,29 @@
 
 ## 推奨読書順序
 
+目的別に、初回セットアップ・検証評価・本番化設計の 3 段階で読む順序を示します。
+
 ### 初回セットアップ
 
-1. **README.md** — システム全体像（ランディングページ）
-2. **deployment-guide.ja.md** — デプロイ手順・フィーチャーフラグ・WAF/Geo・認証モード設定
-3. **auth-and-user-management.md** — 認証モード選択とユーザー管理
-4. **implementation-overview.md** — 22の観点での実装内容詳細
-5. **SID-Filtering-Architecture.md** — コア機能の技術詳細
-6. **safe-experimentation-guide.md** — 安全な実験ガイド（PoC開始前に必読）
+1. **README.md**（システム全体像、ランディングページ）
+2. **deployment-guide.ja.md**（デプロイ手順・フィーチャーフラグ・WAF/Geo・認証モード設定）
+3. **auth-and-user-management.md**（認証モード選択とユーザー管理）
+4. **implementation-overview.md**（22 の観点での実装内容詳細）
+5. **SID-Filtering-Architecture.md**（コア機能の技術詳細）
+6. **safe-experimentation-guide.md**（安全な実験ガイド、PoC 開始前に必読）
 
 ### 検証・評価
 
-6. **demo-recording-guide.md** — 検証デモ動画撮影手順書
-7. **ontap-setup-guide.md** — FSx for ONTAP AD連携・CIFS共有設定
-8. **demo-environment-guide.md** — 検証環境セットアップ
-9. **demo-scenario.md** — 検証シナリオの実行
-10. **evaluation.md** — PoC評価テンプレート
+7. **demo-recording-guide.md**（検証デモ動画撮影手順書）
+8. **ontap-setup-guide.md**（FSx for ONTAP AD 連携・CIFS 共有設定）
+9. **demo-environment-guide.md**（検証環境セットアップ）
+10. **demo-scenario.md**（検証シナリオの実行）
+11. **evaluation.md**（PoC 評価テンプレート）
 
 ### 本番化・エンタープライズ設計
 
-11. **production-readiness-checklist.md** — 本番化チェックリスト
-12. **permission-consistency.md** — 権限メタデータ変更の整合性モデル
-13. **fsxn-sizing-and-performance.md** — FSx for ONTAP 性能・容量設計
-14. **governance-and-audit.md** — ガバナンス・監査設計
-15. **partner-deployment-patterns.md** — マルチテナント展開パターン
+12. **production-readiness-checklist.md**（本番化チェックリスト）
+13. **permission-consistency.md**（権限メタデータ変更の整合性モデル）
+14. **fsxn-sizing-and-performance.md**（FSx for ONTAP 性能・容量設計）
+15. **governance-and-audit.md**（ガバナンス・監査設計）
+16. **partner-deployment-patterns.md**（マルチテナント展開パターン）

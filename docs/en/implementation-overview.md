@@ -160,7 +160,8 @@ Within `DemoWebAppStack`:
 
 ### Post-Deployment Notes
 
-The IAM authentication + OAC configuration above is recommended for production use. However, if compatibility issues with POST requests (chat, etc.) occur in verification environments, the following manual adjustments may be required:
+The IAM authentication + OAC configuration above is recommended for production use. However, if compatibility issues with POST requests (chat, etc.) occur in verification environments, the following two manual adjustments may be required.
+
 - Change Lambda Function URL AuthType to `NONE`
 - Remove CloudFront OAC association
 
@@ -170,7 +171,8 @@ The IAM authentication + OAC configuration above is recommended for production u
 
 ### Implementation Details
 
-The vector database used for RAG search can be selected via the CDK context parameter `vectorStoreType`:
+The vector database used for RAG search can be selected from the following two options via the CDK context parameter `vectorStoreType`.
+
 - **S3 Vectors** (default): Low cost, sub-second latency. Used directly as a vector store for Bedrock KB
 - **Amazon OpenSearch Serverless (AOSS)**: High performance (~10ms), high cost (~$700/month)
 
@@ -241,7 +243,7 @@ On an EC2 instance with an Amazon FSx for NetApp ONTAP volume mounted via CIFS/S
 |------|--------|---------------|--------|
 | Option A (default) | S3 bucket → Bedrock KB S3 data source | Always enabled | ✅ |
 | Option B (optional) | Embedding server (CIFS mount) → Direct vector store write | `-c enableEmbeddingServer=true` | ✅ (AOSS configuration only) |
-| Option C (optional) | S3 Access Point → Bedrock KB | Manual setup after deployment | ✅ SnapMirror supported, FlexCache coming soon |
+| Option C (optional) | S3 Access Point → Bedrock KB | Manual setup after deployment | ✅ SnapMirror supported. Cannot be attached to a FlexCache Cache volume (the Amazon FSx API refuses by volume type; an ONTAP version does not change this. [Measurement record](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/integrations/snapmirror-flexcache-multicloud/docs/BACKLOG.md)) |
 
 > **About S3 Access Point**: StorageStack automatically creates an S3 Access Point for the FSx for ONTAP volume. Depending on the volume's security style (NTFS/UNIX) and AD join status, an S3 AP with either WINDOWS or UNIX user type is created. This can be explicitly controlled via CDK context parameters `volumeSecurityStyle`, `s3apUserType`, `s3apUserName`.
 
@@ -541,10 +543,10 @@ When a card is clicked, AGENT_CATEGORY_MAP (10 categories: financial, project, h
 ### Workflow UI
 
 Preset workflows are placed in AgentModeSidebar:
-- 📊 Financial Report Analysis
-- 📝 Project Progress Check
-- 🔍 Cross-Document Search
-- 📋 HR Policy Review
+- Financial Report Analysis
+- Project Progress Check
+- Cross-Document Search
+- HR Policy Review
 
 ### Implementation Files
 
@@ -925,6 +927,58 @@ TLS certificate verification is enabled by default (`ONTAP_VERIFY_SSL=true`). Fo
 ### Cost: ~$2.60/month
 
 See [automation/fsxn-ops/](../../automation/fsxn-ops/) for details.
+
+### 19.1 Exposing existing workflows as AI agent tools (AgentCore Gateway + Step Functions connector)
+
+The Step Functions workflows above can be exposed to an AI agent as tools —
+without changing the state machines — through Amazon Bedrock AgentCore Gateway.
+The Gateway's Step Functions connector (`connectorId: "states"`) manages the tool
+schemas, authorization, and which state machines can run, so you don't write a
+separate Lambda or MCP server. The agent decides when to run a workflow and what
+input to pass; the state machine enforces which steps run and in what order.
+
+**[documented]** The connector exposes ten operations; four of them pin a state
+machine at creation time (the pinned ARN is absent from the schema). Source: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-connector-step-functions.html
+
+**Design (this repository).** DR failover is irreversible, so the guard is layered:
+
+| Layer | Content |
+|-------|---------|
+| Scope | Default is read-only (`DescribeStateMachine` / `ListExecutions` / `DescribeExecution` / `GetExecutionHistory`) |
+| Opt-in | Write ops (`StartExecution` / `StopExecution`) require `enableSfnWriteOps=true` |
+| Cedar | With write ops on, a Policy Engine permits start/stop only for a role matching `sfnWriteOpsRolePattern`; with no pattern, all roles are denied |
+
+A dedicated Gateway (`DemoSfnToolsGatewayStack`) is used, separate from the KB
+Gateway, because targets share the service role — DR ops should not sit on the
+same role as the KB search tool. The state machines are STANDARD, so the
+Express-only `StartSyncExecution` is not used; the async `StartExecution` +
+`DescribeExecution` pattern is used instead. Task-token operations (`SendTask*`)
+are not exposed.
+
+```bash
+npx cdk deploy perm-rag-demo-demo-SfnToolsGateway --require-approval never \
+  -c enableSfnTools=true \
+  -c sfnFailoverArn=arn:aws:states:<region>:<account>:stateMachine:<standard-workflow>
+# To enable write ops for an operator role only:
+#   -c enableSfnWriteOps=true -c sfnWriteOpsRolePattern=snapmirror-operator
+```
+
+State machine ARNs are passed by context because `automation/fsxn-ops` is a
+separate SAM/CFn stack whose outputs are not CFn-Exported (no `Fn.importValue`).
+
+**Verification.**
+
+| Item | Result |
+|------|--------|
+| `connectorId: "states"` accepted (Gateway + Target created) | **[verified 2026-10-31 / ap-northeast-1]** deployed read-only, CREATE_COMPLETE |
+| `tools/list` exposes the four read-only tools | **[verified 2026-10-31 / ap-northeast-1]** `<target>___<operation>` form; pinned ARN absent from schema |
+| `DescribeStateMachine` tool call | **[verified 2026-10-31 / ap-northeast-1]** `isError: False`, returned the pinned STANDARD state machine's metadata |
+| `StartExecution` (write) behaviour | **[hypothesis]** unverified — a real workflow has side effects |
+| Cedar `ENFORCE` deny path | **[hypothesis]** unverified — paired with the write-ops test |
+| Japanese input mojibake | **[field-observation]** observed in a separate report; reproduction not confirmed — the read path takes no Japanese input |
+
+A standalone Strands sample agent is in
+[`examples/sfn-agentcore-gateway/`](../../examples/sfn-agentcore-gateway/README.md).
 
 ---
 

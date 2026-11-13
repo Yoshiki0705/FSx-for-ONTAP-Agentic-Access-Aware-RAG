@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface Agent {
@@ -224,7 +225,7 @@ export function AgentManagement() {
             <span className={`text-sm font-medium ${
               ssmSync.isSync ? 'text-green-800 dark:text-green-200' : 'text-yellow-800 dark:text-yellow-200'
             }`}>
-              {ssmSync.isSync ? '✅' : '⚠️'} SSM同期状態:
+              {ssmSync.isSync ? <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <AlertTriangle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />} SSM同期状態:
             </span>
             <span className={`text-sm ${
               ssmSync.isSync ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'
@@ -483,7 +484,7 @@ function AgentDetailsModal({ agent, ssmSync, onClose }: AgentDetailsModalProps) 
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
-            ✕
+            <X className="w-5 h-5" aria-label="閉じる" />
           </button>
         </div>
         
@@ -558,7 +559,7 @@ function AgentDetailsModal({ agent, ssmSync, onClose }: AgentDetailsModalProps) 
                 <p className={`text-sm ${
                   ssmSync.isSync ? 'text-green-800 dark:text-green-200' : 'text-yellow-800 dark:text-yellow-200'
                 }`}>
-                  {ssmSync.isSync ? '✅' : '⚠️'} {ssmSync.message}
+                  {ssmSync.isSync ? <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <AlertTriangle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />} {ssmSync.message}
                 </p>
                 {ssmSync.ssmAgentId && (
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">

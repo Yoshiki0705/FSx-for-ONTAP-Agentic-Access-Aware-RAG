@@ -127,7 +127,7 @@ StorageStack 可透過 `existingFileSystemId`/`existingSvmId`/`existingVolumeId`
 |------|----------------------|-----------------|------------------------|--------------------------------|
 | **CDK 參數** | `vectorStoreType=opensearch-serverless` | `vectorStoreType=s3vectors`（預設） | 在設定 2 之上執行 `export-to-opensearch.sh` | ⚠️ 未實作（驗證完成後新增） |
 | **成本** | 約 $700/月（2 OCU 持續運行） | 數美元/月（小規模） | S3 Vectors + AOSS OCU（僅在匯出期間） | 依資料大小 + 檢索次數的按需計費 |
-| **延遲** | 約 10ms | 次秒級（冷）、約 100ms（暖） | 約 10ms（匯出後 AOSS 搜尋） | ⚠️ 未測量（多跳時多次檢索累加） |
+| **延遲** | 約 10ms（未註明測量環境，未確認） | 次秒級（冷）、約 100ms（暖）（未註明測量環境，未確認） | 約 10ms（匯出後 AOSS 搜尋，未註明測量環境，未確認） | ⚠️ 未測量（多跳時多次檢索累加） |
 | **過濾** | 中繼資料過濾（`$eq`、`$ne`、`$in` 等） | 中繼資料過濾（`$eq`、`$in`、`$and`、`$or`） | 匯出後使用 AOSS 過濾 | `filter` 運算子（含 `listContains`）+ `userContext`（⚠️ SID 比對未驗證） |
 | **中繼資料限制** | 無限制 | filterable 2KB/向量（自訂實際上為 1KB），non-filterable 金鑰最多 10 個 | 匯出後遵循 AOSS 限制 | ⚠️ 託管儲存內的限制未公開 |
 | **搜尋方式** | 向量搜尋 / Hybrid（取決於 kbSearchType） | 向量搜尋 / Hybrid（取決於 kbSearchType） | AOSS 搜尋功能 | 混合搜尋 + Agentic Retrieval（多跳） |

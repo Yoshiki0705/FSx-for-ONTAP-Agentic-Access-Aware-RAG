@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { BarChart3, Download, Eye, FileText, Folder, FolderOpen, Library, RefreshCw, Search, Shield, Upload, XCircle, Zap, CheckCircle2 } from 'lucide-react';
 
 
 // トレース情報の型定義
@@ -82,7 +83,7 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
     <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-          📊 Agent実行トレース ({traces.length})
+          <BarChart3 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> Agent実行トレース ({traces.length})
         </h3>
         <button
           onClick={() => setExpandedTraces(new Set())}
@@ -107,7 +108,9 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
               className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
               <div className="flex items-center space-x-3">
-                <span className="text-lg">{isExpanded ? '📂' : '📁'}</span>
+                {isExpanded
+                  ? <FolderOpen className="w-5 h-5" aria-hidden="true" />
+                  : <Folder className="w-5 h-5" aria-hidden="true" />}
                 <div className="text-left">
                   <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     トレース #{index + 1}
@@ -134,14 +137,14 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                 {trace.orchestrationTrace && (
                   <div className="space-y-2">
                     <div className="text-xs font-semibold text-purple-700 dark:text-purple-400">
-                      🔄 オーケストレーショントレース
+                      <RefreshCw className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> オーケストレーショントレース
                     </div>
 
                     {/* Model Invocation Input */}
                     {trace.orchestrationTrace.modelInvocationInput && (
                       <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
                         <div className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-1">
-                          📥 モデル入力
+                          <Download className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> モデル入力
                         </div>
                         <div className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                           {trace.orchestrationTrace.modelInvocationInput.text || 'N/A'}
@@ -153,7 +156,7 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                     {trace.orchestrationTrace.modelInvocationOutput?.parsedResponse && (
                       <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-md">
                         <div className="text-xs font-medium text-green-900 dark:text-green-100 mb-1">
-                          📤 モデル出力
+                          <Upload className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> モデル出力
                         </div>
                         {trace.orchestrationTrace.modelInvocationOutput.parsedResponse.rationale && (
                           <div className="text-xs text-gray-700 dark:text-gray-300 mb-2">
@@ -163,10 +166,11 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                         )}
                         <div className="text-xs">
                           <span className="font-medium">妥当性:</span>{' '}
-                          {trace.orchestrationTrace.modelInvocationOutput.parsedResponse.isValid ? 
-                            `✅ $有効` : 
-                            `❌ $無効`
-                          }
+                          {trace.orchestrationTrace.modelInvocationOutput.parsedResponse.isValid ? (
+                            <><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 有効</>
+                          ) : (
+                            <><XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 無効</>
+                          )}
                         </div>
                       </div>
                     )}
@@ -175,7 +179,7 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                     {trace.orchestrationTrace.observation && (
                       <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md">
                         <div className="text-xs font-medium text-yellow-900 dark:text-yellow-100 mb-1">
-                          👁️ 観測
+                          <Eye className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 観測
                         </div>
                         <div className="text-xs text-gray-700 dark:text-gray-300">
                           <div className="mb-2">
@@ -186,7 +190,7 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                           {/* Knowledge Base Lookup */}
                           {trace.orchestrationTrace.observation.knowledgeBaseLookupOutput?.retrievedReferences && Array.isArray(trace.orchestrationTrace.observation.knowledgeBaseLookupOutput.retrievedReferences) && (
                             <div className="space-y-2">
-                              <div className="font-medium">📚 検索結果:</div>
+                              <div className="font-medium"><Library className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 検索結果:</div>
                               {trace.orchestrationTrace.observation.knowledgeBaseLookupOutput.retrievedReferences.map((ref, refIndex) => (
                                 <div key={refIndex} className="pl-3 border-l-2 border-yellow-300 dark:border-yellow-700">
                                   {ref.content?.text && (
@@ -194,7 +198,7 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                                   )}
                                   {ref.location?.s3Location?.uri && (
                                     <div className="text-xs text-gray-500">
-                                      📄 {ref.location.s3Location.uri}
+                                      <FileText className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {ref.location.s3Location.uri}
                                     </div>
                                   )}
                                 </div>
@@ -205,7 +209,7 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                           {/* Action Group Invocation */}
                           {trace.orchestrationTrace.observation.actionGroupInvocationOutput?.text && (
                             <div>
-                              <span className="font-medium">⚡ アクション結果:</span>{' '}
+                              <span className="font-medium"><Zap className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> アクション結果:</span>{' '}
                               {trace.orchestrationTrace.observation.actionGroupInvocationOutput.text}
                             </div>
                           )}
@@ -219,7 +223,7 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                 {trace.failureTrace && (
                   <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
                     <div className="text-xs font-semibold text-red-700 dark:text-red-400 mb-2">
-                      ❌ エラー情報
+                      <XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> エラー情報
                     </div>
                     <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
                       {trace.failureTrace.failureReason && (
@@ -240,7 +244,7 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                 {trace.guardrailTrace && (
                   <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-md">
                     <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-2">
-                      🛡️ ガードレール評価
+                      <Shield className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> ガードレール評価
                     </div>
                     <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
                       {trace.guardrailTrace.action && (
@@ -265,7 +269,7 @@ export function AgentTraceDisplay({ traces }: AgentTraceDisplayProps) {
                 {/* Raw Trace (デバッグ用) */}
                 <details className="text-xs">
                   <summary className="cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                    🔍 生トレース
+                    <Search className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> 生トレース
                   </summary>
                   <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto">
                     {JSON.stringify(trace, null, 2)}

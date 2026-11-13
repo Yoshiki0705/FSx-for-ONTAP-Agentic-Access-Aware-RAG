@@ -3,7 +3,7 @@
 **🌐 Language:** **日本語** | [English](en/managed-kb-migration-evaluation.md) | [한국어](ko/managed-kb-migration-evaluation.md) | [简体中文](zh-CN/managed-kb-migration-evaluation.md) | [繁體中文](zh-TW/managed-kb-migration-evaluation.md) | [Français](fr/managed-kb-migration-evaluation.md) | [Deutsch](de/managed-kb-migration-evaluation.md) | [Español](es/managed-kb-migration-evaluation.md)
 
 **作成日**: 2026-06-18
-**対象リージョン**: ap-northeast-1 (東京) — Managed KB は東京リージョンで利用可能
+**対象リージョン**: ap-northeast-1 (東京)。Managed KB は東京リージョンで利用可能
 **ステータス**: 検討ドキュメント（移行未実施 / 既存パス維持）
 **関連**: `FSx-for-ONTAP-Lakehouse-Integrations/docs/ja/cross-repo-integration-strategy.md`（連携元）
 
@@ -188,7 +188,7 @@ Managed KB のマネージドストレージで、本プロジェクトの SID �
 
 ### Phase 2: 段階移行（カナリア）
 
-1. AgentCore Gateway の A/B テスト（AgentCore Optimization — 本リポジトリに実装済み）で、一部トラフィックを Managed KB 経路へ
+1. AgentCore Gateway の A/B テスト（AgentCore Optimization、本リポジトリに実装済み）で、一部トラフィックを Managed KB 経路へ
 2. 権限テスト（Fail-Closed・group nesting・ACL edge cases）が全て pass することを確認
 3. 統計的有意性を確認後、段階的にトラフィックを移行
 
@@ -255,11 +255,11 @@ Managed KB のマネージドストレージで、本プロジェクトの SID �
 
 ## 関連ドキュメント
 
-- [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) — Managed KB 検証手順（S3 AP 接続検証・FlexClone 安全検証パターン）
-- [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) — SID フィルタリングの基本設計
-- [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) — S3 Vectors + SID 統合
-- [stack-architecture-comparison.md](stack-architecture-comparison.md) — 既存スタック構成と KB クォータ
-- [metadata-json-schema.md](metadata-json-schema.md) — `allowed_group_sids` メタデータスキーマ
-- [migration-guide-multimodal.md](migration-guide-multimodal.md) — Dual KB 段階移行の参考パターン
-- [chunking-strategy-guide.md](chunking-strategy-guide.md) — 現行チャンキング戦略
-- [evaluation.md](evaluation.md) — RAG 評価手法
+- [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md)（Managed KB 検証手順。S3 AP 接続検証・FlexClone 安全検証パターン）
+- [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md)（SID フィルタリングの基本設計）
+- [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md)（S3 Vectors + SID 統合）
+- [stack-architecture-comparison.md](stack-architecture-comparison.md)（既存スタック構成と KB クォータ）
+- [metadata-json-schema.md](metadata-json-schema.md)（`allowed_group_sids` メタデータスキーマ）
+- [migration-guide-multimodal.md](migration-guide-multimodal.md)（Dual KB 段階移行の参考パターン）
+- [chunking-strategy-guide.md](chunking-strategy-guide.md)（現行チャンキング戦略）
+- [evaluation.md](evaluation.md)（RAG 評価手法）

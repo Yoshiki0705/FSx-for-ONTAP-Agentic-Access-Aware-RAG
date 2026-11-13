@@ -166,6 +166,24 @@ Permission Violation Rate = (Unauthorized document display count) / (Total searc
 | User with unresolvable SID | Fail-Closed (deny all) | No SID data in DynamoDB |
 | Search immediately after permission removal | Searchable with old permissions within cache TTL | Max 5-min delay (manual clear for emergencies) |
 
+### 3.3 Hands-on results
+
+**[verified 2026-10-28 / ap-northeast-1]** The four cases of 3.1 (Admin, a general user, an Everyone document, an unregistered SID) were checked on a deployed environment. The documents came from a disposable volume on an existing Single-AZ FSx for ONTAP file system, through a disposable S3 Access Point (internet-origin, UNIX user, on an SVM that is not joined to Active Directory), into an Amazon Bedrock Knowledge Base with S3 Vectors as the vector store. The permission filter ran inside the web application's (Next.js) API (`usePermissionFilterLambda=false`, the default), and `filterLog.source` was `inline` in every response.
+
+| Case | Principal and search | Retrieved | Allowed | Denied | Method |
+|---|---|---:|---:|---:|---|
+| 1 | Admin (holds the SIDs of the administrator user, Domain Admins, and Everyone) searches "company sales" | 6 | 6 | 0 | `SID_MATCHING` |
+| 2 | A general user (the individual user's SID and Everyone only) runs the same query as case 1 | 6 | 0 | 6 | `SID_MATCHING` |
+| 3 | A user with no registered SID (no user-access record in DynamoDB) runs the same query as case 1 | 6 | 0 | 6 | `DENY_ALL` |
+| 4 | Search for "product overview" over Everyone documents, as Admin | 8 | 8 | 0 | `SID_MATCHING` |
+| 4 | The same query as the general user | 8 | 3 | 5 | `SID_MATCHING` |
+
+In cases 2 and 3 the same query as case 1 retrieved 6 documents rather than 0, and all 6 were then denied. That shows the documents the user may not read were removed by the filter after retrieval, not that they were never found. The 3 documents allowed to the general user in case 4 are Everyone documents, including product-catalog.md and company-overview.md, which Admin was also allowed.
+
+**Scope**: one observation per case, on a small set of 11 documents (11 ingested, 0 failed). Not checked: the group-added and group-removed cases of 3.1, the edge cases of 3.2, the Lambda path (`usePermissionFilterLambda=true`), an SVM joined to Active Directory, and response time.
+
+**What this result rests on**: the first ingestion failed for every document, and it passed only after the S3 Vectors index was recreated by hand. The cause (the text key is missing from the non-filterable keys) is a defect in the code and is recorded in [#228](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues/228). The S3 Access Point was also created by hand with the CLI, because the CDK custom resource failed and fell back to deferring it (item 2 of the same issue). So the permission filter was shown to behave as expected, but a run from start to finish with CDK alone was not shown.
+
 ---
 
 ## 4. Agent Evaluation Metrics

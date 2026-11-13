@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import { KeyRound, Library, Eye, Clock, Link, Plug, User, Lock, ShieldCheck, Globe, Users, Ban, Wrench, AlertTriangle, type LucideIcon } from 'lucide-react';
 import type { ToolProfile, TrustLevel, DataBoundary } from '@/types/multi-agent';
 
 /**
@@ -21,7 +22,7 @@ import type { ToolProfile, TrustLevel, DataBoundary } from '@/types/multi-agent'
 
 interface ToolProfileDef {
   value: ToolProfile;
-  icon: string;
+  icon: LucideIcon;
   label: string;
   description: string;
 }
@@ -39,13 +40,13 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     tools: [
       {
         value: 'access-check',
-        icon: '🔑',
+        icon: KeyRound,
         label: 'access-check',
         description: 'SID/UID/GID権限解決、User Access Table参照',
       },
       {
         value: 'kb-retrieve',
-        icon: '📚',
+        icon: Library,
         label: 'kb-retrieve',
         description: 'Bedrock KB検索（メタデータフィルタ付き）',
       },
@@ -57,13 +58,13 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     tools: [
       {
         value: 'vision-analyze',
-        icon: '👁️',
+        icon: Eye,
         label: 'vision-analyze',
         description: '画像理解・分析（マルチモーダルモデル使用）',
       },
       {
         value: 'schedule-run',
-        icon: '⏰',
+        icon: Clock,
         label: 'schedule-run',
         description: 'スケジュール実行（Background Agent）',
       },
@@ -75,25 +76,25 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     tools: [
       {
         value: 'share-agent',
-        icon: '🔗',
+        icon: Link,
         label: 'share-agent',
         description: 'S3バケット経由のAgent/Team共有',
       },
       {
         value: 'external-mcp:ontap-ops' as ToolProfile,
-        icon: '🔌',
+        icon: Plug,
         label: 'external-mcp:ontap-ops',
         description: 'ONTAP操作（スナップショット、ボリューム状態）',
       },
       {
         value: 'external-mcp:identity-access' as ToolProfile,
-        icon: '🔌',
+        icon: Plug,
         label: 'external-mcp:identity-access',
         description: 'Identity/Access確認（LDAP/ADグループ）',
       },
       {
         value: 'external-mcp:document-workflow' as ToolProfile,
-        icon: '🔌',
+        icon: Plug,
         label: 'external-mcp:document-workflow',
         description: 'ドキュメントワークフロー（承認、チケット）',
       },
@@ -105,31 +106,31 @@ const TOOL_CATEGORIES: ToolCategory[] = [
 
 interface TrustLevelOption {
   value: TrustLevel;
-  icon: string;
+  icon: LucideIcon;
   label: string;
   description: string;
 }
 
 const TRUST_LEVEL_OPTIONS: TrustLevelOption[] = [
-  { value: 'user-safe', icon: '👤', label: 'user-safe', description: '一般ユーザー操作可' },
-  { value: 'team-safe', icon: '🔒', label: 'team-safe', description: 'チーム管理者操作可' },
-  { value: 'admin-only', icon: '🛡️', label: 'admin-only', description: 'システム管理者のみ操作可' },
+  { value: 'user-safe', icon: User, label: 'user-safe', description: '一般ユーザー操作可' },
+  { value: 'team-safe', icon: Lock, label: 'team-safe', description: 'チーム管理者操作可' },
+  { value: 'admin-only', icon: ShieldCheck, label: 'admin-only', description: 'システム管理者のみ操作可' },
 ];
 
 // ===== Data Boundary options =====
 
 interface DataBoundaryOption {
   value: DataBoundary;
-  icon: string;
+  icon: LucideIcon;
   label: string;
   description: string;
 }
 
 const DATA_BOUNDARY_OPTIONS: DataBoundaryOption[] = [
-  { value: 'public', icon: '🌐', label: 'public', description: '公開データのみ' },
-  { value: 'team-scoped', icon: '👥', label: 'team-scoped', description: 'チーム範囲のデータ' },
-  { value: 'user-scoped', icon: '🔑', label: 'user-scoped', description: 'ユーザー個人のデータ' },
-  { value: 'sensitive-admin', icon: '⛔', label: 'sensitive-admin', description: '機密管理者データ' },
+  { value: 'public', icon: Globe, label: 'public', description: '公開データのみ' },
+  { value: 'team-scoped', icon: Users, label: 'team-scoped', description: 'チーム範囲のデータ' },
+  { value: 'user-scoped', icon: KeyRound, label: 'user-scoped', description: 'ユーザー個人のデータ' },
+  { value: 'sensitive-admin', icon: Ban, label: 'sensitive-admin', description: '機密管理者データ' },
 ];
 
 // ===== Component Props =====
@@ -204,7 +205,7 @@ export function AgentMetadataEditor({
       {/* ===== Tool Profile Selection ===== */}
       <div>
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          🛠️ ツール選択（Tool Profile）
+          <Wrench className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />ツール選択（Tool Profile）
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           利用可能なツールを選択してください
@@ -235,7 +236,7 @@ export function AgentMetadataEditor({
                     />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1">
-                        <span aria-hidden="true">{tool.icon}</span>
+                        <tool.icon className="w-4 h-4" aria-hidden="true" />
                         {tool.label}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -250,7 +251,7 @@ export function AgentMetadataEditor({
         </div>
 
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-          ⚠️ 汎用シェル実行、無制限ファイル操作はセキュリティ上の理由で利用できません
+          <AlertTriangle className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />汎用シェル実行、無制限ファイル操作はセキュリティ上の理由で利用できません
         </p>
       </div>
 
@@ -278,7 +279,7 @@ export function AgentMetadataEditor({
                 value={opt.value}
                 disabled={opt.value === 'admin-only' && !isAdmin}
               >
-                {opt.icon} {opt.label} — {opt.description}
+                {opt.label} — {opt.description}
               </option>
             ))}
           </select>
@@ -306,7 +307,7 @@ export function AgentMetadataEditor({
                 value={opt.value}
                 disabled={opt.value === 'sensitive-admin' && !isAdmin}
               >
-                {opt.icon} {opt.label} — {opt.description}
+                {opt.label} — {opt.description}
               </option>
             ))}
           </select>
@@ -320,7 +321,7 @@ export function AgentMetadataEditor({
           className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg"
         >
           <div className="flex items-center gap-2 text-sm font-medium text-red-700 dark:text-red-400">
-            <span aria-hidden="true">🛡️</span>
+            <ShieldCheck className="w-4 h-4" aria-hidden="true" />
             admin-only Agent
           </div>
           <p className="text-xs text-red-600 dark:text-red-400 mt-1">
@@ -336,7 +337,7 @@ export function AgentMetadataEditor({
           className="p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg"
         >
           <p className="text-xs text-yellow-700 dark:text-yellow-400">
-            ⚠️ 管理者権限がないため、admin-only Agentの設定変更はできません。
+            <AlertTriangle className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />管理者権限がないため、admin-only Agentの設定変更はできません。
           </p>
         </div>
       )}

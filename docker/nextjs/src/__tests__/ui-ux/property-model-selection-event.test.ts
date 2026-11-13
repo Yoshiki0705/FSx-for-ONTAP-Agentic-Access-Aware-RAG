@@ -31,6 +31,8 @@ vi.mock('next-intl', () => ({
 vi.mock('lucide-react', () => ({
   ChevronDown: (props: Record<string, unknown>) =>
     React.createElement('svg', { 'data-testid': 'chevron-down', ...props }),
+  Check: (props: Record<string, unknown>) =>
+    React.createElement('svg', { 'data-testid': 'check', ...props }),
 }));
 
 vi.mock('@/utils/truncateText', () => ({

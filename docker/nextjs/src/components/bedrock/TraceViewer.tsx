@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
+import { RefreshCw, Target, CheckCircle2, Library, Zap, Shield, Handshake, Link, Paperclip, Search, FileText, type LucideIcon } from 'lucide-react';
 import { useSafeTranslations } from '../../hooks/useSafeTranslations';
 import { BedrockAgentTrace, TraceStep, TraceStepType, TraceStepStatus } from '../../types/bedrock-agent-trace';
 import StepDetailsPanel from './StepDetailsPanel';
@@ -38,21 +39,21 @@ interface TraceViewerProps {
 /**
  * ステップタイプのアイコンマッピング
  */
-const STEP_TYPE_ICONS: Record<TraceStepType, string> = {
-  'PRE_PROCESSING': '🔄',
-  'ORCHESTRATION': '🎯',
-  'POST_PROCESSING': '✅',
-  'KNOWLEDGE_BASE': '📚',
-  'ACTION_GROUP': '⚡',
-  'GUARDRAILS': '🛡️',
-  'MULTI_AGENT_COLLABORATION': '🤝',
-  'INLINE_AGENT_INVOCATION': '🔗',
-  'PAYLOAD_REFERENCING': '📎',
-  'KNOWLEDGE_BASE_LOOKUP': '🔍',
-  'BASIC': '📝',
-  'INTEGRATION': '🔗',
-  'MULTI_AGENT': '🤝',
-  'ADVANCED': '⚡'
+const STEP_TYPE_ICONS: Record<TraceStepType, LucideIcon> = {
+  'PRE_PROCESSING': RefreshCw,
+  'ORCHESTRATION': Target,
+  'POST_PROCESSING': CheckCircle2,
+  'KNOWLEDGE_BASE': Library,
+  'ACTION_GROUP': Zap,
+  'GUARDRAILS': Shield,
+  'MULTI_AGENT_COLLABORATION': Handshake,
+  'INLINE_AGENT_INVOCATION': Link,
+  'PAYLOAD_REFERENCING': Paperclip,
+  'KNOWLEDGE_BASE_LOOKUP': Search,
+  'BASIC': FileText,
+  'INTEGRATION': Link,
+  'MULTI_AGENT': Handshake,
+  'ADVANCED': Zap
 };
 
 /**
@@ -547,7 +548,7 @@ const StepCard: React.FC<StepCardProps> = ({
       <div className="flex justify-between items-start">
         <div className="flex items-start space-x-3 flex-1">
           <div className="flex items-center space-x-2">
-            <span className="text-lg">{STEP_TYPE_ICONS[step.type]}</span>
+            <span className="text-lg">{React.createElement(STEP_TYPE_ICONS[step.type], { className: 'w-5 h-5', 'aria-hidden': true })}</span>
             <span className="text-xs text-gray-500">#{index + 1}</span>
           </div>
 

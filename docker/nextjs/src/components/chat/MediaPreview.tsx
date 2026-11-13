@@ -16,6 +16,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useMultimodalStore } from '@/store/useMultimodalStore';
+import { Video, Volume2 } from 'lucide-react';
 import { getMediaTypeIcon } from './MediaTypeIndicator';
 import type { MediaType } from '@/types/multimodal';
 
@@ -76,6 +77,7 @@ export function MediaPreview({
   }, [onRefreshUrl]);
 
   if (!multimodalEnabled) return null;
+  const MediaIcon = getMediaTypeIcon(mediaType);
 
   // Placeholder on failure or missing URL
   if (failed || !url) {
@@ -84,7 +86,7 @@ export function MediaPreview({
         className={`flex items-center gap-2 p-2 rounded bg-gray-100 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 ${className}`}
         data-testid="media-preview-placeholder"
       >
-        <span>{getMediaTypeIcon(mediaType)}</span>
+        <MediaIcon className="w-4 h-4" aria-hidden="true" />
         <span className="truncate max-w-[180px]">{fileName}</span>
       </div>
     );
@@ -110,7 +112,7 @@ export function MediaPreview({
         className={`flex items-center gap-2 p-2 rounded bg-gray-100 dark:bg-gray-800 ${className}`}
         data-testid="media-preview-video"
       >
-        <span className="text-lg">🎥</span>
+        <Video className="w-5 h-5" aria-hidden="true" />
         <div className="text-xs">
           <div className="font-medium text-gray-700 dark:text-gray-300 truncate max-w-[160px]">
             {fileName}
@@ -143,7 +145,7 @@ export function MediaPreview({
             audio.play().catch(() => {});
           }}
         >
-          🔊
+          <Volume2 className="w-5 h-5" aria-hidden="true" />
         </button>
         <div className="text-xs">
           <div className="font-medium text-gray-700 dark:text-gray-300 truncate max-w-[160px]">
@@ -163,7 +165,7 @@ export function MediaPreview({
       className={`flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 ${className}`}
       data-testid="media-preview-text"
     >
-      <span>{getMediaTypeIcon(mediaType)}</span>
+      <MediaIcon className="w-4 h-4" aria-hidden="true" />
       <span className="truncate max-w-[180px]">{fileName}</span>
     </div>
   );

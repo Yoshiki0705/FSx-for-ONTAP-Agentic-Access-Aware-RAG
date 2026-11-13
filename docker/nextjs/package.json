@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-crypto/sha256-js": "^5.2.0",
     "@aws-sdk/client-bedrock": "^3.930.0",
     "@aws-sdk/client-bedrock-agent": "^3.930.0",
     "@aws-sdk/client-bedrock-agent-runtime": "^3.930.0",
@@ -27,6 +28,7 @@
     "@aws-sdk/client-secrets-manager": "^3.930.0",
     "@aws-sdk/client-ssm": "^3.930.0",
     "@aws-sdk/client-sts": "^3.971.0",
+    "@aws-sdk/credential-provider-node": "^3.930.0",
     "@aws-sdk/lib-dynamodb": "^3.930.0",
     "@aws-sdk/s3-request-presigner": "^3.1029.0",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -41,6 +43,8 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.2",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@smithy/protocol-http": "^5.6.2",
+    "@smithy/signature-v4": "^5.7.5",
     "@tanstack/react-virtual": "^3.13.12",
     "@vendia/serverless-express": "^4.12.6",
     "autoprefixer": "^10.4.21",
@@ -51,7 +55,7 @@
     "jose": "^5.10.0",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.453.0",
-    "next": "^15.5.25",
+    "next": "^15.5.29",
     "next-intl": "^4.5.0",
     "next-themes": "^0.3.0",
     "react": "^18",
@@ -86,6 +90,7 @@
     "vitest": "^4.1.4"
   },
   "overrides": {
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "@swc/helpers": "0.5.15"
   }
 }

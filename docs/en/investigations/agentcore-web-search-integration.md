@@ -40,7 +40,7 @@ Before importing sibling-repo code, confirm assets **already working** here:
 - **Routing**: `routeInvocation()` decides by KB score threshold / explicit request / `web:` prefix.
 - **Domain blocklist**: `isDomainBlocked()` + `WEB_SEARCH_DOMAIN_BLOCKLIST`.
 
-### 1.2 What Mechanism A is **Missing** (this investigation addresses)
+### 1.2 What Mechanism A is Missing (this investigation addresses)
 
 - ⚠️ **Insufficient prompt-injection defense**: currently only adds "this is external reference" to the system prompt; it does **not wrap web results in an untrusted-data boundary** like `<web_search_results>`. Addressed in Consideration 4.
 

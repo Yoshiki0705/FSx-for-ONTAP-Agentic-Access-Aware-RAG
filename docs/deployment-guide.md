@@ -6,7 +6,7 @@
 
 **Created**: 2026-07  
 **Status**: Active  
-**Audience**: Infrastructure engineers, Partners/SIs deploying into customer environments
+**Audience**: Infrastructure engineers, Partners/SIs deploying into a target environment
 
 ---
 
@@ -55,7 +55,7 @@ When you deploy with CDK, the following AWS resources are created in your accoun
 
 | Category | Resources | Notes |
 |----------|-----------|-------|
-| Networking | VPC Endpoints (or uses existing) | Skipped if `skipVpcEndpoints` set |
+| Networking | New VPC + NAT Gateway, or a reference to an existing VPC | With `existingVpcId`: no VPC, NAT Gateway, subnet, or VPC endpoint is created; only security groups |
 | Security | Cognito User Pool, WAF WebACL | WAF in us-east-1 |
 | Compute | Lambda function (Next.js container) | Container pulled from ECR |
 | Storage | S3 bucket (vectors), DynamoDB table | user-access permissions |
@@ -170,7 +170,7 @@ aws fsx describe-storage-virtual-machines \
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Existing Environment (Customer-managed)                         │
+│  Existing Environment (operator-managed)                          │
 │                                                                   │
 │  ┌──────────────────┐   ┌──────────────────┐                    │
 │  │ FSx for ONTAP    │   │ VPC              │                    │
@@ -248,9 +248,13 @@ cp cdk.context.existing-env.example.json cdk.context.json
   "existingSvmId": "svm-0123456789abcdef0",
   "existingVolumeId": "fsvol-0123456789abcdef0",
 
-  // === Networking (if importing existing VPC) ===
-  // By default CDK creates a new VPC. To use existing:
+  // === Networking (if using an existing VPC) ===
+  // By default CDK creates a new VPC and a NAT Gateway. To use an existing VPC,
+  // set all four keys together (a missing one fails synth with a message naming it):
   "existingVpcId": "vpc-0abc123def456",
+  "existingPrivateSubnetIds": ["subnet-0aaa111122223333a", "subnet-0bbb444455556666b"],
+  "existingAvailabilityZones": ["ap-northeast-1a", "ap-northeast-1c"],
+  "existingVpcCidr": "10.0.0.0/16",
 
   // === Security ===
   "allowedCountries": ["JP"],
@@ -378,32 +382,14 @@ aws cloudformation deploy \
 
 ### 5.2 Conflict Prevention
 
-If your existing VPC already has VPC Endpoints for the above services, CDK's default behavior (creating new ones) will **fail** with:
+With `existingVpcId`, this project creates no VPC endpoints, so it cannot collide with endpoints the VPC already has. `enableVpcEndpoints` is ignored in that case and synth prints a warning. The Lambda functions reach AWS services through whichever of these the existing VPC provides:
 
-```
-The VPC endpoint for this service already exists in this VPC
-```
+- Gateway endpoints for S3 and DynamoDB in the route tables of the private subnets you pass.
+- Interface endpoints for the services above, reachable from those subnets, or a NAT Gateway route.
 
-**Resolution options**:
+Without `existingVpcId`, a new VPC is created. Endpoints are then created only when `enableVpcEndpoints=true`. To use a new VPC with FSx for ONTAP in another VPC, omit `existingVpcId` and configure VPC peering or Transit Gateway.
 
-#### Option A: Import existing endpoints (recommended)
-
-In `cdk.context.json`:
-
-```jsonc
-{
-  // Skip CDK-managed VPC Endpoint creation
-  "skipVpcEndpoints": ["s3", "dynamodb", "bedrock-runtime", "secretsmanager"]
-}
-```
-
-#### Option B: Use existing VPC with no endpoint conflicts
-
-Ensure the existing VPC's route tables include the Gateway Endpoints, and Interface Endpoints are in subnets accessible to the Lambda functions.
-
-#### Option C: Deploy into a new VPC with peering
-
-Omit `existingVpcId` — CDK creates a dedicated VPC and you configure VPC peering or Transit Gateway to the FSx for ONTAP VPC.
+`scripts/preflight-check.sh` lists the endpoints the existing VPC already has (section 9) so you can confirm the subnets you pass can reach the services.
 
 ### 5.3 Security Group for Interface Endpoints
 
@@ -513,7 +499,25 @@ aws lambda update-function-configuration \
 
 > Valid values: `DEBUG`, `INFO` (default), `WARN`, `ERROR`
 
-### 7.5 Backup and Recovery
+### 7.5 Permission Model Operations
+
+The SID filter itself is fail-closed (documents without trusted metadata are excluded from retrieval), but *writing* the permission data the filter reads, and *tracking changes* to it, are the operator's responsibility. The following are additional hardening notes.
+
+**Restrict writes to the `user-access` table to an administrative path**
+
+> **Security note**: The SID filter decides access by reading a user's SID/UID/GID from the DynamoDB `user-access` table. A principal with broad write access to this table can bypass the filter by editing its own SID to retrieve documents it should not see. Limit writes to `user-access` to an operator-controlled path (`setup-user-access.sh`, a dedicated administrative role, or IaC with an approval step), and do not grant `dynamodb:PutItem` / `UpdateItem` / `DeleteItem` to the application runtime role or to end users. Separate the read permission (filter path) from the write permission (administrative path).
+
+**Choosing the filter path when immediate revocation is required**
+
+The Lambda filter path (preferred when `PERMISSION_FILTER_LAMBDA_ARN` is set) caches each `(userId, fileName)` decision in the `permission-cache` table for **5 minutes**. The inline path (the fallback when the Lambda is not configured) re-evaluates on every request and caches nothing.
+
+> **Revocation note**: If you revoke access by editing the `user-access` table, the cache-invalidator that subscribes to its DynamoDB Streams (`lib/constructs/cache-invalidator-construct.ts`) deletes the affected entries, so the revocation takes effect almost immediately. If instead you tighten access by changing a document's `.metadata.json` (`allowed_group_sids`), that change does not flow through the stream, so a cached `allowed=true` decision can persist for up to 5 minutes on the Lambda path. When immediate effect for document-metadata changes is a requirement, use the inline path (leave `PERMISSION_FILTER_LAMBDA_ARN` unset), or delete the affected entries from the `permission-cache` table manually. The cache TTL (`CACHE_TTL_MINUTES = 5` in `lambda/permissions/metadata-filter-handler.ts`) is a code constant, not an environment variable — lowering the TTL requires a code change. The trade-off is that the inline path re-evaluates on every query, adding DynamoDB reads and latency.
+
+**Auditing permission changes is the operator's responsibility**
+
+> **Audit note**: `filterLog` (and the `action: retrieve` audit record) records which documents were allowed or denied to whom at each query time. It does not record the history of *who changed a permission and when* — SID changes in `user-access`, `allowed_group_sids` changes in `.metadata.json`, or FSx ACL changes. If you need an audit trail of permission changes, provide it on the operator side — for example, forward the `user-access` table's DynamoDB Streams to an audit log, restrict permission changes to an IaC / approval flow that retains change history, or record `PutItem` / `UpdateItem` via AWS CloudTrail data events.
+
+### 7.6 Backup and Recovery
 
 - **FSx for ONTAP**: Managed by existing customer backup policy (Snapshots/SnapMirror)
 - **DynamoDB**: point-in-time recovery is enabled on every table created by these stacks. `RemovalPolicy.DESTROY` still applies to the demo resources, so PITR protects against accidental writes and deletes within a table, not against the stack being destroyed
@@ -584,7 +588,7 @@ aws lambda update-function-configuration \
 
 | Symptom | Cause | Resolution |
 |---------|-------|------------|
-| `VPC endpoint already exists` | Existing endpoint conflicts | Set `skipVpcEndpoints` in context |
+| `existingVpcCidr` / `existingAvailabilityZones` error at synth | A required `existing*` VPC key is missing, or an array was passed with `-c` | Set all four `existing*` VPC keys in `cdk.context.json` (see section 3.3) |
 | `Cannot resolve FSx file system` | Wrong FS ID or region | Verify `existingFileSystemId` matches region |
 | `Lambda timeout on ONTAP call` | SG missing HTTPS to mgmt LIF | Add TCP 443 rule from Lambda SG to ONTAP mgmt |
 | `S3 Access Point 403` | Missing IAM or AP policy | Check `s3:GetObject` on AP ARN |
@@ -617,6 +621,33 @@ aws cloudformation delete-stack --stack-name fsxn-ops-prod --region ap-northeast
 **What is NOT removed**: Your existing FSx for ONTAP file system, SVM, volumes, VPC, subnets, and security groups are untouched. CDK bootstrap stacks (`CDKToolkit`) remain for future use.
 
 > **Caution**: `cdk destroy` deletes the Cognito User Pool permanently. Export user data first if needed: `aws cognito-idp list-users --user-pool-id <pool-id>`
+
+**Two steps where `cdk destroy` can stop, and how to clear them** (seen in a teardown):
+
+- **CloudFront access-log bucket not empty.** The WebApp stack's access-log S3 bucket keeps collecting logs, so its delete fails with "The bucket you tried to delete is not empty." Empty it and delete the stack again:
+
+  ```bash
+  aws s3 rm "s3://$(aws cloudformation describe-stack-resources \
+    --stack-name <prefix>-WebApp --region <region> \
+    --query "StackResources[?LogicalResourceId=='AccessLogBucketDA470295'].PhysicalResourceId" \
+    --output text)" --recursive
+  aws cloudformation delete-stack --stack-name <prefix>-WebApp --region <region>
+  ```
+
+- **Networking stack: Lambda VPC ENIs still attached.** A VPC Lambda leaves its ENIs for a few minutes after the function is gone, so the security group delete fails. Wait until the ENIs show `available`, delete them, then delete the stack:
+
+  ```bash
+  SG=$(aws cloudformation describe-stack-resources --stack-name <prefix>-Networking \
+    --region <region> --query "StackResources[?ResourceType=='AWS::EC2::SecurityGroup'].PhysicalResourceId" --output text)
+  for e in $(aws ec2 describe-network-interfaces --region <region> \
+      --filters Name=group-id,Values=$SG Name=status,Values=available \
+      --query "NetworkInterfaces[].NetworkInterfaceId" --output text); do
+    aws ec2 delete-network-interface --region <region> --network-interface-id "$e"
+  done
+  aws cloudformation delete-stack --stack-name <prefix>-Networking --region <region>
+  ```
+
+> **If you imported an existing volume with reclaim policy `Retain`**: the ONTAP volume stays after you delete the PVC and PV, which is the point of `Retain`. Trident keeps its own record of that volume, so a later backend removal waits at "Backend is in a deleting state" until you run `tridentctl -n trident delete volume <pv-name>`. Delete the ONTAP volume itself through the FSx API when you no longer need it.
 
 ---
 
@@ -661,6 +692,20 @@ Currently, the CDK stack references a single volume for the primary Knowledge Ba
 ### What is "FSx for ONTAP S3 Access Point"?
 
 FSx for ONTAP S3 AP is a feature that exposes ONTAP volume data through the S3 API. It allows AWS services (like Bedrock Knowledge Base) to read files from your ONTAP volume using standard S3 `GetObject`/`ListObjectsV2` calls, without requiring NFS/SMB mounts. The S3 Access Point is created post-deploy and respects NTFS ACLs or UNIX permissions on the underlying files.
+
+### I already run a retrieval or RAG stack. Where does this fit?
+
+The part worth reusing here is the access path, not the whole stack: an S3 Access Point lets an S3 client read ONTAP volume data in place, without copying it into a separate S3 bucket. How you build retrieval on top of that is a separate choice, and each option has trade-offs:
+
+- **This stack (Bedrock Knowledge Bases + S3 Vectors).** Managed ingestion, chunking, embeddings, and a vector store, with the permission filter in front of retrieval. Trade-off: you adopt the Bedrock KB data model and the S3 Vectors metadata limits (for example, at most 10 non-filterable metadata keys per index), and the permission filter here matches a document's `allowed_group_sids` against a user's SIDs — a model you need to be able to populate.
+- **Your existing vector store or search engine (OpenSearch, pgvector, a third-party index).** Point your existing ingestion at the same S3 Access Point as the source, and keep your current retrieval. Trade-off: you carry the permission model yourself; this repository's SID filter (`docker/nextjs/src/lib/rag-pipeline/sid-filter.ts` and the Lambda in `lambda/permissions/`) is a reference you can port, but it is not drop-in for another engine.
+- **Your existing agent or orchestration layer (LangChain, LlamaIndex, a managed assistant).** Keep your orchestration and use the S3 Access Point as one more document source. Trade-off: the permission filter has to run where the results are assembled, before they reach the model, to stay fail-closed.
+
+In every case the access point does not copy data; the file stays on the ONTAP volume and is still reachable over NFS/SMB. Pick the layer by what you already operate, not by which is "better" — the storage access path is the same underneath.
+
+### Which permission-filter path should I run, inline or Lambda?
+
+Both are in this repository and produce the same verdicts. The default is **inline** (`usePermissionFilterLambda=false`): the filter runs inside the Next.js API, reads the user-access table on each request, and reflects a group add/remove immediately. The **Lambda** path (`usePermissionFilterLambda=true`) moves the filter into its own function and adds a short permission cache (about five minutes), so a group change is not reflected until the cache entry expires or is cleared. Choose inline for the simpler default and immediate changes; choose the Lambda path when you want the filter isolated from the web tier, and account for the cache when permissions change.
 
 ---
 

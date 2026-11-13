@@ -2,6 +2,7 @@
 
 import { useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
+import { Paperclip } from 'lucide-react';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import type { ImageAttachment } from '@/types/image-upload';
 import { ALLOWED_MIME_TYPES } from '@/types/image-upload';
@@ -131,7 +132,7 @@ export function ImageUploadZone({
         className="flex-shrink-0 rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
         aria-label={t('selectFile')}
       >
-        📎
+        <Paperclip className="w-5 h-5" aria-hidden="true" />
       </button>
 
       {/* Hidden file input */}

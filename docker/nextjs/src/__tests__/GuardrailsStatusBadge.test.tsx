@@ -75,14 +75,14 @@ describe('GuardrailsStatusBadge', () => {
     const badge = screen.getByTestId('guardrails-status-badge');
     expect(badge).toBeDefined();
     expect(badge.textContent).toContain('Safe');
-    expect(badge.textContent).toContain('✅');
+    expect(badge.querySelector('svg')).not.toBeNull();
   });
 
   it('renders filtered badge with yellow styling', () => {
     render(<GuardrailsStatusBadge guardrailResult={filteredResult} enableGuardrails={true} />);
     const badge = screen.getByTestId('guardrails-status-badge');
     expect(badge.textContent).toContain('Filtered');
-    expect(badge.textContent).toContain('⚠️');
+    expect(badge.querySelector('svg')).not.toBeNull();
   });
 
   it('renders blocked badge with red styling', () => {

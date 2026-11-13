@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Camera, X } from 'lucide-react';
 
 export interface ResponseMetadataProps {
   modelName: string;
@@ -53,7 +54,7 @@ export function ResponseMetadata({
               onClick={() => setShowPopover(false)}
               className="mt-1 text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-500"
             >
-              {t('title')} ✕
+              {t('title')} <X className="w-3 h-3 inline-block align-text-bottom" aria-hidden="true" />
             </button>
           </div>
         )}
@@ -83,7 +84,7 @@ export function ResponseMetadata({
       {/* Camera icon for image analysis */}
       {hasImageAnalysis && (
         <span title="Image Analysis" className="text-xs">
-          📷
+          <Camera className="w-4 h-4" aria-label="Image Analysis" />
         </span>
       )}
     </div>

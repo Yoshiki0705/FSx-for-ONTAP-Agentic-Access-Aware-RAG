@@ -154,14 +154,13 @@ describe('MultiAgentExecutionStatus', () => {
 
     it('shows correct status icons for each state', () => {
       const { container, cleanup } = renderComponent(createStatus());
-      const text = container.textContent ?? '';
 
-      // completed → ✅
-      expect(text).toContain('✅');
-      // running → ⏳
-      expect(text).toContain('⏳');
-      // pending → ○
-      expect(text).toContain('○');
+      // completed → CheckCircle2 (identified by test id; lucide renders an svg)
+      expect(container.querySelector('[data-testid="status-icon-completed"]')).not.toBeNull();
+      // running → Loader2
+      expect(container.querySelector('[data-testid="status-icon-running"]')).not.toBeNull();
+      // pending → Circle
+      expect(container.querySelector('[data-testid="status-icon-pending"]')).not.toBeNull();
 
       cleanup();
     });
@@ -227,10 +226,9 @@ describe('MultiAgentExecutionStatus', () => {
       });
 
       const { container, cleanup } = renderComponent(status);
-      const text = container.textContent ?? '';
 
-      expect(text).toContain('❌');
-      expect(text).toContain('⏭️');
+      expect(container.querySelector('[data-testid="status-icon-failed"]')).not.toBeNull();
+      expect(container.querySelector('[data-testid="status-icon-skipped"]')).not.toBeNull();
 
       cleanup();
     });
@@ -283,14 +281,13 @@ describe('MultiAgentExecutionStatus', () => {
   describe('role icons', () => {
     it('shows role-specific icons for collaborators', () => {
       const { container, cleanup } = renderComponent(createStatus());
-      const text = container.textContent ?? '';
 
-      // permission-resolver → 🔒
-      expect(text).toContain('🔒');
-      // retrieval → 📚
-      expect(text).toContain('📚');
-      // analysis → 📊
-      expect(text).toContain('📊');
+      // permission-resolver → Lock
+      expect(container.querySelector('[data-testid="role-icon-permission-resolver"]')).not.toBeNull();
+      // retrieval → Library
+      expect(container.querySelector('[data-testid="role-icon-retrieval"]')).not.toBeNull();
+      // analysis → BarChart3
+      expect(container.querySelector('[data-testid="role-icon-analysis"]')).not.toBeNull();
 
       cleanup();
     });

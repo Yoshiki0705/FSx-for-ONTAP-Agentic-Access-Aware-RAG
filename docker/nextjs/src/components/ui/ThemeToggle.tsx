@@ -37,7 +37,7 @@ export function ThemeToggle({ variant = 'icon', className = '' }: ThemeTogglePro
             document.body.classList.remove('dark');
           }
         }}
-        className={`p-2 rounded-lg transition-all shadow-md ${
+        className={`p-2 rounded-lg transition-colors shadow-md ${
           effectiveTheme === 'light' 
             ? 'bg-gray-200 hover:bg-gray-300 text-gray-800' 
             : 'bg-gray-700 hover:bg-gray-600 text-gray-100'

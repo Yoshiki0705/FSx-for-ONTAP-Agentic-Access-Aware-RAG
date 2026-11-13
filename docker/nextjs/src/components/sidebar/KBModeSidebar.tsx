@@ -1,5 +1,6 @@
 'use client';
 
+import { AlertTriangle, Ban, Check, CheckCircle2, FlaskConical, Folder, Lock, Save, XCircle } from 'lucide-react';
 import { useCustomTranslations } from '@/hooks/useCustomTranslations';
 import { useChatSearch } from '@/hooks/useChatSearch';
 import { ModelSelector } from '../bedrock/ModelSelector';
@@ -59,7 +60,7 @@ interface KBModeSidebarProps {
  * KBモード固有の要素を表示：
  * - ユーザー情報
  * - FSxディレクトリ情報（アクセス権限）
- * - Bedrockt("region.region")選択
+ * - Bedrockリージョン選択
  * - チャット履歴設定
  * - AIモデル選択（通常のModelSelector）
  * - 権限制御状態
@@ -171,7 +172,7 @@ export function KBModeSidebar({
                           onSessionDelete(session.id);
                         }
                       }}
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded" // check-ui-ignore: 触って開く操作ではなく、タッチと focus では常時表示
                       title="削除"
                     >
                       <svg className="w-3 h-3 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,10 +206,10 @@ export function KBModeSidebar({
             <div className="space-y-1">
               <div className="text-xs">
                 <div className="flex items-center space-x-1">
-                  {userDirectories.directoryType === 'actual' && <span className="text-green-600">✅</span>}
-                  {userDirectories.directoryType === 'test' && <span className="text-blue-600">🧪</span>}
-                  {userDirectories.directoryType === 'simulated' && <span className="text-yellow-600">⚠️</span>}
-                  {userDirectories.directoryType === 'unavailable' && <span className="text-red-600">❌</span>}
+                  {userDirectories.directoryType === 'actual' && <CheckCircle2 className="w-4 h-4 text-green-600" aria-hidden="true" />}
+                  {userDirectories.directoryType === 'test' && <FlaskConical className="w-4 h-4 text-blue-600" aria-hidden="true" />}
+                  {userDirectories.directoryType === 'simulated' && <AlertTriangle className="w-4 h-4 text-yellow-600" aria-hidden="true" />}
+                  {userDirectories.directoryType === 'unavailable' && <XCircle className="w-4 h-4 text-red-600" aria-hidden="true" />}
                   <span className="font-medium text-gray-700 dark:text-gray-300">
                     {userDirectories.directoryType === 'actual' && t('permissions.fsxEnvironment')}
                     {userDirectories.directoryType === 'test' && t('permissions.testEnvironment')}
@@ -218,13 +219,13 @@ export function KBModeSidebar({
                 </div>
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-400">
-                <div>📁 {t('permissions.directories', { count: userDirectories.accessibleDirectories?.length || 0 })}</div>
+                <div><Folder className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {t('permissions.directories', { count: userDirectories.accessibleDirectories?.length || 0 })}</div>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className={userDirectories.permissions.read ? 'text-green-600' : 'text-red-600'}>
-                    {userDirectories.permissions.read ? '✅' : '❌'} {t('permissions.read')}
+                    {userDirectories.permissions.read ? <Check className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />} {t('permissions.read')}
                   </span>
                   <span className={userDirectories.permissions.write ? 'text-green-600' : 'text-red-600'}>
-                    {userDirectories.permissions.write ? '✅' : '❌'} {t('permissions.write')}
+                    {userDirectories.permissions.write ? <Check className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />} {t('permissions.write')}
                   </span>
                 </div>
               </div>
@@ -261,14 +262,16 @@ export function KBModeSidebar({
             }`}
           >
             <div className="flex items-center space-x-2">
-              <span className="text-base">{saveHistory ? '💾' : '🚫'}</span>
+              {saveHistory
+                ? <Save className="w-5 h-5" aria-hidden="true" />
+                : <Ban className="w-5 h-5" aria-hidden="true" />}
               <div className="flex-1">
                 <div className="font-medium">{saveHistory ? t('sidebar.historySaving') : t('sidebar.noHistorySaving')}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {saveHistory ? t('sidebar.autoSave') : t('sidebar.deleteOnSessionEnd')}
                 </div>
               </div>
-              {saveHistory && <span className="text-green-600 dark:text-green-400">✓</span>}
+              {saveHistory && <Check className="w-4 h-4 text-green-600 dark:text-green-400" aria-hidden="true" />}
             </div>
           </button>
         </div>
@@ -287,11 +290,11 @@ export function KBModeSidebar({
           <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{t('sidebar.permissionControl')}</h3>
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="text-green-600">✅</span>
+              <CheckCircle2 className="w-4 h-4 text-green-600" aria-hidden="true" />
               <span className="text-xs text-gray-600 dark:text-gray-400">{t('permissions.available')}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-blue-600">🔐</span>
+              <Lock className="w-4 h-4 text-blue-600" aria-hidden="true" />
               <span className="text-xs text-gray-600 dark:text-gray-400">{t('sidebar.permissionControl')}</span>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">

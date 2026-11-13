@@ -3,7 +3,7 @@
 **🌐 Language:** [日本語](../managed-kb-migration-evaluation.md) | **English** | [한국어](../ko/managed-kb-migration-evaluation.md) | [简体中文](../zh-CN/managed-kb-migration-evaluation.md) | [繁體中文](../zh-TW/managed-kb-migration-evaluation.md) | [Français](../fr/managed-kb-migration-evaluation.md) | [Deutsch](../de/managed-kb-migration-evaluation.md) | [Español](../es/managed-kb-migration-evaluation.md)
 
 **Created**: 2026-06-18
-**Target region**: ap-northeast-1 (Tokyo) — Managed KB is available in the Tokyo Region
+**Target region**: ap-northeast-1 (Tokyo). Managed KB is available in the Tokyo Region
 **Status**: Evaluation document (migration not performed / existing path retained)
 **Related**: `FSx-for-ONTAP-Lakehouse-Integrations/docs/ja/cross-repo-integration-strategy.md` (origin)
 
@@ -132,7 +132,7 @@ Per the [AgentCore Gateway connector target documentation](https://docs.aws.amaz
 
 **(B) Access control filtering via `userContext`**
 
-Per the documentation, when a KB applies per-user/group access control, the calling application includes `userContext` (e.g., `userId`) in the request. The Gateway passes this through to the KB, which applies filtering based on `userContext`. Critically, **the Gateway does not populate `userContext` from the caller's IAM identity — the application must supply it explicitly**. It is also explicitly stated that **`userContext` is supplied by the application, not the model**.
+Per the documentation, when a KB applies per-user/group access control, the calling application includes `userContext` (e.g., `userId`) in the request. The Gateway passes this through to the KB, which applies filtering based on `userContext`. Critically, **the Gateway does not populate `userContext` from the caller's IAM identity; the application must supply it explicitly**. It is also explicitly stated that **`userContext` is supplied by the application, not the model**.
 
 → This "application explicitly supplies it" / "not left to the model" design aligns directionally with this project's **Fail-Closed, app-enforced** principle.
 
@@ -188,7 +188,7 @@ Like the existing Dual KB migration pattern ([migration-guide-multimodal.md](mig
 
 ### Phase 2: Phased Migration (Canary)
 
-1. Use AgentCore Gateway A/B testing (AgentCore Optimization — already implemented in this repository) to route a portion of traffic to the Managed KB path
+1. Use AgentCore Gateway A/B testing (AgentCore Optimization, already implemented in this repository) to route a portion of traffic to the Managed KB path
 2. Confirm all permission tests (Fail-Closed, group nesting, ACL edge cases) pass
 3. After confirming statistical significance, gradually shift traffic
 
@@ -255,11 +255,11 @@ Conditions to lift:
 
 ## Related Documents
 
-- [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) — Managed KB validation procedures (S3 AP connection validation / FlexClone safe validation pattern)
-- [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) — SID filtering fundamental design
-- [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) — S3 Vectors + SID integration
-- [stack-architecture-comparison.md](stack-architecture-comparison.md) — Existing stack configuration and KB quotas
-- [metadata-json-schema.md](metadata-json-schema.md) — `allowed_group_sids` metadata schema
-- [migration-guide-multimodal.md](migration-guide-multimodal.md) — Reference pattern for Dual KB phased migration
-- [chunking-strategy-guide.md](chunking-strategy-guide.md) — Current chunking strategy
-- [evaluation.md](evaluation.md) — RAG evaluation methods
+- [managed-kb-upgrade-path.md](managed-kb-upgrade-path.md) (Managed KB validation procedures: S3 AP connection validation / FlexClone safe validation pattern)
+- [SID-Filtering-Architecture.md](SID-Filtering-Architecture.md) (SID filtering fundamental design)
+- [s3-vectors-sid-architecture-guide.md](s3-vectors-sid-architecture-guide.md) (S3 Vectors + SID integration)
+- [stack-architecture-comparison.md](stack-architecture-comparison.md) (existing stack configuration and KB quotas)
+- [metadata-json-schema.md](metadata-json-schema.md) (`allowed_group_sids` metadata schema)
+- [migration-guide-multimodal.md](migration-guide-multimodal.md) (reference pattern for Dual KB phased migration)
+- [chunking-strategy-guide.md](chunking-strategy-guide.md) (current chunking strategy)
+- [evaluation.md](evaluation.md) (RAG evaluation methods)

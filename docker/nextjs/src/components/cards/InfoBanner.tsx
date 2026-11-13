@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Check, Folder, X } from 'lucide-react';
 
 export interface InfoBannerProps {
   username: string;
@@ -47,7 +48,7 @@ export function InfoBanner({
             </span>
           ) : (
             <span className="text-gray-600 dark:text-gray-400 truncate">
-              📁 {t('infoBanner.directoriesCount', { count: directoryCount })}
+              <Folder className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {t('infoBanner.directoriesCount', { count: directoryCount })}
             </span>
           )}
         </div>
@@ -56,7 +57,7 @@ export function InfoBanner({
 
       {/* Expanded details */}
       <div
-        className={`overflow-hidden transition-all duration-200 ease-in-out ${
+        className={`overflow-hidden transition-[max-height,opacity] duration-200 ease-in-out ${
           isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
@@ -175,9 +176,9 @@ function PermissionBadge({
     <span className="inline-flex items-center gap-1">
       {label}:{' '}
       {allowed ? (
-        <span className="text-green-600 dark:text-green-400">✅ {availableText}</span>
+        <span className="text-green-600 dark:text-green-400"><Check className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {availableText}</span>
       ) : (
-        <span className="text-red-600 dark:text-red-400">❌ {unavailableText}</span>
+        <span className="text-red-600 dark:text-red-400"><X className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {unavailableText}</span>
       )}
     </span>
   );
@@ -186,9 +187,9 @@ function PermissionBadge({
 function LoadingDots() {
   return (
     <span className="inline-flex gap-0.5" aria-label="Loading">
-      <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse" />
-      <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse [animation-delay:150ms]" />
-      <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse [animation-delay:300ms]" />
+      <span /* check-ui-ignore: 読み込み中の点 */ className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse" />
+      <span /* check-ui-ignore: 読み込み中の点 */ className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse [animation-delay:150ms]" />
+      <span /* check-ui-ignore: 読み込み中の点 */ className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse [animation-delay:300ms]" />
     </span>
   );
 }

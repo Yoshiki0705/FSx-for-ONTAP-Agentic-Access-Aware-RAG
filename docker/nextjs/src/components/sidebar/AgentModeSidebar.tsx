@@ -106,7 +106,7 @@ export function AgentModeSidebar({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
             <User className="w-4 h-4 text-white" />
           </div>
           <div className="flex-1 min-w-0">
@@ -159,7 +159,7 @@ export function AgentModeSidebar({
       {/* Mode Badge */}
       <div className="px-4 pt-3">
         <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800">
-          <div className="w-2 h-2 rounded-full bg-purple-500 mr-2 animate-pulse"></div>
+          <div className="w-2 h-2 rounded-full bg-purple-500 mr-2"></div>
           <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
             {t('sidebar.agentMode')}
           </span>

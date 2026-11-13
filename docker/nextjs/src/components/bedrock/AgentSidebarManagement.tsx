@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Plus, Settings, Trash2, ChevronDown, ChevronRight, User, Bot } from 'lucide-react';
+import { Plus, Settings, Trash2, ChevronDown, ChevronRight, User, Bot, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface Agent {
@@ -223,7 +223,7 @@ export function AgentSidebarManagement({
             : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300'
         }`}>
           <div className="flex items-center space-x-1">
-            <span>{ssmSync.isSync ? '✅' : '⚠️'}</span>
+            <span>{ssmSync.isSync ? <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <AlertTriangle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />}</span>
             <span className="font-medium">SSM:</span>
             <span>{ssmSync.message}</span>
           </div>

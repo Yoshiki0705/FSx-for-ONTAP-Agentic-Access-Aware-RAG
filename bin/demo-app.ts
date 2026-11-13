@@ -18,7 +18,7 @@
  *   -c guardrailsConfig={}       Guardrails詳細設定（contentFilters, topicPolicies, piiConfig, contextualGrounding）
  *   -c enableKmsEncryption=true  KMS暗号化
  *   -c enableCloudTrail=true     CloudTrail監査ログ
- *   -c enableVpcEndpoints=true   VPCエンドポイント
+ *   -c enableVpcEndpoints=true   VPCエンドポイント（existingVpcId 指定時は無視される）
  *   -c vectorStoreType=s3vectors    Vector store type (s3vectors or opensearch-serverless)
  *   -c enableAgentCoreMemory=true    AgentCore Memory (短期・長期メモリ)
  *   -c enableAdvancedPermissions=true 時間ベースアクセス制御 + 権限判定監査ログ
@@ -38,6 +38,9 @@
  *   -c embeddingModel=xxx           埋め込みモデル（titan-text-v2, nova-multimodal）
  *   -c multimodalKbMode=xxx         マルチモーダルKBモード（replace, dual）
  *   -c enableVoiceChat=true         音声チャット（Amazon Nova Sonic）
+ *
+ * 既存VPCを使う場合は cdk.context.json に4つ一緒に指定する（-c では配列が文字列になり検証で落ちる）:
+ *   existingVpcId / existingPrivateSubnetIds / existingAvailabilityZones / existingVpcCidr
  */
 
 import 'source-map-support/register';
@@ -53,6 +56,7 @@ import { DemoWebAppStack } from '../lib/stacks/demo/demo-webapp-stack';
 import { DemoEmbeddingStack } from '../lib/stacks/demo/demo-embedding-stack';
 import { DemoTransferFamilyStack } from '../lib/stacks/demo/demo-transfer-family-stack';
 import { DemoWebSearchGatewayStack } from '../lib/stacks/demo/demo-web-search-gateway-stack';
+import { DemoSfnToolsGatewayStack, SfnWorkflowTarget } from '../lib/stacks/demo/demo-sfn-tools-gateway-stack';
 
 const app = new cdk.App();
 
@@ -165,6 +169,23 @@ const enableAgentCoreGateway = ctxBool('enableAgentCoreGateway') || enableAgentP
 // enableAgentCoreGateway=true が前提条件
 const enableWebSearch = ctxBool('enableWebSearch') && enableAgentCoreGateway;
 
+// Step Functions tools Gateway（オプション — 既存ワークフローをエージェントツール化）
+// 専用 Gateway で権限境界を分離する（KB Gateway とサービスロールを共有しない）。
+// 既存の SnapMirror フェイルオーバー/フェイルバック（automation/fsxn-ops、STANDARD）を
+// ステートマシン ARN の context で受け取り、読み取り系4操作を既定公開する。
+// 書き込み（StartExecution / StopExecution）は enableSfnWriteOps で opt-in し、
+// Cedar で sfnWriteOpsRolePattern のロールだけに許可する。
+//   -c enableSfnTools=true
+//   -c sfnFailoverArn=arn:aws:states:ap-northeast-1:ACCOUNT:stateMachine:fsxn-ops-snapmirror-failover
+//   -c sfnFailbackArn=arn:aws:states:ap-northeast-1:ACCOUNT:stateMachine:fsxn-ops-snapmirror-failback
+//   -c enableSfnWriteOps=true -c sfnWriteOpsRolePattern=snapmirror-operator
+const enableSfnTools = ctxBool('enableSfnTools');
+const sfnFailoverArn: string | undefined = app.node.tryGetContext('sfnFailoverArn');
+const sfnFailbackArn: string | undefined = app.node.tryGetContext('sfnFailbackArn');
+const enableSfnWriteOps = ctxBool('enableSfnWriteOps');
+const sfnWriteOpsRolePattern: string | undefined = app.node.tryGetContext('sfnWriteOpsRolePattern');
+const sfnPolicyEngineMode = (app.node.tryGetContext('sfnPolicyEngineMode') || policyEngineMode) as 'LOG_ONLY' | 'ENFORCE';
+
 // AgentCore Optimization（オプション — Preview: Configuration Bundles + A/B Testing）
 // enableAgentCoreGateway=true が前提条件
 const enableAgentOptimization = ctxBool('enableAgentOptimization') && enableAgentCoreGateway;
@@ -208,6 +229,13 @@ const existingFileSystemId: string | undefined = app.node.tryGetContext('existin
 const existingSvmId: string | undefined = app.node.tryGetContext('existingSvmId');
 const existingVolumeId: string | undefined = app.node.tryGetContext('existingVolumeId');
 
+// 既存VPC参照（指定時はVPC/NAT/サブネットを新規作成せず既存を使う）
+// existingPrivateSubnetIds / existingAvailabilityZones は別AZ2本以上を同順で指定する。
+const existingVpcId: string | undefined = app.node.tryGetContext('existingVpcId');
+const existingPrivateSubnetIds = app.node.tryGetContext('existingPrivateSubnetIds') as string[] | undefined;
+const existingAvailabilityZones = app.node.tryGetContext('existingAvailabilityZones') as string[] | undefined;
+const existingVpcCidr: string | undefined = app.node.tryGetContext('existingVpcCidr');
+
 // ボリューム・S3 APユーザー設定
 const volumeSecurityStyle = (app.node.tryGetContext('volumeSecurityStyle') || 'NTFS') as 'NTFS' | 'UNIX';
 const s3apUserType = app.node.tryGetContext('s3apUserType') as 'WINDOWS' | 'UNIX' | undefined;
@@ -241,11 +269,49 @@ const webSearchGatewayStack = enableWebSearch
     })
   : undefined;
 
+// Stack 1c (Optional): SfnToolsGatewayStack (same region as the state machines)
+// 既存の Step Functions ワークフローをエージェントツール化する専用 Gateway。
+// 権限境界を KB Gateway から分離する。enableSfnTools=true + ステートマシン ARN で有効化。
+if (enableSfnTools) {
+  const sfnWorkflows: SfnWorkflowTarget[] = [];
+  if (sfnFailoverArn) {
+    sfnWorkflows.push({
+      name: 'snapmirrorFailover',
+      stateMachineArn: sfnFailoverArn,
+      description: 'SnapMirror planned failover orchestration (Standard). Input: '
+        + '{prod_management_lif, dr_management_lif, prod_svm, dr_svm, sns_topic_arn, initiated_by}',
+    });
+  }
+  if (sfnFailbackArn) {
+    sfnWorkflows.push({
+      name: 'snapmirrorFailback',
+      stateMachineArn: sfnFailbackArn,
+      description: 'SnapMirror planned failback orchestration (Standard).',
+    });
+  }
+  if (sfnWorkflows.length === 0) {
+    throw new Error(
+      'enableSfnTools=true requires at least one state machine ARN. '
+      + 'Pass -c sfnFailoverArn=arn:... and/or -c sfnFailbackArn=arn:...',
+    );
+  }
+  new DemoSfnToolsGatewayStack(app, `${stackPrefix}-SfnToolsGateway`, {
+    projectName, environment,
+    workflows: sfnWorkflows,
+    enableWriteOps: enableSfnWriteOps,
+    writeOpsRolePattern: sfnWriteOpsRolePattern,
+    policyEngineMode: sfnPolicyEngineMode,
+    env: primaryEnv,
+    description: `[${projectName}] AgentCore Step Functions tools Gateway`,
+  });
+}
+
 // Stack 2: NetworkingStack
 const networkingStack = new DemoNetworkingStack(app, `${stackPrefix}-Networking`, {
   projectName, environment, enableVpcEndpoints,
+  existingVpcId, existingPrivateSubnetIds, existingAvailabilityZones, existingVpcCidr,
   env: primaryEnv,
-  description: `[${projectName}] VPC, Subnets, Security Groups`,
+  description: `[${projectName}] ${existingVpcId ? 'Existing VPC + ' : ''}Subnets, Security Groups`,
 });
 
 // Stack 3: StorageStack (before SecurityStack for AD Federation dependency)
@@ -347,6 +413,7 @@ const imageTag = app.node.tryGetContext('imageTag') || 'latest';
 const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   projectName, environment,
   vpc: networkingStack.vpc,
+  privateSubnets: networkingStack.privateSubnets,
   lambdaSg: networkingStack.lambdaSg,
   userPool: securityStack.userPool,
   userPoolClient: securityStack.userPoolClient,
