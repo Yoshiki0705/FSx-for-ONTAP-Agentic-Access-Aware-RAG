@@ -41,7 +41,6 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.6",
     "aws-cdk": "^2.1148.0",
-    "aws-sdk": "^2.1693.0",
     "aws-sdk-client-mock": "^4.1.0",
     "esbuild": "^0.28.1",
     "fast-check": "^4.10.2",
@@ -65,7 +64,6 @@
     "@aws-sdk/client-ssm": "^3.1090.0",
     "@aws-sdk/lib-dynamodb": "^3.1090.0",
     "aws-cdk-lib": "^2.268.0",
-    "cdk-docker-image-deployment": "^0.0.1034",
     "cdk-nag": "^2.38.1",
     "constructs": "^10.3.0",
     "source-map-support": "^0.5.21"

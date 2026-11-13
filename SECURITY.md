@@ -47,15 +47,6 @@ This project uses several development dependencies (jest, ts-node, aws-sdk-clien
 - Not included in production deployments
 - Regularly updated through Dependabot
 
-### AWS SDK v2 in cdk-docker-image-deployment
-
-The `cdk-docker-image-deployment` package includes AWS SDK v2 as a bundled dependency. This is a known issue:
-
-- **Risk Level**: Low (development-time only)
-- **Mitigation**: The package is only used during CDK deployment, not in runtime
-- **Recommendation**: Validate region parameters when using this package
-- **Future Action**: Monitor for package updates or consider alternative solutions
-
 ### diff Package in Testing Tools
 
 The `diff` package has a known DoS vulnerability in parsePatch and applyPatch:
