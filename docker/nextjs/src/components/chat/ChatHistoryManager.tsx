@@ -99,7 +99,7 @@ export default function ChatHistoryManager({
             <div
               key={session.id}
               className={`
-                p-3 rounded-lg border cursor-pointer transition-all
+                p-3 rounded-lg border cursor-pointer transition-colors
                 ${session.id === currentSessionId 
                   ? 'border-blue-500 bg-blue-50' 
                   : 'border-gray-200 hover:border-blue-300 bg-white'

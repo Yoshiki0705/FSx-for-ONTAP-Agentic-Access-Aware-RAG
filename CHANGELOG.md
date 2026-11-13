@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`post-deploy-setup.sh` のデモユーザー作成**: 一時パスワードと `DEMO_PASSWORD` が記号を含まず、User Pool のパスワードポリシー（記号必須）に反して `InvalidPasswordException` で止まっていた（実機で観測）。両方を記号付きにし、既存ユーザー以外の作成失敗とパスワード設定の失敗を握りつぶさず原因付きで止める（#235）
+
+### Added
+- **`docs/deployment-guide.md` / `.ja.md`**: クリーンアップ節に、撤去で止まりうる 2 箇所（CloudFront アクセスログバケットが空でない / Lambda の VPC ENI が残る）の解消手順と、reclaim `Retain` で取り込んだボリュームの Trident 記録の片付け（`tridentctl delete volume`）を追記。FAQ に、既存の検索・RAG 基盤や既存のオーケストレーション層を使う読者向けの当てはめ方（S3 Access Point は到達経路であって、上の層は用途で選ぶ。各選択肢の考慮点を対称に記載）と、inline / Lambda フィルタ経路の選び方を追記
+
+- **既存 VPC の参照**: `existingVpcId` / `existingPrivateSubnetIds` / `existingAvailabilityZones` / `existingVpcCidr` の 4 つを指定すると、`DemoNetworkingStack` が VPC・NAT Gateway・サブネット・VPC エンドポイントを作らず、既存 VPC を参照してセキュリティグループだけを作る。WebApp Lambda は渡したサブネットに明示配置する（既存 VPC のサブネットは `aws-cdk:subnet-type` タグを持たないことが多く、`subnetType` 選択が効かないため）。`existingVpcId` を省略した場合の挙動は変わらない。ドキュメントは以前から `existingVpcId` を案内していたが、実装が無く黙って無視されていた
+- **Docs**: `docs/evaluation.md` の 3.3「実機での確認結果」（JA/EN）— 権限制御の 4 ケース（Admin、一般ユーザー、Everyone 文書、SID 未登録の Fail-Closed）を 2026-10-28 に実環境で確認した結果と、その範囲。取り込みと S3 Access Point の作成を手作業で通したことは本文と #228 に記載。他の 6 言語の翻訳には抄訳バナーを付けた
+- **Tests**: `tests/stacks/demo-networking-stack.test.ts`（11 件）— 新規作成分岐・既存 VPC 参照分岐・必須キー欠落時の throw
+### Fixed
+- **S3 Vectors のインデックス**: non-filterable キーに `AMAZON_BEDROCK_TEXT` と `AMAZON_BEDROCK_METADATA` を入れた（使われていない `source_uri` と `chunk_text` を外し、上限の 10 キーに収めた）。抜けていると Bedrock Knowledge Bases のチャンク本文が filterable メタデータに数えられ、2 KB の上限で取り込みが全件失敗した（#228）
+- **S3 Access Point のカスタムリソース**: `CreateAndAttachS3AccessPoint` を FSx の API リファレンスの形（`Name`、`Type`、`OntapConfiguration`）で送り、作成結果を `S3AccessPointAttachment.S3AccessPoint` から読むようにした。削除と更新は `Name` で行う。作成要求が拒否されたときは、ステータスコード付きで FAILED を返す（以前は SUCCESS のまま `NOT_CREATED` を返していた）。AD 参加待ちの延期は変えていない（#228）
+- **S3 Access Point のカスタムリソース（続き）**: 作成と削除の要求に `ClientRequestToken` を付けた。CLI と SDK は自動で付けるが、署名を自前で組むこのハンドラでは付かず、実環境で `CreateAndAttachS3AccessPoint` が `400 BadRequest: A client request token must be specified` を返した（上の修正で FAILED として表に出た）。トークンは CloudFormation の RequestId から作るので、同じイベントの再送は冪等になる。削除も同じ形にしたので、撤去時にアクセスポイントが黙って残らない
+- **`setup-kb-datasource.sh`**: アクセスポイントの作成を `--type ONTAP --ontap-configuration` で行い、データソースの `bucketArn` を `arn:aws:s3:::<alias>` にした（#228）
+- **`create-demo-users.sh`**: 存在しない `common.sh` の `source` で、macOS の bash 3.2 が何も出力せずに終了していた。ファイルがあるときだけ読み込み、失敗した行を表示する。既存ユーザー以外の作成失敗とパスワード設定の失敗を握りつぶさず止める（#228）
+- **Permission Filter Lambda（続き）**: `usePermissionFilterLambda=true` の経路が実環境で全文書を拒否した。`extractDocumentSIDs` が S3 Vectors のクオート付き SID（`"S-1-...-512"`）を外さず、クオートなしのユーザー SID と一致しなかった。inline 側 `parseDocumentSIDs` と同じ正規化（両端のクオート除去、カンマ区切り対応）を入れた。`extractDocumentSIDs` を export し、ユニットテストを追加
+- **Permission Filter Lambda の cdk-nag 抑制**: `usePermissionFilterLambda=true` の経路が cdk-nag を通ったことがなく、`NodejsFunction` の実行ロール（IAM4）と grantInvoke のワイルドカード（IAM5）、NODEJS_22_X の L1 で synth が失敗した。既存の関数と同じ理由で抑制を追加
+- **Permission Filter Lambda**（`usePermissionFilterLambda=true`）: `lambda/permissions` の TypeScript をそのまま資産にしていたため、ランタイムがハンドラを読み込めなかった（ローカルで `MODULE_NOT_FOUND` を再現）。WebApp は呼び出しの失敗時に inline フィルタへ戻るため、要求は失敗せず `filterLog.source` が `inline` になるだけで、Lambda 経路は一度も使われていなかったとみられる。`NodejsFunction`（esbuild）でバンドルし、AWS SDK v3 はランタイムのものを使う。`tests/unit/perm-filter-lambda-bundling.test.ts` が合成した資産をランタイムと同じように読み込む
+- **Tests**: `tests/unit/s3ap-and-s3vectors-request-shapes.test.ts`（8 件）、`tests/unit/demo-scripts-failure-reporting.test.ts`（6 件、スタブの `aws` でスクリプトを実行）
+
+### Changed
+- `existingVpcId` 指定時に `existingVpcCidr` を必須にした。省略すると FSx 用セキュリティグループの ingress が `vpcCidrBlock` を参照した時点で CDK が例外を投げ、原因が分かりにくかったため、キー名付きのエラーで止める
+- `enableVpcEndpoints` は `existingVpcId` 指定時に無視される（synth 警告）。`scripts/preflight-check.sh` の VPC エンドポイント節は「競合の検出」から「既存 VPC が private に到達できるサービスの確認」に変更
+### Removed
+- ドキュメントと preflight が案内していた `skipVpcEndpoints` の記述。実装が存在せず、既存 VPC 参照時はエンドポイントを作らないため解く問題が無い
+
 ## [4.4.0] - 2026-06-29
 
 AWS Summit New York 2026 (2026-06-17) の新機能統合。Preview/未検証 API を含む機能は

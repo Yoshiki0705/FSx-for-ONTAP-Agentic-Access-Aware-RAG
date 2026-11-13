@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { FileText, Bot, Wrench, Compass, CheckCircle2, Check, Coins } from 'lucide-react';
 import { AgentMetadataBadges } from './AgentMetadataBadges';
 import type {
   AgentTeamConfig,
@@ -29,11 +30,11 @@ import type {
 // ===== Constants =====
 
 const WIZARD_STEPS = [
-  { key: 'teamInfo', icon: '📝' },
-  { key: 'collaborators', icon: '🤖' },
-  { key: 'tools', icon: '🛠️' },
-  { key: 'routing', icon: '🧭' },
-  { key: 'confirm', icon: '✅' },
+  { key: 'teamInfo', icon: FileText },
+  { key: 'collaborators', icon: Bot },
+  { key: 'tools', icon: Wrench },
+  { key: 'routing', icon: Compass },
+  { key: 'confirm', icon: CheckCircle2 },
 ] as const;
 
 const AVAILABLE_TOOLS: { profile: ToolProfile; label: string; descKey: string; categoryKey: string }[] = [
@@ -222,7 +223,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
                   : 'bg-gray-100 text-gray-400 dark:bg-gray-700'
               }`}
             >
-              {i < step ? '✓' : s.icon}
+              {i < step ? <Check className="w-4 h-4" aria-hidden="true" /> : <s.icon className="w-4 h-4" aria-hidden="true" />}
             </div>
             <span className="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">{t(`steps.${s.key}`)}</span>
             {i < WIZARD_STEPS.length - 1 && (
@@ -362,7 +363,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
       {/* ===== Step 3: Tool Selection ===== */}
       {step === 2 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">🛠️ {t('tools.title')}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100"><Wrench className="w-5 h-5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('tools.title')}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {t('toolSelectDesc')}
           </p>
@@ -403,7 +404,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
       {/* ===== Step 4: Routing Mode ===== */}
       {step === 3 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">🧭 {t('routing.title')}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100"><Compass className="w-5 h-5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('routing.title')}</h2>
 
           <div className="space-y-3">
             {([
@@ -451,7 +452,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
       {/* ===== Step 5: Confirmation ===== */}
       {step === 4 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">✅ {t('confirm.title')}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100"><CheckCircle2 className="w-5 h-5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('confirm.title')}</h2>
 
           <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
             <div>
@@ -488,7 +489,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
 
             {/* Cost estimate */}
             <div className="p-3 rounded bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">💰 {t('confirm.costEstimate')}</span>
+              <span className="text-xs text-amber-700 dark:text-amber-300 font-medium"><Coins className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('confirm.costEstimate')}</span>
               <p className="text-lg font-bold text-amber-800 dark:text-amber-200 mt-1">
                 ~${estimatedCost.toFixed(3)}
               </p>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Folder, CheckCircle2, XCircle, Save, Ban, Check, Settings } from 'lucide-react';
 import { useCustomTranslations } from '@/hooks/useCustomTranslations';
 import { RegionSelector } from '../bedrock/RegionSelector';
 import { ModelSelector } from '../bedrock/ModelSelector';
@@ -96,7 +97,7 @@ export function AgentModeSidebar({
           <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-3 text-xs space-y-2">
             {userDirectories.accessibleDirectories && (
               <div className="text-gray-600 dark:text-gray-400">
-                <div>📁 {tPermissions('directories', { count: userDirectories.accessibleDirectories.length })}</div>
+                <div><Folder className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{tPermissions('directories', { count: userDirectories.accessibleDirectories.length })}</div>
                 {userDirectories.accessibleDirectories.length > 0 && (
                   <div className="mt-1 ml-4 text-gray-500 dark:text-gray-500">
                     {userDirectories.accessibleDirectories.join(', ')}
@@ -106,10 +107,10 @@ export function AgentModeSidebar({
             )}
             <div className="flex items-center space-x-3 mt-1">
               <span className={userDirectories.permissions?.read ? 'text-green-600' : 'text-red-600'}>
-                {userDirectories.permissions?.read ? '✅' : '❌'} {tPermissions('read')}
+                {userDirectories.permissions?.read ? <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />} {tPermissions('read')}
               </span>
               <span className={userDirectories.permissions?.write ? 'text-green-600' : 'text-red-600'}>
-                {userDirectories.permissions?.write ? '✅' : '❌'} {tPermissions('write')}
+                {userDirectories.permissions?.write ? <CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> : <XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />} {tPermissions('write')}
               </span>
             </div>
           </div>
@@ -128,14 +129,14 @@ export function AgentModeSidebar({
           }`}
         >
           <div className="flex items-center space-x-2">
-            <span className="text-base">{saveHistory ? '💾' : '🚫'}</span>
+            <span className="text-base">{saveHistory ? <Save className="w-4 h-4" aria-hidden="true" /> : <Ban className="w-4 h-4" aria-hidden="true" />}</span>
             <div className="flex-1">
               <div className="font-medium">{saveHistory ? tSidebar('historySaving') : tSidebar('historyDisabled')}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {saveHistory ? tSidebar('autoSave') : tSidebar('sessionOnly')}
               </div>
             </div>
-            {saveHistory && <span className="text-green-600 dark:text-green-400">✓</span>}
+            {saveHistory && <span className="text-green-600 dark:text-green-400"><Check className="w-4 h-4" aria-hidden="true" /></span>}
           </div>
         </button>
       </div>
@@ -143,7 +144,7 @@ export function AgentModeSidebar({
       {/* System Settings (collapsible) */}
       <CollapsiblePanel
         title={tSidebar('systemSettings')}
-        icon="⚙️"
+        icon={<Settings className="w-4 h-4" />}
         storageKey="system-settings"
         defaultExpanded={false}
       >

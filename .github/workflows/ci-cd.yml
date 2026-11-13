@@ -372,6 +372,23 @@ jobs:
             flags: '-c enableGuardrails=true -c enableAgentCoreGateway=true -c enableWebSearch=true'
           - name: agent-gateway-optimization
             flags: '-c enableAgent=true -c enableAgentCoreGateway=true -c enableAgentOptimization=true'
+          # Step Functions tools Gateway: 読み取り専用（既定）。state machine ARN が
+          # 1 本も無いと bin/demo-app.ts が throw するのでダミー ARN を渡す。
+          - name: sfn-tools-readonly
+            flags: >-
+              -c enableSfnTools=true
+              -c sfnFailoverArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failover
+              -c sfnFailbackArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failback
+          # Step Functions tools Gateway: 書き込み opt-in + Cedar 限定。
+          # このレーンでしか PolicyEngine / Policy(Cedar) / StopExecution 権限が
+          # 生成されないため、cdk-nag 抑制漏れはこのレーンでのみ検出できる。
+          - name: sfn-tools-write-cedar
+            flags: >-
+              -c enableSfnTools=true
+              -c sfnFailoverArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failover
+              -c sfnFailbackArn=arn:aws:states:ap-northeast-1:111122223333:stateMachine:ci-dummy-failback
+              -c enableSfnWriteOps=true
+              -c sfnWriteOpsRolePattern=snapmirror-operator
           - name: kb-search-hybrid
             flags: '-c kbSearchType=HYBRID'
           - name: chunking-hierarchical

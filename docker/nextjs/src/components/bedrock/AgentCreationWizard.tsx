@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Bot, Settings, Database, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, AlertCircle, Loader2, Bot, Settings, Database, Zap, X } from 'lucide-react';
 import { AgentModelSelector } from './AgentModelSelector';
 import { useBedrockConfig } from '@/hooks';
 import { useTranslations, useLocale } from 'next-intl';
@@ -285,7 +285,7 @@ export function AgentCreationWizard({ isOpen, onClose, onSuccess }: AgentCreatio
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               disabled={isCreating}
             >
-              ✕
+              <X className="w-5 h-5" aria-label="閉じる" />
             </button>
           </div>
         </div>
