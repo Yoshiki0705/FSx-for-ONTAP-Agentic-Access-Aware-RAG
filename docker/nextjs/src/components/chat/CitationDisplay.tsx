@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { FileText, FolderOpen, Globe, HardDrive, Link, Paperclip } from 'lucide-react';
 import { MediaTypeIndicator } from './MediaTypeIndicator';
 import { MediaPreview } from './MediaPreview';
 import { buildCitationDisplayInfo } from '@/lib/citations/document-name-resolver';
@@ -69,7 +70,7 @@ export function CitationDisplay({ citations }: CitationDisplayProps) {
         <>
           <div className="flex items-center space-x-1 mb-2">
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              📄 {t('referencedDocuments')} ({verifiedCitations.length})
+              <FileText className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {t('referencedDocuments')} ({verifiedCitations.length})
             </span>
             <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
               {t('verified')}
@@ -94,14 +95,14 @@ export function CitationDisplay({ citations }: CitationDisplayProps) {
         <>
           <div className={`flex items-center space-x-1 mb-2 ${verifiedCitations.length > 0 ? 'mt-3' : ''}`}>
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              🌐 {t('webReferences')} ({referenceCitations.length})
+              <Globe className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {t('webReferences')} ({referenceCitations.length})
             </span>
             <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
               {t('reference')}
             </span>
           </div>
           {/* Responsible AI disclaimer: web results are unverified external data */}
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5 italic">
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5">
             {t('webDisclaimer')}
           </p>
           <div className="space-y-1">
@@ -155,10 +156,10 @@ function CitationCard({
       >
         <div className="flex items-center space-x-2 min-w-0">
           <span className="text-blue-600 dark:text-blue-400 flex-shrink-0">
-            {isReference ? '🌐' : cite.mediaType ? (
+            {isReference ? <Globe className="w-4 h-4" aria-hidden="true" /> : cite.mediaType ? (
               <MediaTypeIndicator mediaType={cite.mediaType} />
             ) : (
-              '📎'
+              <Paperclip className="w-4 h-4" aria-hidden="true" />
             )}
           </span>
           <span className="text-gray-700 dark:text-gray-300 font-medium truncate">
@@ -193,7 +194,7 @@ function CitationCard({
           <div className="mt-2 mb-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
             {isReference ? (
               <div className="flex items-center space-x-1">
-                <span className="text-gray-400">🔗</span>
+                <Link className="w-3 h-3 text-gray-400" aria-hidden="true" />
                 <a
                   href={cite.s3Uri}
                   target="_blank"
@@ -206,11 +207,11 @@ function CitationCard({
             ) : (
               <>
                 <div className="flex items-center space-x-1">
-                  <span className="text-gray-400">📂</span>
+                  <FolderOpen className="w-3 h-3 text-gray-400" aria-hidden="true" />
                   <span className="font-mono text-[10px] break-all">{info.filePath}</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <span className="text-gray-400">💾</span>
+                  <HardDrive className="w-3 h-3 text-gray-400" aria-hidden="true" />
                   <span className="font-mono text-[10px]">FSx: {info.fsxVolumePath}</span>
                 </div>
               </>

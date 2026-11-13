@@ -1,7 +1,7 @@
 /**
  * Feedback API Route (K-4, #11)
  *
- * ユーザーフィードバック（👍/👎）を収集し、feedback-collector Lambda に転送する。
+ * ユーザーフィードバック（高評価/低評価）を収集し、feedback-collector Lambda に転送する。
  */
 
 import { NextRequest, NextResponse } from 'next/server';

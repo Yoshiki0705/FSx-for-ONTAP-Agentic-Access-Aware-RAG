@@ -143,11 +143,11 @@ export const AWS_REGIONS: AWSRegion[] = [
 ];
 
 export const REGION_GROUP_NAMES: Record<string, string> = {
-  japan: '🇯🇵 日本地域',
-  apac: '🌏 APAC地域',
-  us: '🇺🇸 US地域',
-  eu: '🇪🇺 EU地域',
-  sa: '🇧🇷 南米地域',
+  japan: '日本地域',
+  apac: 'APAC地域',
+  us: 'US地域',
+  eu: 'EU地域',
+  sa: '南米地域',
 };
 
 export const DEFAULT_REGION = 'ap-northeast-1';

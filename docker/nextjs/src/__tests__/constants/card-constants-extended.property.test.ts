@@ -12,6 +12,7 @@
  */
 
 import * as fc from 'fast-check';
+import { FileText, Search } from 'lucide-react';
 import {
   KB_CARDS,
   AGENT_CARDS,
@@ -38,7 +39,7 @@ describe('Feature: sidebar-workflow-agent-redesign, Property 7: backward compati
   // Generator for arbitrary CardData objects with optional extended fields
   const cardDataArb = fc.record({
     id: fc.string({ minLength: 1, maxLength: 30 }),
-    icon: fc.string({ minLength: 1, maxLength: 5 }),
+    icon: fc.constantFrom(Search, FileText),
     titleKey: fc.string({ minLength: 1, maxLength: 50 }),
     descriptionKey: fc.string({ minLength: 1, maxLength: 50 }),
     promptTemplateKey: fc.string({ minLength: 1, maxLength: 50 }),

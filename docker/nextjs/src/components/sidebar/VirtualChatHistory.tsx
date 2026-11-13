@@ -22,7 +22,7 @@ interface VirtualChatHistoryProps {
 }
 
 /**
- * 仮想スクロールt("permissions.available")のチャット履歴コンポーネント
+ * 仮想スクロール対応のチャット履歴コンポーネント
  * @tanstack/react-virtualを使用して大量のデータを効率的に表示
  */
   const locale = useLocale();

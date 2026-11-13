@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Library } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface EpisodeReferenceBadgeProps {
@@ -10,7 +11,7 @@ interface EpisodeReferenceBadgeProps {
 /**
  * EpisodeReferenceBadge — 類似エピソード参照バッジ
  *
- * episodeCount > 0 時に「📚 過去の経験を参照 (N件)」バッジを表示する。
+ * episodeCount > 0 時に「過去の経験を参照 (N件)」バッジを表示する。
  *
  * Requirements: 5.4
  */
@@ -21,7 +22,7 @@ export function EpisodeReferenceBadge({ episodeCount }: EpisodeReferenceBadgePro
 
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-700">
-      📚 {t('agentcore.episodes.referenceBadge')} ({episodeCount})
+      <Library className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /> {t('agentcore.episodes.referenceBadge')} ({episodeCount})
     </span>
   );
 }

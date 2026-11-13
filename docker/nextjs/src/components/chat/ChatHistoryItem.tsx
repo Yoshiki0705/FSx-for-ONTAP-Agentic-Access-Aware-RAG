@@ -42,7 +42,7 @@ export function ChatHistoryItem({
   return (
     <div
       className={`
-        relative p-3 rounded-lg cursor-pointer transition-all
+        relative p-3 rounded-lg cursor-pointer transition-colors
         ${isActive 
           ? 'bg-blue-50 border-2 border-blue-500' 
           : 'bg-white border border-gray-200 hover:border-gray-300'

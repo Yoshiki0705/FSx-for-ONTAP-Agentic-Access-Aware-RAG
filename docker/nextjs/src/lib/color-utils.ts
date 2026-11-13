@@ -1,3 +1,5 @@
+import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 /**
  * カラーユーティリティ関数
  * 
@@ -11,7 +13,7 @@ export interface StateColor {
   bg: string;
   text: string;
   border: string;
-  icon: string;
+  icon: LucideIcon;
 }
 
 /**
@@ -72,13 +74,13 @@ export function getStateColor(state: StateType, theme: Theme): StateColor {
         bg: 'bg-green-50',
         text: 'text-green-800',
         border: 'border-green-200',
-        icon: '✅'
+        icon: CheckCircle2
       },
       dark: {
         bg: 'bg-green-900/20',
         text: 'text-green-300',
         border: 'border-green-700',
-        icon: '✅'
+        icon: CheckCircle2
       }
     },
     warning: {
@@ -86,13 +88,13 @@ export function getStateColor(state: StateType, theme: Theme): StateColor {
         bg: 'bg-yellow-50',
         text: 'text-yellow-800',
         border: 'border-yellow-200',
-        icon: '⚠️'
+        icon: AlertTriangle
       },
       dark: {
         bg: 'bg-yellow-900/20',
         text: 'text-yellow-300',
         border: 'border-yellow-700',
-        icon: '⚠️'
+        icon: AlertTriangle
       }
     },
     error: {
@@ -100,13 +102,13 @@ export function getStateColor(state: StateType, theme: Theme): StateColor {
         bg: 'bg-red-50',
         text: 'text-red-800',
         border: 'border-red-200',
-        icon: '❌'
+        icon: XCircle
       },
       dark: {
         bg: 'bg-red-900/20',
         text: 'text-red-300',
         border: 'border-red-700',
-        icon: '❌'
+        icon: XCircle
       }
     },
     info: {
@@ -114,13 +116,13 @@ export function getStateColor(state: StateType, theme: Theme): StateColor {
         bg: 'bg-blue-50',
         text: 'text-blue-800',
         border: 'border-blue-200',
-        icon: 'ℹ️'
+        icon: Info
       },
       dark: {
         bg: 'bg-blue-900/20',
         text: 'text-blue-300',
         border: 'border-blue-700',
-        icon: 'ℹ️'
+        icon: Info
       }
     }
   };

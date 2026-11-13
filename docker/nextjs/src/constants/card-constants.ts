@@ -1,3 +1,5 @@
+import { AlertTriangle, BarChart3, Clapperboard, ClipboardList, FileText, Files, GraduationCap, HelpCircle, Library, Lock, Scale, Search, StickyNote, Tag, Target, TrendingDown, TrendingUp } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 // Card data definitions and helper functions for the card-based task UI
 // Requirements: 2.4, 3.4, 8.1, 8.2, 8.3, 6.1, 6.2, 6.3, 6.4, 6.5
 
@@ -184,7 +186,7 @@ export interface WorkflowStep {
 
 export interface CardData {
   id: string;
-  icon: string;
+  icon: LucideIcon;
   titleKey: string;
   descriptionKey: string;
   promptTemplateKey: string;
@@ -207,7 +209,7 @@ export const KB_CARDS: CardData[] = [
   // === 調査系カード（既存8枚） ===
   {
     id: 'kb-doc-search',
-    icon: '🔍',
+    icon: Search,
     titleKey: 'cards.kb.docSearch.title',
     descriptionKey: 'cards.kb.docSearch.description',
     promptTemplateKey: 'cards.kb.docSearch.prompt',
@@ -216,7 +218,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-doc-summary',
-    icon: '📝',
+    icon: FileText,
     titleKey: 'cards.kb.docSummary.title',
     descriptionKey: 'cards.kb.docSummary.description',
     promptTemplateKey: 'cards.kb.docSummary.prompt',
@@ -225,7 +227,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-quiz-gen',
-    icon: '📚',
+    icon: Library,
     titleKey: 'cards.kb.quizGen.title',
     descriptionKey: 'cards.kb.quizGen.description',
     promptTemplateKey: 'cards.kb.quizGen.prompt',
@@ -234,7 +236,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-compare',
-    icon: '⚖️',
+    icon: Scale,
     titleKey: 'cards.kb.compare.title',
     descriptionKey: 'cards.kb.compare.description',
     promptTemplateKey: 'cards.kb.compare.prompt',
@@ -243,7 +245,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-keyword-search',
-    icon: '🏷️',
+    icon: Tag,
     titleKey: 'cards.kb.keywordSearch.title',
     descriptionKey: 'cards.kb.keywordSearch.description',
     promptTemplateKey: 'cards.kb.keywordSearch.prompt',
@@ -252,7 +254,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-report-summary',
-    icon: '📊',
+    icon: BarChart3,
     titleKey: 'cards.kb.reportSummary.title',
     descriptionKey: 'cards.kb.reportSummary.description',
     promptTemplateKey: 'cards.kb.reportSummary.prompt',
@@ -261,7 +263,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-qa-gen',
-    icon: '❓',
+    icon: HelpCircle,
     titleKey: 'cards.kb.qaGen.title',
     descriptionKey: 'cards.kb.qaGen.description',
     promptTemplateKey: 'cards.kb.qaGen.prompt',
@@ -270,7 +272,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-trend-analysis',
-    icon: '📈',
+    icon: TrendingUp,
     titleKey: 'cards.kb.trendAnalysis.title',
     descriptionKey: 'cards.kb.trendAnalysis.description',
     promptTemplateKey: 'cards.kb.trendAnalysis.prompt',
@@ -280,7 +282,7 @@ export const KB_CARDS: CardData[] = [
   // === アウトプット指向カード（新規6枚） ===
   {
     id: 'kb-presentation',
-    icon: '🎬',
+    icon: Clapperboard,
     titleKey: 'cards.kb.presentation.title',
     descriptionKey: 'cards.kb.presentation.description',
     promptTemplateKey: 'cards.kb.presentation.prompt',
@@ -289,7 +291,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-approval',
-    icon: '📋',
+    icon: ClipboardList,
     titleKey: 'cards.kb.approval.title',
     descriptionKey: 'cards.kb.approval.description',
     promptTemplateKey: 'cards.kb.approval.prompt',
@@ -298,7 +300,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-minutes',
-    icon: '🗒️',
+    icon: StickyNote,
     titleKey: 'cards.kb.minutes.title',
     descriptionKey: 'cards.kb.minutes.description',
     promptTemplateKey: 'cards.kb.minutes.prompt',
@@ -307,7 +309,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-report-gen',
-    icon: '📑',
+    icon: Files,
     titleKey: 'cards.kb.reportGen.title',
     descriptionKey: 'cards.kb.reportGen.description',
     promptTemplateKey: 'cards.kb.reportGen.prompt',
@@ -316,7 +318,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-contract',
-    icon: '📄',
+    icon: FileText,
     titleKey: 'cards.kb.contract.title',
     descriptionKey: 'cards.kb.contract.description',
     promptTemplateKey: 'cards.kb.contract.prompt',
@@ -325,7 +327,7 @@ export const KB_CARDS: CardData[] = [
   },
   {
     id: 'kb-onboarding',
-    icon: '🎓',
+    icon: GraduationCap,
     titleKey: 'cards.kb.onboarding.title',
     descriptionKey: 'cards.kb.onboarding.description',
     promptTemplateKey: 'cards.kb.onboarding.prompt',
@@ -339,7 +341,7 @@ export const KB_CARDS: CardData[] = [
 export const AGENT_CARDS: CardData[] = [
   {
     id: 'agent-financial',
-    icon: '📊',
+    icon: BarChart3,
     titleKey: 'cards.agent.financial.title',
     descriptionKey: 'cards.agent.financial.description',
     promptTemplateKey: 'cards.agent.financial.prompt',
@@ -348,7 +350,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-project',
-    icon: '📝',
+    icon: FileText,
     titleKey: 'cards.agent.project.title',
     descriptionKey: 'cards.agent.project.description',
     promptTemplateKey: 'cards.agent.project.prompt',
@@ -357,7 +359,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-cross-search',
-    icon: '🔍',
+    icon: Search,
     titleKey: 'cards.agent.crossSearch.title',
     descriptionKey: 'cards.agent.crossSearch.description',
     promptTemplateKey: 'cards.agent.crossSearch.prompt',
@@ -366,7 +368,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-hr',
-    icon: '📋',
+    icon: ClipboardList,
     titleKey: 'cards.agent.hr.title',
     descriptionKey: 'cards.agent.hr.description',
     promptTemplateKey: 'cards.agent.hr.prompt',
@@ -375,7 +377,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-risk',
-    icon: '⚠️',
+    icon: AlertTriangle,
     titleKey: 'cards.agent.risk.title',
     descriptionKey: 'cards.agent.risk.description',
     promptTemplateKey: 'cards.agent.risk.prompt',
@@ -384,7 +386,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-milestone',
-    icon: '🎯',
+    icon: Target,
     titleKey: 'cards.agent.milestone.title',
     descriptionKey: 'cards.agent.milestone.description',
     promptTemplateKey: 'cards.agent.milestone.prompt',
@@ -393,7 +395,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-compliance',
-    icon: '🔐',
+    icon: Lock,
     titleKey: 'cards.agent.compliance.title',
     descriptionKey: 'cards.agent.compliance.description',
     promptTemplateKey: 'cards.agent.compliance.prompt',
@@ -402,7 +404,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-data-analysis',
-    icon: '📉',
+    icon: TrendingDown,
     titleKey: 'cards.agent.dataAnalysis.title',
     descriptionKey: 'cards.agent.dataAnalysis.description',
     promptTemplateKey: 'cards.agent.dataAnalysis.prompt',
@@ -411,7 +413,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-presentation',
-    icon: '📊',
+    icon: BarChart3,
     titleKey: 'cards.agent.presentation.title',
     descriptionKey: 'cards.agent.presentation.description',
     promptTemplateKey: 'cards.agent.presentation.prompt',
@@ -420,7 +422,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-approval',
-    icon: '📋',
+    icon: ClipboardList,
     titleKey: 'cards.agent.approval.title',
     descriptionKey: 'cards.agent.approval.description',
     promptTemplateKey: 'cards.agent.approval.prompt',
@@ -429,7 +431,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-minutes',
-    icon: '📝',
+    icon: FileText,
     titleKey: 'cards.agent.minutes.title',
     descriptionKey: 'cards.agent.minutes.description',
     promptTemplateKey: 'cards.agent.minutes.prompt',
@@ -438,7 +440,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-report',
-    icon: '📈',
+    icon: TrendingUp,
     titleKey: 'cards.agent.report.title',
     descriptionKey: 'cards.agent.report.description',
     promptTemplateKey: 'cards.agent.report.prompt',
@@ -447,7 +449,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-contract',
-    icon: '📄',
+    icon: FileText,
     titleKey: 'cards.agent.contract.title',
     descriptionKey: 'cards.agent.contract.description',
     promptTemplateKey: 'cards.agent.contract.prompt',
@@ -456,7 +458,7 @@ export const AGENT_CARDS: CardData[] = [
   },
   {
     id: 'agent-onboarding',
-    icon: '🎓',
+    icon: GraduationCap,
     titleKey: 'cards.agent.onboarding.title',
     descriptionKey: 'cards.agent.onboarding.description',
     promptTemplateKey: 'cards.agent.onboarding.prompt',

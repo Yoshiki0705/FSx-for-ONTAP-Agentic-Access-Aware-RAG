@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Wrench, Bot, BarChart3 } from 'lucide-react';
 import { AgentMetadataBadges } from './AgentMetadataBadges';
 import type {
   AgentTeamTemplate,
@@ -183,9 +184,9 @@ export function TemplateGallery({ onSelectTemplate, additionalTemplates }: Templ
               {/* Metadata */}
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                 {isCustom ? (
-                  <span>🛠️ {t('customBuild')}</span>
+                  <span><Wrench className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('customBuild')}</span>
                 ) : (
-                  <span>🤖 {tmpl.collaborators.length} agents · 📊 {tmpl.routingMode}</span>
+                  <span><Bot className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{tmpl.collaborators.length} agents · <BarChart3 className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{tmpl.routingMode}</span>
                 )}
               </div>
 

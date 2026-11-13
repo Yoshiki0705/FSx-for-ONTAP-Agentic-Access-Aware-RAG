@@ -1,1 +1,7 @@
 docker/nextjs/coverage/
+
+# tsc の出力（.js / .d.ts / .d.ts.map）。Next.js は拡張子なしの import で .js を .ts / .tsx より先に解決するため、
+# 追跡すると古い出力が実行される。ルートの .gitignore の !docker/nextjs/**/*.js より、このファイルが優先される。
+src/**/*.js
+src/**/*.d.ts
+src/**/*.d.ts.map

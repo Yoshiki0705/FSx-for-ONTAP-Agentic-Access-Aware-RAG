@@ -280,7 +280,7 @@ export function AgentCreationProgress({
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-blue-500 h-2 rounded-full transition-[width] duration-300"
                     style={{ 
                       width: `${(steps.filter(s => s.status === 'completed').length / steps.length) * 100}%` 
                     }}
@@ -337,7 +337,7 @@ export function AgentCreationProgress({
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
                 <CheckCircle className="w-5 h-5" />
-                <span className="text-sm font-medium">Agent作成が完了しました！</span>
+                <span className="text-sm font-medium">Agent作成が完了しました。</span>
               </div>
               <button
                 onClick={() => window.location.reload()}

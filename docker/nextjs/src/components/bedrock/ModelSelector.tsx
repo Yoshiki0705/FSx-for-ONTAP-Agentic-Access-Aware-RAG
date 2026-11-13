@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
+import { Globe, ClipboardList, Zap, AlertTriangle, X, CheckCircle2, XCircle, BarChart3 } from 'lucide-react';
 import { ModelStatusBadge } from './ModelStatusBadge';
 import { UnavailableModelsList } from './UnavailableModelsList';
 import { SelectedModelInfo } from './SelectedModelInfo';
@@ -227,7 +228,7 @@ export function ModelSelector({
               className="text-xs text-green-600 hover:text-green-800 flex items-center space-x-1 px-2 py-1 rounded hover:bg-green-50"
               title="リージョン情報を表示"
             >
-              <span>🌍</span>
+              <span><Globe className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
               <span>{regionInfo.currentRegionName}</span>
             </button>
           )}
@@ -236,7 +237,7 @@ export function ModelSelector({
               onClick={() => setIsExpanded(!isExpanded)}
               className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
             >
-              {isExpanded ? `📋 ${t('simple')}` : `📋 ${t('details')}`}
+              <ClipboardList className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{isExpanded ? t('simple') : t('details')}
             </button>
           )}
         </div>
@@ -264,7 +265,7 @@ export function ModelSelector({
           data-testid="auto-model-option"
         >
           <div className="flex items-center space-x-2">
-            <span>⚡</span>
+            <span><Zap className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
             <span className={`text-sm font-medium ${isAutoMode ? 'text-blue-700' : 'text-gray-900'}`}>
               {tSR('auto')}
             </span>
@@ -281,7 +282,7 @@ export function ModelSelector({
       {gpt55Error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-md" role="alert" data-testid="gpt55-error">
           <div className="flex items-start space-x-2">
-            <span className="text-red-600 font-medium">⚠️</span>
+            <span className="text-red-600 font-medium"><AlertTriangle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
             <div className="flex-1">
               <p className="text-sm font-medium text-red-800">GPT-5.5 is unavailable</p>
               <p className="text-xs text-red-600 mt-0.5">{gpt55Error}</p>
@@ -291,7 +292,7 @@ export function ModelSelector({
               className="text-red-400 hover:text-red-600 text-xs"
               aria-label="Dismiss error"
             >
-              ✕
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -320,7 +321,7 @@ export function ModelSelector({
         <div className="mt-2 p-3 bg-blue-50 rounded-md text-xs border border-blue-200">
           <div className="space-y-2">
             <div className="font-medium text-blue-900 flex items-center space-x-2">
-              <span>🌍</span>
+              <span><Globe className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
               <span>Bedrockリージョン情報</span>
             </div>
             <div className="space-y-1 text-blue-800">
@@ -332,7 +333,7 @@ export function ModelSelector({
             {regionInfo.unavailableModelsCount > 0 && (
               <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
                 <div className="text-yellow-800 text-xs">
-                  <div className="font-medium">⚠️ 利用不可能なモデル:</div>
+                  <div className="font-medium"><AlertTriangle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />利用不可能なモデル:</div>
                   <div className="mt-1 space-y-1">
                     {regionInfo.unavailableModels && Array.isArray(regionInfo.unavailableModels) && regionInfo.unavailableModels.slice(0, MODEL_DISPLAY_LIMITS.UNAVAILABLE_MODELS_PREVIEW).map(model => (
                       <div key={model.modelId} className="text-xs">
@@ -379,7 +380,7 @@ export function ModelSelector({
           {selectedModel && (
             <div className="p-3 bg-gray-50 rounded border border-gray-200">
               <div className="space-y-2">
-                <div className="font-semibold text-gray-800 mb-2">📋 {t('selectedModelDetails')}</div>
+                <div className="font-semibold text-gray-800 mb-2"><ClipboardList className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('selectedModelDetails')}</div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="text-gray-800"><span className="font-medium">{t('provider')}:</span> {selectedModel.provider}</div>
                   <div className="text-gray-800"><span className="font-medium">{t('category')}:</span> {selectedModel.category}</div>
@@ -387,12 +388,12 @@ export function ModelSelector({
                     <span className="font-medium text-gray-800">利用可能性:</span>
                     {selectedModel.available ? (
                       <span className="text-green-700 flex items-center space-x-1 font-medium">
-                        <span>✅</span>
+                        <span><CheckCircle2 className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                         <span>{t('available')}</span>
                       </span>
                     ) : (
                       <span className="text-red-700 flex items-center space-x-1 font-medium">
-                        <span>❌</span>
+                        <span><XCircle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
                         <span>利用不可</span>
                       </span>
                     )}
@@ -416,7 +417,7 @@ export function ModelSelector({
           {/* 統計情報 */}
           <div className="p-3 bg-blue-50 rounded border border-blue-200">
             <div className="space-y-2">
-              <div className="font-semibold text-blue-800 mb-2">📊 {t('statistics.title')}</div>
+              <div className="font-semibold text-blue-800 mb-2"><BarChart3 className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('statistics.title')}</div>
               <div className="grid grid-cols-2 gap-2 text-xs text-blue-800">
                 <div><span className="font-medium">{t('statistics.total')}:</span> {allModels.length}{t('count')}</div>
                 <div><span className="font-medium">{t('statistics.available')}:</span> {allModels.filter(m => m.available).length}{t('count')}</div>

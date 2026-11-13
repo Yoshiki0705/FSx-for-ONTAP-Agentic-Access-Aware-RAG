@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { useSessionStore } from '@/store/useSessionStore';
 import { SessionMetadata } from '@/types/chat';
 
@@ -149,7 +150,7 @@ export function SessionList() {
                       })}</span>
                       <span>•</span>
                       <span style={{
-                        padding: '2px 6px',
+                        padding: '2px 8px',
                         borderRadius: '4px',
                         backgroundColor: session.mode === 'agent' ? '#e8f5e9' : '#fff3e0',
                         color: session.mode === 'agent' ? '#2e7d32' : '#e65100',
@@ -178,8 +179,9 @@ export function SessionList() {
                       flexShrink: 0
                     }}
                     title="セッションを削除"
+                    aria-label="セッションを削除"
                   >
-                    🗑️
+                    <Trash2 className="w-5 h-5" aria-hidden="true" />️
                   </button>
                 </div>
               </div>
