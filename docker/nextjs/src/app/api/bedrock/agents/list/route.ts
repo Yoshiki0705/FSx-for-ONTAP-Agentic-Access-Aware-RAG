@@ -6,6 +6,8 @@
  * 指定されたリージョンの全てのBedrock Agentを一覧取得します。
  */
 
+import { isAgentCore } from '@/lib/agent-backend';
+import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 
 // 動的レンダリングを強制
@@ -45,6 +47,9 @@ function isValidRegion(region: string): boolean {
 export async function GET(request: NextRequest) {
   try {
     // クエリパラメータの取得
+    if (isAgentCore()) {
+      return await agentCoreRoutes.listResponse();
+    }
     const searchParams = request.nextUrl.searchParams;
     const region = searchParams.get('region') || process.env.AWS_REGION || 'ap-northeast-1';
     const maxResults = parseInt(searchParams.get('maxResults') || '100', 10);

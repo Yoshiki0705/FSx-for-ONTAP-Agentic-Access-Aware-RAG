@@ -224,11 +224,11 @@ describe('Property 6: ベクトルストア非依存リソースの存在保証'
 
           // enableAgent=trueの場合、PermSearch Lambdaが存在すること
           if (enableAgent) {
-            const permSearchLambdas = Object.values(resources).filter(
-              (r: any) => r.Type === 'AWS::Lambda::Function'
-                && r.Properties?.FunctionName
-                && (r.Properties.FunctionName as string).includes('perm-search')
-            );
+            // agentBackend=agentcore（既定）は agent-permission-search、bedrock-agents は perm-search
+            const permSearchLambdas = Object.values(resources).filter((r: any) => {
+              const name = r.Type === 'AWS::Lambda::Function' ? (r.Properties?.FunctionName as string | undefined) : undefined;
+              return !!name && (name.includes('agent-permission-search') || name.includes('perm-search'));
+            });
             expect(permSearchLambdas.length).toBeGreaterThanOrEqual(1);
           }
         }

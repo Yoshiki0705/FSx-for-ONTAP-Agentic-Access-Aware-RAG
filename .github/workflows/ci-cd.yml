@@ -562,6 +562,9 @@ jobs:
           # 走っておらず、そのジョブは CI/CD Pipeline と重複していたため削除した。
           - dir: tests/permission-matrix
             requirements: requirements-dev.txt
+          # AgentCore Runtime のエージェント（Strands）。AWS を呼ばない単体テストだけ。
+          - dir: docker/agentcore-agent
+            requirements: requirements-dev.txt
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

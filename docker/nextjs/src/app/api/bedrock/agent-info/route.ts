@@ -7,6 +7,8 @@
  * Agent ID、Alias、バージョン、ステータス、Foundation Modelなどの情報を返します。
  */
 
+import { isAgentCore } from '@/lib/agent-backend';
+import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 
 // 動的レンダリングを強制（searchParamsを使用するため）
@@ -64,6 +66,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const region = searchParams.get('region') || process.env.AWS_REGION || 'ap-northeast-1';
     const requestedAgentId = searchParams.get('agentId');
+    if (isAgentCore()) {
+      return await agentCoreRoutes.infoResponse(requestedAgentId);
+    }
     
     // Agent IDの決定（リクエスト > リージョン固有 > デフォルト）
     const agentId = requestedAgentId || getAgentIdForRegion(region);

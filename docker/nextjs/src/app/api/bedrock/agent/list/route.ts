@@ -1,3 +1,5 @@
+import { isAgentCore } from '@/lib/agent-backend';
+import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextResponse } from 'next/server';
 import { BedrockAgentClient, ListAgentsCommand } from '@aws-sdk/client-bedrock-agent';
 
@@ -16,6 +18,9 @@ const bedrockAgentClient = new BedrockAgentClient({
 
 export async function GET() {
   try {
+    if (isAgentCore()) {
+      return await agentCoreRoutes.listResponse();
+    }
     console.log('📋 [Agent List API] Agent一覧取得開始');
     
     // Agent一覧取得

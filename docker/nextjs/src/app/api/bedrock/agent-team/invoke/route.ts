@@ -10,6 +10,8 @@
  * Requirements: 14.3, 14.4
  */
 
+import { isAgentCore } from '@/lib/agent-backend';
+import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import {
@@ -392,6 +394,9 @@ function extractRoutingReason(rawTraces: any[]): string | undefined {
 
 export async function POST(request: NextRequest) {
   try {
+    if (isAgentCore()) {
+      return await agentCoreRoutes.teamInvokeResponse(await request.json());
+    }
     // 認証チェック — ミドルウェアレベルで認証済みのため、トークンがない場合はデフォルトユーザーを使用
     const auth = await authenticateRequest(request) || {
       userId: 'anonymous',

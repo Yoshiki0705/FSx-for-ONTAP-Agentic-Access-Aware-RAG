@@ -22,6 +22,7 @@ import { Construct } from 'constructs';
 import { EmbeddingModelRegistry } from '../../config/embedding-model-registry';
 import { KBConfigStrategy } from '../../config/kb-config-strategy';
 import { KbAutoSyncConstruct } from '../../constructs/kb-auto-sync-construct';
+import { AgentCoreAgentsConstruct } from '../../constructs/agentcore-agents-construct';
 
 // ========================================
 // Guardrails Configuration Types
@@ -225,6 +226,13 @@ export interface DemoAIStackProps extends cdk.StackProps {
   guardrailsConfig?: GuardrailsConfig;
   /** Bedrock Agentを作成するか（デフォルト: false） */
   enableAgent?: boolean;
+  /**
+   * エージェントの実行基盤（既定: 'agentcore'）。'agentcore' は AgentCore Runtime 上の汎用エージェントと
+   * DynamoDB のエージェント定義、'bedrock-agents' は従来の Amazon Bedrock Agents（Agents Classic）。
+   * Agents Classic は利用実績のないアカウントでは新規作成できない。'bedrock-agents' は移行期間用で、
+   * 次のリリースで削除する。
+   */
+  agentBackend?: 'agentcore' | 'bedrock-agents';
   /** ユーザーアクセスDynamoDBテーブル名（Agent Action Group用） */
   userAccessTableName?: string;
   /** ユーザーアクセスDynamoDBテーブルARN（Agent Action Group用） */
@@ -371,6 +379,10 @@ export class DemoAIStack extends cdk.Stack {
   public readonly supervisorAgentAliasId?: string;
   /** Agent Team DynamoDB テーブル名（enableMultiAgent=true 時のみ） */
   public readonly agentTeamTableName?: string;
+  /** AgentCore Runtime ARN（agentBackend=agentcore 時） */
+  public readonly agentRuntimeArn?: string;
+  /** エージェント定義の DynamoDB テーブル名（agentBackend=agentcore 時） */
+  public readonly agentDefinitionsTableName?: string;
   /** Agent Registry 有効化フラグ */
   public readonly enableAgentRegistry?: boolean;
   /** Agent Registry リージョン */
@@ -487,6 +499,10 @@ export class DemoAIStack extends cdk.Stack {
     const isDualMode = multimodalKbMode === 'dual';
 
     const { projectName, environment, enableGuardrails, enableAgent, userAccessTableName, userAccessTableArn } = props;
+    const agentBackend = props.agentBackend ?? 'agentcore';
+    if (agentBackend !== 'agentcore' && agentBackend !== 'bedrock-agents') {
+      throw new Error(`Invalid agentBackend: '${agentBackend}'. Valid values are: agentcore, bedrock-agents`);
+    }
     const prefix = `${projectName}-${environment}`;
     const collectionName = `${projectName}-${environment}-vectors`.substring(0, 32).toLowerCase();
     const indexName = 'bedrock-knowledge-base-default-index';
@@ -1096,7 +1112,7 @@ exports.handler = async (event) => {
     }
 
     // --- Bedrock Agent + Permission-aware Action Group（オプション） ---
-    if (enableAgent) {
+    if (enableAgent && agentBackend === 'bedrock-agents') {
       // Foundation Model shared by the existing single agent and used as the
       // default fallback for all multi-agent Collaborators/Supervisor when
       // `collaboratorModels` is not specified (Requirement 12.5).
@@ -1247,84 +1263,6 @@ ${langInstruction}`,
         description: 'Permission-aware search Action Group Lambda ARN',
       });
 
-      // --- AgentCore Memory（オプション: enableAgentCoreMemory=true 時のみ） ---
-      if (props.enableAgentCoreMemory) {
-        // Memory用IAMロール
-        const memoryRole = new iam.Role(this, 'MemoryRole', {
-          assumedBy: new iam.ServicePrincipal('bedrock-agentcore.amazonaws.com'),
-          inlinePolicies: {
-            MemoryPolicy: new iam.PolicyDocument({
-              statements: [
-                new iam.PolicyStatement({
-                  actions: [
-                    'bedrock:InvokeModel',
-                  ],
-                  resources: [
-                    `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
-                    'arn:aws:bedrock:*:*:inference-profile/*',
-                  ],
-                }),
-              ],
-            }),
-          },
-        });
-
-        // CfnMemory リソース作成（semantic + summary 戦略、オプションで episodic）
-        const memoryStrategies: any[] = [
-          { semanticMemoryStrategy: { name: 'semantic' } },
-          { summaryMemoryStrategy: { name: 'summary' } },
-        ];
-
-        if (props.enableEpisodicMemory) {
-          memoryStrategies.push({
-            episodicMemoryStrategy: {
-              name: 'episodic',
-              namespaceTemplates: ['/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}/'],
-              reflectionConfiguration: {
-                namespaces: ['/strategies/{memoryStrategyId}/actors/{actorId}/'],
-              },
-            },
-          });
-        }
-
-        const memory = new bedrockagentcore.CfnMemory(this, 'AgentMemory', {
-          name: `${prefix.replace(/-/g, '_')}_memory`,
-          eventExpiryDuration: 3, // 3日（短期メモリTTL、最小値）
-          memoryExecutionRoleArn: memoryRole.roleArn,
-          memoryStrategies,
-        });
-
-        // CfnMemory の Tags はマップ形式（{ key: value }）を要求するため、
-        // CDKデフォルトの配列形式タグを上書きする
-        memory.addPropertyOverride('Tags', {
-          Project: projectName,
-          Environment: environment,
-          ManagedBy: 'CDK',
-        });
-
-        this.memoryId = memory.attrMemoryId;
-        this.memoryArn = memory.attrMemoryArn;
-
-        new cdk.CfnOutput(this, 'MemoryId', {
-          value: memory.attrMemoryId,
-          description: 'AgentCore Memory ID',
-          exportName: `${prefix}-MemoryId`,
-        });
-        new cdk.CfnOutput(this, 'MemoryArn', {
-          value: memory.attrMemoryArn,
-          description: 'AgentCore Memory ARN',
-          exportName: `${prefix}-MemoryArn`,
-        });
-
-        // --- Episodic Memory IAM ポリシー（enableEpisodicMemory=true 時のみ） ---
-        if (props.enableEpisodicMemory) {
-          new cdk.CfnOutput(this, 'EpisodicMemoryEnabled', {
-            value: 'true',
-            description: 'AgentCore Episodic Memory Enabled',
-            exportName: `${prefix}-EpisodicMemoryEnabled`,
-          });
-        }
-      }
 
       // =================================================================
       // Backward Compatibility Guarantee
@@ -2211,6 +2149,102 @@ ${langInstruction}`,
         });
 
       } // end enableMultiAgent
+    }
+
+    // --- AgentCore エージェント（enableAgent=true かつ agentBackend=agentcore、既定） ---
+    // Bedrock Agents（Agents Classic）は新規アカウントで作成できないため、エージェントは
+    // AgentCore Runtime 上の汎用エージェント 1 つで動かし、画面で作る定義は DynamoDB に置く。
+    // 詳細は lib/constructs/agentcore-agents-construct.ts。
+    if (enableAgent && agentBackend === 'agentcore') {
+      const agentCoreAgents = new AgentCoreAgentsConstruct(this, 'AgentCoreAgents', {
+        prefix,
+        knowledgeBaseId: kb.attrKnowledgeBaseId,
+        userAccessTableName: userAccessTableName || undefined,
+        userAccessTableArn: userAccessTableArn || undefined,
+        enableMultiAgent: props.enableMultiAgent,
+      });
+      this.agentRuntimeArn = agentCoreAgents.runtime.agentRuntimeArn;
+      this.agentDefinitionsTableName = agentCoreAgents.definitionsTable.tableName;
+      this.agentTeamTableName = agentCoreAgents.teamTable?.tableName;
+    }
+
+    // --- AgentCore Memory（オプション: enableAgentCoreMemory=true 時のみ）。agentBackend によらず作る ---
+    if (props.enableAgentCoreMemory) {
+      // Memory用IAMロール
+      const memoryRole = new iam.Role(this, 'MemoryRole', {
+        assumedBy: new iam.ServicePrincipal('bedrock-agentcore.amazonaws.com'),
+        inlinePolicies: {
+          MemoryPolicy: new iam.PolicyDocument({
+            statements: [
+              new iam.PolicyStatement({
+                actions: [
+                  'bedrock:InvokeModel',
+                ],
+                resources: [
+                  `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/*`,
+                  'arn:aws:bedrock:*:*:inference-profile/*',
+                ],
+              }),
+            ],
+          }),
+        },
+      });
+
+      // CfnMemory リソース作成（semantic + summary 戦略、オプションで episodic）
+      const memoryStrategies: any[] = [
+        { semanticMemoryStrategy: { name: 'semantic' } },
+        { summaryMemoryStrategy: { name: 'summary' } },
+      ];
+
+      if (props.enableEpisodicMemory) {
+        memoryStrategies.push({
+          episodicMemoryStrategy: {
+            name: 'episodic',
+            namespaceTemplates: ['/strategies/{memoryStrategyId}/actors/{actorId}/sessions/{sessionId}/'],
+            reflectionConfiguration: {
+              namespaces: ['/strategies/{memoryStrategyId}/actors/{actorId}/'],
+            },
+          },
+        });
+      }
+
+      const memory = new bedrockagentcore.CfnMemory(this, 'AgentMemory', {
+        name: `${prefix.replace(/-/g, '_')}_memory`,
+        eventExpiryDuration: 3, // 3日（短期メモリTTL、最小値）
+        memoryExecutionRoleArn: memoryRole.roleArn,
+        memoryStrategies,
+      });
+
+      // CfnMemory の Tags はマップ形式（{ key: value }）を要求するため、
+      // CDKデフォルトの配列形式タグを上書きする
+      memory.addPropertyOverride('Tags', {
+        Project: projectName,
+        Environment: environment,
+        ManagedBy: 'CDK',
+      });
+
+      this.memoryId = memory.attrMemoryId;
+      this.memoryArn = memory.attrMemoryArn;
+
+      new cdk.CfnOutput(this, 'MemoryId', {
+        value: memory.attrMemoryId,
+        description: 'AgentCore Memory ID',
+        exportName: `${prefix}-MemoryId`,
+      });
+      new cdk.CfnOutput(this, 'MemoryArn', {
+        value: memory.attrMemoryArn,
+        description: 'AgentCore Memory ARN',
+        exportName: `${prefix}-MemoryArn`,
+      });
+
+      // --- Episodic Memory IAM ポリシー（enableEpisodicMemory=true 時のみ） ---
+      if (props.enableEpisodicMemory) {
+        new cdk.CfnOutput(this, 'EpisodicMemoryEnabled', {
+          value: 'true',
+          description: 'AgentCore Episodic Memory Enabled',
+          exportName: `${prefix}-EpisodicMemoryEnabled`,
+        });
+      }
     }
 
     // --- CloudFormation出力 ---

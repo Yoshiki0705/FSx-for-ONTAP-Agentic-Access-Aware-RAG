@@ -59,7 +59,9 @@ describe('Property 1: Memory リソース存在性の双条件', () => {
   // Feature: agentcore-integration, Property 1: Memory リソース存在性の双条件
   // **Validates: Requirements 1.1, 1.6, 9.2**
 
-  it('enableAgent=true AND enableAgentCoreMemory=true の場合のみ CfnMemory が存在する', () => {
+  // Memory は agentBackend=agentcore（既定）のエージェントとは独立した機能なので、enableAgent に依存しない。
+  // 以前は enableAgent=true の内側にあり、Agents Classic を作れないアカウントでは Memory も作れなかった。
+  it('enableAgentCoreMemory=true の場合に限り CfnMemory が存在する（enableAgent によらない）', () => {
     fc.assert(
       fc.property(
         fc.record({
@@ -74,13 +76,8 @@ describe('Property 1: Memory リソース存在性の双条件', () => {
             (r: any) => r.Type === 'AWS::BedrockAgentCore::Memory'
           );
 
-          if (enableAgent && enableAgentCoreMemory) {
-            // 両方trueの場合のみMemoryリソースが存在する
-            expect(memoryResources.length).toBe(1);
-          } else {
-            // いずれかがfalseの場合はMemoryリソースが存在しない
-            expect(memoryResources.length).toBe(0);
-          }
+          expect(memoryResources.length).toBe(enableAgentCoreMemory ? 1 : 0);
+          void enableAgent;
         }
       ),
       { numRuns: 4 }

@@ -53,6 +53,12 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   allowedCountries?: string[];
   /** Permission Filter Lambdaを使用するか（デフォルト: false、Next.js内でフィルタリング） */
   usePermissionFilterLambda?: boolean;
+  /** エージェントの実行基盤（enableAgent=true 時のみ渡す） */
+  agentBackend?: 'agentcore' | 'bedrock-agents';
+  /** AgentCore Runtime ARN（agentBackend=agentcore 時） */
+  agentRuntimeArn?: string;
+  /** エージェント定義の DynamoDB テーブル名（agentBackend=agentcore 時） */
+  agentDefinitionsTableName?: string;
   /** Bedrock Agent ID（AIStackから） */
   agentId?: string;
   /** Bedrock Agent Alias ID（AIStackから） */
@@ -228,6 +234,10 @@ export class DemoWebAppStack extends cdk.Stack {
         NODE_ENV: 'production',
         AWS_LWA_PORT: '3000',
         RUST_LOG: 'info',
+        // エージェントの実行基盤（agentcore: AgentCore Runtime / bedrock-agents: Agents Classic）
+        ...(props.agentBackend ? { AGENT_BACKEND: props.agentBackend } : {}),
+        ...(props.agentRuntimeArn ? { AGENT_RUNTIME_ARN: props.agentRuntimeArn } : {}),
+        ...(props.agentDefinitionsTableName ? { AGENT_DEFINITIONS_TABLE_NAME: props.agentDefinitionsTableName } : {}),
         // Bedrock Agent設定（オプション）
         ...(agentId ? { BEDROCK_AGENT_ID: agentId } : {}),
         ...(agentAliasId ? { BEDROCK_AGENT_ALIAS_ID: agentAliasId } : {}),
@@ -528,6 +538,27 @@ export class DemoWebAppStack extends cdk.Stack {
     permissionCacheTable.grantReadWriteData(this.webAppFunction);
     userAccessTable.grantReadData(this.webAppFunction);
 
+    // AgentCore Runtime の呼び出しと、エージェント定義の読み書き（agentBackend=agentcore 時）
+    if (props.agentRuntimeArn) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['bedrock-agentcore:InvokeAgentRuntime'],
+        // The runtime and its endpoints (the DEFAULT endpoint is invoked without a qualifier).
+        resources: [props.agentRuntimeArn, `${props.agentRuntimeArn}/runtime-endpoint/*`],
+      }));
+      NagSuppressions.addResourceSuppressions(this.webAppFunction, [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'InvokeAgentRuntime is authorized on the runtime and on the endpoint invoked; endpoint names (DEFAULT and any added later) are not known at synth time, so the endpoints of this one runtime are granted.',
+          appliesTo: [{ regex: '/^Resource::<.*AgentRuntimeArn>\\/runtime-endpoint\\/\\*$/g' }],
+        },
+      ], true);
+    }
+    if (props.agentDefinitionsTableName) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:Scan'],
+        resources: [`arn:aws:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/${props.agentDefinitionsTableName}`],
+      }));
+    }
     // Agent Team DynamoDB テーブル権限（enableMultiAgent時）
     if (props.agentTeamTableName) {
       this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
