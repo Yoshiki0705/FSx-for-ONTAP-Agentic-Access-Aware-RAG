@@ -4,6 +4,8 @@
  * SSMパラメータ管理統合版
  */
 
+import { isAgentCore } from '@/lib/agent-backend';
+import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   BedrockAgentRuntimeClient,
@@ -190,6 +192,18 @@ export async function POST(request: NextRequest) {
     // Determine effective agent mode (Requirements 11.2, 11.3, 11.5)
     const effectiveMode: 'single' | 'multi' =
       mode === 'multi' || mode === 'single' ? mode : DEFAULT_AGENT_MODE;
+
+    // AgentCore Runtime（AGENT_BACKEND=agentcore、既定）。ガードレールと推論プロファイルの一覧は
+    // Bedrock の API なので、下の既存の処理に任せる。
+    if (isAgentCore()) {
+      if (!action || action === 'invoke') {
+        return effectiveMode === 'multi'
+          ? await agentCoreRoutes.teamInvokeResponse(body)
+          : await agentCoreRoutes.invokeResponse(body);
+      }
+      const handled = await agentCoreRoutes.agentActionResponse(action, body);
+      if (handled) return handled;
+    }
 
     // If mode=multi and action is invoke (or default), route to multi-agent logic
     if (effectiveMode === 'multi' && (!action || action === 'invoke')) {

@@ -134,6 +134,11 @@ const usePermissionFilterLambda = ctxBool('usePermissionFilterLambda');
 const enableGuardrails = ctxBool('enableGuardrails');
 const guardrailsConfig = app.node.tryGetContext('guardrailsConfig') as import('../lib/stacks/demo/demo-ai-stack').GuardrailsConfig | undefined;
 const enableAgent = ctxBool('enableAgent');
+// エージェントの実行基盤。既定は AgentCore Runtime。'bedrock-agents' は Agents Classic（移行期間用）。
+const agentBackend = (app.node.tryGetContext('agentBackend') || 'agentcore') as 'agentcore' | 'bedrock-agents';
+if (agentBackend !== 'agentcore' && agentBackend !== 'bedrock-agents') {
+  throw new Error(`Invalid agentBackend: '${agentBackend}'. Valid values are: agentcore, bedrock-agents`);
+}
 const enableKmsEncryption = ctxBool('enableKmsEncryption');
 const enableCloudTrail = ctxBool('enableCloudTrail');
 const enableVpcEndpoints = ctxBool('enableVpcEndpoints');
@@ -372,6 +377,7 @@ const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
   enableGuardrails,
   guardrailsConfig,
   enableAgent,
+  agentBackend,
   enableAgentSharing,
   enableAgentSchedules,
   enableAgentCoreMemory,
@@ -426,6 +432,10 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   usePermissionFilterLambda,
   agentId: aiStack.agentId,
   agentAliasId: aiStack.agentAliasId,
+  // AgentCore Runtime のエージェント（agentBackend=agentcore 時）
+  agentBackend: enableAgent ? agentBackend : undefined,
+  agentRuntimeArn: aiStack.agentRuntimeArn,
+  agentDefinitionsTableName: aiStack.agentDefinitionsTableName,
   actionGroupLambdaArn: aiStack.actionGroupLambdaArn,
   sharedAgentBucketName: aiStack.sharedAgentBucketName,
   agentExecutionTableName: aiStack.agentExecutionTableName,

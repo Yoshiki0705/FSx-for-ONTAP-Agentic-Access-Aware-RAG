@@ -1,3 +1,5 @@
+import { isAgentCore } from '@/lib/agent-backend';
+import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 import { BedrockAgentClient, CreateAgentCommand, CreateAgentAliasCommand } from '@aws-sdk/client-bedrock-agent';
 
@@ -33,6 +35,9 @@ interface ActionGroupConfig {
 export async function POST(request: NextRequest) {
   try {
     const body: CreateAgentRequest = await request.json();
+    if (isAgentCore()) {
+      return await agentCoreRoutes.wizardCreateResponse(body as unknown as Record<string, unknown>);
+    }
     
     // バリデーション
     if (!body.name || body.name.trim().length < 3) {

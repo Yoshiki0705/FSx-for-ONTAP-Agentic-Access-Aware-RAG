@@ -70,7 +70,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 
 Características principales:
 - **RAG Permission-aware** — metadatos de permisos del documento contrastados con el SID / UID-GID del solicitante en consulta (Fail-Closed)
-- **IA Agéntica** — Alternar entre modo KB (búsqueda documental) y modo Agent (razonamiento multi-paso)
+- **IA Agéntica** — Alternar entre modo KB (búsqueda documental) y modo Agent (razonamiento multi-paso). Los agentes se ejecutan en Amazon Bedrock AgentCore Runtime
 - **Smart Routing** — Selección automática de Haiku / Sonnet / Opus según complejidad (reducción 40-60% en costos)
 - **Bajo costo** — S3 Vectors (pocos dólares/mes) por defecto
 - **22 capacidades integradas** — Chat de voz, Guardrails, Graph RAG, Web Search, etc. ([detalles](docs/es/implementation-overview.md))

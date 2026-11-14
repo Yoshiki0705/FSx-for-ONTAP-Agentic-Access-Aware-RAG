@@ -1,3 +1,5 @@
+import { isAgentCore } from '@/lib/agent-backend';
+import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   BedrockAgentClient,
@@ -16,6 +18,9 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agentId');
+    if (isAgentCore()) {
+      return await agentCoreRoutes.deleteResponse(agentId);
+    }
     const region = searchParams.get('region') || process.env.BEDROCK_REGION || 'ap-northeast-1';
 
     if (!agentId) {

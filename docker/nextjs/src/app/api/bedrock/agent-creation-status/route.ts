@@ -1,3 +1,5 @@
+import { isAgentCore } from '@/lib/agent-backend';
+import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 import { BedrockAgentClient, GetAgentCommand, GetAgentAliasCommand } from '@aws-sdk/client-bedrock-agent';
 
@@ -15,6 +17,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agentId');
+    if (isAgentCore()) {
+      return await agentCoreRoutes.creationStatusResponse(agentId);
+    }
     const region = searchParams.get('region') || 'ap-northeast-1';
 
     if (!agentId) {

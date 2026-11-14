@@ -27,7 +27,7 @@
 
 ## Overview
 
-Agent mode is an advanced conversational AI interface leveraging Amazon Bedrock Agents.
+Agent mode is the screen for talking to agents that run on Amazon Bedrock AgentCore Runtime. Agent definitions live in DynamoDB, runs go through `InvokeAgentRuntime`, and document search goes only through a permission-aware search tool behind AgentCore Gateway (see [Implementation Overview, section 8](implementation-overview.md#8-agent-mode--permission-aware-agentic-ai-on-amazon-bedrock-agentcore)). The API responses keep the shapes of the earlier Amazon Bedrock Agents backend, so the screen-side implementation this guide covers is unchanged.
 When a user selects an Agent in the sidebar, the Introduction Text in the main chat area
 updates in real-time to display information about the selected Agent.
 

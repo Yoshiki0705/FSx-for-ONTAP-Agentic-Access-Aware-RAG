@@ -22,7 +22,7 @@
 
 ## 概要
 
-Agent modeは、Amazon Bedrock Agentsを活用した高度な対話型AIインターフェースです。
+Agent modeは、Amazon Bedrock AgentCore Runtime 上で動くエージェントと対話する画面です。エージェントの定義は DynamoDB にあり、実行は `InvokeAgentRuntime`、文書検索は AgentCore Gateway の背後の権限付き検索ツールだけを通ります（仕組みは [実装概要の項目 8](implementation-overview.md#8-agent-モード--amazon-bedrock-agentcore-上の-permission-aware-agentic-ai)）。API の応答の形は以前の Amazon Bedrock Agents と同じなので、この文書が扱う画面側の実装は変わっていません。
 ユーザーがサイドバーでAgentを選択すると、メインチャットエリアのIntroduction Textが
 リアルタイムで更新され、選択されたAgentの情報が表示されます。
 

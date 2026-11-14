@@ -128,3 +128,6 @@ docs/presentation-brief.md
 docs/screenshots/debug-oidc-result.png
 .playwright-mcp/
 .private/
+
+# make test-python が各 Python ディレクトリに作る仮想環境
+.venv/

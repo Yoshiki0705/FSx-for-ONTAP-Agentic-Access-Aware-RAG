@@ -85,7 +85,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 
 Key features:
 - **Permission-aware RAG** — per-document permission metadata matched against the caller's SID / UID-GID at query time (Fail-Closed)
-- **Agentic AI** — Toggle between document search (KB mode) and autonomous multi-step reasoning (Agent mode)
+- **Agentic AI** — Toggle between document search (KB mode) and autonomous multi-step reasoning (Agent mode). Agents run on Amazon Bedrock AgentCore Runtime
 - **Smart Routing** — Auto-selects Haiku / Sonnet / Opus based on query complexity (40-60% cost reduction, [benchmark](docs/en/benchmark-scenarios.md))
 - **Low cost** — S3 Vectors (a few dollars/month) as default
 - **22 integrated capabilities** — Voice chat, Guardrails, Graph RAG, Web Search, and more ([details](docs/en/implementation-overview.md))
@@ -159,11 +159,11 @@ For changelog, see [CHANGELOG.md](CHANGELOG.md).
 | Screen | Description |
 |--------|-------------|
 | ![KB mode](docs/screenshots/v4-kb-mode-ja.png) | KB mode — card grid + sidebar |
-| ![Agent mode](docs/screenshots/v4-agent-mode-ja.png) | Agent mode — agent selection + card grid |
+| ![Agent mode](docs/screenshots/v4-agent-mode-ja.png) | Agent mode — an answer to a legal-department user, citing only documents that user may read (AgentCore Runtime) |
 | ![Chat response](docs/screenshots/v4-kb-chat-response-ja.png) | Citations + access level badges |
 | ![Agent Directory](docs/screenshots/v4-agent-directory-registry-ja.png) | Agent management & Registry integration |
 | ![Smart Routing](docs/screenshots/kb-mode-smart-routing-ja.png) | Automatic model selection |
-| ![Multi-Agent](docs/screenshots/v4-multi-agent-mode-ja.png) | Supervisor + Collaborator coordination |
+| ![Multi-Agent](docs/screenshots/v4-multi-agent-mode-ja.png) | Team run: a supervisor agent calls collaborator agents as tools (AgentCore Runtime) |
 
 </details>
 

@@ -47,7 +47,7 @@ Browser → CloudFront → Lambda Function URL → Lambda Web Adapter → Next.j
 - **SID 過濾**：基於使用者 SID 資訊過濾搜尋結果（详見第 7 節）
 - **KB/Agent 模式切換**：透過头部切換在 KB 模式（文件搜尋）和 Agent 模式（多步推理）之间切換
 - **基於卡片的任务导向 UI**：在開始聊天前，KB 模式顯示用途特定的卡片（文件搜尋、摘要建建、测验生成等），Agent 模式顯示工作流卡片（财务分析、项目管理等）的网格佈局。支援收藏管理和類別過濾
-- **Agent 模式（InvokeAgent API）**：透過 Bedrock Agent + Permission-aware Action Group 實現带 SID 過濾的多步推理。Agent 呼叫失敗時退回到 KB 混合模式
+- **Agent 模式（AgentCore Runtime）**：Amazon Bedrock AgentCore Runtime 上的 Strands Agents 只透過 AgentCore Gateway 後方的權限感知檢索工具讀取文件，實現帶 SID 過濾的多步推理（見第 8 節）
 - **多語言支援**：8 种語言 — 日语、英语、韩语、中文（簡體/繁體）、法语、德语和西班牙语
 - **Citation 顯示**：顯示作為答案依据的文件來源資訊
 - **Cognito 認证**：登錄/退出和會話管理
@@ -392,20 +392,20 @@ User            Next.js API         DynamoDB        Bedrock KB      Converse API
 
 ---
 
-## 8. Bedrock Agent — 權限感知 Agentic AI
+## 8. Agent 模式 — 基於 Amazon Bedrock AgentCore 的權限感知 Agentic AI
 
-### 實現詳情
+Agent 執行於 Amazon Bedrock AgentCore Runtime。Agent 定義（名稱、指令、模型、工具）儲存在 DynamoDB，一個通用 Runtime 在每次呼叫時接收定義並建構 Strands Agents 代理。文件檢索只經過 AgentCore Gateway 後方的 `permission-search` Lambda，使用與 KB 模式相同的 SID 過濾器。模型只看得到 `query` 與 `max_results`；`userId` 來自 Web 應用程式的工作階段 Cookie，沒有 `userId` 時不回傳任何文件（Fail-Closed）。多 Agent 使用 Strands 的 agents-as-tools。預設值為 `agentBackend=agentcore`；Amazon Bedrock Agents 可透過 `-c agentBackend=bedrock-agents` 再保留一個版本。
 
-使用 Bedrock Agent 實現多步推理 AI 代理。Agent 透過 Permission-aware Action Group 執行 KB 搜尋，僅引用基於使用者 SID 權限過濾後的文件生成答案。
+```
+Agent Directory / chat
+  -> /api/bedrock/*  (create/edit/delete: DynamoDB agent-definitions, run: InvokeAgentRuntime)
+  -> AgentCore Runtime (docker/agentcore-agent, Python / Strands Agents, arm64)
+       +-- search_documents(query, max_results)
+            -> SigV4 -> agent-tools Gateway (AWS_IAM, MCP)
+            -> permission-search Lambda -> KB Retrieve -> filterByPermissions (sid-filter.ts)
+```
 
-### CDK 資源（`enableAgent=true`）
-
-| 資源 | 說明 |
-|----------|-------------|
-| Bedrock Agent | Claude 3 Haiku，不直接關联 KB（僅透過 Action Group） |
-| Agent Alias | 用於稳定呼叫的別名 |
-| Action Group Lambda | 權限感知 KB 搜尋（带 SID 過濾） |
-| Agent IAM Role | Bedrock InvokeModel + KB Retrieve 權限 |
+詳情（資源、權限邊界、檔案）: [英文版第 8 節](../en/implementation-overview.md#8-agent-mode--permission-aware-agentic-ai-on-amazon-bedrock-agentcore)
 
 ### 基於卡片的任务导向 UI
 
@@ -413,7 +413,7 @@ User            Next.js API         DynamoDB        Bedrock KB      Converse API
 
 ### 動态 Agent-卡片绑定
 
-點击卡片時，引用 AGENT_CATEGORY_MAP（10 個類別：financial、project、hr、search、presentation、approval、minutes、report、contract、onboarding）查找或動态建建對应的 Agent 並绑定到卡片。建建的 Agent 自動附加 Permission-aware Action Group。
+點击卡片時，引用 AGENT_CATEGORY_MAP（10 個類別：financial、project、hr、search、presentation、approval、minutes、report、contract、onboarding）查找或動态建建對应的 Agent 並绑定到卡片。建立的 Agent 帶有權限感知檢索工具（`PermissionAwareSearch`）。
 
 ---
 

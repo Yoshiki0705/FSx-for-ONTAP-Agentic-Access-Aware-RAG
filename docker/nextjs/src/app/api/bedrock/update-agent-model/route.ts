@@ -7,6 +7,8 @@
  * 同時更新を防止するためのロック機構を実装しています。
  */
 
+import { isAgentCore } from '@/lib/agent-backend';
+import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 import { 
   BedrockAgentClient, 
@@ -114,6 +116,9 @@ export async function POST(request: NextRequest) {
     }
     
     const { modelId, region, agentId: requestedAgentId } = body;
+    if (isAgentCore()) {
+      return await agentCoreRoutes.updateModelResponse(body);
+    }
     
     console.log(`🔄 [Update Agent Model] リクエスト:`, { modelId, region, requestedAgentId });
     
