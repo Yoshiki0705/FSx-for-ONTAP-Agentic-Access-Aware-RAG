@@ -13,10 +13,6 @@ Permission-Aware RAG システムの業種別デモデータパックです。�
 | [construction/](./construction/) | 5 | 建設・AEC |
 | [education/](./education/) | 5 | 教育・大学 |
 | [insurance/](./insurance/) | 5 | 保険 |
-| [manufacturing/](./manufacturing/) | 5 | 製造業 |
-| [construction/](./construction/) | 5 | 建設業 |
-| [education/](./education/) | 5 | 教育・大学 |
-| [insurance/](./insurance/) | 5 | 保険業 |
 
 ## デプロイ方法
 

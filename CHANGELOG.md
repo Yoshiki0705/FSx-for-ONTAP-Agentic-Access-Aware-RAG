@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **業種別のタスクカード（KB モード）**: カード一覧の上に業種の選択を追加し、21 業種 × 3 枚（見つける・下書きする・確認する）のカードを用意した。業種は行政・自治体、医療、法務、保険、製造、建設、教育・研究、金融、メディア・広告、半導体・EDA、ライフサイエンス、エネルギー・電力、自動車・モビリティ、小売・EC、物流・運輸、通信、農業・食品、不動産、人事・採用、サステナビリティ・非営利、旅行・観光。文言は 8 言語（ja / en / ko / zh-CN / zh-TW / fr / de / es）。医療・法務・保険・金融などのカードは、最終判断を担当者が行うことをプロンプトに含める。Agent モードのカードは変えていない（Amazon Bedrock Agents が新規利用不可のため）。デモデータは従来の 7 業種（`demo-data/industry-packs/`）のままで、新しい業種分のデモデータは未作成。`docker/nextjs/src/__tests__/constants/industry-cards.test.ts` が、全業種の全カードの文言が 8 言語に存在することを検査する
+### Fixed
+- `demo-data/industry-packs/README.md` の一覧で、製造・建設・教育・保険の行が重複していたのを削除した
 ## [4.5.0] - 2026-11-13
 画面のテンプレート的な書き方の検査と、画面の絵文字から `lucide-react` への置き換え。追跡されていたコンパイル出力 48 本を削除したため、本番ビルドが取り込むコードが変わる（下の「変更」を参照）。
 ### Added

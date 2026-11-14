@@ -412,6 +412,392 @@
       "addToFavorites": "Add to favorites",
       "removeFromFavorites": "Remove from favorites",
       "section": "Favorites"
+    },
+    "industries": {
+      "government": "Government",
+      "healthcare": "Healthcare",
+      "legal": "Legal",
+      "insurance": "Insurance",
+      "manufacturing": "Manufacturing",
+      "construction": "Construction",
+      "education": "Education and Research",
+      "financial": "Financial Services",
+      "media": "Media and Advertising",
+      "semiconductor": "Semiconductors and EDA",
+      "lifesciences": "Life Sciences",
+      "energy": "Energy and Utilities",
+      "automotive": "Automotive and Mobility",
+      "retail": "Retail and E-commerce",
+      "logistics": "Logistics and Transportation",
+      "telecom": "Telecommunications",
+      "agrifood": "Agriculture and Food",
+      "realestate": "Real Estate",
+      "hr": "Human Resources",
+      "esg": "Sustainability and Nonprofit",
+      "travel": "Travel and Tourism"
+    },
+    "industry": {
+      "government": {
+        "find": {
+          "title": "Ordinances and Notices",
+          "description": "Find the relevant provisions and their basis in ordinances, rules and notices",
+          "prompt": "List the ordinances, rules and notices related to the following task, with document names and article numbers: "
+        },
+        "draft": {
+          "title": "Council Answer Draft",
+          "description": "Draft a council answer from past minutes and policy documents",
+          "prompt": "Draft a council answer to the following question based on past minutes and policy documents. Name the source document for each point: "
+        },
+        "check": {
+          "title": "Pre-release Document Check",
+          "description": "List possible personal or non-disclosable information before release",
+          "prompt": "Before releasing the following document, list passages that may contain personal or non-disclosable information. A staff member makes the final decision: "
+        }
+      },
+      "healthcare": {
+        "find": {
+          "title": "Clinical Guideline Lookup",
+          "description": "Find the relevant part of in-house guidelines and procedures",
+          "prompt": "Show the parts of in-house guidelines and procedures that apply to the following situation, with document names. Do not make diagnostic or treatment decisions: "
+        },
+        "draft": {
+          "title": "Procedure Summary",
+          "description": "Summarize long procedures or notices into points for clinical staff",
+          "prompt": "Summarize the following procedure or notice into points for clinical staff. Keep numbers and doses exactly as written: "
+        },
+        "check": {
+          "title": "Policy Consistency Check",
+          "description": "Find statements that conflict across policies and notices",
+          "prompt": "For the following topic, list places where in-house policies, procedures and notices conflict: "
+        }
+      },
+      "legal": {
+        "find": {
+          "title": "Contract Clause Extraction",
+          "description": "Extract clauses of a given type from contracts",
+          "prompt": "From the following contract, extract clauses of the type I specify (for example termination, liability, confidentiality), with clause numbers: "
+        },
+        "draft": {
+          "title": "Contract Comparison",
+          "description": "Compare a template with the counterparty draft clause by clause",
+          "prompt": "Compare the following two contracts (template and counterparty draft) clause by clause in a table. This is an aid for review, not legal advice: "
+        },
+        "check": {
+          "title": "Policy Alignment Check",
+          "description": "Check whether a contract draft follows internal rules",
+          "prompt": "Check whether the following contract draft follows internal rules and policies, citing the relevant rule. Legal staff make the final decision: "
+        }
+      },
+      "insurance": {
+        "find": {
+          "title": "Similar Case Lookup",
+          "description": "Find similar cases in past assessment reports",
+          "prompt": "List past assessment reports similar to the following case, with the points of similarity: "
+        },
+        "draft": {
+          "title": "Claim Document Check",
+          "description": "Check which documents a claim needs and which are missing",
+          "prompt": "For the following claim, list the documents required by the policy terms and assessment standards and those still missing: "
+        },
+        "check": {
+          "title": "Assessment Criteria Check",
+          "description": "Explain the relevant criteria and terms with quotations",
+          "prompt": "Quote and explain the assessment criteria and policy terms related to the following case. The assessor makes the final payment decision: "
+        }
+      },
+      "manufacturing": {
+        "find": {
+          "title": "Quality Standard Lookup",
+          "description": "Find values and tolerances in quality standards and specifications",
+          "prompt": "For the following part or process, show the values and tolerances in quality standards and specifications, with document names. Keep numbers as written: "
+        },
+        "draft": {
+          "title": "Defect Report Summary",
+          "description": "Summarize defect reports and corrective actions",
+          "prompt": "Organize defect reports and corrective actions for the following product or process by cause: "
+        },
+        "check": {
+          "title": "Maintenance Procedure Check",
+          "description": "Check maintenance plans and inspection procedures",
+          "prompt": "Organize the maintenance plan and inspection procedure for the following equipment, including intervals and owners: "
+        }
+      },
+      "construction": {
+        "find": {
+          "title": "Safety Standard Lookup",
+          "description": "Find the relevant site safety standards",
+          "prompt": "Show the parts of safety standards and checklists that apply to the following work, with document names: "
+        },
+        "draft": {
+          "title": "Progress Report Draft",
+          "description": "Draft a weekly report from daily logs and progress records",
+          "prompt": "Draft a weekly progress report from the daily logs and progress records for the following period: "
+        },
+        "check": {
+          "title": "Design Change Impact",
+          "description": "List drawings and tasks affected by a design change",
+          "prompt": "For the following design change, list the drawings, tasks and subcontractors affected, based on the change history: "
+        }
+      },
+      "education": {
+        "find": {
+          "title": "Syllabus and Policy Lookup",
+          "description": "Find the relevant part of syllabi and university rules",
+          "prompt": "For the following course or program, show the relevant parts of syllabi and university rules, with document names: "
+        },
+        "draft": {
+          "title": "Grant Proposal Draft",
+          "description": "Draft a proposal from past applications and funding guidelines",
+          "prompt": "For the following theme, draft the structure and text of a research proposal, using past applications and funding guidelines: "
+        },
+        "check": {
+          "title": "Grading Policy Summary",
+          "description": "Explain grading policy in plain terms for students",
+          "prompt": "Summarize the grading policy for the following course as a plain explanation for students. Do not handle individual grades: "
+        }
+      },
+      "financial": {
+        "find": {
+          "title": "Rules and Procedures Lookup",
+          "description": "Find the relevant internal rules and procedures",
+          "prompt": "Show the internal rules and procedures related to the following task, with document names: "
+        },
+        "draft": {
+          "title": "Document Key Fields",
+          "description": "Extract amounts, dates and parties from forms and contracts",
+          "prompt": "Extract amounts, dates and parties from the following document into a table. Distinguish budget, actual and forecast: "
+        },
+        "check": {
+          "title": "Compliance Check",
+          "description": "Check a case against internal compliance policy",
+          "prompt": "Check whether the following case follows internal compliance policy, citing the relevant policy. The responsible officer makes the final decision: "
+        }
+      },
+      "media": {
+        "find": {
+          "title": "Production Asset Search",
+          "description": "Find assets and documents in a project",
+          "prompt": "Find production assets and documents that match the following conditions, with project names: "
+        },
+        "draft": {
+          "title": "Rights and Usage Terms",
+          "description": "Check license scope and conditions of an asset",
+          "prompt": "For the following asset, check the license scope, period and territory from contracts and records: "
+        },
+        "check": {
+          "title": "Creative Review Summary",
+          "description": "Organize creative drafts and review notes",
+          "prompt": "For the following campaign, organize the creative drafts and review comments per draft: "
+        }
+      },
+      "semiconductor": {
+        "find": {
+          "title": "Design Spec and Rule Lookup",
+          "description": "Find relevant design specifications and rules",
+          "prompt": "For the following block or process, show the relevant parts of design specifications and design rules, with document names: "
+        },
+        "draft": {
+          "title": "Verification Results Summary",
+          "description": "Summarize verification logs and bug reports",
+          "prompt": "Summarize the following verification logs and bug reports by severity: "
+        },
+        "check": {
+          "title": "Revision Differences",
+          "description": "Compare design or spec revisions",
+          "prompt": "Organize the differences between the following two revisions into changes and affected areas: "
+        }
+      },
+      "lifesciences": {
+        "find": {
+          "title": "Lab Notes and SOP Lookup",
+          "description": "Find the relevant lab notes and SOPs",
+          "prompt": "For the following experiment or procedure, show the relevant lab notes and SOP sections, with document names: "
+        },
+        "draft": {
+          "title": "Safety Data Check",
+          "description": "Check handling points in safety data sheets",
+          "prompt": "For the following substance, summarize handling, storage and emergency points from its safety data sheet, with document names. Keep numbers as written: "
+        },
+        "check": {
+          "title": "Data Quality Record Check",
+          "description": "Check pipeline quality records for deviations",
+          "prompt": "From the quality records of the following project, list procedure deviations and data that do not meet the criteria: "
+        }
+      },
+      "energy": {
+        "find": {
+          "title": "Inspection Record Lookup",
+          "description": "Find inspection records and reports for equipment",
+          "prompt": "For the following equipment, list past inspection records and findings in chronological order: "
+        },
+        "draft": {
+          "title": "Survey Report Summary",
+          "description": "Summarize exploration or survey reports",
+          "prompt": "Summarize the following survey report into objective, method, results and open issues: "
+        },
+        "check": {
+          "title": "Safety Rule Check",
+          "description": "Check relevant safety rules and procedures",
+          "prompt": "Show the safety rules and procedures related to the following work, with document names: "
+        }
+      },
+      "automotive": {
+        "find": {
+          "title": "Test and Drive Record Lookup",
+          "description": "Find test reports and driving records",
+          "prompt": "List test reports and driving records that match the following conditions, with dates: "
+        },
+        "draft": {
+          "title": "Issue Investigation Summary",
+          "description": "Organize issue reports and countermeasures",
+          "prompt": "Organize issue reports and countermeasures for the following part or function in chronological order: "
+        },
+        "check": {
+          "title": "Spec Change Impact",
+          "description": "List documents and tests affected by a spec change",
+          "prompt": "For the following specification change, list the specifications, tests and suppliers affected: "
+        }
+      },
+      "retail": {
+        "find": {
+          "title": "Product Information Lookup",
+          "description": "Find products in catalogs and specs",
+          "prompt": "List products that match the following conditions, with what the product documents say: "
+        },
+        "draft": {
+          "title": "Promotion Copy Draft",
+          "description": "Draft copy from product documents",
+          "prompt": "Draft a description for the following product using only facts in the product documents: "
+        },
+        "check": {
+          "title": "Terms and Return Policy Check",
+          "description": "Check supplier terms and return rules",
+          "prompt": "For the following supplier or product, show the relevant trade terms and return rules: "
+        }
+      },
+      "logistics": {
+        "find": {
+          "title": "Delivery Record Lookup",
+          "description": "Find delivery slips and operation records",
+          "prompt": "List delivery and operation records that match the following conditions, with dates and slip numbers: "
+        },
+        "draft": {
+          "title": "Vehicle and Equipment Maintenance",
+          "description": "Check inspection and maintenance records",
+          "prompt": "For the following vehicle or equipment, organize inspection and maintenance records and the next due dates: "
+        },
+        "check": {
+          "title": "Contract and Terms Check",
+          "description": "Check transport contracts and terms",
+          "prompt": "For the following case, show the relevant parts of transport contracts and terms, with clause numbers: "
+        }
+      },
+      "telecom": {
+        "find": {
+          "title": "Incident Record Lookup",
+          "description": "Find similar incident reports and responses",
+          "prompt": "List past incident reports and response records similar to the following symptoms: "
+        },
+        "draft": {
+          "title": "Runbook Summary",
+          "description": "Summarize runbooks for on-call staff",
+          "prompt": "Summarize the following runbook into key points and the order of checks for on-call staff: "
+        },
+        "check": {
+          "title": "Change Impact Check",
+          "description": "Check what a network change affects",
+          "prompt": "For the following change, list the services affected and the related runbooks: "
+        }
+      },
+      "agrifood": {
+        "find": {
+          "title": "Traceability Lookup",
+          "description": "Follow lot and shipment records",
+          "prompt": "For the following lot, trace the records from raw materials to shipment in chronological order: "
+        },
+        "draft": {
+          "title": "Hygiene and Quality Records",
+          "description": "Check hygiene and quality inspection records",
+          "prompt": "For the following process, list deviations from standards in hygiene and quality inspection records: "
+        },
+        "check": {
+          "title": "Labeling and Standards Check",
+          "description": "Check internal material on labeling and standards",
+          "prompt": "For the following product, show the parts of internal material on labeling and standard requirements. The quality manager makes the final decision: "
+        }
+      },
+      "realestate": {
+        "find": {
+          "title": "Property Document Lookup",
+          "description": "Find properties in documents and contracts",
+          "prompt": "List properties that match the following conditions, with what the documents say: "
+        },
+        "draft": {
+          "title": "Lease Key Terms",
+          "description": "Extract term, rent and termination from leases",
+          "prompt": "From the following lease, extract the term, rent, renewal and termination conditions, with clause numbers: "
+        },
+        "check": {
+          "title": "Repair and Inspection History",
+          "description": "Organize repair and inspection history",
+          "prompt": "For the following property, organize repair and inspection history chronologically and list upcoming work: "
+        }
+      },
+      "hr": {
+        "find": {
+          "title": "HR Policy Lookup",
+          "description": "Find the relevant HR rules",
+          "prompt": "For the following program or procedure, show the relevant parts of work rules and HR policies, with document names: "
+        },
+        "draft": {
+          "title": "Job Posting Draft",
+          "description": "Draft a posting from a job description",
+          "prompt": "Draft a job posting from the following job description. Avoid wording that could discriminate by gender, age or similar attributes: "
+        },
+        "check": {
+          "title": "Training Material Organizer",
+          "description": "Organize training material by role",
+          "prompt": "Organize training material for the following role so that the order and purpose are clear: "
+        }
+      },
+      "esg": {
+        "find": {
+          "title": "Metrics Extraction",
+          "description": "Extract environmental and social metrics from reports",
+          "prompt": "From the following report, extract environmental and social metrics and actual values into a table, with fiscal year and unit: "
+        },
+        "draft": {
+          "title": "Grant Application Draft",
+          "description": "Draft an application from past ones and guidelines",
+          "prompt": "For the following grant, draft an application using past applications and the guidelines: "
+        },
+        "check": {
+          "title": "Disclosure Standard Mapping",
+          "description": "Map disclosure requirements to internal material",
+          "prompt": "For the following disclosure requirements, list the matching internal material and information that is missing: "
+        }
+      },
+      "travel": {
+        "find": {
+          "title": "Booking Document Lookup",
+          "description": "Find booking and arrangement documents",
+          "prompt": "List booking and arrangement documents that match the following conditions, with dates: "
+        },
+        "draft": {
+          "title": "Itinerary Draft",
+          "description": "Draft an itinerary from arrangements",
+          "prompt": "Draft an itinerary and guidance for travelers from the following arrangement documents: "
+        },
+        "check": {
+          "title": "Cancellation Terms Check",
+          "description": "Check cancellation fees and terms",
+          "prompt": "For the following travel product, show the cancellation rules and the relevant terms: "
+        }
+      }
+    },
+    "industrySelector": {
+      "label": "Industry",
+      "general": "General"
     }
   },
   "workflow": {
