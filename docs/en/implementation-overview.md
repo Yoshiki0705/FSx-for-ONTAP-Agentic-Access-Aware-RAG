@@ -993,6 +993,45 @@ separate SAM/CFn stack whose outputs are not CFn-Exported (no `Fn.importValue`).
 A standalone Strands sample agent is in
 [`examples/sfn-agentcore-gateway/`](../../examples/sfn-agentcore-gateway/README.md).
 
+## 20. Tools — Translate, Proofread, Diagram, Web Extraction, Image Generation, Use Cases
+
+### Implementation Details
+
+`/genai/tools` holds tools for work that is not only document search. It opens from the Tools category of the KB-mode cards and from the top navigation.
+
+| Tool | What it does | Input |
+|------|--------------|-------|
+| Translate | Translates into 13 languages, with a register (as-is, formal, casual) and a terminology note | Text, or internal documents |
+| Proofread | Lists typos, grammar errors and inconsistent terms (original, suggestion, reason) and returns the corrected text | Text, or internal documents |
+| Diagram | Generates one of 9 diagram types in Mermaid and draws it; the SVG and the Mermaid code can be saved | Text, or internal documents |
+| Web extraction | Takes the body of a page by URL and summarizes it, extracts it, or answers a question | URL |
+| Image generation | Generates an image from text, shown on screen and downloadable. Off by default | Prompt |
+| My use cases | Saves prompt templates and runs them again like cards; can add internal documents to the input | Text |
+
+The text model is `TOOLS_MODEL_ID` (default `jp.anthropic.claude-haiku-4-5-20251001-v1:0`).
+
+### Permissions and Safety
+
+- **Internal documents as input**: the Knowledge Base is searched and only documents that pass the same `filterByPermissions` (`sid-filter.ts`) as KB mode go to the model. Names, SIDs and contents of documents the user may not read are neither returned nor passed to the model. Tests check, for translate, proofread, diagram and use cases, that no trace of a denied document is in the model input
+- **Web extraction (SSRF protection)**: the page is fetched from the WebApp Lambda, so the following are refused
+  - schemes other than http / https, non-default ports, URLs with credentials, `localhost` and `.internal`
+  - a host where any resolved address is not public (private, link-local, the metadata address `169.254.169.254`, IPv6 unique local, IPv4-mapped)
+
+  The connection is pinned to the checked address (a second DNS answer cannot replace it). Redirects are followed at most 3 times and each hop is checked again. The timeout is 10 seconds and the size limit 2 MB
+- **Use cases**: stored per user in DynamoDB `${prefix}-user-use-cases`, keyed by the session user. Another user's items are not listed and cannot be run by ID
+- **Image generation**: enabled with `-c enableImageGeneration=true`. The Region is `imageGenerationRegion` (default `us-west-2`) and the model `imageGenerationModelId` (default `stability.stable-image-core-v1:1`). When the Region is outside Japan, the screen says that the prompt and the generated image are processed outside Japan
+
+**[verified 2026-11-14 / ap-northeast-1, us-west-2 and 12 other Regions]** Tokyo has no model with image output (`list-foundation-models --by-output-modality IMAGE` returns 0). Of the Regions checked, text-to-image models (Stable Image Core / Ultra, SD3.5 Large) exist only in us-west-2, on demand only, with no inference profile. The Regions checked were us-east-1, us-east-2, us-west-2, eu-west-1, eu-central-1, eu-west-3, ap-southeast-1, ap-southeast-2, ap-northeast-1 to 3, ap-south-1, ca-central-1 and sa-east-1, hence the us-west-2 default. **[documented]** Amazon Nova Canvas and Nova Reel reached end of life on 2026-09-30, and Titan Image Generator is no longer offered ([Bedrock model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-canvas.html))
+
+### Implementation Files
+
+| File | Role |
+|------|------|
+| `docker/nextjs/src/lib/genu-tools/` | Prompts, the Converse call, document retrieval, web fetching, images, use cases |
+| `docker/nextjs/src/app/api/tools/` | `/api/tools/<tool>`, `/api/tools/use-cases`, `/api/tools/config`. 401 without a session |
+| `docker/nextjs/src/components/tools/` | The screen (`ToolsWorkspace.tsx`) and Mermaid rendering (`MermaidView.tsx`, securityLevel `strict`) |
+| `lib/stacks/demo/demo-webapp-stack.ts` | The use case table, environment variables, IAM |
+
 ---
 
 ## Overall System Architecture

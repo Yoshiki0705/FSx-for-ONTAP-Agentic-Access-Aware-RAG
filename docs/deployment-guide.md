@@ -765,6 +765,8 @@ Key flags (excerpt):
 |------|---------|-------------|
 | `enableAgent` | `false` | Agent mode: agents on Amazon Bedrock AgentCore Runtime (KB search + multi-step reasoning) |
 | `agentBackend` | `agentcore` | `bedrock-agents` creates the earlier Amazon Bedrock Agents (kept for one release) |
+| `enableImageGeneration` | `false` | Image generation in Tools. When on, calls the model in `imageGenerationRegion` (default `us-west-2`); prompts and images are processed outside Japan |
+| `enableWebExtract` | `true` | Web extraction in Tools (the WebApp Lambda goes out to the internet; private and metadata addresses are refused) |
 | `enableGuardrails` | `false` | Bedrock Guardrails (content filter + PII) |
 | `enableMonitoring` | `false` | CloudWatch dashboard + SNS alerts |
 | `enableTransferFamily` | `false` | SFTP ingestion pipeline |

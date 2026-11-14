@@ -222,6 +222,27 @@ The documents that were not allowed were retrieved and then removed by the filte
 - The search tool's response carried the SID filter log, which lists every retrieved document with its file name and SIDs, including the documents that were not allowed. The answer to the development-department user named the two files that user cannot read. The tool now returns only `filterMethod`, and the agent passes the model only the allowed documents and their count
 - Agents created from a template carry a base model ID (`anthropic.claude-haiku-4-5-20251001-v1:0`), and their runs failed. The ID is now converted to the inference profile at run time (the same table KB mode uses)
 
+### 3.6 Results with the tools (translate, proofread, diagram, web extraction, image, use cases)
+
+**[verified 2026-11-15 / ap-northeast-1]** The stack was deployed with `-c enableImageGeneration=true -c imageGenerationRegion=us-west-2`, the legal pack from 3.4 was loaded, and `/genai/tools` was checked. The volume is the same kind of disposable volume as 3.3. Times are single observations.
+
+| What was checked | Principal (group) | Result |
+|---|---|---|
+| Translate (internal documents "NDA template" into English) | Legal department (`-4100`) | 200, 9.4 s. Input documents: `nda-template-standard.md` and 2 more |
+| The same translation | Development department (`-1100`) | 200. The only input document was `contract-review-guidelines.md`, and `nda-template` appears nowhere in the response |
+| Proofread (two sentences with 2 typos) | Legal department | 200, 1.0 s. Both typos found |
+| Diagram (an expense approval flow, flowchart) | Legal department | 200, 0.6 s. A flowchart with a branch was drawn |
+| Web extraction (summary of a public page) | Legal department | 200, 5.0 s |
+| Web extraction refusals | Legal department | A private IP, a public host name resolving to `127.0.0.1`, and a non-default port were refused with 400. The metadata URL was stopped first by the CloudFront WAF with 403 |
+| Image generation (16:9) | Legal department | 200, 7.6 s. The screen showed us-west-2 and that processing happens outside Japan |
+| Save and run a use case (with internal documents) | Legal department | Save 200, run 200, with 4 input documents |
+| Another user's use case | Development department | The list was empty; running it by ID returned 400 (`use case not found`) |
+| No session | Not signed in | Every `/api/tools/*` returned 401 |
+
+**Scope**: one observation each, for the two departments of the legal pack only. Translation into the 12 other languages and the fitness of the generated image were not checked.
+
+**Defect found and fixed in this check**: the first deployment created neither the tools' environment variables nor the use case table, because `cdk deploy` read stale compiled `.js` files left in `bin/` and `lib/` before the `.ts` sources (AGENTS.md, "CDK synth uses old compiled JS"). Running `npx tsc` and deploying the WebApp stack again fixed it. It is not a code defect, and Jest (ts-jest reads `.ts`) does not catch it.
+
 ---
 
 ## 4. Agent Evaluation Metrics

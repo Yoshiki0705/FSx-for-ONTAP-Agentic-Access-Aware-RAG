@@ -72,6 +72,7 @@ Características principales:
 - **RAG Permission-aware** — metadatos de permisos del documento contrastados con el SID / UID-GID del solicitante en consulta (Fail-Closed)
 - **IA Agéntica** — Alternar entre modo KB (búsqueda documental) y modo Agent (razonamiento multi-paso). Los agentes se ejecutan en Amazon Bedrock AgentCore Runtime
 - **Smart Routing** — Selección automática de Haiku / Sonnet / Opus según complejidad (reducción 40-60% en costos)
+- **Herramientas** — Traducir, revisar, diagramas (Mermaid), extracción web y casos de uso guardados (plantillas de prompt). Los documentos internos usados como entrada pasan el mismo filtro SID. La generación de imágenes está desactivada por defecto (activada se ejecuta en us-west-2)
 - **Bajo costo** — S3 Vectors (pocos dólares/mes) por defecto
 - **22 capacidades integradas** — Chat de voz, Guardrails, Graph RAG, Web Search, etc. ([detalles](docs/es/implementation-overview.md))
 

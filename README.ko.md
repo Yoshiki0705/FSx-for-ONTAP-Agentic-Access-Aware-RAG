@@ -72,6 +72,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 - **Permission-aware RAG** — 문서의 권한 메타데이터와 호출자의 SID / UID・GID를 검색 시점에 대조 (Fail-Closed)
 - **Agentic AI** — KB 모드(문서 검색)와 Agent 모드(다단계 추론)를 원클릭 전환. Agent는 Amazon Bedrock AgentCore Runtime에서 실행
 - **Smart Routing** — 쿼리 복잡도에 따라 Haiku / Sonnet / Opus 자동 선택 (비용 40-60% 절감)
+- **도구** — 번역, 교정, 다이어그램(Mermaid), 웹 추출, 저장한 유스케이스(프롬프트 템플릿). 사내 문서를 입력으로 쓸 때도 같은 SID 필터를 거친 문서만 사용. 이미지 생성은 기본 비활성(활성화하면 us-west-2에서 처리)
 - **저비용** — S3 Vectors (월 수 달러)를 기본 채택
 - **22개 통합 기능** — 음성 채팅, Guardrails, Graph RAG, Web Search 등 ([상세](docs/ko/implementation-overview.md))
 
