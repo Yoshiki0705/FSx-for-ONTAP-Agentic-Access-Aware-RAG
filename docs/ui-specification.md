@@ -486,6 +486,16 @@ KB Retrieve API → SIDフィルタリング → Converse API
 
 ![業種別カード（製造、英語）](screenshots/industry-cards-manufacturing-en.png)
 
+デプロイした環境（ap-northeast-1、2026-11-14）で、`demo-data/scripts/load-industry-pack.sh` で読み込んだ法務パックを使って撮った画面です。法務部のデモユーザーが「契約条項の抽出」のカードから NDA のテンプレートを尋ねると、法務部と Domain Admins に限った `nda-template-standard.md` が「制限付き」のバッジ付きで引用されます。
+
+![業種別カード（法務、デプロイした環境）](screenshots/industry-live-legal-cards-ja.png)
+
+![法務部のユーザーの回答と引用](screenshots/industry-live-legal-allowed-ja.png)
+
+同じ質問を開発部のデモユーザーがすると、引用は全員に公開の `contract-review-guidelines.md` だけになり、回答は NDA のテンプレートが見つからないと答えます。
+
+![開発部のユーザーの回答と引用](screenshots/industry-live-legal-denied-ja.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ ≡  RAG System  [📚 KB] [🤖 Agent]  ➕  Nova Pro  🇯🇵      │
