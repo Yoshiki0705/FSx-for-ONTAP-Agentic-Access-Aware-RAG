@@ -8,7 +8,7 @@ cdk.context.json.full-backup
 cdk-outputs.json
 
 # Node.js
-node_modules/
+node_modules
 dist/
 build/
 npm-debug.log*
