@@ -113,7 +113,7 @@ class PermissionSearch:
         try:
             parsed = json.loads(text)
         except ValueError:
-            parsed = {}
+            return text
         self.calls.append(
             {
                 "query": query,
@@ -122,4 +122,12 @@ class PermissionSearch:
                 "filterMethod": (parsed.get("filterLog") or {}).get("filterMethod"),
             }
         )
-        return text
+        # The model gets the allowed documents and their count, nothing else: if the tool
+        # ever returned filter details again, they would not reach the model.
+        visible = {
+            "results": parsed.get("results", []),
+            "count": parsed.get("count", 0),
+        }
+        if parsed.get("error"):
+            visible["error"] = parsed["error"]
+        return json.dumps(visible, ensure_ascii=False)

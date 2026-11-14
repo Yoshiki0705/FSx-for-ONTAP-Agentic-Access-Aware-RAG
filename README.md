@@ -157,7 +157,7 @@ make actions        # zizmor
 | 画面 | 説明 |
 |------|------|
 | ![KB モード](docs/screenshots/v4-kb-mode-ja.png) | KB モード — カードグリッド + サイドバー |
-| ![Agent モード](docs/screenshots/v4-agent-mode-ja.png) | Agent モード — Agent 選択 + カードグリッド |
+| ![Agent モード](docs/screenshots/v4-agent-mode-ja.png) | Agent モード — 法務部の利用者への回答と、その利用者が読める参照文書（AgentCore Runtime） |
 | ![チャット応答](docs/screenshots/v4-kb-chat-response-ja.png) | Citation + アクセスレベルバッジ |
 | ![Agent Directory](docs/screenshots/v4-agent-directory-registry-ja.png) | Agent 管理・Registry 統合 |
 | ![Smart Routing](docs/screenshots/kb-mode-smart-routing-ja.png) | 自動モデル選択 |

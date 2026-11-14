@@ -18,7 +18,7 @@ from typing import Any
 from strands import Agent, tool
 from strands.models import BedrockModel
 
-DEFAULT_MODEL = "apac.anthropic.claude-haiku-4-5-20251001-v1:0"
+DEFAULT_MODEL = "jp.anthropic.claude-haiku-4-5-20251001-v1:0"
 MAX_INSTRUCTION_CHARS = 8000
 
 SHARED_RULES = (

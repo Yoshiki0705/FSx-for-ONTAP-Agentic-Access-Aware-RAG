@@ -201,6 +201,27 @@ The documents that were not allowed were retrieved and then removed by the filte
 
 **Defect found and fixed in this check**: the citation badge labelled documents allowed to a department and Domain Admins (`[dept, -512]`) as admin-only, because it only checked whether `-512` appeared. It now shows admin-only only when Domain Admins is the sole group. The Knowledge Base returns the SIDs as quoted strings (`"\"S-1-1-0\""`), so the SIDs are extracted by pattern rather than by splitting.
 
+### 3.5 Results in Agent mode (AgentCore Runtime)
+
+**[verified 2026-11-14 / ap-northeast-1]** The stack was deployed with `-c enableAgent=true -c enableMultiAgent=true` (default `agentBackend=agentcore`), the legal pack from 3.4 was loaded, and Agent mode was checked. The volume is the same kind of disposable volume as 3.3. The agents run on one generic AgentCore Runtime, and search goes through the `permission-search` Lambda behind the agents' own AgentCore Gateway ([Implementation Overview, section 8](implementation-overview.md#8-agent-mode--permission-aware-agentic-ai-on-amazon-bedrock-agentcore)). The CDK deployment of the 6 stacks took 891 seconds.
+
+| What was checked | Principal (group) | Result |
+|---|---|---|
+| Single agent, "the key points of the GDPR checklist and the standard NDA template" | Legal pack, legal department (`-4100`) | 200, 14 s. Answered from `compliance-checklist-gdpr.md` and `nda-template-standard.md` |
+| The same question | Legal pack, development department (`-1100`) | 200, 14 s. Said neither document was found and cited only the public `contract-review-guidelines.md` |
+| Team run (retrieval, analysis and output agents), "summarize the GDPR checklist in 3 lines" | Legal department (`-4100`) | 200, 24 s. All 3 agents completed, citing `compliance-checklist-gdpr.md` |
+| Create, edit (model changed to a `global.` inference profile), run and delete an agent | Legal department (`-4100`) | Create took 111 ms, and the status was `PREPARED` immediately. The edit applied from the next run; after deletion the list held only `rag-default` |
+| A request body `userId` that differs from the session | A legal-department session, with the development user's `userId` in the body | 403 (`userId does not match the signed-in user`) |
+| No session | Not signed in | 401 (`Not signed in`) |
+
+**Scope**: one observation each, for the two departments of the legal pack only. The team-run screen shows 0 for each collaborator's time and token count, because the Runtime does not return per-collaborator values; this is fixed together with the move of run traces.
+
+**Defects found and fixed in this check**:
+
+- The default model `apac.anthropic.claude-haiku-4-5-20251001-v1:0` is invalid in ap-northeast-1, and the first run failed with `The provided model identifier is invalid`. It is now the `jp.` inference profile, which is valid in ap-northeast-1
+- The search tool's response carried the SID filter log, which lists every retrieved document with its file name and SIDs, including the documents that were not allowed. The answer to the development-department user named the two files that user cannot read. The tool now returns only `filterMethod`, and the agent passes the model only the allowed documents and their count
+- Agents created from a template carry a base model ID (`anthropic.claude-haiku-4-5-20251001-v1:0`), and their runs failed. The ID is now converted to the inference profile at run time (the same table KB mode uses)
+
 ---
 
 ## 4. Agent Evaluation Metrics

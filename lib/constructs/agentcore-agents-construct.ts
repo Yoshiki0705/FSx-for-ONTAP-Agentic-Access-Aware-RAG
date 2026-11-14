@@ -49,7 +49,7 @@ export const SEARCH_TARGET_NAME = 'permission-search';
 export const SEARCH_TOOL_NAME = 'permission_aware_search';
 export const DEFAULT_AGENT_ID = 'rag-default';
 export const DEFAULT_TEAM_ID = 'rag-default-team';
-const DEFAULT_MODEL = 'apac.anthropic.claude-haiku-4-5-20251001-v1:0';
+const DEFAULT_MODEL = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
 
 export class AgentCoreAgentsConstruct extends Construct {
   public readonly runtime: agentcore.Runtime;
@@ -153,7 +153,7 @@ export class AgentCoreAgentsConstruct extends Construct {
       actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
       resources: [
         'arn:aws:bedrock:*::foundation-model/*',
-        // Cross-region inference profiles (apac.*, jp.*) resolve to models in other regions.
+        // Cross-region inference profiles (jp.*, apac.*, global.*) resolve to models in other regions.
         'arn:aws:bedrock:*:*:inference-profile/*',
       ],
     }));

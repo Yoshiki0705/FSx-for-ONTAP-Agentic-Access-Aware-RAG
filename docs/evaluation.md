@@ -196,6 +196,27 @@ Permission Violation Rate = (権限外ドキュメント表示回数) / (全検�
 
 **この確認で見つかって直した不具合**: 引用のバッジが、部門と Domain Admins に許可された文書（`[部門, -512]`）を「管理者のみ」と表示していた。判定が `-512` を含むかどうかだけを見ていたためで、Domain Admins だけの文書に限って「管理者のみ」と出すように直した。Knowledge Base のメタデータは SID を引用符付きの文字列（`"\"S-1-1-0\""`）で返すので、SID は区切りではなくパターンで取り出している。
 
+### 3.5 Agent モード（AgentCore Runtime）での確認結果
+
+**[verified 2026-11-14 / ap-northeast-1]** `-c enableAgent=true -c enableMultiAgent=true`（既定の `agentBackend=agentcore`）でデプロイし、3.4 の法務パックを読み込んで Agent モードを確かめた。構成は 3.3 と同じ使い捨てボリュームで、エージェントは 1 つの汎用 AgentCore Runtime、検索は Agent 専用の AgentCore Gateway の背後の `permission-search` Lambda を通る（[実装概要の項目 8](implementation-overview.md#8-agent-モード--amazon-bedrock-agentcore-上の-permission-aware-agentic-ai)）。CDK のデプロイは 6 スタックで 891 秒だった。
+
+| 確認したこと | 主体（所属グループ） | 結果 |
+|---|---|---|
+| 単一エージェント「GDPR 対応チェックリストと標準 NDA テンプレートの要点」 | 法務パックの法務部（`-4100`） | 200、14 秒。`compliance-checklist-gdpr.md` と `nda-template-standard.md` から回答 |
+| 同じ質問 | 法務パックの開発部（`-1100`） | 200、14 秒。両文書とも見つからないと答え、公開の `contract-review-guidelines.md` だけを引用 |
+| チーム実行（検索・分析・出力の 3 エージェント）「GDPR 対応チェックリストを 3 行で要約」 | 法務部（`-4100`） | 200、24 秒。3 エージェントとも完了し、`compliance-checklist-gdpr.md` を引用 |
+| エージェントの作成・編集（モデルを `global.` の推論プロファイルに変更）・実行・削除 | 法務部（`-4100`） | 作成 111 ミリ秒、状態は作成直後から `PREPARED`。編集は次の実行から反映され、削除後の一覧は `rag-default` だけ |
+| リクエスト本文の `userId` がセッションと違う | 法務部のセッションに、開発部の利用者の `userId` をつけた | 403（`userId does not match the signed-in user`） |
+| セッションなし | 未サインイン | 401（`Not signed in`） |
+
+**範囲**: 各 1 回の観測で、法務パックの 2 部門だけを確かめた。チーム実行の画面は、協調エージェントごとの所要時間とトークン数を 0 と表示する（Runtime が個別の値を返さないため。実行トレースの移行と合わせて直す）。
+
+**この確認で見つかって直した不具合**:
+
+- 既定のモデル `apac.anthropic.claude-haiku-4-5-20251001-v1:0` は ap-northeast-1 で無効で、最初の実行が `The provided model identifier is invalid` で失敗した。ap-northeast-1 で有効な `jp.` の推論プロファイルに変えた
+- 検索ツールの応答に、SID フィルタのログ（取得した全文書のファイル名と SID、許可されなかった文書を含む）が入っていた。開発部の利用者への回答が、読めない 2 文書のファイル名を挙げた。ツールは `filterMethod` だけを返すようにし、エージェント側もモデルに渡すのを許可された文書と件数に限った
+- テンプレートから作ったエージェントは基盤モデルの ID（`anthropic.claude-haiku-4-5-20251001-v1:0`）を持ち、実行が失敗した。実行時に推論プロファイルへ変換するようにした（KB モードと同じ対応表）
+
 ---
 
 ## 4. Agent 評価メトリクス

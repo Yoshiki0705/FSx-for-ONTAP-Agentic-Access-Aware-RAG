@@ -74,6 +74,18 @@ describe('handler', () => {
     expect(kb.commandCalls(RetrieveCommand)[0].args[0].input.retrievalConfiguration?.vectorSearchConfiguration?.numberOfResults).toBe(15);
   });
 
+  it('does not reveal anything about denied documents (the response goes to the model)', async () => {
+    kb.on(RetrieveCommand).resolves({
+      retrievalResults: [doc('public.md', ['S-1-1-0']), doc('hr-salary-table.md', ['S-1-5-21-1-1200'])],
+    });
+    ddb.on(GetItemCommand).resolves({ Item: { userId: { S: 'u1' }, userSID: { S: 'S-1-1-0' } } });
+    const out = await handler({ query: 'salary', userId: 'u1' });
+    const serialized = JSON.stringify(out);
+    expect(serialized).not.toContain('hr-salary-table');
+    expect(serialized).not.toContain('S-1-5-21-1-1200');
+    expect(out.filterLog).toEqual({ filterMethod: 'SID_MATCHING' });
+  });
+
   it('denies everything for a user without an access record', async () => {
     kb.on(RetrieveCommand).resolves({ retrievalResults: [doc('public.md', ['S-1-1-0'])] });
     ddb.on(GetItemCommand).resolves({});

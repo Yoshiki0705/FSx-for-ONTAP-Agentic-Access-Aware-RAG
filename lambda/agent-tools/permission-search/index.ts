@@ -37,7 +37,8 @@ export interface SearchEvent {
 export interface SearchResult {
   results: { fileName: string; s3Uri: string; content: string; score?: number; rank: number }[];
   count: number;
-  filterLog: Record<string, unknown>;
+  /** Only `filterMethod`: nothing about denied documents reaches the model. */
+  filterLog: { filterMethod?: unknown; reason?: string };
   error?: string;
 }
 
@@ -99,6 +100,9 @@ export async function handler(event: SearchEvent): Promise<SearchResult> {
       rank: i + 1,
     })),
     count: limited.length,
-    filterLog,
+    // Only the method. The full filterLog lists every retrieved document, denied ones
+    // included (fileName, documentSIDs), and this object goes to the model: returning it
+    // would tell the model the names of documents the user may not read.
+    filterLog: { filterMethod: filterLog.filterMethod },
   };
 }

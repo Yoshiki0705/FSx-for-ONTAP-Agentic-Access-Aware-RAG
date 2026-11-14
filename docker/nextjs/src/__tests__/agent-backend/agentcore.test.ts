@@ -14,6 +14,7 @@ import {
   invokeAgent,
   invokeTeam,
   normalizeTools,
+  runtimeModelId,
   runtimeSessionId,
   toAgent,
   toSummary,
@@ -49,7 +50,7 @@ const stored: AgentDefinition = {
   agentId: 'agent-1',
   agentName: 'Legal reviewer',
   instruction: 'Review contracts.',
-  foundationModel: 'apac.anthropic.claude-haiku-4-5-20251001-v1:0',
+  foundationModel: 'jp.anthropic.claude-haiku-4-5-20251001-v1:0',
   tools: ['PermissionAwareSearch'],
   agentStatus: 'PREPARED',
   createdAt: '2026-11-14T00:00:00.000Z',
@@ -105,6 +106,11 @@ describe('definitions', () => {
 });
 
 describe('runtime', () => {
+  it('maps base model IDs from templates to the inference profile the runtime can call', () => {
+    expect(runtimeModelId('anthropic.claude-haiku-4-5-20251001-v1:0')).toBe('jp.anthropic.claude-haiku-4-5-20251001-v1:0');
+    expect(runtimeModelId('global.anthropic.claude-haiku-4-5-20251001-v1:0')).toBe('global.anthropic.claude-haiku-4-5-20251001-v1:0');
+    expect(runtimeModelId(undefined)).toBe('jp.anthropic.claude-haiku-4-5-20251001-v1:0');
+  });
   it('pads a session ID to the 33 characters AgentCore requires', () => {
     expect(runtimeSessionId('s', 'u').length).toBeGreaterThanOrEqual(33);
     const long = 'x'.repeat(40);

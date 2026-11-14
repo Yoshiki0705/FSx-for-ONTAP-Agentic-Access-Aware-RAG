@@ -159,7 +159,7 @@ For changelog, see [CHANGELOG.md](CHANGELOG.md).
 | Screen | Description |
 |--------|-------------|
 | ![KB mode](docs/screenshots/v4-kb-mode-ja.png) | KB mode — card grid + sidebar |
-| ![Agent mode](docs/screenshots/v4-agent-mode-ja.png) | Agent mode — agent selection + card grid |
+| ![Agent mode](docs/screenshots/v4-agent-mode-ja.png) | Agent mode — an answer to a legal-department user, citing only documents that user may read (AgentCore Runtime) |
 | ![Chat response](docs/screenshots/v4-kb-chat-response-ja.png) | Citations + access level badges |
 | ![Agent Directory](docs/screenshots/v4-agent-directory-registry-ja.png) | Agent management & Registry integration |
 | ![Smart Routing](docs/screenshots/kb-mode-smart-routing-ja.png) | Automatic model selection |

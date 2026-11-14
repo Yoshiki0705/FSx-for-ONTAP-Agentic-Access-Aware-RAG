@@ -99,6 +99,22 @@ class TestPermissionSearch:
             and search.calls[0]["filterMethod"] == "SID_MATCHING"
         )
 
+    def test_filter_details_never_reach_the_model(self):
+        # A tool response carrying denied document names must not pass them on.
+        client = FakeClient(
+            {
+                "results": [{"fileName": "allowed.md"}],
+                "count": 1,
+                "filterLog": {
+                    "filterMethod": "SID_MATCHING",
+                    "details": [{"fileName": "denied-secret.md", "matched": False}],
+                },
+            }
+        )
+        text = PermissionSearch(client, "legal-a@example.com").search("q")
+        assert "denied-secret.md" not in text
+        assert json.loads(text) == {"results": [{"fileName": "allowed.md"}], "count": 1}
+
     def test_the_model_facing_tool_has_no_user_parameter(self):
         search_tool = agents.make_search_tool(lambda q, n: "")
         properties = search_tool.tool_spec["inputSchema"]["json"]["properties"]

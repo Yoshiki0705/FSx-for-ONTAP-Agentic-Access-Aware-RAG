@@ -22,9 +22,10 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import type { AgentTeamConfig, MultiAgentTraceResult } from '@/types/multi-agent';
+import { INFERENCE_PROFILE_MAP, resolveModelId } from '@/config/model-defaults';
 
 const REGION = process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
-export const DEFAULT_MODEL = 'apac.anthropic.claude-haiku-4-5-20251001-v1:0';
+export const DEFAULT_MODEL = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
 const MAX_NAME = 100;
 const MAX_DESCRIPTION = 500;
 const MAX_INSTRUCTION = 8000;
@@ -234,7 +235,7 @@ export async function invokeAgent(params: {
       agent: {
         agentName: definition.agentName,
         instruction: definition.instruction,
-        foundationModel: definition.foundationModel,
+        foundationModel: runtimeModelId(definition.foundationModel),
         tools: definition.tools,
       },
       message: params.message,
@@ -243,6 +244,17 @@ export async function invokeAgent(params: {
     sessionId,
   );
   return { definition, result, sessionId };
+}
+
+/**
+ * The model ID the Runtime calls. Definitions keep what the user picked; templates and the
+ * editor offer base IDs (`anthropic.claude-haiku-4-5-...`), which have no on-demand
+ * throughput in ap-northeast-1 and fail with "The provided model identifier is invalid".
+ * Deprecated IDs are redirected first, then base IDs are mapped to their inference profile.
+ */
+export function runtimeModelId(id: string | undefined): string {
+  const { modelId } = resolveModelId(id || DEFAULT_MODEL);
+  return INFERENCE_PROFILE_MAP[modelId] ?? modelId;
 }
 
 async function defaultDefinition(): Promise<AgentDefinition | null> {
@@ -261,7 +273,7 @@ export async function invokeTeam(params: {
     agentName: c.agentName,
     role: c.role,
     instruction: c.instruction,
-    foundationModel: c.foundationModel || DEFAULT_MODEL,
+    foundationModel: runtimeModelId(c.foundationModel),
     tools: [...AVAILABLE_TOOLS],
   }));
   const result = await invokeRuntime(
