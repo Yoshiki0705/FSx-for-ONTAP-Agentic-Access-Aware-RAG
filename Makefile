@@ -8,7 +8,7 @@
 # 存在すると「up to date」を返して**一度も実行されない**。
 # 過去にこれで検出器が走っていなかったことがあるため、全ターゲットを宣言する。
 
-.PHONY: help all lint test test-frontend test-python docs evidence deps secrets actions \
+.PHONY: help all lint test test-frontend test-python docs evidence industry-packs deps secrets actions \
         synth synth-default build clean i18n i18n-report untranslated test-frontend-jest \
         workflow-paths
 
@@ -22,7 +22,7 @@ help: ## 使えるターゲットを表示する
 	@echo
 	@echo "all は速い検査だけを走らせます（synth と E2E は含みません）。"
 
-all: lint test test-frontend-jest test-python docs evidence i18n untranslated workflow-paths deps ## 速い検査をまとめて走らせる（型検査・Jest・Python・doc 検査・依存関係）
+all: lint test test-frontend-jest test-python docs evidence industry-packs i18n untranslated workflow-paths deps ## 速い検査をまとめて走らせる（型検査・Jest・Python・doc 検査・依存関係）
 
 lint: ## TypeScript の型検査（npx tsc --noEmit）
 	npx tsc --noEmit
@@ -71,6 +71,10 @@ test-python: ## Python の pytest（4 ディレクトリ / 依存は .venv に�
 docs: ## ドキュメントの相対リンク検査
 	python3 scripts/check-doc-links.py --selftest
 	python3 scripts/check-doc-links.py
+
+industry-packs: ## 業種別デモデータパックの整合検査（業種カードとの 1 対 1、メタデータ、SID）
+	python3 scripts/check-industry-packs.py --selftest
+	python3 scripts/check-industry-packs.py
 
 evidence: ## 証跡ラベルの検査（docs/evidence-policy.md）
 	python3 scripts/check-evidence.py --selftest

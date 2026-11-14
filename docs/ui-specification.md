@@ -474,9 +474,27 @@ KB Retrieve API → SIDフィルタリング → Converse API
 
 ### 概要
 
-チャットエリアの初期状態（ユーザーメッセージが存在しない時）にカードグリッドを表示する機能です。KBモードでは目的別カード（文書検索、要約作成など）14枚、Agentモードではワークフローカード（財務分析、プロジェクト管理、プレゼン資料作成など）14枚を提示し、ユーザーがワンクリックでプロンプトを入力できます。
+チャットエリアの初期状態（ユーザーメッセージが存在しない時）にカードグリッドを表示する機能です。KBモードでは目的別カード（文書検索、要約作成など）14枚と、カード一覧の上の「業種」の選択で切り替える業種別カード（21業種×3枚、`INDUSTRY_CARDS`）、Agentモードではワークフローカード（財務分析、プロジェクト管理、プレゼン資料作成など）14枚を提示し、ユーザーがワンクリックでプロンプトを入力できます。
 
 ![KBモード カードグリッド](screenshots/kb-mode-cards-full.png)
+
+業種を選ぶと、その業種の 3 枚（見つける・下書きする・確認する）に切り替わります。次の画像は、ローカルの開発サーバー（`next dev`）で認証を模擬して撮ったものです。デプロイした環境ではなく、アクセス可能ディレクトリは 0 件と表示されます。
+
+![業種の選択（汎用）](screenshots/industry-selector-general-ja.png)
+
+![業種別カード（法務、日本語）](screenshots/industry-cards-legal-ja.png)
+
+![業種別カード（製造、英語）](screenshots/industry-cards-manufacturing-en.png)
+
+デプロイした環境（ap-northeast-1、2026-11-14）で、`demo-data/scripts/load-industry-pack.sh` で読み込んだ法務パックを使って撮った画面です。法務部のデモユーザーが「契約条項の抽出」のカードから NDA のテンプレートを尋ねると、法務部と Domain Admins に限った `nda-template-standard.md` が「制限付き」のバッジ付きで引用されます。
+
+![業種別カード（法務、デプロイした環境）](screenshots/industry-live-legal-cards-ja.png)
+
+![法務部のユーザーの回答と引用](screenshots/industry-live-legal-allowed-ja.png)
+
+同じ質問を開発部のデモユーザーがすると、引用は全員に公開の `contract-review-guidelines.md` だけになり、回答は NDA のテンプレートが見つからないと答えます。
+
+![開発部のユーザーの回答と引用](screenshots/industry-live-legal-denied-ja.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

@@ -84,7 +84,7 @@ aws ssm get-command-invocation \
 
 ### 배경
 
-7개 업종 × 5개 문서 = 35개 문서 + 35개 메타데이터 파일로 구성된 업종별 Permission-aware RAG 데모 데이터입니다.
+21개 업종 × 5개 문서 = 105개 문서 + 105개 메타데이터 파일로 구성된 업종별 Permission-aware RAG 데모 데이터입니다.
 
 ### 절차
 
@@ -101,7 +101,7 @@ aws s3 sync demo-data/industry-packs/ \
 
 # Step 2: Verify upload
 aws s3 ls "s3://${S3AP_ALIAS}/industry-packs/" --recursive --region ap-northeast-1 | wc -l
-# Expected: 70 files
+# Expected: 210 files
 
 # Step 3: Trigger KB sync (ingestion)
 JOB_ID=$(aws bedrock-agent start-ingestion-job \
@@ -124,15 +124,7 @@ done
 
 ### 업종 SID 매핑
 
-| 업종 | 폴더 | SID (Domain Admins 외) |
-|------|------|----------------------|
-| 건설 | `construction/` | `-8100` |
-| 교육 | `education/` | `-2200` |
-| 공공기관 | `government/` | `-2100` |
-| 의료 | `healthcare/` | `-2200` |
-| 보험 | `insurance/` | `-8200` |
-| 법률 | `legal/` | `-8300` |
-| 제조 | `manufacturing/` | `-2300` |
+For the SIDs of each industry, see the SID list in the [industry demo pack README](../../demo-data/industry-packs/README.md) (21 industries). `python3 scripts/check-industry-packs.py` checks that every SID in the metadata is on that list. To also create a demo user per department, use `demo-data/scripts/load-industry-pack.sh`.
 
 ---
 

@@ -59,7 +59,7 @@
 | データ | [S3 AP 互換性マトリクス](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md) | プラットフォーム別制約（外部リンク） |
 | パートナー | [パートナー展開パターン](docs/partner-deployment-patterns.md) | マルチテナント・コスト見積もり |
 | ベンチマーク | [ベンチマークシナリオ](docs/benchmark-scenarios.md) | 10K/100K/1M ファイル性能計測 |
-| デモ | [業種別デモデータ（7 業種）](demo-data/industry-packs/) | 行政・医療・法務・製造・建設・教育・保険 |
+| デモ | [業種別デモデータ（21 業種）](demo-data/industry-packs/) | KB モードの業種別カードと同じ 21 業種（行政・医療・法務・保険・製造・建設・教育・金融など）。`demo-data/scripts/load-industry-pack.sh` で読み込む |
 | 全ドキュメント | [ドキュメントインデックス](docs/DOCUMENTATION_INDEX.md) | 推奨読書順序付きの完全一覧 |
 
 </details>
@@ -114,7 +114,7 @@ S3 AP の包括的な互換性マトリクスは [FSx-for-ONTAP-Lakehouse-Integr
 | リポジトリ | 用途 | 概要 |
 |-----------|------|------|
 | **[本リポジトリ]** | AI / RAG | 権限フィルタリング付き RAG + Agentic AI |
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自動化 | 17 業種別サーバーレスパターン（FPolicy イベント駆動） |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自動化 | 28 業種別サーバーレスパターン（UC1〜UC28）（FPolicy イベント駆動） |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Athena / Glue / EMR / SageMaker 統合 |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability | 監査ログを Datadog / Splunk / Grafana へ EC2 不要で配信 |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/ja/domains/data-utilization) | 導入判断 | データ活用ドメインのハブ。S3 AP の認可特性・制約・設計上の選択肢 |

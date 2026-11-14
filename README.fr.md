@@ -44,7 +44,7 @@ Ce dépôt porte l'**implémentation et les mesures**. Les **décisions** — FS
 | Auth | [Auth et gestion des utilisateurs](docs/fr/auth-and-user-management.md) | Intégration OIDC / SAML / LDAP |
 | Sécurité | [Modèle de menaces](docs/fr/threat-model.md) | 10 catégories de menaces, chemins d'attaque |
 | Sécurité | [Gouvernance et audit](docs/fr/governance-and-audit.md) | Logs d'audit, IA responsable, Guardrails |
-| Démo | [Données démo par industrie (7)](demo-data/industry-packs/) | Administration, santé, juridique, industrie, construction, éducation, assurance |
+| Démo | [Données démo par industrie (21)](demo-data/industry-packs/) | Les mêmes 21 secteurs que les cartes sectorielles du mode KB (administration, santé, juridique, assurance, industrie, construction, éducation, finance, etc.). Chargement avec `demo-data/scripts/load-industry-pack.sh` |
 | Tous les docs | [Index de documentation](docs/fr/DOCUMENTATION_INDEX.md) | Liste complète avec ordre de lecture recommandé |
 
 </details>
@@ -93,7 +93,7 @@ Caractéristiques principales :
 | Dépôt | Usage | Description |
 |-------|-------|-------------|
 | **[Ce dépôt]** | AI / RAG | RAG avec filtrage de permissions + IA Agentique |
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless | 17 patterns serverless par industrie |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless | 28 patterns serverless par industrie (UC1 à UC28) |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Intégration Athena / Glue / EMR / SageMaker |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observabilité | Livraison de logs d'audit vers Datadog / Splunk / Grafana sans EC2 |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | Décisions d'adoption | Hub du domaine data-utilization : comportement d'autorisation du S3 AP, contraintes et options de conception |

@@ -156,10 +156,17 @@ export function buildCitationDisplayInfo(s3UriOrKey: string, metadata?: Record<s
   if (metadata) {
     const sids = metadata.allowed_group_sids;
     if (sids) {
-      const sidStr = typeof sids === 'string' ? sids : Array.isArray(sids) ? sids.join(',') : '';
-      if (sidStr.includes('S-1-1-0')) {
+      // The Knowledge Base can return the list as an array, a comma-separated string or a JSON
+      // string (`["S-1-1-0"]`), so the SIDs are extracted by pattern rather than by splitting.
+      const raw = Array.isArray(sids) ? sids.map(String).join(',') : typeof sids === 'string' ? sids : '';
+      const list = raw.match(/S-1-[0-9-]*[0-9]/g) ?? [];
+      if (list.includes('S-1-1-0')) {
         permissionBadge = locale === 'ja' ? '全員アクセス可' : 'Everyone';
-      } else if (sidStr.includes('-512')) {
+      } else if (list.length > 0 && list.every((sid) => sid.endsWith('-512'))) {
+        // Domain Admins is the only group. A document shared with a department and Domain Admins
+        // (the usual `[<dept>, -512]` pair) is restricted, not admin-only: it used to be labelled
+        // admin-only because the check was `includes('-512')`, which the department user saw on
+        // documents they were allowed to read.
         permissionBadge = locale === 'ja' ? '管理者のみ' : 'Admin Only';
       } else {
         permissionBadge = locale === 'ja' ? '制限付き' : 'Restricted';

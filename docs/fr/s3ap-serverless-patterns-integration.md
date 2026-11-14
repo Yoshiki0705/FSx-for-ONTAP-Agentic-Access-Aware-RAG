@@ -35,7 +35,7 @@ Ce document décrit l'architecture d'intégration entre [FSx for ONTAP S3 Access
 │ • Intégration AI/ML          │  │ • Filtrage SID               │
 │ • Réécriture vers FSx        │  │ • UI de chat (Next.js)       │
 │                              │  │ • Mode Agent                 │
-│ 17 UC sectoriels             │  │ 14 modèles Agent             │
+│ 28 UC sectoriels             │  │ 14 modèles Agent             │
 └──────────────────────────────┘  └──────────────────────────────┘
 ```
 

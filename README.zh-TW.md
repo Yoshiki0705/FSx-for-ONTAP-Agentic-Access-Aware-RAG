@@ -44,7 +44,7 @@
 | 認證 | [認證與使用者管理](docs/zh-TW/auth-and-user-management.md) | OIDC / SAML / LDAP 整合 |
 | 安全 | [威脅模型](docs/zh-TW/threat-model.md) | 10 個威脅類別、攻擊路徑、緩解措施 |
 | 安全 | [治理與稽核設計](docs/zh-TW/governance-and-audit.md) | 稽核日誌、Responsible AI、Guardrails |
-| 示範 | [產業示範資料（7 個產業）](demo-data/industry-packs/) | 政務・醫療・法務・製造・營建・教育・保險 |
+| 示範 | [產業示範資料（21 個產業）](demo-data/industry-packs/) | 與 KB 模式產業卡片相同的 21 個產業（政務・醫療・法務・保險・製造・營建・教育・金融等）。以 `demo-data/scripts/load-industry-pack.sh` 匯入 |
 | 全部文件 | [文件索引](docs/zh-TW/DOCUMENTATION_INDEX.md) | 含建議閱讀順序的完整清單 |
 
 </details>
@@ -95,7 +95,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 | 儲存庫 | 用途 | 概述 |
 |--------|------|------|
 | **[本儲存庫]** | AI / RAG | 權限過濾 RAG + Agentic AI |
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自動化 | 17 個產業無伺服器模式 |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 自動化 | 28 個產業無伺服器模式（UC1～UC28） |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Athena / Glue / EMR / SageMaker 整合 |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability | 無需 EC2 即可將稽核日誌傳送至 Datadog / Splunk / Grafana |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | 導入決策 | 資料利用領域中心頁：S3 AP 授權特性、限制與設計選項 |

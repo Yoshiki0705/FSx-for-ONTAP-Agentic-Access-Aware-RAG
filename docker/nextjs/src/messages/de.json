@@ -626,6 +626,392 @@
       "addToFavorites": "Zu Favoriten hinzufügen",
       "removeFromFavorites": "Aus Favoriten entfernen",
       "section": "Favoriten"
+    },
+    "industries": {
+      "government": "Öffentliche Verwaltung",
+      "healthcare": "Gesundheitswesen",
+      "legal": "Recht",
+      "insurance": "Versicherung",
+      "manufacturing": "Fertigung",
+      "construction": "Bauwesen",
+      "education": "Bildung und Forschung",
+      "financial": "Finanzdienstleistungen",
+      "media": "Medien und Werbung",
+      "semiconductor": "Halbleiter und EDA",
+      "lifesciences": "Life Sciences",
+      "energy": "Energie und Versorgung",
+      "automotive": "Automobil und Mobilität",
+      "retail": "Einzelhandel und E-Commerce",
+      "logistics": "Logistik und Transport",
+      "telecom": "Telekommunikation",
+      "agrifood": "Landwirtschaft und Lebensmittel",
+      "realestate": "Immobilien",
+      "hr": "Personalwesen",
+      "esg": "Nachhaltigkeit und Non-Profit",
+      "travel": "Reisen und Tourismus"
+    },
+    "industry": {
+      "government": {
+        "find": {
+          "title": "Satzungen und Erlasse",
+          "description": "Einschlägige Bestimmungen und ihre Grundlage in Satzungen, Vorschriften und Erlassen finden",
+          "prompt": "Listen Sie die Satzungen, Vorschriften und Erlasse zur folgenden Aufgabe mit Dokumentnamen und Artikelnummern auf: "
+        },
+        "draft": {
+          "title": "Entwurf einer Ratsantwort",
+          "description": "Eine Ratsantwort aus früheren Protokollen und Grundsatzdokumenten entwerfen",
+          "prompt": "Entwerfen Sie eine Ratsantwort auf die folgende Frage auf Basis früherer Protokolle und Grundsatzdokumente. Nennen Sie zu jedem Punkt das Quelldokument: "
+        },
+        "check": {
+          "title": "Prüfung vor Veröffentlichung",
+          "description": "Mögliche personenbezogene oder nicht offenzulegende Angaben vor der Veröffentlichung auflisten",
+          "prompt": "Listen Sie vor der Veröffentlichung des folgenden Dokuments Passagen auf, die personenbezogene oder nicht offenzulegende Angaben enthalten könnten. Die endgültige Entscheidung trifft ein Mitarbeiter: "
+        }
+      },
+      "healthcare": {
+        "find": {
+          "title": "Leitlinien-Suche",
+          "description": "Relevante Stellen in internen Leitlinien und Verfahrensanweisungen finden",
+          "prompt": "Zeigen Sie die Stellen in internen Leitlinien und Verfahrensanweisungen, die auf die folgende Situation zutreffen, mit Dokumentnamen. Treffen Sie keine Diagnose- oder Behandlungsentscheidungen: "
+        },
+        "draft": {
+          "title": "Zusammenfassung von Verfahren",
+          "description": "Lange Verfahrensanweisungen oder Mitteilungen für das klinische Personal auf die Kernpunkte verdichten",
+          "prompt": "Fassen Sie die folgende Verfahrensanweisung oder Mitteilung in Kernpunkten für das klinische Personal zusammen. Übernehmen Sie Zahlen und Dosierungen exakt wie angegeben: "
+        },
+        "check": {
+          "title": "Konsistenzprüfung der Richtlinien",
+          "description": "Widersprüchliche Aussagen in Richtlinien und Mitteilungen finden",
+          "prompt": "Listen Sie zum folgenden Thema Stellen auf, an denen sich interne Richtlinien, Verfahrensanweisungen und Mitteilungen widersprechen: "
+        }
+      },
+      "legal": {
+        "find": {
+          "title": "Vertragsklauseln extrahieren",
+          "description": "Klauseln eines bestimmten Typs aus Verträgen extrahieren",
+          "prompt": "Extrahieren Sie aus dem folgenden Vertrag die von mir genannten Klauseltypen (zum Beispiel Kündigung, Haftung, Vertraulichkeit) mit Klauselnummern: "
+        },
+        "draft": {
+          "title": "Vertragsvergleich",
+          "description": "Eine Vorlage klauselweise mit dem Entwurf der Gegenseite vergleichen",
+          "prompt": "Vergleichen Sie die folgenden zwei Verträge (Vorlage und Entwurf der Gegenseite) klauselweise in einer Tabelle. Dies ist eine Prüfungshilfe und keine Rechtsberatung: "
+        },
+        "check": {
+          "title": "Prüfung auf Richtlinienkonformität",
+          "description": "Prüfen, ob ein Vertragsentwurf den internen Regeln entspricht",
+          "prompt": "Prüfen Sie, ob der folgende Vertragsentwurf den internen Regeln und Richtlinien entspricht, und nennen Sie die jeweilige Regel. Die endgültige Entscheidung trifft die Rechtsabteilung: "
+        }
+      },
+      "insurance": {
+        "find": {
+          "title": "Suche nach ähnlichen Fällen",
+          "description": "Ähnliche Fälle in früheren Prüfberichten finden",
+          "prompt": "Listen Sie frühere Prüfberichte auf, die dem folgenden Fall ähneln, mit den Gemeinsamkeiten: "
+        },
+        "draft": {
+          "title": "Prüfung der Schadenunterlagen",
+          "description": "Prüfen, welche Unterlagen für einen Schaden nötig sind und welche fehlen",
+          "prompt": "Listen Sie für den folgenden Schaden die nach Versicherungsbedingungen und Prüfstandards erforderlichen Unterlagen sowie die noch fehlenden auf: "
+        },
+        "check": {
+          "title": "Prüfung der Beurteilungskriterien",
+          "description": "Einschlägige Kriterien und Bedingungen mit Zitaten erläutern",
+          "prompt": "Zitieren und erläutern Sie die Beurteilungskriterien und Versicherungsbedingungen zum folgenden Fall. Die endgültige Entscheidung über die Leistung trifft der Sachbearbeiter: "
+        }
+      },
+      "manufacturing": {
+        "find": {
+          "title": "Qualitätsnormen nachschlagen",
+          "description": "Werte und Toleranzen in Qualitätsnormen und Spezifikationen finden",
+          "prompt": "Zeigen Sie für das folgende Bauteil oder den folgenden Prozess die Werte und Toleranzen aus Qualitätsnormen und Spezifikationen mit Dokumentnamen. Übernehmen Sie Zahlen wie angegeben: "
+        },
+        "draft": {
+          "title": "Zusammenfassung von Fehlerberichten",
+          "description": "Fehlerberichte und Korrekturmaßnahmen zusammenfassen",
+          "prompt": "Ordnen Sie Fehlerberichte und Korrekturmaßnahmen zum folgenden Produkt oder Prozess nach Ursache: "
+        },
+        "check": {
+          "title": "Prüfung der Wartungsverfahren",
+          "description": "Wartungspläne und Inspektionsverfahren prüfen",
+          "prompt": "Ordnen Sie den Wartungsplan und das Inspektionsverfahren für die folgende Anlage, einschließlich Intervallen und Verantwortlichen: "
+        }
+      },
+      "construction": {
+        "find": {
+          "title": "Sicherheitsstandards nachschlagen",
+          "description": "Einschlägige Sicherheitsstandards für die Baustelle finden",
+          "prompt": "Zeigen Sie die Stellen in Sicherheitsstandards und Checklisten, die auf die folgende Arbeit zutreffen, mit Dokumentnamen: "
+        },
+        "draft": {
+          "title": "Entwurf eines Fortschrittsberichts",
+          "description": "Einen Wochenbericht aus Bautagebüchern und Fortschrittsaufzeichnungen entwerfen",
+          "prompt": "Entwerfen Sie einen wöchentlichen Fortschrittsbericht aus den Bautagebüchern und Fortschrittsaufzeichnungen für den folgenden Zeitraum: "
+        },
+        "check": {
+          "title": "Auswirkungen von Planänderungen",
+          "description": "Von einer Planänderung betroffene Zeichnungen und Aufgaben auflisten",
+          "prompt": "Listen Sie für die folgende Planänderung die betroffenen Zeichnungen, Aufgaben und Nachunternehmer auf Basis des Änderungsverlaufs auf: "
+        }
+      },
+      "education": {
+        "find": {
+          "title": "Lehrplan und Ordnungen nachschlagen",
+          "description": "Einschlägige Stellen in Lehrplänen und Hochschulordnungen finden",
+          "prompt": "Zeigen Sie für den folgenden Kurs oder Studiengang die relevanten Stellen in Lehrplänen und Hochschulordnungen mit Dokumentnamen: "
+        },
+        "draft": {
+          "title": "Entwurf eines Förderantrags",
+          "description": "Einen Antrag aus früheren Anträgen und Förderrichtlinien entwerfen",
+          "prompt": "Entwerfen Sie für das folgende Thema Gliederung und Text eines Forschungsantrags auf Basis früherer Anträge und Förderrichtlinien: "
+        },
+        "check": {
+          "title": "Zusammenfassung der Bewertungsrichtlinie",
+          "description": "Die Bewertungsrichtlinie für Studierende verständlich erklären",
+          "prompt": "Fassen Sie die Bewertungsrichtlinie für den folgenden Kurs als verständliche Erklärung für Studierende zusammen. Behandeln Sie keine individuellen Noten: "
+        }
+      },
+      "financial": {
+        "find": {
+          "title": "Regeln und Verfahren nachschlagen",
+          "description": "Einschlägige interne Regeln und Verfahren finden",
+          "prompt": "Zeigen Sie die internen Regeln und Verfahren zur folgenden Aufgabe mit Dokumentnamen: "
+        },
+        "draft": {
+          "title": "Kernangaben aus Dokumenten",
+          "description": "Beträge, Daten und Parteien aus Formularen und Verträgen extrahieren",
+          "prompt": "Extrahieren Sie Beträge, Daten und Parteien aus dem folgenden Dokument in eine Tabelle. Unterscheiden Sie zwischen Budget, Ist-Werten und Prognose: "
+        },
+        "check": {
+          "title": "Compliance-Prüfung",
+          "description": "Einen Fall anhand der internen Compliance-Richtlinie prüfen",
+          "prompt": "Prüfen Sie, ob der folgende Fall der internen Compliance-Richtlinie entspricht, und nennen Sie die jeweilige Richtlinie. Die endgültige Entscheidung trifft der Verantwortliche: "
+        }
+      },
+      "media": {
+        "find": {
+          "title": "Suche nach Produktionsmaterial",
+          "description": "Material und Dokumente in einem Projekt finden",
+          "prompt": "Finden Sie Produktionsmaterial und Dokumente, die den folgenden Bedingungen entsprechen, mit Projektnamen: "
+        },
+        "draft": {
+          "title": "Rechte und Nutzungsbedingungen",
+          "description": "Lizenzumfang und Bedingungen eines Materials prüfen",
+          "prompt": "Prüfen Sie für das folgende Material Lizenzumfang, Laufzeit und Gebiet anhand von Verträgen und Aufzeichnungen: "
+        },
+        "check": {
+          "title": "Zusammenfassung der Kreativabnahme",
+          "description": "Kreativentwürfe und Prüfhinweise ordnen",
+          "prompt": "Ordnen Sie für die folgende Kampagne die Kreativentwürfe und Prüfkommentare je Entwurf: "
+        }
+      },
+      "semiconductor": {
+        "find": {
+          "title": "Designspezifikationen und Regeln nachschlagen",
+          "description": "Einschlägige Designspezifikationen und -regeln finden",
+          "prompt": "Zeigen Sie für den folgenden Block oder Prozess die relevanten Stellen in Designspezifikationen und Designregeln mit Dokumentnamen: "
+        },
+        "draft": {
+          "title": "Zusammenfassung der Verifikationsergebnisse",
+          "description": "Verifikationslogs und Fehlerberichte zusammenfassen",
+          "prompt": "Fassen Sie die folgenden Verifikationslogs und Fehlerberichte nach Schweregrad zusammen: "
+        },
+        "check": {
+          "title": "Revisionsunterschiede",
+          "description": "Design- oder Spezifikationsrevisionen vergleichen",
+          "prompt": "Ordnen Sie die Unterschiede zwischen den folgenden zwei Revisionen nach Änderungen und betroffenen Bereichen: "
+        }
+      },
+      "lifesciences": {
+        "find": {
+          "title": "Laborjournale und SOPs nachschlagen",
+          "description": "Einschlägige Laborjournale und SOPs finden",
+          "prompt": "Zeigen Sie für das folgende Experiment oder Verfahren die relevanten Abschnitte in Laborjournalen und SOPs mit Dokumentnamen: "
+        },
+        "draft": {
+          "title": "Prüfung von Sicherheitsdaten",
+          "description": "Hinweise zum Umgang in Sicherheitsdatenblättern prüfen",
+          "prompt": "Fassen Sie für den folgenden Stoff die Hinweise zu Handhabung, Lagerung und Notfallmaßnahmen aus dem Sicherheitsdatenblatt mit Dokumentnamen zusammen. Übernehmen Sie Zahlen wie angegeben: "
+        },
+        "check": {
+          "title": "Prüfung der Datenqualitätsaufzeichnungen",
+          "description": "Qualitätsaufzeichnungen der Pipeline auf Abweichungen prüfen",
+          "prompt": "Listen Sie aus den Qualitätsaufzeichnungen des folgenden Projekts Verfahrensabweichungen und Daten auf, die die Kriterien nicht erfüllen: "
+        }
+      },
+      "energy": {
+        "find": {
+          "title": "Inspektionsprotokolle nachschlagen",
+          "description": "Inspektionsprotokolle und Berichte zu Anlagen finden",
+          "prompt": "Listen Sie für die folgende Anlage frühere Inspektionsprotokolle und Befunde in chronologischer Reihenfolge auf: "
+        },
+        "draft": {
+          "title": "Zusammenfassung von Untersuchungsberichten",
+          "description": "Explorations- oder Untersuchungsberichte zusammenfassen",
+          "prompt": "Fassen Sie den folgenden Untersuchungsbericht nach Ziel, Methode, Ergebnissen und offenen Punkten zusammen: "
+        },
+        "check": {
+          "title": "Prüfung der Sicherheitsvorschriften",
+          "description": "Einschlägige Sicherheitsvorschriften und Verfahren prüfen",
+          "prompt": "Zeigen Sie die Sicherheitsvorschriften und Verfahren zur folgenden Arbeit mit Dokumentnamen: "
+        }
+      },
+      "automotive": {
+        "find": {
+          "title": "Test- und Fahrprotokolle nachschlagen",
+          "description": "Testberichte und Fahraufzeichnungen finden",
+          "prompt": "Listen Sie Testberichte und Fahraufzeichnungen auf, die den folgenden Bedingungen entsprechen, mit Datum: "
+        },
+        "draft": {
+          "title": "Zusammenfassung von Fehleruntersuchungen",
+          "description": "Fehlermeldungen und Gegenmaßnahmen ordnen",
+          "prompt": "Ordnen Sie Fehlermeldungen und Gegenmaßnahmen für das folgende Bauteil oder die folgende Funktion in chronologischer Reihenfolge: "
+        },
+        "check": {
+          "title": "Auswirkungen von Spezifikationsänderungen",
+          "description": "Von einer Spezifikationsänderung betroffene Dokumente und Tests auflisten",
+          "prompt": "Listen Sie für die folgende Spezifikationsänderung die betroffenen Spezifikationen, Tests und Lieferanten auf: "
+        }
+      },
+      "retail": {
+        "find": {
+          "title": "Produktinformationen nachschlagen",
+          "description": "Produkte in Katalogen und Spezifikationen finden",
+          "prompt": "Listen Sie Produkte auf, die den folgenden Bedingungen entsprechen, mit den Angaben aus den Produktunterlagen: "
+        },
+        "draft": {
+          "title": "Entwurf eines Werbetexts",
+          "description": "Einen Text aus Produktunterlagen entwerfen",
+          "prompt": "Entwerfen Sie eine Beschreibung für das folgende Produkt und verwenden Sie dabei ausschließlich Fakten aus den Produktunterlagen: "
+        },
+        "check": {
+          "title": "Prüfung von Konditionen und Rückgaberegeln",
+          "description": "Lieferantenkonditionen und Rückgaberegeln prüfen",
+          "prompt": "Zeigen Sie für den folgenden Lieferanten oder das folgende Produkt die einschlägigen Handelsbedingungen und Rückgaberegeln: "
+        }
+      },
+      "logistics": {
+        "find": {
+          "title": "Lieferprotokolle nachschlagen",
+          "description": "Lieferscheine und Betriebsaufzeichnungen finden",
+          "prompt": "Listen Sie Liefer- und Betriebsaufzeichnungen auf, die den folgenden Bedingungen entsprechen, mit Datum und Belegnummern: "
+        },
+        "draft": {
+          "title": "Wartung von Fahrzeugen und Geräten",
+          "description": "Inspektions- und Wartungsaufzeichnungen prüfen",
+          "prompt": "Ordnen Sie für das folgende Fahrzeug oder Gerät die Inspektions- und Wartungsaufzeichnungen sowie die nächsten Fälligkeitstermine: "
+        },
+        "check": {
+          "title": "Prüfung von Verträgen und Bedingungen",
+          "description": "Transportverträge und -bedingungen prüfen",
+          "prompt": "Zeigen Sie für den folgenden Fall die einschlägigen Stellen in Transportverträgen und -bedingungen mit Klauselnummern: "
+        }
+      },
+      "telecom": {
+        "find": {
+          "title": "Störungsprotokolle nachschlagen",
+          "description": "Ähnliche Störungsberichte und Maßnahmen finden",
+          "prompt": "Listen Sie frühere Störungsberichte und Maßnahmenprotokolle auf, die den folgenden Symptomen ähneln: "
+        },
+        "draft": {
+          "title": "Zusammenfassung von Runbooks",
+          "description": "Runbooks für den Bereitschaftsdienst zusammenfassen",
+          "prompt": "Fassen Sie das folgende Runbook in Kernpunkten und der Reihenfolge der Prüfschritte für den Bereitschaftsdienst zusammen: "
+        },
+        "check": {
+          "title": "Prüfung der Änderungsauswirkungen",
+          "description": "Prüfen, was eine Netzwerkänderung betrifft",
+          "prompt": "Listen Sie für die folgende Änderung die betroffenen Services und die zugehörigen Runbooks auf: "
+        }
+      },
+      "agrifood": {
+        "find": {
+          "title": "Rückverfolgbarkeit nachschlagen",
+          "description": "Chargen- und Versandaufzeichnungen nachverfolgen",
+          "prompt": "Verfolgen Sie für die folgende Charge die Aufzeichnungen vom Rohstoff bis zum Versand in chronologischer Reihenfolge: "
+        },
+        "draft": {
+          "title": "Hygiene- und Qualitätsaufzeichnungen",
+          "description": "Hygiene- und Qualitätsprüfprotokolle prüfen",
+          "prompt": "Listen Sie für den folgenden Prozess Abweichungen von Standards in den Hygiene- und Qualitätsprüfprotokollen auf: "
+        },
+        "check": {
+          "title": "Prüfung von Kennzeichnung und Standards",
+          "description": "Interne Unterlagen zu Kennzeichnung und Standards prüfen",
+          "prompt": "Zeigen Sie für das folgende Produkt die Stellen in internen Unterlagen zu Kennzeichnung und Standardanforderungen. Die endgültige Entscheidung trifft der Qualitätsverantwortliche: "
+        }
+      },
+      "realestate": {
+        "find": {
+          "title": "Objektunterlagen nachschlagen",
+          "description": "Objekte in Dokumenten und Verträgen finden",
+          "prompt": "Listen Sie Objekte auf, die den folgenden Bedingungen entsprechen, mit den Angaben aus den Unterlagen: "
+        },
+        "draft": {
+          "title": "Kernbedingungen des Mietvertrags",
+          "description": "Laufzeit, Miete und Kündigung aus Mietverträgen extrahieren",
+          "prompt": "Extrahieren Sie aus dem folgenden Mietvertrag Laufzeit, Miete, Verlängerungs- und Kündigungsbedingungen mit Klauselnummern: "
+        },
+        "check": {
+          "title": "Reparatur- und Inspektionshistorie",
+          "description": "Reparatur- und Inspektionshistorie ordnen",
+          "prompt": "Ordnen Sie für das folgende Objekt die Reparatur- und Inspektionshistorie chronologisch und listen Sie anstehende Arbeiten auf: "
+        }
+      },
+      "hr": {
+        "find": {
+          "title": "Personalrichtlinien nachschlagen",
+          "description": "Einschlägige Personalregelungen finden",
+          "prompt": "Zeigen Sie für das folgende Programm oder Verfahren die relevanten Stellen in Arbeitsordnung und Personalrichtlinien mit Dokumentnamen: "
+        },
+        "draft": {
+          "title": "Entwurf einer Stellenanzeige",
+          "description": "Eine Anzeige aus einer Stellenbeschreibung entwerfen",
+          "prompt": "Entwerfen Sie eine Stellenanzeige aus der folgenden Stellenbeschreibung. Vermeiden Sie Formulierungen, die nach Geschlecht, Alter oder ähnlichen Merkmalen diskriminieren könnten: "
+        },
+        "check": {
+          "title": "Ordnung der Schulungsunterlagen",
+          "description": "Schulungsunterlagen nach Rollen ordnen",
+          "prompt": "Ordnen Sie die Schulungsunterlagen für die folgende Rolle so, dass Reihenfolge und Zweck klar erkennbar sind: "
+        }
+      },
+      "esg": {
+        "find": {
+          "title": "Kennzahlen extrahieren",
+          "description": "Umwelt- und Sozialkennzahlen aus Berichten extrahieren",
+          "prompt": "Extrahieren Sie aus dem folgenden Bericht Umwelt- und Sozialkennzahlen samt Istwerten in eine Tabelle, mit Geschäftsjahr und Einheit: "
+        },
+        "draft": {
+          "title": "Entwurf eines Förderantrags",
+          "description": "Einen Antrag aus früheren Anträgen und Richtlinien entwerfen",
+          "prompt": "Entwerfen Sie für die folgende Förderung einen Antrag auf Basis früherer Anträge und der Richtlinien: "
+        },
+        "check": {
+          "title": "Zuordnung zu Offenlegungsstandards",
+          "description": "Offenlegungsanforderungen internen Unterlagen zuordnen",
+          "prompt": "Listen Sie für die folgenden Offenlegungsanforderungen die passenden internen Unterlagen und die fehlenden Informationen auf: "
+        }
+      },
+      "travel": {
+        "find": {
+          "title": "Buchungsunterlagen nachschlagen",
+          "description": "Buchungs- und Organisationsunterlagen finden",
+          "prompt": "Listen Sie Buchungs- und Organisationsunterlagen auf, die den folgenden Bedingungen entsprechen, mit Datum: "
+        },
+        "draft": {
+          "title": "Entwurf eines Reiseplans",
+          "description": "Einen Reiseplan aus den Organisationsunterlagen entwerfen",
+          "prompt": "Entwerfen Sie einen Reiseplan und Hinweise für Reisende aus den folgenden Organisationsunterlagen: "
+        },
+        "check": {
+          "title": "Prüfung der Stornobedingungen",
+          "description": "Stornogebühren und -bedingungen prüfen",
+          "prompt": "Zeigen Sie für das folgende Reiseangebot die Stornoregeln und die einschlägigen Bedingungen: "
+        }
+      }
+    },
+    "industrySelector": {
+      "label": "Branche",
+      "general": "Allgemein"
     }
   },
   "workflow": {
@@ -950,12 +1336,12 @@
     "enabledTooltip": "EIN: Bei unzureichenden KB-Ergebnissen mit Websuche ergänzen (als Referenzinfo angezeigt)",
     "disabledTooltip": "AUS: Nur verifizierte KB-Dokumente verwenden",
     "globallyDisabledTooltip": "Die Websuche wurde vom Administrator deaktiviert",
- "agentModeDisabledTooltip": "Im Agent-Modus automatisch deaktiviert",
+    "agentModeDisabledTooltip": "Im Agent-Modus automatisch deaktiviert",
     "confirmTitle": "Websuche aktivieren?",
     "confirmDescription": "Bei Aktivierung der Websuche werden Teile Ihrer Anfrage an einen externen Suchdienst gesendet. Bitte beachten Sie:",
     "confirmPoint1": "Sensible Daten werden automatisch entfernt, eine vollständige Entfernung kann jedoch nicht garantiert werden",
     "confirmPoint2": "Websuchergebnisse sind nicht vertrauenswürdige externe Daten und wurden nicht auf Fakten überprüft",
-    "confirmPoint3": "Ergebnisse werden deutlich als \u201EReferenzinformationen\u201C gekennzeichnet und von internen Dokumenten getrennt",
+    "confirmPoint3": "Ergebnisse werden deutlich als „Referenzinformationen“ gekennzeichnet und von internen Dokumenten getrennt",
     "confirmCancel": "Abbrechen",
     "confirmEnable": "Aktivieren"
   },
@@ -1051,7 +1437,7 @@
       "create": "🚀 Team erstellen",
       "add": "+ Hinzufügen",
       "delete": "Löschen",
-    "language": "Sprache"
+      "language": "Sprache"
     },
     "toolSelectDesc": "Wählen Sie die Werkzeuge aus, die jedem Mitarbeiter zugewiesen werden sollen.",
     "toolSecurityNote": "⚠️ Allgemeine Shell-Ausführung und uneingeschränkte Dateioperationen sind aus Sicherheitsgründen nicht verfügbar",

@@ -1,4 +1,4 @@
-import { AlertTriangle, BarChart3, Clapperboard, ClipboardList, FileText, Files, GraduationCap, HelpCircle, Library, Lock, Scale, Search, StickyNote, Tag, Target, TrendingDown, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Banknote, BarChart3, BookOpen, Building2, Car, Clapperboard, ClipboardList, Cpu, Factory, FileText, Files, FlaskConical, Gavel, GraduationCap, HardHat, HeartPulse, HelpCircle, Landmark, Leaf, Library, Lock, Plane, RadioTower, Scale, Search, ShieldCheck, ShoppingCart, StickyNote, Tag, Target, TrendingDown, TrendingUp, Truck, Users, Wheat, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 // Card data definitions and helper functions for the card-based task UI
 // Requirements: 2.4, 3.4, 8.1, 8.2, 8.3, 6.1, 6.2, 6.3, 6.4, 6.5
@@ -195,6 +195,8 @@ export interface CardData {
   agentId?: string;
   workflowType?: 'single' | 'multi';
   steps?: WorkflowStep[];
+  /** Industry id (KB mode industry cards only). Undefined for the general-purpose cards. */
+  industry?: string;
 }
 
 export interface CategoryData {
@@ -467,6 +469,54 @@ export const AGENT_CARDS: CardData[] = [
   },
 ];
 
+// --- Industry Cards (KB mode) ---
+// Three cards per industry (find / draft / check). Strings live under cards.industries.* and cards.industry.* in messages/*.json.
+export interface IndustryData {
+  id: string;
+  icon: LucideIcon;
+  labelKey: string;
+}
+export const INDUSTRIES: IndustryData[] = [
+  { id: 'government', icon: Landmark, labelKey: 'cards.industries.government' },
+  { id: 'healthcare', icon: HeartPulse, labelKey: 'cards.industries.healthcare' },
+  { id: 'legal', icon: Gavel, labelKey: 'cards.industries.legal' },
+  { id: 'insurance', icon: ShieldCheck, labelKey: 'cards.industries.insurance' },
+  { id: 'manufacturing', icon: Factory, labelKey: 'cards.industries.manufacturing' },
+  { id: 'construction', icon: HardHat, labelKey: 'cards.industries.construction' },
+  { id: 'education', icon: BookOpen, labelKey: 'cards.industries.education' },
+  { id: 'financial', icon: Banknote, labelKey: 'cards.industries.financial' },
+  { id: 'media', icon: Clapperboard, labelKey: 'cards.industries.media' },
+  { id: 'semiconductor', icon: Cpu, labelKey: 'cards.industries.semiconductor' },
+  { id: 'lifesciences', icon: FlaskConical, labelKey: 'cards.industries.lifesciences' },
+  { id: 'energy', icon: Zap, labelKey: 'cards.industries.energy' },
+  { id: 'automotive', icon: Car, labelKey: 'cards.industries.automotive' },
+  { id: 'retail', icon: ShoppingCart, labelKey: 'cards.industries.retail' },
+  { id: 'logistics', icon: Truck, labelKey: 'cards.industries.logistics' },
+  { id: 'telecom', icon: RadioTower, labelKey: 'cards.industries.telecom' },
+  { id: 'agrifood', icon: Wheat, labelKey: 'cards.industries.agrifood' },
+  { id: 'realestate', icon: Building2, labelKey: 'cards.industries.realestate' },
+  { id: 'hr', icon: Users, labelKey: 'cards.industries.hr' },
+  { id: 'esg', icon: Leaf, labelKey: 'cards.industries.esg' },
+  { id: 'travel', icon: Plane, labelKey: 'cards.industries.travel' },
+];
+function industryCards(industry: IndustryData, icons: [LucideIcon, LucideIcon, LucideIcon]): CardData[] {
+  const slots = [['find', 'search'], ['draft', 'output'], ['check', 'analysis']] as const;
+  return slots.map(([slot, category], i) => ({
+    id: `kb-ind-${industry.id}-${slot}`,
+    icon: icons[i],
+    titleKey: `cards.industry.${industry.id}.${slot}.title`,
+    descriptionKey: `cards.industry.${industry.id}.${slot}.description`,
+    promptTemplateKey: `cards.industry.${industry.id}.${slot}.prompt`,
+    category,
+    mode: 'kb' as const,
+    industry: industry.id,
+  }));
+}
+const INDUSTRY_SLOT_ICONS: [LucideIcon, LucideIcon, LucideIcon] = [Search, FileText, ClipboardList];
+export const INDUSTRY_CARDS: CardData[] = INDUSTRIES.flatMap((industry) => industryCards(industry, INDUSTRY_SLOT_ICONS));
+export function getIndustryCards(industryId: string): CardData[] {
+  return INDUSTRY_CARDS.filter((card) => card.industry === industryId);
+}
 // --- All Cards ---
 
 export const ALL_CARDS: CardData[] = [...KB_CARDS, ...AGENT_CARDS];

@@ -35,7 +35,7 @@ Dieses Dokument beschreibt die Integrationsarchitektur zwischen [FSx for ONTAP S
 │ • AI/ML-Integration          │  │ • SID-Filterung              │
 │ • Ergebnisse zurück nach FSx │  │ • Chat-UI (Next.js)          │
 │                              │  │ • Agent-Modus                │
-│ 17 Branchen-UCs              │  │ 14 Agent-Vorlagen            │
+│ 28 Branchen-UCs              │  │ 14 Agent-Vorlagen            │
 └──────────────────────────────┘  └──────────────────────────────┘
 ```
 

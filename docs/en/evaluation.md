@@ -184,6 +184,23 @@ In cases 2 and 3 the same query as case 1 retrieved 6 documents rather than 0, a
 
 **What this result rests on**: the first ingestion failed for every document, and it passed only after the S3 Vectors index was recreated by hand. The cause (the text key is missing from the non-filterable keys) is a defect in the code and is recorded in [#228](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG/issues/228). The S3 Access Point was also created by hand with the CLI, because the CDK custom resource failed and fell back to deferring it (item 2 of the same issue). So the permission filter was shown to behave as expected, but a run from start to finish with CDK alone was not shown.
 
+### 3.4 Results with the industry demo data
+
+**[verified 2026-11-14 / ap-northeast-1]** The industry demo packs for 21 industries (105 documents) were loaded with `demo-data/scripts/load-industry-pack.sh all`, and questions were asked from the KB-mode industry cards. The setup matches 3.3: a disposable volume on an existing FSx for ONTAP file system, an S3 Access Point created by the CDK custom resource, and a Knowledge Base on S3 Vectors. Ingestion scanned 116 documents and indexed 105 new ones, with 0 failures. This time the run went from the CDK deployment to the data load with no manual workaround. The permission filter ran on the same in-app path as 3.3.
+
+| Principal (group) | Card and question | Retrieved | Allowed | Cited documents |
+|---|---|---:|---:|---|
+| Legal pack, legal department (`-4100`) | Legal "Contract Clause Extraction" + "the NDA template" | 9 | 7 | The legal department's NDA template and the public guideline |
+| Legal pack, development department (`-1100`) | The same card and question | 8 | 1 | The public guideline only. The answer said no NDA template was found |
+| Financial pack, compliance department (`-9200`) | Financial "Rules and Procedures Lookup" + "the threshold for structured small deposits in transaction monitoring" | 7 | 3 | The department-only monitoring rules (the threshold was answered), shared and public documents |
+| Financial pack, loan screening department (`-9100`) | The same card and question | 7 | 4 | The loan department's documents, shared and public documents. The answer said no threshold is written there |
+
+The documents that were not allowed were retrieved and then removed by the filter (retrieved counts are not 0). Example screens are in section 9 of the [UI specification](ui-specification.md).
+
+**Scope**: one observation for each of the 4 cases. Of the 21 industries, only legal and financial were checked with questions; for the other 19, only a successful ingestion was checked.
+
+**Defect found and fixed in this check**: the citation badge labelled documents allowed to a department and Domain Admins (`[dept, -512]`) as admin-only, because it only checked whether `-512` appeared. It now shows admin-only only when Domain Admins is the sole group. The Knowledge Base returns the SIDs as quoted strings (`"\"S-1-1-0\""`), so the SIDs are extracted by pattern rather than by splitting.
+
 ---
 
 ## 4. Agent Evaluation Metrics

@@ -626,6 +626,392 @@
       "addToFavorites": "Ajouter aux favoris",
       "removeFromFavorites": "Retirer des favoris",
       "section": "Favoris"
+    },
+    "industries": {
+      "government": "Administration publique",
+      "healthcare": "Santé",
+      "legal": "Juridique",
+      "insurance": "Assurance",
+      "manufacturing": "Industrie manufacturière",
+      "construction": "Construction",
+      "education": "Éducation et recherche",
+      "financial": "Services financiers",
+      "media": "Médias et publicité",
+      "semiconductor": "Semi-conducteurs et EDA",
+      "lifesciences": "Sciences de la vie",
+      "energy": "Énergie et services publics",
+      "automotive": "Automobile et mobilité",
+      "retail": "Commerce de détail et e-commerce",
+      "logistics": "Logistique et transport",
+      "telecom": "Télécommunications",
+      "agrifood": "Agriculture et agroalimentaire",
+      "realestate": "Immobilier",
+      "hr": "Ressources humaines",
+      "esg": "Développement durable et associations",
+      "travel": "Voyages et tourisme"
+    },
+    "industry": {
+      "government": {
+        "find": {
+          "title": "Ordonnances et avis",
+          "description": "Trouver les dispositions pertinentes et leur fondement dans les ordonnances, règlements et avis",
+          "prompt": "Listez les ordonnances, règlements et avis liés à la tâche suivante, avec les noms de documents et les numéros d'articles : "
+        },
+        "draft": {
+          "title": "Projet de réponse au conseil",
+          "description": "Rédiger une réponse au conseil à partir des procès-verbaux et documents de politique passés",
+          "prompt": "Rédigez un projet de réponse au conseil à la question suivante, à partir des procès-verbaux et des documents de politique passés. Indiquez le document source de chaque point : "
+        },
+        "check": {
+          "title": "Contrôle avant publication",
+          "description": "Lister les informations personnelles ou non communicables avant publication",
+          "prompt": "Avant de publier le document suivant, listez les passages pouvant contenir des informations personnelles ou non communicables. La décision finale revient à un agent : "
+        }
+      },
+      "healthcare": {
+        "find": {
+          "title": "Consultation des recommandations cliniques",
+          "description": "Trouver le passage pertinent des recommandations et procédures internes",
+          "prompt": "Indiquez les parties des recommandations et procédures internes applicables à la situation suivante, avec les noms de documents. Ne prenez aucune décision de diagnostic ni de traitement : "
+        },
+        "draft": {
+          "title": "Synthèse de procédure",
+          "description": "Résumer des procédures ou avis longs en points clés pour le personnel soignant",
+          "prompt": "Résumez la procédure ou l'avis suivant en points clés pour le personnel soignant. Conservez les chiffres et les doses exactement tels qu'écrits : "
+        },
+        "check": {
+          "title": "Contrôle de cohérence des politiques",
+          "description": "Repérer les énoncés contradictoires entre politiques et avis",
+          "prompt": "Pour le sujet suivant, listez les endroits où les politiques, procédures et avis internes se contredisent : "
+        }
+      },
+      "legal": {
+        "find": {
+          "title": "Extraction de clauses contractuelles",
+          "description": "Extraire des contrats les clauses d'un type donné",
+          "prompt": "Dans le contrat suivant, extrayez les clauses du type que j'indique (par exemple résiliation, responsabilité, confidentialité), avec les numéros de clauses : "
+        },
+        "draft": {
+          "title": "Comparaison de contrats",
+          "description": "Comparer clause par clause un modèle et le projet de la contrepartie",
+          "prompt": "Comparez clause par clause, dans un tableau, les deux contrats suivants (modèle et projet de la contrepartie). Il s'agit d'une aide à la relecture, et non d'un avis juridique : "
+        },
+        "check": {
+          "title": "Contrôle de conformité aux règles internes",
+          "description": "Vérifier qu'un projet de contrat respecte les règles internes",
+          "prompt": "Vérifiez si le projet de contrat suivant respecte les règles et politiques internes, en citant la règle concernée. La décision finale revient au service juridique : "
+        }
+      },
+      "insurance": {
+        "find": {
+          "title": "Recherche de dossiers similaires",
+          "description": "Trouver des dossiers similaires dans les rapports d'expertise passés",
+          "prompt": "Listez les rapports d'expertise passés similaires au dossier suivant, avec les points de similitude : "
+        },
+        "draft": {
+          "title": "Contrôle des pièces du sinistre",
+          "description": "Vérifier les pièces requises pour une déclaration de sinistre et celles qui manquent",
+          "prompt": "Pour la déclaration de sinistre suivante, listez les pièces exigées par les conditions du contrat et les critères d'expertise, ainsi que celles qui manquent encore : "
+        },
+        "check": {
+          "title": "Contrôle des critères d'expertise",
+          "description": "Expliquer les critères et conditions applicables, citations à l'appui",
+          "prompt": "Citez et expliquez les critères d'expertise et les conditions du contrat liés au dossier suivant. La décision finale d'indemnisation revient à l'expert : "
+        }
+      },
+      "manufacturing": {
+        "find": {
+          "title": "Consultation des normes qualité",
+          "description": "Trouver les valeurs et tolérances dans les normes qualité et spécifications",
+          "prompt": "Pour la pièce ou le procédé suivant, indiquez les valeurs et tolérances figurant dans les normes qualité et spécifications, avec les noms de documents. Conservez les chiffres tels qu'écrits : "
+        },
+        "draft": {
+          "title": "Synthèse des rapports de défauts",
+          "description": "Résumer les rapports de défauts et les actions correctives",
+          "prompt": "Classez par cause les rapports de défauts et les actions correctives pour le produit ou le procédé suivant : "
+        },
+        "check": {
+          "title": "Contrôle des procédures de maintenance",
+          "description": "Vérifier les plans de maintenance et les procédures d'inspection",
+          "prompt": "Présentez le plan de maintenance et la procédure d'inspection de l'équipement suivant, avec les périodicités et les responsables : "
+        }
+      },
+      "construction": {
+        "find": {
+          "title": "Consultation des normes de sécurité",
+          "description": "Trouver les normes de sécurité de chantier applicables",
+          "prompt": "Indiquez les parties des normes de sécurité et des listes de contrôle applicables aux travaux suivants, avec les noms de documents : "
+        },
+        "draft": {
+          "title": "Projet de rapport d'avancement",
+          "description": "Rédiger un rapport hebdomadaire à partir des journaux quotidiens et des suivis d'avancement",
+          "prompt": "Rédigez un rapport d'avancement hebdomadaire à partir des journaux quotidiens et des suivis d'avancement de la période suivante : "
+        },
+        "check": {
+          "title": "Impact d'une modification de conception",
+          "description": "Lister les plans et tâches concernés par une modification de conception",
+          "prompt": "Pour la modification de conception suivante, listez les plans, tâches et sous-traitants concernés, à partir de l'historique des modifications : "
+        }
+      },
+      "education": {
+        "find": {
+          "title": "Consultation des programmes et règlements",
+          "description": "Trouver le passage pertinent des programmes de cours et des règlements de l'université",
+          "prompt": "Pour le cours ou le cursus suivant, indiquez les parties pertinentes des programmes de cours et des règlements de l'université, avec les noms de documents : "
+        },
+        "draft": {
+          "title": "Projet de demande de financement",
+          "description": "Rédiger une demande à partir des candidatures passées et des directives de financement",
+          "prompt": "Pour le thème suivant, rédigez la structure et le texte d'une demande de financement de recherche, à partir des candidatures passées et des directives de financement : "
+        },
+        "check": {
+          "title": "Synthèse des règles d'évaluation",
+          "description": "Expliquer simplement les règles d'évaluation aux étudiants",
+          "prompt": "Résumez les règles d'évaluation du cours suivant sous forme d'explication simple destinée aux étudiants. Ne traitez aucune note individuelle : "
+        }
+      },
+      "financial": {
+        "find": {
+          "title": "Consultation des règles et procédures",
+          "description": "Trouver les règles et procédures internes applicables",
+          "prompt": "Indiquez les règles et procédures internes liées à la tâche suivante, avec les noms de documents : "
+        },
+        "draft": {
+          "title": "Champs clés des documents",
+          "description": "Extraire montants, dates et parties des formulaires et contrats",
+          "prompt": "Extrayez dans un tableau les montants, dates et parties du document suivant. Distinguez budget, réel et prévision : "
+        },
+        "check": {
+          "title": "Contrôle de conformité",
+          "description": "Vérifier un dossier au regard de la politique de conformité interne",
+          "prompt": "Vérifiez si le dossier suivant respecte la politique de conformité interne, en citant la politique concernée. La décision finale revient au responsable désigné : "
+        }
+      },
+      "media": {
+        "find": {
+          "title": "Recherche de ressources de production",
+          "description": "Trouver des ressources et documents dans un projet",
+          "prompt": "Trouvez les ressources et documents de production correspondant aux conditions suivantes, avec les noms de projets : "
+        },
+        "draft": {
+          "title": "Droits et conditions d'utilisation",
+          "description": "Vérifier l'étendue et les conditions de licence d'une ressource",
+          "prompt": "Pour la ressource suivante, vérifiez l'étendue, la durée et le territoire de la licence à partir des contrats et des enregistrements : "
+        },
+        "check": {
+          "title": "Synthèse de la revue créative",
+          "description": "Organiser les propositions créatives et les retours de revue",
+          "prompt": "Pour la campagne suivante, organisez par proposition les propositions créatives et les commentaires de revue : "
+        }
+      },
+      "semiconductor": {
+        "find": {
+          "title": "Consultation des spécifications et règles de conception",
+          "description": "Trouver les spécifications et règles de conception pertinentes",
+          "prompt": "Pour le bloc ou le procédé suivant, indiquez les parties pertinentes des spécifications et des règles de conception, avec les noms de documents : "
+        },
+        "draft": {
+          "title": "Synthèse des résultats de vérification",
+          "description": "Résumer les journaux de vérification et les rapports de bogues",
+          "prompt": "Résumez par niveau de gravité les journaux de vérification et rapports de bogues suivants : "
+        },
+        "check": {
+          "title": "Différences entre révisions",
+          "description": "Comparer des révisions de conception ou de spécification",
+          "prompt": "Présentez les différences entre les deux révisions suivantes en distinguant les modifications et les zones concernées : "
+        }
+      },
+      "lifesciences": {
+        "find": {
+          "title": "Consultation des cahiers de laboratoire et des SOP",
+          "description": "Trouver les cahiers de laboratoire et les SOP pertinents",
+          "prompt": "Pour l'expérience ou la procédure suivante, indiquez les cahiers de laboratoire et les sections de SOP pertinents, avec les noms de documents : "
+        },
+        "draft": {
+          "title": "Contrôle des fiches de données de sécurité",
+          "description": "Vérifier les points de manipulation dans les fiches de données de sécurité",
+          "prompt": "Pour la substance suivante, résumez les points de manipulation, de stockage et d'urgence de sa fiche de données de sécurité, avec les noms de documents. Conservez les chiffres tels qu'écrits : "
+        },
+        "check": {
+          "title": "Contrôle des enregistrements qualité des données",
+          "description": "Rechercher les écarts dans les enregistrements qualité du pipeline",
+          "prompt": "À partir des enregistrements qualité du projet suivant, listez les écarts de procédure et les données qui ne respectent pas les critères : "
+        }
+      },
+      "energy": {
+        "find": {
+          "title": "Consultation des comptes rendus d'inspection",
+          "description": "Trouver les comptes rendus et rapports d'inspection d'un équipement",
+          "prompt": "Pour l'équipement suivant, listez par ordre chronologique les comptes rendus d'inspection passés et leurs constatations : "
+        },
+        "draft": {
+          "title": "Synthèse de rapport d'étude",
+          "description": "Résumer les rapports d'exploration ou d'étude",
+          "prompt": "Résumez le rapport d'étude suivant en objectif, méthode, résultats et points ouverts : "
+        },
+        "check": {
+          "title": "Contrôle des règles de sécurité",
+          "description": "Vérifier les règles et procédures de sécurité applicables",
+          "prompt": "Indiquez les règles et procédures de sécurité liées aux travaux suivants, avec les noms de documents : "
+        }
+      },
+      "automotive": {
+        "find": {
+          "title": "Consultation des essais et relevés de conduite",
+          "description": "Trouver les rapports d'essai et les relevés de conduite",
+          "prompt": "Listez les rapports d'essai et relevés de conduite correspondant aux conditions suivantes, avec les dates : "
+        },
+        "draft": {
+          "title": "Synthèse d'enquête sur un problème",
+          "description": "Organiser les rapports de problèmes et les contre-mesures",
+          "prompt": "Présentez par ordre chronologique les rapports de problèmes et les contre-mesures pour la pièce ou la fonction suivante : "
+        },
+        "check": {
+          "title": "Impact d'une modification de spécification",
+          "description": "Lister les documents et essais concernés par une modification de spécification",
+          "prompt": "Pour la modification de spécification suivante, listez les spécifications, essais et fournisseurs concernés : "
+        }
+      },
+      "retail": {
+        "find": {
+          "title": "Consultation des informations produit",
+          "description": "Trouver des produits dans les catalogues et fiches techniques",
+          "prompt": "Listez les produits correspondant aux conditions suivantes, avec ce que disent les documents produit : "
+        },
+        "draft": {
+          "title": "Projet de texte promotionnel",
+          "description": "Rédiger un texte à partir des documents produit",
+          "prompt": "Rédigez une description du produit suivant en vous appuyant uniquement sur les faits présents dans les documents produit : "
+        },
+        "check": {
+          "title": "Contrôle des conditions et de la politique de retour",
+          "description": "Vérifier les conditions fournisseur et les règles de retour",
+          "prompt": "Pour le fournisseur ou le produit suivant, indiquez les conditions commerciales et les règles de retour applicables : "
+        }
+      },
+      "logistics": {
+        "find": {
+          "title": "Consultation des enregistrements de livraison",
+          "description": "Trouver les bons de livraison et les enregistrements d'exploitation",
+          "prompt": "Listez les enregistrements de livraison et d'exploitation correspondant aux conditions suivantes, avec les dates et les numéros de bons : "
+        },
+        "draft": {
+          "title": "Maintenance des véhicules et équipements",
+          "description": "Vérifier les enregistrements d'inspection et de maintenance",
+          "prompt": "Pour le véhicule ou l'équipement suivant, présentez les enregistrements d'inspection et de maintenance ainsi que les prochaines échéances : "
+        },
+        "check": {
+          "title": "Contrôle des contrats et conditions",
+          "description": "Vérifier les contrats de transport et leurs conditions",
+          "prompt": "Pour le dossier suivant, indiquez les parties pertinentes des contrats de transport et des conditions, avec les numéros de clauses : "
+        }
+      },
+      "telecom": {
+        "find": {
+          "title": "Consultation des enregistrements d'incidents",
+          "description": "Trouver des rapports d'incidents similaires et les réponses apportées",
+          "prompt": "Listez les rapports d'incidents et les enregistrements de traitement passés similaires aux symptômes suivants : "
+        },
+        "draft": {
+          "title": "Synthèse de runbook",
+          "description": "Résumer les runbooks pour le personnel d'astreinte",
+          "prompt": "Résumez le runbook suivant en points clés et en ordre de vérification pour le personnel d'astreinte : "
+        },
+        "check": {
+          "title": "Contrôle d'impact d'un changement",
+          "description": "Vérifier ce qu'un changement réseau affecte",
+          "prompt": "Pour le changement suivant, listez les services concernés et les runbooks associés : "
+        }
+      },
+      "agrifood": {
+        "find": {
+          "title": "Consultation de traçabilité",
+          "description": "Suivre les enregistrements de lots et d'expéditions",
+          "prompt": "Pour le lot suivant, retracez par ordre chronologique les enregistrements, des matières premières à l'expédition : "
+        },
+        "draft": {
+          "title": "Enregistrements d'hygiène et de qualité",
+          "description": "Vérifier les enregistrements de contrôle d'hygiène et de qualité",
+          "prompt": "Pour le procédé suivant, listez les écarts par rapport aux normes dans les enregistrements de contrôle d'hygiène et de qualité : "
+        },
+        "check": {
+          "title": "Contrôle de l'étiquetage et des normes",
+          "description": "Vérifier les documents internes sur l'étiquetage et les normes",
+          "prompt": "Pour le produit suivant, indiquez les parties des documents internes relatives à l'étiquetage et aux exigences normatives. La décision finale revient au responsable qualité : "
+        }
+      },
+      "realestate": {
+        "find": {
+          "title": "Consultation des documents immobiliers",
+          "description": "Trouver des biens dans les documents et contrats",
+          "prompt": "Listez les biens correspondant aux conditions suivantes, avec ce que disent les documents : "
+        },
+        "draft": {
+          "title": "Points clés du bail",
+          "description": "Extraire la durée, le loyer et la résiliation des baux",
+          "prompt": "Dans le bail suivant, extrayez la durée, le loyer, les conditions de renouvellement et de résiliation, avec les numéros de clauses : "
+        },
+        "check": {
+          "title": "Historique des réparations et inspections",
+          "description": "Organiser l'historique des réparations et inspections",
+          "prompt": "Pour le bien suivant, présentez l'historique des réparations et inspections par ordre chronologique et listez les travaux à venir : "
+        }
+      },
+      "hr": {
+        "find": {
+          "title": "Consultation des politiques RH",
+          "description": "Trouver les règles RH applicables",
+          "prompt": "Pour le dispositif ou la procédure suivant, indiquez les parties pertinentes du règlement intérieur et des politiques RH, avec les noms de documents : "
+        },
+        "draft": {
+          "title": "Projet d'offre d'emploi",
+          "description": "Rédiger une offre à partir d'une fiche de poste",
+          "prompt": "Rédigez une offre d'emploi à partir de la fiche de poste suivante. Évitez les formulations pouvant être discriminatoires selon le sexe, l'âge ou des critères similaires : "
+        },
+        "check": {
+          "title": "Organisation des supports de formation",
+          "description": "Organiser les supports de formation par rôle",
+          "prompt": "Organisez les supports de formation pour le rôle suivant de manière à ce que l'ordre et l'objectif soient clairs : "
+        }
+      },
+      "esg": {
+        "find": {
+          "title": "Extraction d'indicateurs",
+          "description": "Extraire les indicateurs environnementaux et sociaux des rapports",
+          "prompt": "Dans le rapport suivant, extrayez dans un tableau les indicateurs environnementaux et sociaux et leurs valeurs réelles, avec l'exercice et l'unité : "
+        },
+        "draft": {
+          "title": "Projet de demande de subvention",
+          "description": "Rédiger une demande à partir des demandes passées et des directives",
+          "prompt": "Pour la subvention suivante, rédigez une demande à partir des demandes passées et des directives : "
+        },
+        "check": {
+          "title": "Correspondance avec les normes de publication",
+          "description": "Faire correspondre les exigences de publication aux documents internes",
+          "prompt": "Pour les exigences de publication suivantes, listez les documents internes correspondants et les informations manquantes : "
+        }
+      },
+      "travel": {
+        "find": {
+          "title": "Consultation des documents de réservation",
+          "description": "Trouver les documents de réservation et d'organisation",
+          "prompt": "Listez les documents de réservation et d'organisation correspondant aux conditions suivantes, avec les dates : "
+        },
+        "draft": {
+          "title": "Projet d'itinéraire",
+          "description": "Rédiger un itinéraire à partir des éléments d'organisation",
+          "prompt": "Rédigez un itinéraire et des informations pour les voyageurs à partir des documents d'organisation suivants : "
+        },
+        "check": {
+          "title": "Contrôle des conditions d'annulation",
+          "description": "Vérifier les frais et conditions d'annulation",
+          "prompt": "Pour le produit de voyage suivant, indiquez les règles d'annulation et les conditions applicables : "
+        }
+      }
+    },
+    "industrySelector": {
+      "label": "Secteur",
+      "general": "Général"
     }
   },
   "workflow": {
@@ -950,7 +1336,7 @@
     "enabledTooltip": "ON : Compléter par une recherche web lorsque les résultats KB sont insuffisants (affiché comme information de référence)",
     "disabledTooltip": "OFF : Utiliser uniquement les documents KB vérifiés",
     "globallyDisabledTooltip": "La recherche web a été désactivée par l'administrateur",
- "agentModeDisabledTooltip": "Automatiquement désactivé en mode Agent",
+    "agentModeDisabledTooltip": "Automatiquement désactivé en mode Agent",
     "confirmTitle": "Activer la recherche web ?",
     "confirmDescription": "L'activation de la recherche web enverra une partie de votre requête à un service de recherche externe. Veuillez noter :",
     "confirmPoint1": "Les données sensibles sont automatiquement supprimées, mais une suppression complète n'est pas garantie",
@@ -1051,7 +1437,7 @@
       "create": "🚀 Créer l'équipe",
       "add": "+ Ajouter",
       "delete": "Supprimer",
-    "language": "Langue"
+      "language": "Langue"
     },
     "toolSelectDesc": "Sélectionnez les outils à attribuer à chaque Collaborateur.",
     "toolSecurityNote": "⚠️ L'exécution shell générale et les opérations de fichiers sans restriction ne sont pas disponibles pour des raisons de sécurité",

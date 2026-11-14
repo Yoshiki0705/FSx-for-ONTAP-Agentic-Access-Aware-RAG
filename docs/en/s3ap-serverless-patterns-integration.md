@@ -35,7 +35,7 @@ This document describes the integration architecture between [FSx for ONTAP S3 A
 │ • AI/ML service integration  │  │ • SID filtering              │
 │ • Write results back to FSx  │  │ • Chat UI (Next.js)         │
 │                              │  │ • Agent mode                 │
-│ 17 Industry UCs              │  │ 14 Agent templates           │
+│ 28 Industry UCs              │  │ 14 Agent templates           │
 └──────────────────────────────┘  └──────────────────────────────┘
 ```
 

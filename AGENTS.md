@@ -109,7 +109,7 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 │   └── permission-matrix/             — 31 permission test scenarios
 ├── demo-data/
 │   ├── scripts/                       — Deployment scripts
-│   ├── industry-packs/                — 7 industry demo data packs
+│   ├── industry-packs/                — 21 industry demo data packs (match the KB-mode industry cards)
 │   └── guides/                        — Demo scenario guides
 └── docs/                              — 50+ design/operation documents (8 languages)
 ```
@@ -374,7 +374,7 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 
 | Repository | Purpose |
 |-----------|---------|
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | 17 industry serverless patterns via S3 AP |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | 28 industry serverless patterns (UC1 to UC28) via S3 AP |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Athena/Glue/EMR/SageMaker integration via S3 AP |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | EC2-free audit log delivery to Datadog/Splunk/Grafana |
 
@@ -406,6 +406,7 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Python tests passed locally but ran nowhere in CI | The three pytest directories were only reachable through `make test-python`, and that target could not run on a machine without the dependencies installed | A `python-tests` CI job runs all three on Python 3.12, wired into `quality-gate`. Same class of gap as the frontend runners |
 | Frontend Jest reported 90 failed suites | `jest.config.js` `testMatch` also matched `src/__tests__/`, which Vitest owns, so Jest tried to run 121 files that import from `vitest`. Neither runner was invoked in CI, so nobody saw it | `testPathIgnorePatterns` now excludes `src/__tests__/` and `src/__tests__.disabled/`, and a `frontend-tests` CI job runs both runners |
 | `ReferenceError: Request is not defined` in a route handler test | jsdom has no Web `Request` global | Add `@jest-environment node` in the file's docblock, as the other route tests do |
+| 新しい画面文言を追加したのに画面にキー名が出る（`cards.industry.legal.find.title` など） | アプリが読むのは `docker/nextjs/src/messages/*.json`（`src/i18n/request.ts` の `../messages`）。`docker/nextjs/messages/` は 2026-06 以降更新されていない古い写しで、そこへ書いても反映されない。Vitest は通るので、画面を見るまで気づけない | 文言は `src/messages/` に書く。追加後は `npx next dev` で実際の画面を 1 回開いて確かめる |
 | E2E test fails in CI | Real AWS resources required | Prefix with `e2e-`; excluded via `jest.config.js` |
 | Property test TS error on private method | Method visibility changed | Use correct public API in test |
 | Missing `await` on async in fc.property | Returns Promise instead of value | Use `fc.asyncProperty` + `async` callback |

@@ -44,7 +44,7 @@ Dieses Repository trägt die **Implementierung und die Messungen**. Die **Entsch
 | Auth | [Auth & Benutzerverwaltung](docs/de/auth-and-user-management.md) | OIDC / SAML / LDAP Integration |
 | Sicherheit | [Bedrohungsmodell](docs/de/threat-model.md) | 10 Bedrohungskategorien, Angriffspfade |
 | Sicherheit | [Governance & Audit](docs/de/governance-and-audit.md) | Audit-Logs, Responsible AI, Guardrails |
-| Demo | [Branchendemo-Daten (7 Branchen)](demo-data/industry-packs/) | Verwaltung, Gesundheit, Recht, Fertigung, Bau, Bildung, Versicherung |
+| Demo | [Branchendemo-Daten (21 Branchen)](demo-data/industry-packs/) | Dieselben 21 Branchen wie die Branchenkarten im KB-Modus (Verwaltung, Gesundheit, Recht, Versicherung, Fertigung, Bau, Bildung, Finanzen u. a.). Laden mit `demo-data/scripts/load-industry-pack.sh` |
 | Alle Docs | [Dokumentationsindex](docs/de/DOCUMENTATION_INDEX.md) | Vollständige Liste mit empfohlener Lesereihenfolge |
 
 </details>
@@ -93,7 +93,7 @@ Hauptmerkmale:
 | Repository | Zweck | Beschreibung |
 |-----------|-------|--------------|
 | **[Dieses Repo]** | AI / RAG | Permission-aware RAG + Agentic AI |
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless | 17 branchenspezifische Serverless-Muster |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless | 28 branchenspezifische Serverless-Muster (UC1 bis UC28) |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Athena / Glue / EMR / SageMaker Integration |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability | Audit-Log-Zustellung an Datadog / Splunk / Grafana ohne EC2 |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | Einführungsentscheidungen | Hub der Domäne data-utilization: Autorisierungsverhalten des S3 AP, Einschränkungen und Designoptionen |

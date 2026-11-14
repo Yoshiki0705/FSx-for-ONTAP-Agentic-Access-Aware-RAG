@@ -14,7 +14,7 @@
 | Repository | Use Case / 用途 | Description / 概要 |
 |-----------|----------------|-------------------|
 | [Agentic Access-Aware RAG](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG) | AI / RAG | Permission-aware RAG + Agentic AI with FSx for ONTAP ACL enforcement |
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless Automation | 17 industry-specific serverless patterns via S3 AP (FPolicy event-driven support) |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless Automation | 28 industry-specific serverless patterns (UC1 to UC28) via S3 AP (FPolicy event-driven support) |
 | **[This repo] FSx-for-ONTAP-Lakehouse-Integrations** | Analytics / Lakehouse | Validation framework for analytics engines via FSx for ONTAP S3 AP |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability / Audit | EC2-free audit log & metrics delivery to observability platforms |
 ```
@@ -31,7 +31,7 @@
 | Repository | Use Case / 用途 | Description / 概要 |
 |-----------|----------------|-------------------|
 | [Agentic Access-Aware RAG](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG) | AI / RAG | Permission-aware RAG + Agentic AI with FSx for ONTAP ACL enforcement |
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless Automation | 17 industry-specific serverless patterns via S3 AP (FPolicy event-driven support) |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless Automation | 28 industry-specific serverless patterns (UC1 to UC28) via S3 AP (FPolicy event-driven support) |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics / Lakehouse | Validation framework for analytics engines via FSx for ONTAP S3 AP |
 | **[This repo] FSx-for-ONTAP-Observability-integrations** | Observability / Audit | EC2-free audit log & metrics delivery to observability platforms |
 ```
@@ -48,7 +48,7 @@
 | Repository | Use Case / 用途 | Description / 概要 |
 |-----------|----------------|-------------------|
 | [Agentic Access-Aware RAG](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG) | AI / RAG | Permission-aware RAG + Agentic AI with FSx for ONTAP ACL enforcement |
-| **[This repo] FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns** | Serverless Automation | 17 industry-specific serverless patterns via S3 AP (FPolicy event-driven support) |
+| **[This repo] FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns** | Serverless Automation | 28 industry-specific serverless patterns (UC1 to UC28) via S3 AP (FPolicy event-driven support) |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics / Lakehouse | Validation framework for analytics engines via FSx for ONTAP S3 AP |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability / Audit | EC2-free audit log & metrics delivery to observability platforms |
 ```
