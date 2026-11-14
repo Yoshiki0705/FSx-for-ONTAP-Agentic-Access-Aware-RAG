@@ -5,7 +5,7 @@
 
 ## Build & Test Commands
 
-**Single entry point: `make help`.** Every check below is available as a `make` target running the identical command, and `make synth` reads its ten lane definitions from `.github/workflows/ci-cd.yml` so the Makefile and CI cannot drift apart. [llms.txt](llms.txt) states how to read this repository.
+**Single entry point: `make help`.** Every check below is available as a `make` target running the identical command, and `make synth` reads its lane definitions from `.github/workflows/ci-cd.yml` so the Makefile and CI cannot drift apart. [llms.txt](llms.txt) states how to read this repository.
 
 ```bash
 # 単一入口

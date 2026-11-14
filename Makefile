@@ -108,7 +108,7 @@ actions: ## GitHub Actions のセキュリティリント（zizmor）
 synth-default: ## 既定フラグでの cdk synth
 	npx cdk synth --quiet
 
-synth: ## CI と同じ 10 レーンの cdk synth（フラグは ci-cd.yml の matrix から読む）
+synth: ## CI と同じ全レーンの cdk synth（フラグは ci-cd.yml の matrix から読む）
 	@python3 -c "import yaml" 2>/dev/null || \
 		{ echo "PyYAML が必要です: pip3 install pyyaml"; exit 1; }
 	@python3 -c "import yaml, subprocess, sys, shlex; \

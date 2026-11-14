@@ -211,11 +211,11 @@ describe('Property 6: 後方互換性', () => {
           );
           expect(memoryResources.length).toBe(0);
 
-          // 既存の Agent リソースは存在すること（後方互換性）
-          const agentResources = Object.values(resources).filter(
-            (r: any) => r.Type === 'AWS::Bedrock::Agent'
+          // エージェントは既定の agentBackend=agentcore で AgentCore Runtime として作られること
+          const runtimeResources = Object.values(resources).filter(
+            (r: any) => r.Type === 'AWS::BedrockAgentCore::Runtime'
           );
-          expect(agentResources.length).toBe(1);
+          expect(runtimeResources.length).toBe(1);
 
           // 既存の KB リソースは存在すること（後方互換性）
           const kbResources = Object.values(resources).filter(
