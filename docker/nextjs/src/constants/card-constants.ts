@@ -1,4 +1,4 @@
-import { AlertTriangle, Banknote, BarChart3, BookOpen, Building2, Car, Clapperboard, ClipboardList, Cpu, Factory, FileText, Files, FlaskConical, Gavel, GraduationCap, HardHat, HeartPulse, HelpCircle, Landmark, Leaf, Library, Lock, Plane, RadioTower, Scale, Search, ShieldCheck, ShoppingCart, StickyNote, Tag, Target, TrendingDown, TrendingUp, Truck, Users, Wheat, Zap } from 'lucide-react';
+import { AlertTriangle, Globe, Languages, SpellCheck, Wand2, Workflow, Banknote, BarChart3, BookOpen, Building2, Car, Clapperboard, ClipboardList, Cpu, Factory, FileText, Files, FlaskConical, Gavel, GraduationCap, HardHat, HeartPulse, HelpCircle, Landmark, Leaf, Library, Lock, Plane, RadioTower, Scale, Search, ShieldCheck, ShoppingCart, StickyNote, Tag, Target, TrendingDown, TrendingUp, Truck, Users, Wheat, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 // Card data definitions and helper functions for the card-based task UI
 // Requirements: 2.4, 3.4, 8.1, 8.2, 8.3, 6.1, 6.2, 6.3, 6.4, 6.5
@@ -197,6 +197,8 @@ export interface CardData {
   steps?: WorkflowStep[];
   /** Industry id (KB mode industry cards only). Undefined for the general-purpose cards. */
   industry?: string;
+  /** Tool cards open this tab of /genai/tools instead of filling the chat input. */
+  toolTab?: 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'useCases';
 }
 
 export interface CategoryData {
@@ -335,6 +337,56 @@ export const KB_CARDS: CardData[] = [
     promptTemplateKey: 'cards.kb.onboarding.prompt',
     category: 'output',
     mode: 'kb',
+  },  // === ツール系カード（GenU の翻訳・校正・図・Web 抽出・ユースケースビルダーに相当） ===
+  {
+    id: 'kb-tool-translate',
+    icon: Languages,
+    titleKey: 'cards.kb.toolTranslate.title',
+    descriptionKey: 'cards.kb.toolTranslate.description',
+    promptTemplateKey: 'cards.kb.toolTranslate.description',
+    category: 'tools',
+    mode: 'kb',
+    toolTab: 'translate',
+  },
+  {
+    id: 'kb-tool-proofread',
+    icon: SpellCheck,
+    titleKey: 'cards.kb.toolProofread.title',
+    descriptionKey: 'cards.kb.toolProofread.description',
+    promptTemplateKey: 'cards.kb.toolProofread.description',
+    category: 'tools',
+    mode: 'kb',
+    toolTab: 'proofread',
+  },
+  {
+    id: 'kb-tool-diagram',
+    icon: Workflow,
+    titleKey: 'cards.kb.toolDiagram.title',
+    descriptionKey: 'cards.kb.toolDiagram.description',
+    promptTemplateKey: 'cards.kb.toolDiagram.description',
+    category: 'tools',
+    mode: 'kb',
+    toolTab: 'diagram',
+  },
+  {
+    id: 'kb-tool-web-extract',
+    icon: Globe,
+    titleKey: 'cards.kb.toolWebExtract.title',
+    descriptionKey: 'cards.kb.toolWebExtract.description',
+    promptTemplateKey: 'cards.kb.toolWebExtract.description',
+    category: 'tools',
+    mode: 'kb',
+    toolTab: 'webExtract',
+  },
+  {
+    id: 'kb-tool-use-cases',
+    icon: Wand2,
+    titleKey: 'cards.kb.toolUseCases.title',
+    descriptionKey: 'cards.kb.toolUseCases.description',
+    promptTemplateKey: 'cards.kb.toolUseCases.description',
+    category: 'tools',
+    mode: 'kb',
+    toolTab: 'useCases',
   },
 ];
 
@@ -530,6 +582,7 @@ export const KB_CATEGORIES: CategoryData[] = [
   { id: 'learning', labelKey: 'cards.categories.learning', mode: 'kb' },
   { id: 'analysis', labelKey: 'cards.categories.analysis', mode: 'kb' },
   { id: 'output', labelKey: 'cards.categories.output', mode: 'kb' },
+  { id: 'tools', labelKey: 'cards.categories.tools', mode: 'kb' },
 ];
 
 // --- Agent Mode Categories ---

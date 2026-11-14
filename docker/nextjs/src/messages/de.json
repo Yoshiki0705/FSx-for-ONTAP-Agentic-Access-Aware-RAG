@@ -460,7 +460,8 @@
       "minutes": "Protokolle",
       "report": "Berichte",
       "contract": "Verträge",
-      "onboarding": "Onboarding"
+      "onboarding": "Onboarding",
+      "tools": "Werkzeuge"
     },
     "kb": {
       "docSearch": {
@@ -532,6 +533,26 @@
         "title": "Onboarding-Leitfaden",
         "description": "Erstellt abteilungsspezifische Leitfäden und FAQs für neue Mitarbeiter",
         "prompt": "Erstellen Sie einen Onboarding-Leitfaden (Abteilungsübersicht, Arbeitsabläufe, FAQ) für folgende Abteilung: "
+      },
+      "toolTranslate": {
+        "title": "Übersetzen",
+        "description": "Text oder interne Dokumente in die gewählte Sprache übersetzen"
+      },
+      "toolProofread": {
+        "title": "Korrekturlesen",
+        "description": "Tippfehler, Grammatik und uneinheitliche Begriffe finden und den korrigierten Text erhalten"
+      },
+      "toolDiagram": {
+        "title": "Diagramm",
+        "description": "Text oder interne Dokumente in ein Diagramm umwandeln, etwa ein Flussdiagramm (Mermaid)"
+      },
+      "toolWebExtract": {
+        "title": "Web-Extraktion",
+        "description": "Den Inhalt einer Seite per URL holen und zusammenfassen, extrahieren oder eine Frage beantworten"
+      },
+      "toolUseCases": {
+        "title": "Meine Anwendungsfälle",
+        "description": "Prompt-Vorlagen speichern und wie Karten wieder verwenden"
       }
     },
     "agent": {
@@ -1066,7 +1087,8 @@
     "nav": {
       "cards": "Agent-Modus",
       "agents": "Agents",
-      "chat": "KB-Modus"
+      "chat": "KB-Modus",
+      "tools": "Werkzeuge"
     },
     "statusLabels": {
       "PREPARED": "Bereit",
@@ -1449,5 +1471,127 @@
     "customBuild": "Von Grund auf erstellen",
     "addButton": "+ Hinzufügen",
     "createButton": "+ Erstellen"
+  },
+  "tools": {
+    "title": "Werkzeuge",
+    "subtitle": "Übersetzen, Korrekturlesen, Diagramme, Web-Extraktion, Bildgenerierung und Ihre gespeicherten Anwendungsfälle. Mit internen Dokumenten als Eingabe werden nur Dokumente verwendet, die Sie lesen dürfen.",
+    "tabs": {
+      "translate": "Übersetzen",
+      "proofread": "Korrekturlesen",
+      "diagram": "Diagramm",
+      "webExtract": "Web-Extraktion",
+      "image": "Bildgenerierung",
+      "useCases": "Meine Anwendungsfälle"
+    },
+    "source": {
+      "label": "Eingabe",
+      "text": "Text eingeben",
+      "documents": "Aus internen Dokumenten",
+      "query": "Suchbegriffe",
+      "queryPlaceholder": "Wörter, die die Dokumente finden (z. B. Urlaubsregelung)",
+      "textPlaceholder": "Text hier einfügen",
+      "documentsNote": "Durchsucht die Knowledge Base und verwendet nur Dokumente, die Sie lesen dürfen. Namen und Inhalte anderer Dokumente werden nicht an das Modell übergeben."
+    },
+    "sources": "Verwendete Dokumente",
+    "copy": "Kopieren",
+    "download": "Herunterladen",
+    "running": "Läuft...",
+    "translate": {
+      "target": "Übersetzen in",
+      "style": "Stil",
+      "note": "Hinweis (Begriffe oder Ton)",
+      "notePlaceholder": "z. B. „SVM“ nicht übersetzen",
+      "run": "Übersetzen",
+      "styles": {
+        "as-is": "Stil des Originals beibehalten",
+        "formal": "Förmlich / geschäftlich",
+        "casual": "Locker"
+      }
+    },
+    "proofread": {
+      "run": "Korrekturlesen",
+      "issues": "{count} Hinweise",
+      "noIssues": "Nichts zu korrigieren gefunden.",
+      "original": "Original",
+      "suggestion": "Vorschlag",
+      "reason": "Grund",
+      "corrected": "Korrigierter Text"
+    },
+    "diagram": {
+      "type": "Diagrammtyp",
+      "run": "Diagramm erstellen",
+      "renderError": "Das Diagramm konnte nicht gezeichnet werden",
+      "downloadSvg": "SVG herunterladen",
+      "copyCode": "Mermaid-Code kopieren",
+      "code": "Mermaid-Code",
+      "types": {
+        "auto": "Automatisch wählen",
+        "flowchart": "Flussdiagramm",
+        "sequence": "Sequenzdiagramm",
+        "class": "Klassendiagramm",
+        "state": "Zustandsdiagramm",
+        "er": "ER-Diagramm",
+        "gantt": "Gantt-Diagramm",
+        "mindmap": "Mindmap",
+        "timeline": "Zeitleiste",
+        "pie": "Kreisdiagramm"
+      }
+    },
+    "webExtract": {
+      "url": "URL",
+      "note": "Die Seite wird vom Server abgerufen. Adressen im internen Netz und cloudinterne Adressen können nicht abgerufen werden.",
+      "task": "Aufgabe",
+      "question": "Frage",
+      "run": "Ausführen",
+      "truncated": "die Seite war lang, daher wurde nur der Anfang verwendet",
+      "tasks": {
+        "summary": "Zusammenfassen",
+        "extract": "Inhalt extrahieren",
+        "question": "Frage beantworten"
+      }
+    },
+    "image": {
+      "regionNotice": "Bilder werden von einem Modell in der Region {region} erzeugt. Ihr Prompt und das erzeugte Bild werden außerhalb Japans verarbeitet.",
+      "inRegion": "Bilder werden von einem Modell in der Region {region} erzeugt.",
+      "model": "Modell: {model}",
+      "prompt": "Bild beschreiben",
+      "promptPlaceholder": "z. B. eine Illustration eines Speicherregals, verbunden mit einer Wolke, auf weißem Hintergrund",
+      "negative": "Weglassen",
+      "aspect": "Seitenverhältnis",
+      "run": "Bild erzeugen"
+    },
+    "useCases": {
+      "intro": "Speichern Sie häufig genutzte Anweisungen als Vorlagen. Nur Sie sehen und verwenden Ihre gespeicherten Anwendungsfälle.",
+      "new": "Neuer Anwendungsfall",
+      "title": "Name",
+      "description": "Beschreibung",
+      "template": "Vorlage",
+      "templateExample": "Schreibe den folgenden Text als Statusbericht-E-Mail an meine Vorgesetzte um.\n\n'{{input}}'",
+      "templateHelp": "Der beim Ausführen eingegebene Text ersetzt '{{input}}'.",
+      "useDocuments": "Interne Dokumente durchsuchen und zur Eingabe hinzufügen (nur Dokumente, die Sie lesen dürfen)",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "empty": "Noch keine gespeicherten Anwendungsfälle.",
+      "withDocuments": "Verwendet interne Dokumente",
+      "run": "Ausführen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "input": "Zu bearbeitender Text"
+    },
+    "languages": {
+      "ja": "Japanisch",
+      "en": "Englisch",
+      "ko": "Koreanisch",
+      "zh-CN": "Chinesisch (vereinfacht)",
+      "zh-TW": "Chinesisch (traditionell)",
+      "fr": "Französisch",
+      "de": "Deutsch",
+      "es": "Spanisch",
+      "pt": "Portugiesisch",
+      "it": "Italienisch",
+      "id": "Indonesisch",
+      "th": "Thailändisch",
+      "vi": "Vietnamesisch"
+    }
   }
 }

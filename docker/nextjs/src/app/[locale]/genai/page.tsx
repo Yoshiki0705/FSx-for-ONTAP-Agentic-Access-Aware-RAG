@@ -1862,6 +1862,13 @@ function ChatbotPageContent() {
         router.push(`/${memoizedLocale}/genai/agents`);
       },
     },
+    {
+      id: 'tools',
+      label: t('agentDirectory.nav.tools'),
+      onClick: () => {
+        router.push(`/${memoizedLocale}/genai/tools`);
+      },
+    },
   ], [t, themeStore, router, memoizedLocale]);
 
   // === End Task 8.1 header state ===
@@ -2258,6 +2265,11 @@ function ChatbotPageContent() {
                 locale={memoizedLocale}
                 selectedAgentId={agentMode ? selectedAgentId : null}
                 onCardClick={async (prompt, label, cardId) => {
+                  const toolCard = !agentMode && cardId ? getCardsByMode('kb').find(c => c.id === cardId && c.toolTab) : undefined;
+                  if (toolCard) {
+                    router.push(`/${memoizedLocale}/genai/tools?tab=${toolCard.toolTab}`);
+                    return;
+                  }
                   setInputText(prompt);
                   if (agentMode && cardId) {
                     // Agent mode: resolve agent via bindingService

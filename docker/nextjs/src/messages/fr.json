@@ -460,7 +460,8 @@
       "minutes": "Comptes-rendus",
       "report": "Rapports",
       "contract": "Contrats",
-      "onboarding": "Intégration"
+      "onboarding": "Intégration",
+      "tools": "Outils"
     },
     "kb": {
       "docSearch": {
@@ -532,6 +533,26 @@
         "title": "Guide d'intégration",
         "description": "Génère des guides départementaux et FAQ pour les nouveaux employés",
         "prompt": "Créez un guide d'intégration (présentation du département, flux de travail, FAQ) pour le département suivant : "
+      },
+      "toolTranslate": {
+        "title": "Traduction",
+        "description": "Traduire un texte ou des documents internes dans la langue choisie"
+      },
+      "toolProofread": {
+        "title": "Relecture",
+        "description": "Signaler les fautes, la grammaire et les termes incohérents, et rendre le texte corrigé"
+      },
+      "toolDiagram": {
+        "title": "Diagramme",
+        "description": "Transformer un texte ou des documents internes en diagramme, par exemple un organigramme (Mermaid)"
+      },
+      "toolWebExtract": {
+        "title": "Extraction web",
+        "description": "Récupérer le corps d’une page par son URL pour la résumer, l’extraire ou répondre à une question"
+      },
+      "toolUseCases": {
+        "title": "Mes cas d’usage",
+        "description": "Enregistrer des modèles de prompt et les réutiliser comme des cartes"
       }
     },
     "agent": {
@@ -1066,7 +1087,8 @@
     "nav": {
       "cards": "Mode Agent",
       "agents": "Agents",
-      "chat": "Mode KB"
+      "chat": "Mode KB",
+      "tools": "Outils"
     },
     "statusLabels": {
       "PREPARED": "Prêt",
@@ -1449,5 +1471,127 @@
     "customBuild": "Construire à partir de zéro",
     "addButton": "+ Ajouter",
     "createButton": "+ Créer"
+  },
+  "tools": {
+    "title": "Outils",
+    "subtitle": "Traduction, relecture, diagrammes, extraction web, génération d’images et vos cas d’usage enregistrés. Avec des documents internes en entrée, seuls ceux que vous pouvez lire sont utilisés.",
+    "tabs": {
+      "translate": "Traduction",
+      "proofread": "Relecture",
+      "diagram": "Diagramme",
+      "webExtract": "Extraction web",
+      "image": "Génération d’images",
+      "useCases": "Mes cas d’usage"
+    },
+    "source": {
+      "label": "Entrée",
+      "text": "Saisir un texte",
+      "documents": "Depuis les documents internes",
+      "query": "Termes de recherche",
+      "queryPlaceholder": "Mots pour trouver les documents (ex. politique de congés)",
+      "textPlaceholder": "Collez le texte ici",
+      "documentsNote": "Recherche dans la Knowledge Base et n’utilise que les documents que vous pouvez lire. Le nom et le contenu des autres documents ne sont pas transmis au modèle."
+    },
+    "sources": "Documents utilisés",
+    "copy": "Copier",
+    "download": "Télécharger",
+    "running": "En cours...",
+    "translate": {
+      "target": "Traduire en",
+      "style": "Registre",
+      "note": "Remarque (termes ou ton)",
+      "notePlaceholder": "ex. ne pas traduire « SVM »",
+      "run": "Traduire",
+      "styles": {
+        "as-is": "Garder le registre d’origine",
+        "formal": "Soutenu / professionnel",
+        "casual": "Familier"
+      }
+    },
+    "proofread": {
+      "run": "Relire",
+      "issues": "{count} remarques",
+      "noIssues": "Aucune correction trouvée.",
+      "original": "Original",
+      "suggestion": "Proposition",
+      "reason": "Raison",
+      "corrected": "Texte corrigé"
+    },
+    "diagram": {
+      "type": "Type de diagramme",
+      "run": "Créer le diagramme",
+      "renderError": "Impossible de dessiner le diagramme",
+      "downloadSvg": "Télécharger le SVG",
+      "copyCode": "Copier le code Mermaid",
+      "code": "Code Mermaid",
+      "types": {
+        "auto": "Choix automatique",
+        "flowchart": "Organigramme",
+        "sequence": "Diagramme de séquence",
+        "class": "Diagramme de classes",
+        "state": "Diagramme d’états",
+        "er": "Diagramme ER",
+        "gantt": "Diagramme de Gantt",
+        "mindmap": "Carte mentale",
+        "timeline": "Chronologie",
+        "pie": "Camembert"
+      }
+    },
+    "webExtract": {
+      "url": "URL",
+      "note": "La page est récupérée par le serveur. Les adresses du réseau interne et internes au cloud ne peuvent pas être récupérées.",
+      "task": "Tâche",
+      "question": "Question",
+      "run": "Exécuter",
+      "truncated": "la page était longue, seul le début a été utilisé",
+      "tasks": {
+        "summary": "Résumer",
+        "extract": "Extraire le corps",
+        "question": "Répondre à une question"
+      }
+    },
+    "image": {
+      "regionNotice": "Les images sont générées par un modèle de la Région {region}. Votre prompt et l’image générée sont traités hors du Japon.",
+      "inRegion": "Les images sont générées par un modèle de la Région {region}.",
+      "model": "Modèle : {model}",
+      "prompt": "Décrivez l’image",
+      "promptPlaceholder": "ex. une illustration d’une baie de stockage reliée à un nuage, sur fond blanc",
+      "negative": "À exclure",
+      "aspect": "Format",
+      "run": "Générer l’image"
+    },
+    "useCases": {
+      "intro": "Enregistrez les instructions fréquentes comme modèles. Vous seul pouvez voir et exécuter vos cas d’usage.",
+      "new": "Nouveau cas d’usage",
+      "title": "Nom",
+      "description": "Description",
+      "template": "Modèle",
+      "templateExample": "Réécris le texte suivant sous forme de courriel de compte rendu à mon responsable.\n\n'{{input}}'",
+      "templateHelp": "Le texte saisi à l’exécution remplace '{{input}}'.",
+      "useDocuments": "Rechercher des documents internes et les ajouter à l’entrée (uniquement ceux que vous pouvez lire)",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "empty": "Aucun cas d’usage enregistré.",
+      "withDocuments": "Utilise des documents internes",
+      "run": "Exécuter",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "input": "Texte à traiter"
+    },
+    "languages": {
+      "ja": "Japonais",
+      "en": "Anglais",
+      "ko": "Coréen",
+      "zh-CN": "Chinois (simplifié)",
+      "zh-TW": "Chinois (traditionnel)",
+      "fr": "Français",
+      "de": "Allemand",
+      "es": "Espagnol",
+      "pt": "Portugais",
+      "it": "Italien",
+      "id": "Indonésien",
+      "th": "Thaï",
+      "vi": "Vietnamien"
+    }
   }
 }

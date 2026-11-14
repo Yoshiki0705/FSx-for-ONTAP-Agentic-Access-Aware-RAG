@@ -571,7 +571,8 @@
       "minutes": "会议纪要",
       "report": "报告",
       "contract": "合同",
-      "onboarding": "入职引导"
+      "onboarding": "入职引导",
+      "tools": "工具"
     },
     "kb": {
       "docSearch": {
@@ -643,6 +644,26 @@
         "title": "入职指南",
         "description": "为新员工生成部门指南和常见问题",
         "prompt": "请为以下部门创建新员工入职指南（部门概况、工作流程、常见问题）："
+      },
+      "toolTranslate": {
+        "title": "翻译",
+        "description": "将输入的文字或内部文档翻译成指定语言"
+      },
+      "toolProofread": {
+        "title": "校对",
+        "description": "指出错别字、语法和用词不一致，并返回修改后的全文"
+      },
+      "toolDiagram": {
+        "title": "生成图表",
+        "description": "将文字或内部文档转换为流程图等图表（Mermaid）"
+      },
+      "toolWebExtract": {
+        "title": "网页提取",
+        "description": "获取 URL 页面的正文，进行摘要、提取或回答问题"
+      },
+      "toolUseCases": {
+        "title": "我的用例",
+        "description": "保存提示模板，像卡片一样反复使用"
       }
     },
     "agent": {
@@ -1177,7 +1198,8 @@
     "nav": {
       "cards": "Agent模式",
       "agents": "Agent列表",
-      "chat": "KB模式"
+      "chat": "KB模式",
+      "tools": "工具"
     },
     "statusLabels": {
       "PREPARED": "就绪",
@@ -1560,5 +1582,127 @@
     "customBuild": "从零开始构建",
     "addButton": "+ 添加",
     "createButton": "+ 创建"
+  },
+  "tools": {
+    "title": "工具",
+    "subtitle": "翻译、校对、生成图表、网页提取、生成图片，以及已保存的用例。以内部文档为输入时，只使用您可以阅读的文档。",
+    "tabs": {
+      "translate": "翻译",
+      "proofread": "校对",
+      "diagram": "生成图表",
+      "webExtract": "网页提取",
+      "image": "生成图片",
+      "useCases": "我的用例"
+    },
+    "source": {
+      "label": "输入",
+      "text": "输入文字",
+      "documents": "来自内部文档",
+      "query": "搜索词",
+      "queryPlaceholder": "用于查找文档的词（例如：休假制度）",
+      "textPlaceholder": "在此粘贴文字",
+      "documentsNote": "搜索 Knowledge Base，只使用您可以阅读的文档作为输入。不会将其他文档的名称或内容传给模型。"
+    },
+    "sources": "作为输入的文档",
+    "copy": "复制",
+    "download": "下载",
+    "running": "执行中...",
+    "translate": {
+      "target": "目标语言",
+      "style": "语体",
+      "note": "补充（术语或措辞）",
+      "notePlaceholder": "例如：“SVM”不翻译",
+      "run": "翻译",
+      "styles": {
+        "as-is": "保持原文语体",
+        "formal": "正式·商务",
+        "casual": "口语"
+      }
+    },
+    "proofread": {
+      "run": "校对",
+      "issues": "{count} 处问题",
+      "noIssues": "没有发现需要修改的地方。",
+      "original": "原文",
+      "suggestion": "修改建议",
+      "reason": "原因",
+      "corrected": "修改后的全文"
+    },
+    "diagram": {
+      "type": "图表类型",
+      "run": "生成图表",
+      "renderError": "无法绘制图表",
+      "downloadSvg": "下载 SVG",
+      "copyCode": "复制 Mermaid 代码",
+      "code": "Mermaid 代码",
+      "types": {
+        "auto": "自动选择",
+        "flowchart": "流程图",
+        "sequence": "时序图",
+        "class": "类图",
+        "state": "状态图",
+        "er": "ER 图",
+        "gantt": "甘特图",
+        "mindmap": "思维导图",
+        "timeline": "时间线",
+        "pie": "饼图"
+      }
+    },
+    "webExtract": {
+      "url": "URL",
+      "note": "页面由服务器获取。无法获取内部网络或云内部地址。",
+      "task": "操作",
+      "question": "问题",
+      "run": "执行",
+      "truncated": "页面较长，只使用了开头部分",
+      "tasks": {
+        "summary": "摘要",
+        "extract": "提取正文",
+        "question": "回答问题"
+      }
+    },
+    "image": {
+      "regionNotice": "图片由 {region} 区域的模型生成。提示词和生成的图片将在日本以外处理。",
+      "inRegion": "图片由 {region} 区域的模型生成。",
+      "model": "模型：{model}",
+      "prompt": "描述要生成的图片",
+      "promptPlaceholder": "例如：白色背景上，连接存储机架和云的线条插画",
+      "negative": "不希望出现的元素",
+      "aspect": "宽高比",
+      "run": "生成图片"
+    },
+    "useCases": {
+      "intro": "可以把常用的指示保存为模板。保存的用例只有您本人可以查看和使用。",
+      "new": "新建用例",
+      "title": "名称",
+      "description": "说明",
+      "template": "模板",
+      "templateExample": "请把下面的文字改写成给上司的汇报邮件。\n\n'{{input}}'",
+      "templateHelp": "执行时输入的文字会放在 '{{input}}' 的位置。",
+      "useDocuments": "搜索内部文档并加入输入（仅限您可以阅读的文档）",
+      "save": "保存",
+      "cancel": "取消",
+      "empty": "还没有保存的用例。",
+      "withDocuments": "使用内部文档",
+      "run": "执行",
+      "edit": "编辑",
+      "delete": "删除",
+      "input": "要处理的文字"
+    },
+    "languages": {
+      "ja": "日语",
+      "en": "英语",
+      "ko": "韩语",
+      "zh-CN": "中文（简体）",
+      "zh-TW": "中文（繁体）",
+      "fr": "法语",
+      "de": "德语",
+      "es": "西班牙语",
+      "pt": "葡萄牙语",
+      "it": "意大利语",
+      "id": "印尼语",
+      "th": "泰语",
+      "vi": "越南语"
+    }
   }
 }

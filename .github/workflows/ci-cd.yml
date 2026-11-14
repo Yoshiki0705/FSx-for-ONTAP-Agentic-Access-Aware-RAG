@@ -376,6 +376,9 @@ jobs:
           # その IAM・nag 抑制はこのレーンでしか合成されない。次のリリースで旧バックエンドと一緒に消す。
           - name: agent-bedrock-agents-legacy
             flags: '-c enableAgent=true -c agentBackend=bedrock-agents'
+          # ツールの画像の生成（既定は無効）。有効にしたときの region / model の検証が synth 時に走る。
+          - name: tools-image-generation
+            flags: '-c enableImageGeneration=true -c imageGenerationRegion=us-west-2 -c enableWebExtract=false'
           # Step Functions tools Gateway: 読み取り専用（既定）。state machine ARN が
           # 1 本も無いと bin/demo-app.ts が throw するのでダミー ARN を渡す。
           - name: sfn-tools-readonly
