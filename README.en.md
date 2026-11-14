@@ -59,7 +59,7 @@ This repository holds the **implementation and the measurements**. The **decisio
 | Data | [S3 AP Compatibility Matrix](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations/blob/main/docs/en/compatibility-matrix.md) | Platform-specific constraints (external) |
 | Partners | [Partner Deployment Patterns](docs/en/partner-deployment-patterns.md) | Multi-tenancy, cost estimation |
 | Benchmarks | [Benchmark Scenarios](docs/en/benchmark-scenarios.md) | 10K/100K/1M file performance measurement |
-| Demo | [Industry Demo Data (7 industries)](demo-data/industry-packs/) | Government, healthcare, legal, manufacturing, construction, education, insurance |
+| Demo | [Industry Demo Data (21 industries)](demo-data/industry-packs/) | The same 21 industries as the KB-mode industry cards (government, healthcare, legal, insurance, manufacturing, construction, education, financial services and more). Load with `demo-data/scripts/load-industry-pack.sh` |
 | All docs | [Documentation Index](docs/en/DOCUMENTATION_INDEX.md) | Complete list with recommended reading order |
 
 </details>
@@ -114,7 +114,7 @@ For the comprehensive S3 AP compatibility matrix, see [FSx-for-ONTAP-Lakehouse-I
 | Repository | Purpose | Description |
 |-----------|---------|-------------|
 | **[This repo]** | AI / RAG | Permission-aware RAG + Agentic AI |
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless automation | 17 industry serverless patterns (FPolicy event-driven) |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless automation | 28 industry serverless patterns (UC1 to UC28) (FPolicy event-driven) |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Athena / Glue / EMR / SageMaker integration |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability | Audit log delivery to Datadog / Splunk / Grafana without EC2 |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | Adoption decisions | Data-utilization domain hub: S3 AP authorization behaviour, constraints, and design options |

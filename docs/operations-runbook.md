@@ -97,7 +97,7 @@ aws ec2 describe-instances \
 
 ### 背景
 
-7業種 × 5ドキュメント = 35ドキュメント + 35メタデータファイルで、各業種の Permission-aware RAG デモを実現する。
+21 業種 × 5 ドキュメント = 105 ドキュメント + 105 メタデータファイルで、各業種の Permission-aware RAG デモを実現する。
 
 ### 前提条件
 
@@ -119,7 +119,7 @@ aws s3 sync demo-data/industry-packs/ \
 
 # Step 2: アップロード確認
 aws s3 ls "s3://${S3AP_ALIAS}/industry-packs/" --recursive --region ap-northeast-1 | wc -l
-# 期待値: 70 ファイル
+# 期待値: 210 ファイル
 
 # Step 3: KB 同期（ingestion）実行
 JOB_ID=$(aws bedrock-agent start-ingestion-job \
@@ -166,15 +166,7 @@ aws bedrock-agent-runtime retrieve \
 
 ### 対象業種と SID マッピング
 
-| 業種 | フォルダ | SID（Domain Admins以外） |
-|------|---------|--------------------------|
-| 建設 | `construction/` | `-8100`（建設部門） |
-| 教育 | `education/` | `-2200`（教育部門） |
-| 行政 | `government/` | `-2100`（行政部門） |
-| 医療 | `healthcare/` | `-2200`（医療部門） |
-| 保険 | `insurance/` | `-8200`（保険部門） |
-| 法務 | `legal/` | `-8300`（法務部門） |
-| 製造 | `manufacturing/` | `-2300`（製造部門） |
+業種ごとの SID は、[業種別デモデータパックの README](../demo-data/industry-packs/README.md) の SID 一覧を参照する（21 業種）。`python3 scripts/check-industry-packs.py` が、メタデータの SID がこの一覧にあることを検査する。部門ごとのデモユーザーまで作る場合は `demo-data/scripts/load-industry-pack.sh` を使う。
 
 ---
 

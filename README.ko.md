@@ -44,7 +44,7 @@
 | 인증 | [인증 및 사용자 관리](docs/ko/auth-and-user-management.md) | OIDC / SAML / LDAP 연동 |
 | 보안 | [위협 모델](docs/ko/threat-model.md) | 10개 위협 카테고리, 공격 경로, 완화 조치 |
 | 보안 | [거버넌스 및 감사 설계](docs/ko/governance-and-audit.md) | 감사 로그, Responsible AI, Guardrails |
-| 데모 | [업종별 데모 데이터 (7개 업종)](demo-data/industry-packs/) | 행정・의료・법무・제조・건설・교육・보험 |
+| 데모 | [업종별 데모 데이터 (21개 업종)](demo-data/industry-packs/) | KB 모드의 업종별 카드와 같은 21개 업종(행정・의료・법무・보험・제조・건설・교육・금융 등). `demo-data/scripts/load-industry-pack.sh`로 불러옴 |
 | 전체 문서 | [문서 인덱스](docs/ko/DOCUMENTATION_INDEX.md) | 권장 읽기 순서 포함 전체 목록 |
 
 </details>
@@ -95,7 +95,7 @@ S3 AP 포괄적 호환성 매트릭스는 [FSx-for-ONTAP-Lakehouse-Integrations]
 | 리포지토리 | 용도 | 개요 |
 |-----------|------|------|
 | **[본 리포지토리]** | AI / RAG | 권한 필터링 RAG + Agentic AI |
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 자동화 | 17개 업종별 서버리스 패턴 |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | Serverless 자동화 | 28개 업종별 서버리스 패턴(UC1~UC28) |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Analytics | Athena / Glue / EMR / SageMaker 통합 |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | Observability | 감사 로그를 Datadog / Splunk / Grafana로 EC2 없이 전달 |
 | [FSx-for-ONTAP-Adoption-Playbook — data-utilization](https://github.com/Yoshiki0705/FSx-for-ONTAP-Adoption-Playbook/tree/main/docs/en/domains/data-utilization) | 도입 판단 | 데이터 활용 도메인 허브: S3 AP 인가 특성 · 제약 · 설계 선택지 |

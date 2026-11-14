@@ -84,7 +84,7 @@ aws ssm get-command-invocation \
 
 ### 背景
 
-7 个行业 × 5 个文档 = 35 个文档 + 35 个元数据文件，用于跨行业 Permission-aware RAG 演示。
+21 个行业 × 5 个文档 = 105 个文档 + 105 个元数据文件，用于跨行业 Permission-aware RAG 演示。
 
 ### 操作步骤
 
@@ -101,7 +101,7 @@ aws s3 sync demo-data/industry-packs/ \
 
 # Step 2: Verify upload
 aws s3 ls "s3://${S3AP_ALIAS}/industry-packs/" --recursive --region ap-northeast-1 | wc -l
-# Expected: 70 files
+# Expected: 210 files
 
 # Step 3: Trigger KB sync (ingestion)
 JOB_ID=$(aws bedrock-agent start-ingestion-job \
@@ -124,15 +124,7 @@ done
 
 ### 行业 SID 映射
 
-| 行业 | 文件夹 | SID（Domain Admins 之外） |
-|------|--------|------------------------|
-| 建筑 | `construction/` | `-8100` |
-| 教育 | `education/` | `-2200` |
-| 政府 | `government/` | `-2100` |
-| 医疗 | `healthcare/` | `-2200` |
-| 保险 | `insurance/` | `-8200` |
-| 法律 | `legal/` | `-8300` |
-| 制造 | `manufacturing/` | `-2300` |
+For the SIDs of each industry, see the SID list in the [industry demo pack README](../../demo-data/industry-packs/README.md) (21 industries). `python3 scripts/check-industry-packs.py` checks that every SID in the metadata is on that list. To also create a demo user per department, use `demo-data/scripts/load-industry-pack.sh`.
 
 ---
 

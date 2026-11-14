@@ -109,7 +109,7 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 │   └── permission-matrix/             — 31 permission test scenarios
 ├── demo-data/
 │   ├── scripts/                       — Deployment scripts
-│   ├── industry-packs/                — 7 industry demo data packs
+│   ├── industry-packs/                — 21 industry demo data packs (match the KB-mode industry cards)
 │   └── guides/                        — Demo scenario guides
 └── docs/                              — 50+ design/operation documents (8 languages)
 ```
@@ -374,7 +374,7 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 
 | Repository | Purpose |
 |-----------|---------|
-| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | 17 industry serverless patterns via S3 AP |
+| [FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns](https://github.com/Yoshiki0705/FSx-for-ONTAP-S3AccessPoints-Serverless-Patterns) | 28 industry serverless patterns (UC1 to UC28) via S3 AP |
 | [FSx-for-ONTAP-Lakehouse-Integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Lakehouse-Integrations) | Athena/Glue/EMR/SageMaker integration via S3 AP |
 | [FSx-for-ONTAP-Observability-integrations](https://github.com/Yoshiki0705/FSx-for-ONTAP-Observability-integrations) | EC2-free audit log delivery to Datadog/Splunk/Grafana |
 

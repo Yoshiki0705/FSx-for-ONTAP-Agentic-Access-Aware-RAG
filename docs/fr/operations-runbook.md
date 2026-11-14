@@ -84,7 +84,7 @@ aws ssm get-command-invocation \
 
 ### Contexte
 
-7 secteurs × 5 documents = 35 documents + 35 fichiers de métadonnées pour la démonstration Permission-aware RAG multi-sectorielle.
+21 secteurs × 5 documents = 105 documents + 105 fichiers de métadonnées pour la démonstration Permission-aware RAG multi-sectorielle.
 
 ### Procédure
 
@@ -101,7 +101,7 @@ aws s3 sync demo-data/industry-packs/ \
 
 # Step 2: Verify upload
 aws s3 ls "s3://${S3AP_ALIAS}/industry-packs/" --recursive --region ap-northeast-1 | wc -l
-# Expected: 70 files
+# Expected: 210 files
 
 # Step 3: Trigger KB sync (ingestion)
 JOB_ID=$(aws bedrock-agent start-ingestion-job \
@@ -124,15 +124,7 @@ done
 
 ### Correspondance secteur / SID
 
-| Secteur | Dossier | SID (hors Domain Admins) |
-|---------|---------|--------------------------|
-| Construction | `construction/` | `-8100` |
-| Éducation | `education/` | `-2200` |
-| Gouvernement | `government/` | `-2100` |
-| Santé | `healthcare/` | `-2200` |
-| Assurance | `insurance/` | `-8200` |
-| Juridique | `legal/` | `-8300` |
-| Industrie | `manufacturing/` | `-2300` |
+For the SIDs of each industry, see the SID list in the [industry demo pack README](../../demo-data/industry-packs/README.md) (21 industries). `python3 scripts/check-industry-packs.py` checks that every SID in the metadata is on that list. To also create a demo user per department, use `demo-data/scripts/load-industry-pack.sh`.
 
 ---
 

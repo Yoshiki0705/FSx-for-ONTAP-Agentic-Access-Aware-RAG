@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - 業種別カードの文言を `docker/nextjs/messages/` ではなく `docker/nextjs/src/messages/` に入れ直した。アプリが読み込むのは `src/messages/`（`src/i18n/request.ts` の `../messages`、型定義、既存のテスト）で、`messages/` は 2026-06 以降更新されていない古い写しである。`next dev` で画面を見るまで、カードがキー名のまま表示されることに気づけなかった（Jest/Vitest は通っていた）
 - **引用のバッジ**: 部門と Domain Admins に許可された文書を「管理者のみ」と表示していた。Domain Admins だけの文書に限って「管理者のみ」とし、部門を含む文書は「制限付き」にした。Knowledge Base が返す引用符付きの SID も解釈する
+- 古くなった件数を 8 言語で更新した: README とエージェント向け文書の業種別デモデータを 7 から 21 業種に、関連リポジトリの業種別パターンを 17 から 28（UC1〜UC28）に、運用手順書の投入件数を 35 / 70 から 105 / 210 に変更。運用手順書の業種別 SID の表は、パックのメタデータと食い違っていた（建設を `-8100` としていたが実際は `-6100` / `-6200`）ため、検査対象の README の SID 一覧への参照に置き換えた
 - 既存パックの文書のエムダッシュ 6 か所と、`demo-data/industry-packs/README.md` の重複した SID 一覧（製造・建設・教育・保険が 2 回）、実在しないメタデータ項目（`access_level` / `doc_type`）の説明を修正した
 - `demo-data/industry-packs/README.md` の一覧で、製造・建設・教育・保険の行が重複していたのを削除した
 ## [4.5.0] - 2026-11-13
