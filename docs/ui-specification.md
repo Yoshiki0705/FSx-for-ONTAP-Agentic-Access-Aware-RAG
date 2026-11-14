@@ -478,6 +478,14 @@ KB Retrieve API → SIDフィルタリング → Converse API
 
 ![KBモード カードグリッド](screenshots/kb-mode-cards-full.png)
 
+業種を選ぶと、その業種の 3 枚（見つける・下書きする・確認する）に切り替わります。次の画像は、ローカルの開発サーバー（`next dev`）で認証を模擬して撮ったものです。デプロイした環境ではなく、アクセス可能ディレクトリは 0 件と表示されます。
+
+![業種の選択（汎用）](screenshots/industry-selector-general-ja.png)
+
+![業種別カード（法務、日本語）](screenshots/industry-cards-legal-ja.png)
+
+![業種別カード（製造、英語）](screenshots/industry-cards-manufacturing-en.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ ≡  RAG System  [📚 KB] [🤖 Agent]  ➕  Nova Pro  🇯🇵      │

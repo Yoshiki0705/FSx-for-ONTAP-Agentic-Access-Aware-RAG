@@ -626,6 +626,392 @@
       "addToFavorites": "Añadir a favoritos",
       "removeFromFavorites": "Eliminar de favoritos",
       "section": "Favoritos"
+    },
+    "industries": {
+      "government": "Administración pública",
+      "healthcare": "Sanidad",
+      "legal": "Jurídico",
+      "insurance": "Seguros",
+      "manufacturing": "Manufactura",
+      "construction": "Construcción",
+      "education": "Educación e investigación",
+      "financial": "Servicios financieros",
+      "media": "Medios y publicidad",
+      "semiconductor": "Semiconductores y EDA",
+      "lifesciences": "Ciencias de la vida",
+      "energy": "Energía y servicios públicos",
+      "automotive": "Automoción y movilidad",
+      "retail": "Comercio minorista y comercio electrónico",
+      "logistics": "Logística y transporte",
+      "telecom": "Telecomunicaciones",
+      "agrifood": "Agricultura y alimentación",
+      "realestate": "Inmobiliario",
+      "hr": "Recursos humanos",
+      "esg": "Sostenibilidad y organizaciones sin ánimo de lucro",
+      "travel": "Viajes y turismo"
+    },
+    "industry": {
+      "government": {
+        "find": {
+          "title": "Ordenanzas y circulares",
+          "description": "Buscar las disposiciones pertinentes y su fundamento en ordenanzas, reglamentos y circulares",
+          "prompt": "Enumere las ordenanzas, reglamentos y circulares relacionados con la siguiente tarea, con los nombres de los documentos y los números de artículo: "
+        },
+        "draft": {
+          "title": "Borrador de respuesta al pleno",
+          "description": "Redactar una respuesta al pleno a partir de actas anteriores y documentos de políticas",
+          "prompt": "Redacte una respuesta al pleno para la siguiente pregunta a partir de actas anteriores y documentos de políticas. Indique el documento de origen de cada punto: "
+        },
+        "check": {
+          "title": "Revisión previa a la publicación",
+          "description": "Enumerar posibles datos personales o información no divulgable antes de publicar",
+          "prompt": "Antes de publicar el siguiente documento, enumere los pasajes que puedan contener datos personales o información no divulgable. La decisión final corresponde al personal responsable: "
+        }
+      },
+      "healthcare": {
+        "find": {
+          "title": "Consulta de guías clínicas",
+          "description": "Buscar la parte pertinente de las guías y procedimientos internos",
+          "prompt": "Muestre las partes de las guías y procedimientos internos que se aplican a la siguiente situación, con los nombres de los documentos. No emita decisiones diagnósticas ni de tratamiento: "
+        },
+        "draft": {
+          "title": "Resumen de procedimientos",
+          "description": "Resumir procedimientos o avisos extensos en puntos clave para el personal clínico",
+          "prompt": "Resuma el siguiente procedimiento o aviso en puntos clave para el personal clínico. Mantenga las cifras y dosis exactamente como figuran: "
+        },
+        "check": {
+          "title": "Revisión de coherencia de políticas",
+          "description": "Detectar afirmaciones contradictorias entre políticas y avisos",
+          "prompt": "Para el siguiente tema, enumere los puntos en que las políticas, procedimientos y avisos internos se contradicen: "
+        }
+      },
+      "legal": {
+        "find": {
+          "title": "Extracción de cláusulas",
+          "description": "Extraer cláusulas de un tipo determinado de los contratos",
+          "prompt": "Del siguiente contrato, extraiga las cláusulas del tipo que indique (por ejemplo, resolución, responsabilidad, confidencialidad), con los números de cláusula: "
+        },
+        "draft": {
+          "title": "Comparación de contratos",
+          "description": "Comparar cláusula por cláusula una plantilla con el borrador de la contraparte",
+          "prompt": "Compare en una tabla, cláusula por cláusula, los dos contratos siguientes (plantilla y borrador de la contraparte). Esto es una ayuda para la revisión, no asesoramiento jurídico: "
+        },
+        "check": {
+          "title": "Revisión de conformidad con políticas",
+          "description": "Comprobar si un borrador de contrato cumple las normas internas",
+          "prompt": "Compruebe si el siguiente borrador de contrato cumple las normas y políticas internas, citando la norma pertinente. La decisión final corresponde al personal jurídico: "
+        }
+      },
+      "insurance": {
+        "find": {
+          "title": "Búsqueda de casos similares",
+          "description": "Buscar casos similares en informes de peritación anteriores",
+          "prompt": "Enumere los informes de peritación anteriores similares al siguiente caso, indicando los puntos de similitud: "
+        },
+        "draft": {
+          "title": "Revisión de documentación del siniestro",
+          "description": "Comprobar qué documentos requiere un siniestro y cuáles faltan",
+          "prompt": "Para el siguiente siniestro, enumere los documentos exigidos por las condiciones de la póliza y los criterios de peritación, y los que aún faltan: "
+        },
+        "check": {
+          "title": "Revisión de criterios de peritación",
+          "description": "Explicar los criterios y condiciones aplicables con citas",
+          "prompt": "Cite y explique los criterios de peritación y las condiciones de la póliza relacionados con el siguiente caso. La decisión final sobre el pago corresponde al perito: "
+        }
+      },
+      "manufacturing": {
+        "find": {
+          "title": "Consulta de normas de calidad",
+          "description": "Buscar valores y tolerancias en normas de calidad y especificaciones",
+          "prompt": "Para la siguiente pieza o proceso, muestre los valores y tolerancias de las normas de calidad y especificaciones, con los nombres de los documentos. Mantenga las cifras tal como figuran: "
+        },
+        "draft": {
+          "title": "Resumen de informes de defectos",
+          "description": "Resumir informes de defectos y acciones correctivas",
+          "prompt": "Organice por causa los informes de defectos y las acciones correctivas del siguiente producto o proceso: "
+        },
+        "check": {
+          "title": "Revisión de procedimientos de mantenimiento",
+          "description": "Revisar planes de mantenimiento y procedimientos de inspección",
+          "prompt": "Organice el plan de mantenimiento y el procedimiento de inspección del siguiente equipo, incluyendo intervalos y responsables: "
+        }
+      },
+      "construction": {
+        "find": {
+          "title": "Consulta de normas de seguridad",
+          "description": "Buscar las normas de seguridad de obra aplicables",
+          "prompt": "Muestre las partes de las normas de seguridad y listas de verificación que se aplican al siguiente trabajo, con los nombres de los documentos: "
+        },
+        "draft": {
+          "title": "Borrador de informe de avance",
+          "description": "Redactar un informe semanal a partir de los partes diarios y registros de avance",
+          "prompt": "Redacte un informe semanal de avance a partir de los partes diarios y registros de avance del siguiente período: "
+        },
+        "check": {
+          "title": "Impacto de cambios de diseño",
+          "description": "Enumerar los planos y tareas afectados por un cambio de diseño",
+          "prompt": "Para el siguiente cambio de diseño, enumere los planos, tareas y subcontratistas afectados, según el historial de cambios: "
+        }
+      },
+      "education": {
+        "find": {
+          "title": "Consulta de programas y normativa",
+          "description": "Buscar la parte pertinente de los programas de asignaturas y la normativa universitaria",
+          "prompt": "Para la siguiente asignatura o programa, muestre las partes pertinentes de los programas de asignaturas y la normativa universitaria, con los nombres de los documentos: "
+        },
+        "draft": {
+          "title": "Borrador de propuesta de financiación",
+          "description": "Redactar una propuesta a partir de solicitudes anteriores y bases de financiación",
+          "prompt": "Para el siguiente tema, redacte la estructura y el texto de una propuesta de investigación, usando solicitudes anteriores y las bases de financiación: "
+        },
+        "check": {
+          "title": "Resumen de criterios de evaluación",
+          "description": "Explicar los criterios de evaluación en lenguaje sencillo para los estudiantes",
+          "prompt": "Resuma los criterios de evaluación de la siguiente asignatura en una explicación sencilla para los estudiantes. No trate calificaciones individuales: "
+        }
+      },
+      "financial": {
+        "find": {
+          "title": "Consulta de normas y procedimientos",
+          "description": "Buscar las normas y procedimientos internos pertinentes",
+          "prompt": "Muestre las normas y procedimientos internos relacionados con la siguiente tarea, con los nombres de los documentos: "
+        },
+        "draft": {
+          "title": "Datos clave de documentos",
+          "description": "Extraer importes, fechas y partes de formularios y contratos",
+          "prompt": "Extraiga en una tabla los importes, fechas y partes del siguiente documento. Distinga entre presupuesto, real y previsión: "
+        },
+        "check": {
+          "title": "Revisión de cumplimiento normativo",
+          "description": "Comprobar un caso frente a la política interna de cumplimiento",
+          "prompt": "Compruebe si el siguiente caso cumple la política interna de cumplimiento normativo, citando la política pertinente. La decisión final corresponde al responsable designado: "
+        }
+      },
+      "media": {
+        "find": {
+          "title": "Búsqueda de recursos de producción",
+          "description": "Buscar recursos y documentos de un proyecto",
+          "prompt": "Busque recursos de producción y documentos que cumplan las siguientes condiciones, con los nombres de los proyectos: "
+        },
+        "draft": {
+          "title": "Derechos y condiciones de uso",
+          "description": "Comprobar el alcance y las condiciones de la licencia de un recurso",
+          "prompt": "Para el siguiente recurso, compruebe el alcance, el plazo y el territorio de la licencia a partir de contratos y registros: "
+        },
+        "check": {
+          "title": "Resumen de revisión creativa",
+          "description": "Organizar borradores creativos y notas de revisión",
+          "prompt": "Para la siguiente campaña, organice por borrador los borradores creativos y los comentarios de revisión: "
+        }
+      },
+      "semiconductor": {
+        "find": {
+          "title": "Consulta de especificaciones y reglas de diseño",
+          "description": "Buscar las especificaciones y reglas de diseño pertinentes",
+          "prompt": "Para el siguiente bloque o proceso, muestre las partes pertinentes de las especificaciones y reglas de diseño, con los nombres de los documentos: "
+        },
+        "draft": {
+          "title": "Resumen de resultados de verificación",
+          "description": "Resumir registros de verificación e informes de errores",
+          "prompt": "Resuma por gravedad los siguientes registros de verificación e informes de errores: "
+        },
+        "check": {
+          "title": "Diferencias entre revisiones",
+          "description": "Comparar revisiones de diseño o de especificaciones",
+          "prompt": "Organice las diferencias entre las dos revisiones siguientes en cambios y áreas afectadas: "
+        }
+      },
+      "lifesciences": {
+        "find": {
+          "title": "Consulta de cuadernos de laboratorio y PNT",
+          "description": "Buscar los cuadernos de laboratorio y PNT pertinentes",
+          "prompt": "Para el siguiente experimento o procedimiento, muestre los cuadernos de laboratorio y las secciones de PNT pertinentes, con los nombres de los documentos: "
+        },
+        "draft": {
+          "title": "Revisión de fichas de seguridad",
+          "description": "Revisar los puntos de manipulación de las fichas de datos de seguridad",
+          "prompt": "Para la siguiente sustancia, resuma los puntos de manipulación, almacenamiento y emergencia de su ficha de datos de seguridad, con los nombres de los documentos. Mantenga las cifras tal como figuran: "
+        },
+        "check": {
+          "title": "Revisión de registros de calidad de datos",
+          "description": "Revisar desviaciones en los registros de calidad del flujo de trabajo",
+          "prompt": "A partir de los registros de calidad del siguiente proyecto, enumere las desviaciones de procedimiento y los datos que no cumplen los criterios: "
+        }
+      },
+      "energy": {
+        "find": {
+          "title": "Consulta de registros de inspección",
+          "description": "Buscar registros e informes de inspección de equipos",
+          "prompt": "Para el siguiente equipo, enumere en orden cronológico los registros de inspección anteriores y sus hallazgos: "
+        },
+        "draft": {
+          "title": "Resumen de informes de prospección",
+          "description": "Resumir informes de exploración o de estudios de campo",
+          "prompt": "Resuma el siguiente informe de prospección en objetivo, método, resultados y cuestiones pendientes: "
+        },
+        "check": {
+          "title": "Revisión de normas de seguridad",
+          "description": "Revisar las normas y procedimientos de seguridad aplicables",
+          "prompt": "Muestre las normas y procedimientos de seguridad relacionados con el siguiente trabajo, con los nombres de los documentos: "
+        }
+      },
+      "automotive": {
+        "find": {
+          "title": "Consulta de registros de pruebas y conducción",
+          "description": "Buscar informes de pruebas y registros de conducción",
+          "prompt": "Enumere los informes de pruebas y registros de conducción que cumplan las siguientes condiciones, con las fechas: "
+        },
+        "draft": {
+          "title": "Resumen de investigación de incidencias",
+          "description": "Organizar informes de incidencias y contramedidas",
+          "prompt": "Organice en orden cronológico los informes de incidencias y contramedidas de la siguiente pieza o función: "
+        },
+        "check": {
+          "title": "Impacto de cambios de especificación",
+          "description": "Enumerar los documentos y pruebas afectados por un cambio de especificación",
+          "prompt": "Para el siguiente cambio de especificación, enumere las especificaciones, pruebas y proveedores afectados: "
+        }
+      },
+      "retail": {
+        "find": {
+          "title": "Consulta de información de productos",
+          "description": "Buscar productos en catálogos y fichas técnicas",
+          "prompt": "Enumere los productos que cumplan las siguientes condiciones, indicando lo que dicen los documentos de producto: "
+        },
+        "draft": {
+          "title": "Borrador de texto promocional",
+          "description": "Redactar textos a partir de los documentos de producto",
+          "prompt": "Redacte una descripción del siguiente producto usando únicamente datos de los documentos de producto: "
+        },
+        "check": {
+          "title": "Revisión de condiciones y política de devoluciones",
+          "description": "Revisar las condiciones de proveedores y las normas de devolución",
+          "prompt": "Para el siguiente proveedor o producto, muestre las condiciones comerciales y las normas de devolución pertinentes: "
+        }
+      },
+      "logistics": {
+        "find": {
+          "title": "Consulta de registros de entregas",
+          "description": "Buscar albaranes y registros de operaciones",
+          "prompt": "Enumere los registros de entregas y operaciones que cumplan las siguientes condiciones, con las fechas y los números de albarán: "
+        },
+        "draft": {
+          "title": "Mantenimiento de vehículos y equipos",
+          "description": "Revisar registros de inspección y mantenimiento",
+          "prompt": "Para el siguiente vehículo o equipo, organice los registros de inspección y mantenimiento y las próximas fechas de vencimiento: "
+        },
+        "check": {
+          "title": "Revisión de contratos y condiciones",
+          "description": "Revisar contratos y condiciones de transporte",
+          "prompt": "Para el siguiente caso, muestre las partes pertinentes de los contratos y condiciones de transporte, con los números de cláusula: "
+        }
+      },
+      "telecom": {
+        "find": {
+          "title": "Consulta de registros de incidentes",
+          "description": "Buscar informes de incidentes similares y las actuaciones realizadas",
+          "prompt": "Enumere los informes de incidentes y registros de actuación anteriores similares a los siguientes síntomas: "
+        },
+        "draft": {
+          "title": "Resumen de runbooks",
+          "description": "Resumir runbooks para el personal de guardia",
+          "prompt": "Resuma el siguiente runbook en puntos clave y en el orden de comprobaciones para el personal de guardia: "
+        },
+        "check": {
+          "title": "Revisión del impacto de cambios",
+          "description": "Revisar qué afecta un cambio de red",
+          "prompt": "Para el siguiente cambio, enumere los servicios afectados y los runbooks relacionados: "
+        }
+      },
+      "agrifood": {
+        "find": {
+          "title": "Consulta de trazabilidad",
+          "description": "Seguir los registros de lotes y envíos",
+          "prompt": "Para el siguiente lote, siga en orden cronológico los registros desde las materias primas hasta el envío: "
+        },
+        "draft": {
+          "title": "Registros de higiene y calidad",
+          "description": "Revisar registros de inspección de higiene y calidad",
+          "prompt": "Para el siguiente proceso, enumere las desviaciones respecto a los estándares en los registros de inspección de higiene y calidad: "
+        },
+        "check": {
+          "title": "Revisión de etiquetado y estándares",
+          "description": "Revisar el material interno sobre etiquetado y estándares",
+          "prompt": "Para el siguiente producto, muestre las partes del material interno sobre etiquetado y requisitos de los estándares. La decisión final corresponde al responsable de calidad: "
+        }
+      },
+      "realestate": {
+        "find": {
+          "title": "Consulta de documentos de inmuebles",
+          "description": "Buscar inmuebles en documentos y contratos",
+          "prompt": "Enumere los inmuebles que cumplan las siguientes condiciones, indicando lo que dicen los documentos: "
+        },
+        "draft": {
+          "title": "Condiciones clave del arrendamiento",
+          "description": "Extraer plazo, renta y resolución de los contratos de arrendamiento",
+          "prompt": "Del siguiente contrato de arrendamiento, extraiga el plazo, la renta, la renovación y las condiciones de resolución, con los números de cláusula: "
+        },
+        "check": {
+          "title": "Historial de reparaciones e inspecciones",
+          "description": "Organizar el historial de reparaciones e inspecciones",
+          "prompt": "Para el siguiente inmueble, organice cronológicamente el historial de reparaciones e inspecciones y enumere los trabajos próximos: "
+        }
+      },
+      "hr": {
+        "find": {
+          "title": "Consulta de políticas de RR. HH.",
+          "description": "Buscar las normas de RR. HH. pertinentes",
+          "prompt": "Para el siguiente programa o procedimiento, muestre las partes pertinentes del reglamento interno y las políticas de RR. HH., con los nombres de los documentos: "
+        },
+        "draft": {
+          "title": "Borrador de oferta de empleo",
+          "description": "Redactar una oferta a partir de una descripción de puesto",
+          "prompt": "Redacte una oferta de empleo a partir de la siguiente descripción de puesto. Evite expresiones que puedan discriminar por sexo, edad u otros atributos similares: "
+        },
+        "check": {
+          "title": "Organizador de material de formación",
+          "description": "Organizar el material de formación por puesto",
+          "prompt": "Organice el material de formación del siguiente puesto de modo que el orden y la finalidad queden claros: "
+        }
+      },
+      "esg": {
+        "find": {
+          "title": "Extracción de indicadores",
+          "description": "Extraer indicadores ambientales y sociales de los informes",
+          "prompt": "Del siguiente informe, extraiga en una tabla los indicadores ambientales y sociales y sus valores reales, con el ejercicio y la unidad: "
+        },
+        "draft": {
+          "title": "Borrador de solicitud de subvención",
+          "description": "Redactar una solicitud a partir de solicitudes anteriores y las bases",
+          "prompt": "Para la siguiente subvención, redacte una solicitud usando solicitudes anteriores y las bases de la convocatoria: "
+        },
+        "check": {
+          "title": "Correspondencia con estándares de divulgación",
+          "description": "Relacionar los requisitos de divulgación con el material interno",
+          "prompt": "Para los siguientes requisitos de divulgación, enumere el material interno correspondiente y la información que falta: "
+        }
+      },
+      "travel": {
+        "find": {
+          "title": "Consulta de documentos de reservas",
+          "description": "Buscar documentos de reservas y gestiones",
+          "prompt": "Enumere los documentos de reservas y gestiones que cumplan las siguientes condiciones, con las fechas: "
+        },
+        "draft": {
+          "title": "Borrador de itinerario",
+          "description": "Redactar un itinerario a partir de las gestiones realizadas",
+          "prompt": "Redacte un itinerario y una guía para los viajeros a partir de los siguientes documentos de gestión: "
+        },
+        "check": {
+          "title": "Revisión de condiciones de cancelación",
+          "description": "Revisar los gastos y condiciones de cancelación",
+          "prompt": "Para el siguiente producto de viaje, muestre las normas de cancelación y las condiciones pertinentes: "
+        }
+      }
+    },
+    "industrySelector": {
+      "label": "Sector",
+      "general": "General"
     }
   },
   "workflow": {
@@ -950,7 +1336,7 @@
     "enabledTooltip": "ON: Complementar con búsqueda web cuando los resultados KB son insuficientes (mostrado como información de referencia)",
     "disabledTooltip": "OFF: Usar solo documentos KB verificados",
     "globallyDisabledTooltip": "La búsqueda web ha sido desactivada por el administrador",
- "agentModeDisabledTooltip": "Desactivado automáticamente en modo Agent",
+    "agentModeDisabledTooltip": "Desactivado automáticamente en modo Agent",
     "confirmTitle": "¿Activar búsqueda web?",
     "confirmDescription": "Al activar la búsqueda web, parte de su consulta se enviará a un servicio de búsqueda externo. Tenga en cuenta:",
     "confirmPoint1": "Los datos sensibles se eliminan automáticamente, pero no se garantiza la eliminación completa",
@@ -1051,7 +1437,7 @@
       "create": "🚀 Crear equipo",
       "add": "+ Agregar",
       "delete": "Eliminar",
-    "language": "Idioma"
+      "language": "Idioma"
     },
     "toolSelectDesc": "Seleccione las herramientas a asignar a cada Colaborador.",
     "toolSecurityNote": "⚠️ La ejecución general de shell y las operaciones de archivos sin restricciones no están disponibles por razones de seguridad",

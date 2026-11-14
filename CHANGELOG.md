@@ -8,7 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - **業種別のタスクカード（KB モード）**: カード一覧の上に業種の選択を追加し、21 業種 × 3 枚（見つける・下書きする・確認する）のカードを用意した。業種は行政・自治体、医療、法務、保険、製造、建設、教育・研究、金融、メディア・広告、半導体・EDA、ライフサイエンス、エネルギー・電力、自動車・モビリティ、小売・EC、物流・運輸、通信、農業・食品、不動産、人事・採用、サステナビリティ・非営利、旅行・観光。文言は 8 言語（ja / en / ko / zh-CN / zh-TW / fr / de / es）。医療・法務・保険・金融などのカードは、最終判断を担当者が行うことをプロンプトに含める。Agent モードのカードは変えていない（Amazon Bedrock Agents が新規利用不可のため）。デモデータは従来の 7 業種（`demo-data/industry-packs/`）のままで、新しい業種分のデモデータは未作成。`docker/nextjs/src/__tests__/constants/industry-cards.test.ts` が、全業種の全カードの文言が 8 言語に存在することを検査する
+- **業種別デモデータパック 14 業種を追加**（金融、メディア・広告、半導体・EDA、ライフサイエンス、エネルギー・電力、自動車・モビリティ、小売・EC、物流・運輸、通信、農業・食品、不動産、人事・採用、サステナビリティ・非営利、旅行・観光）。各 5 文書と `.metadata.json`（公開 1、部門 A 2、部門 B 1、共有 1）で、既存の 7 業種と合わせて業種カードの 21 業種と 1 対 1 になる。SID 末尾は 9100〜22200 の範囲。すべて架空のデータ
+- **`scripts/check-industry-packs.py`**（`make industry-packs`、CI の `Industry Packs` ジョブ）: 業種カードとパックの 1 対 1、各文書のメタデータ、SID が README の一覧にあること、メールアドレス・IP・URL・エムダッシュがないことを検査する。`--selftest` 付き
 ### Fixed
+- 業種別カードの文言を `docker/nextjs/messages/` ではなく `docker/nextjs/src/messages/` に入れ直した。アプリが読み込むのは `src/messages/`（`src/i18n/request.ts` の `../messages`、型定義、既存のテスト）で、`messages/` は 2026-06 以降更新されていない古い写しである。`next dev` で画面を見るまで、カードがキー名のまま表示されることに気づけなかった（Jest/Vitest は通っていた）
+- 既存パックの文書のエムダッシュ 6 か所と、`demo-data/industry-packs/README.md` の重複した SID 一覧（製造・建設・教育・保険が 2 回）、実在しないメタデータ項目（`access_level` / `doc_type`）の説明を修正した
 - `demo-data/industry-packs/README.md` の一覧で、製造・建設・教育・保険の行が重複していたのを削除した
 ## [4.5.0] - 2026-11-13
 画面のテンプレート的な書き方の検査と、画面の絵文字から `lucide-react` への置き換え。追跡されていたコンパイル出力 48 本を削除したため、本番ビルドが取り込むコードが変わる（下の「変更」を参照）。

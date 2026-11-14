@@ -4,7 +4,7 @@ import path from 'path';
 import { INDUSTRIES, INDUSTRY_CARDS, KB_CARDS, getIndustryCards } from '@/constants/card-constants';
 
 const LOCALES = ['ja', 'en', 'ko', 'zh-CN', 'zh-TW', 'fr', 'de', 'es'];
-const messagesDir = path.resolve(__dirname, '../../../messages');
+const messagesDir = path.resolve(__dirname, '../../messages');
 
 function lookup(messages: any, key: string): unknown {
   return key
