@@ -52,7 +52,7 @@ test-frontend-jest: ## フロントエンドの Jest（route handler と utils�
 # （3 つは pytest.ini の testpaths=tests、tests/permission-matrix は直下）。
 PY_DIRS := automation/transfer-family automation/fsxn-ops lambda/kb-auto-sync tests/permission-matrix docker/agentcore-agent
 
-test-python: ## Python の pytest（4 ディレクトリ / 依存は .venv に用意する）
+test-python: ## Python の pytest（PY_DIRS の各ディレクトリ / 依存は .venv に用意する）
 	@for d in $(PY_DIRS); do \
 		if [ ! -x "$$d/.venv/bin/python" ]; then \
 			echo "--- $$d: .venv を作成 ---"; \

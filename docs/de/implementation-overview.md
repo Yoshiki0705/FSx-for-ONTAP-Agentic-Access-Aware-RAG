@@ -47,7 +47,7 @@ Browser → CloudFront → Lambda Function URL → Lambda Web Adapter → Next.j
 - **SID-Filterung**: Filtert Suchergebnisse basierend auf Benutzer-SID-Informationen (Details in Abschnitt 7)
 - **KB/Agent-Modus-Umschaltung**: Wechsel zwischen KB-Modus (Dokumentensuche) und Agent-Modus (mehrstufiges Reasoning) über Header-Toggle
 - **Kartenbasierte aufgabenorientierte UI**: Vor dem Start eines Chats zeigt der KB-Modus zweckspezifische Karten (Dokumentensuche, Zusammenfassungserstellung, Quiz-Generierung usw.) und der Agent-Modus Workflow-Karten (Finanzanalyse, Projektmanagement usw.) in einem Rasterlayout an. Unterstützt Favoritenverwaltung und Kategoriefilterung
-- **Agent-Modus (InvokeAgent API)**: Erreicht mehrstufiges Reasoning mit SID-Filterung durch Bedrock Agent + Permission-aware Action Group. Fällt auf KB-Hybridmodus zurück, wenn der Agent-Aufruf fehlschlägt
+- **Agent-Modus (AgentCore Runtime)**: Strands Agents auf Amazon Bedrock AgentCore Runtime lesen Dokumente nur über ein berechtigungsbewusstes Such-Tool hinter AgentCore Gateway (mehrstufiges Reasoning mit SID-Filterung, siehe Abschnitt 8)
 - **Mehrsprachige Unterstützung**: 8 Sprachen — Japanisch, Englisch, Koreanisch, Chinesisch (vereinfacht/traditionell), Französisch, Deutsch und Spanisch
 - **Zitat-Anzeige**: Zeigt Quellinformationen der als Grundlage für Antworten verwendeten Dokumente
 - **Cognito-Authentifizierung**: Anmeldung/Abmeldung und Sitzungsverwaltung
@@ -490,41 +490,20 @@ When permission checks fail, access to all documents is denied.
 
 ---
 
-## 8. Bedrock Agent — Permission-aware Agentic AI
+## 8. Agent-Modus — berechtigungsbewusste Agentic AI auf Amazon Bedrock AgentCore
 
-### Implementation Details
-
-A multi-step reasoning AI agent is implemented using Bedrock Agent. The Agent performs KB searches through a Permission-aware Action Group and generates answers referencing only documents filtered based on the user's SID permissions.
-
-### Architecture
+Die Agenten laufen auf Amazon Bedrock AgentCore Runtime. Agent-Definitionen (Name, Anweisung, Modell, Tools) liegen in DynamoDB; eine generische Runtime baut bei jedem Aufruf einen Strands-Agents-Agenten aus der Definition. Die Dokumentsuche läuft nur über die `permission-search`-Lambda hinter einem AgentCore Gateway und verwendet denselben SID-Filter wie der KB-Modus. Das Modell sieht nur `query` und `max_results`; die `userId` stammt aus dem Sitzungs-Cookie der Web-App, und ohne `userId` werden keine Dokumente zurückgegeben (Fail-Closed). Multi-Agent nutzt Strands agents-as-tools. Standard ist `agentBackend=agentcore`; Amazon Bedrock Agents bleibt mit `-c agentBackend=bedrock-agents` für ein Release verfügbar.
 
 ```
-User → InvokeAgent API → Bedrock Agent (Claude 3 Haiku)
-  │
-  ├── Permission-aware Search Action Group
-  │   ├── KB Retrieve API (vector search)
-  │   ├── DynamoDB user-access (get user SIDs)
-  │   ├── SID matching (allowed_group_sids ∩ userSIDs)
-  │   └── Return only allowed documents
-  │
-  └── Agent multi-step reasoning → Answer generation
+Agent Directory / chat
+  -> /api/bedrock/*  (create/edit/delete: DynamoDB agent-definitions, run: InvokeAgentRuntime)
+  -> AgentCore Runtime (docker/agentcore-agent, Python / Strands Agents, arm64)
+       +-- search_documents(query, max_results)
+            -> SigV4 -> agent-tools Gateway (AWS_IAM, MCP)
+            -> permission-search Lambda -> KB Retrieve -> filterByPermissions (sid-filter.ts)
 ```
 
-### CDK Resources (`enableAgent=true`)
-
-| Resource | Description |
-|----------|-------------|
-| Bedrock Agent | Claude 3 Haiku, no direct KB association (Action Group only) |
-| Agent Alias | Alias for stable invocation |
-| Action Group Lambda | Permission-aware KB search (with SID filtering) |
-| Agent IAM Role | Bedrock InvokeModel + KB Retrieve permissions |
-
-### Permission-aware Action Group
-
-The Agent does not search KB directly but always accesses it through the Action Group (`permissionAwareSearch`). This ensures:
-- Filtering based on user SID information is always applied
-- Admins can reference all documents, while regular users can only reference public documents
-- Agent multi-step reasoning is executed only with filtered documents
+Details (Ressourcen, Berechtigungsgrenze, Dateien): [Englische Fassung, Abschnitt 8](../en/implementation-overview.md#8-agent-mode--permission-aware-agentic-ai-on-amazon-bedrock-agentcore)
 
 ### Card-Based Task-Oriented UI
 
@@ -536,7 +515,7 @@ AgentModeSidebar uses CollapsiblePanel to make System Settings (region/model sel
 
 ### Dynamic Agent-Card Binding
 
-When a card is clicked, AGENT_CATEGORY_MAP (10 categories: financial, project, hr, search, presentation, approval, minutes, report, contract, onboarding) is referenced to find or dynamically create a corresponding Agent and bind it to the card. Created Agents automatically have the Permission-aware Action Group attached.
+When a card is clicked, AGENT_CATEGORY_MAP (10 categories: financial, project, hr, search, presentation, approval, minutes, report, contract, onboarding) is referenced to find or dynamically create a corresponding Agent and bind it to the card. Created Agents get the permission-aware search tool (`PermissionAwareSearch`).
 
 ### Workflow UI
 
@@ -550,9 +529,10 @@ Preset workflows are placed in AgentModeSidebar:
 
 | File | Role |
 |------|------|
-| `lib/stacks/demo/demo-ai-stack.ts` | Agent + Action Group CDK resources |
-| `lambda/bedrock-agent-actions/permission-aware-search.ts` | Action Group Lambda (TypeScript version) |
-| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | InvokeAgent API Route |
+| `lib/constructs/agentcore-agents-construct.ts` | AgentCore Runtime / Gateway / DynamoDB |
+| `docker/agentcore-agent/` | Strands agent (AgentCore Runtime) |
+| `lambda/agent-tools/permission-search/index.ts` | permission-search (Gateway target) |
+| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | Agent API Route (`agentBackend`) |
 | `docker/nextjs/src/app/[locale]/genai/page.tsx` | Agent UI (mode toggle, workflows) |
 | `docker/nextjs/src/components/bedrock/AgentModeSidebar.tsx` | Agent sidebar |
 

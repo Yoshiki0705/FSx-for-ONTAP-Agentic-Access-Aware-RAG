@@ -763,7 +763,8 @@ Key flags (excerpt):
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `enableAgent` | `false` | Bedrock Agent (KB search + multi-step reasoning) |
+| `enableAgent` | `false` | Agent mode: agents on Amazon Bedrock AgentCore Runtime (KB search + multi-step reasoning) |
+| `agentBackend` | `agentcore` | `bedrock-agents` creates the earlier Amazon Bedrock Agents (kept for one release) |
 | `enableGuardrails` | `false` | Bedrock Guardrails (content filter + PII) |
 | `enableMonitoring` | `false` | CloudWatch dashboard + SNS alerts |
 | `enableTransferFamily` | `false` | SFTP ingestion pipeline |
@@ -772,6 +773,8 @@ Key flags (excerpt):
 | `enableAgentCoreGateway` | `false` | AgentCore Gateway + Permission Interceptor |
 | `vectorStoreType` | `s3-vectors` | Vector store selection (`s3-vectors` / `opensearch-serverless`) |
 | `kbSearchType` | `SEMANTIC` | Search type (`SEMANTIC` / `HYBRID`) |
+
+> **When `enableAgent=true`**: `cdk deploy` builds the arm64 image of `docker/agentcore-agent` with the local Docker and pushes it to the CDK asset ECR repository. The deploy fails if Docker is not running. On an x86_64 machine, buildx needs arm64 emulation (QEMU).
 
 ---
 

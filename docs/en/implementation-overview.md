@@ -47,7 +47,7 @@ Browser → CloudFront → Lambda Function URL → Lambda Web Adapter → Next.j
 - **SID Filtering**: Filters search results based on user SID information (detailed in Section 7)
 - **KB/Agent Mode Toggle**: Switch between KB mode (document search) and Agent mode (multi-step reasoning) via header toggle
 - **Card-Based Task-Oriented UI**: Before starting a chat, KB mode displays purpose-specific cards (document search, summary creation, quiz generation, etc.) and Agent mode displays workflow cards (financial analysis, project management, etc.) in a grid layout. Supports favorites management and category filtering
-- **Agent Mode (InvokeAgent API)**: Achieves multi-step reasoning with SID filtering through Bedrock Agent + Permission-aware Action Group. Falls back to KB hybrid mode if Agent invocation fails
+- **Agent Mode (AgentCore Runtime)**: Strands Agents on Amazon Bedrock AgentCore Runtime read documents only through a permission-aware search tool behind AgentCore Gateway, giving multi-step reasoning with SID filtering (see section 8)
 - **Multi-Language Support**: 8 languages — Japanese, English, Korean, Chinese (Simplified/Traditional), French, German, and Spanish
 - **Citation Display**: Shows source information of documents used as the basis for answers
 - **Cognito Authentication**: Sign-in/sign-out and session management
@@ -492,41 +492,51 @@ When permission checks fail, access to all documents is denied.
 
 ---
 
-## 8. Bedrock Agent — Permission-aware Agentic AI
+## 8. Agent Mode — Permission-aware Agentic AI on Amazon Bedrock AgentCore
 
 ### Implementation Details
 
-A multi-step reasoning AI agent is implemented using Bedrock Agent. The Agent performs KB searches through a Permission-aware Action Group and generates answers referencing only documents filtered based on the user's SID permissions.
+Agent-mode agents run on Amazon Bedrock AgentCore Runtime. Agent definitions (name, instruction, model, tools) are stored in DynamoDB, and one generic Runtime receives the definition on every call and builds a Strands Agents agent from it. Document search goes only through the `permission-search` Lambda behind an AgentCore Gateway, so the model sees only documents that passed the same SID filter as KB mode (`docker/nextjs/src/lib/rag-pipeline/sid-filter.ts`).
+
+The default backend is `agentBackend=agentcore`. The previous Amazon Bedrock Agents backend (`CfnAgent` + Action Group) stays available for one release with `-c agentBackend=bedrock-agents` and is removed in the next release.
 
 ### Architecture
 
 ```
-User → InvokeAgent API → Bedrock Agent (Claude 3 Haiku)
-  │
-  ├── Permission-aware Search Action Group
-  │   ├── KB Retrieve API (vector search)
-  │   ├── DynamoDB user-access (get user SIDs)
-  │   ├── SID matching (allowed_group_sids ∩ userSIDs)
-  │   └── Return only allowed documents
-  │
-  └── Agent multi-step reasoning → Answer generation
+Agent Directory / chat screen
+  -> /api/bedrock/* (same response shapes as before; no screen changes)
+     create, edit, delete: DynamoDB ${prefix}-agent-definitions (status is always PREPARED)
+     run: InvokeAgentRuntime (definition, message, signed-in userId in the payload)
+  -> AgentCore Runtime (docker/agentcore-agent, Python / Strands Agents, arm64)
+       Strands Agent (model and instruction from the definition)
+       +-- search_documents(query, max_results)   <- the only arguments the model sees
+            -> SigV4 -> agent-tools Gateway (AWS_IAM, MCP)
+            -> permission-search Lambda
+                 +-- KB Retrieve (3x max_results)
+                 +-- DynamoDB user-access (the user's SIDs)
+                 +-- filterByPermissions (sid-filter.ts, same code as KB mode)
+                 +-- return allowed documents only
 ```
 
-### CDK Resources (`enableAgent=true`)
+Multi-agent (`enableMultiAgent`) uses Strands agents-as-tools. The team's supervisor agent calls each collaborator agent (the default team has retrieval, analysis and output) as a tool. Team definitions are in DynamoDB `${prefix}-agent-teams`.
+
+### CDK Resources (`enableAgent=true`, `agentBackend=agentcore`)
 
 | Resource | Description |
 |----------|-------------|
-| Bedrock Agent | Claude 3 Haiku, no direct KB association (Action Group only) |
-| Agent Alias | Alias for stable invocation |
-| Action Group Lambda | Permission-aware KB search (with SID filtering) |
-| Agent IAM Role | Bedrock InvokeModel + KB Retrieve permissions |
+| AgentCore Runtime | CDK builds `docker/agentcore-agent` as an arm64 image and deploys it (`AWS::BedrockAgentCore::Runtime`) |
+| agent-tools Gateway | MCP Gateway with AWS_IAM authorization; only the Runtime's execution role can call it. Separate from the `enableAgentCoreGateway` Gateway |
+| Gateway Target `permission-search` | Exposes the Lambda below as the `permission_aware_search` tool |
+| permission-search Lambda | Node.js 22 / arm64, bundles `sid-filter.ts` with esbuild |
+| DynamoDB `agent-definitions` / `agent-teams` | Agent and team definitions. The first deploy registers `rag-default` and `rag-default-team` |
+| WebApp Lambda permissions | `bedrock-agentcore:InvokeAgentRuntime` (Runtime ARN and `/runtime-endpoint/*`) and read/write on the definition tables |
 
-### Permission-aware Action Group
+### Permission Boundary
 
-The Agent does not search KB directly but always accesses it through the Action Group (`permissionAwareSearch`). This ensures:
-- Filtering based on user SID information is always applied
-- Admins can reference all documents, while regular users can only reference public documents
-- Agent multi-step reasoning is executed only with filtered documents
+- The tool the model sees has only `query` and `max_results`, no `userId`. The web app takes `userId` from the JWT in the session cookie (`session-token`), and the Runtime code adds it to the Gateway call
+- A request body `userId` that differs from the session user returns 403; no session returns 401
+- A call without `userId`, and a user with no SID record, get no documents (Fail-Closed)
+- The Gateway uses AWS_IAM authorization; nothing except the Runtime's execution role can call it
 
 ### Card-Based Task-Oriented UI
 
@@ -538,7 +548,7 @@ AgentModeSidebar uses CollapsiblePanel to make System Settings (region/model sel
 
 ### Dynamic Agent-Card Binding
 
-When a card is clicked, AGENT_CATEGORY_MAP (10 categories: financial, project, hr, search, presentation, approval, minutes, report, contract, onboarding) is referenced to find or dynamically create a corresponding Agent and bind it to the card. Created Agents automatically have the Permission-aware Action Group attached.
+When a card is clicked, AGENT_CATEGORY_MAP (10 categories: financial, project, hr, search, presentation, approval, minutes, report, contract, onboarding) is referenced to find or dynamically create a corresponding Agent and bind it to the card. Created Agents get the permission-aware search tool (`PermissionAwareSearch`).
 
 ### Workflow UI
 
@@ -552,9 +562,12 @@ Preset workflows are placed in AgentModeSidebar:
 
 | File | Role |
 |------|------|
-| `lib/stacks/demo/demo-ai-stack.ts` | Agent + Action Group CDK resources |
-| `lambda/bedrock-agent-actions/permission-aware-search.ts` | Action Group Lambda (TypeScript version) |
-| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | InvokeAgent API Route |
+| `lib/constructs/agentcore-agents-construct.ts` | CDK resources: Runtime, Gateway, definition tables, search Lambda |
+| `docker/agentcore-agent/` | The Runtime agent (`app.py` entry point, `agents.py` builder, `gateway_client.py` SigV4 + MCP) |
+| `lambda/agent-tools/permission-search/index.ts` | Gateway tool (KB Retrieve + SID filter) |
+| `docker/nextjs/src/lib/agent-backend/` | Definition storage, `InvokeAgentRuntime` calls, route branches |
+| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | Agent API Route (branches on `agentBackend`) |
+| `lib/stacks/demo/demo-ai-stack.ts` | `agentBackend` validation and the legacy `CfnAgent` + Action Group |
 | `docker/nextjs/src/app/[locale]/genai/page.tsx` | Agent UI (mode toggle, workflows) |
 | `docker/nextjs/src/components/bedrock/AgentModeSidebar.tsx` | Agent sidebar |
 

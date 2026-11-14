@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **業種別デモデータパック 14 業種を追加**（金融、メディア・広告、半導体・EDA、ライフサイエンス、エネルギー・電力、自動車・モビリティ、小売・EC、物流・運輸、通信、農業・食品、不動産、人事・採用、サステナビリティ・非営利、旅行・観光）。各 5 文書と `.metadata.json`（公開 1、部門 A 2、部門 B 1、共有 1）で、既存の 7 業種と合わせて業種カードの 21 業種と 1 対 1 になる。SID 末尾は 9100〜22200 の範囲。すべて架空のデータ
 - **`demo-data/scripts/load-industry-pack.sh`**: 業種別パックを S3 Access Point 経由で FSx for ONTAP に読み込み、Knowledge Base を同期し、各パックの部門 A と部門 B のデモユーザーを DynamoDB と Cognito に登録する。`--dry-run` で計画だけを表示する。2026-11-14 に 21 業種を ap-northeast-1 で読み込み、法務と金融で部門ごとの引用の違いを確認した（`docs/evaluation.md` 3.4）
 - **`scripts/check-industry-packs.py`**（`make industry-packs`、CI の `Industry Packs` ジョブ）: 業種カードとパックの 1 対 1、各文書のメタデータ、SID が README の一覧にあること、メールアドレス・IP・URL・エムダッシュがないことを検査する。`--selftest` 付き
+### Changed
+- **Agent モードを Amazon Bedrock AgentCore に移行**（既定 `agentBackend=agentcore`）。エージェントの作成・編集・削除は DynamoDB `${prefix}-agent-definitions` への書き込みになり、実行は 1 つの汎用 AgentCore Runtime（`docker/agentcore-agent/`、Python 3.12 / Strands Agents / arm64、CDK がビルド）への `InvokeAgentRuntime` になった。文書検索は Agent 専用の AgentCore Gateway（AWS_IAM）の Lambda ターゲット `permission-search` だけを通り、KB モードと同じ `sid-filter.ts` を同梱する。モデルが見るツールの引数は `query` と `max_results` だけで、`userId` は WebApp がセッション Cookie から取る（本文の `userId` が違えば 403、セッション無しは 401、`userId` 無しは文書 0 件）。マルチエージェントは Strands の agents-as-tools。モデル変更は定義の書き換えだけになった。`/api/bedrock/*` の応答の形は変えていないので画面は同じ。初回デプロイで `rag-default` と `rag-default-team` を登録する
+- **旧バックエンド**: `-c agentBackend=bedrock-agents` で以前の `CfnAgent` + Action Group を作る。1 リリースだけ残し、次のリリースで削除する。旧バックエンドで作ったエージェントは移らないので、Agent Directory で作り直す。不正な値は synth 時に throw する
+- `enableAgentCoreMemory` を `enableAgent` の条件から外し、独立したフラグにした（作るリソースは同じ）
+- CI の synth 行列に `agent-bedrock-agents-legacy` レーンを追加。Python テストの行列と `make test-python` に `docker/agentcore-agent` を追加
+### Removed
+- 使われていなかった TypeScript 版 Strands Agents の PoC（`docker/nextjs/src/lib/strands-agent/`）。どこからも import されておらず、SDK も依存関係に無かった
 ### Fixed
 - 業種別カードの文言を `docker/nextjs/messages/` ではなく `docker/nextjs/src/messages/` に入れ直した。アプリが読み込むのは `src/messages/`（`src/i18n/request.ts` の `../messages`、型定義、既存のテスト）で、`messages/` は 2026-06 以降更新されていない古い写しである。`next dev` で画面を見るまで、カードがキー名のまま表示されることに気づけなかった（Jest/Vitest は通っていた）
 - **引用のバッジ**: 部門と Domain Admins に許可された文書を「管理者のみ」と表示していた。Domain Admins だけの文書に限って「管理者のみ」とし、部門を含む文書は「制限付き」にした。Knowledge Base が返す引用符付きの SID も解釈する

@@ -85,7 +85,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 
 主な特徴:
 - **Permission-aware RAG** — 文書の権限メタデータと利用者の SID / UID・GID を検索時に突き合わせ（Fail-Closed）
-- **Agentic AI** — KB モード（文書検索）と Agent モード（多段階推論）をワンクリック切替
+- **Agentic AI** — KB モード（文書検索）と Agent モード（多段階推論）をワンクリック切替。Agent は Amazon Bedrock AgentCore Runtime 上で動作
 - **Smart Routing** — クエリ複雑度で Haiku / Sonnet / Opus を自動選択（コスト 40-60% 削減、[ベンチマーク](docs/benchmark-scenarios.md)）
 - **低コスト** — S3 Vectors（月数ドル）をデフォルト採用
 - **22 の統合機能** — 音声チャット、Guardrails、Graph RAG、Web Search 等（[詳細](docs/implementation-overview.md)）
@@ -161,7 +161,7 @@ make actions        # zizmor
 | ![チャット応答](docs/screenshots/v4-kb-chat-response-ja.png) | Citation + アクセスレベルバッジ |
 | ![Agent Directory](docs/screenshots/v4-agent-directory-registry-ja.png) | Agent 管理・Registry 統合 |
 | ![Smart Routing](docs/screenshots/kb-mode-smart-routing-ja.png) | 自動モデル選択 |
-| ![マルチ Agent](docs/screenshots/v4-multi-agent-mode-ja.png) | Supervisor + Collaborator 協調 |
+| ![マルチ Agent](docs/screenshots/v4-multi-agent-mode-ja.png) | 監督役エージェントが協調エージェントをツールとして呼ぶチーム実行（AgentCore Runtime） |
 
 </details>
 

@@ -70,7 +70,7 @@ Browser → WAF → CloudFront (OAC) → Lambda Web Adapter (Next.js 15)
 
 主要特性:
 - **Permission-aware RAG** — 在检索时将文档的权限元数据与调用者的 SID / UID・GID 进行比对（Fail-Closed）
-- **Agentic AI** — KB 模式（文档搜索）与 Agent 模式（多步推理）一键切换
+- **Agentic AI** — KB 模式（文档搜索）与 Agent 模式（多步推理）一键切换。Agent 运行在 Amazon Bedrock AgentCore Runtime 上
 - **Smart Routing** — 根据查询复杂度自动选择 Haiku / Sonnet / Opus（成本降低 40-60%）
 - **低成本** — 默认使用 S3 Vectors（每月数美元）
 - **22 项集成功能** — 语音聊天、Guardrails、Graph RAG、Web Search 等（[详情](docs/zh-CN/implementation-overview.md)）

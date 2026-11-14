@@ -763,7 +763,8 @@ bash demo-data/scripts/post-deploy-setup.sh
 
 | フラグ | デフォルト | 説明 |
 |--------|-----------|------|
-| `enableAgent` | `false` | Bedrock Agent（KB 検索 + 多段階推論） |
+| `enableAgent` | `false` | Agent モード。Amazon Bedrock AgentCore Runtime 上のエージェント（KB 検索 + 多段階推論） |
+| `agentBackend` | `agentcore` | `bedrock-agents` で以前の Amazon Bedrock Agents を作る（1 リリースだけ残す） |
 | `enableGuardrails` | `false` | Bedrock Guardrails（コンテンツフィルタ + PII） |
 | `enableMonitoring` | `false` | CloudWatch ダッシュボード + SNS アラート |
 | `enableTransferFamily` | `false` | SFTP インジェスションパイプライン |
@@ -772,6 +773,8 @@ bash demo-data/scripts/post-deploy-setup.sh
 | `enableAgentCoreGateway` | `false` | AgentCore Gateway + Permission Interceptor |
 | `vectorStoreType` | `s3-vectors` | ベクトルストア選択（`s3-vectors` / `opensearch-serverless`） |
 | `kbSearchType` | `SEMANTIC` | 検索タイプ（`SEMANTIC` / `HYBRID`） |
+
+> **`enableAgent=true` のとき**: `cdk deploy` が `docker/agentcore-agent` の arm64 イメージをローカルの Docker でビルドし、CDK のアセット用 ECR リポジトリへ送ります。Docker が起動していないとデプロイが失敗します。x86_64 のマシンでは buildx の arm64 エミュレーション（QEMU）が要ります。
 
 ---
 

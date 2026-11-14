@@ -1,188 +1,59 @@
-# Strands Agents SDK Migration Guide
+# Migration to Strands Agents on AgentCore Runtime
 
 **🌐 Language:** [日本語](../strands-agent-migration-guide.md) | **English**
 
-**Created**: 2026-05-31  
-**Status**: PoC implementation complete, under evaluation  
-**Reference**: [Strands Agents TypeScript SDK](https://github.com/strands-agents/sdk-typescript)
+Agent-mode agents moved from Amazon Bedrock Agents (`CfnAgent` + Action Group) to Strands Agents (Python) on Amazon Bedrock AgentCore Runtime. This document lists what changed, what did not, and how long the old backend stays available. The full design is in [Implementation Overview, section 8](implementation-overview.md#8-agent-mode--permission-aware-agentic-ai-on-amazon-bedrock-agentcore).
 
----
+## Summary of Changes
 
-## Overview
+| Aspect | Before (Amazon Bedrock Agents) | Now (AgentCore Runtime + Strands Agents) |
+|--------|-------------------------------|------------------------------------------|
+| Agent definition | `CfnAgent`, plus `CreateAgent` + `PrepareAgent` + an alias for each agent created in the UI | One item in DynamoDB `${prefix}-agent-definitions`. Creating is one write, and the status is always `PREPARED` |
+| Run | `InvokeAgent` (agent ID + alias ID) | `InvokeAgentRuntime`. One generic Runtime receives the definition, the message and the `userId` |
+| Agent code | None (managed) | `docker/agentcore-agent/` (Python 3.12, Strands Agents, arm64). CDK builds and deploys the image |
+| Search tool | Action Group Lambda | Lambda target `permission-search` on an AgentCore Gateway (AWS_IAM, MCP) |
+| Permission filter | SID matching inside the Action Group Lambda | `docker/nextjs/src/lib/rag-pipeline/sid-filter.ts` bundled into the Lambda; one implementation shared with KB mode |
+| Model change | Update the agent, prepare it again, repoint the alias | Rewrite `foundationModel` in the definition; the next run uses it |
+| Multi-agent | Supervisor + Collaborators (associated per alias) | Strands agents-as-tools. The supervisor calls each collaborator as a tool |
+| Screens and API | Agent Directory and `/api/bedrock/*` | Unchanged. The API returns the same response shapes as before |
 
-An evaluation and design document for migrating this project's Agent mode from the current Bedrock Agent (InvokeAgent API) to a Strands Agents SDK-based implementation.
+## What Did Not Change
 
----
+- **The permission boundary.** The search tool the model sees takes only `query` and `max_results`. The web app takes `userId` from the session cookie (`session-token`), and the Runtime code adds it to the Gateway call. A request body `userId` that differs from the session returns 403; no session returns 401. A call without `userId`, and a user with no SID record, get no documents (Fail-Closed)
+- **The screens.** Agent Directory, creating, editing and deleting agents, creating and running teams, and on-demand creation from cards work on the same screens
+- **AgentCore Memory.** `enableAgentCoreMemory` is now independent of `enableAgent`, and it creates the same resources
 
-## Current Architecture vs Strands Architecture
+## Design Choices
 
-| Aspect | Current (Bedrock Agent) | Strands Agents SDK |
-|--------|------------------------|-------------------|
-| Agent definition | AWS Console / CDK (CfnAgent) | TypeScript code |
-| Tool integration | Action Group Lambda | `tool()` function (TypeScript) |
-| Testability | Only after deployment | Local execution possible |
-| Model switching | Requires Agent recreation | Instant switch with `BedrockModel({ modelId })` |
-| Streaming | InvokeAgent response stream | Async Iterator |
-| Conversation management | Managed internally by Agent | `SlidingWindowConversationManager` |
-| Deployment target | Bedrock Agent (managed) | AgentCore Runtime / Lambda / Docker |
-| Cost | Agent standby cost $0 + tokens | Same (tokens only) |
-| Permission filtering | Implemented within Action Group | Implemented within `permission_aware_search` tool |
+| Choice | Option not taken, and why |
+|--------|---------------------------|
+| One generic Runtime + definitions in DynamoDB | A Runtime per agent: creation takes minutes, and each forgotten Runtime keeps billing |
+| Search runs the TypeScript `sid-filter.ts` in the Gateway's Lambda | A Python port: two implementations of the permission boundary, and only one of them gets fixed |
+| One extra Gateway for the agents (AWS_IAM) | Sharing the `enableAgentCoreGateway` Gateway: it carries an interceptor and a Policy Engine and is removed by a different flag |
 
----
+## The Old Backend
 
-## Implemented PoC
+With `-c agentBackend=bedrock-agents`, the stack creates the earlier `CfnAgent` + Action Group, and the API takes the earlier path. This value stays for one release and is removed in the next. CI synth has a lane for it (`agent-bedrock-agents-legacy`), which is removed at the same time.
 
-### File Structure
+Agents created with the old backend are not moved to the new one. Create them again in Agent Directory (one DynamoDB write; it takes seconds).
 
-```
-docker/nextjs/src/lib/strands-agent/
-├── index.ts                         — Public API
-├── create-rag-agent.ts              — Agent factory (MOCA pattern)
-└── permission-aware-search-tool.ts  — KB search tool with SID filtering
-```
+## The Earlier TypeScript PoC
 
-### Permission-Aware Search Tool
+The TypeScript PoC placed in `docker/nextjs/src/lib/strands-agent/` in 2026-05 was imported nowhere, and its SDK was not in the dependencies, so this migration removed it. The implementation is the Python one (`docker/agentcore-agent/`).
 
-```typescript
-import { tool } from '@strands-agents/sdk';
-import z from 'zod';
-import { filterByPermissions } from '@/lib/rag-pipeline';
+## Next Steps
 
-export const permissionAwareSearch = tool({
-  name: 'permission_aware_search',
-  description: 'Search the knowledge base with automatic permission filtering',
-  inputSchema: z.object({
-    query: z.string(),
-    userId: z.string(),
-    maxResults: z.number().optional().default(10),
-  }),
-  callback: async (input) => {
-    // 1. KB Retrieve
-    // 2. SID Permission Filter (reuses rag-pipeline/sid-filter)
-    // 3. Format results for Agent
-  },
-});
-```
+This migration moved agent creation, runs, multi-agent, model change and Memory to AgentCore. The next change moves these three:
 
-### Agent Creation
-
-```typescript
-import { createRagAgent } from '@/lib/strands-agent';
-
-const agent = createRagAgent({
-  userId: 'admin@example.com',
-  modelId: 'anthropic.claude-haiku-4-5-20251001-v1:0',
-});
-
-const result = await agent.invoke('Q4の売上について教えてください');
-console.log(result.lastMessage);
-```
-
----
-
-## Migration Benefits
-
-1. **Local testing**: Run agents locally with `npx tsx`. No deployment needed, dramatically faster development cycles
-2. **Type-safe tool definitions**: Input validation via Zod schemas. More concise than Action Group OpenAPI schemas
-3. **rag-pipeline module reuse**: Uses `filterByPermissions()` directly. No duplication of SID filtering logic
-4. **Smart Routing integration**: Dynamically switch models within the Agent (Haiku → Sonnet → Opus)
-5. **AgentCore Runtime deployment**: Deploy to AgentCore Runtime in production for scalability
-
----
-
-## Migration Steps (Recommended)
-
-### Phase A: Parallel Operation (Current)
-- Keep the existing Bedrock Agent (InvokeAgent API) as-is
-- Expose the Strands Agent on a new API route (`/api/strands-agent/invoke`)
-- Add a "Strands Agent (Beta)" option in the UI
-
-### Phase B: Feature Parity Verification
-- Validate Permission-aware Search behavior (SID filtering)
-- Validate multi-turn conversation behavior (SlidingWindowConversationManager)
-- UI integration of streaming responses
-
-### Phase C: Switchover
-- Switch default Agent to Strands
-- Keep Bedrock Agent as deprecated (for fallback)
-- Automate deployment to AgentCore Runtime
-
----
-
-## Prerequisites
-
-```bash
-# Install Strands Agents SDK
-cd docker/nextjs
-npm install @strands-agents/sdk zod
-```
-
----
-
-## Constraints and Notes
-
-- Strands TypeScript SDK is v1.0 (GA) as of June 2026
-- AgentCore Runtime deployment is not supported by CloudFormation (CLI/SDK only)
-- `SlidingWindowConversationManager` is in-memory. Persistence requires integration with AgentCore Memory
-- Browser execution is also supported, but this project targets Lambda (Node.js) execution
-
----
-
-## Streaming Response Integration Design
-
-The Strands SDK supports streaming via Async Iterator. Design for UI integration:
-
-```typescript
-// API Route (Next.js) — SSE conversion
-export async function POST(request: NextRequest) {
-  const agent = createRagAgent({ userId, modelId });
-
-  // Strands Async Iterator → ReadableStream (SSE)
-  const stream = new ReadableStream({
-    async start(controller) {
-      const encoder = new TextEncoder();
-      for await (const event of agent.stream(query)) {
-        if (event.type === 'text') {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.data })}\n\n`));
-        } else if (event.type === 'tool_use') {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ tool: event.name, status: 'running' })}\n\n`));
-        }
-      }
-      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-      controller.close();
-    },
-  });
-
-  return new Response(stream, {
-    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
-  });
-}
-```
-
-The UI side extends the existing `useChat` hook to process SSE events:
-- `text` event → Incremental display in chat bubble
-- `tool_use` event → Display "🔍 Searching..." indicator
-- `[DONE]` → Stream complete, display citations
-
----
-
-## Multi-Tenant Isolation Patterns
-
-| Pattern | Isolation Level | Cost | Applicable Scenario |
-|---------|----------------|------|---------------------|
-| **Shared Agent + userId isolation** | Logical isolation (SID filtering) | Low | Department isolation within a single organization |
-| **Per-tenant Agent instance** | Agent instance isolation | Medium | Multi-tenant SaaS |
-| **Per-tenant AgentCore Runtime** | Runtime isolation | High | Regulatory requirements (healthcare, finance) |
-
-Recommendation: This project's SID filtering is designed with the "Shared Agent + userId isolation" pattern. Since the `permission_aware_search` tool controls document access based on userId, there is no need to isolate Agent instances. However, consider Per-tenant Agent instances if you need different model selections or prompts per tenant.
-
----
+1. Switch the run-trace view to AgentCore Observability
+2. Switch scheduled runs to EventBridge Scheduler calling the Runtime
+3. Run Agent Registry import and publish against the DynamoDB definitions
 
 ## Related Documents
 
 | Document | Content |
 |----------|---------|
-| [Strands Agents TypeScript Quickstart](https://strandsagents.com/docs/user-guide/quickstart/typescript/) | SDK introduction |
-| [AgentCore Runtime Deployment](https://strandsagents.com/docs/user-guide/deploy/deploy_to_bedrock_agentcore/typescript/) | Production deployment procedure |
-| [next-phase-event-driven-agents.md](next-phase-event-driven-agents.md) | Event-Driven Agent Trigger design |
-| [implementation-overview.md](implementation-overview.md) | Item 8: Bedrock Agent implementation |
+| [Implementation Overview, section 8](implementation-overview.md#8-agent-mode--permission-aware-agentic-ai-on-amazon-bedrock-agentcore) | Architecture, CDK resources, permission boundary |
+| [Agent Mode Development Guide](agent-mode-development-guide.md) | Screen-side implementation |
+| [Deploying Strands Agents to AgentCore Runtime](https://strandsagents.com/latest/documentation/docs/user-guide/deploy/deploy_to_bedrock_agentcore/) | Official Strands Agents procedure |
+| [Amazon Bedrock AgentCore Developer Guide](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html) | Runtime and Gateway |

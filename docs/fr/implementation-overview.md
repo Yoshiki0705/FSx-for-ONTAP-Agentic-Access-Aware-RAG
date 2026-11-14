@@ -47,7 +47,7 @@ Browser → CloudFront → Lambda Function URL → Lambda Web Adapter → Next.j
 - **Filtrage SID** : Filtre les résultats de recherche basé sur les informations SID de l'utilisateur (détaillé dans la section 7)
 - **Basculement mode KB/Agent** : Basculez entre le mode KB (recherche de documents) et le mode Agent (raisonnement multi-étapes) via le toggle dans l'en-tête
 - **Interface orientée tâches basée sur des cartes** : Avant de commencer un chat, le mode KB affiche des cartes spécifiques (recherche de documents, création de résumés, génération de quiz, etc.) et le mode Agent affiche des cartes de workflow (analyse financière, gestion de projet, etc.) en grille. Supporte la gestion des favoris et le filtrage par catégorie
-- **Mode Agent (API InvokeAgent)** : Réalise un raisonnement multi-étapes avec filtrage SID via Bedrock Agent + Permission-aware Action Group. Se replie sur le mode hybride KB si l'invocation de l'Agent échoue
+- **Mode Agent (AgentCore Runtime)** : des agents Strands Agents sur Amazon Bedrock AgentCore Runtime ne lisent les documents que via un outil de recherche sensible aux permissions derrière AgentCore Gateway (raisonnement multi-étapes avec filtrage SID, voir section 8)
 - **Support multilingue** : 8 langues — japonais, anglais, coréen, chinois (simplifié/traditionnel), français, allemand et espagnol
 - **Affichage des citations** : Affiche les informations sources des documents utilisés comme base des réponses
 - **Authentification Cognito** : Connexion/déconnexion et gestion de session
@@ -351,41 +351,20 @@ Lorsque les vérifications de permissions échouent, l'accès à tous les docume
 
 ---
 
-## 8. Bedrock Agent — IA agentique sensible aux permissions
+## 8. Mode Agent — IA agentique sensible aux permissions sur Amazon Bedrock AgentCore
 
-### Détails d'implémentation
-
-Un agent IA à raisonnement multi-étapes est implémenté avec Bedrock Agent. L'Agent effectue des recherches KB via un Permission-aware Action Group et génère des réponses en référençant uniquement les documents filtrés selon les permissions SID de l'utilisateur.
-
-### Architecture
+Les agents s'exécutent sur Amazon Bedrock AgentCore Runtime. Les définitions (nom, instruction, modèle, outils) sont stockées dans DynamoDB, et un Runtime générique unique construit à chaque appel un agent Strands Agents à partir de la définition. La recherche de documents passe uniquement par la Lambda `permission-search` derrière un AgentCore Gateway et applique le même filtre SID que le mode KB. Le modèle ne voit que `query` et `max_results` ; le `userId` provient du cookie de session de l'application web, et sans `userId` aucun document n'est renvoyé (Fail-Closed). Le mode multi-agent utilise les agents-as-tools de Strands. La valeur par défaut est `agentBackend=agentcore` ; Amazon Bedrock Agents reste disponible pendant une version avec `-c agentBackend=bedrock-agents`.
 
 ```
-User → InvokeAgent API → Bedrock Agent (Claude 3 Haiku)
-  │
-  ├── Permission-aware Search Action Group
-  │   ├── KB Retrieve API (vector search)
-  │   ├── DynamoDB user-access (get user SIDs)
-  │   ├── SID matching (allowed_group_sids ∩ userSIDs)
-  │   └── Return only allowed documents
-  │
-  └── Agent multi-step reasoning → Answer generation
+Agent Directory / chat
+  -> /api/bedrock/*  (create/edit/delete: DynamoDB agent-definitions, run: InvokeAgentRuntime)
+  -> AgentCore Runtime (docker/agentcore-agent, Python / Strands Agents, arm64)
+       +-- search_documents(query, max_results)
+            -> SigV4 -> agent-tools Gateway (AWS_IAM, MCP)
+            -> permission-search Lambda -> KB Retrieve -> filterByPermissions (sid-filter.ts)
 ```
 
-### Ressources CDK (`enableAgent=true`)
-
-| Ressource | Description |
-|----------|-------------|
-| Bedrock Agent | Claude 3 Haiku, pas d'association KB directe (Action Group uniquement) |
-| Agent Alias | Alias pour l'invocation stable |
-| Lambda Action Group | Recherche KB sensible aux permissions (avec filtrage SID) |
-| Rôle IAM Agent | Permissions Bedrock InvokeModel + KB Retrieve |
-
-### Permission-aware Action Group
-
-L'Agent ne recherche pas directement dans la KB mais y accède toujours via l'Action Group (`permissionAwareSearch`). Cela garantit :
-- Le filtrage basé sur les informations SID de l'utilisateur est toujours appliqué
-- Les administrateurs peuvent référencer tous les documents, tandis que les utilisateurs standard ne peuvent référencer que les documents publics
-- Le raisonnement multi-étapes de l'Agent est exécuté uniquement avec les documents filtrés
+Détails (ressources, limite des permissions, fichiers): [version anglaise, section 8](../en/implementation-overview.md#8-agent-mode--permission-aware-agentic-ai-on-amazon-bedrock-agentcore)
 
 ### Interface orientée tâches basée sur des cartes
 
@@ -395,9 +374,10 @@ Des grilles de cartes spécifiques au mode sont affichées avant de commencer un
 
 | Fichier | Rôle |
 |------|------|
-| `lib/stacks/demo/demo-ai-stack.ts` | Ressources CDK Agent + Action Group |
-| `lambda/bedrock-agent-actions/permission-aware-search.ts` | Lambda Action Group (version TypeScript) |
-| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | Route API InvokeAgent |
+| `lib/constructs/agentcore-agents-construct.ts` | AgentCore Runtime / Gateway / DynamoDB |
+| `docker/agentcore-agent/` | Strands agent (AgentCore Runtime) |
+| `lambda/agent-tools/permission-search/index.ts` | permission-search (Gateway target) |
+| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | Agent API Route (`agentBackend`) |
 | `docker/nextjs/src/app/[locale]/genai/page.tsx` | Interface Agent (toggle de mode, workflows) |
 | `docker/nextjs/src/components/bedrock/AgentModeSidebar.tsx` | Barre latérale Agent |
 

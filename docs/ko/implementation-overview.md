@@ -47,7 +47,7 @@ Browser → CloudFront → Lambda Function URL → Lambda Web Adapter → Next.j
 - **SID 필터링**: 사용자 SID 정보에 기반한 검색 결과 필터링 (섹션 7에서 상세 설명)
 - **KB/Agent 모드 전환**: 헤더 토글을 통해 KB 모드(문서 검색)와 Agent 모드(다단계 추론) 간 전환
 - **카드 기반 태스크 지향 UI**: 채팅 시작 전 KB 모드에서는 목적별 카드(문서 검색, 요약 작성, 퀴즈 생성 등), Agent 모드에서는 워크플로우 카드(재무 분석, 프로젝트 관리 등)를 그리드 레이아웃으로 표시. 즐겨찾기 관리 및 카테고리 필터링 지원
-- **Agent 모드 (InvokeAgent API)**: Bedrock Agent + Permission-aware Action Group을 통한 SID 필터링 포함 다단계 추론 실현. Agent 호출 실패 시 KB 하이브리드 모드로 폴백
+- **Agent 모드 (AgentCore Runtime)**: Amazon Bedrock AgentCore Runtime 위의 Strands Agents가 AgentCore Gateway 뒤의 권한 인식 검색 도구로만 문서를 참조하여 SID 필터링 포함 다단계 추론 실현(8절 참조)
 - **다국어 지원**: 8개 언어 — 일본어, 영어, 한국어, 중국어(간체/번체), 프랑스어, 독일어, 스페인어
 - **Citation 표시**: 답변의 근거가 된 문서의 소스 정보 표시
 - **Cognito 인증**: 로그인/로그아웃 및 세션 관리
@@ -490,41 +490,20 @@ Retrieve API를 사용하는 이유: RetrieveAndGenerate API는 Citation 메타�
 
 ---
 
-## 8. Bedrock Agent — 권한 인식 Agentic AI
+## 8. Agent 모드 — Amazon Bedrock AgentCore 기반 권한 인식 Agentic AI
 
-### 구현 상세
-
-Bedrock Agent를 사용하여 다단계 추론 AI 에이전트를 구현합니다. Agent는 Permission-aware Action Group을 통해 KB 검색을 수행하고, 사용자의 SID 권한에 기반하여 필터링된 문서만 참조하여 답변을 생성합니다.
-
-### 아키텍처
+에이전트는 Amazon Bedrock AgentCore Runtime에서 실행됩니다. 에이전트 정의(이름, 지시, 모델, 도구)는 DynamoDB에 저장되며, 하나의 범용 Runtime이 호출할 때마다 정의를 받아 Strands Agents 에이전트를 구성합니다. 문서 검색은 AgentCore Gateway 뒤의 `permission-search` Lambda만을 거치며 KB 모드와 같은 SID 필터를 사용합니다. 모델이 보는 인수는 `query`와 `max_results`뿐이고, `userId`는 웹 앱의 세션 쿠키에서 가져옵니다. `userId`가 없으면 문서를 반환하지 않습니다(Fail-Closed). 멀티 에이전트는 Strands의 agents-as-tools를 사용합니다. 기본값은 `agentBackend=agentcore`이며, Amazon Bedrock Agents는 `-c agentBackend=bedrock-agents`로 1 릴리스 동안 유지됩니다.
 
 ```
-User → InvokeAgent API → Bedrock Agent (Claude 3 Haiku)
-  │
-  ├── Permission-aware Search Action Group
-  │   ├── KB Retrieve API (벡터 검색)
-  │   ├── DynamoDB user-access (사용자 SID 조회)
-  │   ├── SID 매칭 (allowed_group_sids ∩ userSIDs)
-  │   └── 허용된 문서만 반환
-  │
-  └── Agent 다단계 추론 → 답변 생성
+Agent Directory / chat
+  -> /api/bedrock/*  (create/edit/delete: DynamoDB agent-definitions, run: InvokeAgentRuntime)
+  -> AgentCore Runtime (docker/agentcore-agent, Python / Strands Agents, arm64)
+       +-- search_documents(query, max_results)
+            -> SigV4 -> agent-tools Gateway (AWS_IAM, MCP)
+            -> permission-search Lambda -> KB Retrieve -> filterByPermissions (sid-filter.ts)
 ```
 
-### CDK 리소스 (`enableAgent=true`)
-
-| 리소스 | 설명 |
-|--------|------|
-| Bedrock Agent | Claude 3 Haiku, KB 직접 연결 없음 (Action Group만) |
-| Agent Alias | 안정적 호출을 위한 별칭 |
-| Action Group Lambda | 권한 인식 KB 검색 (SID 필터링 포함) |
-| Agent IAM Role | Bedrock InvokeModel + KB Retrieve 권한 |
-
-### Permission-aware Action Group
-
-Agent는 KB를 직접 검색하지 않고 항상 Action Group(`permissionAwareSearch`)을 통해 접근합니다. 이를 통해:
-- 사용자 SID 정보에 기반한 필터링이 항상 적용됨
-- 관리자는 모든 문서를 참조할 수 있고, 일반 사용자는 공개 문서만 참조 가능
-- Agent 다단계 추론은 필터링된 문서만으로 실행됨
+상세(리소스, 권한 경계, 파일): [영어판 8절](../en/implementation-overview.md#8-agent-mode--permission-aware-agentic-ai-on-amazon-bedrock-agentcore)
 
 ### 카드 기반 태스크 지향 UI
 
@@ -536,7 +515,7 @@ AgentModeSidebar는 CollapsiblePanel을 사용하여 시스템 설정(리전/모
 
 ### 동적 Agent-카드 바인딩
 
-카드 클릭 시 AGENT_CATEGORY_MAP(10개 카테고리: financial, project, hr, search, presentation, approval, minutes, report, contract, onboarding)을 참조하여 해당 Agent를 찾거나 동적으로 생성하여 카드에 바인딩합니다. 생성된 Agent에는 Permission-aware Action Group이 자동으로 첨부됩니다.
+카드 클릭 시 AGENT_CATEGORY_MAP(10개 카테고리: financial, project, hr, search, presentation, approval, minutes, report, contract, onboarding)을 참조하여 해당 Agent를 찾거나 동적으로 생성하여 카드에 바인딩합니다. 생성된 Agent에는 권한 인식 검색 도구(`PermissionAwareSearch`)가 붙습니다.
 
 ### 워크플로우 UI
 
@@ -550,9 +529,10 @@ AgentModeSidebar에 프리셋 워크플로우가 배치됩니다:
 
 | 파일 | 역할 |
 |------|------|
-| `lib/stacks/demo/demo-ai-stack.ts` | Agent + Action Group CDK 리소스 |
-| `lambda/bedrock-agent-actions/permission-aware-search.ts` | Action Group Lambda (TypeScript 버전) |
-| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | InvokeAgent API Route |
+| `lib/constructs/agentcore-agents-construct.ts` | AgentCore Runtime / Gateway / DynamoDB |
+| `docker/agentcore-agent/` | Strands agent (AgentCore Runtime) |
+| `lambda/agent-tools/permission-search/index.ts` | permission-search (Gateway target) |
+| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | Agent API Route (`agentBackend`) |
 | `docker/nextjs/src/app/[locale]/genai/page.tsx` | Agent UI (모드 전환, 워크플로우) |
 | `docker/nextjs/src/components/bedrock/AgentModeSidebar.tsx` | Agent 사이드바 |
 

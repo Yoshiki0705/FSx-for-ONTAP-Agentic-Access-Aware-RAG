@@ -44,7 +44,7 @@ Next.js 15（App Router）で実装したRAGチャットボットアプリケー
 - **SIDフィルタリング**: 検索結果をユーザーのSID情報に基づいてフィルタリング（後述の項目7で詳細説明）
 - **KB/Agentモード切替**: ヘッダーのトグルでKBモード（文書検索）とAgentモード（多段階推論）を切替
 - **カードベースのタスク指向UI**: チャット開始前にKBモードでは目的別カード（文書検索、要約作成、学習問題作成等）、Agentモードではワークフローカード（財務分析、プロジェクト管理等）をグリッド表示。お気に入り管理・カテゴリフィルタリング対応
-- **Agentモード（InvokeAgent API）**: Bedrock Agent + Permission-aware Action Groupで、SIDフィルタリング付きの多段階推論を実現。Agent呼び出し失敗時はKBハイブリッド方式にフォールバック
+- **Agentモード（AgentCore Runtime）**: Amazon Bedrock AgentCore Runtime 上の Strands Agents が、AgentCore Gateway 経由の権限付き検索ツールだけで文書を参照し、SIDフィルタリング付きの多段階推論を実現（詳細は項目8）
 - **多言語対応**: 日本語・英語・韓国語・中国語（簡体/繁体）・フランス語・ドイツ語・スペイン語の8言語
 - **Citation表示**: 回答の根拠となったドキュメントのソース情報を表示
 - **Cognito認証**: サインイン/サインアウト、セッション管理
@@ -489,41 +489,51 @@ Retrieve APIを使用する理由: RetrieveAndGenerate APIはcitationのメタ�
 
 ---
 
-## 8. Bedrock Agent — Permission-aware Agentic AI
+## 8. Agent モード — Amazon Bedrock AgentCore 上の Permission-aware Agentic AI
 
 ### 実装内容
 
-Bedrock Agentを使用した多段階推論AIエージェントを実装しています。AgentはPermission-aware Action Groupを通じてKB検索を行い、ユーザーのSID権限に基づいてフィルタリングされた文書のみを参照して回答を生成します。
+Agent モードのエージェントは Amazon Bedrock AgentCore Runtime 上で動きます。エージェントの定義（名前・指示・モデル・ツール）は DynamoDB に保存し、1 つの汎用 Runtime が呼び出しのたびに定義を受け取って Strands Agents のエージェントを組み立てます。文書検索は AgentCore Gateway の背後にある `permission-search` Lambda だけを通り、KB モードと同じ SID フィルタ（`docker/nextjs/src/lib/rag-pipeline/sid-filter.ts`）を通った文書だけがモデルに渡ります。
+
+既定のバックエンドは `agentBackend=agentcore` です。以前の Amazon Bedrock Agents（`CfnAgent` + Action Group）は `-c agentBackend=bedrock-agents` で 1 リリースだけ残し、次のリリースで削除します。
 
 ### アーキテクチャ
 
 ```
-User -> InvokeAgent API -> Bedrock Agent (Claude 3 Haiku)
-  |
-  +-- Permission-aware Search Action Group
-  |   +-- KB Retrieve API (vector search)
-  |   +-- DynamoDB user-access (get user SIDs)
-  |   +-- SID matching (allowed_group_sids ∩ userSIDs)
-  |   +-- Return only allowed documents
-  |
-  +-- Agent multi-step reasoning -> Answer generation
+Agent Directory / チャット画面
+  -> /api/bedrock/*（応答の形は以前と同じ。画面の変更なし）
+     作成・編集・削除: DynamoDB ${prefix}-agent-definitions（状態は常に PREPARED）
+     実行: InvokeAgentRuntime（定義・メッセージ・ログイン中の userId を payload で渡す）
+  -> AgentCore Runtime（docker/agentcore-agent、Python / Strands Agents、arm64）
+       Strands Agent（定義のモデルと指示）
+       +-- search_documents(query, max_results)   ← モデルが見る引数はこの 2 つだけ
+            -> SigV4 -> agent-tools Gateway（AWS_IAM、MCP）
+            -> permission-search Lambda
+                 +-- KB Retrieve（max_results の 3 倍を取得）
+                 +-- DynamoDB user-access（ユーザーの SID）
+                 +-- filterByPermissions（sid-filter.ts、KB モードと同じ実装）
+                 +-- 許可された文書だけを返す
 ```
 
-### CDKリソース（`enableAgent=true`）
+マルチエージェント（`enableMultiAgent`）は Strands の agents-as-tools で動きます。チームの監督役エージェントが、各協調エージェント（既定のチームは検索・分析・出力の 3 つ）をツールとして呼び出します。チーム定義は DynamoDB `${prefix}-agent-teams` にあります。
+
+### CDKリソース（`enableAgent=true`、`agentBackend=agentcore`）
 
 | リソース | 説明 |
 |---------|------|
-| Bedrock Agent | Claude 3 Haiku、KB直接紐づけなし（Action Group経由のみ） |
-| Agent Alias | 安定した呼び出し用エイリアス |
-| Action Group Lambda | Permission-aware KB検索（SIDフィルタリング付き） |
-| Agent IAMロール | Bedrock InvokeModel + KB Retrieve権限 |
+| AgentCore Runtime | `docker/agentcore-agent` を arm64 イメージとして CDK がビルドしてデプロイ（`AWS::BedrockAgentCore::Runtime`） |
+| agent-tools Gateway | AWS_IAM 認可の MCP Gateway。呼び出せるのは Runtime の実行ロールだけ。`enableAgentCoreGateway` の Gateway とは別のもの |
+| Gateway Target `permission-search` | 下の Lambda を `permission_aware_search` ツールとして公開 |
+| permission-search Lambda | Node.js 22 / arm64。`sid-filter.ts` を esbuild で同梱 |
+| DynamoDB `agent-definitions` / `agent-teams` | エージェントとチームの定義。初回デプロイ時に `rag-default` と `rag-default-team` を登録 |
+| WebApp Lambda の権限 | `bedrock-agentcore:InvokeAgentRuntime`（Runtime ARN と `/runtime-endpoint/*`）と定義テーブルの読み書き |
 
-### Permission-aware Action Group
+### 権限の境界
 
-AgentはKBを直接検索せず、必ずAction Group（`permissionAwareSearch`）経由でアクセスします。これにより:
-- ユーザーのSID情報に基づくフィルタリングが常に適用される
-- 管理者は全ドキュメント、一般ユーザーは公開ドキュメントのみ参照
-- Agentの多段階推論はフィルタ済みドキュメントのみで実行
+- モデルに見えるツールの引数は `query` と `max_results` だけで、`userId` はありません。`userId` は WebApp がセッション Cookie（`session-token`）の JWT から取り、Runtime のコードが Gateway 呼び出しに付けます
+- リクエスト本文の `userId` がセッションのユーザーと違えば 403、セッションが無ければ 401 を返します
+- `userId` が無い呼び出しと、SID の記録が無いユーザーには文書を 1 件も返しません（Fail-Closed）
+- Gateway は AWS_IAM 認可で、Runtime の実行ロール以外からは呼び出せません
 
 ### カードベースのタスク指向UI
 
@@ -535,7 +545,7 @@ AgentModeSidebarはCollapsiblePanelでSystem Settings（リージョン・モデ
 
 ### 動的Agent-Card紐付け
 
-カードクリック時にAGENT_CATEGORY_MAP（10カテゴリ: financial, project, hr, search, presentation, approval, minutes, report, contract, onboarding）を参照し、対応するAgentを検索または動的に作成してカードと紐付ける。作成されたAgentにはPermission-aware Action Groupが自動アタッチされる。
+カードクリック時にAGENT_CATEGORY_MAP（10カテゴリ: financial, project, hr, search, presentation, approval, minutes, report, contract, onboarding）を参照し、対応するAgentを検索または動的に作成してカードと紐付ける。作成されたAgentには権限付き検索ツール（`PermissionAwareSearch`）が付く。
 
 ### ワークフローUI
 
@@ -549,9 +559,12 @@ AgentModeSidebarにプリセットワークフローを配置:
 
 | ファイル | 役割 |
 |---------|------|
-| `lib/stacks/demo/demo-ai-stack.ts` | Agent + Action Group CDKリソース |
-| `lambda/bedrock-agent-actions/permission-aware-search.ts` | Action Group Lambda（TypeScript版） |
-| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | InvokeAgent API Route |
+| `lib/constructs/agentcore-agents-construct.ts` | Runtime・Gateway・定義テーブル・検索 Lambda の CDK リソース |
+| `docker/agentcore-agent/` | Runtime のエージェント（`app.py` 入口、`agents.py` 組み立て、`gateway_client.py` SigV4 + MCP） |
+| `lambda/agent-tools/permission-search/index.ts` | Gateway のツール（KB Retrieve + SID フィルタ） |
+| `docker/nextjs/src/lib/agent-backend/` | 定義の保存と `InvokeAgentRuntime` 呼び出し、ルートの分岐 |
+| `docker/nextjs/src/app/api/bedrock/agent/route.ts` | Agent API Route（`agentBackend` で分岐） |
+| `lib/stacks/demo/demo-ai-stack.ts` | `agentBackend` の検証と、旧バックエンドの `CfnAgent` + Action Group |
 | `docker/nextjs/src/app/[locale]/genai/page.tsx` | Agent UI（モード切替、ワークフロー） |
 | `docker/nextjs/src/components/bedrock/AgentModeSidebar.tsx` | Agentサイドバー |
 
