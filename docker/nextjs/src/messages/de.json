@@ -1509,7 +1509,8 @@
       "useCases": "Meine Anwendungsfälle",
       "code": "Code ausführen",
       "video": "Videoanalyse",
-      "minutes": "Protokoll"
+      "minutes": "Protokoll",
+      "videoGen": "Videoerzeugung"
     },
     "source": {
       "label": "Eingabe",
@@ -1658,6 +1659,20 @@
       "timedOut": "Die Transkription wurde nicht innerhalb von 15 Minuten fertig.",
       "truncated": "Die Aufnahme ist lang; das Protokoll nutzt nur den ersten Teil des Transkripts.",
       "transcript": "Transkript"
+    },
+    "videoGen": {
+      "regionNotice": "Die Videoerzeugung nutzt ein Modell in der Region {region}. Prompt und erzeugtes Video werden außerhalb Japans verarbeitet und gespeichert; das Video wird nach 1 Tag gelöscht.",
+      "inRegion": "Die Videoerzeugung nutzt ein Modell in der Region {region}. Das erzeugte Video wird nach 1 Tag gelöscht.",
+      "model": "Modell: {model}",
+      "prompt": "Beschreiben Sie das Video",
+      "promptPlaceholder": "z. B. ein Papierboot, das bei Sonnenaufgang auf einem ruhigen Teich treibt",
+      "aspect": "Seitenverhältnis",
+      "resolution": "Auflösung",
+      "run": "5-Sekunden-Video erzeugen",
+      "running": "Wird erzeugt... ({seconds} s)",
+      "failed": "Die Videoerzeugung ist fehlgeschlagen: {reason}",
+      "timedOut": "Das Video war nach 6 Minuten nicht fertig.",
+      "expires": "Der Download-Link gilt 10 Minuten. Das Video wird nach 1 Tag gelöscht."
     }
   }
 }

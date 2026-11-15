@@ -1509,7 +1509,8 @@
       "useCases": "Mis casos de uso",
       "code": "Ejecutar código",
       "video": "Análisis de vídeo",
-      "minutes": "Acta de reunión"
+      "minutes": "Acta de reunión",
+      "videoGen": "Generación de vídeo"
     },
     "source": {
       "label": "Entrada",
@@ -1658,6 +1659,20 @@
       "timedOut": "La transcripción no terminó en 15 minutos.",
       "truncated": "La grabación es larga; el acta usa solo la primera parte de la transcripción.",
       "transcript": "Transcripción"
+    },
+    "videoGen": {
+      "regionNotice": "La generación de vídeo usa un modelo de la región {region}. El prompt y el vídeo generado se procesan y almacenan fuera de Japón, y el vídeo se elimina tras 1 día.",
+      "inRegion": "La generación de vídeo usa un modelo de la región {region}. El vídeo generado se elimina tras 1 día.",
+      "model": "Modelo: {model}",
+      "prompt": "Describa el vídeo",
+      "promptPlaceholder": "P. ej.: un barco de papel a la deriva en un estanque tranquilo al amanecer",
+      "aspect": "Relación de aspecto",
+      "resolution": "Resolución",
+      "run": "Generar un vídeo de 5 segundos",
+      "running": "Generando... ({seconds} s)",
+      "failed": "La generación del vídeo falló: {reason}",
+      "timedOut": "El vídeo no estaba listo tras 6 minutos.",
+      "expires": "El enlace de descarga es válido 10 minutos. El vídeo se elimina tras 1 día."
     }
   }
 }

@@ -1530,7 +1530,8 @@
       "useCases": "我的使用案例",
       "code": "執行程式碼",
       "video": "影片分析",
-      "minutes": "會議紀錄"
+      "minutes": "會議紀錄",
+      "videoGen": "影片生成"
     },
     "source": {
       "label": "輸入",
@@ -1679,6 +1680,20 @@
       "timedOut": "轉寫未在 15 分鐘內完成。",
       "truncated": "錄音較長，紀錄僅使用逐字稿的前半部分。",
       "transcript": "逐字稿"
+    },
+    "videoGen": {
+      "regionNotice": "影片生成使用 {region} 區域的模型。提示詞和生成的影片在日本以外處理與保存，影片會在 1 天後刪除。",
+      "inRegion": "影片生成使用 {region} 區域的模型。生成的影片會在 1 天後刪除。",
+      "model": "模型：{model}",
+      "prompt": "描述想生成的影片",
+      "promptPlaceholder": "例如：日出時漂在平靜池塘上的紙船",
+      "aspect": "長寬比",
+      "resolution": "解析度",
+      "run": "生成 5 秒影片",
+      "running": "生成中...（{seconds} 秒）",
+      "failed": "影片生成失敗：{reason}",
+      "timedOut": "6 分鐘後影片仍未就緒。",
+      "expires": "下載連結 10 分鐘內有效。影片會在 1 天後刪除。"
     }
   }
 }

@@ -1398,7 +1398,8 @@
       "useCases": "My use cases",
       "code": "Run code",
       "video": "Video analysis",
-      "minutes": "Meeting minutes"
+      "minutes": "Meeting minutes",
+      "videoGen": "Video generation"
     },
     "source": {
       "label": "Input",
@@ -1547,6 +1548,20 @@
       "timedOut": "The transcription did not finish in 15 minutes.",
       "truncated": "The recording is long; the minutes use the first part of the transcript only.",
       "transcript": "Transcript"
+    },
+    "videoGen": {
+      "regionNotice": "Video generation uses a model in the {region} Region. The prompt and the generated video are processed and stored outside Japan, and the video is deleted after 1 day.",
+      "inRegion": "Video generation uses a model in the {region} Region. The generated video is deleted after 1 day.",
+      "model": "Model: {model}",
+      "prompt": "Describe the video",
+      "promptPlaceholder": "e.g. A paper boat drifting on a calm pond at sunrise",
+      "aspect": "Aspect ratio",
+      "resolution": "Resolution",
+      "run": "Generate a 5-second video",
+      "running": "Generating... ({seconds} s)",
+      "failed": "Video generation failed: {reason}",
+      "timedOut": "The video was not ready after 6 minutes.",
+      "expires": "The download link works for 10 minutes. The video is deleted after 1 day."
     }
   }
 }

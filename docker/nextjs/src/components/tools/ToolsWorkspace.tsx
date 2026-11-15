@@ -8,14 +8,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
-  Code2, Copy, Download, FileSearch, Film, Mic, Globe, ImageIcon, Languages, Pencil, Play, Plus, SpellCheck, Trash2, Workflow, Wand2,
+  Clapperboard, Code2, Copy, Download, FileSearch, Film, Mic, Globe, ImageIcon, Languages, Pencil, Play, Plus, SpellCheck, Trash2, Workflow, Wand2,
 } from 'lucide-react';
 import { MermaidView } from './MermaidView';
 
-type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases' | 'code' | 'video' | 'minutes';
+type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases' | 'code' | 'video' | 'minutes' | 'videoGen';
 
 interface ToolsConfig {
-  tools: { translate: boolean; proofread: boolean; diagram: boolean; webExtract: boolean; image: boolean; useCases: boolean; codeInterpreter: boolean; media: boolean };
+  tools: { translate: boolean; proofread: boolean; diagram: boolean; webExtract: boolean; image: boolean; useCases: boolean; codeInterpreter: boolean; media: boolean; videoGeneration: boolean };
+  videoGeneration: { region: string; modelId: string; crossRegion: boolean } | null;
   media: { maxVideoMb: number; maxAudioMb: number } | null;
   codeInterpreter: { maxRuns: number; runSeconds: number } | null;
   image: { region: string; modelId: string; crossRegion: boolean } | null;
@@ -503,6 +504,73 @@ function CodePanel({ t, limits }: { t: ReturnType<typeof useTranslations>; limit
   );
 }
 const MINUTES_LANGUAGES = ['ja-JP', 'en-US', 'ko-KR', 'zh-CN', 'fr-FR', 'de-DE', 'es-ES'] as const;
+const VIDEO_ASPECTS = ['16:9', '9:16'] as const;
+const VIDEO_RESOLUTIONS = ['540p', '720p'] as const;
+function VideoGenPanel({ t, config }: { t: ReturnType<typeof useTranslations>; config: NonNullable<ToolsConfig['videoGeneration']> }) {
+  const [prompt, setPrompt] = useState('');
+  const [aspect, setAspect] = useState<string>('16:9');
+  const [resolution, setResolution] = useState<string>('540p');
+  const [url, setUrl] = useState('');
+  const [seconds, setSeconds] = useState(0);
+  const { busy, error, run } = useRunner();
+  return (
+    <div className="space-y-4">
+      <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+        {config.crossRegion ? t('videoGen.regionNotice', { region: config.region }) : t('videoGen.inRegion', { region: config.region })}
+        <span className="block text-xs mt-1">{t('videoGen.model', { model: config.modelId })}</span>
+      </p>
+      <textarea className={`${inputClass} min-h-[100px]`} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t('videoGen.promptPlaceholder')} aria-label={t('videoGen.prompt')} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm text-gray-700 dark:text-gray-300">
+          {t('videoGen.aspect')}
+          <select className={inputClass} value={aspect} onChange={(e) => setAspect(e.target.value)}>
+            {VIDEO_ASPECTS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </label>
+        <label className="text-sm text-gray-700 dark:text-gray-300">
+          {t('videoGen.resolution')}
+          <select className={inputClass} value={resolution} onChange={(e) => setResolution(e.target.value)}>
+            {VIDEO_RESOLUTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </label>
+      </div>
+      <button
+        type="button"
+        className={buttonClass}
+        disabled={busy || !prompt.trim()}
+        onClick={() => run(async () => {
+          setUrl('');
+          setSeconds(0);
+          const started = await postTool('video-generate-start', { prompt, aspectRatio: aspect, resolution });
+          const t0 = Date.now();
+          for (let i = 0; i < 90; i++) {
+            await new Promise((r) => setTimeout(r, 4000));
+            setSeconds(Math.round((Date.now() - t0) / 1000));
+            const s = await postTool('video-generate-status', { invocationArn: started.invocationArn });
+            if (s.status === 'Failed') throw new Error(t('videoGen.failed', { reason: s.reason || '' }));
+            if (s.status === 'Completed') {
+              setUrl(s.url);
+              return;
+            }
+          }
+          throw new Error(t('videoGen.timedOut'));
+        })}
+      >
+        <Clapperboard className="h-4 w-4" aria-hidden /> {busy ? t('videoGen.running', { seconds }) : t('videoGen.run')}
+      </button>
+      <ErrorLine error={error} />
+      {url && (
+        <div className="space-y-2">
+          <video src={url} controls className="max-h-[480px] rounded-md border border-gray-200 dark:border-gray-700" />
+          <a className={secondaryButton} href={url} download="generated.mp4">
+            <Download className="h-4 w-4" aria-hidden /> {t('download')}
+          </a>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('videoGen.expires')}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 function MinutesPanel({ t, limits }: { t: ReturnType<typeof useTranslations>; limits: { maxAudioMb: number } }) {
   const [file, setFile] = useState<File | null>(null);
   const [language, setLanguage] = useState<string>('ja-JP');
@@ -643,6 +711,7 @@ export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
     { id: 'diagram', icon: Workflow, enabled: true },
     { id: 'webExtract', icon: Globe, enabled: config?.tools.webExtract ?? true },
     { id: 'image', icon: ImageIcon, enabled: config?.tools.image ?? false },
+    { id: 'videoGen', icon: Clapperboard, enabled: config?.tools.videoGeneration ?? false },
     { id: 'minutes', icon: Mic, enabled: config?.tools.media ?? false },
     { id: 'video', icon: Film, enabled: config?.tools.media ?? false },
     { id: 'code', icon: Code2, enabled: config?.tools.codeInterpreter ?? false },
@@ -677,6 +746,7 @@ export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
         {current === 'diagram' && <DiagramPanel t={t} />}
         {current === 'webExtract' && <WebExtractPanel t={t} />}
         {current === 'image' && config?.image && <ImagePanel t={t} config={config.image} />}
+        {current === 'videoGen' && config?.videoGeneration && <VideoGenPanel t={t} config={config.videoGeneration} />}
         {current === 'minutes' && config?.media && <MinutesPanel t={t} limits={config.media} />}
         {current === 'video' && config?.media && <VideoPanel t={t} limits={config.media} />}
         {current === 'code' && config?.codeInterpreter && <CodePanel t={t} limits={config.codeInterpreter} />}

@@ -22,6 +22,7 @@ import {
 import { generateText, MAX_INPUT_CHARS, ToolInputError } from './text-model';
 import { getUseCase } from './use-cases';
 import { fetchPage, htmlToText } from './web-fetch';
+import { startVideo, videoGenerationConfig, videoStatus } from './video-generation';
 import { minutesStatus, startMinutes } from './minutes';
 import { analyzeVideo, createUploadUrl, MAX_AUDIO_BYTES, MAX_VIDEO_BYTES, mediaToolsEnabled, type MediaKind } from './media';
 
@@ -30,8 +31,9 @@ export { ImageFilteredError, imageConfig } from './image';
 export * from './use-cases';
 export { codeInterpreterEnabled } from './code-interpreter';
 export { mediaToolsEnabled } from './media';
+export { videoGenerationConfig } from './video-generation';
 
-export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'use-case', 'code', 'media-upload', 'video', 'minutes-start', 'minutes-status'] as const;
+export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'use-case', 'code', 'media-upload', 'video', 'minutes-start', 'minutes-status', 'video-generate-start', 'video-generate-status'] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
 export function webExtractEnabled(): boolean {
@@ -49,11 +51,15 @@ export function toolsConfig() {
       image: image.enabled,
       codeInterpreter: codeInterpreterEnabled(),
       media: mediaToolsEnabled(),
+      videoGeneration: videoGenerationConfig().enabled,
       useCases: !!process.env.USE_CASES_TABLE_NAME,
     },
     image: image.enabled ? { region: image.region, modelId: image.modelId, crossRegion: image.crossRegion } : null,
     codeInterpreter: codeInterpreterEnabled() ? { maxRuns: MAX_RUNS, runSeconds: RUN_LIMIT_MS / 1000 } : null,
     media: mediaToolsEnabled() ? { maxVideoMb: MAX_VIDEO_BYTES / 1024 / 1024, maxAudioMb: MAX_AUDIO_BYTES / 1024 / 1024 } : null,
+    videoGeneration: videoGenerationConfig().enabled
+      ? { region: videoGenerationConfig().region, modelId: videoGenerationConfig().modelId, crossRegion: videoGenerationConfig().crossRegion }
+      : null,
     maxInputChars: MAX_INPUT_CHARS,
   };
 }
@@ -141,6 +147,10 @@ export async function runTool(tool: string, userId: string, body: Body): Promise
       return { ...(await startMinutes(userId, { key: str(body, 'key'), language: str(body, 'language') || 'ja-JP', speakers: typeof body.speakers === 'number' ? body.speakers : 2 })) };
     case 'minutes-status':
       return { ...(await minutesStatus(userId, { jobName: str(body, 'jobName'), language: str(body, 'language') || 'ja-JP' })) };
+    case 'video-generate-start':
+      return { ...(await startVideo(userId, { prompt: str(body, 'prompt'), aspectRatio: str(body, 'aspectRatio') || '16:9', resolution: str(body, 'resolution') || '540p' })) };
+    case 'video-generate-status':
+      return { ...(await videoStatus(userId, { invocationArn: str(body, 'invocationArn') })) };
     default:
       throw new ToolInputError(`unknown tool: ${tool}`);
   }

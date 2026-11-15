@@ -73,6 +73,10 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
     enableMediaTools?: boolean;
     /** Model for video analysis (a model that takes a Converse video block). */
     videoModelId?: string;
+    /** Video generation: the model runs in `videoGenerationRegion` (outside Japan by default). */
+    enableVideoGeneration?: boolean;
+    videoGenerationRegion?: string;
+    videoGenerationModelId?: string;
     imageGenerationRegion: string;
     imageGenerationModelId: string;
   };
@@ -175,6 +179,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
    * Next.js Lambda の WEB_SEARCH_GATEWAY_URL 環境変数に設定される。
    */
   webSearchGatewayUrl?: string;
+  /** Output bucket of generated videos (created in the video model's Region by DemoVideoOutputStack) */
+  videoOutputBucketName?: string;
 }
 
 export class DemoWebAppStack extends cdk.Stack {
@@ -303,6 +309,12 @@ export class DemoWebAppStack extends cdk.Stack {
         WEB_EXTRACT_ENABLED: tools.enableWebExtract ? 'true' : 'false',
         IMAGE_GENERATION_ENABLED: tools.enableImageGeneration ? 'true' : 'false',
         CODE_INTERPRETER_ENABLED: tools.enableCodeInterpreter ? 'true' : 'false',
+        VIDEO_GENERATION_ENABLED: tools.enableVideoGeneration && props.videoOutputBucketName ? 'true' : 'false',
+        ...(tools.enableVideoGeneration && props.videoOutputBucketName ? {
+          VIDEO_GENERATION_REGION: tools.videoGenerationRegion ?? 'us-west-2',
+          VIDEO_GENERATION_MODEL_ID: tools.videoGenerationModelId ?? 'luma.ray-v2:0',
+          VIDEO_OUTPUT_BUCKET: props.videoOutputBucketName,
+        } : {}),
         MEDIA_TOOLS_ENABLED: tools.enableMediaTools ? 'true' : 'false',
         ...(tools.enableMediaTools ? {
           MEDIA_BUCKET_NAME: mediaBucket!.bucketName,
@@ -632,6 +644,24 @@ export class DemoWebAppStack extends cdk.Stack {
         resources: [`arn:aws:transcribe:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:transcription-job/rag-minutes-*`],
       }));
     }
+    if (tools.enableVideoGeneration && props.videoOutputBucketName) {
+      const vRegion = tools.videoGenerationRegion ?? 'us-west-2';
+      const vModel = tools.videoGenerationModelId ?? 'luma.ray-v2:0';
+      // The caller needs s3:PutObject on the output prefix: without it StartAsyncInvoke fails
+      // with "Invalid S3 credentials" (checked 2026-11-15, us-west-2).
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['bedrock:InvokeModel', 'bedrock:StartAsyncInvoke'],
+        resources: [`arn:aws:bedrock:${vRegion}::foundation-model/${vModel}`],
+      }));
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['bedrock:GetAsyncInvoke'],
+        resources: [`arn:aws:bedrock:${vRegion}:${cdk.Aws.ACCOUNT_ID}:async-invoke/*`],
+      }));
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['s3:PutObject', 's3:GetObject'],
+        resources: [`arn:aws:s3:::${props.videoOutputBucketName}/videos/*`],
+      }));
+    }
     if (tools.enableCodeInterpreter) {
       this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
         actions: [
@@ -923,6 +953,19 @@ export class DemoWebAppStack extends cdk.Stack {
           ],
         },
       ]);
+    }
+
+    if (tools.enableVideoGeneration && props.videoOutputBucketName) {
+      NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/WebAppFn/ServiceRole/DefaultPolicy/Resource`, [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Generated videos are written and read under the videos/ prefix of the output bucket, in folders named by a random UUID chosen at start time. A Bedrock asynchronous invocation ARN is created by the service when the job starts, so GetAsyncInvoke is granted on the async-invoke resources of this account in the video Region.',
+          appliesTo: [
+            { regex: '/^Resource::arn:aws:s3:::.*\\/videos\\/\\*$/g' },
+            { regex: '/^Resource::arn:aws:bedrock:.*:.*:async-invoke\\/\\*$/g' },
+          ],
+        },
+      ], true);
     }
 
     NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/AccessLogBucket/Resource`, [

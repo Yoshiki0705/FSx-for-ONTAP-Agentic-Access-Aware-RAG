@@ -75,7 +75,7 @@ A. It was measured on one Japanese sentence only, not on meeting recordings. A m
 
 ## Next Steps
 1. Add Code Interpreter to both apps. The RAG app has it as "Run code" in `/genai/tools` (results in [Evaluation](evaluation.md) 3.8). The file portal gets it in `functions/file-tools`.
-2. Video analysis and meeting minutes are implemented in the RAG app (`enableMediaTools`; results in [Evaluation](evaluation.md) 3.9). The file portal side and video generation are not implemented yet.
+2. Video analysis and meeting minutes are implemented in the RAG app (`enableMediaTools`; results in [Evaluation](evaluation.md) 3.9). Video generation is also implemented in the RAG app (`enableVideoGeneration`; results in [Evaluation](evaluation.md) 3.10). On the file portal side, code execution is in a pull request awaiting review and the rest is not implemented.
 
 ## Related Documents
 - [Implementation Overview](implementation-overview.md)
