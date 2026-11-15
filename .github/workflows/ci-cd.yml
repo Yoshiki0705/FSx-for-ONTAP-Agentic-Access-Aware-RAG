@@ -385,6 +385,9 @@ jobs:
           # ツールの動画の分析（既定は無効）。ステージング用バケット、その IAM、CORS、60 秒の Lambda を cdk-nag にかける。
           - name: tools-media
             flags: '-c enableMediaTools=true'
+          # ツールの動画の生成（既定は無効）。us-west-2 の出力バケットのスタック、クロスリージョン参照、Bedrock の非同期呼び出しの IAM を cdk-nag にかける。
+          - name: tools-video-generation
+            flags: '-c enableVideoGeneration=true'
           # Step Functions tools Gateway: 読み取り専用（既定）。state machine ARN が
           # 1 本も無いと bin/demo-app.ts が throw するのでダミー ARN を渡す。
           - name: sfn-tools-readonly

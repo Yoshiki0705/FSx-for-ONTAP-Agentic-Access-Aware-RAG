@@ -9,7 +9,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Match, Template } from 'aws-cdk-lib/assertions';
 import { DemoWebAppStack } from '../../lib/stacks/demo/demo-webapp-stack';
 
-function synth(tools?: Record<string, unknown>) {
+function synth(tools?: Record<string, unknown>, extra: Record<string, unknown> = {}) {
   const app = new cdk.App();
   const env = { account: '123456789012', region: 'ap-northeast-1' };
   const dep = new cdk.Stack(app, 'Dep', { env });
@@ -28,6 +28,7 @@ function synth(tools?: Record<string, unknown>) {
     permissionCacheTable: new dynamodb.Table(dep, 'PCT', { partitionKey: { name: 'cacheKey', type: dynamodb.AttributeType.STRING } }),
     userAccessTable: new dynamodb.Table(dep, 'UAT', { partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING } }),
     ...(tools ? { tools } : {}),
+    ...extra,
     env,
   } as any);
   return Template.fromStack(stack);
@@ -153,6 +154,35 @@ describe('media tools (enableMediaTools)', () => {
     });
     const [fn] = Object.values(t.findResources('AWS::Lambda::Function', { Properties: { FunctionName: 'testproj-dev-webapp' } })) as any[];
     expect(fn.Properties.Timeout).toBe(60);
+  });
+});
+describe('video generation (enableVideoGeneration)', () => {
+  const on = { enableWebExtract: true, enableImageGeneration: false, imageGenerationRegion: 'us-west-2', imageGenerationModelId: 'x', enableVideoGeneration: true, videoGenerationRegion: 'us-west-2', videoGenerationModelId: 'luma.ray-v2:0' };
+  it('is off by default: no region, model or bucket in the environment', () => {
+    const env = webAppEnv(synth());
+    expect(env.VIDEO_GENERATION_ENABLED).toBe('false');
+    expect(env.VIDEO_GENERATION_REGION).toBeUndefined();
+    expect(env.VIDEO_OUTPUT_BUCKET).toBeUndefined();
+  });
+  it('stays off without an output bucket even when enabled', () => {
+    expect(webAppEnv(synth(on)).VIDEO_GENERATION_ENABLED).toBe('false');
+  });
+  it('passes the Region, model and bucket, and grants only the model, async-invoke reads and the videos/ prefix', () => {
+    const t = synth(on, { videoOutputBucketName: 'out-bucket' });
+    const env = webAppEnv(t);
+    expect(env.VIDEO_GENERATION_ENABLED).toBe('true');
+    expect(env.VIDEO_GENERATION_REGION).toBe('us-west-2');
+    expect(env.VIDEO_GENERATION_MODEL_ID).toBe('luma.ray-v2:0');
+    expect(env.VIDEO_OUTPUT_BUCKET).toBe('out-bucket');
+    t.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({ Action: ['bedrock:InvokeModel', 'bedrock:StartAsyncInvoke'], Resource: 'arn:aws:bedrock:us-west-2::foundation-model/luma.ray-v2:0' }),
+          Match.objectLike({ Action: 'bedrock:GetAsyncInvoke', Resource: Match.objectLike({ 'Fn::Join': Match.anyValue() }) }),
+          Match.objectLike({ Action: ['s3:PutObject', 's3:GetObject'], Resource: 'arn:aws:s3:::out-bucket/videos/*' }),
+        ]),
+      },
+    });
   });
 });
 

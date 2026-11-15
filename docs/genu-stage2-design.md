@@ -75,7 +75,7 @@ A. 日本語 1 文の実測だけで、会議の録音での精度は測って�
 
 ## 次の手順
 1. Code Interpreter を両アプリに追加する。RAG アプリは `/genai/tools` の「コードの実行」として実装済み（確認結果は [評価](evaluation.md) 3.8）。ファイルポータルは `functions/file-tools` に追加する。
-2. 動画の分析と議事録は RAG アプリに実装済み（`enableMediaTools`、確認結果は [評価](evaluation.md) 3.9）。ファイルポータル側と動画の生成は未実装。
+2. 動画の分析と議事録は RAG アプリに実装済み（`enableMediaTools`、確認結果は [評価](evaluation.md) 3.9）。動画の生成も RAG アプリに実装済み（`enableVideoGeneration`、確認結果は [評価](evaluation.md) 3.10）。ファイルポータル側は、コードの実行が PR で確認待ち、残りは未実装。
 
 ## 関連ドキュメント
 - [実装概要](implementation-overview.md)

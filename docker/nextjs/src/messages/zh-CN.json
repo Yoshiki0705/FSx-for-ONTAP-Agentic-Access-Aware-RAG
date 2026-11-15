@@ -1620,7 +1620,8 @@
       "useCases": "我的用例",
       "code": "运行代码",
       "video": "视频分析",
-      "minutes": "会议纪要"
+      "minutes": "会议纪要",
+      "videoGen": "视频生成"
     },
     "source": {
       "label": "输入",
@@ -1769,6 +1770,20 @@
       "timedOut": "转写在 15 分钟内未完成。",
       "truncated": "录音较长，纪要仅使用转写的前半部分。",
       "transcript": "转写"
+    },
+    "videoGen": {
+      "regionNotice": "视频生成使用 {region} 区域的模型。提示词和生成的视频在日本以外处理和保存，视频会在 1 天后删除。",
+      "inRegion": "视频生成使用 {region} 区域的模型。生成的视频会在 1 天后删除。",
+      "model": "模型：{model}",
+      "prompt": "描述想生成的视频",
+      "promptPlaceholder": "例如：日出时漂在平静池塘上的纸船",
+      "aspect": "宽高比",
+      "resolution": "分辨率",
+      "run": "生成 5 秒视频",
+      "running": "生成中...（{seconds} 秒）",
+      "failed": "视频生成失败：{reason}",
+      "timedOut": "6 分钟后视频仍未就绪。",
+      "expires": "下载链接 10 分钟内有效。视频会在 1 天后删除。"
     }
   }
 }

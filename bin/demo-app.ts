@@ -55,6 +55,7 @@ import { DemoAIStack } from '../lib/stacks/demo/demo-ai-stack';
 import { DemoWebAppStack } from '../lib/stacks/demo/demo-webapp-stack';
 import { DemoEmbeddingStack } from '../lib/stacks/demo/demo-embedding-stack';
 import { DemoTransferFamilyStack } from '../lib/stacks/demo/demo-transfer-family-stack';
+import { DemoVideoOutputStack } from '../lib/stacks/demo/demo-video-output-stack';
 import { DemoWebSearchGatewayStack } from '../lib/stacks/demo/demo-web-search-gateway-stack';
 import { DemoSfnToolsGatewayStack, SfnWorkflowTarget } from '../lib/stacks/demo/demo-sfn-tools-gateway-stack';
 
@@ -274,6 +275,24 @@ const webSearchGatewayStack = enableWebSearch
     })
   : undefined;
 
+const enableVideoGeneration = ctxBool('enableVideoGeneration');
+const videoGenerationRegion: string = app.node.tryGetContext('videoGenerationRegion') || 'us-west-2';
+const videoGenerationModelId: string = app.node.tryGetContext('videoGenerationModelId') || 'luma.ray-v2:0';
+if (!/^[a-z]{2}(-gov)?-[a-z]+-\d$/.test(videoGenerationRegion)) {
+  throw new Error(`videoGenerationRegion is not a Region name: ${videoGenerationRegion}`);
+}
+if (!/^[a-z0-9.:-]+$/.test(videoGenerationModelId)) {
+  throw new Error(`videoGenerationModelId is not a model ID: ${videoGenerationModelId}`);
+}
+// Stack 1d (Optional): VideoOutputStack (the Region of the video model, us-west-2 by default)
+// 動画の生成の出力先バケット。Bedrock の非同期呼び出しはモデルと同じリージョンのバケットへ書く。
+const videoOutputStack = enableVideoGeneration
+  ? new DemoVideoOutputStack(app, `${stackPrefix}-VideoOutput`, {
+      projectName, environment,
+      env: { account: primaryEnv.account, region: videoGenerationRegion }, crossRegionReferences: true,
+      description: `[${projectName}] Video generation output bucket (${videoGenerationRegion})`,
+    })
+  : undefined;
 // Stack 1c (Optional): SfnToolsGatewayStack (same region as the state machines)
 // 既存の Step Functions ワークフローをエージェントツール化する専用 Gateway。
 // 権限境界を KB Gateway から分離する。enableSfnTools=true + ステートマシン ARN で有効化。
@@ -434,6 +453,9 @@ const toolsSettings = {
   enableImageGeneration: ctxBool('enableImageGeneration'),
   enableCodeInterpreter: ctxBool('enableCodeInterpreter'),
   enableMediaTools: ctxBool('enableMediaTools'),
+  enableVideoGeneration,
+  videoGenerationRegion,
+  videoGenerationModelId,
   videoModelId: (app.node.tryGetContext('videoModelId') as string | undefined) || 'amazon.nova-2-lite-v1:0',
   imageGenerationRegion,
   imageGenerationModelId,
@@ -531,12 +553,16 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   policyFailureMode: enableAgentPolicy ? policyFailureMode : undefined,
   // Web Search Gateway URL（us-east-1 cross-region reference）
   webSearchGatewayUrl: webSearchGatewayStack?.gatewayUrl,
+  videoOutputBucketName: videoOutputStack?.bucketName,
   env: primaryEnv, crossRegionReferences: true,
   description: `[${projectName}] Lambda Web Adapter + CloudFront`,
 });
 webAppStack.addDependency(aiStack);
 webAppStack.addDependency(securityStack);
 webAppStack.addDependency(wafStack);
+if (videoOutputStack) {
+  webAppStack.addDependency(videoOutputStack);
+}
 if (webSearchGatewayStack) {
   webAppStack.addDependency(webSearchGatewayStack);
 }

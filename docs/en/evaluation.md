@@ -296,6 +296,17 @@ The documents that were not allowed were retrieved and then removed by the filte
 ![Meeting minutes: the transcript and the minutes made from it](../screenshots/v4-tools-minutes-ja.png)
 **Minutes headings**: The screen above is a build in which the headings (Summary, Decisions and so on) stayed in English. The prompt was changed to translate them into the language of the recording, and a local call to the real model gave the Japanese headings for summary, decisions, action items and discussion points. The screen was not retaken with that build.
 **Scope**: One observation each. One video (3 seconds) and one recording (17 seconds) only; long videos (up to 200 MB), long recordings (Transcribe's waiting time and the 15-minute cut-off), languages other than Japanese, and accuracy and speaker separation on real meeting recordings were not checked. Minutes input is limited to 30,000 characters; the rest is cut and the screen says so (unit tests only).
+### 3.10 Results with video generation
+**[verified 2026-11-15 / ap-northeast-1 and us-west-2]** Deployed with `-c enableVideoGeneration=true` (the same throwaway volume on the existing FSx for ONTAP as in 3.4, legal pack loaded) and checked on the signed-in screen and through the API. CDK bootstrap in us-west-2 was run before this check (the `CDKToolkit` stack stays in the account). The output bucket was created by a dedicated stack in us-west-2, and the WebApp Lambda received `VIDEO_GENERATION_REGION=us-west-2` and `VIDEO_GENERATION_MODEL_ID=luma.ray-v2:0`.
+| What was checked | Principal (group) | Result |
+|---|---|---|
+| The screen before sending | Legal department (`-4100`) | It showed that the prompt and the generated video are processed and stored outside Japan and deleted after 1 day, with the model name, before anything is sent |
+| Generating a video (16:9, 540p, a paper boat on a pond at sunrise) | Legal department | 63 seconds from the click to the video appearing. The browser played a 960×544, 5-second video. The playback URL was a presigned URL for the output bucket in us-west-2 |
+| Starting 2 jobs at the same time | Legal department | The first got 400 (`the video service is busy; try again in a minute`), the second 200. The screen shows a "busy" message |
+| Another user's job | Development department (`-1100`) | `video-generate-status` with the ARN of a job the legal department started returned 400 (`job not found`). A malformed ARN (such as `model/`) also returned 400 |
+| Permission on the output location (checked locally) | Least-privilege role | Without `s3:PutObject` on the output location, starting fails with `Invalid S3 credentials`. With `s3:PutObject` and `s3:GetObject` on `videos/*`, a 9:16 (540p) job produced a 1.45 MB mp4 and a 16:9 (720p) job a 1.74 MB mp4. The 720p job took 96 seconds |
+![Video generation: the notice about processing outside Japan, and the generated video](../screenshots/v4-tools-video-generation-ja.png)
+**Scope**: One observation each. Whether the video content is appropriate, videos longer than 5 seconds, video from an image, and creating 9:16 from the screen were not checked (9:16 and 720p were checked with API calls). The limit on concurrent jobs looked like 1, but the number was not confirmed.
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate

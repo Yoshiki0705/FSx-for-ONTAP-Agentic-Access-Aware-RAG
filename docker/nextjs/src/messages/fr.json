@@ -1509,7 +1509,8 @@
       "useCases": "Mes cas d’usage",
       "code": "Exécuter du code",
       "video": "Analyse vidéo",
-      "minutes": "Compte rendu"
+      "minutes": "Compte rendu",
+      "videoGen": "Génération de vidéo"
     },
     "source": {
       "label": "Entrée",
@@ -1658,6 +1659,20 @@
       "timedOut": "La transcription n’a pas fini en 15 minutes.",
       "truncated": "L’enregistrement est long ; le compte rendu n’utilise que le début de la transcription.",
       "transcript": "Transcription"
+    },
+    "videoGen": {
+      "regionNotice": "La génération de vidéo utilise un modèle de la région {region}. Le prompt et la vidéo générée sont traités et stockés hors du Japon, et la vidéo est supprimée après 1 jour.",
+      "inRegion": "La génération de vidéo utilise un modèle de la région {region}. La vidéo générée est supprimée après 1 jour.",
+      "model": "Modèle : {model}",
+      "prompt": "Décrivez la vidéo",
+      "promptPlaceholder": "Ex. : un bateau en papier à la dérive sur un étang calme au lever du soleil",
+      "aspect": "Format",
+      "resolution": "Résolution",
+      "run": "Générer une vidéo de 5 secondes",
+      "running": "Génération... ({seconds} s)",
+      "failed": "La génération de la vidéo a échoué : {reason}",
+      "timedOut": "La vidéo n’était pas prête après 6 minutes.",
+      "expires": "Le lien de téléchargement est valable 10 minutes. La vidéo est supprimée après 1 jour."
     }
   }
 }
