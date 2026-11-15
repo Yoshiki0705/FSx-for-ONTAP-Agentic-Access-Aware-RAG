@@ -1507,7 +1507,9 @@
       "webExtract": "Extraction web",
       "image": "Génération d’images",
       "useCases": "Mes cas d’usage",
-      "code": "Exécuter du code"
+      "code": "Exécuter du code",
+      "video": "Analyse vidéo",
+      "minutes": "Compte rendu"
     },
     "source": {
       "label": "Entrée",
@@ -1629,6 +1631,33 @@
       "ok": "Terminée",
       "failed": "Échec",
       "timedOut": "Délai dépassé"
+    },
+    "video": {
+      "notice": "Téléversez une vidéo et posez une question. Le fichier reste au plus 1 jour dans un compartiment temporaire et seul son auteur peut l’interroger. Jusqu’à {mb} Mo ; mp4, mov, webm, mkv.",
+      "file": "Fichier vidéo",
+      "tooBig": "Le fichier dépasse {mb} Mo.",
+      "question": "Question",
+      "questionPlaceholder": "Ex. : résumer cette vidéo et lister le texte affiché à l’écran",
+      "run": "Téléverser et analyser",
+      "uploading": "Téléversement...",
+      "analyzing": "Analyse...",
+      "uploadFailed": "Le téléversement a échoué (HTTP {status}).",
+      "model": "Modèle : {model}"
+    },
+    "minutes": {
+      "notice": "Téléversez un enregistrement pour obtenir une transcription avec étiquettes de locuteurs et un compte rendu. Le fichier reste au plus 1 jour dans un compartiment temporaire et seul son auteur peut lire le résultat. Jusqu’à {mb} Mo ; mp3, m4a, wav, flac, ogg, mp4, webm. Un long enregistrement prend plusieurs minutes.",
+      "file": "Enregistrement",
+      "tooBig": "Le fichier dépasse {mb} Mo.",
+      "language": "Langue de l’enregistrement",
+      "speakers": "Nombre de locuteurs (2 à 10)",
+      "run": "Téléverser et rédiger le compte rendu",
+      "uploading": "Téléversement...",
+      "transcribing": "Transcription...",
+      "uploadFailed": "Le téléversement a échoué (HTTP {status}).",
+      "failed": "La transcription a échoué : {reason}",
+      "timedOut": "La transcription n’a pas fini en 15 minutes.",
+      "truncated": "L’enregistrement est long ; le compte rendu n’utilise que le début de la transcription.",
+      "transcript": "Transcription"
     }
   }
 }

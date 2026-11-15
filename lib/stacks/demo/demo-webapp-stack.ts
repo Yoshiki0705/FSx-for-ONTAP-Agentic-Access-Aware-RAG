@@ -69,6 +69,10 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
     enableImageGeneration: boolean;
     /** Code tool: a model writes Python and runs it in the AgentCore built-in Code Interpreter. */
     enableCodeInterpreter?: boolean;
+    /** Video analysis (and meeting minutes): uploads go to a staging bucket that deletes after 1 day. */
+    enableMediaTools?: boolean;
+    /** Model for video analysis (a model that takes a Converse video block). */
+    videoModelId?: string;
     imageGenerationRegion: string;
     imageGenerationModelId: string;
   };
@@ -225,6 +229,23 @@ export class DemoWebAppStack extends cdk.Stack {
     //    EC2 (Amazon Linux 2, x86_64) でビルドした Docker イメージとの
     //    互換性が失われ、"exec format error" が発生する。
     //    Apple Silicon でのローカルビルドには Dockerfile.prebuilt を使用する。
+    // Video analysis: browsers upload with a presigned URL, so the bytes do not pass through
+    // CloudFront and the Function URL (about 6 MB per request). Objects are deleted after 1 day.
+    // CORS allows PUT from any origin: the CloudFront domain is created after this bucket and
+    // the Lambda depends on it, so the domain cannot be named here; a PUT still needs a URL
+    // that the Lambda signed for one key, one size and 5 minutes.
+    const mediaBucket = tools.enableMediaTools
+      ? new s3.Bucket(this, 'MediaStagingBucket', {
+        bucketName: `${prefix}-media-staging-${cdk.Aws.ACCOUNT_ID}`,
+        encryption: s3.BucketEncryption.S3_MANAGED,
+        blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+        enforceSSL: true,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+        autoDeleteObjects: true,
+        lifecycleRules: [{ expiration: cdk.Duration.days(1), abortIncompleteMultipartUploadAfter: cdk.Duration.days(1) }],
+        cors: [{ allowedMethods: [s3.HttpMethods.PUT], allowedOrigins: ['*'], allowedHeaders: ['*'], maxAge: 300 }],
+      })
+      : undefined;
     this.webAppFunction = new lambda.DockerImageFunction(this, 'WebAppFn', {
       functionName: `${prefix}-webapp`,
       code: lambda.DockerImageCode.fromEcr(
@@ -233,7 +254,7 @@ export class DemoWebAppStack extends cdk.Stack {
       ),
       memorySize: 1024,
       // The code tool waits for a sandbox run, so its stack gets 60 s (and CloudFront waits 60 s).
-      timeout: cdk.Duration.seconds(tools.enableCodeInterpreter ? 60 : 30),
+      timeout: cdk.Duration.seconds(tools.enableCodeInterpreter || tools.enableMediaTools ? 60 : 30),
       vpc,
       vpcSubnets: lambdaVpcSubnets,
       securityGroups: [lambdaSg],
@@ -282,6 +303,11 @@ export class DemoWebAppStack extends cdk.Stack {
         WEB_EXTRACT_ENABLED: tools.enableWebExtract ? 'true' : 'false',
         IMAGE_GENERATION_ENABLED: tools.enableImageGeneration ? 'true' : 'false',
         CODE_INTERPRETER_ENABLED: tools.enableCodeInterpreter ? 'true' : 'false',
+        MEDIA_TOOLS_ENABLED: tools.enableMediaTools ? 'true' : 'false',
+        ...(tools.enableMediaTools ? {
+          MEDIA_BUCKET_NAME: mediaBucket!.bucketName,
+          ...(tools.videoModelId ? { VIDEO_MODEL_ID: tools.videoModelId } : {}),
+        } : {}),
         ...(tools.enableImageGeneration ? {
           IMAGE_GENERATION_REGION: tools.imageGenerationRegion,
           IMAGE_GENERATION_MODEL_ID: tools.imageGenerationModelId,
@@ -593,6 +619,19 @@ export class DemoWebAppStack extends cdk.Stack {
 
     // Code tool: start, run and stop sessions of the built-in Code Interpreter only. The built-in
     // interpreter belongs to the service (account `aws`), so the ARN is exact and has no wildcard.
+    if (mediaBucket) {
+      // Presigning a PUT needs s3:PutObject; Bedrock reads the object with this role's s3:GetObject.
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['s3:PutObject', 's3:GetObject'],
+        resources: [mediaBucket.arnForObjects('uploads/*'), mediaBucket.arnForObjects('transcripts/*')],
+      }));
+      // Meeting minutes: Transcribe jobs created and read by this function, named rag-minutes-*.
+      // Transcribe reads the recording and writes the transcript with this role's permissions.
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['transcribe:StartTranscriptionJob', 'transcribe:GetTranscriptionJob'],
+        resources: [`arn:aws:transcribe:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:transcription-job/rag-minutes-*`],
+      }));
+    }
     if (tools.enableCodeInterpreter) {
       this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
         actions: [
@@ -740,7 +779,7 @@ export class DemoWebAppStack extends cdk.Stack {
       // TLS最小バージョン
       minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
       defaultBehavior: {
-        origin: new origins.FunctionUrlOrigin(functionUrl, tools.enableCodeInterpreter ? { readTimeout: cdk.Duration.seconds(60) } : {}),
+        origin: new origins.FunctionUrlOrigin(functionUrl, tools.enableCodeInterpreter || tools.enableMediaTools ? { readTimeout: cdk.Duration.seconds(60) } : {}),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
@@ -866,6 +905,25 @@ export class DemoWebAppStack extends cdk.Stack {
         reason: 'Distribution uses CloudFront default viewer certificate (*.cloudfront.net). When using the default certificate, CloudFront sets TLS minimum to TLSv1 regardless of MinimumProtocolVersion. Custom domain + ACM certificate required to enforce TLSv1.2+. See: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_cloudfront.CfnDistribution.ViewerCertificateProperty.html',
       },
     ]);
+
+    if (mediaBucket) {
+      NagSuppressions.addResourceSuppressions(mediaBucket, [
+        {
+          id: 'AwsSolutions-S1',
+          reason: 'Transient staging bucket: objects are deleted after 1 day and are reachable only through URLs the web app signed for one key. The access log bucket is created after the Lambda that needs this bucket name, so it cannot be referenced here without reordering the stack.',
+        },
+      ]);
+      NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/WebAppFn/ServiceRole/DefaultPolicy/Resource`, [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Uploads are written and read under the uploads/ prefix of the staging bucket and transcripts under transcripts/; object names are random UUIDs chosen at signing or job-creation time, so keys cannot be listed in advance. Transcribe job names are rag-minutes-<user hash>-<uuid>, so the job ARN ends in a wildcard.',
+          appliesTo: [
+            { regex: '/^Resource::<MediaStagingBucket.*\\.Arn>\\/(uploads|transcripts)\\/\\*$/g' },
+            { regex: '/^Resource::arn:aws:transcribe:.*:transcription-job\\/rag-minutes-\\*$/g' },
+          ],
+        },
+      ]);
+    }
 
     NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/AccessLogBucket/Resource`, [
       {

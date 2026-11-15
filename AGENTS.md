@@ -185,6 +185,7 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 | `enableMonitoring` | `false` | CloudWatch alarms + dashboard + SNS alerts |
 | `enableGuardrails` | `false` | Bedrock Guardrails (content filter, topic policy, PII, Automated Reasoning) |
 | `enableCodeInterpreter` | `false` | Tools page "Run code": a model writes Python and runs it in the AgentCore built-in Code Interpreter (no network in the sandbox; only documents the user may read are placed there). Limits per request: 3 runs, 60 s per run, 50 s in total. Gives the WebApp Lambda a 60 s timeout and makes CloudFront wait 60 s for the origin |
+| `enableMediaTools` | `false` | Tools page "Video analysis" and "Meeting minutes" (Amazon Transcribe with speaker labels, then a text model): the browser uploads with a presigned URL (size and type are signed, 5 minutes) to a staging bucket that deletes objects after 1 day; Bedrock Converse reads the video from S3 with `videoModelId` (default `amazon.nova-2-lite-v1:0`, resolved at run time). A user can only analyze objects under their own `uploads/<hash>/` prefix. Gives the WebApp Lambda 60 s and CloudFront a 60 s origin wait |
 | `enableAgentCoreMemory` | `false` | AgentCore Memory (short-term + long-term) |
 | `enableEpisodicMemory` | `false` | Episodic Memory (requires AgentCoreMemory) |
 | `enableAgentPolicy` | `false` | AgentCore Policy (agent behavior control) |

@@ -22,13 +22,16 @@ import {
 import { generateText, MAX_INPUT_CHARS, ToolInputError } from './text-model';
 import { getUseCase } from './use-cases';
 import { fetchPage, htmlToText } from './web-fetch';
+import { minutesStatus, startMinutes } from './minutes';
+import { analyzeVideo, createUploadUrl, MAX_AUDIO_BYTES, MAX_VIDEO_BYTES, mediaToolsEnabled, type MediaKind } from './media';
 
 export { ToolInputError } from './text-model';
 export { ImageFilteredError, imageConfig } from './image';
 export * from './use-cases';
 export { codeInterpreterEnabled } from './code-interpreter';
+export { mediaToolsEnabled } from './media';
 
-export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'use-case', 'code'] as const;
+export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'use-case', 'code', 'media-upload', 'video', 'minutes-start', 'minutes-status'] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
 export function webExtractEnabled(): boolean {
@@ -45,10 +48,12 @@ export function toolsConfig() {
       webExtract: webExtractEnabled(),
       image: image.enabled,
       codeInterpreter: codeInterpreterEnabled(),
+      media: mediaToolsEnabled(),
       useCases: !!process.env.USE_CASES_TABLE_NAME,
     },
     image: image.enabled ? { region: image.region, modelId: image.modelId, crossRegion: image.crossRegion } : null,
     codeInterpreter: codeInterpreterEnabled() ? { maxRuns: MAX_RUNS, runSeconds: RUN_LIMIT_MS / 1000 } : null,
+    media: mediaToolsEnabled() ? { maxVideoMb: MAX_VIDEO_BYTES / 1024 / 1024, maxAudioMb: MAX_AUDIO_BYTES / 1024 / 1024 } : null,
     maxInputChars: MAX_INPUT_CHARS,
   };
 }
@@ -128,6 +133,14 @@ export async function runTool(tool: string, userId: string, body: Body): Promise
     }
     case 'code':
       return { ...(await runCodeTool(userId, { task: str(body, 'task'), text: str(body, 'text'), source: str(body, 'source'), query: str(body, 'query') })) };
+    case 'media-upload':
+      return { ...(await createUploadUrl(userId, { kind: str(body, 'kind') as MediaKind, fileName: str(body, 'fileName'), size: typeof body.size === 'number' ? body.size : 0 })) };
+    case 'video':
+      return { ...(await analyzeVideo(userId, { key: str(body, 'key'), question: str(body, 'question'), language: str(body, 'language') || 'ja' })) };
+    case 'minutes-start':
+      return { ...(await startMinutes(userId, { key: str(body, 'key'), language: str(body, 'language') || 'ja-JP', speakers: typeof body.speakers === 'number' ? body.speakers : 2 })) };
+    case 'minutes-status':
+      return { ...(await minutesStatus(userId, { jobName: str(body, 'jobName'), language: str(body, 'language') || 'ja-JP' })) };
     default:
       throw new ToolInputError(`unknown tool: ${tool}`);
   }

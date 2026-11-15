@@ -1396,7 +1396,9 @@
       "webExtract": "Web extraction",
       "image": "Image generation",
       "useCases": "My use cases",
-      "code": "Run code"
+      "code": "Run code",
+      "video": "Video analysis",
+      "minutes": "Meeting minutes"
     },
     "source": {
       "label": "Input",
@@ -1518,6 +1520,33 @@
       "ok": "Finished",
       "failed": "Failed",
       "timedOut": "Timed out"
+    },
+    "video": {
+      "notice": "Upload a video and ask about it. The file is kept in a temporary bucket for up to 1 day and only you can ask about it. Up to {mb} MB; mp4, mov, webm, mkv.",
+      "file": "Video file",
+      "tooBig": "The file is larger than {mb} MB.",
+      "question": "Question",
+      "questionPlaceholder": "e.g. Summarize this video and list any on-screen text",
+      "run": "Upload and analyze",
+      "uploading": "Uploading...",
+      "analyzing": "Analyzing...",
+      "uploadFailed": "The upload failed (HTTP {status}).",
+      "model": "Model: {model}"
+    },
+    "minutes": {
+      "notice": "Upload a recording and get a transcript with speaker labels and minutes. The file is kept in a temporary bucket for up to 1 day and only you can read the result. Up to {mb} MB; mp3, m4a, wav, flac, ogg, mp4, webm. A long recording takes several minutes.",
+      "file": "Recording",
+      "tooBig": "The file is larger than {mb} MB.",
+      "language": "Language of the recording",
+      "speakers": "Number of speakers (2 to 10)",
+      "run": "Upload and write minutes",
+      "uploading": "Uploading...",
+      "transcribing": "Transcribing...",
+      "uploadFailed": "The upload failed (HTTP {status}).",
+      "failed": "The transcription failed: {reason}",
+      "timedOut": "The transcription did not finish in 15 minutes.",
+      "truncated": "The recording is long; the minutes use the first part of the transcript only.",
+      "transcript": "Transcript"
     }
   }
 }

@@ -1396,7 +1396,9 @@
       "webExtract": "Web 抽出",
       "image": "画像の生成",
       "useCases": "マイユースケース",
-      "code": "コードの実行"
+      "code": "コードの実行",
+      "video": "動画の分析",
+      "minutes": "議事録"
     },
     "source": {
       "label": "入力",
@@ -1518,6 +1520,33 @@
       "ok": "完了",
       "failed": "失敗",
       "timedOut": "時間切れ"
+    },
+    "video": {
+      "notice": "動画をアップロードして質問します。ファイルは一時用のバケットに最長 1 日残り、質問できるのはアップロードした本人だけです。{mb} MB まで。mp4、mov、webm、mkv。",
+      "file": "動画ファイル",
+      "tooBig": "ファイルが {mb} MB を超えています。",
+      "question": "質問",
+      "questionPlaceholder": "例: この動画を要約し、画面に出ている文字を挙げる",
+      "run": "アップロードして分析",
+      "uploading": "アップロード中...",
+      "analyzing": "分析中...",
+      "uploadFailed": "アップロードに失敗しました（HTTP {status}）。",
+      "model": "モデル: {model}"
+    },
+    "minutes": {
+      "notice": "録音をアップロードすると、話者ラベル付きの文字起こしと議事録を作ります。ファイルは一時用のバケットに最長 1 日残り、結果を読めるのはアップロードした本人だけです。{mb} MB まで。mp3、m4a、wav、flac、ogg、mp4、webm。長い録音は数分かかります。",
+      "file": "録音ファイル",
+      "tooBig": "ファイルが {mb} MB を超えています。",
+      "language": "録音の言語",
+      "speakers": "話者の数（2〜10）",
+      "run": "アップロードして議事録を作る",
+      "uploading": "アップロード中...",
+      "transcribing": "文字起こし中...",
+      "uploadFailed": "アップロードに失敗しました（HTTP {status}）。",
+      "failed": "文字起こしに失敗しました: {reason}",
+      "timedOut": "文字起こしが 15 分以内に終わりませんでした。",
+      "truncated": "録音が長いため、議事録は文字起こしの前半だけから作っています。",
+      "transcript": "文字起こし"
     }
   }
 }
