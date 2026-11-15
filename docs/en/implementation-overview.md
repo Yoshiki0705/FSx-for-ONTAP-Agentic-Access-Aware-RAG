@@ -1008,7 +1008,7 @@ A standalone Strands sample agent is in
 | Image generation | Generates an image from text, shown on screen and downloadable. Off by default | Prompt |
 | My use cases | Saves prompt templates and runs them again like cards; can add internal documents to the input | Text |
 
-The text model is `TOOLS_MODEL_ID` (default `jp.anthropic.claude-haiku-4-5-20251001-v1:0`).
+The text model is `TOOLS_MODEL_ID` when set, otherwise the light tier of the model catalog ([§21](#21-choosing-models--determined-at-run-time-from-the-bedrock-apis)). In Tokyo on 2026-11-15 that was `jp.anthropic.claude-haiku-5-5`.
 
 ### Permissions and Safety
 

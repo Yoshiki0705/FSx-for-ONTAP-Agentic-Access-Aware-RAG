@@ -1357,7 +1357,7 @@ npx cdk deploy perm-rag-demo-demo-SfnToolsGateway --require-approval never \
 | 画像の生成 | テキストから画像を生成し、画面に表示してダウンロードできる。既定で無効 | プロンプト |
 | マイユースケース | プロンプトのテンプレートを保存し、カードのように繰り返し使う。社内文書を入力に加えることもできる | テキスト |
 
-テキストのモデルは `TOOLS_MODEL_ID`（既定 `jp.anthropic.claude-haiku-4-5-20251001-v1:0`）です。
+テキストのモデルは、`TOOLS_MODEL_ID` を設定したときはそれ、設定しないときはモデルカタログの軽量の段です（[§21](#21-モデルの選び方--bedrock-の-api-から実行時に決めるモデル)）。2026-11-15 の東京では `jp.anthropic.claude-haiku-5-5` でした。
 
 ### 権限と安全
 
