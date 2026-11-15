@@ -270,15 +270,19 @@ The documents that were not allowed were retrieved and then removed by the filte
 ---
 
 ### 3.8 Results with code execution (Python)
-**[verified 2026-11-15 / ap-northeast-1]** The app was not deployed. `runTool('code', …)` was called from a local machine against real Bedrock and the AgentCore built-in Code Interpreter. The permission decision (SID filter) is covered by unit tests and was not combined with a real Knowledge Base.
-| What was checked | Result |
-|---|---|
-| Total of a sales column and the largest month (a 3-row CSV passed as text) | Total 555, largest month February (340). The program succeeded on the first run; 18.9 seconds in all, most of it the model writing the program |
-| Network access from the sandbox (`urllib` to an outside site) | Failed with `Name or service not known`, and the answer said it failed. 5.3 seconds |
-| Assuming a least-privilege role (only `StartCodeInterpreterSession`, `InvokeCodeInterpreter` and `StopCodeInterpreterSession`, on `arn:aws:bedrock-agentcore:ap-northeast-1:aws:code-interpreter/aws.codeinterpreter.v1`) and calling | The session started, `print(6*7)` ran (`42`), and it stopped |
-| Unit tests (`code-interpreter.test.ts`) | Neither the name nor the body of an unreadable document reaches the model or the sandbox; a program that keeps failing stops after 3 runs; no new run starts when time is short; nothing runs unless the setting is `true`; a timeout still stops the session |
-**Limits per request**: 3 runs, 60 seconds per run, 50 seconds in all. The 50 seconds comes from how long CloudFront waits for the origin (set to 60 seconds). With the time the model needs to write the program, three 60-second runs in a row cannot fit.
-**Scope**: A deployed check (Lambda through CloudFront, screenshots) has not been done. Runs on documents were not checked against a real Knowledge Base (unit tests only).
+**[verified 2026-11-15 / ap-northeast-1]** Deployed with `-c enableCodeInterpreter=true` (the same throwaway volume on the existing FSx for ONTAP as in 3.4, legal pack loaded) and checked on the signed-in screen and through the API. After deployment the Lambda timeout was 60 seconds, the CloudFront origin wait was 60 seconds, and `CODE_INTERPRETER_ENABLED` was `true`.
+| What was checked | Principal (group) | Result |
+|---|---|---|
+| Run on internal documents (a table of heading-line counts and character counts for the NDA documents) | Legal department (`-4100`) | 200, about 7 seconds. The program succeeded on the first run (1.1 seconds). Input documents: `nda-template-standard.md` and 2 others |
+| The same request | Development department (`-1100`) | 200, 14.1 seconds. The only input document was `contract-review-guidelines.md`; neither `nda-template` nor the word for "confidential" appears anywhere in the response |
+| Input passed as text (the sum of `1,2,3`) | Development department | 200, 14.9 seconds. The answer was 6 |
+| No session | Not signed in | 401 |
+| A run longer than 30 seconds (a task asking for `time.sleep(120)`) | Development department | 200, 43.8 seconds through CloudFront. The run was stopped at 40.7 seconds and the answer said it did not finish within 41 seconds. Without the 60-second origin wait this length would have returned a 504 at 30 seconds |
+| Network access from the sandbox | Checked locally (2026-11-15) | `urllib` to an outside site failed with `Name or service not known` |
+| Least-privilege role (3 actions, only the built-in interpreter's ARN) | Checked locally (2026-11-15) | Started, ran `print(6*7)` (`42`), and stopped |
+![Run code: a run on internal documents, the program the model wrote, and the run output](../screenshots/v4-tools-code-ja.png)
+**Limits per request**: 3 runs, 60 seconds per run, 50 seconds in all. The 50 seconds comes from how long CloudFront waits for the origin (set to 60 seconds). The first run is limited to 42 seconds (50 seconds minus 8 seconds kept for the answer), so the stop at 40.7 seconds above came from the overall budget, not from the 60-second per-run limit.
+**Scope**: One observation each, and only the two departments of the legal pack. What reaches the sandbox when internal documents are the input is what the Knowledge Base returned (at most 5,000 characters per document), not the whole file. The "character count" in the table above is that of those excerpts. A task that must process a whole document cannot be done this way. Images, charts and file output were not checked.
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate
