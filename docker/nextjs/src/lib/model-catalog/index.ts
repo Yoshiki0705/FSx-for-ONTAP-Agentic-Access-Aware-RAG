@@ -192,7 +192,12 @@ export async function getTierModels(region = defaultRegion()): Promise<Record<Ti
 
 /** The ID to call for a tier. Empty when the region has no usable model at all. */
 export async function modelForTier(tier: Tier, region = defaultRegion()): Promise<string> {
-  return (await getTierModels(region))[tier]?.invokeId ?? '';
+  try {
+    return (await getTierModels(region))[tier]?.invokeId ?? '';
+  } catch (error) {
+    console.warn(`[ModelCatalog] catalog unavailable, no model for tier "${tier}":`, error);
+    return '';
+  }
 }
 
 /**

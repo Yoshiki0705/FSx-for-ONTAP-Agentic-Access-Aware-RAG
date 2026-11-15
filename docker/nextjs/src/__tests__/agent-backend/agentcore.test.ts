@@ -5,25 +5,7 @@ import { SignJWT } from 'jose';
 const cookieStore = { value: undefined as string | undefined };
 // The model catalog runs for real on the recorded Tokyo responses; only the Bedrock
 // control-plane client is replaced.
-vi.mock('@aws-sdk/client-bedrock', async () => {
-  const fixture = (await import('../model-catalog/tokyo-2026-11-15.json')).default as any;
-  class Cmd { constructor(public input: unknown) {} }
-  class ListFoundationModelsCommand extends Cmd {}
-  class ListInferenceProfilesCommand extends Cmd {}
-  class GetFoundationModelAvailabilityCommand extends Cmd {}
-  class BedrockClient {
-    async send(cmd: unknown) {
-      if (cmd instanceof ListFoundationModelsCommand) {
-        return { modelSummaries: fixture.models.map((m: any) => ({ ...m, modelLifecycle: { status: m.lifecycleStatus, startOfLifeTime: new Date(m.startOfLifeTime) } })) };
-      }
-      if (cmd instanceof ListInferenceProfilesCommand) {
-        return { inferenceProfileSummaries: fixture.profiles.map((p: any) => ({ inferenceProfileId: p.inferenceProfileId, status: p.status, models: p.modelArns.map((modelArn: string) => ({ modelArn })) })) };
-      }
-      return { agreementAvailability: { status: 'AVAILABLE' }, authorizationStatus: 'AUTHORIZED' };
-    }
-  }
-  return { BedrockClient, ListFoundationModelsCommand, ListInferenceProfilesCommand, GetFoundationModelAvailabilityCommand };
-});
+vi.mock('@aws-sdk/client-bedrock', () => import('../model-catalog/bedrock-control-plane-mock'));
 vi.mock('next/headers', () => ({
   cookies: async () => ({ get: (name: string) => (name === 'session-token' && cookieStore.value ? { value: cookieStore.value } : undefined) }),
 }));
