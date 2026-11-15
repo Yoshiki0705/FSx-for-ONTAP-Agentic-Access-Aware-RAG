@@ -425,10 +425,16 @@ if (!/^[a-z]{2}(-gov)?-[a-z]+-\d$/.test(imageGenerationRegion)) {
 if (!/^[a-z0-9.:-]+$/.test(imageGenerationModelId)) {
   throw new Error(`imageGenerationModelId is not a model ID: ${imageGenerationModelId}`);
 }
+const videoModelIdCtx = app.node.tryGetContext('videoModelId');
+if (videoModelIdCtx !== undefined && !/^[a-z0-9.:-]+$/.test(String(videoModelIdCtx))) {
+  throw new Error(`videoModelId is not a model ID: ${videoModelIdCtx}`);
+}
 const toolsSettings = {
   enableWebExtract: app.node.tryGetContext('enableWebExtract') !== 'false' && app.node.tryGetContext('enableWebExtract') !== false,
   enableImageGeneration: ctxBool('enableImageGeneration'),
   enableCodeInterpreter: ctxBool('enableCodeInterpreter'),
+  enableMediaTools: ctxBool('enableMediaTools'),
+  videoModelId: (app.node.tryGetContext('videoModelId') as string | undefined) || 'amazon.nova-2-lite-v1:0',
   imageGenerationRegion,
   imageGenerationModelId,
 };

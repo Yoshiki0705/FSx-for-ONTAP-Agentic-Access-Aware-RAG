@@ -1548,7 +1548,9 @@
       "webExtract": "웹 추출",
       "image": "이미지 생성",
       "useCases": "내 유스케이스",
-      "code": "코드 실행"
+      "code": "코드 실행",
+      "video": "동영상 분석",
+      "minutes": "회의록"
     },
     "source": {
       "label": "입력",
@@ -1670,6 +1672,33 @@
       "ok": "완료",
       "failed": "실패",
       "timedOut": "시간 초과"
+    },
+    "video": {
+      "notice": "동영상을 업로드하고 질문합니다. 파일은 임시 버킷에 최대 1일 보관되고, 질문할 수 있는 사람은 업로드한 본인뿐입니다. {mb} MB까지. mp4, mov, webm, mkv.",
+      "file": "동영상 파일",
+      "tooBig": "파일이 {mb} MB를 넘습니다.",
+      "question": "질문",
+      "questionPlaceholder": "예: 이 동영상을 요약하고 화면에 나온 글자를 나열",
+      "run": "업로드 후 분석",
+      "uploading": "업로드 중...",
+      "analyzing": "분석 중...",
+      "uploadFailed": "업로드에 실패했습니다(HTTP {status}).",
+      "model": "모델: {model}"
+    },
+    "minutes": {
+      "notice": "녹음을 업로드하면 화자 라벨이 붙은 문자 기록과 회의록을 만듭니다. 파일은 임시 버킷에 최대 1일 보관되고, 결과를 읽을 수 있는 사람은 업로드한 본인뿐입니다. {mb} MB까지. mp3, m4a, wav, flac, ogg, mp4, webm. 긴 녹음은 몇 분 걸립니다.",
+      "file": "녹음 파일",
+      "tooBig": "파일이 {mb} MB를 넘습니다.",
+      "language": "녹음 언어",
+      "speakers": "화자 수(2~10)",
+      "run": "업로드 후 회의록 작성",
+      "uploading": "업로드 중...",
+      "transcribing": "문자 변환 중...",
+      "uploadFailed": "업로드에 실패했습니다(HTTP {status}).",
+      "failed": "문자 변환에 실패했습니다: {reason}",
+      "timedOut": "문자 변환이 15분 안에 끝나지 않았습니다.",
+      "truncated": "녹음이 길어 회의록은 문자 기록의 앞부분만 사용합니다.",
+      "transcript": "문자 기록"
     }
   }
 }

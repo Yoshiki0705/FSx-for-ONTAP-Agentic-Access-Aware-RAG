@@ -1618,7 +1618,9 @@
       "webExtract": "网页提取",
       "image": "生成图片",
       "useCases": "我的用例",
-      "code": "运行代码"
+      "code": "运行代码",
+      "video": "视频分析",
+      "minutes": "会议纪要"
     },
     "source": {
       "label": "输入",
@@ -1740,6 +1742,33 @@
       "ok": "已完成",
       "failed": "失败",
       "timedOut": "超时"
+    },
+    "video": {
+      "notice": "上传视频并提问。文件在临时存储桶中最多保留 1 天，只有上传者本人可以提问。最大 {mb} MB；mp4、mov、webm、mkv。",
+      "file": "视频文件",
+      "tooBig": "文件超过 {mb} MB。",
+      "question": "问题",
+      "questionPlaceholder": "例如：概括这段视频，并列出画面中的文字",
+      "run": "上传并分析",
+      "uploading": "正在上传...",
+      "analyzing": "正在分析...",
+      "uploadFailed": "上传失败（HTTP {status}）。",
+      "model": "模型：{model}"
+    },
+    "minutes": {
+      "notice": "上传录音，生成带说话人标签的转写和会议纪要。文件在临时存储桶中最多保留 1 天，只有上传者本人可以查看结果。最大 {mb} MB；mp3、m4a、wav、flac、ogg、mp4、webm。较长的录音需要数分钟。",
+      "file": "录音文件",
+      "tooBig": "文件超过 {mb} MB。",
+      "language": "录音语言",
+      "speakers": "说话人数（2 到 10）",
+      "run": "上传并生成纪要",
+      "uploading": "正在上传...",
+      "transcribing": "正在转写...",
+      "uploadFailed": "上传失败（HTTP {status}）。",
+      "failed": "转写失败：{reason}",
+      "timedOut": "转写在 15 分钟内未完成。",
+      "truncated": "录音较长，纪要仅使用转写的前半部分。",
+      "transcript": "转写"
     }
   }
 }

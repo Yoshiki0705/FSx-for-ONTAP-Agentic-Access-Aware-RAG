@@ -1528,7 +1528,9 @@
       "webExtract": "網頁擷取",
       "image": "產生圖片",
       "useCases": "我的使用案例",
-      "code": "執行程式碼"
+      "code": "執行程式碼",
+      "video": "影片分析",
+      "minutes": "會議紀錄"
     },
     "source": {
       "label": "輸入",
@@ -1650,6 +1652,33 @@
       "ok": "已完成",
       "failed": "失敗",
       "timedOut": "逾時"
+    },
+    "video": {
+      "notice": "上傳影片並提問。檔案在暫存儲存貯體中最多保留 1 天，只有上傳者本人可以提問。最大 {mb} MB；mp4、mov、webm、mkv。",
+      "file": "影片檔案",
+      "tooBig": "檔案超過 {mb} MB。",
+      "question": "問題",
+      "questionPlaceholder": "例如：摘要這段影片，並列出畫面中的文字",
+      "run": "上傳並分析",
+      "uploading": "上傳中...",
+      "analyzing": "分析中...",
+      "uploadFailed": "上傳失敗（HTTP {status}）。",
+      "model": "模型：{model}"
+    },
+    "minutes": {
+      "notice": "上傳錄音，產生含說話者標籤的逐字稿和會議紀錄。檔案在暫存儲存貯體中最多保留 1 天，只有上傳者本人可以查看結果。最大 {mb} MB；mp3、m4a、wav、flac、ogg、mp4、webm。較長的錄音需要數分鐘。",
+      "file": "錄音檔案",
+      "tooBig": "檔案超過 {mb} MB。",
+      "language": "錄音語言",
+      "speakers": "說話者人數（2 到 10）",
+      "run": "上傳並產生紀錄",
+      "uploading": "上傳中...",
+      "transcribing": "轉寫中...",
+      "uploadFailed": "上傳失敗（HTTP {status}）。",
+      "failed": "轉寫失敗：{reason}",
+      "timedOut": "轉寫未在 15 分鐘內完成。",
+      "truncated": "錄音較長，紀錄僅使用逐字稿的前半部分。",
+      "transcript": "逐字稿"
     }
   }
 }

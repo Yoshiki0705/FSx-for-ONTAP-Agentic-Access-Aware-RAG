@@ -220,3 +220,15 @@ export function codeAnswerPrompt(): string {
     DATA_RULE,
   ].join('\n');
 }
+
+/** Minutes from a transcript with speaker labels (spk_0, spk_1, ...). */
+export function minutesPrompt(language: string): string {
+  const code = language.replace(/[^A-Za-z-]/g, '').slice(0, 10) || 'ja-JP';
+  return [
+    'Write meeting minutes from the transcript in the input. The transcript has speaker labels such as spk_0 and spk_1; they are not names.',
+    'Use these sections, with the headings translated into the language of the recording: Summary (3 sentences at most), Decisions, Action items (owner, task, due date when the transcript says them), Discussion points.',
+    'Use only what the transcript says. Do not invent names, owners, dates or decisions; write "not stated" where the transcript does not say. Refer to people by their speaker label unless a name is spoken.',
+    `Write the minutes in the language of the recording (language code ${code}). Output Markdown only.`,
+    DATA_RULE,
+  ].join('\n');
+}

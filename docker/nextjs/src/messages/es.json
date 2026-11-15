@@ -1507,7 +1507,9 @@
       "webExtract": "Extracción web",
       "image": "Generación de imágenes",
       "useCases": "Mis casos de uso",
-      "code": "Ejecutar código"
+      "code": "Ejecutar código",
+      "video": "Análisis de vídeo",
+      "minutes": "Acta de reunión"
     },
     "source": {
       "label": "Entrada",
@@ -1629,6 +1631,33 @@
       "ok": "Terminada",
       "failed": "Fallida",
       "timedOut": "Tiempo agotado"
+    },
+    "video": {
+      "notice": "Suba un vídeo y haga una pregunta. El archivo permanece como máximo 1 día en un bucket temporal y solo quien lo sube puede consultarlo. Hasta {mb} MB; mp4, mov, webm, mkv.",
+      "file": "Archivo de vídeo",
+      "tooBig": "El archivo supera {mb} MB.",
+      "question": "Pregunta",
+      "questionPlaceholder": "P. ej.: resumir este vídeo y listar el texto que aparece en pantalla",
+      "run": "Subir y analizar",
+      "uploading": "Subiendo...",
+      "analyzing": "Analizando...",
+      "uploadFailed": "La subida falló (HTTP {status}).",
+      "model": "Modelo: {model}"
+    },
+    "minutes": {
+      "notice": "Suba una grabación para obtener una transcripción con etiquetas de hablante y un acta. El archivo permanece como máximo 1 día en un bucket temporal y solo quien lo sube puede leer el resultado. Hasta {mb} MB; mp3, m4a, wav, flac, ogg, mp4, webm. Una grabación larga tarda varios minutos.",
+      "file": "Grabación",
+      "tooBig": "El archivo supera {mb} MB.",
+      "language": "Idioma de la grabación",
+      "speakers": "Número de hablantes (2 a 10)",
+      "run": "Subir y redactar el acta",
+      "uploading": "Subiendo...",
+      "transcribing": "Transcribiendo...",
+      "uploadFailed": "La subida falló (HTTP {status}).",
+      "failed": "La transcripción falló: {reason}",
+      "timedOut": "La transcripción no terminó en 15 minutos.",
+      "truncated": "La grabación es larga; el acta usa solo la primera parte de la transcripción.",
+      "transcript": "Transcripción"
     }
   }
 }

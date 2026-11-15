@@ -1507,7 +1507,9 @@
       "webExtract": "Web-Extraktion",
       "image": "Bildgenerierung",
       "useCases": "Meine Anwendungsfälle",
-      "code": "Code ausführen"
+      "code": "Code ausführen",
+      "video": "Videoanalyse",
+      "minutes": "Protokoll"
     },
     "source": {
       "label": "Eingabe",
@@ -1629,6 +1631,33 @@
       "ok": "Beendet",
       "failed": "Fehlgeschlagen",
       "timedOut": "Zeitüberschreitung"
+    },
+    "video": {
+      "notice": "Laden Sie ein Video hoch und stellen Sie eine Frage. Die Datei bleibt höchstens 1 Tag in einem temporären Bucket, und nur Sie als Hochladender können sie abfragen. Bis {mb} MB; mp4, mov, webm, mkv.",
+      "file": "Videodatei",
+      "tooBig": "Die Datei ist größer als {mb} MB.",
+      "question": "Frage",
+      "questionPlaceholder": "z. B. dieses Video zusammenfassen und den Text auf dem Bildschirm auflisten",
+      "run": "Hochladen und analysieren",
+      "uploading": "Wird hochgeladen...",
+      "analyzing": "Wird analysiert...",
+      "uploadFailed": "Der Upload ist fehlgeschlagen (HTTP {status}).",
+      "model": "Modell: {model}"
+    },
+    "minutes": {
+      "notice": "Laden Sie eine Aufnahme hoch und erhalten Sie ein Transkript mit Sprecherlabels und ein Protokoll. Die Datei bleibt höchstens 1 Tag in einem temporären Bucket, und nur Sie als Hochladender können das Ergebnis lesen. Bis {mb} MB; mp3, m4a, wav, flac, ogg, mp4, webm. Eine lange Aufnahme dauert mehrere Minuten.",
+      "file": "Aufnahme",
+      "tooBig": "Die Datei ist größer als {mb} MB.",
+      "language": "Sprache der Aufnahme",
+      "speakers": "Anzahl der Sprecher (2 bis 10)",
+      "run": "Hochladen und Protokoll erstellen",
+      "uploading": "Wird hochgeladen...",
+      "transcribing": "Wird transkribiert...",
+      "uploadFailed": "Der Upload ist fehlgeschlagen (HTTP {status}).",
+      "failed": "Die Transkription ist fehlgeschlagen: {reason}",
+      "timedOut": "Die Transkription wurde nicht innerhalb von 15 Minuten fertig.",
+      "truncated": "Die Aufnahme ist lang; das Protokoll nutzt nur den ersten Teil des Transkripts.",
+      "transcript": "Transkript"
     }
   }
 }

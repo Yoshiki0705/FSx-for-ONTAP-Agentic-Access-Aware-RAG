@@ -118,3 +118,41 @@ describe('code tool (enableCodeInterpreter)', () => {
     expect(readTimeouts(synth())).not.toContain(60);
   });
 });
+describe('media tools (enableMediaTools)', () => {
+  const on = { enableWebExtract: true, enableImageGeneration: false, imageGenerationRegion: 'us-west-2', imageGenerationModelId: 'x', enableMediaTools: true, videoModelId: 'amazon.nova-2-lite-v1:0' };
+  it('is off by default: no bucket, no setting', () => {
+    const t = synth();
+    expect(webAppEnv(t).MEDIA_TOOLS_ENABLED).toBe('false');
+    expect(webAppEnv(t).MEDIA_BUCKET_NAME).toBeUndefined();
+    t.resourceCountIs('AWS::S3::Bucket', 1);
+  });
+  it('creates an encrypted private staging bucket that deletes objects after 1 day, and passes its name and the model', () => {
+    const t = synth(on);
+    expect(webAppEnv(t).MEDIA_TOOLS_ENABLED).toBe('true');
+    expect(webAppEnv(t).MEDIA_BUCKET_NAME).toBeDefined();
+    expect(webAppEnv(t).VIDEO_MODEL_ID).toBe('amazon.nova-2-lite-v1:0');
+    t.hasResourceProperties('AWS::S3::Bucket', {
+      BucketEncryption: Match.anyValue(),
+      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true },
+      LifecycleConfiguration: { Rules: Match.arrayWith([Match.objectLike({ ExpirationInDays: 1, Status: 'Enabled' })]) },
+      CorsConfiguration: { CorsRules: [Match.objectLike({ AllowedMethods: ['PUT'] })] },
+    });
+  });
+  it('lets the web app put and get only under uploads/ and transcripts/, run its own Transcribe jobs, and gives it 60 s', () => {
+    const t = synth(on);
+    t.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: ['s3:PutObject', 's3:GetObject'],
+            Resource: [Match.objectLike({ 'Fn::Join': ['', [Match.anyValue(), '/uploads/*']] }), Match.objectLike({ 'Fn::Join': ['', [Match.anyValue(), '/transcripts/*']] })],
+          }),
+          Match.objectLike({ Action: ['transcribe:StartTranscriptionJob', 'transcribe:GetTranscriptionJob'], Resource: Match.objectLike({ 'Fn::Join': Match.anyValue() }) }),
+        ]),
+      },
+    });
+    const [fn] = Object.values(t.findResources('AWS::Lambda::Function', { Properties: { FunctionName: 'testproj-dev-webapp' } })) as any[];
+    expect(fn.Properties.Timeout).toBe(60);
+  });
+});
+

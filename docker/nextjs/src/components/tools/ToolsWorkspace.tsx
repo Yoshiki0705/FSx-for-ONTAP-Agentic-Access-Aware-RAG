@@ -6,16 +6,17 @@
  * user may read.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
-  Code2, Copy, Download, FileSearch, Globe, ImageIcon, Languages, Pencil, Play, Plus, SpellCheck, Trash2, Workflow, Wand2,
+  Code2, Copy, Download, FileSearch, Film, Mic, Globe, ImageIcon, Languages, Pencil, Play, Plus, SpellCheck, Trash2, Workflow, Wand2,
 } from 'lucide-react';
 import { MermaidView } from './MermaidView';
 
-type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases' | 'code';
+type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases' | 'code' | 'video' | 'minutes';
 
 interface ToolsConfig {
-  tools: { translate: boolean; proofread: boolean; diagram: boolean; webExtract: boolean; image: boolean; useCases: boolean; codeInterpreter: boolean };
+  tools: { translate: boolean; proofread: boolean; diagram: boolean; webExtract: boolean; image: boolean; useCases: boolean; codeInterpreter: boolean; media: boolean };
+  media: { maxVideoMb: number; maxAudioMb: number } | null;
   codeInterpreter: { maxRuns: number; runSeconds: number } | null;
   image: { region: string; modelId: string; crossRegion: boolean } | null;
   maxInputChars: number;
@@ -501,6 +502,129 @@ function CodePanel({ t, limits }: { t: ReturnType<typeof useTranslations>; limit
     </div>
   );
 }
+const MINUTES_LANGUAGES = ['ja-JP', 'en-US', 'ko-KR', 'zh-CN', 'fr-FR', 'de-DE', 'es-ES'] as const;
+function MinutesPanel({ t, limits }: { t: ReturnType<typeof useTranslations>; limits: { maxAudioMb: number } }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [language, setLanguage] = useState<string>('ja-JP');
+  const [speakers, setSpeakers] = useState(2);
+  const [phase, setPhase] = useState('');
+  const [out, setOut] = useState<{ minutes: string; transcript: string; truncated?: boolean; reason?: string } | null>(null);
+  const { busy, error, run } = useRunner();
+  const tooBig = !!file && file.size > limits.maxAudioMb * 1024 * 1024;
+  return (
+    <div className="space-y-4">
+      <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+        {t('minutes.notice', { mb: limits.maxAudioMb })}
+      </p>
+      <label className="block text-sm text-gray-700 dark:text-gray-300">
+        {t('minutes.file')}
+        <input type="file" accept="audio/*,video/mp4,video/webm,.mp3,.m4a,.wav,.flac,.ogg,.mp4,.webm" className={inputClass} onChange={(e) => { setFile(e.target.files?.[0] ?? null); setOut(null); }} />
+      </label>
+      {tooBig && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{t('minutes.tooBig', { mb: limits.maxAudioMb })}</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm text-gray-700 dark:text-gray-300">
+          {t('minutes.language')}
+          <select className={inputClass} value={language} onChange={(e) => setLanguage(e.target.value)}>
+            {MINUTES_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </label>
+        <label className="text-sm text-gray-700 dark:text-gray-300">
+          {t('minutes.speakers')}
+          <input type="number" min={2} max={10} className={inputClass} value={speakers} onChange={(e) => setSpeakers(Number(e.target.value) || 2)} />
+        </label>
+      </div>
+      <button
+        type="button"
+        className={buttonClass}
+        disabled={busy || !file || tooBig}
+        onClick={() => run(async () => {
+          if (!file) return;
+          setOut(null);
+          setPhase('upload');
+          const up = await postTool('media-upload', { kind: 'audio', fileName: file.name, size: file.size });
+          const put = await fetch(up.url, { method: 'PUT', headers: up.headers, body: file });
+          if (!put.ok) throw new Error(t('minutes.uploadFailed', { status: put.status }));
+          setPhase('transcribe');
+          const started = await postTool('minutes-start', { key: up.key, language, speakers });
+          for (let i = 0; i < 180; i++) {
+            await new Promise((r) => setTimeout(r, 5000));
+            const s = await postTool('minutes-status', { jobName: started.jobName, language });
+            if (s.status === 'FAILED') throw new Error(t('minutes.failed', { reason: s.reason || '' }));
+            if (s.status === 'COMPLETED') {
+              setOut(s);
+              setPhase('');
+              return;
+            }
+          }
+          throw new Error(t('minutes.timedOut'));
+        })}
+      >
+        <Mic className="h-4 w-4" aria-hidden /> {busy ? (phase === 'upload' ? t('minutes.uploading') : t('minutes.transcribing')) : t('minutes.run')}
+      </button>
+      <ErrorLine error={error} />
+      {out && (
+        <>
+          {out.reason && <p className="text-sm text-gray-700 dark:text-gray-300">{out.reason}</p>}
+          {out.truncated && <p className="text-sm text-amber-800 dark:text-amber-200">{t('minutes.truncated')}</p>}
+          <ResultText text={out.minutes} t={t} fileName="minutes.md" />
+          <details className="text-sm text-gray-700 dark:text-gray-300">
+            <summary className="cursor-pointer">{t('minutes.transcript')}</summary>
+            <pre className="mt-2 whitespace-pre-wrap rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-xs">{out.transcript}</pre>
+          </details>
+        </>
+      )}
+    </div>
+  );
+}
+function VideoPanel({ t, limits }: { t: ReturnType<typeof useTranslations>; limits: { maxVideoMb: number } }) {
+  const locale = useLocale();
+  const [file, setFile] = useState<File | null>(null);
+  const [question, setQuestion] = useState('');
+  const [step, setStep] = useState<'' | 'upload' | 'analyze'>('');
+  const [out, setOut] = useState<{ result: string; modelId: string } | null>(null);
+  const { busy, error, run } = useRunner();
+  const tooBig = !!file && file.size > limits.maxVideoMb * 1024 * 1024;
+  return (
+    <div className="space-y-4">
+      <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+        {t('video.notice', { mb: limits.maxVideoMb })}
+      </p>
+      <label className="block text-sm text-gray-700 dark:text-gray-300">
+        {t('video.file')}
+        <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,.mp4,.mov,.webm,.mkv" className={inputClass} onChange={(e) => { setFile(e.target.files?.[0] ?? null); setOut(null); }} />
+      </label>
+      {tooBig && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{t('video.tooBig', { mb: limits.maxVideoMb })}</p>}
+      <label className="block text-sm text-gray-700 dark:text-gray-300">
+        {t('video.question')}
+        <textarea className={`${inputClass} min-h-[80px]`} value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={t('video.questionPlaceholder')} />
+      </label>
+      <button
+        type="button"
+        className={buttonClass}
+        disabled={busy || !file || tooBig}
+        onClick={() => run(async () => {
+          if (!file) return;
+          setStep('upload');
+          const up = await postTool('media-upload', { kind: 'video', fileName: file.name, size: file.size });
+          const put = await fetch(up.url, { method: 'PUT', headers: up.headers, body: file });
+          if (!put.ok) throw new Error(t('video.uploadFailed', { status: put.status }));
+          setStep('analyze');
+          setOut(await postTool('video', { key: up.key, question, language: locale }));
+          setStep('');
+        })}
+      >
+        <Film className="h-4 w-4" aria-hidden /> {busy ? (step === 'upload' ? t('video.uploading') : t('video.analyzing')) : t('video.run')}
+      </button>
+      <ErrorLine error={error} />
+      {out && (
+        <>
+          <ResultText text={out.result} t={t} fileName="video-analysis.md" />
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('video.model', { model: out.modelId })}</p>
+        </>
+      )}
+    </div>
+  );
+}
 export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
   const t = useTranslations('tools');
   const [config, setConfig] = useState<ToolsConfig | null>(null);
@@ -519,6 +643,8 @@ export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
     { id: 'diagram', icon: Workflow, enabled: true },
     { id: 'webExtract', icon: Globe, enabled: config?.tools.webExtract ?? true },
     { id: 'image', icon: ImageIcon, enabled: config?.tools.image ?? false },
+    { id: 'minutes', icon: Mic, enabled: config?.tools.media ?? false },
+    { id: 'video', icon: Film, enabled: config?.tools.media ?? false },
     { id: 'code', icon: Code2, enabled: config?.tools.codeInterpreter ?? false },
     { id: 'useCases', icon: FileSearch, enabled: config?.tools.useCases ?? true },
   ];
@@ -551,6 +677,8 @@ export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
         {current === 'diagram' && <DiagramPanel t={t} />}
         {current === 'webExtract' && <WebExtractPanel t={t} />}
         {current === 'image' && config?.image && <ImagePanel t={t} config={config.image} />}
+        {current === 'minutes' && config?.media && <MinutesPanel t={t} limits={config.media} />}
+        {current === 'video' && config?.media && <VideoPanel t={t} limits={config.media} />}
         {current === 'code' && config?.codeInterpreter && <CodePanel t={t} limits={config.codeInterpreter} />}
         {current === 'useCases' && <UseCasesPanel t={t} />}
       </section>
