@@ -43,7 +43,9 @@ export function toApiModel(e: CatalogEntry): ApiModel {
     baseModelId: e.baseModelId,
     name: e.name,
     modelName: e.name,
-    provider: config.provider,
+    // The pattern detector knows a fixed set of providers; for any other, use the name the
+    // API reports (xAI, for example), so a new provider is not grouped as "unknown".
+    provider: config.provider === 'unknown' ? e.provider : config.provider,
     providerName: e.provider,
     description: config.description,
     category: config.category,

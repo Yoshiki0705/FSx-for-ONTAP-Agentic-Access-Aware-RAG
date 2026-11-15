@@ -17,6 +17,7 @@ import {
   invokeAI21Model,
   isAI21Model,
 } from '@/lib/bedrock-invoke-model-ai21';
+import { joinText } from '@/lib/model-catalog/response';
 
 /**
  * モデルIDからプロバイダー名を推測
@@ -361,8 +362,8 @@ function parseModelResponse(
     return responseBody.completion || 
            responseBody.text || 
            responseBody.generation ||
-           responseBody.output?.message?.content?.[0]?.text ||
-           responseBody.content?.[0]?.text ||
+           joinText(responseBody.output?.message?.content) ||
+           joinText(responseBody.content) ||
            JSON.stringify(responseBody);
   }
   
@@ -371,11 +372,11 @@ function parseModelResponse(
   try {
     // フィールドパスを解析してテキストを抽出
     if (format === 'content[0].text') {
-      return responseBody.content?.[0]?.text || '';
+      return joinText(responseBody.content);
     }
     
     if (format === 'output.message.content[0].text') {
-      return responseBody.output?.message?.content?.[0]?.text || '';
+      return joinText(responseBody.output?.message?.content);
     }
     
     if (format === 'generation') {

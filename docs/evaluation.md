@@ -238,6 +238,30 @@ Permission Violation Rate = (権限外ドキュメント表示回数) / (全検�
 
 **この確認で見つかって直した不具合**: 最初のデプロイで、ツールの環境変数とユースケースのテーブルが作られなかった。`bin/` と `lib/` に残っていた古いコンパイル済みの `.js` を、`cdk deploy` が `.ts` より先に読んだためである（AGENTS.md の「CDK synth uses old compiled JS」）。`npx tsc` のあとに WebApp スタックをデプロイし直して解消した。コードの不具合ではないが、Jest（ts-jest は `.ts` を読む）では見つからない。
 
+### 3.7 モデルカタログ（実行時に決めるモデル）での確認結果
+
+**[verified 2026-11-15 / ap-northeast-1]** `-c enableAgent=true -c enableVoiceChat=true -c voiceChatMode=rest` でデプロイし、サインインした画面と API で確かめた。段の系統と推論プロファイルの選び方は既定（`nearest`）。
+
+| 確認したこと | 結果 |
+|---|---|
+| 段の解決（`/api/bedrock/models` の `tiers`） | 軽量 `jp.anthropic.claude-haiku-5-5`、標準 `jp.anthropic.claude-sonnet-4-6`、高性能 `jp.anthropic.claude-opus-5-5`、フォールバック `jp.amazon.nova-2-lite-v1:0`、音声 `amazon.nova-2-5-sonic`。Sonnet 5.5 は `global.` しかないため標準は Sonnet 4.6 |
+| 一覧（`/api/bedrock/region-info`） | ACTIVE なチャット向けモデル 69 件。オンデマンド 36、`jp.`／`apac.` 9、`global.` 24。画面では `global.` の 24 件に `global` の印 |
+| エージェント用の一覧（`/api/bedrock/agent-models`） | 69 件のうち Claude 14 件（修正前のオンデマンドだけの絞り込みでは 0 件） |
+| KB の質問（Smart Routing） | 簡単な質問は Haiku 5.5、比較を求める質問は Sonnet 4.6 で 200。前後 20 分の `AWS/Bedrock` `Invocations` は `jp.` の 2 モデルだけで、`global.` のモデルと以前の既定の Haiku 4.5 は 0 回 |
+| ツール（翻訳） | Haiku 5.5 で 200 |
+| エージェント（AgentCore Runtime、シードの `tier:light`） | 200、引用付きの回答 |
+| 音声の設定（`/api/voice/config`） | `amazon.nova-2-5-sonic` |
+| 「申請が必要」の表示 | この account では 69 件すべてが利用できる状態だった。ブラウザ側で応答の 1 件（Opus 4.7）を `needs-request` に書き換え、KB とエージェントの両方のモードで「選択できないモデル」に「申請が必要」と出て、選べないことを確かめた（サーバーの判定ではなく画面の描き方の確認） |
+| エージェントの作成フォーム | 初期値は「自動（軽量）(Claude Haiku 5.5)」。段の 3 件と 69 モデル。`global.` の 24 件に `[global]` |
+
+![モデル一覧: global の印と、応答を書き換えて表示した「申請が必要」](screenshots/v4-model-catalog-list-ja.png)
+
+![エージェントの作成フォーム: 段とカタログのモデル](screenshots/v4-model-catalog-agent-form-ja.png)
+
+**範囲**: 各 1 回の観測。音声の会話そのもの（マイク入力）と、`modelProfilePreference=global` でのデプロイは確かめていない。
+
+**この確認で見つかって直した不具合**: (1) Haiku 5.5 は `temperature` を、Sonnet 4.6 は `temperature` と `top_p` の同時指定を拒否した。拒否されたパラメータをエラーから読み取って外し、同じモデルで呼び直すようにした（`src/lib/model-catalog/sampling.ts`）。(2) Haiku 5.5 の回答が空になった。応答の先頭のブロックだけを読んでいたため、text のブロックをすべて読むようにした。(3) 選択画面の訳文を、実行時に読まない `docker/nextjs/messages/` に足していて、画面にキー名が出た。`src/messages/` に移し、訳文のキーが揃っているかを検査するテストを足した。(4) エージェントモードの一覧が、状態と `global` の情報を落としていた。(5) xAI のモデルがプロバイダー「unknown」にまとめられていた。
+
 ---
 
 ## 4. Agent 評価メトリクス

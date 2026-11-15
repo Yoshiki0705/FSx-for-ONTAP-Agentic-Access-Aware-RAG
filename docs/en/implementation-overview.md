@@ -1053,7 +1053,7 @@ The text model is `TOOLS_MODEL_ID` (default `jp.anthropic.claude-haiku-4-5-20251
 - **Cache**: one hour (`MODEL_CATALOG_TTL_SECONDS`). When a refresh fails, the previous result is used
 - **Decided by hand**: only the tier families and the models that need a value at deploy time (the initial Bedrock Agents (Classic) model, the AgentCore Optimization initial bundle, embedding models, the image model). `make model-ids` fails when a model ID is written anywhere else
 
-**Scope**: the selection rules are tested on API responses recorded in ap-northeast-1 on 2026-11-15 (`docker/nextjs/src/__tests__/model-catalog/tokyo-2026-11-15.json`). The application has not been deployed to check them.
+**Scope**: the selection rules are tested on API responses recorded in ap-northeast-1 on 2026-11-15 (`docker/nextjs/src/__tests__/model-catalog/tokyo-2026-11-15.json`). The application was deployed to ap-northeast-1 on 2026-11-15 and checked through the screens and APIs ([evaluation §3.7](evaluation.md)).
 
 ## Overall System Architecture
 

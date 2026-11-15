@@ -216,16 +216,7 @@
       "availableModels": "可用模型",
       "count": "個",
       "noModelSelected": "未選擇模型",
-      "select": "選擇",
-      "needsRequest": "需要申請",
-      "notAuthorizedForModel": "無權限",
-      "notAvailableInRegion": "此區域無法使用",
-      "others": "其他",
-      "provider": "供應商",
-      "scopeGlobal": "global",
-      "scopeGlobalHint": "此模型透過 global 推論設定檔呼叫，可能在目前地理範圍以外的區域處理",
-      "selectedModelDetails": "所選模型詳細資料",
-      "unavailableModels": "無法選擇的模型"
+      "select": "選擇"
     }
   },
   "modelSelector": {

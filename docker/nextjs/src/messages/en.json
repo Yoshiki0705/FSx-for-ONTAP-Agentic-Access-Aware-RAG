@@ -132,7 +132,22 @@
       "availableModels": "Available Models",
       "count": " models",
       "noModelSelected": "No model selected",
-      "select": "Select"
+      "select": "Select",
+      "needsRequest": "Request required",
+      "notAuthorizedForModel": "Not authorized",
+      "notAvailableInRegion": "Not available in this Region",
+      "others": "and",
+      "provider": "Provider",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "This model is called through a global inference profile and may be processed in Regions outside the current geography",
+      "selectedModelDetails": "Selected model details",
+      "unavailableModels": "Models you cannot select",
+      "statistics": {
+        "title": "Model statistics",
+        "total": "Total",
+        "available": "Selectable",
+        "unavailable": "Not selectable"
+      }
     },
     "requestAccess": "Request access to additional models",
     "current": "Current Model",
@@ -140,7 +155,17 @@
     "foundationModel": "Foundation Model",
     "modelCount": "{count} models",
     "selectModel": "Please select a model",
-    "selectedModel": "Selected Model"
+    "selectedModel": "Selected Model",
+    "catalog": {
+      "tier": {
+        "light": "Automatic (light)",
+        "standard": "Automatic (standard)",
+        "heavy": "Automatic (heavy)"
+      },
+      "needsRequest": "Request required",
+      "notAuthorized": "Not authorized",
+      "retired": "retired; replaced at run time by the newest model of its family"
+    }
   },
   "chat": {
     "newChat": "New Chat",

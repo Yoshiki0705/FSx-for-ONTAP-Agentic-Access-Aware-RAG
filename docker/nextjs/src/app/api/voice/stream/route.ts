@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { VoiceServerMessage } from '@/types/voice';
 import { getTierModels } from '@/lib/model-catalog';
+import { withSampling } from '@/lib/model-catalog/sampling';
+import { joinText } from '@/lib/model-catalog/response';
 
 /**
  * POST /api/voice/stream
@@ -218,7 +220,7 @@ async function transcribeWithConverse(
           ? '以下の音声データからテキストを書き起こしてください。音声の内容のみを返してください。'
           : 'Transcribe the following audio data. Return only the spoken content.';
 
-        const response = await client.send(new ConverseCommand({
+        const response = await withSampling(mid, { temperature: 0.0 }, (sampling) => client.send(new ConverseCommand({
           modelId: mid,
           messages: [{
             role: 'user',
@@ -233,12 +235,12 @@ async function transcribeWithConverse(
               { text: langPrompt },
             ],
           }],
-          inferenceConfig: { maxTokens: 1000, temperature: 0.0 },
-        }));
+          inferenceConfig: { maxTokens: 1000, ...sampling },
+        })));
 
-        const outputContent = response.output?.message?.content?.[0];
-        if (outputContent && 'text' in outputContent) {
-          return outputContent.text || '';
+        const text = joinText(response.output?.message?.content);
+        if (text) {
+          return text;
         }
       } catch (err: any) {
         const errMsg = err?.message || String(err);

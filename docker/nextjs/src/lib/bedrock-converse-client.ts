@@ -11,6 +11,7 @@ import {
   type ConverseCommandInput,
   type ConverseCommandOutput,
 } from '@aws-sdk/client-bedrock-runtime';
+import { withSampling } from '@/lib/model-catalog/sampling';
 
 export interface ConverseOptions {
   maxTokens?: number;
@@ -53,15 +54,17 @@ export async function invokeWithConverse(
     ],
     inferenceConfig: {
       maxTokens: options.maxTokens || 2000,
-      temperature: options.temperature || 0.7,
-      topP: options.topP || 0.9,
       stopSequences: options.stopSequences,
     },
   };
 
   try {
-    const command = new ConverseCommand(input);
-    const response: ConverseCommandOutput = await client.send(command);
+    // Sampling the model accepts, learned from its errors (model-catalog/sampling.ts)
+    const response: ConverseCommandOutput = await withSampling(
+      modelId,
+      { temperature: options.temperature || 0.7, topP: options.topP || 0.9 },
+      (sampling) => client.send(new ConverseCommand({ ...input, inferenceConfig: { ...input.inferenceConfig, ...sampling } })),
+    );
 
     console.log('✅ Converse API応答受信:', {
       stopReason: response.stopReason,

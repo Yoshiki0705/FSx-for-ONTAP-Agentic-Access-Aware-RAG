@@ -277,7 +277,32 @@
       "availableModels": "可用模型",
       "count": "個",
       "noModelSelected": "未選擇模型",
-      "select": "選擇"
+      "select": "選擇",
+      "needsRequest": "需要申請",
+      "notAuthorizedForModel": "無權限",
+      "notAvailableInRegion": "此區域無法使用",
+      "others": "其他",
+      "provider": "供應商",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "此模型透過 global 推論設定檔呼叫，可能在目前地理範圍以外的區域處理",
+      "selectedModelDetails": "所選模型詳細資料",
+      "unavailableModels": "無法選擇的模型",
+      "statistics": {
+        "title": "模型統計",
+        "total": "合計",
+        "available": "可選擇",
+        "unavailable": "不可選擇"
+      }
+    },
+    "catalog": {
+      "tier": {
+        "light": "自動（輕量）",
+        "standard": "自動（標準）",
+        "heavy": "自動（高效能）"
+      },
+      "needsRequest": "需要申請",
+      "notAuthorized": "無權限",
+      "retired": "已停用；執行時替換為同系列的最新模型"
     }
   },
   "modelSelector": {

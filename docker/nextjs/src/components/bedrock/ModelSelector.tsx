@@ -44,24 +44,30 @@ function useBedrockRegionInfo(mode: 'kb' | 'agent' = 'kb') {
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.models) {
-              // agent-models APIのレスポンスをregionInfo形式に変換
+              // agent-models API returns the catalog shape (lib/model-catalog/api.ts); keep
+              // status and scope so "needs request" and "global" show in agent mode too.
               const models = data.models.map((m: any) => ({
                 id: m.modelId,
                 name: m.modelName || m.modelId,
                 provider: m.provider || 'unknown',
-                category: 'General',
-                available: true,
+                category: m.category || 'General',
                 description: m.description || `${m.provider} ${m.modelName}`,
                 inputModalities: m.inputModalities || ['TEXT'],
                 outputModalities: m.outputModalities || ['TEXT'],
+                status: m.status,
+                reason: m.reason,
+                scope: m.scope,
+                available: m.status ? m.status === 'ready' : true,
               }));
+              const ready = models.filter((m: any) => m.available);
+              const notReady = models.filter((m: any) => !m.available);
               setRegionInfo({
                 currentRegion: region,
                 currentRegionName: region,
-                availableModelsCount: models.length,
-                unavailableModelsCount: 0,
-                availableModels: models,
-                unavailableModels: [],
+                availableModelsCount: ready.length,
+                unavailableModelsCount: notReady.length,
+                availableModels: ready,
+                unavailableModels: notReady,
               } as any);
               console.log(`🤖 [ModelSelector] Agent models loaded: ${models.length}`);
             }

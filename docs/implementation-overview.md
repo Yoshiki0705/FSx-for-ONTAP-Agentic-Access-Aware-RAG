@@ -1402,7 +1402,7 @@ npx cdk deploy perm-rag-demo-demo-SfnToolsGateway --require-approval never \
 - **キャッシュ**: 1 時間（`MODEL_CATALOG_TTL_SECONDS`）。更新に失敗したときは前回の結果を使います
 - **手で決めるもの**: 段の系統と、デプロイ時に値が要るモデル（Bedrock Agents (Classic) の初期モデル、AgentCore Optimization の初期設定、埋め込みモデル、画像のモデル）だけです。`make model-ids` は、これら以外の場所にモデル ID が書かれると失敗します
 
-**範囲**: 選び方の規則は、2026-11-15 に ap-northeast-1 で記録した API の応答（`docker/nextjs/src/__tests__/model-catalog/tokyo-2026-11-15.json`）でテストしています。このアプリをデプロイしての確認はしていません。
+**範囲**: 選び方の規則は、2026-11-15 に ap-northeast-1 で記録した API の応答（`docker/nextjs/src/__tests__/model-catalog/tokyo-2026-11-15.json`）でテストしています。2026-11-15 に ap-northeast-1 へデプロイして、画面と API で確かめました（[評価 §3.7](evaluation.md)）。
 
 ## API 実装ステータス
 

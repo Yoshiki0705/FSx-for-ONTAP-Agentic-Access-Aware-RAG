@@ -19,7 +19,9 @@ import {
   type ConverseCommandOutput,
 } from '@aws-sdk/client-bedrock-runtime';
 import { defaultRegion, getTierModels, reportModelInvokeError, resolveModelForInvoke } from '@/lib/model-catalog';
+import { messagesSampling, withSampling } from '@/lib/model-catalog/sampling';
 import type { ConversationMessage, ConverseResult } from './types';
+import { joinText } from '@/lib/model-catalog/response';
 
 
 /** Prompt Caching feature toggle (env var) */
@@ -125,7 +127,6 @@ async function callMessagesAPI(
   const body: Record<string, unknown> = {
     anthropic_version: 'bedrock-2023-05-31',
     max_tokens: 2000,
-    temperature: 0.1,
     messages,
   };
 
@@ -136,15 +137,18 @@ async function callMessagesAPI(
     body.system = [{ type: 'text', text: systemPrompt }];
   }
 
-  const resp = await client.send(new InvokeModelCommand({
-    modelId,
-    contentType: 'application/json',
-    accept: 'application/json',
-    body: JSON.stringify(body),
-  }));
+  // Sampling the model accepts (newer Claude models reject `temperature`): ../model-catalog/sampling.ts
+  const resp = await withSampling(modelId, { temperature: 0.1 }, (sampling) =>
+    client.send(new InvokeModelCommand({
+      modelId,
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: JSON.stringify({ ...body, ...messagesSampling(sampling) }),
+    })),
+  );
 
   const result = JSON.parse(new TextDecoder().decode(resp.body));
-  const text = result.content?.[0]?.text || '';
+  const text = joinText(result.content);
   const usage = result.usage || {};
 
   return { text, usage };
@@ -251,7 +255,7 @@ export async function callConverse(
       const input: ConverseCommandInput = {
         modelId: mid,
         messages,
-        inferenceConfig: { maxTokens: 2000, temperature: 0.1 },
+        inferenceConfig: { maxTokens: 2000 },
       };
 
       // Prompt Caching: send system prompt with cacheControl
@@ -269,13 +273,14 @@ export async function callConverse(
         input.system = [{ text: systemPrompt }];
       }
 
-      const resp = await client.send(new ConverseCommand(input));
+      const resp = await withSampling(mid, { temperature: 0.1 }, (sampling) =>
+        client.send(new ConverseCommand({ ...input, inferenceConfig: { ...input.inferenceConfig, ...sampling } })),
+      );
 
       // Emit token usage metrics
       emitTokenMetrics(resp, mid);
 
-      const outputContent = resp.output?.message?.content?.[0];
-      const text = (outputContent && 'text' in outputContent) ? (outputContent.text || '') : '';
+      const text = joinText(resp.output?.message?.content);
 
       // Log cache effectiveness
       const usage = resp.usage;
@@ -296,7 +301,8 @@ export async function callConverse(
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       reportModelInvokeError(region, mid, err);
-      const isRetryable = (err as { name?: string })?.name === 'AccessDeniedException' ||
+      const errName = (err as { name?: string })?.name;
+      const isRetryable = errName === 'AccessDeniedException' || errName === 'ValidationException' ||
         errMsg.includes('Legacy') ||
         errMsg.includes('ResourceNotFoundException') ||
         errMsg.includes('on-demand throughput') ||
