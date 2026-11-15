@@ -83,3 +83,38 @@ describe('GenU-style tools settings', () => {
     });
   });
 });
+
+describe('code tool (enableCodeInterpreter)', () => {
+  const on = { enableWebExtract: true, enableImageGeneration: false, imageGenerationRegion: 'us-west-2', imageGenerationModelId: 'x', enableCodeInterpreter: true };
+  function webAppFn(template: Template): any {
+    const [fn] = Object.values(template.findResources('AWS::Lambda::Function', { Properties: { FunctionName: 'testproj-dev-webapp' } })) as any[];
+    return fn;
+  }
+  it('is off by default: no setting on, 30 s timeout, no Code Interpreter permission', () => {
+    const t = synth();
+    expect(webAppEnv(t).CODE_INTERPRETER_ENABLED).toBe('false');
+    expect(webAppFn(t).Properties.Timeout).toBe(30);
+    expect(JSON.stringify(t.toJSON())).not.toContain('InvokeCodeInterpreter');
+  });
+  it('turns the tool on, gives the function 60 s, and grants only the three session actions on the built-in interpreter', () => {
+    const t = synth(on);
+    expect(webAppEnv(t).CODE_INTERPRETER_ENABLED).toBe('true');
+    expect(webAppFn(t).Properties.Timeout).toBe(60);
+    t.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Action: ['bedrock-agentcore:StartCodeInterpreterSession', 'bedrock-agentcore:InvokeCodeInterpreter', 'bedrock-agentcore:StopCodeInterpreterSession'],
+            Resource: { 'Fn::Join': ['', ['arn:aws:bedrock-agentcore:', { Ref: 'AWS::Region' }, ':aws:code-interpreter/aws.codeinterpreter.v1']] },
+          }),
+        ]),
+      },
+    });
+  });
+  it('makes CloudFront wait 60 s for the origin only when the tool is on', () => {
+    const readTimeouts = (t: Template) =>
+      Object.values(t.findResources('AWS::CloudFront::Distribution')).flatMap((d: any) => (d.Properties.DistributionConfig.Origins || []).map((o: any) => o.CustomOriginConfig?.OriginReadTimeout));
+    expect(readTimeouts(synth(on))).toContain(60);
+    expect(readTimeouts(synth())).not.toContain(60);
+  });
+});

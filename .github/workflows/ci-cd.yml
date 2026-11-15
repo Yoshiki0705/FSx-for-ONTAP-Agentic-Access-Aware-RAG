@@ -379,6 +379,9 @@ jobs:
           # ツールの画像の生成（既定は無効）。有効にしたときの region / model の検証が synth 時に走る。
           - name: tools-image-generation
             flags: '-c enableImageGeneration=true -c imageGenerationRegion=us-west-2 -c enableWebExtract=false'
+          # ツールのコードの実行（既定は無効）。有効にしたときだけ生成される IAM 権限、60 秒の Lambda、CloudFront の待ち時間を cdk-nag にかける。
+          - name: tools-code-interpreter
+            flags: '-c enableCodeInterpreter=true'
           # Step Functions tools Gateway: 読み取り専用（既定）。state machine ARN が
           # 1 本も無いと bin/demo-app.ts が throw するのでダミー ARN を渡す。
           - name: sfn-tools-readonly

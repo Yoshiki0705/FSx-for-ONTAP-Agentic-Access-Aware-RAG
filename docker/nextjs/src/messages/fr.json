@@ -1506,7 +1506,8 @@
       "diagram": "Diagramme",
       "webExtract": "Extraction web",
       "image": "Génération d’images",
-      "useCases": "Mes cas d’usage"
+      "useCases": "Mes cas d’usage",
+      "code": "Exécuter du code"
     },
     "source": {
       "label": "Entrée",
@@ -1617,6 +1618,17 @@
       "id": "Indonésien",
       "th": "Thaï",
       "vi": "Vietnamien"
+    },
+    "code": {
+      "notice": "Un modèle écrit un programme Python pour votre tâche et l’exécute dans un bac à sable isolé, sans réseau. Seuls les documents que vous pouvez lire y sont placés. Au plus {runs} exécutions par requête, {seconds} secondes chacune.",
+      "task": "Tâche",
+      "taskPlaceholder": "Ex. : totaliser la colonne des montants et lister les 3 plus grandes lignes",
+      "run": "Écrire et exécuter",
+      "program": "Programme écrit par le modèle",
+      "runs": "Exécutions ({count})",
+      "ok": "Terminée",
+      "failed": "Échec",
+      "timedOut": "Délai dépassé"
     }
   }
 }

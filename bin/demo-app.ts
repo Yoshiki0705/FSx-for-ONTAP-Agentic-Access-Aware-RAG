@@ -428,6 +428,7 @@ if (!/^[a-z0-9.:-]+$/.test(imageGenerationModelId)) {
 const toolsSettings = {
   enableWebExtract: app.node.tryGetContext('enableWebExtract') !== 'false' && app.node.tryGetContext('enableWebExtract') !== false,
   enableImageGeneration: ctxBool('enableImageGeneration'),
+  enableCodeInterpreter: ctxBool('enableCodeInterpreter'),
   imageGenerationRegion,
   imageGenerationModelId,
 };

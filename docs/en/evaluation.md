@@ -269,6 +269,16 @@ The documents that were not allowed were retrieved and then removed by the filte
 
 ---
 
+### 3.8 Results with code execution (Python)
+**[verified 2026-11-15 / ap-northeast-1]** The app was not deployed. `runTool('code', …)` was called from a local machine against real Bedrock and the AgentCore built-in Code Interpreter. The permission decision (SID filter) is covered by unit tests and was not combined with a real Knowledge Base.
+| What was checked | Result |
+|---|---|
+| Total of a sales column and the largest month (a 3-row CSV passed as text) | Total 555, largest month February (340). The program succeeded on the first run; 18.9 seconds in all, most of it the model writing the program |
+| Network access from the sandbox (`urllib` to an outside site) | Failed with `Name or service not known`, and the answer said it failed. 5.3 seconds |
+| Assuming a least-privilege role (only `StartCodeInterpreterSession`, `InvokeCodeInterpreter` and `StopCodeInterpreterSession`, on `arn:aws:bedrock-agentcore:ap-northeast-1:aws:code-interpreter/aws.codeinterpreter.v1`) and calling | The session started, `print(6*7)` ran (`42`), and it stopped |
+| Unit tests (`code-interpreter.test.ts`) | Neither the name nor the body of an unreadable document reaches the model or the sandbox; a program that keeps failing stops after 3 runs; no new run starts when time is short; nothing runs unless the setting is `true`; a timeout still stops the session |
+**Limits per request**: 3 runs, 60 seconds per run, 50 seconds in all. The 50 seconds comes from how long CloudFront waits for the origin (set to 60 seconds). With the time the model needs to write the program, three 60-second runs in a row cannot fit.
+**Scope**: A deployed check (Lambda through CloudFront, screenshots) has not been done. Runs on documents were not checked against a real Knowledge Base (unit tests only).
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate

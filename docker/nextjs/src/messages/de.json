@@ -1506,7 +1506,8 @@
       "diagram": "Diagramm",
       "webExtract": "Web-Extraktion",
       "image": "Bildgenerierung",
-      "useCases": "Meine Anwendungsfälle"
+      "useCases": "Meine Anwendungsfälle",
+      "code": "Code ausführen"
     },
     "source": {
       "label": "Eingabe",
@@ -1617,6 +1618,17 @@
       "id": "Indonesisch",
       "th": "Thailändisch",
       "vi": "Vietnamesisch"
+    },
+    "code": {
+      "notice": "Ein Modell schreibt für Ihre Aufgabe ein Python-Programm und führt es in einer isolierten Sandbox ohne Netzwerk aus. Dorthin gelangen nur Dokumente, die Sie lesen dürfen. Höchstens {runs} Ausführungen pro Anfrage, je {seconds} Sekunden.",
+      "task": "Aufgabe",
+      "taskPlaceholder": "z. B. die Betragsspalte summieren und die 3 größten Zeilen auflisten",
+      "run": "Schreiben und ausführen",
+      "program": "Vom Modell geschriebenes Programm",
+      "runs": "Ausführungen ({count})",
+      "ok": "Beendet",
+      "failed": "Fehlgeschlagen",
+      "timedOut": "Zeitüberschreitung"
     }
   }
 }
