@@ -53,27 +53,39 @@ ALLOWED = {
 COMMENT = re.compile(r"^\s*(//|\*|/\*|#)")
 
 
+def candidates(root: Path) -> list[Path]:
+    """Tracked files under SCANNED. Untracked build output (tsc emits .js next to .ts in
+    lib/ and bin/) is not part of the repository, so it is not checked. Outside a git
+    checkout (the selftest), every file is."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--", *SCANNED],
+            capture_output=True, text=True, check=True,
+        ).stdout.splitlines()
+        if out:
+            return [root / line for line in sorted(out)]
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    return [p for base in SCANNED if (root / base).exists() for p in sorted((root / base).rglob("*"))]
+
+
 def scan(root: Path) -> list[str]:
     findings = []
-    for base in SCANNED:
-        top = root / base
-        if not top.exists():
+    for path in candidates(root):
+        if path.suffix not in SUFFIXES or not path.is_file():
             continue
-        for path in sorted(top.rglob("*")):
-            if path.suffix not in SUFFIXES or not path.is_file():
+        rel = path.relative_to(root)
+        if SKIPPED_PARTS.intersection(rel.parts) or ".test." in path.name or str(rel) in ALLOWED:
+            continue
+        in_docstring = False
+        for n, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if path.suffix == ".py" and line.count('"""') % 2 == 1:
+                in_docstring = not in_docstring
                 continue
-            rel = path.relative_to(root)
-            if SKIPPED_PARTS.intersection(rel.parts) or ".test." in path.name or str(rel) in ALLOWED:
+            if in_docstring or COMMENT.match(line):
                 continue
-            in_docstring = False
-            for n, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-                if path.suffix == ".py" and line.count('"""') % 2 == 1:
-                    in_docstring = not in_docstring
-                    continue
-                if in_docstring or COMMENT.match(line):
-                    continue
-                if MODEL_ID.search(line):
-                    findings.append(f"{rel}:{n}: {line.strip()[:140]}")
+            if MODEL_ID.search(line):
+                findings.append(f"{rel}:{n}: {line.strip()[:140]}")
     return findings
 
 
