@@ -115,8 +115,8 @@ describe('runtime', () => {
     // Unset and `tier:light`: the newest model of the light family (Haiku 5.5 in the fixture)
     expect(await runtimeModelId(undefined)).toBe('jp.anthropic.claude-haiku-5-5');
     expect(await runtimeModelId('tier:light')).toBe('jp.anthropic.claude-haiku-5-5');
-    // A retired model: the newest of its family
-    expect(await runtimeModelId('anthropic.claude-sonnet-4-5-20250929-v1:0')).toBe('global.anthropic.claude-sonnet-5-5');
+    // A retired model: the newest of its family that is processed in Japan (jp. profile)
+    expect(await runtimeModelId('anthropic.claude-sonnet-4-5-20250929-v1:0')).toBe('jp.anthropic.claude-sonnet-4-6');
   });
   it('pads a session ID to the 33 characters AgentCore requires', () => {
     expect(runtimeSessionId('s', 'u').length).toBeGreaterThanOrEqual(33);

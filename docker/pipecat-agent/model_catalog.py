@@ -5,7 +5,9 @@ Model selection for the voice agent, by the same rules as the WebApp's model cat
 The voice agent runs on the AgentCore Runtime and cannot import the TypeScript module,
 so the rules are repeated here in their smallest form: the newest ACTIVE model of a
 family, called through the profile with the fewest destination Regions (or a global
-one when MODEL_PROFILE_PREFERENCE=global). tests/test_model_catalog.py runs this on
+one when MODEL_PROFILE_PREFERENCE=global). With the default preference, a model that
+can be processed in bounded Regions (on demand or a geography profile such as `jp.`)
+comes before a newer model that only has a global profile. tests/test_model_catalog.py runs this on
 the WebApp's recorded Tokyo fixture and expects the same picks as select.test.ts, so
 the two cannot drift apart unnoticed.
 """
@@ -31,8 +33,8 @@ def _regions(model_arns: Iterable[str]) -> float:
 
 
 def invoke_ids(models: list[dict[str, Any]], profiles: list[dict[str, Any]], region: str,
-               preference: str = "nearest") -> dict[str, str]:
-    """Base model ID -> the ID to call in `region`."""
+               preference: str = "nearest") -> dict[str, tuple[str, bool]]:
+    """Base model ID -> (the ID to call in `region`, whether that route is global)."""
     by_base: dict[str, list[tuple[float, str]]] = {}
     for p in profiles:
         if p.get("status", "ACTIVE") != "ACTIVE" or not p.get("modelArns"):
@@ -50,12 +52,17 @@ def invoke_ids(models: list[dict[str, Any]], profiles: list[dict[str, Any]], reg
         chosen = candidates[0]
         if preference == "global":
             chosen = next((c for c in candidates if c[0] == math.inf), chosen)
-        out[m["modelId"]] = chosen[1]
+        out[m["modelId"]] = (chosen[1], chosen[0] == math.inf)
     return out
 
 
-def newest_of_family(models: list[dict[str, Any]], pattern: str, *, speech: bool = False) -> str | None:
-    """Base ID of the newest ACTIVE model matching `pattern` (startOfLifeTime)."""
+def newest_of_family(models: list[dict[str, Any]], pattern: str, *, speech: bool = False,
+                     routes: dict[str, tuple[str, bool]] | None = None) -> str | None:
+    """Base ID of the newest ACTIVE model matching `pattern` (startOfLifeTime).
+
+    With `routes`, only callable models count, and one with a bounded route is taken
+    before any global-only one.
+    """
     def usable(m: dict[str, Any]) -> bool:
         if m.get("lifecycleStatus", "ACTIVE") != "ACTIVE" or not fnmatch.fnmatchcase(m["modelId"], pattern):
             return False
@@ -63,6 +70,10 @@ def newest_of_family(models: list[dict[str, Any]], pattern: str, *, speech: bool
         return ("SPEECH" in outputs) if speech else ("TEXT" in outputs and "SPEECH" not in outputs)
 
     found = sorted((m for m in models if usable(m)), key=lambda m: (m.get("startOfLifeTime") or "", m["modelId"]))
+    if routes is not None:
+        found = [m for m in found if m["modelId"] in routes]
+        bounded = [m for m in found if not routes[m["modelId"]][1]]
+        found = bounded or found
     return found[-1]["modelId"] if found else None
 
 
@@ -98,5 +109,9 @@ def resolve(tier: str, region: str, *, families: dict[str, str] | None = None,
         token = page.get("nextToken")
         if not token:
             break
-    base = newest_of_family(models, families[tier], speech=(tier == "voice"))
-    return invoke_ids(models, profiles, region, preference).get(base) if base else None
+    routes = invoke_ids(models, profiles, region, preference)
+    base = newest_of_family(
+        models, families[tier], speech=(tier == "voice"),
+        routes=routes if preference == "nearest" else {k: (v[0], False) for k, v in routes.items()},
+    )
+    return routes[base][0] if base else None

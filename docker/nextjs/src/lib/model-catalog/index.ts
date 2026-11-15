@@ -4,7 +4,10 @@
  *
  * Configuration (environment, set by the CDK stack from context):
  *   MODEL_FAMILY_LIGHT / _STANDARD / _HEAVY / _FALLBACK / _VOICE   family patterns
- *   MODEL_PROFILE_PREFERENCE   `nearest` (default) or `global`
+ *   MODEL_PROFILE_PREFERENCE   `nearest` (default): the profile with the fewest destination
+ *                              Regions, and tiers prefer models processed in bounded Regions
+ *                              over newer global-only ones. `global`: global profiles first,
+ *                              tiers by newness only
  *   MODEL_CATALOG_TTL_SECONDS  cache lifetime, default 3600
  *
  * Server only: it calls Bedrock control-plane APIs with the Lambda role.
@@ -187,7 +190,7 @@ export async function getModelCatalog(region = defaultRegion()): Promise<Catalog
 }
 
 export async function getTierModels(region = defaultRegion()): Promise<Record<Tier, CatalogEntry | undefined>> {
-  return resolveTiers(await getModelCatalog(region), tierFamilies());
+  return resolveTiers(await getModelCatalog(region), tierFamilies(), profilePreference() === 'nearest');
 }
 
 /** The ID to call for a tier. Empty when the region has no usable model at all. */
@@ -207,7 +210,12 @@ export async function modelForTier(tier: Tier, region = defaultRegion()): Promis
  */
 export async function resolveModelForInvoke(requested: string | undefined, region = defaultRegion()): Promise<Resolution> {
   try {
-    const resolution = resolveRequested(await getModelCatalog(region), requested, tierFamilies());
+    const resolution = resolveRequested(
+      await getModelCatalog(region),
+      requested,
+      tierFamilies(),
+      profilePreference() === 'nearest',
+    );
     if (resolution.substitutedFor) {
       console.warn(`[ModelCatalog] "${resolution.substitutedFor}" is retired or unknown here; using "${resolution.invokeId}"`);
     }

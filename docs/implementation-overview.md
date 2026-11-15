@@ -1396,6 +1396,7 @@ npx cdk deploy perm-rag-demo-demo-SfnToolsGateway --require-approval never \
 
 - **段（tier）**: 軽量・標準・高性能・フォールバック・音声の 5 つで、それぞれ系統のパターン（`anthropic.claude-*sonnet*` など）で指定します。各段は、その系統で最も新しい ACTIVE なモデルになります。Smart Routing、ツール、エージェントの既定、KB のフォールバック、画像の説明、音声はこの段を使います。指定は CDK context の `modelFamily*` です
 - **推論プロファイルの選び方**: 既定（`modelProfilePreference=nearest`）は送り先のリージョンが最も少ないものです。東京ではオンデマンド、`jp.`、`apac.`、`global.` の順になります。`global` を指定すると、`global.` のプロファイルがあればそれを使います。`global.` で呼ぶモデルは、選択画面に `global` の印が付きます
+- **日本の中での処理の優先**: 既定では、段のモデルを選ぶとき、`global.` でしか呼べないモデルより、リージョン内か `jp.`／`apac.` で呼べるモデルを先にします。新しさはその中で比べます。2026-11-15 の東京では、Sonnet 5.5 と Sonnet 5 は `global.` しかないため、標準の段は `jp.anthropic.claude-sonnet-4-6` になります。系統に `global.` のモデルしかなければ、それを使います。`global` を指定すると、新しさだけで選びます
 - **廃止されたモデル**: 保存済みの設定やエージェント定義が LEGACY のモデルや一覧にない ID を指していても、同じ系統の段の最新モデルに置き換えて呼びます
 - **申請が必要なモデル**: 一覧には出しますが選べません。`agreementAvailability` が `NOT_AVAILABLE` でも呼べるモデルがあるため（2026-11-15 に ap-northeast-1 で Opus 4.8 と Haiku 5.5 を呼んで確認）、この値だけでは選べなくしません
 - **キャッシュ**: 1 時間（`MODEL_CATALOG_TTL_SECONDS`）。更新に失敗したときは前回の結果を使います

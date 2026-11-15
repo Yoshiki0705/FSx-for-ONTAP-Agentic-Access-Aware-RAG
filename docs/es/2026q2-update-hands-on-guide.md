@@ -24,14 +24,14 @@ Una guía práctica sobre las funciones añadidas en la actualización de AI 202
 
 ## Paso 1: comprobar la actualización de modelos (5 min)
 
-Compruebe que cada nivel (ligero, estándar, potente) se resuelve al modelo más reciente de la Región. Los modelos no son valores fijos: se determinan en tiempo de ejecución a partir de las API de Bedrock (`ListFoundationModels` y `ListInferenceProfiles`, consulte `docker/nextjs/src/lib/model-catalog`).
+Compruebe que cada nivel (ligero, estándar, potente) se resuelve al modelo más reciente de la Región. Un modelo procesado en Regiones delimitadas (como `jp.`) se elige antes que un modelo más reciente que solo tiene un perfil `global.`. Los modelos no son valores fijos: se determinan en tiempo de ejecución a partir de las API de Bedrock (`ListFoundationModels` y `ListInferenceProfiles`, consulte `docker/nextjs/src/lib/model-catalog`).
 
 ```text
 # Abra esta URL en un navegador con la sesión iniciada y consulte data.tiers
 https://<dominio de CloudFront>/api/bedrock/models
 # Ejemplo (obtenido del registro de ap-northeast-1 del 2026-11-15):
 # "light": "jp.anthropic.claude-haiku-5-5"
-# "standard": "global.anthropic.claude-sonnet-5-5"
+# "standard": "jp.anthropic.claude-sonnet-4-6"
 ```
 
 Envíe una consulta desde la interfaz de chat y compruebe que `modelId` en los metadatos de la respuesta nombra el nuevo modelo.
@@ -40,7 +40,7 @@ Envíe una consulta desde la interfaz de chat y compruebe que `modelId` en los m
 
 ## Paso 2: comprobar el efecto de la caché de prompts (10 min)
 
-> **Requisito**: la caché de prompts solo funciona con modelos **Anthropic Claude**. Por defecto (sin modelo seleccionado) se usa el nivel estándar, que se resuelve al modelo Claude Sonnet más reciente, por lo que se almacena en caché. Un modelo que no sea Claude, como Nova, no se almacena.
+> **Requisito**: la caché de prompts solo funciona con modelos **Anthropic Claude**. Por defecto (sin modelo seleccionado) se usa el nivel estándar, que se resuelve a un modelo Claude Sonnet, por lo que se almacena en caché. Un modelo que no sea Claude, como Nova, no se almacena.
 
 Envíe consultas consecutivas dentro de una misma sesión y compruebe el acierto de caché.
 

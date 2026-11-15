@@ -26,7 +26,7 @@ const none = new Map<string, AvailabilityInput>();
 const tokyo = (preference: 'nearest' | 'global' = 'nearest', availability = none) =>
   buildCatalog(models, profiles, availability, { region: 'ap-northeast-1', preference });
 
-describe('tiers', () => {
+describe('tiers by newness only (preference global)', () => {
   it('pick the newest ACTIVE model of each family by startOfLifeTime', () => {
     const tiers = resolveTiers(tokyo(), DEFAULT_TIER_FAMILIES);
     expect(tiers.light?.baseModelId).toBe('anthropic.claude-haiku-5-5');
@@ -65,6 +65,40 @@ describe('tiers', () => {
     const blocked = new Map([['anthropic.claude-sonnet-5-5', { agreementStatus: 'PENDING' }]]);
     const tiers = resolveTiers(tokyo('nearest', blocked), DEFAULT_TIER_FAMILIES);
     expect(tiers.standard?.baseModelId).toBe('anthropic.claude-sonnet-5');
+  });
+});
+
+describe('tiers that keep processing in bounded Regions (the default, preference nearest)', () => {
+  const tiers = resolveTiers(tokyo(), DEFAULT_TIER_FAMILIES, true);
+
+  it('take the newest model with a jp/apac or on-demand route over a newer global-only one', () => {
+    // Sonnet 5.5 and 5 have only global profiles in Tokyo; Sonnet 4.6 has jp.
+    expect(tiers.standard?.invokeId).toBe('jp.anthropic.claude-sonnet-4-6');
+    expect(tiers.light?.invokeId).toBe('jp.anthropic.claude-haiku-5-5');
+    expect(tiers.heavy?.invokeId).toBe('jp.anthropic.claude-opus-5-5');
+    expect(tiers.fallback?.invokeId).toBe('jp.amazon.nova-2-lite-v1:0');
+    expect(tiers.voice?.invokeId).toBe('amazon.nova-2-5-sonic');
+  });
+
+  it('never pick a global model while the family has a bounded one', () => {
+    const catalog = tokyo();
+    for (const pattern of Object.values(DEFAULT_TIER_FAMILIES)) {
+      const re = familyMatcher(pattern);
+      const bounded = catalog.some((e) => e.lifecycleStatus === 'ACTIVE' && e.scope !== 'global' && re.test(e.baseModelId));
+      const picked = resolveTiers(catalog, { ...DEFAULT_TIER_FAMILIES, light: pattern }, true).light;
+      if (bounded && picked && re.test(picked.baseModelId)) expect(picked.scope, pattern).not.toBe('global');
+    }
+  });
+
+  it('still resolve a family that only has global models', () => {
+    const t = resolveTiers(tokyo(), { ...DEFAULT_TIER_FAMILIES, light: 'anthropic.claude-sonnet-5*', fallback: 'none' }, true);
+    expect(t.light?.invokeId).toBe('global.anthropic.claude-sonnet-5-5');
+  });
+
+  it('replace a retired model with the bounded model of its family', () => {
+    const r = resolveRequested(tokyo(), 'anthropic.claude-sonnet-4-5-20250929-v1:0', DEFAULT_TIER_FAMILIES, true);
+    expect(r.invokeId).toBe('jp.anthropic.claude-sonnet-4-6');
+    expect(resolveRequested(tokyo(), 'tier:standard', DEFAULT_TIER_FAMILIES, true).invokeId).toBe('jp.anthropic.claude-sonnet-4-6');
   });
 });
 

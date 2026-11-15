@@ -24,14 +24,14 @@ Ein Praxisleitfaden zu den Funktionen aus der AI-Aktualisierung 2026 Q2 (Phasen 
 
 ## Schritt 1: Modellaktualisierung prüfen (5 Min.)
 
-Prüfen Sie, dass jede Stufe (leicht, Standard, leistungsstark) auf das neueste Modell der Region aufgelöst wird. Modelle sind keine festen Werte: Sie werden zur Laufzeit aus den Bedrock-APIs bestimmt (`ListFoundationModels` und `ListInferenceProfiles`, siehe `docker/nextjs/src/lib/model-catalog`).
+Prüfen Sie, dass jede Stufe (leicht, Standard, leistungsstark) auf das neueste Modell der Region aufgelöst wird. Ein Modell, das in begrenzten Regionen verarbeitet wird (etwa `jp.`), hat Vorrang vor einem neueren Modell mit nur einem `global.`-Profil. Modelle sind keine festen Werte: Sie werden zur Laufzeit aus den Bedrock-APIs bestimmt (`ListFoundationModels` und `ListInferenceProfiles`, siehe `docker/nextjs/src/lib/model-catalog`).
 
 ```text
 # Öffnen Sie diese URL in einem angemeldeten Browser und sehen Sie sich data.tiers an
 https://<CloudFront-Domäne>/api/bedrock/models
 # Beispiel (aus der Aufzeichnung für ap-northeast-1 vom 2026-11-15):
 # "light": "jp.anthropic.claude-haiku-5-5"
-# "standard": "global.anthropic.claude-sonnet-5-5"
+# "standard": "jp.anthropic.claude-sonnet-4-6"
 ```
 
 Senden Sie eine Anfrage über die Chat-Oberfläche und prüfen Sie, dass `modelId` in den Antwortmetadaten das neue Modell nennt.
@@ -40,7 +40,7 @@ Senden Sie eine Anfrage über die Chat-Oberfläche und prüfen Sie, dass `modelI
 
 ## Schritt 2: Wirkung des Prompt-Caches prüfen (10 Min.)
 
-> **Voraussetzung**: Prompt-Caching funktioniert nur mit **Anthropic-Claude-Modellen**. Standardmäßig (kein Modell gewählt) wird die Standardstufe verwendet, die auf das neueste Claude-Sonnet-Modell aufgelöst wird; sie wird also gecacht. Ein Nicht-Claude-Modell wie Nova wird nicht gecacht.
+> **Voraussetzung**: Prompt-Caching funktioniert nur mit **Anthropic-Claude-Modellen**. Standardmäßig (kein Modell gewählt) wird die Standardstufe verwendet, die auf ein Claude-Sonnet-Modell aufgelöst wird; sie wird also gecacht. Ein Nicht-Claude-Modell wie Nova wird nicht gecacht.
 
 Senden Sie in derselben Sitzung aufeinanderfolgende Anfragen und prüfen Sie den Cache-Treffer.
 

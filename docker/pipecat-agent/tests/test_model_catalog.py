@@ -32,12 +32,15 @@ class Recorded:
 
 def test_tiers_match_the_webapp_rules():
     assert resolve("light", "ap-northeast-1", client=Recorded()) == "jp.anthropic.claude-haiku-5-5"
-    assert resolve("standard", "ap-northeast-1", client=Recorded()) == "global.anthropic.claude-sonnet-5-5"
+    # Default preference: Sonnet 5.5 has only a global profile in Tokyo, Sonnet 4.6 has jp.
+    assert resolve("standard", "ap-northeast-1", client=Recorded()) == "jp.anthropic.claude-sonnet-4-6"
     assert resolve("voice", "ap-northeast-1", client=Recorded()) == "amazon.nova-2-5-sonic"
 
 
 def test_global_preference():
     assert resolve("light", "ap-northeast-1", client=Recorded(), preference="global") == "global.anthropic.claude-haiku-5-5"
+    # With global preferred, tiers go by newness only (same as the TypeScript rules)
+    assert resolve("standard", "ap-northeast-1", client=Recorded(), preference="global") == "global.anthropic.claude-sonnet-5-5"
 
 
 def test_legacy_models_are_not_picked():
@@ -48,4 +51,4 @@ def test_every_id_is_one_the_region_lists():
     listed = {m["modelId"] for m in DATA["models"]} | {p["inferenceProfileId"] for p in DATA["profiles"]}
     for preference in ("nearest", "global"):
         ids = invoke_ids(DATA["models"], DATA["profiles"], "ap-northeast-1", preference)
-        assert set(ids.values()) <= listed
+        assert {v[0] for v in ids.values()} <= listed

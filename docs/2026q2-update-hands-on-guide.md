@@ -24,14 +24,14 @@
 
 ## Step 1: モデル更新確認（5分）
 
-各段（軽量・標準・高性能）のモデルが、そのリージョンで最新のモデルに解決されていることを確認します。モデルは固定値ではなく、Bedrock の API（`ListFoundationModels` と `ListInferenceProfiles`）から実行時に決まります（`docker/nextjs/src/lib/model-catalog`）。
+各段（軽量・標準・高性能）のモデルが、そのリージョンの最新のモデルに解決されていることを確認します。日本の中（`jp.` など）で処理できるモデルは、`global.` でしか呼べない新しいモデルより先に選ばれます。モデルは固定値ではなく、Bedrock の API（`ListFoundationModels` と `ListInferenceProfiles`）から実行時に決まります（`docker/nextjs/src/lib/model-catalog`）。
 
 ```text
 # サインインしたブラウザで次の URL を開き、data.tiers を確認する
 https://<CloudFront のドメイン>/api/bedrock/models
 # 例（2026-11-15 の ap-northeast-1 の記録から求めた値）:
 # "light": "jp.anthropic.claude-haiku-5-5"
-# "standard": "global.anthropic.claude-sonnet-5-5"
+# "standard": "jp.anthropic.claude-sonnet-4-6"
 ```
 
 チャットUIでクエリを送信し、レスポンスメタデータの `modelId` が新モデルになっていることを確認。
@@ -40,7 +40,7 @@ https://<CloudFront のドメイン>/api/bedrock/models
 
 ## Step 2: Prompt Caching 効果確認（10分）
 
-> **前提条件**: Prompt Caching は **Anthropic Claude モデルのみ** 対応です。既定（モデル未選択）は標準の段で、Claude Sonnet 系の最新モデルに解決されるのでキャッシュの対象です。Nova など Claude 以外のモデルを選んだ場合はキャッシュされません。
+> **前提条件**: Prompt Caching は **Anthropic Claude モデルのみ** 対応です。既定（モデル未選択）は標準の段で、Claude Sonnet 系のモデルに解決されるのでキャッシュの対象です。Nova など Claude 以外のモデルを選んだ場合はキャッシュされません。
 
 同一セッション内で連続クエリを送信し、キャッシュヒットを確認します。
 

@@ -24,14 +24,14 @@
 
 ## Step 1：確認模型更新（5 分鐘）
 
-確認各檔（輕量、標準、高效能）的模型解析為該區域的最新模型。模型不是固定值，而是在執行時由 Bedrock API（`ListFoundationModels`、`ListInferenceProfiles`）決定（`docker/nextjs/src/lib/model-catalog`）。
+確認各檔（輕量、標準、高效能）的模型解析為該區域的最新模型。可在日本境內（如 `jp.`）處理的模型優先於只能透過 `global.` 呼叫的較新模型。模型不是固定值，而是在執行時由 Bedrock API（`ListFoundationModels`、`ListInferenceProfiles`）決定（`docker/nextjs/src/lib/model-catalog`）。
 
 ```text
 # 在已登入的瀏覽器中開啟以下 URL，檢視 data.tiers
 https://<CloudFront 網域>/api/bedrock/models
 # 範例（根據 2026-11-15 ap-northeast-1 的紀錄得出）:
 # "light": "jp.anthropic.claude-haiku-5-5"
-# "standard": "global.anthropic.claude-sonnet-5-5"
+# "standard": "jp.anthropic.claude-sonnet-4-6"
 ```
 
 在聊天介面送出查詢，確認回應中繼資料的 `modelId` 為新模型。
@@ -40,7 +40,7 @@ https://<CloudFront 網域>/api/bedrock/models
 
 ## Step 2：確認 Prompt Caching 效果（10 分鐘）
 
-> **前提條件**：Prompt Caching 僅支援 **Anthropic Claude 模型**。預設（未選擇模型）為標準檔，解析為最新的 Claude Sonnet 模型，因此會被快取。選擇 Nova 等非 Claude 模型時不會快取。
+> **前提條件**：Prompt Caching 僅支援 **Anthropic Claude 模型**。預設（未選擇模型）為標準檔，解析為 Claude Sonnet 模型，因此會被快取。選擇 Nova 等非 Claude 模型時不會快取。
 
 在同一工作階段中連續送出查詢，確認快取命中。
 

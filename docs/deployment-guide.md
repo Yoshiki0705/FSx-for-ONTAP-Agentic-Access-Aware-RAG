@@ -767,7 +767,7 @@ Key flags (excerpt):
 | `agentBackend` | `agentcore` | `bedrock-agents` creates the earlier Amazon Bedrock Agents (kept for one release) |
 | `enableImageGeneration` | `false` | Image generation in Tools. When on, calls the model in `imageGenerationRegion` (default `us-west-2`); prompts and images are processed outside Japan |
 | `modelFamilyLight` / `modelFamilyStandard` / `modelFamilyHeavy` / `modelFamilyFallback` / `modelFamilyVoice` | `anthropic.claude-*haiku*` / `anthropic.claude-*sonnet*` / `anthropic.claude-*opus*` / `amazon.nova-*lite*` / `amazon.nova-*sonic*` | Model family per tier. Each resolves at run time to the newest ACTIVE model of the family ([implementation overview §21](implementation-overview.md)) |
-| `modelProfilePreference` | `nearest` | How the inference profile is chosen. `nearest`: the fewest destination Regions (in Tokyo `jp.` before `global.`). `global`: a `global.` profile first |
+| `modelProfilePreference` | `nearest` | How the inference profile is chosen. `nearest`: the fewest destination Regions (in Tokyo `jp.` before `global.`), and tiers prefer models with such a route over newer global-only ones. `global`: a `global.` profile first, tiers by newness only |
 | `enableWebExtract` | `true` | Web extraction in Tools (the WebApp Lambda goes out to the internet; private and metadata addresses are refused) |
 | `enableGuardrails` | `false` | Bedrock Guardrails (content filter + PII) |
 | `enableMonitoring` | `false` | CloudWatch dashboard + SNS alerts |

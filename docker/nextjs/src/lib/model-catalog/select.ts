@@ -194,16 +194,25 @@ export function familyMatcher(pattern: string): RegExp {
   return new RegExp(`^${escaped}$`);
 }
 
-/** The newest ACTIVE, ready model of the family, or undefined. */
+/**
+ * The newest ACTIVE, ready model of the family, or undefined.
+ *
+ * With `preferBounded`, models processed in bounded Regions (on demand in the Region, or
+ * a geography profile such as `jp.`) come before any model that is only callable through
+ * a `global.` profile, even a newer one. In Tokyo that keeps processing in Japan when the
+ * family has such a model; a family with only global models still resolves.
+ */
 export function newestOfFamily(
   catalog: CatalogEntry[],
   pattern: string,
   accept: (e: CatalogEntry) => boolean = (e) => e.chat,
+  preferBounded = false,
 ): CatalogEntry | undefined {
   const re = familyMatcher(pattern);
-  return catalog
+  const candidates = catalog
     .filter((e) => e.lifecycleStatus === 'ACTIVE' && e.status === 'ready' && accept(e) && re.test(e.baseModelId))
-    .sort(newestFirst)[0];
+    .sort(newestFirst);
+  return (preferBounded ? candidates.find((e) => e.scope !== 'global') : undefined) ?? candidates[0];
 }
 
 export type TierFamilies = Record<Tier, string>;
@@ -213,16 +222,22 @@ export type TierFamilies = Record<Tier, string>;
  * then the newest ready chat model. Voice has no chat fallback: a text model cannot
  * stand in for a speech model.
  */
-export function resolveTiers(catalog: CatalogEntry[], families: TierFamilies): Record<Tier, CatalogEntry | undefined> {
-  const anyChat = catalog.find((e) => e.chat && e.lifecycleStatus === 'ACTIVE' && e.status === 'ready');
-  const fallback = newestOfFamily(catalog, families.fallback) ?? anyChat;
-  const pick = (t: Exclude<Tier, 'voice' | 'fallback'>) => newestOfFamily(catalog, families[t]) ?? fallback;
+export function resolveTiers(
+  catalog: CatalogEntry[],
+  families: TierFamilies,
+  preferBounded = false,
+): Record<Tier, CatalogEntry | undefined> {
+  const ready = catalog.filter((e) => e.chat && e.lifecycleStatus === 'ACTIVE' && e.status === 'ready');
+  const anyChat = (preferBounded ? ready.find((e) => e.scope !== 'global') : undefined) ?? ready[0];
+  const fallback = newestOfFamily(catalog, families.fallback, undefined, preferBounded) ?? anyChat;
+  const pick = (t: Exclude<Tier, 'voice' | 'fallback'>) =>
+    newestOfFamily(catalog, families[t], undefined, preferBounded) ?? fallback;
   return {
     light: pick('light'),
     standard: pick('standard'),
     heavy: pick('heavy'),
     fallback,
-    voice: newestOfFamily(catalog, families.voice, (e) => e.outputModalities.includes('SPEECH')),
+    voice: newestOfFamily(catalog, families.voice, (e) => e.outputModalities.includes('SPEECH'), preferBounded),
   };
 }
 
@@ -257,8 +272,9 @@ export function resolveRequested(
   catalog: CatalogEntry[],
   requested: string | undefined,
   families: TierFamilies,
+  preferBounded = false,
 ): Resolution {
-  const tiers = resolveTiers(catalog, families);
+  const tiers = resolveTiers(catalog, families, preferBounded);
   const standard = tiers.standard;
   if (!requested) {
     return standard ? { invokeId: standard.invokeId, entry: standard } : { invokeId: '' };
