@@ -67,6 +67,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   tools?: {
     enableWebExtract: boolean;
     enableImageGeneration: boolean;
+    /** Code tool: a model writes Python and runs it in the AgentCore built-in Code Interpreter. */
+    enableCodeInterpreter?: boolean;
     imageGenerationRegion: string;
     imageGenerationModelId: string;
   };
@@ -230,7 +232,8 @@ export class DemoWebAppStack extends cdk.Stack {
         { tagOrDigest: imageUri },
       ),
       memorySize: 1024,
-      timeout: cdk.Duration.seconds(30),
+      // The code tool waits for a sandbox run, so its stack gets 60 s (and CloudFront waits 60 s).
+      timeout: cdk.Duration.seconds(tools.enableCodeInterpreter ? 60 : 30),
       vpc,
       vpcSubnets: lambdaVpcSubnets,
       securityGroups: [lambdaSg],
@@ -278,6 +281,7 @@ export class DemoWebAppStack extends cdk.Stack {
         USE_CASES_TABLE_NAME: useCasesTable.tableName,
         WEB_EXTRACT_ENABLED: tools.enableWebExtract ? 'true' : 'false',
         IMAGE_GENERATION_ENABLED: tools.enableImageGeneration ? 'true' : 'false',
+        CODE_INTERPRETER_ENABLED: tools.enableCodeInterpreter ? 'true' : 'false',
         ...(tools.enableImageGeneration ? {
           IMAGE_GENERATION_REGION: tools.imageGenerationRegion,
           IMAGE_GENERATION_MODEL_ID: tools.imageGenerationModelId,
@@ -587,6 +591,18 @@ export class DemoWebAppStack extends cdk.Stack {
       },
     }));
 
+    // Code tool: start, run and stop sessions of the built-in Code Interpreter only. The built-in
+    // interpreter belongs to the service (account `aws`), so the ARN is exact and has no wildcard.
+    if (tools.enableCodeInterpreter) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'bedrock-agentcore:StartCodeInterpreterSession',
+          'bedrock-agentcore:InvokeCodeInterpreter',
+          'bedrock-agentcore:StopCodeInterpreterSession',
+        ],
+        resources: [`arn:aws:bedrock-agentcore:${cdk.Aws.REGION}:aws:code-interpreter/aws.codeinterpreter.v1`],
+      }));
+    }
     // DynamoDB権限（権限キャッシュ + ユーザーアクセス）
     permissionCacheTable.grantReadWriteData(this.webAppFunction);
     userAccessTable.grantReadData(this.webAppFunction);
@@ -724,7 +740,7 @@ export class DemoWebAppStack extends cdk.Stack {
       // TLS最小バージョン
       minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
       defaultBehavior: {
-        origin: new origins.FunctionUrlOrigin(functionUrl),
+        origin: new origins.FunctionUrlOrigin(functionUrl, tools.enableCodeInterpreter ? { readTimeout: cdk.Duration.seconds(60) } : {}),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,

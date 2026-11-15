@@ -24,8 +24,9 @@
 ### Code Interpreter
 - 組み込みの `aws.codeinterpreter.v1` を使います。`verified 2026-11-15 / ap-northeast-1` で、セッションを開始して Python を実行できました。呼び出しは boto3 の `bedrock-agentcore` クライアントの `invoke_code_interpreter(name='executeCode', arguments={language, code})` です。AWS CLI v2 には呼び出しのコマンドがありません。
 - サンドボックスへ渡すのは、利用者本人が読める文書の内容だけです。許可の判定は、段階 1 のツールと同じ権限テストを通します。
-- 実行は 1 回 60 秒まで、1 リクエストあたり 3 回までです。
-- 実行の部分は 1 つのモジュールにまとめます。**Code Interpreter が終了方向にあるという情報は得ていますが、公式の根拠は確認できていません**（AgentCore のリリースノート 2026-11 までを確認）。メンテナンスモードで新規受付を止めているのは Bedrock Agents Classic とその中のコード実行機能です（2026-07-30 以降、`documented`）。代替が必要になった場合に、このモジュールだけを差し替えます。
+- 実行は 1 回 60 秒まで、1 リクエストあたり 3 回まで、全体で 50 秒までです。全体の 50 秒は、CloudFront がオリジンの応答を待つ時間（60 秒に設定）から決めました。
+- サンドボックスにネットワークはありません（`verified 2026-11-15 / ap-northeast-1`、外部サイトの名前解決が失敗）。pandas と numpy は入っています。文書の本文はサンドボックスのファイルに書き、モデルのプロンプトには入れません。
+- 実行の部分は 1 つのモジュール（`code-executor.ts`）にまとめます。Code Interpreter が終了方向にあるという話は、別の Code 系サービス（CodeGuru Security など）の終了を取り違えたもので、AgentCore の Code Interpreter には当てはまりません。AgentCore のリリースノート（2026-11 まで）にも終了の記載はありません。なお、メンテナンスモードで新規受付を止めているのは Bedrock Agents Classic とその中のコード実行機能です（2026-07-30 以降、`documented`）。
 
 ### 動画の分析
 - Converse の `video` ブロックに、バイト列または S3 の場所（`s3Location`）を渡します。`verified 2026-11-15 / ap-northeast-1` で、どちらも FSx for ONTAP S3 Access Points のエイリアスを含めて読めました。
@@ -67,13 +68,13 @@ Textract は、バケットと別のリージョンから呼ぶと、エイリ�
 A. 東京と、調べた他の 5 リージョン（us-east-1、eu-west-1、eu-central-1、ap-southeast-1、ap-south-1）で、動画を出力するモデルが見つからなかったためです。us-west-2 の `luma.ray-v2:0` だけが使えました。
 
 **Q. Code Interpreter は将来使えなくなりますか。**
-A. 公式の根拠は確認できていません。確認できたのは Bedrock Agents Classic のメンテナンスモードだけです。実行を 1 つのモジュールに分けているのは、この不確実さへの備えです。
+A. 終了の記載は見つかっていません（AgentCore のリリースノート、2026-11 まで）。取り違えの原因は別の Code 系サービスの終了でした。実行を 1 つのモジュールに分けているのは、将来差し替える場合に備えるためです。
 
 **Q. 議事録の精度は十分ですか。**
 A. 日本語 1 文の実測だけで、会議の録音での精度は測っていません。本番に近い録音での測定が必要です（`hypothesis`）。
 
 ## 次の手順
-1. Code Interpreter を両アプリに追加する（RAG アプリはエージェントのツール、ファイルポータルは `functions/file-tools`）。権限テストと実行時間の上限テストを付ける。
+1. Code Interpreter を両アプリに追加する。RAG アプリは `/genai/tools` の「コードの実行」として実装済み（確認結果は [評価](evaluation.md) 3.8）。ファイルポータルは `functions/file-tools` に追加する。
 2. 動画の分析、議事録、動画の生成を順に追加する。各機能で 8 言語の文言、実機での確認、画面のスクリーンショット、撤去までを行う。
 
 ## 関連ドキュメント

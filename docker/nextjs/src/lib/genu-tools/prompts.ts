@@ -180,3 +180,43 @@ export function documentsBlock(docs: { fileName: string; content: string }[]): s
   const body = docs.map((d, i) => `[${i + 1}] ${d.fileName}\n${d.content}`).join('\n\n');
   return `\n\nDocuments (use them as the source; cite file names):\n${wrapInput(body)}`;
 }
+
+/** The system prompt that makes the model write one Python program for a task. */
+export function codePrompt(files: { path: string; label: string }[]): string {
+  return [
+    'Write one Python 3 program that does the task below. It runs in a sandbox with no network access and no packages beyond the standard library, pandas and numpy.',
+    files.length > 0
+      ? `These files are in the working directory; read them from there:\n${files.map((f) => `- ${f.path}: ${f.label}`).join('\n')}`
+      : 'There are no input files; the program must not read any.',
+    'Print every result you want the user to see to standard output. Do not write files, do not ask for input, do not call the network.',
+    'You have not seen the contents of the files. Write the program so that it copes with the structure it finds, and print what it found when the task cannot be done.',
+    'Reply with the program in a single ```python code block and nothing else.',
+  ].join('\n');
+}
+
+export function extractPython(text: string): string {
+  const fenced = text.match(/```(?:python|py)?\s*\n([\s\S]*?)```/i);
+  const code = (fenced ? fenced[1] : '').trim();
+  if (!code) throw new ToolInputError('the model did not return a Python program');
+  return code;
+}
+
+/** The user message for a retry: the program and its error, so the model can fix it. */
+export function codeFixMessage(task: string, code: string, error: string): string {
+  return [
+    `Task: ${task}`,
+    'The program below failed. Fix it and reply with the whole corrected program in a single ```python code block.',
+    '```python',
+    code,
+    '```',
+    wrapInput(`Error output:\n${error}`),
+  ].join('\n');
+}
+
+export function codeAnswerPrompt(): string {
+  return [
+    'Answer the user task using only the program output given in the input. State the result plainly, in the language of the task.',
+    'If the program failed, say that it failed and what the error says; do not invent a result.',
+    DATA_RULE,
+  ].join('\n');
+}

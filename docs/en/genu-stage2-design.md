@@ -24,8 +24,9 @@ This is a design written before implementation, not a description of shipped beh
 ### Code Interpreter
 - Use the built-in `aws.codeinterpreter.v1`. `verified 2026-11-15 / ap-northeast-1`: a session started and ran Python. Invocation is boto3 `bedrock-agentcore` `invoke_code_interpreter(name='executeCode', arguments={language, code})`. AWS CLI v2 has no invoke command.
 - Only content from documents the user can read goes into the sandbox. Authorization uses the same permission tests as the stage-1 tools.
-- Each run is limited to 60 seconds and each request to 3 runs.
-- Execution sits in one module. **Information that Code Interpreter is heading for end of service has been received, but no official source was found** (AgentCore release notes checked through 2026-11). What is in maintenance mode, closed to new customers, is Bedrock Agents Classic and its own code-execution feature (since 2026-07-30, `documented`). If a replacement is needed, only this module is swapped.
+- Each run is limited to 60 seconds, each request to 3 runs and 50 seconds in all. The 50 seconds comes from how long CloudFront waits for the origin (set to 60 seconds).
+- The sandbox has no network (`verified 2026-11-15 / ap-northeast-1`: a lookup of an outside site fails). pandas and numpy are installed. Document text is written to files in the sandbox and is not put in the model prompt.
+- Execution sits in one module (`code-executor.ts`). The report that Code Interpreter was heading for end of service came from mixing it up with the end of another "Code" service (CodeGuru Security, for example); it does not apply to AgentCore Code Interpreter, and the AgentCore release notes (through 2026-11) record no end of service. What is in maintenance mode, closed to new customers, is Bedrock Agents Classic and its own code-execution feature (since 2026-07-30, `documented`).
 
 ### Video analysis
 - Pass bytes or an S3 location (`s3Location`) in the Converse `video` block. `verified 2026-11-15 / ap-northeast-1`: both worked, including with an FSx for ONTAP S3 Access Points alias.
@@ -67,13 +68,13 @@ Textract called from a Region other than the bucket's failed with `InvalidS3Obje
 A. No model that outputs video was found in Tokyo or in the five other Regions checked (us-east-1, eu-west-1, eu-central-1, ap-southeast-1, ap-south-1). Only `luma.ray-v2:0` in us-west-2 worked.
 
 **Q. Will Code Interpreter stop being available?**
-A. No official source was found. The only confirmed item is the maintenance mode of Bedrock Agents Classic. Keeping execution in one module is the hedge against this uncertainty.
+A. No end of service is recorded (AgentCore release notes, through 2026-11). The report came from mixing it up with another "Code" service ending. Execution is kept in one module so that a later swap stays small.
 
 **Q. Is the meeting-minutes accuracy sufficient?**
 A. It was measured on one Japanese sentence only, not on meeting recordings. A measurement on realistic recordings is needed (`hypothesis`).
 
 ## Next Steps
-1. Add Code Interpreter to both apps (an agent tool in the RAG app, `functions/file-tools` in the file portal), with permission tests and run-time limit tests.
+1. Add Code Interpreter to both apps. The RAG app has it as "Run code" in `/genai/tools` (results in [Evaluation](evaluation.md) 3.8). The file portal gets it in `functions/file-tools`.
 2. Add video analysis, meeting minutes, and video generation in that order. For each: 8-language strings, a check on a live deployment, screenshots, and teardown.
 
 ## Related Documents

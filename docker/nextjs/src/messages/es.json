@@ -1506,7 +1506,8 @@
       "diagram": "Diagrama",
       "webExtract": "Extracción web",
       "image": "Generación de imágenes",
-      "useCases": "Mis casos de uso"
+      "useCases": "Mis casos de uso",
+      "code": "Ejecutar código"
     },
     "source": {
       "label": "Entrada",
@@ -1617,6 +1618,17 @@
       "id": "Indonesio",
       "th": "Tailandés",
       "vi": "Vietnamita"
+    },
+    "code": {
+      "notice": "Un modelo escribe un programa de Python para su tarea y lo ejecuta en un entorno aislado sin red. Solo se colocan allí los documentos que usted puede leer. Como máximo {runs} ejecuciones por solicitud, {seconds} segundos cada una.",
+      "task": "Tarea",
+      "taskPlaceholder": "P. ej.: sumar la columna de importes y listar las 3 filas más grandes",
+      "run": "Escribir y ejecutar",
+      "program": "Programa escrito por el modelo",
+      "runs": "Ejecuciones ({count})",
+      "ok": "Terminada",
+      "failed": "Fallida",
+      "timedOut": "Tiempo agotado"
     }
   }
 }

@@ -264,6 +264,16 @@ Permission Violation Rate = (権限外ドキュメント表示回数) / (全検�
 
 ---
 
+### 3.8 コードの実行（Python）での確認結果
+**[verified 2026-11-15 / ap-northeast-1]** アプリはデプロイしていない。ローカルから、実際の Bedrock と AgentCore の組み込み Code Interpreter に対して `runTool('code', …)` を呼んだ。権限の判定（SID フィルタ）は単体テストで確かめ、実際の Knowledge Base とは組み合わせていない。
+| 確認したこと | 結果 |
+|---|---|
+| 売上の列の合計と最大の月（入力は 3 行の CSV を文字で渡した） | 合計 555、最大は 2 月（340）。プログラムは 1 回で成功し、全体で 18.9 秒（ほとんどはモデルがプログラムを書く時間） |
+| サンドボックスからのネットワーク接続（`urllib` で外部サイトへ） | `Name or service not known` で失敗し、回答は「失敗した」と述べた。5.3 秒 |
+| 最小権限のロール（`StartCodeInterpreterSession`・`InvokeCodeInterpreter`・`StopCodeInterpreterSession` だけ、リソースは `arn:aws:bedrock-agentcore:ap-northeast-1:aws:code-interpreter/aws.codeinterpreter.v1`）で引き受けて呼ぶ | セッションの開始、`print(6*7)` の実行（`42`）、停止まで成功 |
+| 単体テスト（`code-interpreter.test.ts`） | 読めない文書の名前も本文もモデルとサンドボックスに渡らない、プログラムが失敗し続けても 3 回で止まる、時間が足りなければ次の実行を始めない、設定が `true` でなければ動かない、タイムアウトしてもセッションを止める |
+**1 回の上限**: 実行は 3 回まで、1 回 60 秒まで、全体で 50 秒までである。全体の 50 秒は、CloudFront がオリジンの応答を待つ上限（60 秒に設定）から決めた。モデルがプログラムを書く時間とのあいだで、60 秒の実行が 3 回続くことはない。
+**範囲**: 実機にデプロイしての確認（Lambda から CloudFront 経由で呼ぶ、画面のスクリーンショット）は未実施。文書を入力にした実行は、実際の Knowledge Base では確かめていない（単体テストのみ）。
 ## 4. Agent 評価メトリクス
 
 ### 4.1 Task Success Rate（タスク成功率）

@@ -8,14 +8,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
-  Copy, Download, FileSearch, Globe, ImageIcon, Languages, Pencil, Play, Plus, SpellCheck, Trash2, Workflow, Wand2,
+  Code2, Copy, Download, FileSearch, Globe, ImageIcon, Languages, Pencil, Play, Plus, SpellCheck, Trash2, Workflow, Wand2,
 } from 'lucide-react';
 import { MermaidView } from './MermaidView';
 
-type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases';
+type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases' | 'code';
 
 interface ToolsConfig {
-  tools: { translate: boolean; proofread: boolean; diagram: boolean; webExtract: boolean; image: boolean; useCases: boolean };
+  tools: { translate: boolean; proofread: boolean; diagram: boolean; webExtract: boolean; image: boolean; useCases: boolean; codeInterpreter: boolean };
+  codeInterpreter: { maxRuns: number; runSeconds: number } | null;
   image: { region: string; modelId: string; crossRegion: boolean } | null;
   maxInputChars: number;
 }
@@ -453,6 +454,53 @@ function UseCasesPanel({ t }: { t: ReturnType<typeof useTranslations> }) {
   );
 }
 
+interface CodeRunView { ok: boolean; timedOut: boolean; stdout: string; stderr: string; durationMs: number }
+function CodePanel({ t, limits }: { t: ReturnType<typeof useTranslations>; limits: { maxRuns: number; runSeconds: number } }) {
+  const [task, setTask] = useState('');
+  const [source, setSource] = useState<'text' | 'documents'>('documents');
+  const [text, setText] = useState('');
+  const [out, setOut] = useState<{ result: string; code: string; runs: CodeRunView[]; sources?: string[] } | null>(null);
+  const { busy, error, run } = useRunner();
+  return (
+    <div className="space-y-4">
+      <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+        {t('code.notice', { runs: limits.maxRuns, seconds: limits.runSeconds })}
+      </p>
+      <label className="block text-sm text-gray-700 dark:text-gray-300">
+        {t('code.task')}
+        <textarea className={`${inputClass} min-h-[80px]`} value={task} onChange={(e) => setTask(e.target.value)} placeholder={t('code.taskPlaceholder')} />
+      </label>
+      <SourceInput source={source} setSource={setSource} text={text} setText={setText} t={t} />
+      <button type="button" className={buttonClass} disabled={busy || !task.trim() || !text.trim()} onClick={() => run(async () => setOut(await postTool('code', source === 'documents' ? { task, source, query: text } : { task, text })))}>
+        <Play className="h-4 w-4" aria-hidden /> {busy ? t('running') : t('code.run')}
+      </button>
+      <ErrorLine error={error} />
+      {out && (
+        <>
+          <Sources sources={out.sources} t={t} />
+          <ResultText text={out.result} t={t} fileName="code-result.md" />
+          <details className="text-sm text-gray-700 dark:text-gray-300">
+            <summary className="cursor-pointer">{t('code.program')}</summary>
+            <pre className="mt-2 overflow-x-auto rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-xs">{out.code}</pre>
+          </details>
+          <details className="text-sm text-gray-700 dark:text-gray-300">
+            <summary className="cursor-pointer">{t('code.runs', { count: out.runs.length })}</summary>
+            <ol className="mt-2 space-y-2 list-decimal pl-5">
+              {out.runs.map((r, i) => (
+                <li key={i}>
+                  <span className={r.ok ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
+                    {r.ok ? t('code.ok') : r.timedOut ? t('code.timedOut') : t('code.failed')} ({(r.durationMs / 1000).toFixed(1)} s)
+                  </span>
+                  {(r.stdout || r.stderr) && <pre className="mt-1 whitespace-pre-wrap rounded-md bg-gray-50 dark:bg-gray-800 p-2 text-xs">{r.stdout || r.stderr}</pre>}
+                </li>
+              ))}
+            </ol>
+          </details>
+        </>
+      )}
+    </div>
+  );
+}
 export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
   const t = useTranslations('tools');
   const [config, setConfig] = useState<ToolsConfig | null>(null);
@@ -471,6 +519,7 @@ export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
     { id: 'diagram', icon: Workflow, enabled: true },
     { id: 'webExtract', icon: Globe, enabled: config?.tools.webExtract ?? true },
     { id: 'image', icon: ImageIcon, enabled: config?.tools.image ?? false },
+    { id: 'code', icon: Code2, enabled: config?.tools.codeInterpreter ?? false },
     { id: 'useCases', icon: FileSearch, enabled: config?.tools.useCases ?? true },
   ];
   const visible = tabs.filter((x) => x.enabled);
@@ -502,6 +551,7 @@ export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
         {current === 'diagram' && <DiagramPanel t={t} />}
         {current === 'webExtract' && <WebExtractPanel t={t} />}
         {current === 'image' && config?.image && <ImagePanel t={t} config={config.image} />}
+        {current === 'code' && config?.codeInterpreter && <CodePanel t={t} limits={config.codeInterpreter} />}
         {current === 'useCases' && <UseCasesPanel t={t} />}
       </section>
     </div>

@@ -184,6 +184,7 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 | `voiceChatMode` | `"rest"` | Voice chat mode (`"rest"` \| `"webrtc"`) |
 | `enableMonitoring` | `false` | CloudWatch alarms + dashboard + SNS alerts |
 | `enableGuardrails` | `false` | Bedrock Guardrails (content filter, topic policy, PII, Automated Reasoning) |
+| `enableCodeInterpreter` | `false` | Tools page "Run code": a model writes Python and runs it in the AgentCore built-in Code Interpreter (no network in the sandbox; only documents the user may read are placed there). Limits per request: 3 runs, 60 s per run, 50 s in total. Gives the WebApp Lambda a 60 s timeout and makes CloudFront wait 60 s for the origin |
 | `enableAgentCoreMemory` | `false` | AgentCore Memory (short-term + long-term) |
 | `enableEpisodicMemory` | `false` | Episodic Memory (requires AgentCoreMemory) |
 | `enableAgentPolicy` | `false` | AgentCore Policy (agent behavior control) |

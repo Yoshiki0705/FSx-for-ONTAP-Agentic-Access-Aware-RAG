@@ -5,6 +5,7 @@
  * may read.
  */
 import { allowedDocuments, type ToolDocument } from './documents';
+import { codeInterpreterEnabled, MAX_RUNS, RUN_LIMIT_MS, runCodeTool } from './code-interpreter';
 import { generateImage, imageConfig, type ImageRequest } from './image';
 import {
   diagramPrompt,
@@ -25,8 +26,9 @@ import { fetchPage, htmlToText } from './web-fetch';
 export { ToolInputError } from './text-model';
 export { ImageFilteredError, imageConfig } from './image';
 export * from './use-cases';
+export { codeInterpreterEnabled } from './code-interpreter';
 
-export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'use-case'] as const;
+export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'use-case', 'code'] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
 export function webExtractEnabled(): boolean {
@@ -42,9 +44,11 @@ export function toolsConfig() {
       diagram: true,
       webExtract: webExtractEnabled(),
       image: image.enabled,
+      codeInterpreter: codeInterpreterEnabled(),
       useCases: !!process.env.USE_CASES_TABLE_NAME,
     },
     image: image.enabled ? { region: image.region, modelId: image.modelId, crossRegion: image.crossRegion } : null,
+    codeInterpreter: codeInterpreterEnabled() ? { maxRuns: MAX_RUNS, runSeconds: RUN_LIMIT_MS / 1000 } : null,
     maxInputChars: MAX_INPUT_CHARS,
   };
 }
@@ -122,6 +126,8 @@ export async function runTool(tool: string, userId: string, body: Body): Promise
       const out = await generateText({ system: useCaseSystemPrompt(), user: renderTemplate(useCase.template, input) + docs, maxTokens: 8192, temperature: 0.4 });
       return { result: out.text, sources, modelId: out.modelId };
     }
+    case 'code':
+      return { ...(await runCodeTool(userId, { task: str(body, 'task'), text: str(body, 'text'), source: str(body, 'source'), query: str(body, 'query') })) };
     default:
       throw new ToolInputError(`unknown tool: ${tool}`);
   }

@@ -1395,7 +1395,8 @@
       "diagram": "Diagram",
       "webExtract": "Web extraction",
       "image": "Image generation",
-      "useCases": "My use cases"
+      "useCases": "My use cases",
+      "code": "Run code"
     },
     "source": {
       "label": "Input",
@@ -1506,6 +1507,17 @@
       "id": "Indonesian",
       "th": "Thai",
       "vi": "Vietnamese"
+    },
+    "code": {
+      "notice": "A model writes a Python program for your task and runs it in an isolated sandbox with no network. Only documents you may read are placed there. At most {runs} runs per request, {seconds} seconds per run.",
+      "task": "Task",
+      "taskPlaceholder": "e.g. Total the amount column and list the three largest rows",
+      "run": "Write and run",
+      "program": "Program the model wrote",
+      "runs": "Runs ({count})",
+      "ok": "Finished",
+      "failed": "Failed",
+      "timedOut": "Timed out"
     }
   }
 }

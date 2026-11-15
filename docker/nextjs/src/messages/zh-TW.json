@@ -1527,7 +1527,8 @@
       "diagram": "產生圖表",
       "webExtract": "網頁擷取",
       "image": "產生圖片",
-      "useCases": "我的使用案例"
+      "useCases": "我的使用案例",
+      "code": "執行程式碼"
     },
     "source": {
       "label": "輸入",
@@ -1638,6 +1639,17 @@
       "id": "印尼語",
       "th": "泰語",
       "vi": "越南語"
+    },
+    "code": {
+      "notice": "模型會為您的任務撰寫 Python 程式，並在沒有網路的隔離環境中執行。傳入該環境的只有您有權讀取的文件。每次請求最多 {runs} 次執行，每次 {seconds} 秒。",
+      "task": "任務",
+      "taskPlaceholder": "例如：加總金額欄，並列出最大的 3 列",
+      "run": "撰寫並執行",
+      "program": "模型撰寫的程式",
+      "runs": "執行（{count} 次）",
+      "ok": "已完成",
+      "failed": "失敗",
+      "timedOut": "逾時"
     }
   }
 }
