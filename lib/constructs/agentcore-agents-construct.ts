@@ -49,7 +49,11 @@ export const SEARCH_TARGET_NAME = 'permission-search';
 export const SEARCH_TOOL_NAME = 'permission_aware_search';
 export const DEFAULT_AGENT_ID = 'rag-default';
 export const DEFAULT_TEAM_ID = 'rag-default-team';
-const DEFAULT_MODEL = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
+/**
+ * The seeded agents use the light tier. The WebApp resolves the token to the newest
+ * model of the tier's family each time an agent runs (docker/nextjs/src/lib/model-catalog).
+ */
+const DEFAULT_MODEL = 'tier:light';
 
 export class AgentCoreAgentsConstruct extends Construct {
   public readonly runtime: agentcore.Runtime;

@@ -24,13 +24,6 @@ export const PROVIDERS = [
   { value: 'stability', label: 'Stability AI' },
 ] as const;
 
-// 推奨モデルID
-export const RECOMMENDED_MODEL_IDS = [
-  'apac.amazon.nova-pro-v1:0',
-  'apac.amazon.nova-lite-v1:0',
-  'apac.anthropic.claude-3-5-sonnet-20241022-v2:0',
-  'apac.anthropic.claude-3-sonnet-20240229-v1:0',
-] as const;
 
 // UI表示用のクラス名
 export const UI_CLASSES = {

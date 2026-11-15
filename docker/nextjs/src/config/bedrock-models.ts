@@ -1,6 +1,5 @@
 // 動的Bedrockモデル設定（自動検出対応版）
 
-import { FALLBACK_MODEL_ID_APAC, FALLBACK_RECOMMENDED_MODELS } from '@/config/model-defaults';
 
 /**
  * リクエスト形式の種類
@@ -69,46 +68,17 @@ export interface BedrockModel {
   parameterMapping?: ParameterMapping;
 }
 
-// 静的フォールバックモデル（API失敗時用）
-const FALLBACK_MODELS: BedrockModel[] = [
-  {
-    id: 'apac.amazon.nova-pro-v1:0',
-    name: 'Amazon Nova Pro',
-    description: 'Amazon Nova Pro - Amazon最新・推奨モデル',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 4000,
-    temperature: 0.7,
-    topP: 0.9
-  },
-  {
-    id: 'apac.amazon.nova-lite-v1:0',
-    name: 'Amazon Nova Lite',
-    description: 'Amazon Nova Lite - 軽量・高速版',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 2000,
-    temperature: 0.7,
-    topP: 0.9
-  },
-  {
-    id: 'apac.anthropic.claude-3-5-sonnet-20241022-v2:0',
-    name: 'Claude 3.5 Sonnet',
-    description: 'Claude 3.5 Sonnet - Anthropic高性能モデル',
-    provider: 'anthropic',
-    category: 'chat',
-    maxTokens: 4000,
-    temperature: 0.7,
-    topP: 0.9
-  },
-  // Note: Claude 3 Sonnet (apac.anthropic.claude-3-sonnet-20240229-v1:0) は
-  // Legacyモデルとしてアクセス拒否されるため、フォールバックリストから除外
-];
+/**
+ * No static model list. The models, the recommended ones and the default all come from
+ * `/api/bedrock/models` (the server's model catalog). An empty default ID tells the
+ * server to use the standard tier, so a failed fetch still sends a request that works.
+ */
+const FALLBACK_MODELS: BedrockModel[] = [];
 
 // 動的モデルデータ（キャッシュ用）
 let cachedModels: BedrockModel[] | null = null;
 let cachedRecommendedModels: string[] = [];
-let cachedDefaultModelId: string = FALLBACK_MODEL_ID_APAC;
+let cachedDefaultModelId = '';
 let lastFetchTime: number = 0;
 const CACHE_DURATION = 0; // キャッシュ無効化（常に最新データを取得）
 
@@ -148,7 +118,7 @@ export async function fetchAvailableModels(): Promise<{
       // キャッシュ更新
       cachedModels = data.data.models;
       cachedRecommendedModels = data.data.recommendedModels || [];
-      cachedDefaultModelId = data.data.defaultModelId || FALLBACK_MODEL_ID_APAC;
+      cachedDefaultModelId = data.data.defaultModelId || '';
       lastFetchTime = now;
       
       return {
@@ -164,15 +134,15 @@ export async function fetchAvailableModels(): Promise<{
   // フォールバック
   return {
     models: FALLBACK_MODELS,
-    recommendedModels: [...FALLBACK_RECOMMENDED_MODELS],
-    defaultModelId: FALLBACK_MODEL_ID_APAC
+    recommendedModels: [],
+    defaultModelId: ''
   };
 }
 
 // 同期的なアクセス用（後方互換性）
 export let AVAILABLE_MODELS: BedrockModel[] = FALLBACK_MODELS;
-export let RECOMMENDED_MODELS: string[] = [FALLBACK_MODEL_ID_APAC];
-export let DEFAULT_MODEL_ID: string = FALLBACK_MODEL_ID_APAC;
+export let RECOMMENDED_MODELS: string[] = [];
+export let DEFAULT_MODEL_ID = '';
 
 // 初期化時にモデルを取得
 if (typeof window !== 'undefined') {

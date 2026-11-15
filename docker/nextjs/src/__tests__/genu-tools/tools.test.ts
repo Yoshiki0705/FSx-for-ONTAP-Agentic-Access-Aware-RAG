@@ -6,6 +6,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { userRecords } = vi.hoisted(() => ({ userRecords: new Map<string, Record<string, unknown>>() }));
+// The tools' model comes from the model catalog; serve it the recorded Tokyo responses.
+vi.mock('@aws-sdk/client-bedrock', () => import('../model-catalog/bedrock-control-plane-mock'));
 vi.mock('@aws-sdk/client-dynamodb', () => {
   class GetItemCommand {
     constructor(public input: { Key: { userId: { S: string } } }) {}

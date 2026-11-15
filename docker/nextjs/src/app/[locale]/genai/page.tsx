@@ -603,7 +603,7 @@ function ChatbotPageContent() {
     return () => window.removeEventListener('resize', handleResize);
   }, [setSidebarOpen]);
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_MODEL_ID);
-  const [selectedModelName, setSelectedModelName] = useState('Amazon Nova Pro');
+  const [selectedModelName, setSelectedModelName] = useState('');
   const [userDirectories, setUserDirectories] = useState<any>(null);
   const [availableModelCount, setAvailableModelCount] = useState<number>(0);
   const [isLoadingDirectories, setIsLoadingDirectories] = useState(false);
@@ -1047,6 +1047,11 @@ function ChatbotPageContent() {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
+            // No model chosen yet: take the standard tier the server resolved (model catalog).
+            if (!selectedModelId && data.data.tiers?.standard) {
+              setSelectedModelId(data.data.tiers.standard);
+              return;
+            }
             // 利用可能なモデルと利用不可能なモデルを統合
             const allModels = [
               ...(data.data.availableModels || []),
@@ -1059,7 +1064,7 @@ function ChatbotPageContent() {
             console.log('Looking for model:', selectedModelId);
             
             // 選択されたモデルの情報をログ出力
-            const selectedModel = allModels.find(m => m.modelId === selectedModelId);
+            const selectedModel = allModels.find(m => m.modelId === selectedModelId || m.baseModelId === selectedModelId);
             if (selectedModel && selectedModel.modelName) {
               console.log('Found selected model info:', selectedModel);
               setSelectedModelName(selectedModel.modelName);
@@ -1078,7 +1083,7 @@ function ChatbotPageContent() {
                   .split(/[-.]/)
                   .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                   .join(' ');
-                setSelectedModelName(displayName || 'Amazon Nova Pro');
+                setSelectedModelName(displayName);
               }
             }
           }

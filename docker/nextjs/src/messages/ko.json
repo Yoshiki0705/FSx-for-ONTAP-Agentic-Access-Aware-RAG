@@ -297,7 +297,32 @@
       "availableModels": "사용 가능한 모델",
       "count": "개",
       "noModelSelected": "모델이 선택되지 않았습니다",
-      "select": "선택"
+      "select": "선택",
+      "needsRequest": "신청 필요",
+      "notAuthorizedForModel": "권한 없음",
+      "notAvailableInRegion": "이 리전에서는 사용할 수 없습니다",
+      "others": "외",
+      "provider": "공급자",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "이 모델은 global 추론 프로필로 호출되며 현재 지역 밖의 리전에서 처리될 수 있습니다",
+      "selectedModelDetails": "선택한 모델 상세",
+      "unavailableModels": "선택할 수 없는 모델",
+      "statistics": {
+        "title": "모델 통계",
+        "total": "합계",
+        "available": "선택 가능",
+        "unavailable": "선택 불가"
+      }
+    },
+    "catalog": {
+      "tier": {
+        "light": "자동 (경량)",
+        "standard": "자동 (표준)",
+        "heavy": "자동 (고성능)"
+      },
+      "needsRequest": "신청 필요",
+      "notAuthorized": "권한 없음",
+      "retired": "폐지됨. 실행 시 같은 계열의 최신 모델로 대체됩니다"
     }
   },
   "modelSelector": {

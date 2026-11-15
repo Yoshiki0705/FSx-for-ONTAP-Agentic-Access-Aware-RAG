@@ -432,6 +432,22 @@ const toolsSettings = {
   imageGenerationModelId,
 };
 
+// Model catalog (docker/nextjs/src/lib/model-catalog): tiers are family patterns, not
+// model IDs, and resolve at run time to the newest ACTIVE model of the family.
+const modelFamilies: Record<string, string> = {};
+for (const tier of ['light', 'standard', 'heavy', 'fallback', 'voice'] as const) {
+  const key = `modelFamily${tier.charAt(0).toUpperCase()}${tier.slice(1)}`;
+  const value = app.node.tryGetContext(key);
+  if (value === undefined || value === '') continue;
+  if (typeof value !== 'string' || !/^[a-z0-9][a-z0-9.*:-]*$/.test(value)) {
+    throw new Error(`${key} must be a model family pattern such as "anthropic.claude-*sonnet*": ${value}`);
+  }
+  modelFamilies[tier] = value;
+}
+const modelProfilePreference = app.node.tryGetContext('modelProfilePreference') || 'nearest';
+if (modelProfilePreference !== 'nearest' && modelProfilePreference !== 'global') {
+  throw new Error(`modelProfilePreference must be "nearest" or "global": ${modelProfilePreference}`);
+}
 const imageTag = app.node.tryGetContext('imageTag') || 'latest';
 const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   projectName, environment,
@@ -454,6 +470,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentRuntimeArn: aiStack.agentRuntimeArn,
   agentDefinitionsTableName: aiStack.agentDefinitionsTableName,
   tools: toolsSettings,
+  models: { families: modelFamilies, profilePreference: modelProfilePreference },
   actionGroupLambdaArn: aiStack.actionGroupLambdaArn,
   sharedAgentBucketName: aiStack.sharedAgentBucketName,
   agentExecutionTableName: aiStack.agentExecutionTableName,

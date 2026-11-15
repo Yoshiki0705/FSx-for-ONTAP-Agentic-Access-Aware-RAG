@@ -14,8 +14,22 @@ logger = logging.getLogger(__name__)
 # AgentCore Runtime 環境変数
 BEDROCK_REGION = os.environ.get("AWS_REGION", "ap-northeast-1")
 KB_ID = os.environ.get("BEDROCK_KB_ID", "")
-NOVA_SONIC_MODEL_ID = "amazon.nova-sonic-v1:0"
-CLAUDE_MODEL_ID = os.environ.get("LLM_MODEL_ID", "anthropic.claude-sonnet-4-20250514")
+_resolved: dict[str, str | None] = {}
+
+
+def model_id(tier: str, env_var: str) -> str | None:
+    """`env_var` when set, else the newest model of the tier's family (model_catalog.py)."""
+    if os.environ.get(env_var):
+        return os.environ[env_var]
+    if tier not in _resolved:
+        from model_catalog import resolve
+
+        families = {k: v for k, v in {tier: os.environ.get(f"MODEL_FAMILY_{tier.upper()}")}.items() if v}
+        _resolved[tier] = resolve(
+            tier, BEDROCK_REGION, families=families,
+            preference=os.environ.get("MODEL_PROFILE_PREFERENCE", "nearest"),
+        )
+    return _resolved[tier]
 
 
 class RAGTool:
@@ -226,7 +240,7 @@ If no accessible results are found, inform the user politely."""
 
         try:
             response = bedrock.converse(
-                modelId=CLAUDE_MODEL_ID,
+                modelId=model_id("standard", "LLM_MODEL_ID"),
                 messages=messages,
                 system=[{"text": system_text}],
             )

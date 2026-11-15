@@ -15,8 +15,10 @@ import {
   ConverseCommand,
 } from '@aws-sdk/client-bedrock-runtime';
 import { createMetricsLogger } from '@/lib/monitoring/metrics';
+import { getTierModels } from '@/lib/model-catalog';
+import { withSampling } from '@/lib/model-catalog/sampling';
+import { joinText } from '@/lib/model-catalog/response';
 
-const VISION_MODEL_ID = 'anthropic.claude-haiku-4-5-20251001-v1:0';
 const VISION_TIMEOUT_MS = 15_000;
 
 /**
@@ -43,9 +45,15 @@ export async function analyzeImage(
 
   try {
     const format = imageMimeType.split('/')[1] as 'jpeg' | 'png' | 'gif' | 'webp';
+    // The light tier when it takes images, else the standard tier (model catalog).
+    const tiers = await getTierModels(await client.config.region()).catch(() => null);
+    if (!tiers) return null;
+    const VISION_MODEL_ID =
+      [tiers.light, tiers.standard].find((t) => t?.inputModalities.includes('IMAGE'))?.invokeId ?? '';
+    if (!VISION_MODEL_ID) return null;
     console.log('[Vision] Calling Converse API with image, model:', VISION_MODEL_ID, 'format:', format);
 
-    const resp = await client.send(
+    const resp = await withSampling(VISION_MODEL_ID, { temperature: 0.1 }, (sampling) => client.send(
       new ConverseCommand({
         modelId: VISION_MODEL_ID,
         messages: [{
@@ -55,13 +63,12 @@ export async function analyzeImage(
             { text: `画像を分析してください。ユーザーの質問: ${query}` },
           ],
         }],
-        inferenceConfig: { maxTokens: 2000, temperature: 0.1 },
+        inferenceConfig: { maxTokens: 2000, ...sampling },
       }),
       { abortSignal: controller.signal },
-    );
+    ));
 
-    const outputContent = resp.output?.message?.content?.[0];
-    const text = (outputContent && 'text' in outputContent) ? (outputContent.text || '') : '';
+    const text = joinText(resp.output?.message?.content);
     console.log('[Vision] Analysis complete, result length:', text.length);
     metrics.putMetric('VisionApiLatency', Date.now() - startTime, 'Milliseconds');
     metrics.flush();

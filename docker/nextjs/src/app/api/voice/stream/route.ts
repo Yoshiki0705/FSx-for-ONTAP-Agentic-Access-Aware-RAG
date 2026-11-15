@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { VoiceServerMessage } from '@/types/voice';
+import { getTierModels } from '@/lib/model-catalog';
+import { withSampling } from '@/lib/model-catalog/sampling';
+import { joinText } from '@/lib/model-catalog/response';
 
 /**
  * POST /api/voice/stream
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
 
         const response: VoiceServerMessage = {
           type: 'sessionReady',
-          payload: { sessionId, modelId: process.env.NOVA_SONIC_MODEL_ID || 'amazon.nova-sonic-v1:0' },
+          payload: { sessionId, modelId: process.env.NOVA_SONIC_MODEL_ID || (await getTierModels().catch(() => null))?.voice?.invokeId || '' },
         };
         return NextResponse.json(response);
       }
@@ -203,13 +206,13 @@ async function transcribeWithConverse(
 
     // Use Converse API with audio content block for speech understanding
     // Nova Sonic supports audio input via the Converse API
-    const modelId = process.env.NOVA_SONIC_MODEL_ID || 'amazon.nova-sonic-v1:0';
-
+    // The voice tier, then the fallback and light tiers (model catalog).
+    const tiers = await getTierModels(region).catch(() => ({} as Awaited<ReturnType<typeof getTierModels>>));
     const converseModels = [
-      modelId,
-      'apac.amazon.nova-lite-v1:0',
-      'anthropic.claude-haiku-4-5-20251001-v1:0',
-    ];
+      process.env.NOVA_SONIC_MODEL_ID || tiers.voice?.invokeId,
+      tiers.fallback?.invokeId,
+      tiers.light?.invokeId,
+    ].filter((id, i, all): id is string => Boolean(id) && all.indexOf(id) === i);
 
     for (const mid of converseModels) {
       try {
@@ -217,7 +220,7 @@ async function transcribeWithConverse(
           ? '以下の音声データからテキストを書き起こしてください。音声の内容のみを返してください。'
           : 'Transcribe the following audio data. Return only the spoken content.';
 
-        const response = await client.send(new ConverseCommand({
+        const response = await withSampling(mid, { temperature: 0.0 }, (sampling) => client.send(new ConverseCommand({
           modelId: mid,
           messages: [{
             role: 'user',
@@ -232,12 +235,12 @@ async function transcribeWithConverse(
               { text: langPrompt },
             ],
           }],
-          inferenceConfig: { maxTokens: 1000, temperature: 0.0 },
-        }));
+          inferenceConfig: { maxTokens: 1000, ...sampling },
+        })));
 
-        const outputContent = response.output?.message?.content?.[0];
-        if (outputContent && 'text' in outputContent) {
-          return outputContent.text || '';
+        const text = joinText(response.output?.message?.content);
+        if (text) {
+          return text;
         }
       } catch (err: any) {
         const errMsg = err?.message || String(err);

@@ -2,6 +2,7 @@ import { isAgentCore } from '@/lib/agent-backend';
 import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 import { BedrockAgentClient, CreateAgentCommand, CreateAgentAliasCommand } from '@aws-sdk/client-bedrock-agent';
+import { resolveModelForInvoke } from '@/lib/model-catalog';
 
 /**
  * Bedrock Agent作成API
@@ -79,11 +80,13 @@ export async function POST(request: NextRequest) {
       foundationModel: body.foundationModel
     });
 
-    // Step 1: Agent作成
+    // Step 1: Agent作成 (model ID resolved for the region by the model catalog)
+    const foundationModel =
+      (await resolveModelForInvoke(body.foundationModel, body.region)).invokeId || body.foundationModel;
     const createAgentCommand = new CreateAgentCommand({
       agentName: body.name,
       description: body.description,
-      foundationModel: body.foundationModel,
+      foundationModel,
       instruction: body.instructions,
       idleSessionTTLInSeconds: 1800, // 30分
       agentResourceRoleArn: await getOrCreateAgentRole(body.region),

@@ -6,7 +6,8 @@ import { useTranslations, useLocale } from 'next-intl';
 import { BedrockModel } from '../../config/bedrock-models';
 
 interface UnavailableModelsListProps {
-  unavailableModels: BedrockModel[];
+  /** `status` from the model catalog: needs-request (申請が必要) or unavailable. */
+  unavailableModels: (BedrockModel & { status?: string })[];
   unavailableModelsCount?: number;
   isExpanded?: boolean;
   onToggle?: () => void;
@@ -39,7 +40,7 @@ export function UnavailableModelsList({
   // プロバイダー別にグループ化
   // localeを依存配列に追加して、言語変更時に再計算
   const categorizedModels = useMemo(() => {
-    const categories: Record<string, BedrockModel[]> = {};
+    const categories: Record<string, (BedrockModel & { status?: string })[]> = {};
     
     unavailableModels.forEach(model => {
       const provider = model.provider.charAt(0).toUpperCase() + model.provider.slice(1);
@@ -161,7 +162,11 @@ export function UnavailableModelsList({
                           </div>
                         )}
                         <div className="mt-1 text-xs text-red-600">
-                          {t('notAvailableInRegion')}
+                          {model.status === 'needs-request'
+                            ? t('needsRequest')
+                            : model.status === 'unavailable'
+                              ? t('notAuthorizedForModel')
+                              : t('notAvailableInRegion')}
                         </div>
                       </div>
                     ))}

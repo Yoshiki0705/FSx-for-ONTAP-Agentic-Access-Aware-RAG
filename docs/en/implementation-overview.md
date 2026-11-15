@@ -1034,6 +1034,27 @@ The text model is `TOOLS_MODEL_ID` (default `jp.anthropic.claude-haiku-4-5-20251
 
 ---
 
+## 21. Choosing Models — Determined at Run Time from the Bedrock APIs
+
+**Summary**: the application code holds no model IDs. Which models exist, how each is called, which is newest and whether it can be used are read from the Region's Bedrock APIs at run time. Model releases and retirements take effect with no code change.
+
+| Decision | Source |
+|---|---|
+| Models listed | ACTIVE models from `ListFoundationModels` (LEGACY ones are not listed) |
+| Order by newness | `modelLifecycle.startOfLifeTime` |
+| ID used to call | The model ID when on demand, otherwise a profile from `ListInferenceProfiles` |
+| Whether it can be selected | `GetFoundationModelAvailability`, and AccessDenied on an actual call |
+
+- **Tiers**: light, standard, heavy, fallback and voice, each given as a family pattern (`anthropic.claude-*sonnet*` and so on). Each tier is the newest ACTIVE model of its family. Smart Routing, the tools, the agents' default, the KB fallback, image description and voice use the tiers. Set them with the `modelFamily*` CDK context
+- **Choosing the inference profile**: by default (`modelProfilePreference=nearest`) the profile with the fewest destination Regions. In Tokyo the order is on demand, `jp.`, `apac.`, `global.`. With `global`, a `global.` profile is used when one exists. Models called through `global.` are marked `global` in the selectors
+- **Processing in bounded Regions first**: by default, a tier takes a model callable on demand or through a geography profile (`jp.`, `apac.`) before a model that only has a `global.` profile; newness is compared within that group. In Tokyo on 2026-11-15, Sonnet 5.5 and Sonnet 5 have only `global.` profiles, so the standard tier is `jp.anthropic.claude-sonnet-4-6`. A family with only `global.` models still resolves. With `global`, tiers go by newness only
+- **Retired models**: when a saved setting or agent definition names a LEGACY model or an ID the Region no longer lists, the call uses the newest model of the tier of the same family
+- **Models that need a request**: listed but not selectable. Some models report `agreementAvailability: NOT_AVAILABLE` and still answer (checked on 2026-11-15 in ap-northeast-1 by calling Opus 4.8 and Haiku 5.5), so that value alone does not disable a model
+- **Cache**: one hour (`MODEL_CATALOG_TTL_SECONDS`). When a refresh fails, the previous result is used
+- **Decided by hand**: only the tier families and the models that need a value at deploy time (the initial Bedrock Agents (Classic) model, the AgentCore Optimization initial bundle, embedding models, the image model). `make model-ids` fails when a model ID is written anywhere else
+
+**Scope**: the selection rules are tested on API responses recorded in ap-northeast-1 on 2026-11-15 (`docker/nextjs/src/__tests__/model-catalog/tokyo-2026-11-15.json`). The application was deployed to ap-northeast-1 on 2026-11-15 and checked through the screens and APIs ([evaluation §3.7](evaluation.md)).
+
 ## Overall System Architecture
 
 ```

@@ -460,6 +460,24 @@ jobs:
       - name: Check workflow path references
         run: python3 scripts/check-workflow-paths.py
 
+  model-ids:
+    name: Model IDs
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # モデルは実行時に Bedrock の API から決める（src/lib/model-catalog）。
+      # ID を直書きすると、新しいモデルの公開や廃止のたびに手で直す箇所が増える。
+      - name: Verify the checker finds a planted model ID
+        run: python3 scripts/check-model-ids.py --selftest
+
+      - name: Check for model IDs in application code
+        run: python3 scripts/check-model-ids.py
+
   evidence:
     name: Evidence Labels
     runs-on: ubuntu-latest
@@ -572,6 +590,9 @@ jobs:
           # AgentCore Runtime のエージェント（Strands）。AWS を呼ばない単体テストだけ。
           - dir: docker/agentcore-agent
             requirements: requirements-dev.txt
+          # 音声エージェントのモデル選択（model_catalog.py）。WebApp と同じ記録で同じ結果になるかを見る。
+          - dir: docker/pipecat-agent
+            requirements: requirements-dev.txt
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -600,7 +621,7 @@ jobs:
   # 基本的な品質ゲート
   quality-gate:
     runs-on: ubuntu-latest
-    needs: [quick-tests, full-tests, build-test, synth-matrix, doc-links, evidence, industry-packs, i18n, frontend-tests, python-tests, workflow-paths]
+    needs: [quick-tests, full-tests, build-test, synth-matrix, doc-links, evidence, industry-packs, i18n, frontend-tests, python-tests, workflow-paths, model-ids]
     if: always()
     outputs:
       gate-status: ${{ steps.evaluate-quality.outputs.gate-status }}

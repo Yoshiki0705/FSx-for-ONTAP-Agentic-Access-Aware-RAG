@@ -3,6 +3,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SignJWT } from 'jose';
 
 const cookieStore = { value: undefined as string | undefined };
+// The model catalog runs for real on the recorded Tokyo responses; only the Bedrock
+// control-plane client is replaced.
+vi.mock('@aws-sdk/client-bedrock', () => import('../model-catalog/bedrock-control-plane-mock'));
 vi.mock('next/headers', () => ({
   cookies: async () => ({ get: (name: string) => (name === 'session-token' && cookieStore.value ? { value: cookieStore.value } : undefined) }),
 }));
@@ -106,10 +109,14 @@ describe('definitions', () => {
 });
 
 describe('runtime', () => {
-  it('maps base model IDs from templates to the inference profile the runtime can call', () => {
-    expect(runtimeModelId('anthropic.claude-haiku-4-5-20251001-v1:0')).toBe('jp.anthropic.claude-haiku-4-5-20251001-v1:0');
-    expect(runtimeModelId('global.anthropic.claude-haiku-4-5-20251001-v1:0')).toBe('global.anthropic.claude-haiku-4-5-20251001-v1:0');
-    expect(runtimeModelId(undefined)).toBe('jp.anthropic.claude-haiku-4-5-20251001-v1:0');
+  it('maps base model IDs and tier tokens to an ID the region can call', async () => {
+    expect(await runtimeModelId('anthropic.claude-haiku-4-5-20251001-v1:0')).toBe('jp.anthropic.claude-haiku-4-5-20251001-v1:0');
+    expect(await runtimeModelId('global.anthropic.claude-haiku-4-5-20251001-v1:0')).toBe('global.anthropic.claude-haiku-4-5-20251001-v1:0');
+    // Unset and `tier:light`: the newest model of the light family (Haiku 5.5 in the fixture)
+    expect(await runtimeModelId(undefined)).toBe('jp.anthropic.claude-haiku-5-5');
+    expect(await runtimeModelId('tier:light')).toBe('jp.anthropic.claude-haiku-5-5');
+    // A retired model: the newest of its family that is processed in Japan (jp. profile)
+    expect(await runtimeModelId('anthropic.claude-sonnet-4-5-20250929-v1:0')).toBe('jp.anthropic.claude-sonnet-4-6');
   });
   it('pads a session ID to the 33 characters AgentCore requires', () => {
     expect(runtimeSessionId('s', 'u').length).toBeGreaterThanOrEqual(33);
@@ -155,7 +162,7 @@ describe('runtime', () => {
     const out = await invokeTeam({ team, message: 'q', userId: 'u' });
     const payload = JSON.parse(new TextDecoder().decode(rt.sent[0].input.payload));
     expect(payload.mode).toBe('team');
-    expect(payload.team.collaborators[0]).toMatchObject({ agentName: 'Retrieval Agent', role: 'retrieval', instruction: 'Find.', tools: ['PermissionAwareSearch'] });
+    expect(payload.team.collaborators[0]).toMatchObject({ agentName: 'Retrieval Agent', role: 'retrieval', instruction: 'Find.', tools: ['PermissionAwareSearch'], foundationModel: 'jp.anthropic.claude-haiku-5-5' });
     expect(out.trace.collaboratorTraces[0]).toMatchObject({ collaboratorName: 'Retrieval Agent', citationsReturned: 2, status: 'COMPLETED' });
   });
 });

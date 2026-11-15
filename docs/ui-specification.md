@@ -137,26 +137,12 @@ Cookie bedrock_region を更新
 /api/bedrock/models → モデルセレクターを更新
 ```
 
-### リージョン別モデル数（2026-03-25時点）
+### モデル一覧の取得元
+モデルの一覧、各モデルの呼び出し方（リージョン内のオンデマンドか推論プロファイルか）、利用できるかどうかは、`/api/bedrock/region-info` が呼ばれたときにそのリージョンの Bedrock API（`ListFoundationModels`、`ListInferenceProfiles`、`GetFoundationModelAvailability`）から求め、1 時間キャッシュします（`docker/nextjs/src/lib/model-catalog`）。モデル数は表示中のリージョンについてだけ数えます。手で更新する表や件数はありません。
 
-| リージョン | モデル数 | 備考 |
-|-----------|---------|------|
-| 東京 (ap-northeast-1) | 57 | プライマリ |
-| 大阪 (ap-northeast-3) | 9 | |
-| シンガポール (ap-southeast-1) | 18 | |
-| シドニー (ap-southeast-2) | 59 | |
-| ムンバイ (ap-south-1) | 58 | |
-| ソウル (ap-northeast-2) | 19 | |
-| アイルランド (eu-west-1) | 50 | |
-| フランクフルト (eu-central-1) | 29 | |
-| ロンドン (eu-west-2) | 52 | |
-| パリ (eu-west-3) | 25 | |
-| バージニア (us-east-1) | 96 | |
-| オレゴン (us-west-2) | 103 | 最多 |
-| オハイオ (us-east-2) | 76 | |
-| サンパウロ (sa-east-1) | 43 | |
-
-> モデル数は`ListFoundationModels(byOutputModality=TEXT)`の結果です。新モデル追加時は`/api/bedrock/region-info`の`REGION_MODEL_COUNTS`を更新してください。
+- 一覧に出すのは ACTIVE なモデルだけで、新しい順に並べます（`modelLifecycle.startOfLifeTime`）
+- 利用の申請が済んでいないモデルは「申請が必要」と表示し、選べません
+- `global` 推論プロファイルで呼ぶモデルには `global` の印を付けます。日本以外のリージョンで処理される場合があります
 
 ---
 

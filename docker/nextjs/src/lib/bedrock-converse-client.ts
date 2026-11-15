@@ -11,6 +11,7 @@ import {
   type ConverseCommandInput,
   type ConverseCommandOutput,
 } from '@aws-sdk/client-bedrock-runtime';
+import { withSampling } from '@/lib/model-catalog/sampling';
 
 export interface ConverseOptions {
   maxTokens?: number;
@@ -53,15 +54,17 @@ export async function invokeWithConverse(
     ],
     inferenceConfig: {
       maxTokens: options.maxTokens || 2000,
-      temperature: options.temperature || 0.7,
-      topP: options.topP || 0.9,
       stopSequences: options.stopSequences,
     },
   };
 
   try {
-    const command = new ConverseCommand(input);
-    const response: ConverseCommandOutput = await client.send(command);
+    // Sampling the model accepts, learned from its errors (model-catalog/sampling.ts)
+    const response: ConverseCommandOutput = await withSampling(
+      modelId,
+      { temperature: options.temperature || 0.7, topP: options.topP || 0.9 },
+      (sampling) => client.send(new ConverseCommand({ ...input, inferenceConfig: { ...input.inferenceConfig, ...sampling } })),
+    );
 
     console.log('✅ Converse API応答受信:', {
       stopReason: response.stopReason,
@@ -140,102 +143,3 @@ export function supportsConverseAPI(modelId: string): boolean {
   return supportedPatterns.some((pattern) => pattern.test(modelId));
 }
 
-/**
- * モデルIDがInference Profileを必要とするか確認
- * 
- * @param modelId モデルID
- * @returns Inference Profileが必要な場合true
- */
-export function requiresInferenceProfile(modelId: string): boolean {
-  // Inference Profileが必要なモデル
-  const requiresProfile = [
-    'deepseek.r1-v1:0',
-    'anthropic.claude-sonnet-4-20250514-v1:0',
-    'anthropic.claude-opus-4-20250514-v1:0',
-  ];
-
-  return requiresProfile.includes(modelId);
-}
-
-/**
- * DeepSeekモデルのInference Profile IDを解決
- * 
- * @param modelId モデルID
- * @param region AWSリージョン
- * @returns Inference Profile ID
- */
-export function resolveDeepSeekProfile(
-  modelId: string,
-  region: string
-): string {
-  if (modelId === 'deepseek.r1-v1:0') {
-    // リージョンに応じたInference Profile IDを返す
-    // DeepSeekは us-east-1, us-west-2, us-east-2 で利用可能
-    if (region.startsWith('us-')) {
-      return 'us.deepseek.r1-v1:0';
-    }
-    // デフォルトはUSリージョン
-    return 'us.deepseek.r1-v1:0';
-  }
-
-  return modelId;
-}
-
-/**
- * Claude 4モデルのInference Profile IDを解決
- * 
- * @param modelId モデルID
- * @param region AWSリージョン
- * @returns Inference Profile ID
- */
-export function resolveClaude4Profile(
-  modelId: string,
-  region: string
-): string {
-  // Claude 4はInference Profile経由でのみ利用可能
-  if (
-    modelId === 'anthropic.claude-sonnet-4-20250514-v1:0' ||
-    modelId === 'anthropic.claude-opus-4-20250514-v1:0'
-  ) {
-    // リージョンに応じたInference Profile IDを返す
-    if (region.startsWith('us-')) {
-      return `us.${modelId}`;
-    } else if (region.startsWith('eu-')) {
-      return `eu.${modelId}`;
-    } else if (region.startsWith('ap-')) {
-      return `ap.${modelId}`;
-    }
-    // デフォルトはUSリージョン
-    return `us.${modelId}`;
-  }
-
-  return modelId;
-}
-
-/**
- * Inference Profile IDを自動解決
- * 
- * @param modelId モデルID
- * @param region AWSリージョン
- * @returns 解決されたモデルID（Inference Profile ID）
- */
-export function resolveInferenceProfile(
-  modelId: string,
-  region: string
-): string {
-  // DeepSeekモデル
-  if (modelId.startsWith('deepseek.')) {
-    return resolveDeepSeekProfile(modelId, region);
-  }
-
-  // Claude 4モデル
-  if (
-    modelId.includes('claude-sonnet-4') ||
-    modelId.includes('claude-opus-4')
-  ) {
-    return resolveClaude4Profile(modelId, region);
-  }
-
-  // その他のモデルはそのまま返す
-  return modelId;
-}

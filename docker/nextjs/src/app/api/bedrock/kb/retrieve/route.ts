@@ -25,7 +25,7 @@ import {
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { KBQueryRouter, buildRouterConfigFromEnv, buildVectorSearchConfig } from '@/lib/kb-query-router';
 import { emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
-import { DEFAULT_REGION, resolveModelId, DEFAULT_CHAT_MODEL } from '@/config/model-defaults';
+import { DEFAULT_REGION } from '@/config/model-defaults';
 import { RAG_SYSTEM_PROMPT_KB, RAG_SYSTEM_PROMPT_AGENT, buildSearchContextSegment } from '@/config/prompt-templates';
 import type { MediaType, ActiveKBType } from '@/types/multimodal';
 import { WEB_SEARCH_SAFETY_INSTRUCTION } from '@/lib/web-search/untrusted-content';
@@ -63,13 +63,9 @@ export async function POST(request: NextRequest) {
     const { query, userId } = body;
     const knowledgeBaseId = body.knowledgeBaseId || process.env.BEDROCK_KB_ID || '';
     const region = body.region || process.env.BEDROCK_REGION || DEFAULT_REGION;
-    const requestedModelId = body.modelId || process.env.BEDROCK_MODEL_ID || DEFAULT_CHAT_MODEL;
-
-    // Resolve deprecated model IDs to current equivalents
-    const { modelId: rawModelId, isDeprecated } = resolveModelId(requestedModelId);
-    if (isDeprecated) {
-      console.warn(`[KB] Deprecated model "${requestedModelId}" resolved to "${rawModelId}"`);
-    }
+    // No model requested: the model catalog's standard tier (resolveConverseModelId below).
+    // A retired model is replaced there too, by the newest model of its family.
+    const rawModelId = body.modelId || process.env.BEDROCK_MODEL_ID || '';
 
     // === Validation ===
     if (!query?.trim()) return NextResponse.json({ success: false, error: 'empty' }, { status: 400 });
@@ -242,7 +238,7 @@ export async function POST(request: NextRequest) {
     }
 
     // === Step 6: Converse API (answer generation with Prompt Caching) ===
-    const converseModelId = resolveConverseModelId(rawModelId);
+    const converseModelId = await resolveConverseModelId(rawModelId, region);
 
     if (allowed.length > 0) {
       const ctx = allowed.map((r, i) => `[Doc${i + 1}: ${r.fileName}]\n${r.content}`).join('\n\n');

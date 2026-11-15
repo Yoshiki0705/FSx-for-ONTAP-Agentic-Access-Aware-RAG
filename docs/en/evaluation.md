@@ -243,6 +243,30 @@ The documents that were not allowed were retrieved and then removed by the filte
 
 **Defect found and fixed in this check**: the first deployment created neither the tools' environment variables nor the use case table, because `cdk deploy` read stale compiled `.js` files left in `bin/` and `lib/` before the `.ts` sources (AGENTS.md, "CDK synth uses old compiled JS"). Running `npx tsc` and deploying the WebApp stack again fixed it. It is not a code defect, and Jest (ts-jest reads `.ts`) does not catch it.
 
+### 3.7 Results with the model catalog (models determined at run time)
+
+**[verified 2026-11-15 / ap-northeast-1]** Deployed with `-c enableAgent=true -c enableVoiceChat=true -c voiceChatMode=rest` and checked through the signed-in screens and APIs. Tier families and the profile preference were the defaults (`nearest`).
+
+| Check | Result |
+|---|---|
+| Tier resolution (`tiers` in `/api/bedrock/models`) | light `jp.anthropic.claude-haiku-5-5`, standard `jp.anthropic.claude-sonnet-4-6`, heavy `jp.anthropic.claude-opus-5-5`, fallback `jp.amazon.nova-2-lite-v1:0`, voice `amazon.nova-2-5-sonic`. Sonnet 5.5 has only a `global.` profile, so standard is Sonnet 4.6 |
+| List (`/api/bedrock/region-info`) | 69 ACTIVE chat models: 36 on demand, 9 `jp.`/`apac.`, 24 `global.`. The 24 `global.` models are marked `global` on screen |
+| Agent list (`/api/bedrock/agent-models`) | 14 Claude models among the 69 (0 with the earlier on-demand-only filter) |
+| KB questions (Smart Routing) | A simple question on Haiku 5.5 and a comparison on Sonnet 4.6, both 200. Over the 20 minutes around them, `AWS/Bedrock` `Invocations` show only the two `jp.` models; no `global.` model and none of the earlier default Haiku 4.5 |
+| Tools (translate) | 200 on Haiku 5.5 |
+| Agent (AgentCore Runtime, seeded `tier:light`) | 200, answer with citations |
+| Voice settings (`/api/voice/config`) | `amazon.nova-2-5-sonic` |
+| "Request required" display | All 69 models were usable in this account. One response entry (Opus 4.7) was rewritten to `needs-request` in the browser; in both KB and agent modes it appeared under the models you cannot select with "Request required" and could not be selected (a check of the rendering, not of the server's decision) |
+| Agent creation form | Default "Automatic (light) (Claude Haiku 5.5)". The 3 tiers and 69 models; the 24 `global.` models marked `[global]` |
+
+![Model list: the global mark, and "Request required" shown with a rewritten response](../screenshots/v4-model-catalog-list-ja.png)
+
+![Agent creation form: tiers and catalog models](../screenshots/v4-model-catalog-agent-form-ja.png)
+
+**Scope**: one observation each. A voice conversation itself (microphone input) and a deployment with `modelProfilePreference=global` were not checked.
+
+**Bugs found and fixed in this check**: (1) Haiku 5.5 rejected `temperature`, and Sonnet 4.6 rejected `temperature` together with `top_p`. The rejected parameter is now read from the error, dropped, and the same model called again (`src/lib/model-catalog/sampling.ts`). (2) Haiku 5.5's answer came back empty, because only the first response block was read; all text blocks are read now. (3) The selector messages had been added to `docker/nextjs/messages/`, which the app does not load, so the screen showed the raw keys. They moved to `src/messages/`, with a test that each key exists in every locale. (4) The agent-mode list dropped the status and `global` information. (5) xAI models were grouped under the provider "unknown".
+
 ---
 
 ## 4. Agent Evaluation Metrics

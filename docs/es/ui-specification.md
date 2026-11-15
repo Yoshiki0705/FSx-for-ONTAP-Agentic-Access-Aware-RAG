@@ -140,26 +140,12 @@ Page reload
 /api/bedrock/models → Update model selector
 ```
 
-### Model Count by Region (as of 2026-03-25)
+### Where the model list comes from
+The model list, how each model is called (on demand in the Region, or through an inference profile) and whether it can be used are read from the Region's Bedrock APIs (`ListFoundationModels`, `ListInferenceProfiles`, `GetFoundationModelAvailability`) when `/api/bedrock/region-info` is called, and cached for an hour (`docker/nextjs/src/lib/model-catalog`). The model count covers the Region on screen only. There is no table or count to update by hand.
 
-| Region | Model Count | Notes |
-|--------|------------|-------|
-| Tokyo (ap-northeast-1) | 57 | Primary |
-| Osaka (ap-northeast-3) | 9 | |
-| Singapore (ap-southeast-1) | 18 | |
-| Sydney (ap-southeast-2) | 59 | |
-| Mumbai (ap-south-1) | 58 | |
-| Seoul (ap-northeast-2) | 19 | |
-| Ireland (eu-west-1) | 50 | |
-| Frankfurt (eu-central-1) | 29 | |
-| London (eu-west-2) | 52 | |
-| Paris (eu-west-3) | 25 | |
-| Virginia (us-east-1) | 96 | |
-| Oregon (us-west-2) | 103 | Most |
-| Ohio (us-east-2) | 76 | |
-| São Paulo (sa-east-1) | 43 | |
-
-> Model counts are the result of `ListFoundationModels(byOutputModality=TEXT)`. When new models are added, update `REGION_MODEL_COUNTS` in `/api/bedrock/region-info`.
+- Only ACTIVE models are listed, newest first (`modelLifecycle.startOfLifeTime`)
+- A model whose access request is not complete is shown as "Request required" and cannot be selected
+- A model called through a `global` inference profile is marked `global`: it may be processed in Regions outside the current geography
 
 ---
 

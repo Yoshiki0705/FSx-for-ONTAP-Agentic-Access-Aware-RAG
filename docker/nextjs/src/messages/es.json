@@ -277,7 +277,32 @@
       "availableModels": "Modelos disponibles",
       "count": " modelos",
       "noModelSelected": "Ningún modelo seleccionado",
-      "select": "Seleccionar"
+      "select": "Seleccionar",
+      "needsRequest": "Requiere solicitud",
+      "notAuthorizedForModel": "Sin autorización",
+      "notAvailableInRegion": "No disponible en esta Región",
+      "others": "y",
+      "provider": "Proveedor",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "Este modelo se llama mediante un perfil de inferencia global y puede procesarse en Regiones fuera de la zona geográfica actual",
+      "selectedModelDetails": "Detalles del modelo seleccionado",
+      "unavailableModels": "Modelos que no se pueden seleccionar",
+      "statistics": {
+        "title": "Estadísticas de modelos",
+        "total": "Total",
+        "available": "Seleccionables",
+        "unavailable": "No seleccionables"
+      }
+    },
+    "catalog": {
+      "tier": {
+        "light": "Automático (ligero)",
+        "standard": "Automático (estándar)",
+        "heavy": "Automático (potente)"
+      },
+      "needsRequest": "Requiere solicitud",
+      "notAuthorized": "Sin autorización",
+      "retired": "retirado; se sustituye en tiempo de ejecución por el modelo más reciente de su familia"
     }
   },
   "modelSelector": {

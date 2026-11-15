@@ -24,15 +24,14 @@ Un atelier consacré aux fonctions ajoutées par la mise à jour AI 2026 Q2 (pha
 
 ## Étape 1 : vérifier la mise à jour des modèles (5 min)
 
-Vérifiez que les identifiants de modèles mis à jour en phase 0 se comportent comme prévu.
+Vérifiez que chaque niveau (léger, standard, puissant) se résout vers le modèle le plus récent de la Région. Un modèle traité dans des Régions délimitées (comme `jp.`) passe avant un modèle plus récent qui n'a qu'un profil `global.`. Les modèles ne sont pas des valeurs fixes : ils sont déterminés à l'exécution à partir des API Bedrock (`ListFoundationModels` et `ListInferenceProfiles`, voir `docker/nextjs/src/lib/model-catalog`).
 
-```bash
-# Configuration actuelle des modèles
-grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defaults.ts
-
-# Attendu :
-# DEFAULT_CHAT_MODEL = 'anthropic.claude-sonnet-4-6'
-# FALLBACK_MODEL_ID = 'amazon.nova-2-lite-v1:0'
+```text
+# Ouvrez cette URL dans un navigateur connecté et consultez data.tiers
+https://<domaine CloudFront>/api/bedrock/models
+# Exemple (obtenu à partir de l'enregistrement ap-northeast-1 du 2026-11-15) :
+# "light": "jp.anthropic.claude-haiku-5-5"
+# "standard": "jp.anthropic.claude-sonnet-4-6"
 ```
 
 Envoyez une requête depuis l'interface de chat et vérifiez que `modelId` dans les métadonnées de réponse nomme le nouveau modèle.
@@ -41,7 +40,7 @@ Envoyez une requête depuis l'interface de chat et vérifiez que `modelId` dans 
 
 ## Étape 2 : vérifier l'effet du cache de prompts (10 min)
 
-> **Prérequis** : le cache de prompts ne fonctionne qu'avec les modèles **Anthropic Claude**. Dans la configuration par défaut (aucun modèle choisi, repli sur Nova 2 Lite) rien n'est mis en cache. Avant les étapes ci-dessous, choisissez **Claude Sonnet 4.6** ou **Claude Opus 4.8** dans le sélecteur de modèle de la barre latérale.
+> **Prérequis** : le cache de prompts ne fonctionne qu'avec les modèles **Anthropic Claude**. Par défaut (aucun modèle choisi), le niveau standard se résout vers un modèle Claude Sonnet, qui est donc mis en cache. Un modèle autre que Claude, comme Nova, n'est pas mis en cache.
 
 Envoyez des requêtes consécutives dans une même session et vérifiez le succès du cache.
 

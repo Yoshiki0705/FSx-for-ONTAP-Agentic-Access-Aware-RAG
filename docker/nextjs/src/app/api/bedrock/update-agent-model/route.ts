@@ -16,21 +16,13 @@ import {
   PrepareAgentCommand,
   GetAgentCommand 
 } from '@aws-sdk/client-bedrock-agent';
+import { resolveModelForInvoke } from '@/lib/model-catalog';
 
 // 同時更新防止用のロックマップ
 const updateLocks = new Map<string, boolean>();
 
 // ロックのタイムアウト（30秒）
 const LOCK_TIMEOUT = 30000;
-
-/**
- * モデルIDのバリデーション
- */
-function isValidModelId(modelId: string): boolean {
-  // モデルIDの形式: provider.model-name-version:qualifier
-  const modelIdPattern = /^(anthropic|amazon|ai21|cohere|meta|mistral)\.[a-z0-9-]+:[0-9]+$/;
-  return modelIdPattern.test(modelId);
-}
 
 /**
  * リージョンコードのバリデーション
@@ -157,20 +149,21 @@ export async function POST(request: NextRequest) {
       }, 503);
     }
     
-    // モデルIDのバリデーション
-    if (!isValidModelId(modelId)) {
+    // The ID to set: what the region's model catalog resolves the request to (a base ID
+    // gets its inference profile, a tier token or retired ID the newest model of the
+    // family). An ID the catalog does not know is refused rather than passed on.
+    const resolution = isValidRegion(region) ? await resolveModelForInvoke(modelId, region) : null;
+    if (!resolution?.entry || resolution.entry.status !== 'ready') {
       return createSafeJsonResponse({
         success: false,
         error: `無効なモデルIDです: ${modelId}`,
-        errorCode: 'INVALID_MODEL_ID',
+        errorCode: resolution?.entry ? 'MODEL_NOT_READY' : 'INVALID_MODEL_ID',
         retryable: false,
-        details: {
-          hint: 'モデルIDの形式: provider.model-name-version:qualifier',
-          example: 'anthropic.claude-3-5-sonnet-20241022-v2:0'
-        }
+        details: { hint: 'GET /api/bedrock/agent-models でこのリージョンのモデルを確認してください' },
       }, 400);
     }
-    
+    const resolvedModelId = resolution.invokeId;
+
     // リージョンのバリデーション
     if (!isValidRegion(region)) {
       return createSafeJsonResponse({
@@ -231,7 +224,7 @@ export async function POST(request: NextRequest) {
       const oldModel = currentAgent.agent.foundationModel || '';
       
       // 同じモデルの場合は早期リターン
-      if (oldModel === modelId) {
+      if (oldModel === resolvedModelId) {
         console.log(`ℹ️ [Update Agent Model] 同じモデルが指定されました: ${modelId}`);
         
         return createSafeJsonResponse({
@@ -240,7 +233,7 @@ export async function POST(request: NextRequest) {
           data: {
             agentId: currentAgent.agent.agentId,
             previousModel: oldModel,
-            newModel: modelId,
+            newModel: resolvedModelId,
             changed: false,
             agentStatus: currentAgent.agent.agentStatus,
             updatedAt: currentAgent.agent.updatedAt
@@ -256,7 +249,7 @@ export async function POST(request: NextRequest) {
       const updateCommand = new UpdateAgentCommand({
         agentId,
         agentName: currentAgent.agent.agentName,
-        foundationModel: modelId,
+        foundationModel: resolvedModelId,
         instruction: currentAgent.agent.instruction,
         agentResourceRoleArn: currentAgent.agent.agentResourceRoleArn,
         idleSessionTTLInSeconds: currentAgent.agent.idleSessionTTLInSeconds,
@@ -275,7 +268,7 @@ export async function POST(request: NextRequest) {
       
       return createSafeJsonResponse({
         success: true,
-        message: `モデルを ${modelId} に変更しました`,
+        message: `モデルを ${resolvedModelId} に変更しました`,
         data: {
           agentId: updateResponse.agent?.agentId,
           previousModel: oldModel,

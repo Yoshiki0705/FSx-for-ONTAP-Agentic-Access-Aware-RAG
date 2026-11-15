@@ -132,7 +132,22 @@
       "availableModels": "利用可能なモデル",
       "count": "個",
       "noModelSelected": "モデルが選択されていません",
-      "select": "選択"
+      "select": "選択",
+      "needsRequest": "申請が必要",
+      "notAuthorizedForModel": "権限がありません",
+      "notAvailableInRegion": "このリージョンでは利用できません",
+      "others": "ほか",
+      "provider": "プロバイダー",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "このモデルは global 推論プロファイルで呼び出され、日本以外のリージョンで処理される場合があります",
+      "selectedModelDetails": "選択中のモデルの詳細",
+      "unavailableModels": "選択できないモデル",
+      "statistics": {
+        "title": "モデルの統計",
+        "total": "合計",
+        "available": "選べる",
+        "unavailable": "選べない"
+      }
     },
     "requestAccess": "追加モデルへのアクセスを要求",
     "current": "現在のモデル",
@@ -140,7 +155,17 @@
     "foundationModel": "基盤モデル",
     "modelCount": "{count}モデル",
     "selectModel": "モデルを選択してください",
-    "selectedModel": "選択されたモデル"
+    "selectedModel": "選択されたモデル",
+    "catalog": {
+      "tier": {
+        "light": "自動（軽量）",
+        "standard": "自動（標準）",
+        "heavy": "自動（高性能）"
+      },
+      "needsRequest": "申請が必要",
+      "notAuthorized": "権限がありません",
+      "retired": "廃止済み。実行時は同じ系統の最新モデルに置き換わります"
+    }
   },
   "chat": {
     "newChat": "新しいチャット",

@@ -13,7 +13,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { jwtVerify } from 'jose';
 import { CSRFMiddleware } from '@/lib/security/csrf-protection';
-import { DEFAULT_PREFERENCE_MODEL, DEFAULT_REGION } from '@/config/model-defaults';
+import { DEFAULT_REGION } from '@/config/model-defaults';
 
 // DynamoDBクライアント初期化
 const dynamoClient = new DynamoDBClient({
@@ -123,7 +123,7 @@ function getDefaultPreferences(userId: string): UserPreferences {
     language: 'ja',
     region: DEFAULT_REGION,
     modelPreferences: {
-      defaultModel: DEFAULT_PREFERENCE_MODEL,
+      defaultModel: '', // empty: the standard tier of the model catalog
       preferredProvider: 'anthropic',
       autoSelectModel: true
     },

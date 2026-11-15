@@ -22,10 +22,9 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import type { AgentTeamConfig, MultiAgentTraceResult } from '@/types/multi-agent';
-import { INFERENCE_PROFILE_MAP, resolveModelId } from '@/config/model-defaults';
+import { modelForTier, resolveModelForInvoke } from '@/lib/model-catalog';
 
 const REGION = process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
-export const DEFAULT_MODEL = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
 const MAX_NAME = 100;
 const MAX_DESCRIPTION = 500;
 const MAX_INSTRUCTION = 8000;
@@ -109,7 +108,8 @@ export function buildDefinition(input: AgentInput, existing?: AgentDefinition, n
     agentName,
     description: str(input.description, MAX_DESCRIPTION) ?? existing?.description,
     instruction: str(input.instruction, MAX_INSTRUCTION) ?? existing?.instruction,
-    foundationModel: str(input.foundationModel, 200) ?? existing?.foundationModel ?? DEFAULT_MODEL,
+    // Unset means the light tier, resolved at call time (runtimeModelId).
+    foundationModel: str(input.foundationModel, 200) ?? existing?.foundationModel,
     tools,
     knowledgeBaseIds: existing?.knowledgeBaseIds,
     guardrailId: str(input.guardrailId, 100) ?? existing?.guardrailId,
@@ -235,7 +235,7 @@ export async function invokeAgent(params: {
       agent: {
         agentName: definition.agentName,
         instruction: definition.instruction,
-        foundationModel: runtimeModelId(definition.foundationModel),
+        foundationModel: await runtimeModelId(definition.foundationModel),
         tools: definition.tools,
       },
       message: params.message,
@@ -247,16 +247,16 @@ export async function invokeAgent(params: {
 }
 
 /**
- * The model ID the Runtime calls. Definitions keep what the user picked; templates and the
- * editor offer base IDs (`anthropic.claude-haiku-4-5-...`), which have no on-demand
- * throughput in ap-northeast-1 and fail with "The provided model identifier is invalid".
- * Deprecated IDs are redirected first, then base IDs are mapped to their inference profile.
+ * The model ID the Runtime calls, from the model catalog (lib/model-catalog).
+ * Definitions keep what the user picked. A base ID gets the region's inference profile
+ * (base Claude IDs have no on-demand throughput in ap-northeast-1 and fail with "The
+ * provided model identifier is invalid"); a retired ID gets the newest model of its
+ * family; an unset model gets the light tier.
  */
-export function runtimeModelId(id: string | undefined): string {
-  const { modelId } = resolveModelId(id || DEFAULT_MODEL);
-  return INFERENCE_PROFILE_MAP[modelId] ?? modelId;
+export async function runtimeModelId(id: string | undefined): Promise<string> {
+  if (!id) return (await modelForTier('light', REGION)) || id || '';
+  return (await resolveModelForInvoke(id, REGION)).invokeId || id;
 }
-
 async function defaultDefinition(): Promise<AgentDefinition | null> {
   return (await getDefinition('rag-default')) ?? (await listDefinitions())[0] ?? null;
 }
@@ -269,13 +269,15 @@ export async function invokeTeam(params: {
 }): Promise<{ result: RuntimeAnswer; trace: MultiAgentTraceResult; sessionId: string }> {
   const started = Date.now();
   const sessionId = runtimeSessionId(params.sessionId, params.userId);
-  const collaborators = params.team.collaborators.map((c) => ({
-    agentName: c.agentName,
-    role: c.role,
-    instruction: c.instruction,
-    foundationModel: runtimeModelId(c.foundationModel),
-    tools: [...AVAILABLE_TOOLS],
-  }));
+  const collaborators = await Promise.all(
+    params.team.collaborators.map(async (c) => ({
+      agentName: c.agentName,
+      role: c.role,
+      instruction: c.instruction,
+      foundationModel: await runtimeModelId(c.foundationModel),
+      tools: [...AVAILABLE_TOOLS],
+    })),
+  );
   const result = await invokeRuntime(
     {
       mode: 'team',

@@ -26,6 +26,13 @@ jest.mock('@aws-sdk/client-bedrock-agentcore', () => ({
 }));
 
 // Mock Bedrock Runtime SDK
+// The model catalog reads the Bedrock control plane; here it passes the request through.
+jest.mock('@/lib/model-catalog', () => ({
+  defaultRegion: () => 'ap-northeast-1',
+  resolveModelForInvoke: async (id?: string) => ({ invokeId: id || 'tier-standard-model' }),
+  getTierModels: async () => ({}),
+  reportModelInvokeError: () => {},
+}));
 jest.mock('@aws-sdk/client-bedrock-runtime', () => ({
   BedrockRuntimeClient: jest.fn().mockImplementation(() => ({
     send: (...args: any[]) => mockBedrockSend(...args),

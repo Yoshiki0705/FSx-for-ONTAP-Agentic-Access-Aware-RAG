@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RegionConfigManager, SupportedRegion } from '@/config/region-config-manager';
-import { BedrockClient, ListFoundationModelsCommand } from '@aws-sdk/client-bedrock';
-import { generateModelConfig } from '@/config/model-pattern-detector';
+import { getModelCatalog, getTierModels, profilePreference } from '@/lib/model-catalog';
+import { chatModels, tierIds, type ApiModel } from '@/lib/model-catalog/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,53 +19,20 @@ export async function GET(request: NextRequest) {
     const allRegions = RegionConfigManager.getAllRegions();
     const supportedRegions = RegionConfigManager.getBedrockSupportedRegions();
 
-    // Bedrockからモデル一覧を取得
-    let availableModels: any[] = [];
-    let unavailableModels: any[] = [];
-    
+    // The region's catalog (lib/model-catalog): ACTIVE chat models, how each is called,
+    // and whether the account may call it. A model that needs a request is listed with
+    // status "needs-request" so the selector can show it without letting it be picked.
+    let availableModels: ApiModel[] = [];
+    let unavailableModels: ApiModel[] = [];
+    let tiers: ReturnType<typeof tierIds> | null = null;
     try {
-      const bedrockClient = new BedrockClient({
-        region: currentRegion,
-      });
-
-      const command = new ListFoundationModelsCommand({
-        byOutputModality: 'TEXT',
-      });
-
-      const response = await bedrockClient.send(command);
-      
-      availableModels = (response.modelSummaries || []).map((model) => {
-        const modelId = model.modelId || '';
-        const modelName = model.modelName || modelId;
-        const providerName = model.providerName || 'Unknown';
-        
-        // 動的検出システムで設定を生成
-        const config = generateModelConfig(modelId, modelName, providerName);
-        
-        return {
-          id: modelId,
-          name: modelName,
-          description: config.description,
-          provider: config.provider,
-          inputModalities: model.inputModalities || [],
-          outputModalities: model.outputModalities || [],
-          responseStreamingSupported: model.responseStreamingSupported || false,
-          category: config.category,
-          maxTokens: config.maxTokens,
-        };
-      });
+      const models = chatModels(await getModelCatalog(currentRegion));
+      availableModels = models.filter((m) => m.available);
+      unavailableModels = models.filter((m) => !m.available);
+      tiers = tierIds(await getTierModels(currentRegion));
     } catch (bedrockError) {
-      console.error('[Region Info API] Bedrock error:', bedrockError);
-      // Bedrockエラーの場合は空の配列を返す
+      console.error('[Region Info API] model catalog error:', bedrockError);
     }
-
-    // 各リージョンの実際のモデル数（ListFoundationModels byOutputModality=TEXT、2026-03-25時点）
-    const REGION_MODEL_COUNTS: Record<string, number> = {
-      'ap-northeast-1': 57, 'ap-northeast-3': 9, 'ap-southeast-1': 18,
-      'ap-southeast-2': 59, 'ap-south-1': 58, 'ap-northeast-2': 19,
-      'eu-west-1': 50, 'eu-central-1': 29, 'eu-west-2': 52, 'eu-west-3': 25,
-      'us-east-1': 96, 'us-west-2': 103, 'us-east-2': 76, 'sa-east-1': 43,
-    };
 
     // レスポンスを構築
     const responseData = {
@@ -77,7 +44,8 @@ export async function GET(request: NextRequest) {
         supportedRegions: supportedRegions.map(r => ({
           region: r.id,
           regionName: r.displayNameJa,
-          modelCount: r.id === currentRegion ? availableModels.length : (REGION_MODEL_COUNTS[r.id] || 0),
+          // Counted for the current region only; other regions are not queried.
+          modelCount: r.id === currentRegion ? availableModels.length : null,
           description: r.description
         })),
         unsupportedRegions: allRegions
@@ -89,6 +57,8 @@ export async function GET(request: NextRequest) {
           })),
         availableModels,
         unavailableModels,
+        tiers,
+        profilePreference: profilePreference(),
         availableModelsCount: availableModels.length,
         unavailableModelsCount: unavailableModels.length
       }

@@ -10,6 +10,7 @@ import { KBSelector } from './KBSelector';
 import { PolicySection } from './PolicySection';
 import type { UpdateAgentFormData } from '@/types/agent-directory';
 import type { CostTags } from '@/types/enterprise-agent';
+import { CatalogModelOptions } from '@/components/model/CatalogModelOptions';
 
 interface AgentCreatorProps {
   initialData: UpdateAgentFormData;
@@ -28,15 +29,6 @@ interface AgentCreatorProps {
   locale: string;
 }
 
-const FOUNDATION_MODELS = [
-  'anthropic.claude-haiku-4-5-20251001-v1:0',
-  'anthropic.claude-3-sonnet-20240229-v1:0',
-  'anthropic.claude-3-5-sonnet-20241022-v2:0',
-  'anthropic.claude-3-5-haiku-20241022-v1:0',
-  'amazon.nova-pro-v1:0',
-  'amazon.nova-lite-v1:0',
-  'amazon.nova-micro-v1:0',
-];
 
 export function AgentCreator({ initialData, categoryKey, onCreate, onCancel, isCreating, progressMessage, locale }: AgentCreatorProps) {
   const t = useTranslations('agentDirectory');
@@ -128,7 +120,7 @@ export function AgentCreator({ initialData, categoryKey, onCreate, onCancel, isC
           <select id="createModel" value={formData.foundationModel}
             onChange={e => setFormData(prev => ({ ...prev, foundationModel: e.target.value }))} disabled={isCreating}
             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 disabled:opacity-50">
-            {FOUNDATION_MODELS.map(model => <option key={model} value={model}>{model}</option>)}
+            <CatalogModelOptions current={formData.foundationModel} />
           </select>
         </div>
 

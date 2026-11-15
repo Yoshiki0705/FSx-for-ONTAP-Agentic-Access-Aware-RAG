@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import { useTranslations } from 'next-intl';
 import { useSmartRoutingStore } from '@/store/useSmartRoutingStore';
 
@@ -24,6 +26,20 @@ export function RoutingToggle({ locale: _locale }: RoutingToggleProps) {
     lightweightModelId,
     powerfulModelId,
   } = useSmartRoutingStore();
+
+  // The store holds tier tokens (`tier:light`); show the model each one resolves to now.
+  const [tiers, setTiers] = useState<Record<string, string | null> | null>(null);
+  useEffect(() => {
+    if (!isEnabled || tiers) return;
+    fetch('/api/bedrock/models')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setTiers(d?.data?.tiers ?? null))
+      .catch(() => {});
+  }, [isEnabled, tiers]);
+  const shown = (id: string) => {
+    const resolved = id.startsWith('tier:') ? tiers?.[id.slice('tier:'.length)] : id;
+    return (resolved || id).split('.').pop();
+  };
 
   const handleToggle = () => {
     const next = !isEnabled;
@@ -67,11 +83,11 @@ export function RoutingToggle({ locale: _locale }: RoutingToggleProps) {
         <div className="mt-2 space-y-1 rounded-md bg-blue-50 dark:bg-blue-900/20 p-2 text-xs">
           <div className="flex items-center space-x-1 text-gray-600 dark:text-gray-300">
             <span className="font-medium">{t('lightweight')}:</span>
-            <span className="truncate">{lightweightModelId.split('.').pop()}</span>
+            <span className="truncate">{shown(lightweightModelId)}</span>
           </div>
           <div className="flex items-center space-x-1 text-gray-600 dark:text-gray-300">
             <span className="font-medium">{t('powerful')}:</span>
-            <span className="truncate">{powerfulModelId.split('.').pop()}</span>
+            <span className="truncate">{shown(powerfulModelId)}</span>
           </div>
         </div>
       )}

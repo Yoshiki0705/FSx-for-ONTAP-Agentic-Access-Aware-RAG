@@ -337,9 +337,34 @@
       "availableModels": "可用模型",
       "count": "个",
       "noModelSelected": "未选择模型",
-      "select": "选择"
+      "select": "选择",
+      "needsRequest": "需要申请",
+      "notAuthorizedForModel": "无权限",
+      "notAvailableInRegion": "此区域不可用",
+      "others": "其他",
+      "provider": "提供商",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "此模型通过 global 推理配置文件调用，可能在当前地理范围以外的区域处理",
+      "selectedModelDetails": "所选模型详情",
+      "unavailableModels": "无法选择的模型",
+      "statistics": {
+        "title": "模型统计",
+        "total": "合计",
+        "available": "可选择",
+        "unavailable": "不可选择"
+      }
     },
-    "unavailable": "不可用"
+    "unavailable": "不可用",
+    "catalog": {
+      "tier": {
+        "light": "自动（轻量）",
+        "standard": "自动（标准）",
+        "heavy": "自动（高性能）"
+      },
+      "needsRequest": "需要申请",
+      "notAuthorized": "无权限",
+      "retired": "已停用；运行时替换为同系列的最新模型"
+    }
   },
   "modelSelector": {
     "allModels": "所有模型",

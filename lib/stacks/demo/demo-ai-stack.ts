@@ -2356,8 +2356,9 @@ ${langInstruction}`,
         description: 'Voice Chat (Nova Sonic) is enabled',
       });
       new cdk.CfnOutput(this, 'VoiceChatModelId', {
-        value: 'amazon.nova-sonic-v1:0',
-        description: 'Nova Sonic model ID for voice chat',
+        // A family, not an ID: the app calls the newest ACTIVE model that matches it.
+        value: 'amazon.nova-*sonic*',
+        description: 'Voice model family (resolved at run time to the newest model in the Region)',
       });
       new cdk.CfnOutput(this, 'VoiceChatEstimatedCost', {
         value: '$70-$100/month (input ~$0.0019/min, output ~$0.0076/min)',
@@ -2398,10 +2399,32 @@ ${langInstruction}`,
             'bedrock:InvokeModel',
             'bedrock:InvokeModelWithResponseStream',
           ],
+          // The voice agent calls the newest model of the voice and standard families
+          // (docker/pipecat-agent/model_catalog.py). Inference profiles route to other
+          // Regions, so the model ARNs carry any Region; the families bound the models.
           resources: [
-            `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/amazon.nova-sonic-v1:0`,
-            `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/anthropic.claude-sonnet-4-20250514`,
+            `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/amazon.nova-*sonic*`,
+            'arn:aws:bedrock:*::foundation-model/anthropic.claude-*sonnet*',
+            `arn:aws:bedrock:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:inference-profile/*anthropic.claude-*sonnet*`,
           ],
+        }));
+        NagSuppressions.addResourceSuppressions(voiceAgentRole, [
+          {
+            id: 'AwsSolutions-IAM5',
+            reason: 'The voice agent calls the newest model of the voice and standard families (docker/pipecat-agent/model_catalog.py). Resources are the family patterns: Nova Sonic in this Region, and Claude Sonnet models and inference profiles, whose Regions are any because profiles route across Regions. ListFoundationModels and ListInferenceProfiles are account-level APIs without resource-level scoping.',
+            appliesTo: [
+              'Resource::arn:aws:bedrock:<AWS::Region>::foundation-model/amazon.nova-*sonic*',
+              'Resource::arn:aws:bedrock:*::foundation-model/anthropic.claude-*sonnet*',
+              'Resource::arn:aws:bedrock:<AWS::Region>:<AWS::AccountId>:inference-profile/*anthropic.claude-*sonnet*',
+              'Resource::*',
+            ],
+          },
+        ], true);
+        voiceAgentRole.addToPolicy(new iam.PolicyStatement({
+          sid: 'BedrockModelCatalogRead',
+          // Account-level list APIs: no resource-level scoping exists for them.
+          actions: ['bedrock:ListFoundationModels', 'bedrock:ListInferenceProfiles'],
+          resources: ['*'],
         }));
 
         voiceAgentRole.addToPolicy(new iam.PolicyStatement({
