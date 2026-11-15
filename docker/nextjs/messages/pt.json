@@ -246,7 +246,11 @@
         "total": "Total de modelos",
         "available": "Disponível",
         "unavailable": "Indisponível"
-      }
+      },
+      "needsRequest": "Solicitação necessária",
+      "notAuthorizedForModel": "Sem autorização",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "Este modelo é chamado por um perfil de inferência global e pode ser processado em Regiões fora da área geográfica atual"
     },
     "count": "",
     "others": "outros",

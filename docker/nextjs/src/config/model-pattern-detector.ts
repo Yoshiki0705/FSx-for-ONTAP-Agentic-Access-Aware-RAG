@@ -28,7 +28,8 @@ export interface DetectionResult {
 /**
  * 推論プロファイルプレフィックスのリスト
  */
-const INFERENCE_PROFILE_PREFIXES = ['us.', 'apac.', 'eu.', 'sa.'];
+// Geography prefixes of system-defined inference profiles (not model names).
+const INFERENCE_PROFILE_PREFIXES = ['global.', 'jp.', 'apac.', 'au.', 'us.', 'us-gov.', 'eu.', 'ca.', 'sa.'];
 
 /**
  * 推論プロファイルプレフィックスを除去

@@ -24,15 +24,14 @@ Ein Praxisleitfaden zu den Funktionen aus der AI-Aktualisierung 2026 Q2 (Phasen 
 
 ## Schritt 1: Modellaktualisierung prüfen (5 Min.)
 
-Prüfen Sie, ob die in Phase 0 aktualisierten Modell-IDs sich wie erwartet verhalten.
+Prüfen Sie, dass jede Stufe (leicht, Standard, leistungsstark) auf das neueste Modell der Region aufgelöst wird. Modelle sind keine festen Werte: Sie werden zur Laufzeit aus den Bedrock-APIs bestimmt (`ListFoundationModels` und `ListInferenceProfiles`, siehe `docker/nextjs/src/lib/model-catalog`).
 
-```bash
-# Aktuelle Modellkonfiguration
-grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defaults.ts
-
-# Erwartet:
-# DEFAULT_CHAT_MODEL = 'anthropic.claude-sonnet-4-6'
-# FALLBACK_MODEL_ID = 'amazon.nova-2-lite-v1:0'
+```text
+# Öffnen Sie diese URL in einem angemeldeten Browser und sehen Sie sich data.tiers an
+https://<CloudFront-Domäne>/api/bedrock/models
+# Beispiel (aus der Aufzeichnung für ap-northeast-1 vom 2026-11-15):
+# "light": "jp.anthropic.claude-haiku-5-5"
+# "standard": "global.anthropic.claude-sonnet-5-5"
 ```
 
 Senden Sie eine Anfrage über die Chat-Oberfläche und prüfen Sie, dass `modelId` in den Antwortmetadaten das neue Modell nennt.
@@ -41,7 +40,7 @@ Senden Sie eine Anfrage über die Chat-Oberfläche und prüfen Sie, dass `modelI
 
 ## Schritt 2: Wirkung des Prompt-Caches prüfen (10 Min.)
 
-> **Voraussetzung**: Prompt-Caching funktioniert nur mit **Anthropic-Claude-Modellen**. In der Standardkonfiguration (kein Modell gewählt, Rückfall auf Nova 2 Lite) wird nichts gecacht. Wählen Sie vor den folgenden Schritten in der Seitenleiste **Claude Sonnet 4.6** oder **Claude Opus 4.8**.
+> **Voraussetzung**: Prompt-Caching funktioniert nur mit **Anthropic-Claude-Modellen**. Standardmäßig (kein Modell gewählt) wird die Standardstufe verwendet, die auf das neueste Claude-Sonnet-Modell aufgelöst wird; sie wird also gecacht. Ein Nicht-Claude-Modell wie Nova wird nicht gecacht.
 
 Senden Sie in derselben Sitzung aufeinanderfolgende Anfragen und prüfen Sie den Cache-Treffer.
 

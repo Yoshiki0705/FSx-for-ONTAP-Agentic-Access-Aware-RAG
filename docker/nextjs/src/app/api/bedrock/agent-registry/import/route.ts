@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
         agentName,
         description: detail.description || `Imported from Registry: ${detail.resourceId}`,
         foundationModel:
-          detail.agentInfo?.foundationModel || 'anthropic.claude-3-sonnet-20240229-v1:0',
+          // Unset: the light tier, resolved when the agent runs (model catalog).
+          detail.agentInfo?.foundationModel || 'tier:light',
         instruction:
           detail.description ||
           'You are a helpful AI assistant imported from the Agent Registry.',

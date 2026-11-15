@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ChatSession, Message } from '@/types/chat';
-import { DEFAULT_CHAT_MODEL, DEFAULT_REGION } from '@/config/model-defaults';
+import { DEFAULT_REGION } from '@/config/model-defaults';
 
 /**
  * 保存ステータスの型定義
@@ -57,7 +57,7 @@ export function useChatHistory() {
             createdAt: typeof s.createdAt === 'string' ? new Date(s.createdAt).getTime() : s.createdAt,
             updatedAt: typeof s.updatedAt === 'string' ? new Date(s.updatedAt).getTime() : s.updatedAt,
             mode: s.mode,
-            model: s.model || DEFAULT_CHAT_MODEL,
+            model: s.model || '', // empty: the standard tier
             region: s.region || DEFAULT_REGION
           }));
           
@@ -134,7 +134,7 @@ export function useChatHistory() {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       mode,
-      model: DEFAULT_CHAT_MODEL,
+      model: '', // empty: the standard tier (model catalog)
       region: DEFAULT_REGION
     };
     

@@ -57,14 +57,7 @@ export function AvailableModelsList({
       categories[provider].push(model);
     });
 
-    // 各カテゴリ内でモデル名でソート
-    Object.keys(categories).forEach(provider => {
-      categories[provider].sort((a, b) => {
-        const aName = a?.name || '';
-        const bName = b?.name || '';
-        return aName.localeCompare(bName);
-      });
-    });
+    // Within a provider the server's order is kept: newest first (model catalog).
 
     return categories;
   }, [filteredAvailableModels, locale]);
@@ -172,6 +165,11 @@ export function AvailableModelsList({
                             <span className="text-sm font-medium text-gray-900 group-hover:text-gray-700">
                               {model.name}
                             </span>
+                            {model.scope === 'global' && (
+                              <span className="text-xs px-1.5 py-0.5 bg-amber-50 border border-amber-200 rounded text-amber-800" title={t('scopeGlobalHint')}>
+                                {t('scopeGlobal')}
+                              </span>
+                            )}
                           </div>
                           <span className="text-xs text-gray-500 group-hover:text-gray-600">
                             {t('select')}
@@ -212,6 +210,11 @@ export function AvailableModelsList({
                   <span className="text-sm font-medium text-gray-900 group-hover:text-gray-700">
                     {model.name}
                   </span>
+                  {model.scope === 'global' && (
+                              <span className="text-xs px-1.5 py-0.5 bg-amber-50 border border-amber-200 rounded text-amber-800" title={t('scopeGlobalHint')}>
+                                {t('scopeGlobal')}
+                              </span>
+                            )}
                   <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
                     {model.provider}
                   </span>

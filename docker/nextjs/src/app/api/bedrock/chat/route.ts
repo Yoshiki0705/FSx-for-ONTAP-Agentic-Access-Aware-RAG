@@ -8,20 +8,15 @@ import type { BedrockModel } from '@/config/bedrock-models';
 import { getModelConfig as getModelConfigFromManager } from '@/config/model-config-manager';
 import { stripInferenceProfilePrefix } from '@/config/model-pattern-detector';
 import { BedrockErrorAnalyzer } from '@/lib/bedrock-error-analyzer';
-import { resolveInferenceProfile } from '@/lib/inference-profile-resolver';
+import { reportModelInvokeError, resolveModelForInvoke } from '@/lib/model-catalog';
 import {
   invokeWithConverse,
   supportsConverseAPI,
-  resolveInferenceProfile as resolveConverseProfile,
 } from '@/lib/bedrock-converse-client';
 import {
   invokeAI21Model,
   isAI21Model,
 } from '@/lib/bedrock-invoke-model-ai21';
-import {
-  selectOptimalRegion,
-  getRegionSelectionInfo,
-} from '@/config/region-model-availability';
 
 /**
  * モデルIDからプロバイダー名を推測
@@ -46,149 +41,6 @@ function extractProviderFromModelId(modelId: string): string {
   return 'Unknown';
 }
 
-// 後方互換性のため残す（非推奨）
-const MODEL_CONFIGS: Record<string, BedrockModel> = {
-  // Amazon Nova models (APAC推論プロファイル - 推奨)
-  'apac.amazon.nova-pro-v1:0': {
-    id: 'apac.amazon.nova-pro-v1:0',
-    name: 'Amazon Nova Pro (APAC)',
-    description: 'Amazon Nova Pro (APAC Cross-Region)',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 4000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'amazon',
-    responseFormat: 'output.message.content[0].text'
-  },
-  'apac.amazon.nova-lite-v1:0': {
-    id: 'apac.amazon.nova-lite-v1:0',
-    name: 'Amazon Nova Lite (APAC)',
-    description: 'Amazon Nova Lite (APAC Cross-Region)',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 2000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'amazon',
-    responseFormat: 'output.message.content[0].text'
-  },
-  'apac.amazon.nova-micro-v1:0': {
-    id: 'apac.amazon.nova-micro-v1:0',
-    name: 'Amazon Nova Micro (APAC)',
-    description: 'Amazon Nova Micro (APAC Cross-Region)',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 1000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'amazon',
-    responseFormat: 'output.message.content[0].text'
-  },
-  // Amazon Nova models (直接モデルID - 非推奨、inference profile使用を推奨)
-  'amazon.nova-pro-v1:0': {
-    id: 'amazon.nova-pro-v1:0',
-    name: 'Amazon Nova Pro',
-    description: 'Amazon Nova Pro',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 4000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'amazon',
-    responseFormat: 'output.message.content[0].text'
-  },
-  'us.amazon.nova-pro-v1:0': {
-    id: 'us.amazon.nova-pro-v1:0',
-    name: 'Amazon Nova Pro (US)',
-    description: 'Amazon Nova Pro (US Cross-Region)',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 4000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'amazon',
-    responseFormat: 'output.message.content[0].text'
-  },
-  'amazon.nova-lite-v1:0': {
-    id: 'amazon.nova-lite-v1:0',
-    name: 'Amazon Nova Lite',
-    description: 'Amazon Nova Lite',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 2000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'amazon',
-    responseFormat: 'output.message.content[0].text'
-  },
-  'us.amazon.nova-lite-v1:0': {
-    id: 'us.amazon.nova-lite-v1:0',
-    name: 'Amazon Nova Lite (US)',
-    description: 'Amazon Nova Lite (US Cross-Region)',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 2000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'amazon',
-    responseFormat: 'output.message.content[0].text'
-  },
-  // Anthropic Claude models (推論プロファイル使用)
-  'apac.anthropic.claude-3-5-sonnet-20241022-v2:0': {
-    id: 'apac.anthropic.claude-3-5-sonnet-20241022-v2:0',
-    name: 'Claude 3.5 Sonnet v2',
-    description: 'Claude 3.5 Sonnet v2 (APAC推論プロファイル)',
-    provider: 'anthropic',
-    category: 'chat',
-    maxTokens: 4000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'anthropic',
-    responseFormat: 'content[0].text',
-    parameterMapping: {
-      maxTokens: 'max_tokens',
-      temperature: 'temperature',
-      topP: 'top_p'
-    }
-  },
-  // OpenAI GPT models (via Bedrock)
-  'openai.gpt-oss-120b-1:0': {
-    id: 'openai.gpt-oss-120b-1:0',
-    name: 'GPT OSS 120B',
-    description: 'OpenAI GPT OSS 120B',
-    provider: 'amazon',
-    category: 'chat',
-    maxTokens: 2000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'amazon',
-    responseFormat: 'output.message.content[0].text',
-    parameterMapping: {
-      maxTokens: 'max_tokens',
-      temperature: 'temperature',
-      topP: 'top_p'
-    }
-  },
-  // Meta Llama models
-  'meta.llama3-3-70b-instruct-v1:0': {
-    id: 'meta.llama3-3-70b-instruct-v1:0',
-    name: 'Llama 3.3 70B',
-    description: 'Meta Llama 3.3 70B',
-    provider: 'meta',
-    category: 'chat',
-    maxTokens: 2000,
-    temperature: 0.7,
-    topP: 0.9,
-    requestFormat: 'amazon',  // messages形式を使用
-    responseFormat: 'output.message.content[0].text',
-    parameterMapping: {
-      maxTokens: 'max_tokens',
-      temperature: 'temperature',
-      topP: 'top_p'
-    }
-  }
-};
 
 // 型定義
 interface PermissionResult {
@@ -237,19 +89,7 @@ function getModelConfig(modelId: string, modelName?: string, providerName?: stri
       searchId: modelId,
       modelName,
       providerName,
-      totalModels: Object.keys(MODEL_CONFIGS).length
     });
-    
-    // 静的設定から検索
-    const staticModel = MODEL_CONFIGS[modelId];
-    if (staticModel) {
-      console.log('✅ 静的モデル設定を取得:', {
-        id: staticModel.id,
-        name: staticModel.name,
-        requestFormat: staticModel.requestFormat
-      });
-      return staticModel;
-    }
     
     // 動的検出: model-config-managerを使用
     if (modelName && providerName) {
@@ -609,17 +449,9 @@ async function invokeBedrockModel(
     if (isAI21Model(modelId)) {
       console.log('🔄 AI21 InvokeModel API使用:', { modelId, region });
       
-      // 最適なリージョンを選択
-      const regionInfo = getRegionSelectionInfo(modelId, region);
-      const optimalRegion = regionInfo.selectedRegion;
-      
-      console.log('📍 リージョン選択:', {
-        requested: regionInfo.requestedRegion,
-        selected: optimalRegion,
-        reason: regionInfo.reason,
-        provider: regionInfo.providerName
-      });
-      
+      // The catalog lists the region's models, so the call stays in the requested region.
+      const optimalRegion = region;
+
       try {
         const text = await invokeAI21Model(
           modelId,
@@ -649,32 +481,13 @@ async function invokeBedrockModel(
       }
     }
     
-    // Converse API対応モデルの場合はConverse APIを使用
-    const shouldUseConverse = supportsConverseAPI(modelId);
-    
+    // Converse for every model it supports. The ID was resolved by the model catalog for
+    // this region (POST below), so there is no region switch or profile mapping here.
+    const shouldUseConverse = supportsConverseAPI(stripInferenceProfilePrefix(modelId));
     if (shouldUseConverse) {
+      const optimalRegion = region;
+      const resolvedModelId = modelId;
       console.log('🔄 Converse API使用:', { modelId, region });
-      
-      // 最適なリージョンを選択
-      const regionInfo = getRegionSelectionInfo(modelId, region);
-      const optimalRegion = regionInfo.selectedRegion;
-      
-      if (!regionInfo.isAvailableInRequested) {
-        console.log('📍 リージョン自動切り替え:', {
-          requested: regionInfo.requestedRegion,
-          selected: optimalRegion,
-          reason: regionInfo.reason
-        });
-      }
-      
-      // Inference Profile解決
-      const resolvedModelId = resolveConverseProfile(modelId, optimalRegion);
-      console.log('🎯 モデルID解決:', {
-        original: modelId,
-        resolved: resolvedModelId,
-        region: optimalRegion
-      });
-      
       try {
         const text = await invokeWithConverse(
           resolvedModelId,
@@ -700,6 +513,7 @@ async function invokeBedrockModel(
           error: converseError.message
         });
         
+        reportModelInvokeError(optimalRegion, resolvedModelId, converseError);
         // Converse APIが失敗した場合、InvokeModelにフォールバック
         console.log('⚠️ InvokeModelにフォールバック');
       }
@@ -844,11 +658,10 @@ export async function POST(request: NextRequest) {
   const regionCookie = request.cookies.get('bedrock_region');
   const bedrockRegion = regionCookie?.value || process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
   
-  // 選択されたモデルID（デフォルトはAmazon Nova Pro）
-  const requestedModelId = modelId || 'amazon.nova-pro-v1:0';
-  
-  // リージョンに基づいて最適なinference profileを解決
-  const selectedModelId = resolveInferenceProfile(requestedModelId, bedrockRegion);
+  // The ID to call in this region, from the model catalog: a base ID gets its profile, a
+  // retired one the newest model of its family, and no ID the standard tier.
+  const requestedModelId = modelId;
+  const selectedModelId = (await resolveModelForInvoke(modelId, bedrockRegion)).invokeId;
   
   console.log('🎯 モデルID解決:', {
     requested: requestedModelId,

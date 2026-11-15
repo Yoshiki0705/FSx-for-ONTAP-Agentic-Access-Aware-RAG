@@ -167,7 +167,8 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 - **Bedrock KB Chunking**: Changing `kbChunkingStrategy` requires DataSource re-sync (re-ingestion). An invalid value **throws at synth time** — it is not silently coerced to `FIXED_SIZE`, because the CfnOutput would then show the typo while the emitted configuration said otherwise. Case is normalized (`semantic` → `SEMANTIC`), and both `KbChunkingStrategy` and `KbChunkingConfig` are derived from the same converted value
 - **DynamoDB Streams**: Adding Streams to existing table may trigger replacement — always run `cdk diff` first
 - **S3 Vectors**: Default vector store (low cost). OpenSearch Serverless available via `vectorStoreType` context
-- **Smart Routing GPT-5.5**: Never auto-routed — manual selection only with availability verification
+- **Model catalog (no model IDs in app code)**: Models, how each is called and which one each tier uses come from the Bedrock APIs at run time (`docker/nextjs/src/lib/model-catalog`; the voice agent mirrors it in `docker/pipecat-agent/model_catalog.py`, kept equal by a shared fixture test). Tiers (`light` / `standard` / `heavy` / `fallback` / `voice`) are family patterns and resolve to the newest ACTIVE model by `startOfLifeTime`. Clients send `tier:<name>` or a model/profile ID; a LEGACY or unknown ID is replaced by the newest model of its family. `make model-ids` fails on a new model ID literal outside the files it lists with a reason. GPT models are ordinary catalog entries: never auto-routed (no tier family matches them), selectable when the catalog marks them ready
+- **Model availability**: `agreementAvailability: NOT_AVAILABLE` does **not** mean blocked — **[verified 2026-11-15 / ap-northeast-1]** Opus 4.8 and Haiku 5.5 report it and answer Converse calls. Only PENDING / ERROR / NOT_AUTHORIZED / entitlement or region NOT_AVAILABLE, or an AccessDenied on a call, mark a model 「申請が必要」/ not selectable
 
 ## Feature Flags (cdk.context.json)
 
@@ -197,6 +198,8 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 | `sfnPolicyEngineMode` | follows `policyEngineMode` | Enforcement mode for the Step Functions Gateway's Cedar policies (`LOG_ONLY` \| `ENFORCE`) |
 | `enableImageGeneration` | `false` | Image generation in `/genai/tools`. Calls `imageGenerationModelId` (default `stability.stable-image-core-v1:1`) in `imageGenerationRegion` (default `us-west-2`). **[verified 2026-11-14 / ap-northeast-1, us-west-2 and 12 other Regions]** Tokyo has no image-output model; of the Regions checked, text-to-image exists only in us-west-2 (on demand, no inference profile). The screen and README state that data is processed outside Japan |
 | `enableWebExtract` | `true` | Web extraction in `/genai/tools`. SSRF guard in `lib/genu-tools/web-fetch.ts` (public addresses only, pinned connection, redirects re-checked) |
+| `modelFamilyLight` / `modelFamilyStandard` / `modelFamilyHeavy` / `modelFamilyFallback` / `modelFamilyVoice` | `anthropic.claude-*haiku*` / `anthropic.claude-*sonnet*` / `anthropic.claude-*opus*` / `amazon.nova-*lite*` / `amazon.nova-*sonic*` | Family pattern per tier (`*` wildcard). Each resolves at run time to the newest ACTIVE model of the family in the Region. Validated at synth time |
+| `modelProfilePreference` | `"nearest"` | `"nearest"`: the inference profile with the fewest destination Regions (on-demand → `jp.` → `apac.` → `global.` in Tokyo). `"global"`: a `global.` profile when one exists. Models called through `global.` are marked in the selectors |
 | `enableGraphRAG` | `false` | Graph RAG with Neptune Analytics (document relationship graph) |
 | `enableAgentRegistry` | `false` | Agent Registry integration |
 | `enableAdvancedPermissions` | `false` | Time-based access control + audit logging |
@@ -256,8 +259,8 @@ capacity_monitor Lambda → evaluate_expansion(ENFORCE | DRY_RUN | BREAK_GLASS)
 ### Smart Routing (3-Tier)
 ```
 Query → classifyQuery(contextSize) → simple | complex | full-context
-  → simple → Haiku | complex → Sonnet | full-context → Claude Opus
-  → GPT-5.5 (manual only, availability-verified)
+  → simple → tier:light | complex → tier:standard | full-context → tier:heavy
+  → the server resolves each tier to the newest model of its family (model catalog)
 ```
 
 ### Gateway Guardrails + Web Search (Summit NY 2026)
@@ -482,18 +485,13 @@ Detects: internal IPs (10.x/172.16-31.x/192.168.x), AWS Account IDs, internal ho
 | Pure functions / utils | 100 | Millisecond-order execution |
 | Type validation / parsing | 100 | Lightweight, needs broad coverage |
 
-### Bedrock Model ID Update Procedure
+### Bedrock Model Lifecycle (no update procedure)
 
-When updating model IDs (AWS Health notifications, EOL):
+A model release or retirement needs no code change: the catalog reads both from the Bedrock APIs and the tiers move to the newest model of their family. What remains manual:
 
-1. **Scan**: `grep -r "OLD_ID" --include="*.ts" --include="*.tsx" --include="*.json" --include="*.md" | grep -v node_modules`
-2. **Central config first**: `docker/nextjs/src/config/model-defaults.ts`
-3. **Backend**: route.ts fallbacks, converse-client.ts, demo-ai-stack.ts
-4. **Frontend**: components (select options, FOUNDATION_MODELS arrays, card-constants)
-5. **Compatibility system**: model database entry, patterns, regional availability
-6. **Tests**: property test `constantFrom`, discovery route entries
-7. **Docs**: all language versions via `find docs/ -name "*.md" -exec ...`
-8. **Verify**: `npx tsc --noEmit` → `npx cdk synth --quiet` → `npx jest --no-coverage --forceExit` → `cd docker/nextjs && npx vitest run`
+1. **Changing a tier's family** (e.g. a new product line): set `-c modelFamily<Tier>=<pattern>` and redeploy
+2. **Deploy-time models** listed in `scripts/check-model-ids.py` `ALLOWED` (Bedrock Agents Classic backend, AgentCore Optimization initial bundle, embedding models, image model)
+3. **The recorded fixture** (`docker/nextjs/src/__tests__/model-catalog/tokyo-*.json`) is a test input, not configuration; re-record it only to test a new API shape
 
 ### CI Execution Time Budget
 

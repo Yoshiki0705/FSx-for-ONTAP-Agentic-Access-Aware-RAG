@@ -1,12 +1,12 @@
 /**
  * One Converse call for the text tools (translate, proofread, diagram, web extraction,
- * saved use cases). The model is `TOOLS_MODEL_ID`, and base model IDs are mapped to the
- * inference profile the region can call, as the agents do (`runtimeModelId`).
+ * saved use cases). The model is `TOOLS_MODEL_ID` when the stack sets one, else the
+ * light tier of the model catalog; either way it is resolved for the region as the
+ * agents' models are (`runtimeModelId`).
  */
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import { runtimeModelId } from '@/lib/agent-backend/agentcore';
 
-export const DEFAULT_TOOLS_MODEL = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
 /** Longest input the tools accept, in characters. Longer input is rejected, not cut. */
 export const MAX_INPUT_CHARS = 30_000;
 
@@ -26,8 +26,8 @@ export function __setTextClient(c: { send: (cmd: unknown) => Promise<unknown> } 
 
 export class ToolInputError extends Error {}
 
-export function toolsModelId(): string {
-  return runtimeModelId(process.env.TOOLS_MODEL_ID || DEFAULT_TOOLS_MODEL);
+export async function toolsModelId(): Promise<string> {
+  return runtimeModelId(process.env.TOOLS_MODEL_ID || undefined);
 }
 
 export async function generateText(params: {
@@ -40,7 +40,7 @@ export async function generateText(params: {
   if (params.user.length > MAX_INPUT_CHARS) {
     throw new ToolInputError(`input is longer than ${MAX_INPUT_CHARS} characters`);
   }
-  const modelId = toolsModelId();
+  const modelId = await toolsModelId();
   const out = (await bedrock().send(
     new ConverseCommand({
       modelId,

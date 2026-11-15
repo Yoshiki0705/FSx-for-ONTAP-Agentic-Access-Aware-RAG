@@ -70,6 +70,16 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
     imageGenerationRegion: string;
     imageGenerationModelId: string;
   };
+  /**
+   * Model catalog settings (docker/nextjs/src/lib/model-catalog). Each tier is a family
+   * pattern (`anthropic.claude-*sonnet*`) that resolves at run time to the newest ACTIVE
+   * model of the family; unset tiers use the app's defaults. `profilePreference` picks
+   * the inference profile: `nearest` (fewest destination Regions) or `global`.
+   */
+  models?: {
+    families?: Partial<Record<'light' | 'standard' | 'heavy' | 'fallback' | 'voice', string>>;
+    profilePreference?: 'nearest' | 'global';
+  };
   /** Bedrock Agent ID（AIStackから） */
   agentId?: string;
   /** Bedrock Agent Alias ID（AIStackから） */
@@ -319,7 +329,13 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(props.chunkSafetyTimeoutMs ? { CHUNK_SAFETY_TIMEOUT_MS: String(props.chunkSafetyTimeoutMs) } : {}),
         // 音声チャット設定（オプション）
         VOICE_CHAT_ENABLED: props.enableVoiceChat ? 'true' : 'false',
-        ...(props.enableVoiceChat ? { NOVA_SONIC_MODEL_ID: 'amazon.nova-sonic-v1:0' } : {}),
+        // Model catalog: tier families and inference profile preference (unset: app defaults)
+        ...Object.fromEntries(
+          Object.entries(props.models?.families ?? {})
+            .filter(([, v]) => Boolean(v))
+            .map(([k, v]) => [`MODEL_FAMILY_${k.toUpperCase()}`, v as string]),
+        ),
+        MODEL_PROFILE_PREFERENCE: props.models?.profilePreference ?? 'nearest',
         ...(props.enableVoiceChat ? { VOICE_CHAT_MODE: props.voiceChatMode || 'rest' } : {}),
         ...(props.enableVoiceChat ? { NEXT_PUBLIC_VOICE_CHAT_MODE: props.voiceChatMode || 'rest' } : {}),
         // AgentCore Policy設定（オプション）
@@ -411,6 +427,8 @@ export class DemoWebAppStack extends cdk.Stack {
         'bedrock:ListFoundationModels',
         'bedrock:GetInferenceProfile',
         'bedrock:ListInferenceProfiles',
+        // Model catalog: which models the account may call (shown as 「申請が必要」 otherwise)
+        'bedrock:GetFoundationModelAvailability',
         // Agent mode
         'bedrock:InvokeAgent',
         'bedrock:ListAgents',
@@ -457,8 +475,9 @@ export class DemoWebAppStack extends cdk.Stack {
         actions: [
           'bedrock:InvokeModelWithBidirectionalStream',
         ],
+        // The voice tier's family, so the newest speech model is callable without a deploy.
         resources: [
-          `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/amazon.nova-sonic-v1:0`,
+          `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/${props.models?.families?.voice || 'amazon.nova-*sonic*'}`,
         ],
       }));
     }
@@ -817,6 +836,11 @@ export class DemoWebAppStack extends cdk.Stack {
           'Resource::arn:aws:iam::<AWS::AccountId>:role/*bedrock*',
           'Resource::*',
         ],
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'Voice chat calls the newest model of the voice family (model catalog, docker/nextjs/src/lib/model-catalog). The resource is the family pattern in this Region (amazon.nova-*sonic* by default), so a new speech model needs no deploy and no other model is allowed.',
+        appliesTo: [{ regex: '/^Resource::arn:aws:bedrock:<AWS::Region>::foundation-model\\/[a-z0-9.:-]*\\*.*$/g' }],
       },
     ], true); // true = apply to children (ServiceRole/DefaultPolicy)
 

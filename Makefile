@@ -10,7 +10,7 @@
 
 .PHONY: help all lint test test-frontend test-python docs evidence industry-packs deps secrets actions \
         synth synth-default build clean i18n i18n-report untranslated test-frontend-jest \
-        workflow-paths
+        workflow-paths model-ids
 
 WORKFLOW := .github/workflows/ci-cd.yml
 
@@ -22,7 +22,7 @@ help: ## 使えるターゲットを表示する
 	@echo
 	@echo "all は速い検査だけを走らせます（synth と E2E は含みません）。"
 
-all: lint test test-frontend-jest test-python docs evidence industry-packs i18n untranslated workflow-paths deps ## 速い検査をまとめて走らせる（型検査・Jest・Python・doc 検査・依存関係）
+all: lint test test-frontend-jest test-python docs evidence industry-packs i18n untranslated workflow-paths model-ids deps ## 速い検査をまとめて走らせる（型検査・Jest・Python・doc 検査・依存関係）
 
 lint: ## TypeScript の型検査（npx tsc --noEmit）
 	npx tsc --noEmit
@@ -50,7 +50,7 @@ test-frontend-jest: ## フロントエンドの Jest（route handler と utils�
 # 依存は requirements-dev.txt があればそちら、無ければ requirements.txt。
 # pytest にパスを渡さないのは、収集範囲が各ディレクトリで違うため
 # （3 つは pytest.ini の testpaths=tests、tests/permission-matrix は直下）。
-PY_DIRS := automation/transfer-family automation/fsxn-ops lambda/kb-auto-sync tests/permission-matrix docker/agentcore-agent
+PY_DIRS := automation/transfer-family automation/fsxn-ops lambda/kb-auto-sync tests/permission-matrix docker/agentcore-agent docker/pipecat-agent
 
 test-python: ## Python の pytest（PY_DIRS の各ディレクトリ / 依存は .venv に用意する）
 	@for d in $(PY_DIRS); do \
@@ -101,6 +101,10 @@ secrets: ## シークレット検出（gitleaks）
 workflow-paths: ## ワークフローが参照するリポジトリ内パスの存在を検査
 	python3 scripts/check-workflow-paths.py --selftest
 	python3 scripts/check-workflow-paths.py
+
+model-ids: ## アプリのコードにモデル ID が直書きされていないかを検査（モデルは実行時に API から決める）
+	python3 scripts/check-model-ids.py --selftest
+	python3 scripts/check-model-ids.py
 
 actions: ## GitHub Actions のセキュリティリント（zizmor）
 	zizmor .github/workflows/

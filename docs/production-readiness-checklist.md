@@ -164,8 +164,8 @@
   - Permission-matrix 31シナリオ回帰テスト（100% pass required）
   - RAGAS評価（Faithfulness ≥ 0.85, Answer Relevancy ≥ 0.80, Context Precision ≥ 0.75）
   - ベースライン比較（5%以上の品質低下がないこと）
-- [ ] `model-defaults.ts` の変更を検知するCI/CDパイプラインの設定
-- [ ] モデル更新時の Deprecated Model 互換マッピング定義
+- [ ] モデルの段（`modelFamily*`）と推論プロファイルの選び方（`modelProfilePreference`）を決める。モデル ID は書かない。新しいモデルの公開と廃止は実行時に反映される（`docker/nextjs/src/lib/model-catalog`）
+- [ ] `make model-ids` が CI で通っていること（アプリのコードにモデル ID が直書きされていないことの検査）
 - [ ] 月次モデル棚卸し: 使用中モデルの利用可能状態・コスト・性能の確認
 - [ ] Prompt Caching 有効時: モデル変更後のキャッシュ自動無効化を確認
 - [ ] Smart Routing 各Tierのモデルが想定リージョン（ap-northeast-1）で利用可能なことを確認

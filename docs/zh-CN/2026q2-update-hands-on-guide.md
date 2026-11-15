@@ -24,15 +24,14 @@
 
 ## Step 1：确认模型更新（5 分钟）
 
-确认 Phase 0 中更新的模型 ID 是否按预期工作。
+确认各档（轻量、标准、高性能）的模型解析为该区域的最新模型。模型不是固定值，而是在运行时由 Bedrock API（`ListFoundationModels`、`ListInferenceProfiles`）决定（`docker/nextjs/src/lib/model-catalog`）。
 
-```bash
-# 查看当前模型配置
-grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defaults.ts
-
-# 期望值：
-# DEFAULT_CHAT_MODEL = 'anthropic.claude-sonnet-4-6'
-# FALLBACK_MODEL_ID = 'amazon.nova-2-lite-v1:0'
+```text
+# 在已登录的浏览器中打开以下 URL，查看 data.tiers
+https://<CloudFront 域名>/api/bedrock/models
+# 示例（根据 2026-11-15 ap-northeast-1 的记录得出）:
+# "light": "jp.anthropic.claude-haiku-5-5"
+# "standard": "global.anthropic.claude-sonnet-5-5"
 ```
 
 在聊天界面发送查询，确认响应元数据中的 `modelId` 为新模型。
@@ -41,7 +40,7 @@ grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defau
 
 ## Step 2：确认 Prompt Caching 效果（10 分钟）
 
-> **前提条件**：Prompt Caching 仅支持 **Anthropic Claude 模型**。默认配置（未选择模型 → 回退到 Nova 2 Lite）下缓存不会生效。执行以下步骤前，请在侧边栏的模型选择中选择 **Claude Sonnet 4.6** 或 **Claude Opus 4.8**。
+> **前提条件**：Prompt Caching 仅支持 **Anthropic Claude 模型**。默认（未选择模型）为标准档，解析为最新的 Claude Sonnet 模型，因此会被缓存。选择 Nova 等非 Claude 模型时不会缓存。
 
 在同一会话中连续发送查询，确认缓存命中。
 

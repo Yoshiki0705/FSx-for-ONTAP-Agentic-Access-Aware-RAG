@@ -24,15 +24,14 @@ A hands-on guide to the features added in the 2026 Q2 AI update (phases 0-5). Yo
 
 ## Step 1: confirm the model update (5 min)
 
-Check that the model IDs updated in phase 0 behave as expected.
+Check that each tier (light, standard, heavy) resolves to the newest model in the Region. Models are not fixed values: they are determined at run time from the Bedrock APIs (`ListFoundationModels` and `ListInferenceProfiles`, see `docker/nextjs/src/lib/model-catalog`).
 
-```bash
-# Current model configuration
-grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defaults.ts
-
-# Expected:
-# DEFAULT_CHAT_MODEL = 'anthropic.claude-sonnet-4-6'
-# FALLBACK_MODEL_ID = 'amazon.nova-2-lite-v1:0'
+```text
+# Open this URL in a signed-in browser and look at data.tiers
+https://<CloudFront domain>/api/bedrock/models
+# Example (derived from the 2026-11-15 ap-northeast-1 record):
+# "light": "jp.anthropic.claude-haiku-5-5"
+# "standard": "global.anthropic.claude-sonnet-5-5"
 ```
 
 Send a query from the chat UI and confirm that `modelId` in the response metadata names the new model.
@@ -41,7 +40,7 @@ Send a query from the chat UI and confirm that `modelId` in the response metadat
 
 ## Step 2: confirm the effect of prompt caching (10 min)
 
-> **Prerequisite**: prompt caching works with **Anthropic Claude models only**. In the default configuration (no model selected, falling back to Nova 2 Lite) nothing is cached. Before the steps below, pick **Claude Sonnet 4.6** or **Claude Opus 4.8** under model selection in the sidebar.
+> **Prerequisite**: prompt caching works with **Anthropic Claude models only**. The default (no model selected) is the standard tier, which resolves to the newest Claude Sonnet model, so it is cached. A non-Claude model such as Nova is not cached.
 
 Send consecutive queries within one session and confirm a cache hit.
 

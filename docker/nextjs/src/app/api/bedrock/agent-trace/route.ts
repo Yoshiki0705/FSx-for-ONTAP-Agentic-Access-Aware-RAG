@@ -69,7 +69,7 @@ async function fetchActualTrace(traceId: string, sessionId: string, includeGAFea
     status: 'COMPLETED',
     steps: [],
     metadata: {
-      foundationModel: 'anthropic.claude-v2',
+      foundationModel: 'unknown', // placeholder trace: no model was called
       region: 'ap-northeast-1',
       gaFeatures2024: {
         multiAgentEnabled: false,

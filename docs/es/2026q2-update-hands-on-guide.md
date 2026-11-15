@@ -24,15 +24,14 @@ Una guía práctica sobre las funciones añadidas en la actualización de AI 202
 
 ## Paso 1: comprobar la actualización de modelos (5 min)
 
-Compruebe que los identificadores de modelo actualizados en la fase 0 se comportan como se espera.
+Compruebe que cada nivel (ligero, estándar, potente) se resuelve al modelo más reciente de la Región. Los modelos no son valores fijos: se determinan en tiempo de ejecución a partir de las API de Bedrock (`ListFoundationModels` y `ListInferenceProfiles`, consulte `docker/nextjs/src/lib/model-catalog`).
 
-```bash
-# Configuración de modelos actual
-grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defaults.ts
-
-# Esperado:
-# DEFAULT_CHAT_MODEL = 'anthropic.claude-sonnet-4-6'
-# FALLBACK_MODEL_ID = 'amazon.nova-2-lite-v1:0'
+```text
+# Abra esta URL en un navegador con la sesión iniciada y consulte data.tiers
+https://<dominio de CloudFront>/api/bedrock/models
+# Ejemplo (obtenido del registro de ap-northeast-1 del 2026-11-15):
+# "light": "jp.anthropic.claude-haiku-5-5"
+# "standard": "global.anthropic.claude-sonnet-5-5"
 ```
 
 Envíe una consulta desde la interfaz de chat y compruebe que `modelId` en los metadatos de la respuesta nombra el nuevo modelo.
@@ -41,7 +40,7 @@ Envíe una consulta desde la interfaz de chat y compruebe que `modelId` en los m
 
 ## Paso 2: comprobar el efecto de la caché de prompts (10 min)
 
-> **Requisito**: la caché de prompts solo funciona con modelos **Anthropic Claude**. En la configuración por defecto (sin modelo seleccionado, con repliegue a Nova 2 Lite) no se almacena nada. Antes de los pasos siguientes, elija **Claude Sonnet 4.6** o **Claude Opus 4.8** en el selector de modelo de la barra lateral.
+> **Requisito**: la caché de prompts solo funciona con modelos **Anthropic Claude**. Por defecto (sin modelo seleccionado) se usa el nivel estándar, que se resuelve al modelo Claude Sonnet más reciente, por lo que se almacena en caché. Un modelo que no sea Claude, como Nova, no se almacena.
 
 Envíe consultas consecutivas dentro de una misma sesión y compruebe el acierto de caché.
 

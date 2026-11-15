@@ -24,15 +24,14 @@
 
 ## Step 1: 모델 업데이트 확인(5분)
 
-Phase 0에서 갱신된 모델 ID가 기대대로 동작하는지 확인합니다.
+각 단계(경량·표준·고성능)의 모델이 해당 리전의 최신 모델로 해석되는지 확인합니다. 모델은 고정값이 아니며 Bedrock API(`ListFoundationModels`, `ListInferenceProfiles`)에서 실행 시에 결정됩니다(`docker/nextjs/src/lib/model-catalog`).
 
-```bash
-# 현재 모델 설정 확인
-grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defaults.ts
-
-# 기대값:
-# DEFAULT_CHAT_MODEL = 'anthropic.claude-sonnet-4-6'
-# FALLBACK_MODEL_ID = 'amazon.nova-2-lite-v1:0'
+```text
+# 로그인한 브라우저에서 다음 URL을 열고 data.tiers를 확인
+https://<CloudFront 도메인>/api/bedrock/models
+# 예(2026-11-15 ap-northeast-1 기록에서 구한 값):
+# "light": "jp.anthropic.claude-haiku-5-5"
+# "standard": "global.anthropic.claude-sonnet-5-5"
 ```
 
 채팅 UI에서 쿼리를 보내고, 응답 메타데이터의 `modelId`가 새 모델인지 확인합니다.
@@ -41,7 +40,7 @@ grep -E "DEFAULT_CHAT_MODEL|FALLBACK_MODEL" docker/nextjs/src/config/model-defau
 
 ## Step 2: Prompt Caching 효과 확인(10분)
 
-> **전제 조건**: Prompt Caching은 **Anthropic Claude 모델만** 지원합니다. 기본 구성(모델 미선택 → Nova 2 Lite 폴백)에서는 캐시가 동작하지 않습니다. 아래 절차 전에 사이드바의 모델 선택에서 **Claude Sonnet 4.6** 또는 **Claude Opus 4.8**을 선택하십시오.
+> **전제 조건**: Prompt Caching은 **Anthropic Claude 모델만** 지원합니다. 기본값(모델 미선택)은 표준 단계이며 최신 Claude Sonnet 모델로 해석되므로 캐시 대상입니다. Nova 등 Claude 이외의 모델을 선택하면 캐시되지 않습니다.
 
 같은 세션에서 연속으로 쿼리를 보내고 캐시 적중을 확인합니다.
 

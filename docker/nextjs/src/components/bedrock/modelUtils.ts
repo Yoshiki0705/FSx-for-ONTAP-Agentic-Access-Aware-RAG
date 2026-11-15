@@ -1,29 +1,30 @@
 import { BedrockModel } from '../../config/bedrock-models';
-import { FALLBACK_MODEL_ID } from '@/config/model-defaults';
-import { GPT_5_5_MODEL_ID } from '@/lib/smart-router';
 
 /**
  * モデル検索・フィルタリング用ユーティリティ関数
  */
 
+/** A model as /api/bedrock/region-info returns it (lib/model-catalog/api.ts). */
+export interface CatalogModel {
+  id: string;
+  name: string;
+  provider: string;
+  description?: string;
+  category?: string;
+  maxTokens?: number;
+  status?: 'ready' | 'needs-request' | 'unavailable';
+  reason?: string;
+  /** in-region / geo / global: where the call is processed. */
+  scope?: 'in-region' | 'geo' | 'global';
+  destinationRegions?: string[] | null;
+}
 // Bedrockリージョン情報インターフェース
 export interface BedrockRegionInfo {
   currentRegion: string;
   currentRegionName: string;
-  availableModels: Array<{
-    id: string;
-    name: string;
-    provider: string;
-    description?: string;
-    category?: string;
-    maxTokens?: number;
-  }>;
-  unavailableModels: Array<{
-    modelId: string;
-    modelName: string;
-    provider: string;
-    reason: string;
-  }>;
+  availableModels: CatalogModel[];
+  /** Models listed but not selectable: status "needs-request" or "unavailable". */
+  unavailableModels: CatalogModel[];
   availableModelsCount: number;
   unavailableModelsCount: number;
   lastChecked?: string;
@@ -38,71 +39,34 @@ export interface ProcessedModel {
   available: boolean;
   reason?: string;
   description?: string;
+  status?: 'ready' | 'needs-request' | 'unavailable';
+  scope?: 'in-region' | 'geo' | 'global';
 }
-
-// フォールバックモデル
-export const FALLBACK_MODEL: ProcessedModel = {
-  id: FALLBACK_MODEL_ID,
-  name: 'Amazon Nova Pro',
-  provider: 'Amazon',
-  category: 'General',
-  available: true,
-  reason: undefined,
-  description: 'Amazonの高性能な汎用AIモデル'
-};
-
-// GPT-5.5 静的モデルエントリ（手動選択専用）
-export const GPT_5_5_MODEL: ProcessedModel = {
-  id: GPT_5_5_MODEL_ID,
-  name: 'GPT-5.5',
-  provider: 'OpenAI',
-  category: 'General',
-  available: true,
-  reason: undefined,
-  description: 'OpenAI GPT-5.5 — 手動選択専用モデル（利用時にアクセス検証を実施）'
-};
 
 /**
  * Bedrockリージョン情報からモデル一覧を処理
- * Unknownプロバイダーのモデルは除外する
- * GPT-5.5は手動選択専用モデルとして常に含める
+ *
+ * The list is the region's model catalog as the server returns it: ACTIVE chat models,
+ * newest first. Nothing is added here. A model that needs a request stays in the list
+ * with `available: false`, so the selector can show it without letting it be chosen.
  */
 export function processModelsFromRegionInfo(regionInfo: BedrockRegionInfo | null): ProcessedModel[] {
-  if (!regionInfo) {
-    return [FALLBACK_MODEL, GPT_5_5_MODEL];
-  }
-
-  // 全モデルを表示（プロバイダー名がUnknownでも除外しない）
-  const models: ProcessedModel[] = [
-    ...regionInfo.availableModels
-      .map(model => ({
-        id: model.id,
-        name: model.name,
-        provider: model.provider,
-        category: model.category || 'General',
-        available: true,
-        reason: undefined,
-        description: model.description || `${model.provider}の${model.name}モデル`
-      })),
-    ...regionInfo.unavailableModels
-      .map(model => ({
-        id: model.modelId,
-        name: model.modelName,
-        provider: model.provider,
-        category: 'General',
-        available: false,
-        reason: model.reason,
-        description: `${model.provider}の${model.modelName}モデル`
-      }))
+  if (!regionInfo) return [];
+  const toProcessed = (model: CatalogModel, available: boolean): ProcessedModel => ({
+    id: model.id,
+    name: model.name,
+    provider: model.provider,
+    category: model.category || 'General',
+    available,
+    reason: available ? undefined : model.reason,
+    description: model.description || `${model.provider} ${model.name}`,
+    status: model.status ?? (available ? 'ready' : 'unavailable'),
+    scope: model.scope,
+  });
+  return [
+    ...(regionInfo.availableModels || []).map((m) => toProcessed(m, true)),
+    ...(regionInfo.unavailableModels || []).map((m) => toProcessed(m, false)),
   ];
-
-  // GPT-5.5がAPIレスポンスに含まれていない場合のみ追加
-  const hasGpt55 = models.some(m => m.id === GPT_5_5_MODEL_ID);
-  if (!hasGpt55) {
-    models.push(GPT_5_5_MODEL);
-  }
-
-  return models;
 }
 
 /**

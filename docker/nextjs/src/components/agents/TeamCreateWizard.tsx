@@ -14,6 +14,7 @@ import type {
   ToolProfile,
   AgentTeamTemplate,
 } from '@/types/multi-agent';
+import { CatalogModelOptions, DEFAULT_AGENT_MODEL } from '@/components/model/CatalogModelOptions';
 
 /**
  * TeamCreateWizard — 5 ステップの Team 作成ウィザード
@@ -45,13 +46,6 @@ const AVAILABLE_TOOLS: { profile: ToolProfile; label: string; descKey: string; c
   { profile: 'share-agent', label: 'share-agent', descKey: 'share-agent', categoryKey: 'sharing' },
 ];
 
-const FOUNDATION_MODELS = [
-  'anthropic.claude-3-5-sonnet-20241022-v2:0',
-  'anthropic.claude-3-5-haiku-20241022-v1:0',
-  'anthropic.claude-haiku-4-5-20251001-v1:0',
-  'amazon.nova-pro-v1:0',
-  'amazon.nova-lite-v1:0',
-];
 
 const COLLABORATOR_ROLES: { role: CollaboratorRole; label: string; defaultInstruction: string }[] = [
   { role: 'permission-resolver', label: 'Permission Resolver', defaultInstruction: 'ユーザーのSID/UID/GID権限を解決する' },
@@ -114,7 +108,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
       agentName: r.label,
       role: r.role,
       instruction: r.defaultInstruction,
-      foundationModel: FOUNDATION_MODELS[0],
+      foundationModel: DEFAULT_AGENT_MODEL,
       trustLevel: 'team-safe' as TrustLevel,
       dataBoundary: 'user-scoped' as DataBoundary,
       toolProfiles: [] as ToolProfile[],
@@ -154,7 +148,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
         agentName: unused.label,
         role: unused.role,
         instruction: unused.defaultInstruction,
-        foundationModel: FOUNDATION_MODELS[0],
+        foundationModel: DEFAULT_AGENT_MODEL,
         trustLevel: 'user-safe',
         dataBoundary: 'team-scoped',
         toolProfiles: [],
@@ -329,9 +323,7 @@ export function TeamCreateWizard({ template, onSubmit, onCancel, isCreating }: T
                     onChange={(e) => updateCollaborator(activeCollabIdx, { foundationModel: e.target.value })}
                     className="w-full px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-xs"
                   >
-                    {FOUNDATION_MODELS.map((m) => (
-                      <option key={m} value={m}>{m.split('.').pop()?.replace(/:.*/, '') ?? m}</option>
-                    ))}
+                    <CatalogModelOptions />
                   </select>
                 </div>
                 <div>

@@ -140,26 +140,12 @@ Cookie bedrock_region 업데이트
 /api/bedrock/models → 모델 선택기 업데이트
 ```
 
-### 리전별 모델 수 (2026-03-25 기준)
+### 모델 목록의 출처
+모델 목록, 각 모델의 호출 방식(리전 내 온디맨드 또는 추론 프로필), 사용 가능 여부는 `/api/bedrock/region-info`가 호출될 때 해당 리전의 Bedrock API(`ListFoundationModels`, `ListInferenceProfiles`, `GetFoundationModelAvailability`)에서 구하며 1시간 캐시합니다(`docker/nextjs/src/lib/model-catalog`). 모델 수는 화면에 표시된 리전만 셉니다. 수동으로 갱신하는 표나 개수는 없습니다.
 
-| 리전 | 모델 수 | 비고 |
-|------|---------|------|
-| 도쿄 (ap-northeast-1) | 57 | 기본 |
-| 오사카 (ap-northeast-3) | 9 | |
-| 싱가포르 (ap-southeast-1) | 18 | |
-| 시드니 (ap-southeast-2) | 59 | |
-| 뭄바이 (ap-south-1) | 58 | |
-| 서울 (ap-northeast-2) | 19 | |
-| 아일랜드 (eu-west-1) | 50 | |
-| 프랑크푸르트 (eu-central-1) | 29 | |
-| 런던 (eu-west-2) | 52 | |
-| 파리 (eu-west-3) | 25 | |
-| 버지니아 (us-east-1) | 96 | |
-| 오레곤 (us-west-2) | 103 | 최다 |
-| 오하이오 (us-east-2) | 76 | |
-| 상파울루 (sa-east-1) | 43 | |
-
-> 모델 수는 `ListFoundationModels(byOutputModality=TEXT)` 결과입니다. 새 모델 추가 시 `/api/bedrock/region-info`의 `REGION_MODEL_COUNTS`를 업데이트하세요.
+- 목록에는 ACTIVE 모델만 최신순으로 표시합니다(`modelLifecycle.startOfLifeTime`)
+- 이용 신청이 완료되지 않은 모델은 "신청 필요"로 표시되며 선택할 수 없습니다
+- `global` 추론 프로필로 호출하는 모델에는 `global` 표시를 붙입니다. 현재 지역 밖의 리전에서 처리될 수 있습니다
 
 ---
 

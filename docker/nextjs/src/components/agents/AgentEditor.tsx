@@ -11,6 +11,7 @@ import { PolicySection } from './PolicySection';
 import { useKnowledgeBases } from '@/hooks/useKnowledgeBases';
 import type { AgentDetail, UpdateAgentFormData } from '@/types/agent-directory';
 import type { CostTags } from '@/types/enterprise-agent';
+import { CatalogModelOptions, DEFAULT_AGENT_MODEL } from '@/components/model/CatalogModelOptions';
 
 interface AgentEditorProps {
   agent: AgentDetail;
@@ -25,15 +26,6 @@ interface AgentEditorProps {
   locale: string;
 }
 
-const FOUNDATION_MODELS = [
-  'anthropic.claude-haiku-4-5-20251001-v1:0',
-  'anthropic.claude-3-sonnet-20240229-v1:0',
-  'anthropic.claude-3-5-sonnet-20241022-v2:0',
-  'anthropic.claude-3-5-haiku-20241022-v1:0',
-  'amazon.nova-pro-v1:0',
-  'amazon.nova-lite-v1:0',
-  'amazon.nova-micro-v1:0',
-];
 
 export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProps) {
   const t = useTranslations('agentDirectory');
@@ -41,7 +33,7 @@ export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProp
     agentName: agent.agentName,
     description: agent.description || '',
     instruction: agent.instruction || '',
-    foundationModel: agent.foundationModel || FOUNDATION_MODELS[0],
+    foundationModel: agent.foundationModel || DEFAULT_AGENT_MODEL,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -184,7 +176,7 @@ export function AgentEditor({ agent, onSave, onCancel, locale }: AgentEditorProp
           <select id="foundationModel" value={formData.foundationModel}
             onChange={e => setFormData(prev => ({ ...prev, foundationModel: e.target.value }))} disabled={saving}
             className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 disabled:opacity-50">
-            {FOUNDATION_MODELS.map(model => <option key={model} value={model}>{model}</option>)}
+            <CatalogModelOptions current={formData.foundationModel} />
           </select>
         </div>
 

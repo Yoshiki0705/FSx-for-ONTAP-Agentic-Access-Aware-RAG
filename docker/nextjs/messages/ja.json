@@ -110,7 +110,16 @@
       "availableModels": "利用可能なモデル",
       "count": "個",
       "noModelSelected": "モデルが選択されていません",
-      "select": "選択"
+      "select": "選択",
+      "needsRequest": "申請が必要",
+      "notAuthorizedForModel": "権限がありません",
+      "notAvailableInRegion": "このリージョンでは利用できません",
+      "others": "ほか",
+      "provider": "プロバイダー",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "このモデルは global 推論プロファイルで呼び出され、日本以外のリージョンで処理される場合があります",
+      "selectedModelDetails": "選択中のモデルの詳細",
+      "unavailableModels": "選択できないモデル"
     },
     "requestAccess": "追加モデルへのアクセスを要求",
     "current": "現在のモデル",

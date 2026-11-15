@@ -33,6 +33,7 @@ import { SSMAgentManagerFactory } from '@/services/ssm-agent-manager';
 import { createMetricsLogger } from '@/lib/monitoring/metrics';
 import { emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
 import type { MultiAgentTraceResult } from '@/types/multi-agent';
+import { modelForTier, resolveModelForInvoke } from '@/lib/model-catalog';
 
 const GUARDRAILS_ENABLED = process.env.GUARDRAILS_ENABLED === 'true';
 
@@ -514,7 +515,10 @@ async function handleCreateAgent(body: any): Promise<NextResponse> {
       agentName,
       description: description || `${agentName} - Created via UI`,
       instruction: instruction || 'You are a helpful AI assistant.',
-      foundationModel: foundationModel || 'anthropic.claude-3-sonnet-20240229-v1:0',
+      // Bedrock Agents take the model ID or an inference profile ID (model catalog).
+      foundationModel: foundationModel
+        ? (await resolveModelForInvoke(foundationModel)).invokeId || foundationModel
+        : await modelForTier('light'),
       agentResourceRoleArn: agentRoleArn,
       idleSessionTTLInSeconds: 1800,
       ...(guardrailId ? {
@@ -794,7 +798,9 @@ async function handleUpdateAgent(body: any): Promise<NextResponse> {
       agentName,
       description,
       instruction,
-      foundationModel,
+      foundationModel: foundationModel
+        ? (await resolveModelForInvoke(foundationModel)).invokeId || foundationModel
+        : existingAgent.agent.foundationModel,
       agentResourceRoleArn: existingAgent.agent.agentResourceRoleArn,
       ...(guardrailId ? {
         guardrailConfiguration: {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { VoiceServerMessage } from '@/types/voice';
+import { getTierModels } from '@/lib/model-catalog';
 
 /**
  * POST /api/voice/stream
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 
         const response: VoiceServerMessage = {
           type: 'sessionReady',
-          payload: { sessionId, modelId: process.env.NOVA_SONIC_MODEL_ID || 'amazon.nova-sonic-v1:0' },
+          payload: { sessionId, modelId: process.env.NOVA_SONIC_MODEL_ID || (await getTierModels().catch(() => null))?.voice?.invokeId || '' },
         };
         return NextResponse.json(response);
       }
@@ -203,13 +204,13 @@ async function transcribeWithConverse(
 
     // Use Converse API with audio content block for speech understanding
     // Nova Sonic supports audio input via the Converse API
-    const modelId = process.env.NOVA_SONIC_MODEL_ID || 'amazon.nova-sonic-v1:0';
-
+    // The voice tier, then the fallback and light tiers (model catalog).
+    const tiers = await getTierModels(region).catch(() => ({} as Awaited<ReturnType<typeof getTierModels>>));
     const converseModels = [
-      modelId,
-      'apac.amazon.nova-lite-v1:0',
-      'anthropic.claude-haiku-4-5-20251001-v1:0',
-    ];
+      process.env.NOVA_SONIC_MODEL_ID || tiers.voice?.invokeId,
+      tiers.fallback?.invokeId,
+      tiers.light?.invokeId,
+    ].filter((id, i, all): id is string => Boolean(id) && all.indexOf(id) === i);
 
     for (const mid of converseModels) {
       try {

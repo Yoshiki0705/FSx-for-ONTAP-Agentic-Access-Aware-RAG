@@ -15,8 +15,8 @@ import {
   ConverseCommand,
 } from '@aws-sdk/client-bedrock-runtime';
 import { createMetricsLogger } from '@/lib/monitoring/metrics';
+import { getTierModels } from '@/lib/model-catalog';
 
-const VISION_MODEL_ID = 'anthropic.claude-haiku-4-5-20251001-v1:0';
 const VISION_TIMEOUT_MS = 15_000;
 
 /**
@@ -43,6 +43,12 @@ export async function analyzeImage(
 
   try {
     const format = imageMimeType.split('/')[1] as 'jpeg' | 'png' | 'gif' | 'webp';
+    // The light tier when it takes images, else the standard tier (model catalog).
+    const tiers = await getTierModels(await client.config.region()).catch(() => null);
+    if (!tiers) return null;
+    const VISION_MODEL_ID =
+      [tiers.light, tiers.standard].find((t) => t?.inputModalities.includes('IMAGE'))?.invokeId ?? '';
+    if (!VISION_MODEL_ID) return null;
     console.log('[Vision] Calling Converse API with image, model:', VISION_MODEL_ID, 'format:', format);
 
     const resp = await client.send(

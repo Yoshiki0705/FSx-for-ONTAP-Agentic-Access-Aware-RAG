@@ -16,8 +16,6 @@ import {
 } from './modelUtils';
 import { MODEL_DISPLAY_LIMITS } from './constants';
 import { useSmartRoutingStore } from '@/store/useSmartRoutingStore';
-import { GPT_5_5_MODEL_ID } from '@/lib/smart-router';
-import { ModelAccessVerifier } from '@/lib/model-access-verifier';
 
 interface ModelSelectorProps {
   selectedModelId: string;
@@ -104,9 +102,6 @@ export function ModelSelector({
   const [showRegionInfo, setShowRegionInfo] = useState(false);
   const { regionInfo, isLoadingRegionInfo } = useBedrockRegionInfo(mode);
 
-  // GPT-5.5 availability check state
-  const [gpt55Error, setGpt55Error] = useState<string | null>(null);
-  const [isVerifyingGpt55, setIsVerifyingGpt55] = useState(false);
 
   // Smart Routing store
   const { isEnabled: isSmartRoutingEnabled, isAutoMode, setAutoMode } = useSmartRoutingStore();
@@ -142,42 +137,8 @@ export function ModelSelector({
   const handleModelChange = useCallback(async (modelId: string) => {
     const targetModel = allModels.find(m => m.id === modelId);
 
-    // GPT-5.5 availability verification flow
-    if (modelId === GPT_5_5_MODEL_ID) {
-      setGpt55Error(null);
-      setIsVerifyingGpt55(true);
-
-      try {
-        const region = typeof window !== 'undefined'
-          ? localStorage.getItem('selectedRegion') || 'ap-northeast-1'
-          : 'ap-northeast-1';
-
-        console.log(`🔍 [ModelSelector] Verifying GPT-5.5 access in region: ${region}`);
-        const status = await ModelAccessVerifier.verifyModelAccess(GPT_5_5_MODEL_ID, region);
-
-        if (!status.isAccessible) {
-          // Display inline error and revert to previous model
-          const errorMsg = status.errorMessage || 'GPT-5.5 is currently unavailable in this region.';
-          console.warn(`⚠️ [ModelSelector] GPT-5.5 unavailable: ${errorMsg}`);
-          setGpt55Error(errorMsg);
-          setIsVerifyingGpt55(false);
-          return; // Do not proceed with selection — revert
-        }
-
-        console.log(`✅ [ModelSelector] GPT-5.5 access verified successfully`);
-      } catch (error: any) {
-        console.error(`❌ [ModelSelector] GPT-5.5 verification error:`, error);
-        setGpt55Error(error.message || 'GPT-5.5 availability check failed.');
-        setIsVerifyingGpt55(false);
-        return; // Do not proceed with selection — revert
-      }
-
-      setIsVerifyingGpt55(false);
-    } else {
-      // Clear GPT-5.5 error when selecting a different model
-      setGpt55Error(null);
-    }
-
+    // Availability comes from the model catalog: a model that needs a request is in the
+    // unavailable list and cannot be clicked, so no per-model check is needed here.
     handleModelSelection(targetModel, onModelChange, modelId);
 
     // Smart Routing ON時に手動でモデルを選択した場合、isAutoModeをfalseに設定
@@ -279,35 +240,6 @@ export function ModelSelector({
       )}
 
       {/* GPT-5.5 availability error display */}
-      {gpt55Error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-md" role="alert" data-testid="gpt55-error">
-          <div className="flex items-start space-x-2">
-            <span className="text-red-600 font-medium"><AlertTriangle className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" /></span>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-red-800">GPT-5.5 is unavailable</p>
-              <p className="text-xs text-red-600 mt-0.5">{gpt55Error}</p>
-            </div>
-            <button
-              onClick={() => setGpt55Error(null)}
-              className="text-red-400 hover:text-red-600 text-xs"
-              aria-label="Dismiss error"
-            >
-              <X className="w-4 h-4" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* GPT-5.5 verification loading indicator */}
-      {isVerifyingGpt55 && (
-        <div className="p-2 bg-blue-50 border border-blue-200 rounded-md" data-testid="gpt55-verifying">
-          <div className="flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-            <span className="text-xs text-blue-700">GPT-5.5 のアクセスを検証中...</span>
-          </div>
-        </div>
-      )}
-
       {/* 利用可能なモデル一覧（選択中のモデルを除外してカテゴリ別グループ化） */}
       <AvailableModelsList 
         models={allModels}
@@ -336,8 +268,8 @@ export function ModelSelector({
                   <div className="font-medium"><AlertTriangle className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />利用不可能なモデル:</div>
                   <div className="mt-1 space-y-1">
                     {regionInfo.unavailableModels && Array.isArray(regionInfo.unavailableModels) && regionInfo.unavailableModels.slice(0, MODEL_DISPLAY_LIMITS.UNAVAILABLE_MODELS_PREVIEW).map(model => (
-                      <div key={model.modelId} className="text-xs">
-                        • {model.modelName} ({model.provider}) - {model.reason}
+                      <div key={model.id} className="text-xs">
+                        • {model.name} ({model.provider}) - {model.status === 'needs-request' ? t('needsRequest') : t('notAuthorizedForModel')}
                       </div>
                     ))}
                     {regionInfo.unavailableModels && regionInfo.unavailableModels.length > MODEL_DISPLAY_LIMITS.UNAVAILABLE_MODELS_PREVIEW && (
@@ -358,17 +290,16 @@ export function ModelSelector({
       {/* 利用不可能なモデル一覧表示 */}
       {regionInfo && regionInfo.unavailableModelsCount > 0 && (
         <UnavailableModelsList 
-          unavailableModels={regionInfo.unavailableModels && Array.isArray(regionInfo.unavailableModels) ? regionInfo.unavailableModels.map(model => ({
-            id: model.modelId,
-            name: model.modelName,
-            description: `${model.provider}の${model.modelName}`,
+          unavailableModels={Array.isArray(regionInfo.unavailableModels) ? regionInfo.unavailableModels.map(model => ({
+            id: model.id,
+            name: model.name,
+            description: model.description || `${model.provider} ${model.name}`,
             provider: model.provider as any,
             category: 'chat' as any,
-            maxTokens: 4000,
+            maxTokens: model.maxTokens || 4000,
             temperature: 0.7,
             topP: 0.9,
-            availableRegions: [],
-            type: 'chat' as any
+            status: model.status,
           })) : []}
           unavailableModelsCount={regionInfo.unavailableModelsCount}
         />

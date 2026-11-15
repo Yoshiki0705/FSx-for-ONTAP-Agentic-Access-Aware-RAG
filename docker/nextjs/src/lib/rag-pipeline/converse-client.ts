@@ -18,32 +18,45 @@ import {
   type ConverseCommandInput,
   type ConverseCommandOutput,
 } from '@aws-sdk/client-bedrock-runtime';
-import { KB_CONVERSE_FALLBACK_MODELS, ON_DEMAND_BLOCKED_MODELS, INFERENCE_PROFILE_MAP } from '@/config/model-defaults';
+import { defaultRegion, getTierModels, reportModelInvokeError, resolveModelForInvoke } from '@/lib/model-catalog';
 import type { ConversationMessage, ConverseResult } from './types';
 
-const CONVERSE_FALLBACK_MODELS = [...KB_CONVERSE_FALLBACK_MODELS];
 
 /** Prompt Caching feature toggle (env var) */
 const PROMPT_CACHING_ENABLED = process.env.ENABLE_PROMPT_CACHING !== 'false'; // default: true
 
 /**
- * Resolve model ID for Converse API.
- * - Cross-region inference profiles (jp.*, global.*, apac.*, us.*, eu.*) pass through
- * - Base model IDs are mapped to regional inference profiles (required for ap-northeast-1)
- * - On-demand blocked models fall back to Haiku
+ * Resolve model ID for Converse API, through the model catalog (lib/model-catalog):
+ * a base ID gets the region's inference profile, a retired ID the newest model of its
+ * family, and a profile ID passes through.
  */
-export function resolveConverseModelId(rawModelId: string): string {
-  // Already an inference profile — pass through
-  if (/^(jp|global|apac|us|eu)\./i.test(rawModelId)) return rawModelId;
-  // On-demand blocked — fall back
-  if (ON_DEMAND_BLOCKED_MODELS.has(rawModelId)) return 'anthropic.claude-haiku-4-5-20251001-v1:0';
-  // Map base model ID to regional inference profile
-  const profileId = INFERENCE_PROFILE_MAP[rawModelId];
-  if (profileId) {
-    console.log(`[Converse] Resolved inference profile: ${rawModelId} → ${profileId}`);
-    return profileId;
+export async function resolveConverseModelId(rawModelId: string, region?: string): Promise<string> {
+  return (await resolveModelForInvoke(rawModelId, region)).invokeId || rawModelId;
+}
+
+/** The client's Region, or the app's default when the client does not expose one. */
+async function clientRegion(client: BedrockRuntimeClient): Promise<string> {
+  try {
+    const r = (client as { config?: { region?: unknown } }).config?.region;
+    const value = typeof r === 'function' ? await r() : r;
+    return typeof value === 'string' && value ? value : defaultRegion();
+  } catch {
+    return defaultRegion();
   }
-  return rawModelId;
+}
+
+/**
+ * Models to try after the requested one: the light tier, then the fallback tier. The
+ * permission filter has already run on the retrieved chunks, so a fallback model sees
+ * only what the caller may read.
+ */
+async function converseFallbacks(region: string): Promise<string[]> {
+  try {
+    const tiers = await getTierModels(region);
+    return [tiers.light?.invokeId, tiers.fallback?.invokeId].filter((id): id is string => Boolean(id));
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -212,7 +225,9 @@ export async function callConverse(
     console.log('[Converse] Request with conversation history:', { historyCount: historyMessages.length });
   }
 
-  const modelsToTry = [modelId, ...CONVERSE_FALLBACK_MODELS.filter(m => m !== modelId)];
+  const region = await clientRegion(client);
+  const fallbacks = await converseFallbacks(region);
+  const modelsToTry = [modelId, ...fallbacks.filter((m, i) => m !== modelId && fallbacks.indexOf(m) === i)];
 
   for (const mid of modelsToTry) {
     try {
@@ -280,7 +295,9 @@ export async function callConverse(
       return { text, usedModel: mid };
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      const isRetryable = errMsg.includes('Legacy') ||
+      reportModelInvokeError(region, mid, err);
+      const isRetryable = (err as { name?: string })?.name === 'AccessDeniedException' ||
+        errMsg.includes('Legacy') ||
         errMsg.includes('ResourceNotFoundException') ||
         errMsg.includes('on-demand throughput') ||
         errMsg.includes('ValidationException');

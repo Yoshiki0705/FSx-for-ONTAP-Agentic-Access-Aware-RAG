@@ -254,7 +254,16 @@
       "availableModels": "可用模型",
       "count": "个",
       "noModelSelected": "未选择模型",
-      "select": "选择"
+      "select": "选择",
+      "needsRequest": "需要申请",
+      "notAuthorizedForModel": "无权限",
+      "notAvailableInRegion": "此区域不可用",
+      "others": "其他",
+      "provider": "提供商",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "此模型通过 global 推理配置文件调用，可能在当前地理范围以外的区域处理",
+      "selectedModelDetails": "所选模型详情",
+      "unavailableModels": "无法选择的模型"
     },
     "unavailable": "不可用"
   },

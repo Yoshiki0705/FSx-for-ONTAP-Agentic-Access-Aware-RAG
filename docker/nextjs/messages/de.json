@@ -216,7 +216,16 @@
       "availableModels": "Verfügbare Modelle",
       "count": " Modelle",
       "noModelSelected": "Kein Modell ausgewählt",
-      "select": "Auswählen"
+      "select": "Auswählen",
+      "needsRequest": "Antrag erforderlich",
+      "notAuthorizedForModel": "Nicht berechtigt",
+      "notAvailableInRegion": "In dieser Region nicht verfügbar",
+      "others": "und",
+      "provider": "Anbieter",
+      "scopeGlobal": "global",
+      "scopeGlobalHint": "Dieses Modell wird über ein globales Inferenzprofil aufgerufen und kann in Regionen außerhalb des aktuellen geografischen Raums verarbeitet werden",
+      "selectedModelDetails": "Details zum ausgewählten Modell",
+      "unavailableModels": "Nicht auswählbare Modelle"
     }
   },
   "modelSelector": {
