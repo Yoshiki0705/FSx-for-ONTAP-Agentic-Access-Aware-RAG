@@ -87,6 +87,7 @@ Key features:
 - **Permission-aware RAG** — per-document permission metadata matched against the caller's SID / UID-GID at query time (Fail-Closed)
 - **Agentic AI** — Toggle between document search (KB mode) and autonomous multi-step reasoning (Agent mode). Agents run on Amazon Bedrock AgentCore Runtime
 - **Smart Routing** — Auto-selects Haiku / Sonnet / Opus based on query complexity (40-60% cost reduction, [benchmark](docs/en/benchmark-scenarios.md))
+- **Tools** — Translate, proofread, diagrams (Mermaid), web extraction, and saved use cases (prompt templates). Internal documents used as input pass the same SID filter. Image generation is off by default (when enabled it runs in us-west-2)
 - **Low cost** — S3 Vectors (a few dollars/month) as default
 - **22 integrated capabilities** — Voice chat, Guardrails, Graph RAG, Web Search, and more ([details](docs/en/implementation-overview.md))
 
@@ -164,6 +165,10 @@ For changelog, see [CHANGELOG.md](CHANGELOG.md).
 | ![Agent Directory](docs/screenshots/v4-agent-directory-registry-ja.png) | Agent management & Registry integration |
 | ![Smart Routing](docs/screenshots/kb-mode-smart-routing-ja.png) | Automatic model selection |
 | ![Multi-Agent](docs/screenshots/v4-multi-agent-mode-ja.png) | Team run: a supervisor agent calls collaborator agents as tools (AgentCore Runtime) |
+| ![Tools: translate](docs/screenshots/v4-tools-translate-ja.png) | Tools — translate internal documents (only those the user may read) |
+| ![Tools: diagram](docs/screenshots/v4-tools-diagram-ja.png) | Tools — a flowchart generated from text (Mermaid) |
+| ![Tools: image](docs/screenshots/v4-tools-image-ja.png) | Tools — image generation (only when enabled; the screen says it is processed outside Japan) |
+| ![Tools: my use cases](docs/screenshots/v4-tools-usecases-ja.png) | Tools — a saved use case run with internal documents |
 
 </details>
 

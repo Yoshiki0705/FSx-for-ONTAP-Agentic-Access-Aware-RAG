@@ -5,13 +5,14 @@ import { useTranslations } from 'next-intl';
 
 interface NavigationBarProps {
   locale: string;
-  currentPage: 'cards' | 'agents' | 'chat';
+  currentPage: 'cards' | 'agents' | 'chat' | 'tools';
 }
 
-const NAV_ITEMS: { key: 'cards' | 'agents' | 'chat'; path: string }[] = [
+const NAV_ITEMS: { key: 'cards' | 'agents' | 'chat' | 'tools'; path: string }[] = [
   { key: 'cards', path: '/genai?mode=agent' },
   { key: 'agents', path: '/genai/agents' },
   { key: 'chat', path: '/genai' },
+  { key: 'tools', path: '/genai/tools' },
 ];
 
 export function NavigationBar({ locale, currentPage }: NavigationBarProps) {

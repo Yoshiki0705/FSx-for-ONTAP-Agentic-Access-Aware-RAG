@@ -415,6 +415,23 @@ const aiStack = new DemoAIStack(app, `${stackPrefix}-AI`, {
 aiStack.addDependency(storageStack);
 
 // Stack 6: WebAppStack
+// GenU 相当のツール。画像の生成は既定で無効で、有効にすると imageGenerationRegion のモデルを呼ぶ
+// （そのリージョンが日本の外なら、プロンプトと画像は日本の外で処理される。画面と README に明記）。
+const imageGenerationRegion: string = app.node.tryGetContext('imageGenerationRegion') || 'us-west-2';
+const imageGenerationModelId: string = app.node.tryGetContext('imageGenerationModelId') || 'stability.stable-image-core-v1:1';
+if (!/^[a-z]{2}(-gov)?-[a-z]+-\d$/.test(imageGenerationRegion)) {
+  throw new Error(`imageGenerationRegion is not a Region name: ${imageGenerationRegion}`);
+}
+if (!/^[a-z0-9.:-]+$/.test(imageGenerationModelId)) {
+  throw new Error(`imageGenerationModelId is not a model ID: ${imageGenerationModelId}`);
+}
+const toolsSettings = {
+  enableWebExtract: app.node.tryGetContext('enableWebExtract') !== 'false' && app.node.tryGetContext('enableWebExtract') !== false,
+  enableImageGeneration: ctxBool('enableImageGeneration'),
+  imageGenerationRegion,
+  imageGenerationModelId,
+};
+
 const imageTag = app.node.tryGetContext('imageTag') || 'latest';
 const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   projectName, environment,
@@ -436,6 +453,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentBackend: enableAgent ? agentBackend : undefined,
   agentRuntimeArn: aiStack.agentRuntimeArn,
   agentDefinitionsTableName: aiStack.agentDefinitionsTableName,
+  tools: toolsSettings,
   actionGroupLambdaArn: aiStack.actionGroupLambdaArn,
   sharedAgentBucketName: aiStack.sharedAgentBucketName,
   agentExecutionTableName: aiStack.agentExecutionTableName,

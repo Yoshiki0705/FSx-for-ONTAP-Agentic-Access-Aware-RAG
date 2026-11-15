@@ -765,6 +765,8 @@ bash demo-data/scripts/post-deploy-setup.sh
 |--------|-----------|------|
 | `enableAgent` | `false` | Agent モード。Amazon Bedrock AgentCore Runtime 上のエージェント（KB 検索 + 多段階推論） |
 | `agentBackend` | `agentcore` | `bedrock-agents` で以前の Amazon Bedrock Agents を作る（1 リリースだけ残す） |
+| `enableImageGeneration` | `false` | ツールの画像の生成。有効にすると `imageGenerationRegion`（既定 `us-west-2`）のモデルを呼び、プロンプトと画像は日本の外で処理される |
+| `enableWebExtract` | `true` | ツールの Web 抽出（WebApp Lambda からインターネットへ出る。プライベート・メタデータのアドレスは拒否） |
 | `enableGuardrails` | `false` | Bedrock Guardrails（コンテンツフィルタ + PII） |
 | `enableMonitoring` | `false` | CloudWatch ダッシュボード + SNS アラート |
 | `enableTransferFamily` | `false` | SFTP インジェスションパイプライン |

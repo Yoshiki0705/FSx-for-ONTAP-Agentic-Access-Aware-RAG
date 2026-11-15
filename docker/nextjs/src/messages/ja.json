@@ -349,7 +349,8 @@
       "minutes": "議事録",
       "report": "レポート",
       "contract": "契約",
-      "onboarding": "オンボーディング"
+      "onboarding": "オンボーディング",
+      "tools": "ツール"
     },
     "kb": {
       "docSearch": {
@@ -421,6 +422,26 @@
         "title": "オンボーディング資料",
         "description": "新入社員向けの部署別ガイド・FAQ資料を生成します",
         "prompt": "以下の部署について、新入社員向けのオンボーディングガイド（部署概要、業務フロー、FAQ）を作成してください: "
+      },
+      "toolTranslate": {
+        "title": "翻訳",
+        "description": "入力した文章や社内文書を、指定した言語に翻訳します"
+      },
+      "toolProofread": {
+        "title": "校正",
+        "description": "誤字・文法・表記ゆれを指摘し、直した全文を返します"
+      },
+      "toolDiagram": {
+        "title": "図の生成",
+        "description": "文章や社内文書を、フローチャートなどの図（Mermaid）にします"
+      },
+      "toolWebExtract": {
+        "title": "Web 抽出",
+        "description": "URL のページ本文を取り出し、要約・抽出・質問への回答をします"
+      },
+      "toolUseCases": {
+        "title": "マイユースケース",
+        "description": "プロンプトのテンプレートを保存して、カードのように繰り返し使います"
       }
     },
     "agent": {
@@ -955,7 +976,8 @@
     "nav": {
       "cards": "Agentモード",
       "agents": "Agent一覧",
-      "chat": "KBモード"
+      "chat": "KBモード",
+      "tools": "ツール"
     },
     "statusLabels": {
       "PREPARED": "準備完了",
@@ -1338,5 +1360,127 @@
     "customBuild": "ゼロから構成",
     "addButton": "+ 追加",
     "createButton": "+ 作成"
+  },
+  "tools": {
+    "title": "ツール",
+    "subtitle": "翻訳・校正・図の生成・Web 抽出・画像の生成と、保存したユースケース。社内文書を入力にするときは、あなたが読める文書だけを使います。",
+    "tabs": {
+      "translate": "翻訳",
+      "proofread": "校正",
+      "diagram": "図の生成",
+      "webExtract": "Web 抽出",
+      "image": "画像の生成",
+      "useCases": "マイユースケース"
+    },
+    "source": {
+      "label": "入力",
+      "text": "テキストを入力",
+      "documents": "社内文書から",
+      "query": "検索語",
+      "queryPlaceholder": "使う文書を探す言葉（例: 就業規則の休暇）",
+      "textPlaceholder": "ここに文章を貼り付けます",
+      "documentsNote": "Knowledge Base を検索し、あなたが読める文書だけを入力にします。読めない文書の名前や内容はモデルに渡しません。"
+    },
+    "sources": "入力にした文書",
+    "copy": "コピー",
+    "download": "ダウンロード",
+    "running": "実行中...",
+    "translate": {
+      "target": "翻訳先",
+      "style": "文体",
+      "note": "補足（用語や言い回し）",
+      "notePlaceholder": "例: 「SVM」は訳さない",
+      "run": "翻訳する",
+      "styles": {
+        "as-is": "元の文体のまま",
+        "formal": "丁寧・ビジネス",
+        "casual": "くだけた"
+      }
+    },
+    "proofread": {
+      "run": "校正する",
+      "issues": "指摘 {count} 件",
+      "noIssues": "直す箇所は見つかりませんでした。",
+      "original": "元の表記",
+      "suggestion": "修正案",
+      "reason": "理由",
+      "corrected": "修正後の全文"
+    },
+    "diagram": {
+      "type": "図の種類",
+      "run": "図にする",
+      "renderError": "図を描けませんでした",
+      "downloadSvg": "SVG をダウンロード",
+      "copyCode": "Mermaid のコードをコピー",
+      "code": "Mermaid のコード",
+      "types": {
+        "auto": "おまかせ",
+        "flowchart": "フローチャート",
+        "sequence": "シーケンス図",
+        "class": "クラス図",
+        "state": "状態遷移図",
+        "er": "ER 図",
+        "gantt": "ガントチャート",
+        "mindmap": "マインドマップ",
+        "timeline": "タイムライン",
+        "pie": "円グラフ"
+      }
+    },
+    "webExtract": {
+      "url": "URL",
+      "note": "ページはサーバーから取得します。社内ネットワークやクラウドの内部アドレスは取得できません。",
+      "task": "やること",
+      "question": "質問",
+      "run": "実行する",
+      "truncated": "長いページのため先頭部分だけを使いました",
+      "tasks": {
+        "summary": "要約",
+        "extract": "本文の抽出",
+        "question": "質問に答える"
+      }
+    },
+    "image": {
+      "regionNotice": "画像の生成は {region} リージョンのモデルで行います。プロンプトと生成した画像は、日本の外で処理されます。",
+      "inRegion": "画像の生成は {region} リージョンのモデルで行います。",
+      "model": "モデル: {model}",
+      "prompt": "作りたい画像の説明",
+      "promptPlaceholder": "例: 白い背景に、ストレージの棚とクラウドを結ぶ線のイラスト",
+      "negative": "入れたくない要素",
+      "aspect": "縦横比",
+      "run": "画像を作る"
+    },
+    "useCases": {
+      "intro": "よく使う指示をテンプレートとして保存できます。保存したユースケースは、あなただけが見て使えます。",
+      "new": "新しいユースケース",
+      "title": "名前",
+      "description": "説明",
+      "template": "テンプレート",
+      "templateExample": "次の文章を、上司への報告メールの形に書き直してください。\n\n'{{input}}'",
+      "templateHelp": "'{{input}}' の位置に、実行するときに入力した文章が入ります。",
+      "useDocuments": "社内文書を検索して入力に加える（あなたが読める文書だけ）",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "empty": "保存したユースケースはまだありません。",
+      "withDocuments": "社内文書を使う",
+      "run": "実行",
+      "edit": "編集",
+      "delete": "削除",
+      "input": "入力する文章"
+    },
+    "languages": {
+      "ja": "日本語",
+      "en": "英語",
+      "ko": "韓国語",
+      "zh-CN": "中国語（簡体字）",
+      "zh-TW": "中国語（繁体字）",
+      "fr": "フランス語",
+      "de": "ドイツ語",
+      "es": "スペイン語",
+      "pt": "ポルトガル語",
+      "it": "イタリア語",
+      "id": "インドネシア語",
+      "th": "タイ語",
+      "vi": "ベトナム語"
+    }
   }
 }

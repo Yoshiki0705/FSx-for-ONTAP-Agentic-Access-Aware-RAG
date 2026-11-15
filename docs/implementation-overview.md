@@ -1342,6 +1342,45 @@ npx cdk deploy perm-rag-demo-demo-SfnToolsGateway --require-approval never \
 | `automation/fsxn-ops/docs/why-this-makes-fsxn-easier.md` | 楽になる理由 |
 | `automation/fsxn-ops/docs/aws-verification-report.md` | AWS 検証レポート |
 
+## 20. ツール — 翻訳・校正・図の生成・Web 抽出・画像の生成・ユースケース
+
+### 実装内容
+
+`/genai/tools` に、文書を根拠にしない作業もできるツールを並べています。KB モードのカード一覧の「ツール」分類と、上部のナビゲーションから開けます。
+
+| ツール | 内容 | 入力 |
+|--------|------|------|
+| 翻訳 | 13 言語へ翻訳。文体（元のまま・丁寧・くだけた）と用語の補足を指定できる | テキスト、または社内文書 |
+| 校正 | 誤字・文法・表記ゆれの指摘（元の表記・修正案・理由）と、直した全文 | テキスト、または社内文書 |
+| 図の生成 | フローチャートなど 9 種類の図を Mermaid で生成し、画面に描く。SVG と Mermaid のコードを保存できる | テキスト、または社内文書 |
+| Web 抽出 | URL のページ本文を取り出し、要約・本文の抽出・質問への回答をする | URL |
+| 画像の生成 | テキストから画像を生成し、画面に表示してダウンロードできる。既定で無効 | プロンプト |
+| マイユースケース | プロンプトのテンプレートを保存し、カードのように繰り返し使う。社内文書を入力に加えることもできる | テキスト |
+
+テキストのモデルは `TOOLS_MODEL_ID`（既定 `jp.anthropic.claude-haiku-4-5-20251001-v1:0`）です。
+
+### 権限と安全
+
+- **社内文書を入力にするとき**: Knowledge Base を検索し、KB モードと同じ `filterByPermissions`（`sid-filter.ts`）を通った文書だけをモデルに渡します。読めない文書の名前・SID・本文は返さず、モデルにも渡しません。テストは、翻訳・校正・図の生成・ユースケースのそれぞれで、読めない文書の痕跡がモデルの入力に無いことを確かめます
+- **Web 抽出（SSRF 対策）**: ページは WebApp Lambda から取得するので、次のものを拒否します
+  - http / https 以外のスキーム、既定以外のポート、認証情報を含む URL、`localhost` と `.internal`
+  - 名前解決の結果に 1 つでも公開されていないアドレス（プライベート、リンクローカル、メタデータの `169.254.169.254`、IPv6 のユニークローカル、IPv4 射影形式）を含むホスト
+
+  接続は確認したアドレスに固定し（DNS の再解決で差し替えられない）、リダイレクトは 3 回まで、1 段ごとに確認し直します。タイムアウトは 10 秒、上限は 2 MB です
+- **ユースケース**: DynamoDB `${prefix}-user-use-cases` に利用者ごと（キーはセッションの利用者）に保存します。他の利用者のものは一覧に出ず、ID を指定しても実行できません
+- **画像の生成**: `-c enableImageGeneration=true` で有効になります。リージョンは `imageGenerationRegion`（既定 `us-west-2`）、モデルは `imageGenerationModelId`（既定 `stability.stable-image-core-v1:1`）です。リージョンが日本の外なら、画面に「プロンプトと生成した画像は、日本の外で処理されます」と表示します
+
+**[verified 2026-11-14 / ap-northeast-1、us-west-2 ほか 12 リージョン]** 東京リージョンには画像を出力するモデルがありません（`list-foundation-models --by-output-modality IMAGE` が 0 件）。テキストから画像を作るモデル（Stable Image Core / Ultra、SD3.5 Large）は、確かめたリージョンでは us-west-2 だけにあり、オンデマンドだけで推論プロファイルはありません。確かめたのは us-east-1、us-east-2、us-west-2、eu-west-1、eu-central-1、eu-west-3、ap-southeast-1、ap-southeast-2、ap-northeast-1〜3、ap-south-1、ca-central-1、sa-east-1 です。このため既定を us-west-2 にしています。**[documented]** Amazon Nova Canvas と Nova Reel は 2026-09-30 に EOL になり、Titan Image Generator も提供が終わっています（[Bedrock のモデルカード](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-canvas.html)）
+
+### 実装ファイル
+
+| ファイル | 役割 |
+|---------|------|
+| `docker/nextjs/src/lib/genu-tools/` | プロンプト、Converse 呼び出し、文書の取得、Web の取得、画像、ユースケース |
+| `docker/nextjs/src/app/api/tools/` | `/api/tools/<tool>`、`/api/tools/use-cases`、`/api/tools/config`。セッションが無ければ 401 |
+| `docker/nextjs/src/components/tools/` | 画面（`ToolsWorkspace.tsx`）と Mermaid の描画（`MermaidView.tsx`、securityLevel `strict`） |
+| `lib/stacks/demo/demo-webapp-stack.ts` | ユースケースのテーブル、環境変数、IAM |
+
 ---
 
 ## API 実装ステータス

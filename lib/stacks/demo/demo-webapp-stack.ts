@@ -59,6 +59,17 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   agentRuntimeArn?: string;
   /** エージェント定義の DynamoDB テーブル名（agentBackend=agentcore 時） */
   agentDefinitionsTableName?: string;
+  /**
+   * GenU-style tools (/genai/tools). Text tools and saved use cases are always on; web
+   * extraction can be turned off; image generation is off unless enabled, and runs in
+   * `imageGenerationRegion`, which may be outside the deployment region.
+   */
+  tools?: {
+    enableWebExtract: boolean;
+    enableImageGeneration: boolean;
+    imageGenerationRegion: string;
+    imageGenerationModelId: string;
+  };
   /** Bedrock Agent ID（AIStackから） */
   agentId?: string;
   /** Bedrock Agent Alias ID（AIStackから） */
@@ -176,6 +187,21 @@ export class DemoWebAppStack extends cdk.Stack {
     const lambdaVpcSubnets: ec2.SubnetSelection = privateSubnets && privateSubnets.length > 0
       ? { subnets: privateSubnets }
       : { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS };
+    // 保存したユースケース（ツールのユースケースビルダー）。利用者ごとのテンプレートを持つ
+    const useCasesTable = new dynamodb.Table(this, 'UserUseCasesTable', {
+      tableName: `${prefix}-user-use-cases`,
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'useCaseId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+    const tools = props.tools ?? {
+      enableWebExtract: true,
+      enableImageGeneration: false,
+      imageGenerationRegion: 'us-west-2',
+      imageGenerationModelId: 'stability.stable-image-core-v1:1',
+    };
 
     // ========================================
     // Lambda Web Adapter（Next.jsコンテナ）
@@ -238,6 +264,14 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(props.agentBackend ? { AGENT_BACKEND: props.agentBackend } : {}),
         ...(props.agentRuntimeArn ? { AGENT_RUNTIME_ARN: props.agentRuntimeArn } : {}),
         ...(props.agentDefinitionsTableName ? { AGENT_DEFINITIONS_TABLE_NAME: props.agentDefinitionsTableName } : {}),
+        // GenU 相当のツール（翻訳・校正・図・Web 抽出・画像の生成・ユースケース）
+        USE_CASES_TABLE_NAME: useCasesTable.tableName,
+        WEB_EXTRACT_ENABLED: tools.enableWebExtract ? 'true' : 'false',
+        IMAGE_GENERATION_ENABLED: tools.enableImageGeneration ? 'true' : 'false',
+        ...(tools.enableImageGeneration ? {
+          IMAGE_GENERATION_REGION: tools.imageGenerationRegion,
+          IMAGE_GENERATION_MODEL_ID: tools.imageGenerationModelId,
+        } : {}),
         // Bedrock Agent設定（オプション）
         ...(agentId ? { BEDROCK_AGENT_ID: agentId } : {}),
         ...(agentAliasId ? { BEDROCK_AGENT_ALIAS_ID: agentAliasId } : {}),
@@ -553,6 +587,8 @@ export class DemoWebAppStack extends cdk.Stack {
         },
       ], true);
     }
+    // 保存したユースケース: キーは利用者（userId）で、API がセッションの利用者だけを読み書きする
+    useCasesTable.grant(this.webAppFunction, 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem', 'dynamodb:Query');
     if (props.agentDefinitionsTableName) {
       this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
         actions: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:Scan'],

@@ -460,7 +460,8 @@
       "minutes": "Actas",
       "report": "Informes",
       "contract": "Contratos",
-      "onboarding": "Incorporación"
+      "onboarding": "Incorporación",
+      "tools": "Herramientas"
     },
     "kb": {
       "docSearch": {
@@ -532,6 +533,26 @@
         "title": "Guía de incorporación",
         "description": "Genera guías departamentales y FAQ para nuevos empleados",
         "prompt": "Cree una guía de incorporación (descripción del departamento, flujo de trabajo, FAQ) para el siguiente departamento: "
+      },
+      "toolTranslate": {
+        "title": "Traducir",
+        "description": "Traduce texto o documentos internos al idioma que elija"
+      },
+      "toolProofread": {
+        "title": "Revisar",
+        "description": "Señala erratas, gramática y términos incoherentes, y devuelve el texto corregido"
+      },
+      "toolDiagram": {
+        "title": "Diagrama",
+        "description": "Convierte texto o documentos internos en un diagrama, como un diagrama de flujo (Mermaid)"
+      },
+      "toolWebExtract": {
+        "title": "Extracción web",
+        "description": "Obtiene el cuerpo de una página por URL para resumirlo, extraerlo o responder una pregunta"
+      },
+      "toolUseCases": {
+        "title": "Mis casos de uso",
+        "description": "Guarde plantillas de prompt y vuelva a usarlas como tarjetas"
       }
     },
     "agent": {
@@ -1066,7 +1087,8 @@
     "nav": {
       "cards": "Modo Agent",
       "agents": "Agentes",
-      "chat": "Modo KB"
+      "chat": "Modo KB",
+      "tools": "Herramientas"
     },
     "statusLabels": {
       "PREPARED": "Listo",
@@ -1449,5 +1471,127 @@
     "customBuild": "Construir desde cero",
     "addButton": "+ Agregar",
     "createButton": "+ Crear"
+  },
+  "tools": {
+    "title": "Herramientas",
+    "subtitle": "Traducción, revisión, diagramas, extracción web, generación de imágenes y sus casos de uso guardados. Con documentos internos como entrada, solo se usan los que usted puede leer.",
+    "tabs": {
+      "translate": "Traducir",
+      "proofread": "Revisar",
+      "diagram": "Diagrama",
+      "webExtract": "Extracción web",
+      "image": "Generación de imágenes",
+      "useCases": "Mis casos de uso"
+    },
+    "source": {
+      "label": "Entrada",
+      "text": "Escribir texto",
+      "documents": "Desde documentos internos",
+      "query": "Términos de búsqueda",
+      "queryPlaceholder": "Palabras para encontrar los documentos (p. ej. política de vacaciones)",
+      "textPlaceholder": "Pegue el texto aquí",
+      "documentsNote": "Busca en la Knowledge Base y usa solo documentos que usted puede leer. El nombre y el contenido de otros documentos no se pasan al modelo."
+    },
+    "sources": "Documentos usados",
+    "copy": "Copiar",
+    "download": "Descargar",
+    "running": "Ejecutando...",
+    "translate": {
+      "target": "Traducir a",
+      "style": "Registro",
+      "note": "Nota (términos o tono)",
+      "notePlaceholder": "p. ej. no traducir «SVM»",
+      "run": "Traducir",
+      "styles": {
+        "as-is": "Mantener el registro original",
+        "formal": "Formal / profesional",
+        "casual": "Informal"
+      }
+    },
+    "proofread": {
+      "run": "Revisar",
+      "issues": "{count} observaciones",
+      "noIssues": "No se encontró nada que corregir.",
+      "original": "Original",
+      "suggestion": "Sugerencia",
+      "reason": "Motivo",
+      "corrected": "Texto corregido"
+    },
+    "diagram": {
+      "type": "Tipo de diagrama",
+      "run": "Crear diagrama",
+      "renderError": "No se pudo dibujar el diagrama",
+      "downloadSvg": "Descargar SVG",
+      "copyCode": "Copiar el código Mermaid",
+      "code": "Código Mermaid",
+      "types": {
+        "auto": "Elegir automáticamente",
+        "flowchart": "Diagrama de flujo",
+        "sequence": "Diagrama de secuencia",
+        "class": "Diagrama de clases",
+        "state": "Diagrama de estados",
+        "er": "Diagrama ER",
+        "gantt": "Diagrama de Gantt",
+        "mindmap": "Mapa mental",
+        "timeline": "Línea de tiempo",
+        "pie": "Gráfico circular"
+      }
+    },
+    "webExtract": {
+      "url": "URL",
+      "note": "El servidor obtiene la página. No se pueden obtener direcciones de la red interna ni internas de la nube.",
+      "task": "Tarea",
+      "question": "Pregunta",
+      "run": "Ejecutar",
+      "truncated": "la página era larga, solo se usó el principio",
+      "tasks": {
+        "summary": "Resumir",
+        "extract": "Extraer el cuerpo",
+        "question": "Responder una pregunta"
+      }
+    },
+    "image": {
+      "regionNotice": "Las imágenes las genera un modelo en la Región {region}. Su prompt y la imagen generada se procesan fuera de Japón.",
+      "inRegion": "Las imágenes las genera un modelo en la Región {region}.",
+      "model": "Modelo: {model}",
+      "prompt": "Describa la imagen",
+      "promptPlaceholder": "p. ej. una ilustración de un rack de almacenamiento unido a una nube, sobre fondo blanco",
+      "negative": "Excluir",
+      "aspect": "Relación de aspecto",
+      "run": "Generar imagen"
+    },
+    "useCases": {
+      "intro": "Guarde como plantillas las instrucciones que usa a menudo. Solo usted puede ver y ejecutar sus casos de uso guardados.",
+      "new": "Nuevo caso de uso",
+      "title": "Nombre",
+      "description": "Descripción",
+      "template": "Plantilla",
+      "templateExample": "Reescribe el siguiente texto como un correo de informe para mi responsable.\n\n'{{input}}'",
+      "templateHelp": "El texto que escriba al ejecutarlo reemplaza '{{input}}'.",
+      "useDocuments": "Buscar documentos internos y añadirlos a la entrada (solo los que usted puede leer)",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "empty": "Aún no hay casos de uso guardados.",
+      "withDocuments": "Usa documentos internos",
+      "run": "Ejecutar",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "input": "Texto con el que trabajar"
+    },
+    "languages": {
+      "ja": "Japonés",
+      "en": "Inglés",
+      "ko": "Coreano",
+      "zh-CN": "Chino (simplificado)",
+      "zh-TW": "Chino (tradicional)",
+      "fr": "Francés",
+      "de": "Alemán",
+      "es": "Español",
+      "pt": "Portugués",
+      "it": "Italiano",
+      "id": "Indonesio",
+      "th": "Tailandés",
+      "vi": "Vietnamita"
+    }
   }
 }
