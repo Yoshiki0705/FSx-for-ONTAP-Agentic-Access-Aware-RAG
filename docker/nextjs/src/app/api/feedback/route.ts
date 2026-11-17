@@ -7,19 +7,10 @@
  * signed-in session, not from a cookie the browser can set.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
+import { InvokeCommand } from '@aws-sdk/client-lambda';
 import { sessionUserId } from '@/lib/agent-backend';
 import { docIdsOf } from '@/lib/feedback/doc-id';
-
-let client: LambdaClient | null = null;
-function lambda(): LambdaClient {
-  client ??= new LambdaClient({ region: process.env.AWS_REGION || 'ap-northeast-1' });
-  return client;
-}
-/** Tests replace the client. */
-export function __setLambdaClient(c: { send: (cmd: unknown) => Promise<unknown> } | null): void {
-  client = c as LambdaClient | null;
-}
+import { feedbackLambda } from '@/lib/feedback/lambda-client';
 
 const RESPONSE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -54,14 +45,15 @@ export async function POST(request: NextRequest) {
     rating: body.rating,
     comment: text(body.comment, 1000),
     query: text(body.query, 500),
-    modelId: text(body.modelId, 128),
+    // A tier name (`tier:light`) names a choice, not a model, so it is not stored.
+    modelId: text(body.modelId, 128).startsWith('tier:') ? '' : text(body.modelId, 128),
     routingTier: text(body.routingTier, 128),
     // The browser sends the S3 URIs of the citations it showed; only their hashes are kept.
     sourceDocIds: docIdsOf(body.sourcePaths),
   };
 
   try {
-    const out = (await lambda().send(
+    const out = (await feedbackLambda().send(
       new InvokeCommand({ FunctionName: functionName, InvocationType: 'RequestResponse', Payload: Buffer.from(JSON.stringify(payload)) }),
     )) as { FunctionError?: string; Payload?: Uint8Array };
     if (out.FunctionError) {

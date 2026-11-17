@@ -48,7 +48,7 @@ export async function invokeResponse(body: Record<string, unknown>) {
   const user = await resolveUser(body.userId);
   if (user instanceof NextResponse) return user;
   try {
-    const { definition, result, sessionId } = await invokeAgent({
+    const { definition, result, sessionId, modelId } = await invokeAgent({
       agentId: typeof body.selectedAgentId === 'string' ? body.selectedAgentId : undefined,
       message,
       userId: user.userId,
@@ -62,6 +62,7 @@ export async function invokeResponse(body: Record<string, unknown>) {
         backend: 'agentcore',
         sessionId,
         agentId: definition.agentId,
+        modelId,
         citations: (result.searches || []).flatMap((s) => s.files.map((fileName) => ({ fileName }))),
         searches: result.searches,
       },

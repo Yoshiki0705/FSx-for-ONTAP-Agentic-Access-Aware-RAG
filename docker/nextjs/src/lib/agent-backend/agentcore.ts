@@ -225,17 +225,19 @@ export async function invokeAgent(params: {
   message: string;
   userId: string;
   sessionId?: string;
-}): Promise<{ definition: AgentDefinition; result: RuntimeAnswer; sessionId: string }> {
+}): Promise<{ definition: AgentDefinition; result: RuntimeAnswer; sessionId: string; modelId: string }> {
   const definition = params.agentId ? await getDefinition(params.agentId) : await defaultDefinition();
   if (!definition) throw new ValidationError(`Agent not found: ${params.agentId}`);
   const sessionId = runtimeSessionId(params.sessionId, params.userId);
+  // The model ID the Runtime is given, after the catalog resolved the definition's model.
+  const modelId = await runtimeModelId(definition.foundationModel);
   const result = await invokeRuntime(
     {
       mode: 'single',
       agent: {
         agentName: definition.agentName,
         instruction: definition.instruction,
-        foundationModel: await runtimeModelId(definition.foundationModel),
+        foundationModel: modelId,
         tools: definition.tools,
       },
       message: params.message,
@@ -243,7 +245,7 @@ export async function invokeAgent(params: {
     },
     sessionId,
   );
-  return { definition, result, sessionId };
+  return { definition, result, sessionId, modelId };
 }
 
 /**

@@ -9,7 +9,8 @@ const { session } = vi.hoisted(() => ({ session: { user: 'real-user@example.com'
 vi.mock('@/lib/agent-backend', () => ({ sessionUserId: async () => session.user }));
 
 import { NextRequest } from 'next/server';
-import { __setLambdaClient, POST } from '@/app/api/feedback/route';
+import { POST } from '@/app/api/feedback/route';
+import { __setLambdaClient } from '@/lib/feedback/lambda-client';
 import { docIdOf, docIdsOf } from '@/lib/feedback/doc-id';
 
 let invoked: Record<string, unknown>[] = [];
@@ -113,6 +114,12 @@ describe('what is sent to the Lambda', () => {
     expect(sent).not.toContain('salary-table');
     expect(sent).not.toContain('s3://');
     expect(invoked[0].sourceDocIds).toEqual([docIdOf('s3://alias/hr/salary-table.md'), docIdOf('s3://alias/public/guide.md')]);
+  });
+  it('stores the model ID it is given, and nothing for a tier name', async () => {
+    lambdaAnswers({ payload: { statusCode: 200, feedbackId: 'x' } });
+    await post({ ...ok, modelId: 'jp.anthropic.claude-haiku-5-5' });
+    await post({ ...ok, modelId: 'tier:light' });
+    expect(invoked.map((i) => i.modelId)).toEqual(['jp.anthropic.claude-haiku-5-5', '']);
   });
   it('cuts long text and keeps only the fields the collector stores', async () => {
     lambdaAnswers({ payload: { statusCode: 200, feedbackId: 'x' } });
