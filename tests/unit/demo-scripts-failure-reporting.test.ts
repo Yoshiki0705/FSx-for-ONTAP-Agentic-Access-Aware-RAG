@@ -22,6 +22,10 @@ case "$*" in
   *admin-set-user-password*)
     [ "$STUB_MODE" = setfail ] && { echo "An error occurred (ResourceNotFoundException) when calling the AdminSetUserPassword operation: User pool does not exist" >&2; exit 254; }
     echo '';;
+  *admin-add-user-to-group*)
+    echo "$*" >> "$STUB_LOG"
+    [ "$STUB_MODE" = groupfail ] && { echo "An error occurred (ResourceNotFoundException) when calling the AdminAddUserToGroup operation: Group not found" >&2; exit 254; }
+    echo '';;
   *) echo "unexpected aws call: $*" >&2; exit 99;;
 esac
 `;
@@ -30,17 +34,20 @@ esac
 
 function runCreateUsers(mode: string) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stub-aws-'));
+  const log = path.join(dir, 'group-calls.log');
   try {
     stubAws(dir);
-    return spawnSync('bash', [path.join(SCRIPTS, 'create-demo-users.sh')], {
+    const r = spawnSync('bash', [path.join(SCRIPTS, 'create-demo-users.sh')], {
       env: {
         PATH: `${dir}:${process.env.PATH}`,
         STUB_MODE: mode,
+        STUB_LOG: log,
         COGNITO_USER_POOL_ID: 'ap-northeast-1_TEST',
         AWS_REGION: 'ap-northeast-1',
       },
       encoding: 'utf8',
     });
+    return { ...r, groupCalls: fs.existsSync(log) ? fs.readFileSync(log, 'utf8') : '' };
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -75,6 +82,16 @@ describe('create-demo-users.sh', () => {
     expect(r.status).not.toBe(0);
     expect(okLines(r.stdout)).toBe(0);
     expect(r.stderr).toContain('パスワード設定に失敗');
+  });
+  it('adds only admin@example.com to the admins group', () => {
+    const r = runCreateUsers('ok');
+    expect(r.groupCalls.trim().split('\n')).toHaveLength(1);
+    expect(r.groupCalls).toMatch(/--username admin@example\.com --group-name admins/);
+  });
+  it('stops when adding the administrator to the group fails', () => {
+    const r = runCreateUsers('groupfail');
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('AdminAddUserToGroup');
   });
 });
 

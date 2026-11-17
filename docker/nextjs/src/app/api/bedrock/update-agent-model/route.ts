@@ -17,6 +17,7 @@ import {
   GetAgentCommand 
 } from '@aws-sdk/client-bedrock-agent';
 import { resolveModelForInvoke } from '@/lib/model-catalog';
+import { requireAdmin } from '@/lib/auth/roles';
 
 // 同時更新防止用のロックマップ
 const updateLocks = new Map<string, boolean>();
@@ -85,6 +86,9 @@ function createSafeJsonResponse(data: any, status: number = 200): NextResponse {
  * - agentId: Agent ID（オプション、環境変数から取得）
  */
 export async function POST(request: NextRequest) {
+  // Changes what every user shares: administrators only (lib/auth/roles.ts).
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   const startTime = Date.now();
   let lockKey: string | null = null;
   

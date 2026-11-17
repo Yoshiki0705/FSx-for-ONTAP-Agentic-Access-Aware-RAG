@@ -118,7 +118,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const session: Session = {
         user: {
           username: data.session.username,
-          role: 'user', // デフォルト値
+          role: data.session.role || 'user',
           permissions: [] // デフォルト値
         },
         loginTime: data.session.createdAt,

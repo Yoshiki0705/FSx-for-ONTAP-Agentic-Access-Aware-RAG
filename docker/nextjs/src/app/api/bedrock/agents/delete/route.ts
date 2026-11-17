@@ -7,6 +7,7 @@ import {
   ListAgentAliasesCommand,
   DeleteAgentAliasCommand,
 } from '@aws-sdk/client-bedrock-agent';
+import { requireAdmin } from '@/lib/auth/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,9 @@ export const dynamic = 'force-dynamic';
  * Bedrock Agentを削除（Aliasも自動削除）
  */
 export async function DELETE(request: NextRequest) {
+  // Changes what every user shares: administrators only (lib/auth/roles.ts).
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agentId');

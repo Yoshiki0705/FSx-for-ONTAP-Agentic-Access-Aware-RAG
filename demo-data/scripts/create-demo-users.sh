@@ -63,6 +63,11 @@ create_user "user@example.com" "DemoUser123!" "restricted"
 create_user "engineer@example.com" "DemoEngineer123!" "engineer"
 create_user "finance@example.com" "DemoFinance123!" "finance"
 create_user "auditor@example.com" "DemoAuditor123!" "auditor"
+# The administrator role comes from the Cognito group (lib/stacks/demo/admin-groups.ts), not
+# from the email address. ADMIN_GROUP overrides the group name when adminGroupNames was changed.
+aws cognito-idp admin-add-user-to-group --user-pool-id "${USER_POOL_ID}" \
+  --username admin@example.com --group-name "${ADMIN_GROUP:-admins}" --region "${REGION}"
+echo "  ✅ 管理者グループ ${ADMIN_GROUP:-admins} に admin@example.com を追加しました"
 echo ""
 echo "=========================================="
 echo "✅ テストユーザー作成完了"

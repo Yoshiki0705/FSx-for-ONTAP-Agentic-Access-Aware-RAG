@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { CatalogModelOptions, DEFAULT_AGENT_MODEL } from '@/components/model/CatalogModelOptions';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface Agent {
   agentId: string;
@@ -38,6 +39,8 @@ interface AgentListResponse {
 
 export function AgentManagement() {
   const t = useTranslations('agentManagement');
+  // The route refuses creating and deleting agents for non-administrators (lib/auth/roles.ts); hide the control too.
+  const isAdmin = useIsAdmin();
   const locale = useLocale();
   
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -206,13 +209,15 @@ export function AgentManagement() {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           {t('title', { default: 'Agent Management' })}
         </h2>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
-          {t('createAgent', { default: 'Create Agent' })}
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreateForm(true)}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {t('createAgent', { default: 'Create Agent' })}
+          </button>
+        )}
       </div>
 
       {/* SSM同期状態 */}
@@ -311,13 +316,13 @@ export function AgentManagement() {
                     >
                       {t('details', { default: 'Details' })}
                     </button>
-                    <button
+                    {isAdmin && <button
                       onClick={() => deleteAgent(agent.agentId, agent.agentName)}
                       disabled={loading}
                       className="px-3 py-1 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50"
                     >
                       {t('delete', { default: 'Delete' })}
-                    </button>
+                    </button>}
                   </div>
                 </div>
               </div>

@@ -4,7 +4,6 @@
  * テスト対象:
  * - AD ボタン表示条件ロジック (adFederationEnabled)
  * - buildAdSignInUrl URL構築関数
- * - determineRole ロール判定関数
  *
  * Requirements: 3.1, 3.4, 3.5, 3.6
  *
@@ -33,23 +32,6 @@ function buildAdSignInUrl(
     `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
     `&scope=openid+email+profile`
   );
-}
-
-/**
- * Determine user role from Cognito ID token payload.
- * (Same logic as docker/nextjs/src/app/api/auth/callback/route.ts)
- */
-function determineRole(payload: Record<string, unknown>): string {
-  const customRole = payload['custom:role'] as string | undefined;
-  if (customRole === 'admin') return 'administrator';
-
-  const adGroups = payload['custom:ad_groups'] as string | undefined;
-  if (adGroups) {
-    const groups = adGroups.split(',').map((g) => g.trim().toLowerCase());
-    if (groups.some((g) => g.includes('admin'))) return 'administrator';
-  }
-
-  return 'user';
 }
 
 /**
@@ -169,53 +151,4 @@ describe('buildAdSignInUrl — URL構築', () => {
     expect(url).toContain('identity_provider=My%20Custom%20IdP');
   });
 });
-
-describe('determineRole — ロール判定', () => {
-  // Requirements: 3.5
-
-  it('custom:role === "admin" の場合は "administrator" を返す', () => {
-    const payload = {
-      email: 'admin@example.com',
-      sub: 'uuid-123',
-      'custom:role': 'admin',
-    };
-    expect(determineRole(payload)).toBe('administrator');
-  });
-
-  it('custom:ad_groups に admin グループが含まれる場合は "administrator" を返す', () => {
-    const payload = {
-      email: 'user@example.com',
-      sub: 'uuid-456',
-      'custom:ad_groups': 'Domain Users, Domain Admins, IT-Staff',
-    };
-    expect(determineRole(payload)).toBe('administrator');
-  });
-
-  it('admin 指標がない場合は "user" を返す', () => {
-    const payload = {
-      email: 'regular@example.com',
-      sub: 'uuid-789',
-      'custom:role': 'viewer',
-      'custom:ad_groups': 'Domain Users, Sales Team',
-    };
-    expect(determineRole(payload)).toBe('user');
-  });
-
-  it('custom:role も custom:ad_groups も存在しない場合は "user" を返す', () => {
-    const payload = {
-      email: 'basic@example.com',
-      sub: 'uuid-000',
-    };
-    expect(determineRole(payload)).toBe('user');
-  });
-
-  it('custom:role が "admin" 以外の場合でも ad_groups に admin があれば "administrator"', () => {
-    const payload = {
-      email: 'user@example.com',
-      sub: 'uuid-111',
-      'custom:role': 'member',
-      'custom:ad_groups': 'AdminGroup, Users',
-    };
-    expect(determineRole(payload)).toBe('administrator');
-  });
-});
+// ロール判定は docker/nextjs/src/__tests__/auth/roles.test.ts（実装を直接 import する）

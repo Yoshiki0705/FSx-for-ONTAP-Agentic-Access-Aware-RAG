@@ -11,6 +11,7 @@
 
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import { adminGroupNames } from './admin-groups';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
@@ -200,6 +201,15 @@ export class DemoSecurityStack extends cdk.Stack {
       },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // Members of this group get the web app's administrator role, which changing shared agents,
+    // teams, schedules, policies and the registry needs (docker/nextjs/src/lib/auth/roles.ts).
+    // Only someone with Cognito admin rights can add a user to it.
+    new cognito.CfnUserPoolGroup(this, 'AdminGroup', {
+      userPoolId: this.userPool.userPoolId,
+      groupName: adminGroupNames(this.node)[0],
+      description: 'Administrators of the RAG web app (shared agents, teams, schedules, policies)',
     });
 
     // ========================================

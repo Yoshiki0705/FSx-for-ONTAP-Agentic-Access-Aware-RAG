@@ -24,6 +24,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
+import { adminGroupNames } from './admin-groups';
 import { MonitoringConstruct } from '../../constructs/monitoring-construct';
 import { FeedbackCollectorConstruct } from '../../constructs/feedback-collector-construct';
 
@@ -309,6 +310,8 @@ export class DemoWebAppStack extends cdk.Stack {
         // the context value `tokenKeysEpoch` changes this variable, so a redeploy after
         // putting new secret values makes the function read them (docs/operations-runbook.md 11).
         TOKEN_KEYS_EPOCH: String(this.node.tryGetContext('tokenKeysEpoch') ?? '1'),
+        // Groups that grant the administrator role (lib/stacks/demo/admin-groups.ts)
+        ADMIN_GROUP_NAMES: adminGroupNames(this.node).join(','),
         // Bedrock KB設定
         BEDROCK_KB_ID: knowledgeBaseId,
         BEDROCK_REGION: cdk.Aws.REGION,

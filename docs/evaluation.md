@@ -308,6 +308,21 @@ Permission Violation Rate = (権限外ドキュメント表示回数) / (全検�
 | Web アプリのロールの権限 | IAM のポリシーシミュレーター | 評価テーブルへの `Scan`、`Query`、`GetItem`、`PutItem` はすべて拒否、収集用 Lambda の `InvokeFunction` だけ許可 |
 ![回答の下の評価ボタンと、送信後の表示](screenshots/v4-feedback-buttons-ja.png)
 **範囲**: 各 1 回の観測。保持日数の満了による削除（DynamoDB の TTL）、週次レビューの集計クエリの実行、Agent モードの回答への評価は確かめていない。「保存されたレコード」の行の `modelId`（`tier:light`）は、画面が持つモデルの段の名前で、実際に呼ばれたモデルの ID ではなかった。その後、サーバーが応答で返す、実際に呼んだモデルの ID を保存するよう直した。段の名前（`tier:` で始まる値）は保存しない。2026-11-17 に ap-northeast-1 で確かめた結果、法務部の利用者の KB モードの回答への評価で、レコードの `modelId` は `jp.anthropic.claude-haiku-5-5` になった。本文に `tier:light` を入れて送った評価は、`modelId` が空で保存された。
+### 3.12 管理者ロールでの確認結果
+
+2026-11-17 に ap-northeast-1 で、管理者グループの判定と、共有するものを変える API の拒否を確かめた。利用者は 3 人で、`admins` グループの `admin@example.com`、グループに入れていない一時ユーザー `admin-nogroup@example.com`（メールアドレスが admin で始まる）、法務部の `legal-b@example.com`。
+
+| 確認したこと | 主体 | 結果 |
+|---|---|---|
+| サインイン後のロール（`/api/auth/session`） | 3 人 | `admin@example.com` だけが `administrator`。`admin-nogroup@example.com` は `user` |
+| Agent の作成・削除、チームの作成、監査ログ | グループ外の 2 人 | 4 つとも 403 |
+| Agent の一覧 | グループ外の 2 人 | 200（読むだけの操作は全員に開いている） |
+| 監査ログ | `admin@example.com` | 200 |
+| Agent の作成 | 未サインイン | 401 |
+| デモの管理者のグループ登録 | `post-deploy-setup.sh` | `admin@example.com` を `admins` に追加した |
+
+**範囲**: 各 1 回の観測。このデプロイは `enableAgent` を有効にしていないため、管理者による Agent の作成と削除が成功することは実機で確かめていない（管理者の要求はロールの検査を通り、その先の処理まで進んだ）。フェデレーションの利用者のグループ（`custom:ad_groups`、`custom:oidc_groups`）は単体テストだけで確かめた。画面のボタンの表示・非表示は実機で見ていない。
+
 ## 4. Agent 評価メトリクス
 
 ### 4.1 Task Success Rate（タスク成功率）

@@ -355,6 +355,31 @@ The button label is determined by the `oidcProviderConfig.providerName` value:
 
 ---
 
+## Granting the Administrator Role
+
+Only users with the administrator role (`administrator`) can change what every user shares: creating, updating and deleting agents and associating knowledge bases with them, teams, templates, schedules, policies, uploading and importing shared configurations, and publishing to and importing from the Agent Registry. Reading audit logs also needs the role. For any other user the API returns 403, and the screen does not show the button for that operation. Every user can use agents, chat, and download a configuration as JSON.
+
+The role is decided at sign-in from groups that only an administrator can set.
+
+| Kind of user | Groups read |
+|---|---|
+| Email/password (Cognito) | User pool groups (`cognito:groups` in the ID token) |
+| SAML / OIDC federation | The above, plus the groups the IdP sent (`custom:ad_groups`, `custom:oidc_groups`). Cognito rewrites these at every federated sign-in, so they are read only for federated users |
+
+A user is an administrator when a group name equals one of the names in the CDK context `adminGroupNames` (comma-separated, default `admins`), compared without case. A name that only contains `admin` does not count, and neither does the form of the email address. CDK creates the first name as a user pool group. Later names are for groups that only the IdP sends (such as an AD group with a space in its name).
+
+```bash
+# Make an email/password user an administrator (post-deploy-setup.sh does this for admin@example.com)
+aws cognito-idp admin-add-user-to-group --user-pool-id <USER_POOL_ID> \
+  --username <email> --group-name admins
+# Also treat AD Domain Admins as administrators
+npx cdk deploy --all -c adminGroupNames='admins,Domain Admins'
+```
+
+The role is carried in the session token, so a group change applies from the next sign-in.
+
+---
+
 ## Integration with Permission Filtering
 
 Regardless of the authentication mode, the permission filtering mechanism works the same way. The Permission Resolver automatically selects the appropriate filtering strategy based on the authentication source.

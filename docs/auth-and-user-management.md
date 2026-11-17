@@ -458,6 +458,31 @@ bash demo-data/scripts/verify-ontap-namemapping.sh
 
 ---
 
+## 管理者ロールの付与
+
+全利用者が共有するものの変更は、管理者ロール（`administrator`）を持つ利用者だけが行えます。対象は、Agent の作成・更新・削除とナレッジベースの関連付け、チーム、テンプレート、スケジュール、ポリシー、共有設定のアップロードと取り込み、Agent Registry への公開と取り込みです。監査ログの閲覧も管理者だけです。管理者以外が呼ぶと API は 403 を返し、画面にはその操作のボタンを出しません。Agent の利用、チャット、設定の JSON ダウンロードは全利用者が行えます。
+
+ロールはサインインのときに、管理者だけが設定できるグループから決まります。
+
+| 利用者の種類 | 参照するグループ |
+|---|---|
+| メール/パスワード（Cognito） | ユーザープールのグループ（ID トークンの `cognito:groups`） |
+| SAML / OIDC フェデレーション | 上記に加えて、IdP が送ったグループ（`custom:ad_groups`、`custom:oidc_groups`）。Cognito がフェデレーションのサインインごとに書き換える値なので、フェデレーションの利用者に限って読む |
+
+グループ名が CDK context の `adminGroupNames`（カンマ区切り、既定 `admins`）のどれかと一致すれば管理者です（大文字小文字は区別しない）。部分一致では管理者になりません。メールアドレスの形も関係しません。先頭の名前はユーザープールのグループとして CDK が作成します。2 つ目以降は IdP だけが送るグループ名（空白を含む AD グループなど）に使います。
+
+```bash
+# メール/パスワードの利用者を管理者にする（post-deploy-setup.sh は admin@example.com に対して実行する）
+aws cognito-idp admin-add-user-to-group --user-pool-id <USER_POOL_ID> \
+  --username <email> --group-name admins
+# AD の Domain Admins も管理者として扱う
+npx cdk deploy --all -c adminGroupNames='admins,Domain Admins'
+```
+
+ロールはセッションのトークンに入るので、グループの変更は次のサインインから反映されます。
+
+---
+
 ## 権限フィルタリングとの連携
 
 認証モードに関わらず、権限フィルタリングの仕組みは同じです。Permission Resolverが認証ソースに応じて適切なフィルタリング戦略を自動選択します。

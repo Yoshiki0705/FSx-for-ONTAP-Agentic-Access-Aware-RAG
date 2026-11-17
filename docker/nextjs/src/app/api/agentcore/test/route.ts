@@ -5,6 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
+  // A development aid; not served by a deployment.
+  if (process.env.NODE_ENV === 'production') return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({
     status: 'healthy',
     service: 'AgentCore Integration Test API',
@@ -20,6 +22,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // A development aid; not served by a deployment.
+  if (process.env.NODE_ENV === 'production') return NextResponse.json({ error: 'Not found' }, { status: 404 });
   try {
     const body = await request.json();
     

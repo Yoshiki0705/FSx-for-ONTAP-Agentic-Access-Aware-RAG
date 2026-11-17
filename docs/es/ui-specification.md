@@ -1567,8 +1567,8 @@ https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authoriz
 The `/api/auth/callback` route receives the authorization code and performs the following:
 
 1. Exchange the authorization code for tokens at the Cognito Token Endpoint
-2. Retrieve user attributes (email, custom:role, custom:ad_groups) from the ID token
-3. ID token-based role determination (`custom:role === 'admin'` or `custom:ad_groups` contains admin group → `administrator`)
+2. Retrieve user attributes (email, cognito:groups, custom:ad_groups, custom:oidc_groups) from the ID token
+3. ID token-based role determination (`administrator` for a member of an administrator group; see the table below)
 4. Set session Cookie
 5. Redirect to the chat screen (`/[locale]/genai`)
 
@@ -1576,9 +1576,9 @@ The `/api/auth/callback` route receives the authorization code and performs the 
 
 | Condition | Result |
 |-----------|--------|
-| `custom:role === 'admin'` | `administrator` |
-| `custom:ad_groups` contains admin group | `administrator` |
-| Otherwise | `user` |
+| `cognito:groups` contains one of `adminGroupNames` | `administrator` |
+| A federated user whose `custom:ad_groups` or `custom:oidc_groups` contains one of `adminGroupNames` | `administrator` |
+| Otherwise (`custom:role`, the email address, and group names that only contain `admin` are not read) | `user` |
 
 ### Multilingual Support (8 Languages)
 

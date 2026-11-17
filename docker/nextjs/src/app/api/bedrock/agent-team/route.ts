@@ -29,6 +29,7 @@ import {
   isValidDataBoundary,
 } from '@/types/multi-agent';
 import { jwtSecretKey } from '@/lib/auth/secrets';
+import { requireAdmin } from '@/lib/auth/roles';
 
 // ===== Configuration =====
 
@@ -137,6 +138,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { action } = body;
+    // Actions that change what every user shares: administrators only (lib/auth/roles.ts).
+    if (['create', 'update', 'delete'].includes(action)) {
+      const admin = await requireAdmin();
+      if (admin instanceof NextResponse) return admin;
+    }
 
     switch (action) {
       case 'create':

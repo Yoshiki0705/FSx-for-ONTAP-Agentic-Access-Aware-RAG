@@ -21,6 +21,7 @@ import {
 } from '@aws-sdk/client-bedrock-agent';
 import { getRegistryClient } from '@/lib/agentcore/registry-client';
 import type { RegistryImportRequest, RegistryImportResponse } from '@/types/registry';
+import { requireAdmin } from '@/lib/auth/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,9 @@ export function resolveAgentName(
 }
 
 export async function POST(request: NextRequest) {
+  // Changes what every user shares: administrators only (lib/auth/roles.ts).
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   // Feature-flag guard
   if (process.env.ENABLE_AGENT_REGISTRY !== 'true') {
     return NextResponse.json(

@@ -13,6 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/roles';
 
 const MAX_POLICY_TEXT_LENGTH = 10_000; // Cedar policies can be longer
 const POLICY_API_TIMEOUT_MS = 10_000;
@@ -111,6 +112,9 @@ async function callPolicyAPI<T>(
  * Body: { policyEngineId, policyText, description? }
  */
 export async function POST(request: NextRequest) {
+  // Changes what every user shares: administrators only (lib/auth/roles.ts).
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   if (!isPolicyEnabled()) {
     return NextResponse.json({ error: 'AgentCore Policy is not enabled' }, { status: 404 });
   }
@@ -204,6 +208,9 @@ export async function GET(request: NextRequest) {
  * Body: { policyEngineId, policyId, policyText, description? }
  */
 export async function PUT(request: NextRequest) {
+  // Changes what every user shares: administrators only (lib/auth/roles.ts).
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   if (!isPolicyEnabled()) {
     return NextResponse.json({ error: 'AgentCore Policy is not enabled' }, { status: 404 });
   }
@@ -250,6 +257,9 @@ export async function PUT(request: NextRequest) {
  * Query: ?policyEngineId=xxx&policyId=yyy
  */
 export async function DELETE(request: NextRequest) {
+  // Changes what every user shares: administrators only (lib/auth/roles.ts).
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   if (!isPolicyEnabled()) {
     return NextResponse.json({ error: 'AgentCore Policy is not enabled' }, { status: 404 });
   }

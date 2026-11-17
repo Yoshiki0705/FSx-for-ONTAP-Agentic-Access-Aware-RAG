@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { exportAgentConfig, validateAgentConfig } from '@/utils/agentConfigUtils';
 import type { AgentConfig, SharedAgentConfig } from '@/types/enterprise-agent';
+import { requireAdmin } from '@/lib/auth/roles';
 
 const REGION = process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
 const SHARED_BUCKET = process.env.SHARED_AGENT_BUCKET || '';
@@ -16,6 +17,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action } = body;
+    // Actions that change what every user shares: administrators only (lib/auth/roles.ts).
+    if (['uploadSharedConfig', 'importConfig'].includes(action)) {
+      const admin = await requireAdmin();
+      if (admin instanceof NextResponse) return admin;
+    }
 
     switch (action) {
       case 'exportConfig':

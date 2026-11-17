@@ -210,6 +210,7 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 | `enableAgentRegistry` | `false` | Agent Registry integration |
 | `enableAdvancedPermissions` | `false` | Time-based access control + audit logging |
 | `enableAdFederation` | `false` | AD SAML federation for Cognito |
+| `adminGroupNames` | `"admins"` | Comma-separated group names that grant the web app's `administrator` role, which changing shared agents, teams, templates, schedules, policies and the registry needs (`docker/nextjs/src/lib/auth/roles.ts`). The first name is created as a Cognito user pool group and must have no whitespace (throws at synth time otherwise); later names match groups a federated IdP sends (`custom:ad_groups` / `custom:oidc_groups`, read only when the ID token has `identities`). Exact match, case-insensitive. The email address and `custom:role` never grant the role |
 | `kbSearchType` | `"SEMANTIC"` | KB search type (`"SEMANTIC"` \| `"HYBRID"`) |
 | `kbChunkingStrategy` | `"FIXED_SIZE"` | Chunking strategy (`FIXED_SIZE` \| `HIERARCHICAL` \| `SEMANTIC` \| `NONE`) |
 | `vectorStoreType` | `"s3-vectors"` | Vector store (`"s3-vectors"` \| `"opensearch-serverless"`) |

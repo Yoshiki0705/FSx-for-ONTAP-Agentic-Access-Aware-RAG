@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { exportAgentConfig } from '@/utils/agentConfigUtils';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { ScheduleForm } from './ScheduleForm';
 import { ExecutionHistoryList } from './ExecutionHistoryList';
 import { ConnectedKBList } from './ConnectedKBList';
@@ -35,6 +36,9 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
   const [publishStatus, setPublishStatus] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const { agentRegistryEnabled: enableRegistry, agentPolicyEnabled } = useFeatureFlags();
+  // Editing, sharing, publishing, deleting and schedules change what every user shares; the
+  // routes refuse them for non-administrators, so their controls are hidden too.
+  const isAdmin = useIsAdmin();
 
   // Export agent config as JSON file download
   const handleExport = useCallback(() => {
@@ -219,11 +223,13 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
       <div className="mb-6 border-t border-gray-200 dark:border-gray-700 pt-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('schedule.title')}</h3>
-          <button onClick={() => setShowScheduleForm(!showScheduleForm)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
-            {showScheduleForm ? (t('cancel') || 'Cancel') : t('schedule.createSchedule')}
-          </button>
+          {isAdmin && (
+            <button onClick={() => setShowScheduleForm(!showScheduleForm)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+              {showScheduleForm ? (t('cancel') || 'Cancel') : t('schedule.createSchedule')}
+            </button>
+          )}
         </div>
-        {showScheduleForm && (
+        {isAdmin && showScheduleForm && (
           <ScheduleForm agentId={agent.agentId} onSave={handleCreateSchedule} onCancel={() => setShowScheduleForm(false)} />
         )}
         {schedules.length > 0 && (
@@ -238,7 +244,7 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => fetchExecutionHistory(s.scheduleId)} className="text-blue-600 hover:underline">History</button>
-                  <button onClick={() => handleDeleteSchedule(s.scheduleId)} className="text-red-500 hover:underline">{t('schedule.deleteSchedule')}</button>
+                  {isAdmin && <button onClick={() => handleDeleteSchedule(s.scheduleId)} className="text-red-500 hover:underline">{t('schedule.deleteSchedule')}</button>}
                 </div>
               </div>
             ))}
@@ -250,7 +256,7 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
           </div>
         )}
         {/* Manual Trigger */}
-        {schedules.length > 0 && (
+        {isAdmin && schedules.length > 0 && (
           <button
             onClick={() => { const s = schedules[0]; if (s) handleManualTrigger(s.inputPrompt || 'test'); }}
             disabled={manualRunning}
@@ -270,10 +276,10 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button onClick={() => onUseInChat(agent.agentId)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">{t('useInChat')}</button>
-        <button onClick={onEdit} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">{t('editAgent')}</button>
+        {isAdmin && <button onClick={onEdit} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">{t('editAgent')}</button>}
         <button onClick={handleExport} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">{t('sharing.export')}</button>
-        <button onClick={handleUploadToS3} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">{t('sharing.uploadToS3')}</button>
-        {enableRegistry && (
+        {isAdmin && <button onClick={handleUploadToS3} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-medium">{t('sharing.uploadToS3')}</button>}
+        {isAdmin && enableRegistry && (
           <button
             onClick={handlePublishToRegistry}
             disabled={isPublishing}
@@ -282,7 +288,7 @@ export function AgentDetailPanel({ agent, onClose, onEdit, onDelete, onUseInChat
             {isPublishing ? 'Publishing...' : 'Publish to Registry'}
           </button>
         )}
-        <button onClick={onDelete} className="px-4 py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 text-sm font-medium">{t('deleteAgent')}</button>
+        {isAdmin && <button onClick={onDelete} className="px-4 py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 text-sm font-medium">{t('deleteAgent')}</button>}
       </div>
       {uploadStatus && <p className="text-xs mt-2 text-gray-600 dark:text-gray-400">{uploadStatus}</p>}
       {publishStatus && <p className="text-xs mt-2 text-gray-600 dark:text-gray-400">{publishStatus}</p>}

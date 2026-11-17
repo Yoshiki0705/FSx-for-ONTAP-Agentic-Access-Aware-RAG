@@ -7,6 +7,8 @@ import path from 'path';
  * Lambda環境での翻訳ファイルとi18n設定の状況を確認
  */
 export async function GET(request: NextRequest) {
+  // A development aid; not served by a deployment.
+  if (process.env.NODE_ENV === 'production') return NextResponse.json({ error: 'Not found' }, { status: 404 });
   try {
     const debugInfo: any = {
       timestamp: new Date().toISOString(),

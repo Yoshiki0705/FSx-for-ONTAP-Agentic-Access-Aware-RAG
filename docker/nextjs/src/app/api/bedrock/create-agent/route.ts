@@ -3,6 +3,7 @@ import * as agentCoreRoutes from '@/lib/agent-backend/routes';
 import { NextRequest, NextResponse } from 'next/server';
 import { BedrockAgentClient, CreateAgentCommand, CreateAgentAliasCommand } from '@aws-sdk/client-bedrock-agent';
 import { resolveModelForInvoke } from '@/lib/model-catalog';
+import { requireAdmin } from '@/lib/auth/roles';
 
 /**
  * Bedrock Agent作成API
@@ -34,6 +35,9 @@ interface ActionGroupConfig {
 }
 
 export async function POST(request: NextRequest) {
+  // Changes what every user shares: administrators only (lib/auth/roles.ts).
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const body: CreateAgentRequest = await request.json();
     if (isAgentCore()) {

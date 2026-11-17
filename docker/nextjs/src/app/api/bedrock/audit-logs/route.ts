@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/roles';
 
 // AuditLoggerが存在しない場合は、基本的なログ機能を実装
 class SimpleAuditLogger {
@@ -16,6 +17,9 @@ class SimpleAuditLogger {
 }
 
 export async function GET(request: NextRequest) {
+  // Audit entries concern every user: administrators only (lib/auth/roles.ts).
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   try {
     const logs = SimpleAuditLogger.getAuditLogs();
     
