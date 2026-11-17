@@ -474,6 +474,7 @@ const toolsSettings = {
   enableImageGeneration: ctxBool('enableImageGeneration'),
   enableCodeInterpreter: ctxBool('enableCodeInterpreter'),
   enableMediaTools: ctxBool('enableMediaTools'),
+  enableUseCaseSharing: ctxBool('enableUseCaseSharing'),
   enableVideoGeneration,
   videoGenerationRegion,
   videoGenerationModelId,

@@ -1590,7 +1590,7 @@
       "run": "Bild erzeugen"
     },
     "useCases": {
-      "intro": "Speichern Sie häufig genutzte Anweisungen als Vorlagen. Nur Sie sehen und verwenden Ihre gespeicherten Anwendungsfälle.",
+      "intro": "Speichern Sie häufig verwendete Anweisungen als Vorlagen. Ein gespeicherter Anwendungsfall ist nur für Sie sichtbar und nutzbar, solange Sie ihn nicht teilen.",
       "new": "Neuer Anwendungsfall",
       "title": "Name",
       "description": "Beschreibung",
@@ -1605,7 +1605,21 @@
       "run": "Ausführen",
       "edit": "Bearbeiten",
       "delete": "Löschen",
-      "input": "Zu bearbeitender Text"
+      "input": "Zu bearbeitender Text",
+      "share": "Teilen (alle angemeldeten Benutzer können ihn sehen, ausführen und kopieren; nur Sie können ihn bearbeiten oder löschen)",
+      "sharedBadge": "Geteilt",
+      "sharedTitle": "Geteilte Anwendungsfälle",
+      "sharedIntro": "Von anderen Benutzern geteilte Anwendungsfälle. Beim Ausführen werden nur die internen Dokumente verwendet, die Sie lesen dürfen. Kopieren Sie einen, um ihn für sich zu ändern.",
+      "sharedEmpty": "Noch keine geteilten Anwendungsfälle.",
+      "copy": "In meine Anwendungsfälle kopieren",
+      "copied": "„{title}“ wurde in Ihre Anwendungsfälle kopiert.",
+      "unshare": "Teilen beenden (Administrator)",
+      "showTemplate": "Vorlage anzeigen",
+      "export": "Exportieren (JSON)",
+      "import": "Importieren (JSON)",
+      "importDone": "{count} Anwendungsfälle importiert.",
+      "importInvalid": "Die Datei kann nicht als JSON gelesen werden.",
+      "fileTooLarge": "Die Datei ist zu groß (höchstens 1 MB)."
     },
     "languages": {
       "ja": "Japanisch",

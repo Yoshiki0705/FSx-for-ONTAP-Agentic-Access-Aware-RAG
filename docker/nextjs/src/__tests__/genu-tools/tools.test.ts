@@ -111,6 +111,28 @@ describe('documents as input: only what the user may read reaches the model', ()
     expect(sent[0].user).not.toContain('hr-salary-table');
     expect(out.sources).toEqual(['public-guideline.md']);
   });
+  it("a shared use case of another user searches the runner's documents, not the owner's", async () => {
+    process.env.USE_CASE_SHARING_ENABLED = 'true';
+    kbReturns(docs);
+    const sent = fakeModel('done');
+    // Owned by someone who could read everything; legal-a runs it.
+    const item = { ...buildUseCase('hr-admin@example.com', { title: 'Brief', template: 'Brief this: {{input}}', useDocuments: true }), sharedPartition: 'shared' };
+    __setUseCaseClient({
+      send: async (cmd: unknown) => ((cmd as object).constructor.name === 'GetCommand' ? {} : { Items: [item] }),
+    });
+    try {
+      const out = await runTool('use-case', 'legal-a@example.com', { useCaseId: item.useCaseId, text: 'salary' });
+      expect(sent[0].user).not.toContain('SECRET');
+      expect(out.sources).toEqual(['public-guideline.md']);
+    } finally {
+      delete process.env.USE_CASE_SHARING_ENABLED;
+    }
+  });
+  it('another user\'s use case is not found while sharing is off', async () => {
+    const item = { ...buildUseCase('hr-admin@example.com', { title: 'Brief', template: 'x' }), sharedPartition: 'shared' };
+    __setUseCaseClient({ send: async (cmd: unknown) => ((cmd as object).constructor.name === 'GetCommand' ? {} : { Items: [item] }) });
+    await expect(runTool('use-case', 'legal-a@example.com', { useCaseId: item.useCaseId, text: 'x' })).rejects.toThrow('use case not found');
+  });
 });
 
 describe('prompts and parsing', () => {

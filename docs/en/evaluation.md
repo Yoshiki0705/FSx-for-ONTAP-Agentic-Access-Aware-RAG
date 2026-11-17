@@ -328,6 +328,25 @@ Checked on 2026-11-17 in ap-northeast-1: the administrator group decision and th
 
 **Scope**: One observation each. This deployment did not enable `enableAgent`, so an administrator successfully creating and deleting an agent was not checked live (the administrator's request passed the role check and reached the processing after it). Groups of federated users (`custom:ad_groups`, `custom:oidc_groups`) were checked by unit tests only. Showing and hiding the buttons on the screen was not checked live.
 
+### 3.13 Results with sharing and exporting/importing use cases
+
+Checked on 2026-11-17 in ap-northeast-1 with a deployment using `-c enableUseCaseSharing=true` and the legal pack. The owner is a legal-department user (`-4100`), the other user a development-department user (`-1100`); the development department cannot read the NDA template (`nda-template-standard.md`).
+
+| What was checked | Who | Result |
+|---|---|---|
+| Creating a shared use case that uses internal documents | Legal | 200; it became shared |
+| The shared list | Development | 1 item, marked only as not their own (`ownedByMe: false`); the owner's ID is not in the response |
+| Running the shared use case | Development / legal | 200 for both. Sources: 2 for development (no NDA template), 4 for legal (with it). The search used the permissions of the person running it |
+| Editing, deleting and stopping sharing with the owner's ID | Development | Editing 400; deleting had no effect (it stayed in the owner's list); stopping sharing 404 |
+| Copying | Development | Became a new private use case |
+| Importing an exported file | Development | 200; the imported items are private with new IDs |
+| Importing a `version: 2` file | Development | 400 ("version 2 is not supported") |
+| Stopping sharing | Administrator | 200. It left the shared list and stayed with its owner, private; the development user could no longer run it (400) |
+| The list | Not signed in | 401 |
+
+![My use cases and shared use cases (the development user's screen)](../screenshots/v4-use-case-sharing-ja.png)
+
+**Scope**: One observation each. Exporting and importing were checked through the API; on the screen, only the lists were looked at. A shared list over 200 items and the behavior after turning the flag off were checked by unit tests only.
 ### 3.14 Results with reranking after the SID filter
 
 Checked on 2026-11-17 in ap-northeast-1 with a deployment using `-c enableRerank=true` (model `amazon.rerank-v1:0`, 25 candidates) and the legal pack: a development-department user (`-1100`) and a legal-department user (`-4100`) each sent three questions once. The questions were about the NDA confidentiality period, what to check when reviewing a contract, and GDPR compliance.

@@ -8,9 +8,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
-  Clapperboard, Code2, Copy, Download, FileSearch, Film, Mic, Globe, ImageIcon, Languages, Pencil, Play, Plus, SpellCheck, Trash2, Workflow, Wand2,
+  Clapperboard, Code2, Copy, Download, EyeOff, FileSearch, Film, Mic, Globe, ImageIcon, Languages, Pencil, Play, Plus, SpellCheck, Trash2, Upload, Workflow, Wand2,
 } from 'lucide-react';
 import { MermaidView } from './MermaidView';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { exportUseCaseFile, parseUseCaseFile } from '@/lib/genu-tools/use-case-file';
 
 type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases' | 'code' | 'video' | 'minutes' | 'videoGen';
 
@@ -29,7 +31,11 @@ interface UseCase {
   description: string;
   template: string;
   useDocuments: boolean;
+  shared?: boolean;
+  ownedByMe?: boolean;
 }
+/** Use case files are at most 50 entries of a few KB; refuse anything larger before reading it. */
+const MAX_IMPORT_BYTES = 1024 * 1024;
 
 const LANGUAGES = ['ja', 'en', 'ko', 'zh-CN', 'zh-TW', 'fr', 'de', 'es', 'pt', 'it', 'id', 'th', 'vi'] as const;
 const DIAGRAM_TYPES = ['auto', 'flowchart', 'sequence', 'class', 'state', 'er', 'gantt', 'mindmap', 'timeline', 'pie'] as const;
@@ -353,30 +359,39 @@ function ImagePanel({ t, config }: { t: ReturnType<typeof useTranslations>; conf
 
 function UseCasesPanel({ t }: { t: ReturnType<typeof useTranslations> }) {
   const [items, setItems] = useState<UseCase[]>([]);
+  const [shared, setShared] = useState<UseCase[]>([]);
+  const [sharingEnabled, setSharingEnabled] = useState(false);
   const [editing, setEditing] = useState<Partial<UseCase> | null>(null);
   const [active, setActive] = useState<UseCase | null>(null);
   const [input, setInput] = useState('');
   const [out, setOut] = useState<{ result: string; sources?: string[] } | null>(null);
+  const [notice, setNotice] = useState('');
+  const isAdmin = useIsAdmin();
   const { busy, error, run } = useRunner();
-
   const load = useCallback(async () => {
     const res = await fetch('/api/tools/use-cases');
     const data = await res.json();
-    if (data.success) setItems(data.useCases);
+    if (data.success) {
+      setItems(data.useCases);
+      setShared((data.shared || []).filter((u: UseCase) => !u.ownedByMe));
+      setSharingEnabled(!!data.sharingEnabled);
+    }
   }, []);
   useEffect(() => {
     load();
   }, [load]);
-
+  const post = async (body: Record<string, unknown>) => {
+    const res = await fetch('/api/tools/use-cases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data;
+  };
   const save = () =>
     run(async () => {
-      const res = await fetch('/api/tools/use-cases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(editing) });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
+      await post(editing || {});
       setEditing(null);
       await load();
     });
-
   const remove = (id: string) =>
     run(async () => {
       const res = await fetch(`/api/tools/use-cases?useCaseId=${encodeURIComponent(id)}`, { method: 'DELETE' });
@@ -385,14 +400,98 @@ function UseCasesPanel({ t }: { t: ReturnType<typeof useTranslations> }) {
       if (active?.useCaseId === id) setActive(null);
       await load();
     });
-
+  // A copy is a new private use case of the user's own, with the same fields.
+  const copy = (u: UseCase) =>
+    run(async () => {
+      await post({ title: u.title, description: u.description, template: u.template, useDocuments: u.useDocuments });
+      setNotice(t('useCases.copied', { title: u.title }));
+      await load();
+    });
+  const unshare = (u: UseCase) =>
+    run(async () => {
+      await post({ action: 'unshare', useCaseId: u.useCaseId });
+      await load();
+    });
+  const exportFile = () => {
+    const file = exportUseCaseFile(items);
+    download(`use-cases-${file.exportedAt.slice(0, 10)}.json`, JSON.stringify(file, null, 2), 'application/json');
+  };
+  const importFile = (f: File | undefined) =>
+    run(async () => {
+      if (!f) return;
+      if (f.size > MAX_IMPORT_BYTES) throw new Error(t('useCases.fileTooLarge'));
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(await f.text());
+      } catch {
+        throw new Error(t('useCases.importInvalid'));
+      }
+      parseUseCaseFile(parsed); // same checks as the server, to name the problem before sending
+      const data = await post({ action: 'import', file: parsed });
+      setNotice(t('useCases.importDone', { count: data.imported }));
+      await load();
+    });
+  const card = (u: UseCase, own: boolean) => (
+    <li key={u.useCaseId} className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{u.title}</h3>
+          {u.description && <p className="text-xs text-gray-600 dark:text-gray-400">{u.description}</p>}
+          {u.useDocuments && <p className="text-xs text-blue-700 dark:text-blue-300">{t('useCases.withDocuments')}</p>}
+          {own && u.shared && <p className="text-xs text-green-700 dark:text-green-300">{t('useCases.sharedBadge')}</p>}
+        </div>
+        <div className="flex gap-1">
+          <button type="button" className={secondaryButton} aria-label={t('useCases.run')} onClick={() => { setActive(u); setOut(null); setInput(''); }}>
+            <Play className="h-4 w-4" aria-hidden />
+          </button>
+          {own ? (
+            <>
+              <button type="button" className={secondaryButton} aria-label={t('useCases.edit')} onClick={() => setEditing(u)}>
+                <Pencil className="h-4 w-4" aria-hidden />
+              </button>
+              <button type="button" className={secondaryButton} aria-label={t('useCases.delete')} onClick={() => remove(u.useCaseId)}>
+                <Trash2 className="h-4 w-4" aria-hidden />
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className={secondaryButton} aria-label={t('useCases.copy')} disabled={busy} onClick={() => copy(u)}>
+                <Copy className="h-4 w-4" aria-hidden />
+              </button>
+              {isAdmin && (
+                <button type="button" className={secondaryButton} aria-label={t('useCases.unshare')} disabled={busy} onClick={() => unshare(u)}>
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      {!own && (
+        <details className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+          <summary className="cursor-pointer">{t('useCases.showTemplate')}</summary>
+          <pre className="mt-1 whitespace-pre-wrap font-mono">{u.template}</pre>
+        </details>
+      )}
+    </li>
+  );
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-600 dark:text-gray-400">{t('useCases.intro')}</p>
-      <button type="button" className={buttonClass} onClick={() => setEditing({ title: '', description: '', template: t('useCases.templateExample'), useDocuments: false })}>
-        <Plus className="h-4 w-4" aria-hidden /> {t('useCases.new')}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className={buttonClass} onClick={() => setEditing({ title: '', description: '', template: t('useCases.templateExample'), useDocuments: false, shared: false })}>
+          <Plus className="h-4 w-4" aria-hidden /> {t('useCases.new')}
+        </button>
+        <button type="button" className={secondaryButton} disabled={items.length === 0} onClick={exportFile}>
+          <Download className="h-4 w-4" aria-hidden /> {t('useCases.export')}
+        </button>
+        <label className={`${secondaryButton} cursor-pointer`}>
+          <Upload className="h-4 w-4" aria-hidden /> {t('useCases.import')}
+          <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => { importFile(e.target.files?.[0]); e.target.value = ''; }} />
+        </label>
+      </div>
       <ErrorLine error={error} />
+      {notice && <p role="status" className="text-sm text-green-700 dark:text-green-300">{notice}</p>}
       {editing && (
         <div className="space-y-2 rounded-md border border-gray-200 dark:border-gray-700 p-4">
           <input className={inputClass} value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} placeholder={t('useCases.title')} aria-label={t('useCases.title')} />
@@ -403,6 +502,12 @@ function UseCasesPanel({ t }: { t: ReturnType<typeof useTranslations> }) {
             <input type="checkbox" checked={!!editing.useDocuments} onChange={(e) => setEditing({ ...editing, useDocuments: e.target.checked })} />
             {t('useCases.useDocuments')}
           </label>
+          {sharingEnabled && (
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" checked={!!editing.shared} onChange={(e) => setEditing({ ...editing, shared: e.target.checked })} />
+              {t('useCases.share')}
+            </label>
+          )}
           <div className="flex gap-2">
             <button type="button" className={buttonClass} disabled={busy} onClick={save}>{t('useCases.save')}</button>
             <button type="button" className={secondaryButton} onClick={() => setEditing(null)}>{t('useCases.cancel')}</button>
@@ -412,30 +517,18 @@ function UseCasesPanel({ t }: { t: ReturnType<typeof useTranslations> }) {
       {items.length === 0 && !editing ? (
         <p className="text-sm text-gray-600 dark:text-gray-400">{t('useCases.empty')}</p>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {items.map((u) => (
-            <li key={u.useCaseId} className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{u.title}</h3>
-                  {u.description && <p className="text-xs text-gray-600 dark:text-gray-400">{u.description}</p>}
-                  {u.useDocuments && <p className="text-xs text-blue-700 dark:text-blue-300">{t('useCases.withDocuments')}</p>}
-                </div>
-                <div className="flex gap-1">
-                  <button type="button" className={secondaryButton} aria-label={t('useCases.run')} onClick={() => { setActive(u); setOut(null); setInput(''); }}>
-                    <Play className="h-4 w-4" aria-hidden />
-                  </button>
-                  <button type="button" className={secondaryButton} aria-label={t('useCases.edit')} onClick={() => setEditing(u)}>
-                    <Pencil className="h-4 w-4" aria-hidden />
-                  </button>
-                  <button type="button" className={secondaryButton} aria-label={t('useCases.delete')} onClick={() => remove(u.useCaseId)}>
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                  </button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <ul className="grid gap-3 sm:grid-cols-2">{items.map((u) => card(u, true))}</ul>
+      )}
+      {sharingEnabled && (
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('useCases.sharedTitle')}</h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400">{t('useCases.sharedIntro')}</p>
+          {shared.length === 0 ? (
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t('useCases.sharedEmpty')}</p>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2">{shared.map((u) => card(u, false))}</ul>
+          )}
+        </section>
       )}
       {active && (
         <div className="space-y-3 rounded-md border border-blue-200 dark:border-blue-800 p-4">
@@ -455,7 +548,6 @@ function UseCasesPanel({ t }: { t: ReturnType<typeof useTranslations> }) {
     </div>
   );
 }
-
 interface CodeRunView { ok: boolean; timedOut: boolean; stdout: string; stderr: string; durationMs: number }
 function CodePanel({ t, limits }: { t: ReturnType<typeof useTranslations>; limits: { maxRuns: number; runSeconds: number } }) {
   const [task, setTask] = useState('');

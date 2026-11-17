@@ -1590,7 +1590,7 @@
       "run": "Generar imagen"
     },
     "useCases": {
-      "intro": "Guarde como plantillas las instrucciones que usa a menudo. Solo usted puede ver y ejecutar sus casos de uso guardados.",
+      "intro": "Guarde como plantillas las instrucciones que usa con frecuencia. Un caso de uso guardado solo lo puede ver y usar usted, salvo que lo comparta.",
       "new": "Nuevo caso de uso",
       "title": "Nombre",
       "description": "Descripción",
@@ -1605,7 +1605,21 @@
       "run": "Ejecutar",
       "edit": "Editar",
       "delete": "Eliminar",
-      "input": "Texto con el que trabajar"
+      "input": "Texto con el que trabajar",
+      "share": "Compartir (todos los usuarios con sesión iniciada pueden verlo, ejecutarlo y copiarlo; solo usted puede editarlo o eliminarlo)",
+      "sharedBadge": "Compartido",
+      "sharedTitle": "Casos de uso compartidos",
+      "sharedIntro": "Casos de uso que compartieron otros usuarios. Al ejecutarlos solo se usan los documentos internos que usted puede leer. Cópielo para cambiarlo para usted.",
+      "sharedEmpty": "Todavía no hay casos de uso compartidos.",
+      "copy": "Copiar a mis casos de uso",
+      "copied": "Se copió «{title}» a sus casos de uso.",
+      "unshare": "Dejar de compartir (administrador)",
+      "showTemplate": "Ver la plantilla",
+      "export": "Exportar (JSON)",
+      "import": "Importar (JSON)",
+      "importDone": "Se importaron {count} casos de uso.",
+      "importInvalid": "El archivo no se puede leer como JSON.",
+      "fileTooLarge": "El archivo es demasiado grande (1 MB como máximo)."
     },
     "languages": {
       "ja": "Japonés",

@@ -88,6 +88,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
     enableCodeInterpreter?: boolean;
     /** Video analysis (and meeting minutes): uploads go to a staging bucket that deletes after 1 day. */
     enableMediaTools?: boolean;
+    /** Let users share a saved use case with every signed-in user (off by default). */
+    enableUseCaseSharing?: boolean;
     /** Model for video analysis (a model that takes a Converse video block). */
     videoModelId?: string;
     /** Video generation: the model runs in `videoGenerationRegion` (outside Japan by default). */
@@ -235,6 +237,15 @@ export class DemoWebAppStack extends cdk.Stack {
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
+    // Shared use cases only: the item carries `sharedPartition` while it is shared, so the
+    // index stays sparse (docker/nextjs/src/lib/genu-tools/use-cases.ts). Adding a GSI to an
+    // existing table updates it in place.
+    useCasesTable.addGlobalSecondaryIndex({
+      indexName: 'shared-index',
+      partitionKey: { name: 'sharedPartition', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'useCaseId', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
     const feedbackCollector = props.feedback?.enabled
       ? new FeedbackCollectorConstruct(this, 'Feedback', {
         projectName: props.projectName,
@@ -355,6 +366,7 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(props.agentDefinitionsTableName ? { AGENT_DEFINITIONS_TABLE_NAME: props.agentDefinitionsTableName } : {}),
         // GenU 相当のツール（翻訳・校正・図・Web 抽出・画像の生成・ユースケース）
         USE_CASES_TABLE_NAME: useCasesTable.tableName,
+        USE_CASE_SHARING_ENABLED: tools.enableUseCaseSharing ? 'true' : 'false',
         WEB_EXTRACT_ENABLED: tools.enableWebExtract ? 'true' : 'false',
         IMAGE_GENERATION_ENABLED: tools.enableImageGeneration ? 'true' : 'false',
         ...(feedbackCollector ? { FEEDBACK_FUNCTION_NAME: feedbackCollector.function.functionName } : {}),
@@ -753,7 +765,8 @@ export class DemoWebAppStack extends cdk.Stack {
       ], true);
     }
     // 保存したユースケース: キーは利用者（userId）で、API がセッションの利用者だけを読み書きする
-    useCasesTable.grant(this.webAppFunction, 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem', 'dynamodb:Query');
+    // UpdateItem stops sharing; import writes its PutItems in one TransactWriteItems call.
+    useCasesTable.grant(this.webAppFunction, 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem', 'dynamodb:Query', 'dynamodb:UpdateItem');
     if (props.agentDefinitionsTableName) {
       this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
         actions: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:Scan'],
@@ -987,6 +1000,11 @@ export class DemoWebAppStack extends cdk.Stack {
         id: 'AwsSolutions-IAM5',
         reason: 'Voice chat calls the newest model of the voice family (model catalog, docker/nextjs/src/lib/model-catalog). The resource is the family pattern in this Region (amazon.nova-*sonic* by default), so a new speech model needs no deploy and no other model is allowed.',
         appliesTo: [{ regex: '/^Resource::arn:aws:bedrock:<AWS::Region>::foundation-model\\/[a-z0-9.:-]*\\*.*$/g' }],
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'The shared use case list queries the use case table\'s global secondary index, written as <table ARN>/index/*; the only index is shared-index, created in this stack.',
+        appliesTo: [{ regex: '/^Resource::<UserUseCasesTable.*\\.Arn>\\/index\\/\\*$/g' }],
       },
     ], true); // true = apply to children (ServiceRole/DefaultPolicy)
 

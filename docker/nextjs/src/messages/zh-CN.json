@@ -1701,7 +1701,7 @@
       "run": "生成图片"
     },
     "useCases": {
-      "intro": "可以把常用的指示保存为模板。保存的用例只有您本人可以查看和使用。",
+      "intro": "可以将常用的指令保存为模板。保存的用例在共享之前只有您本人可以查看和使用。",
       "new": "新建用例",
       "title": "名称",
       "description": "说明",
@@ -1716,7 +1716,21 @@
       "run": "执行",
       "edit": "编辑",
       "delete": "删除",
-      "input": "要处理的文字"
+      "input": "要处理的文字",
+      "share": "共享（所有已登录用户都可以查看、运行和复制；只有您可以编辑或删除）",
+      "sharedBadge": "已共享",
+      "sharedTitle": "共享的用例",
+      "sharedIntro": "其他用户共享的用例。运行时只使用您有权阅读的内部文档。如需修改，请复制一份。",
+      "sharedEmpty": "还没有共享的用例。",
+      "copy": "复制到我的用例",
+      "copied": "已将“{title}”复制到您的用例。",
+      "unshare": "停止共享（管理员）",
+      "showTemplate": "查看模板",
+      "export": "导出（JSON）",
+      "import": "导入（JSON）",
+      "importDone": "已导入 {count} 个用例。",
+      "importInvalid": "无法将该文件读取为 JSON。",
+      "fileTooLarge": "文件过大（最大 1 MB）。"
     },
     "languages": {
       "ja": "日语",
