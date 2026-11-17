@@ -479,6 +479,19 @@ When permission checks fail, access to all documents is denied.
 | No SID match | Corresponding document denied |
 | SID match found | Corresponding document allowed |
 
+### Reranking After the Filter (Optional)
+
+With `-c enableRerank=true` (off by default), only the chunks that passed the SID filter and the chunk safety check are reordered by relevance with the Bedrock Rerank API, and the top 10 go to the answer model. Knowledge Base Retrieve has its own reranking setting, but Retrieve runs before the SID filter, so reranking there would send chunks the user may not read to the reranking model. The Rerank API is therefore called separately, after the filter.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `rerankModelId` | `amazon.rerank-v1:0` | `cohere.rerank-v3-5:0` is also accepted; anything else throws at synth time |
+| `rerankCandidates` | `25` | Chunks Retrieve returns while reranking is on (10 to 100); 10 as before while it is off |
+
+When the reranking model fails or times out (3 seconds), the filtered chunks are used in Retrieve's order, top 10 (fail-open). The input is already filtered, so permissions are not affected. Chunks that are not text (images and the like) are not reranked and come after the reranked text.
+
+**[documented]** One call (up to 100 chunks) counts as one search unit ([Bedrock rerank pricing and search units](https://docs.aws.amazon.com/bedrock/latest/userguide/rerank-pricing.html)). The Pricing API prices for ap-northeast-1 (read 2026-11-17) are 0.001 USD per search unit for Amazon Rerank 1.0 and 0.002 USD for Cohere Rerank 3.5 (through AWS Marketplace). One KB-mode question is one search unit. **[verified 2026-11-17 / ap-northeast-1]** Both models answered the Rerank API in Tokyo.
+
 ### Implementation Files
 
 | File | Role |

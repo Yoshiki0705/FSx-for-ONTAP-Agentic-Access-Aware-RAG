@@ -63,10 +63,10 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
   /** エージェント定義の DynamoDB テーブル名（agentBackend=agentcore 時） */
   agentDefinitionsTableName?: string;
   /**
-   * GenU-style tools (/genai/tools). Text tools and saved use cases are always on; web
-   * extraction can be turned off; image generation is off unless enabled, and runs in
-   * `imageGenerationRegion`, which may be outside the deployment region.
+   * Rerank the chunks that passed the SID filter (`-c enableRerank=true`). Retrieve returns
+   * `candidates` chunks and the top 10 go to the answer model.
    */
+  rerank?: { modelId: string; candidates: number };
   /**
    * Per-answer feedback (thumbs up / down). Off by default: the record holds the user's
    * question (500 characters at most), so it is switched on deliberately. The web app can
@@ -76,6 +76,11 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
     enabled: boolean;
     retentionDays: number;
   };
+  /**
+   * GenU-style tools (/genai/tools). Text tools and saved use cases are always on; web
+   * extraction can be turned off; image generation is off unless enabled, and runs in
+   * `imageGenerationRegion`, which may be outside the deployment region.
+   */
   tools?: {
     enableWebExtract: boolean;
     enableImageGeneration: boolean;
@@ -321,6 +326,7 @@ export class DemoWebAppStack extends cdk.Stack {
         // the context value `tokenKeysEpoch` changes this variable, so a redeploy after
         // putting new secret values makes the function read them (docs/operations-runbook.md 11).
         TOKEN_KEYS_EPOCH: String(this.node.tryGetContext('tokenKeysEpoch') ?? '1'),
+        ...(props.rerank ? { RERANK_MODEL_ID: props.rerank.modelId, RERANK_CANDIDATES: String(props.rerank.candidates) } : {}),
         // Groups that grant the administrator role (lib/stacks/demo/admin-groups.ts)
         ADMIN_GROUP_NAMES: adminGroupNames(this.node).join(','),
         // Bedrock KB設定
@@ -545,6 +551,15 @@ export class DemoWebAppStack extends cdk.Stack {
       resources: ['*'],
     }));
 
+    // Rerank (only with enableRerank). bedrock:Rerank has no resource type, so the resource is *.
+    // The model itself is called through bedrock:InvokeModel, granted above.
+    if (props.rerank) {
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        sid: 'RerankAfterSidFilter',
+        actions: ['bedrock:Rerank'],
+        resources: ['*'],
+      }));
+    }
     // AWS Marketplace 権限（Anthropic Claude inference profile 利用に必須）
     this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
       sid: 'MarketplaceModelAccess',

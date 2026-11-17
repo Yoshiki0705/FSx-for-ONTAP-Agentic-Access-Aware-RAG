@@ -261,3 +261,20 @@ describe('feedback (enableFeedback)', () => {
   });
 });
 
+describe('rerank after the SID filter', () => {
+  const policies = (t: Template) => JSON.stringify(Object.entries(t.findResources('AWS::IAM::Policy')).filter(([id]) => /WebAppFn/.test(id)));
+  it('is off by default: no model, no candidates, no bedrock:Rerank', () => {
+    const t = synth();
+    expect(webAppEnv(t).RERANK_MODEL_ID).toBeUndefined();
+    expect(webAppEnv(t).RERANK_CANDIDATES).toBeUndefined();
+    expect(policies(t)).not.toContain('bedrock:Rerank');
+  });
+  it('passes the model and candidates and grants bedrock:Rerank when enabled', () => {
+    const t = synth(undefined, { rerank: { modelId: 'amazon.rerank-v1:0', candidates: 25 } });
+    expect(webAppEnv(t).RERANK_MODEL_ID).toBe('amazon.rerank-v1:0');
+    expect(webAppEnv(t).RERANK_CANDIDATES).toBe('25');
+    t.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: { Statement: Match.arrayWith([Match.objectLike({ Sid: 'RerankAfterSidFilter', Action: 'bedrock:Rerank', Resource: '*' })]) },
+    });
+  });
+});

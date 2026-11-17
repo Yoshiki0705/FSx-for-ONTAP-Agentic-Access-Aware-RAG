@@ -21,6 +21,7 @@ export { callConverse, resolveConverseModelId } from './converse-client';
 export { analyzeImage } from './vision-analyzer';
 export { fetchConversationHistory, normalizeActorId } from './memory-fetcher';
 export { emitRoutingMetrics } from './routing-metrics';
+export { rerankAllowed, rerankConfig } from './reranker';
 export type {
   RetrieveRequest,
   ConversationMessage,
