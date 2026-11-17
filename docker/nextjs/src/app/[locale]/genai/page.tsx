@@ -518,6 +518,8 @@ function ChatbotPageContent() {
   const [imageModalData, setImageModalData] = useState<{base64Data: string; mimeType: string} | null>(null);
   
   // Per-message routing decisions (Task 11.4)
+  // The model ID each answer was actually generated with, as reported by the server.
+  const [messageUsedModels, setMessageUsedModels] = useState<Record<string, string>>({});
   const [messageRoutingDecisions, setMessageRoutingDecisions] = useState<Record<string, { modelName: string; isAutoRouted: boolean; isManualOverride: boolean; classification?: 'simple' | 'complex'; confidence?: number; hasImageAnalysis?: boolean }>>({});
   
   // Smart Routing store (Task 11.2)
@@ -1181,7 +1183,7 @@ function ChatbotPageContent() {
   //   // 実装は将来の拡張時に追加
   // };
 
-  const generateRAGResponse = async (query: string, imageData?: string, imageMimeType?: string, routing?: { isAutoRouted: boolean; modelId?: string; classification?: { classification: 'simple' | 'complex' } | null }): Promise<{ answer: string; citations: CitationItem[] }> => {
+  const generateRAGResponse = async (query: string, imageData?: string, imageMimeType?: string, routing?: { isAutoRouted: boolean; modelId?: string; classification?: { classification: 'simple' | 'complex' } | null }): Promise<{ answer: string; citations: CitationItem[]; usedModelId?: string }> => {
     try {
       // Smart Routing: use routed modelId if auto-routed, otherwise use selectedModelId
       const effectiveModelId = (routing?.isAutoRouted && routing.modelId) ? routing.modelId : selectedModelId;
@@ -1230,7 +1232,7 @@ function ChatbotPageContent() {
             console.log('🔐 [KB] Permission filter log:', data.filterLog);
           }
 
-          return { answer: data.answer, citations: data.citations || [] };
+          return { answer: data.answer, citations: data.citations || [], usedModelId: data.metadata?.modelId };
         }
         
         // KB Retrieve APIがエラーの場合、フォールバック
@@ -1256,7 +1258,7 @@ function ChatbotPageContent() {
       const data = await response.json();
 
       if (data.success) {
-        return { answer: data.answer, citations: [] };
+        return { answer: data.answer, citations: [], usedModelId: data.modelId };
       }
       
       // エラーレスポンスの処理
@@ -1292,7 +1294,7 @@ function ChatbotPageContent() {
   // Zustand storeの agentMode === 'multi' かつ selectedTeam が存在する場合、
   // /api/bedrock/agent-team/invoke を呼び出し、multiAgentTrace を返す。
   // それ以外は従来の Single Agent 呼び出し（/api/bedrock/agent）を使用。
-  const generateAgentResponse = async (query: string): Promise<{ answer: string; citations: CitationItem[]; multiAgentTrace?: MultiAgentTraceResult }> => {
+  const generateAgentResponse = async (query: string): Promise<{ answer: string; citations: CitationItem[]; multiAgentTrace?: MultiAgentTraceResult; usedModelId?: string }> => {
     // Multi-Agent モード判定
     const { agentMode: multiMode, selectedTeam, setExecutionStatus } = useAgentTeamStore.getState();
 
@@ -1358,7 +1360,7 @@ function ChatbotPageContent() {
             }
           }
         }
-        return { answer: agentData.answer, citations: agentCitations };
+        return { answer: agentData.answer, citations: agentCitations, usedModelId: agentData.metadata?.modelId };
       }
 
       // Agent呼び出し失敗 → フォールバック: KB Retrieve + SIDフィルタリング
@@ -1598,7 +1600,7 @@ function ChatbotPageContent() {
 
     try {
       // モードに応じてRAG処理またはAgent処理を実行
-      const { answer: responseText, citations, multiAgentTrace } = agentMode
+      const { answer: responseText, citations, multiAgentTrace, usedModelId } = agentMode
         ? await generateAgentResponse(currentInput)
         : { ...await generateRAGResponse(currentInput, currentImageData, currentImageMimeType, { isAutoRouted: routingDecision.isAutoRouted, modelId: routingDecision.modelId, classification: routingDecision.classification }), multiAgentTrace: undefined };
 
@@ -1630,7 +1632,12 @@ function ChatbotPageContent() {
       }
 
       // Store routing decision for this bot message (Task 11.4)
-      const routedModelName = getModelById(routingDecision.modelId)?.name || routingDecision.modelId;
+      // The model the server actually called, when it says so; the routing choice otherwise.
+      // The routing choice can be a tier name such as `tier:light`, which is not a model.
+      const routedModelName = usedModelId
+        ? getModelById(usedModelId)?.name || usedModelId
+        : getModelById(routingDecision.modelId)?.name || routingDecision.modelId;
+      if (usedModelId) setMessageUsedModels(prev => ({ ...prev, [botMessageId]: usedModelId }));
       setMessageRoutingDecisions(prev => ({
         ...prev,
         [botMessageId]: {
@@ -2365,7 +2372,7 @@ function ChatbotPageContent() {
                       <FeedbackButtons
                         responseId={`${currentSession?.id ?? 'session'}-${message.id}`.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 64)}
                         query={[...(currentSession?.messages?.slice(0, index) ?? [])].reverse().find((m) => m.role === 'user')?.content}
-                        modelId={messageRoutingDecisions[message.id]?.modelName}
+                        modelId={messageUsedModels[message.id] ?? ''}
                         routingTier={messageRoutingDecisions[message.id]?.classification}
                         sourcePaths={(messageCitations[message.id] ?? [])
                           .filter((c) => c.boundaryType !== 'reference' && c.s3Uri)
