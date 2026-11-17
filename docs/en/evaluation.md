@@ -328,6 +328,20 @@ Checked on 2026-11-17 in ap-northeast-1: the administrator group decision and th
 
 **Scope**: One observation each. This deployment did not enable `enableAgent`, so an administrator successfully creating and deleting an agent was not checked live (the administrator's request passed the role check and reached the processing after it). Groups of federated users (`custom:ad_groups`, `custom:oidc_groups`) were checked by unit tests only. Showing and hiding the buttons on the screen was not checked live.
 
+### 3.14 Results with reranking after the SID filter
+
+Checked on 2026-11-17 in ap-northeast-1 with a deployment using `-c enableRerank=true` (model `amazon.rerank-v1:0`, 25 candidates) and the legal pack: a development-department user (`-1100`) and a legal-department user (`-4100`) each sent three questions once. The questions were about the NDA confidentiality period, what to check when reviewing a contract, and GDPR compliance.
+
+| What was checked | Result |
+|---|---|
+| Reranking | `RERANKED` all 6 times. The Rerank API call took 286 to 353 ms (median 332 ms); the whole response 4.3 to 7.9 s |
+| Chunks from Retrieve | 22 to 24 (25 were asked for; the KB had fewer chunks) |
+| Chunks left after the filter | 4 to 6 for development, the limit of 10 for legal |
+| Permissions | The NDA template (`nda-template-standard.md`) never appeared in the development user's sources and did appear in the legal user's |
+| The first source | For the legal user, the document matching each question came first all three times (the NDA template, the contract review guidelines, the GDPR checklist) |
+
+**Scope**: One observation each. The ranking was not compared with reranking turned off (whether relevance improved was not measured). `cohere.rerank-v3-5:0` was not used in the deployment; it was checked only by the CI synth lane and one direct Rerank API call (it answered in Tokyo). Fail-open when the reranking model fails was checked by unit tests only.
+
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate
