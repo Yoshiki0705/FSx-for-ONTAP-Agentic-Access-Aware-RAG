@@ -313,6 +313,21 @@ The documents that were not allowed were retrieved and then removed by the filte
 | Permissions of the web app role | IAM policy simulator | `Scan`, `Query`, `GetItem` and `PutItem` on the feedback table were all denied; only `InvokeFunction` on the collector Lambda was allowed |
 ![The feedback buttons under an answer, and the screen after sending](../screenshots/v4-feedback-buttons-ja.png)
 **Scope**: One observation each. Removal at the end of retention (DynamoDB TTL), running the weekly review queries, and feedback on Agent-mode answers were not checked. The record's `modelId` is the model tier name the screen holds (`tier:light`), not the ID of the model actually called.
+### 3.12 Results with the administrator role
+
+Checked on 2026-11-17 in ap-northeast-1: the administrator group decision and the refusal of APIs that change shared resources. Three users: `admin@example.com` in the `admins` group, a temporary user `admin-nogroup@example.com` not in the group (its email starts with admin), and the legal department's `legal-b@example.com`.
+
+| What was checked | Who | Result |
+|---|---|---|
+| Role after sign-in (`/api/auth/session`) | All 3 | Only `admin@example.com` is `administrator`. `admin-nogroup@example.com` is `user` |
+| Creating and deleting an agent, creating a team, audit logs | The 2 users outside the group | 403 for all 4 |
+| Listing agents | The 2 users outside the group | 200 (read-only operations stay open to everyone) |
+| Audit logs | `admin@example.com` | 200 |
+| Creating an agent | Not signed in | 401 |
+| Group membership of the demo administrator | `post-deploy-setup.sh` | Added `admin@example.com` to `admins` |
+
+**Scope**: One observation each. This deployment did not enable `enableAgent`, so an administrator successfully creating and deleting an agent was not checked live (the administrator's request passed the role check and reached the processing after it). Groups of federated users (`custom:ad_groups`, `custom:oidc_groups`) were checked by unit tests only. Showing and hiding the buttons on the screen was not checked live.
+
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate
