@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { resolveUser } from '@/lib/agent-backend/routes';
 
 // DynamoDBクライアントの初期化
 const dynamoClient = new DynamoDBClient({
@@ -17,7 +18,10 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, userId, title, messages, createdAt, updatedAt } = body;
+    const { sessionId, title, messages, createdAt, updatedAt } = body;
+    const resolved = await resolveUser(body.userId);
+    if (resolved instanceof NextResponse) return resolved;
+    const userId = resolved.userId;
 
     // 必須パラメータの検証
     if (!sessionId || !userId) {

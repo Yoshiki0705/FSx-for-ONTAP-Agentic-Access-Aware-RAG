@@ -13,6 +13,7 @@ import {
   BedrockAgentRuntimeClient,
   RetrieveCommand,
 } from '@aws-sdk/client-bedrock-agent-runtime';
+import { resolveUser } from '@/lib/agent-backend/routes';
 
 const MULTIMODAL_ENABLED = process.env.MULTIMODAL_ENABLED === 'true';
 
@@ -38,17 +39,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body: ImageSearchRequest = await request.json();
-    const { imageData, imageMimeType, userId } = body;
+    const { imageData, imageMimeType } = body;
+    const resolved = await resolveUser(body.userId);
+    if (resolved instanceof NextResponse) return resolved;
+    const userId = resolved.userId;
 
     if (!imageData || !imageMimeType) {
       return NextResponse.json(
         { success: false, error: 'imageData and imageMimeType are required.' },
-        { status: 400 },
-      );
-    }
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'userId is required.' },
         { status: 400 },
       );
     }

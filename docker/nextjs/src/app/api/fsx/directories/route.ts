@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { resolveUser } from '@/lib/agent-backend/routes';
 
 /**
  * ユーザーディレクトリ権限API
@@ -83,10 +84,10 @@ async function getRagAccessibleDirs(allUserSIDs: string[]): Promise<{ ragDirs: s
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const username = searchParams.get('username');
-    if (!username) {
-      return NextResponse.json({ success: false, error: 'Username required' }, { status: 400 });
-    }
+    // The directories of the signed-in user only; a different username in the query is refused.
+    const resolved = await resolveUser(searchParams.get('username') || undefined);
+    if (resolved instanceof NextResponse) return resolved;
+    const username = resolved.userId;
 
     // DynamoDB SID取得
     const sidData = await getUserSIDs(username);

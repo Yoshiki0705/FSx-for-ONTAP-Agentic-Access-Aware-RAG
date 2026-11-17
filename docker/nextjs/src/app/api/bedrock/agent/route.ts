@@ -34,6 +34,7 @@ import { createMetricsLogger } from '@/lib/monitoring/metrics';
 import { emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
 import type { MultiAgentTraceResult } from '@/types/multi-agent';
 import { modelForTier, resolveModelForInvoke } from '@/lib/model-catalog';
+import { resolveUser } from '@/lib/agent-backend/routes';
 
 const GUARDRAILS_ENABLED = process.env.GUARDRAILS_ENABLED === 'true';
 
@@ -188,7 +189,7 @@ async function pollAgentUntilPrepared(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, userId, sessionId, action, selectedAgentId, mode, teamId } = body;
+    const { message, sessionId, action, selectedAgentId, mode, teamId } = body;
 
     // Determine effective agent mode (Requirements 11.2, 11.3, 11.5)
     const effectiveMode: 'single' | 'multi' =
@@ -214,7 +215,11 @@ export async function POST(request: NextRequest) {
     // アクション別処理 (existing single-agent logic)
     switch (action) {
       case 'invoke':
-        return await handleInvokeAgent(message, userId, sessionId, selectedAgentId);
+        {
+          const resolvedUser = await resolveUser(body.userId);
+          if (resolvedUser instanceof NextResponse) return resolvedUser;
+          return await handleInvokeAgent(message, resolvedUser.userId, sessionId, selectedAgentId);
+        }
       case 'create':
         return await handleCreateAgent(body);
       case 'delete':
@@ -241,7 +246,11 @@ export async function POST(request: NextRequest) {
         return await handleListAgentKBs(body);
       default:
         // デフォルトはinvokeアクション（後方互換性）
-        return await handleInvokeAgent(message, userId, sessionId, selectedAgentId);
+        {
+          const resolvedUser = await resolveUser(body.userId);
+          if (resolvedUser instanceof NextResponse) return resolvedUser;
+          return await handleInvokeAgent(message, resolvedUser.userId, sessionId, selectedAgentId);
+        }
     }
   } catch (error) {
     console.error('[Bedrock Agent API] Error:', error);
@@ -266,7 +275,10 @@ async function handleMultiAgentInvoke(
   request: NextRequest,
   body: any,
 ): Promise<NextResponse> {
-  const { message, userId, sessionId, teamId } = body;
+  const { message, sessionId, teamId } = body;
+  const resolvedUser = await resolveUser(body.userId);
+  if (resolvedUser instanceof NextResponse) return resolvedUser;
+  const userId = resolvedUser.userId;
 
   if (!message) {
     return NextResponse.json(

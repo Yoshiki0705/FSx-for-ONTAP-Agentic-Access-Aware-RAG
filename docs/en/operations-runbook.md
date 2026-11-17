@@ -287,3 +287,20 @@ aws logs filter-log-events \
 - [Production Readiness Checklist](../production-readiness-checklist.md) — Pre-production requirements
 - [Cost Estimation Worksheet](../cost-estimation-worksheet.md) — Monthly cost estimates
 - [metadata-json-schema](../metadata-json-schema.md) — .metadata.json formal spec
+
+## 11. Rotating the Web App Token Keys
+The web app signs its session (JWT) and CSRF tokens with the values of the Secrets Manager secrets `${PREFIX}-webapp-jwt-key` and `${PREFIX}-webapp-csrf-key`, which the WebApp stack creates. The values are generated per deployment and reach the Lambda environment through CloudFormation dynamic references. In production, a web app without the keys neither issues nor verifies tokens.
+
+Rotating the keys ends every existing session; users sign in again.
+
+```bash
+# 1. Generate and store new values (JWT and CSRF)
+aws secretsmanager put-secret-value --secret-id ${PREFIX}-webapp-jwt-key \
+  --secret-string "$(aws secretsmanager get-random-password --password-length 64 --exclude-punctuation --query RandomPassword --output text)"
+aws secretsmanager put-secret-value --secret-id ${PREFIX}-webapp-csrf-key \
+  --secret-string "$(aws secretsmanager get-random-password --password-length 64 --exclude-punctuation --query RandomPassword --output text)"
+
+# 2. Redeploy the WebApp stack with a tokenKeysEpoch different from the last one.
+#    CloudFormation re-reads dynamic references only when the function changes, so the value forces that update.
+npx cdk deploy perm-rag-demo-demo-WebApp --require-approval never -c tokenKeysEpoch=$(date -u +%Y%m%d%H%M)
+```

@@ -24,13 +24,13 @@ import {
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import type { AgentTeamConfig, AgentTeamTemplate } from '@/types/multi-agent';
+import { jwtSecretKey } from '@/lib/auth/secrets';
 
 // ===== Configuration =====
 
 const REGION = process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
 const SHARED_BUCKET = process.env.SHARED_AGENT_BUCKET || '';
 const TEMPLATE_PREFIX = 'agent-team-templates/';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 // ===== S3 Client (lazy init) =====
 
@@ -60,7 +60,7 @@ async function authenticateRequest(request: NextRequest): Promise<AuthResult | n
     if (!token) {
       return null;
     }
-    const jwtSecret = new TextEncoder().encode(JWT_SECRET);
+    const jwtSecret = jwtSecretKey();
     const { payload } = await jwtVerify(token, jwtSecret);
     return {
       userId: payload.userId as string,

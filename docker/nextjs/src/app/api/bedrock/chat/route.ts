@@ -18,6 +18,7 @@ import {
   isAI21Model,
 } from '@/lib/bedrock-invoke-model-ai21';
 import { joinText } from '@/lib/model-catalog/response';
+import { resolveUser } from '@/lib/agent-backend/routes';
 
 /**
  * モデルIDからプロバイダー名を推測
@@ -644,8 +645,9 @@ export async function POST(request: NextRequest) {
   let message: string | undefined;
   let userId: string | undefined;
   let modelId: string | undefined;
+  let bodyUserId: unknown;
   try {
-    ({ message, userId, modelId } = await request.json());
+    ({ message, userId: bodyUserId, modelId } = await request.json());
   } catch {
     return NextResponse.json({
       success: false,
@@ -653,6 +655,9 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     }, { status: 400 });
   }
+  const resolvedUser = await resolveUser(bodyUserId);
+  if (resolvedUser instanceof NextResponse) return resolvedUser;
+  userId = resolvedUser.userId;
   const clientIP = getClientIpAddress(request);
   
   // Cookieからリージョンを取得

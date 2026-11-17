@@ -15,6 +15,11 @@ const mockBedrockSend = jest.fn();
 const mockConverseCommand = jest.fn();
 
 // Mock AgentCore SDK
+// The route takes the user from the signed-in session; these tests sign in as 'test-user'.
+jest.mock('@/lib/agent-backend', () => ({
+  ...jest.requireActual('@/lib/agent-backend'),
+  sessionUserId: async () => 'test-user',
+}));
 jest.mock('@aws-sdk/client-bedrock-agentcore', () => ({
   BedrockAgentCoreClient: jest.fn().mockImplementation(() => ({
     send: (...args: any[]) => mockAgentCoreSend(...args),

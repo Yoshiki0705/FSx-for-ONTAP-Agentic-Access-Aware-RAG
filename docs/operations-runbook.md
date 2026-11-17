@@ -553,3 +553,20 @@ for label, text in tests:
     print(f'{label}: {resp[\"action\"]}')
 "
 ```
+
+## 11. Web アプリのトークン鍵の更新
+Web アプリのセッション（JWT）と CSRF のトークンは、WebApp スタックが作る Secrets Manager のシークレット `${PREFIX}-webapp-jwt-key` と `${PREFIX}-webapp-csrf-key` の値で署名します。値はデプロイごとに生成され、Lambda の環境変数には CloudFormation の動的参照で渡ります。鍵が設定されていない本番の環境では、Web アプリはトークンを発行も検証もしません。
+
+鍵を更新すると、それまでのセッションはすべて無効になり、利用者はサインインし直します。
+
+```bash
+# 1. 新しい値を生成して書き込む（JWT と CSRF のそれぞれ）
+aws secretsmanager put-secret-value --secret-id ${PREFIX}-webapp-jwt-key \
+  --secret-string "$(aws secretsmanager get-random-password --password-length 64 --exclude-punctuation --query RandomPassword --output text)"
+aws secretsmanager put-secret-value --secret-id ${PREFIX}-webapp-csrf-key \
+  --secret-string "$(aws secretsmanager get-random-password --password-length 64 --exclude-punctuation --query RandomPassword --output text)"
+
+# 2. tokenKeysEpoch を前回と違う値にして WebApp スタックをデプロイし直す。
+#    CloudFormation は関数が変わったときにだけ動的参照を読み直すため、値を変えて関数を更新させる。
+npx cdk deploy perm-rag-demo-demo-WebApp --require-approval never -c tokenKeysEpoch=$(date -u +%Y%m%d%H%M)
+```

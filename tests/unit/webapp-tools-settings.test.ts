@@ -185,4 +185,21 @@ describe('video generation (enableVideoGeneration)', () => {
     });
   });
 });
+describe('session and CSRF token keys', () => {
+  it('generates both keys per deployment and passes them as dynamic references, not values', () => {
+    const t = synth();
+    const secrets = t.findResources('AWS::SecretsManager::Secret');
+    const names = Object.values(secrets).map((r: any) => r.Properties.Name);
+    expect(names).toEqual(expect.arrayContaining(['testproj-dev-webapp-jwt-key', 'testproj-dev-webapp-csrf-key']));
+    for (const r of Object.values(secrets) as any[]) {
+      expect(r.Properties.GenerateSecretString).toMatchObject({ PasswordLength: 64 });
+    }
+    const env = webAppEnv(t);
+    for (const key of ['JWT_SECRET', 'CSRF_SECRET']) {
+      const value = JSON.stringify(env[key]);
+      expect(value).toContain('{{resolve:secretsmanager:');
+      expect(value).not.toMatch(/change-in-production/);
+    }
+  });
+});
 

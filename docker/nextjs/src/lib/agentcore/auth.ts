@@ -11,8 +11,8 @@
 
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
+import { jwtSecretKey } from '@/lib/auth/secrets';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 const COOKIE_NAME = 'session-token';
 
 /**
@@ -29,7 +29,7 @@ export async function authenticateRequest(): Promise<{ userId: string } | null> 
       return null;
     }
 
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = jwtSecretKey();
     const { payload } = await jwtVerify(token, secret);
 
     const rawUserId = (payload.userId as string) || (payload.username as string);

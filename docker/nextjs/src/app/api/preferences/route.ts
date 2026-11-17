@@ -14,6 +14,7 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCo
 import { jwtVerify } from 'jose';
 import { CSRFMiddleware } from '@/lib/security/csrf-protection';
 import { DEFAULT_REGION } from '@/config/model-defaults';
+import { csrfSecret, jwtSecretKey } from '@/lib/auth/secrets';
 
 // DynamoDBクライアント初期化
 const dynamoClient = new DynamoDBClient({
@@ -22,8 +23,6 @@ const dynamoClient = new DynamoDBClient({
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 const USER_PREFERENCES_TABLE_NAME = process.env.USER_PREFERENCES_TABLE_NAME || 'permission-aware-rag-user-preferences';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production-2024';
-const CSRF_SECRET = process.env.CSRF_SECRET || 'your-csrf-secret-change-in-production-2024';
 
 // 動的にallowedOriginsを構築（環境変数から取得）
 const getAllowedOrigins = (): string[] => {
@@ -47,10 +46,12 @@ const getAllowedOrigins = (): string[] => {
 };
 
 // CSRFMiddleware インスタンス
-const csrfMiddleware = new CSRFMiddleware({
-  secret: CSRF_SECRET,
-  allowedOrigins: getAllowedOrigins()
-});
+// Built on first use: the secret must not be read at module load (lib/auth/secrets.ts).
+let csrfInstance: CSRFMiddleware | null = null;
+function csrfMiddleware(): CSRFMiddleware {
+  csrfInstance ??= new CSRFMiddleware({ secret: csrfSecret(), allowedOrigins: getAllowedOrigins() });
+  return csrfInstance;
+}
 
 interface UserPreferences {
   userId: string;
@@ -99,7 +100,7 @@ async function authenticateRequest(request: NextRequest): Promise<{ userId: stri
       return null;
     }
 
-    const jwtSecret = new TextEncoder().encode(JWT_SECRET);
+    const jwtSecret = jwtSecretKey();
     const { payload } = await jwtVerify(token, jwtSecret);
     
     return {
@@ -212,7 +213,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // CSRF保護の検証
-    const csrfValidation = await csrfMiddleware.validateRequest(request);
+    const csrfValidation = await csrfMiddleware().validateRequest(request);
     if (!csrfValidation.valid) {
       console.warn('[Preferences] CSRF検証失敗:', csrfValidation.error);
       return NextResponse.json(
@@ -298,7 +299,7 @@ export async function PUT(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     // CSRF保護の検証
-    const csrfValidation = await csrfMiddleware.validateRequest(request);
+    const csrfValidation = await csrfMiddleware().validateRequest(request);
     if (!csrfValidation.valid) {
       console.warn('[Preferences] CSRF検証失敗:', csrfValidation.error);
       return NextResponse.json(
@@ -371,7 +372,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // CSRF保護の検証
-    const csrfValidation = await csrfMiddleware.validateRequest(request);
+    const csrfValidation = await csrfMiddleware().validateRequest(request);
     if (!csrfValidation.valid) {
       console.warn('[Preferences] CSRF検証失敗:', csrfValidation.error);
       return NextResponse.json(

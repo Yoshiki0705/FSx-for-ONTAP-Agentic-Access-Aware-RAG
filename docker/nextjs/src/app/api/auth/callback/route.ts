@@ -7,6 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { SignJWT, decodeJwt } from "jose";
+import { jwtSecretKey } from '@/lib/auth/secrets';
 
 const COGNITO_DOMAIN = process.env.COGNITO_DOMAIN || "";
 const COGNITO_REGION = process.env.COGNITO_REGION || process.env.AWS_REGION || "ap-northeast-1";
@@ -14,9 +15,6 @@ const COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID || "";
 const COGNITO_CLIENT_SECRET = process.env.COGNITO_CLIENT_SECRET || "";
 const CALLBACK_URL = process.env.CALLBACK_URL || "";
 
-const jwtSecret = new TextEncoder().encode(
-  process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production"
-);
 
 /**
  * IDトークンペイロードからロールを判定する。
@@ -121,7 +119,7 @@ export async function GET(request: Request) {
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("24h")
-      .sign(jwtSecret);
+      .sign(jwtSecretKey());
 
     console.log(`✅ OAuth Callback成功: ${email} (role: ${role}, authMethod: saml)`);
 

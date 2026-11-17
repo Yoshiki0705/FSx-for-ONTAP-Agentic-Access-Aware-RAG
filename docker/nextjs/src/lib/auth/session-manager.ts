@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient, PutCommand, GetCommand, DeleteCommand, UpdateCo
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtSecretKey } from '@/lib/auth/secrets';
 
 export interface User {
   username: string;
@@ -31,7 +32,10 @@ export interface SessionToken {
 class SessionManager {
   private dynamoClient: DynamoDBDocumentClient;
   private tableName: string;
-  private jwtSecret: Uint8Array;
+  /** Read on use, not at construction: see lib/auth/secrets.ts. */
+  private get jwtSecret(): Uint8Array {
+    return jwtSecretKey();
+  }
   private cookieName = 'session-token';
   private sessionTimeout = 24 * 60 * 60 * 1000; // 24時間
 
@@ -40,9 +44,6 @@ class SessionManager {
     // 実際のDynamoDBアクセス時に初期化される
     this.dynamoClient = null as any; // 遅延初期化
     this.tableName = process.env.SESSION_TABLE_NAME || 'permission-aware-rag-sessions';
-    this.jwtSecret = new TextEncoder().encode(
-      process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
-    );
     
     console.log('[SessionManager] 初期化完了 (DynamoDBは遅延初期化):', {
       tableName: this.tableName,
