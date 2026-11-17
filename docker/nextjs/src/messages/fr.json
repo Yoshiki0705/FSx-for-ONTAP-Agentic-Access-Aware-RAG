@@ -1590,7 +1590,7 @@
       "run": "Générer l’image"
     },
     "useCases": {
-      "intro": "Enregistrez les instructions fréquentes comme modèles. Vous seul pouvez voir et exécuter vos cas d’usage.",
+      "intro": "Enregistrez comme modèles les instructions que vous utilisez souvent. Un cas d'usage enregistré n'est visible et utilisable que par vous, sauf si vous le partagez.",
       "new": "Nouveau cas d’usage",
       "title": "Nom",
       "description": "Description",
@@ -1605,7 +1605,21 @@
       "run": "Exécuter",
       "edit": "Modifier",
       "delete": "Supprimer",
-      "input": "Texte à traiter"
+      "input": "Texte à traiter",
+      "share": "Partager (tous les utilisateurs connectés peuvent le voir, l'exécuter et le copier ; vous seul pouvez le modifier ou le supprimer)",
+      "sharedBadge": "Partagé",
+      "sharedTitle": "Cas d'usage partagés",
+      "sharedIntro": "Cas d'usage partagés par d'autres utilisateurs. Leur exécution n'utilise que les documents internes que vous pouvez lire. Copiez-en un pour le modifier pour vous.",
+      "sharedEmpty": "Aucun cas d'usage partagé pour l'instant.",
+      "copy": "Copier dans mes cas d'usage",
+      "copied": "« {title} » a été copié dans vos cas d'usage.",
+      "unshare": "Arrêter le partage (administrateur)",
+      "showTemplate": "Afficher le modèle",
+      "export": "Exporter (JSON)",
+      "import": "Importer (JSON)",
+      "importDone": "{count} cas d'usage importés.",
+      "importInvalid": "Le fichier ne peut pas être lu comme du JSON.",
+      "fileTooLarge": "Le fichier est trop volumineux (1 Mo au maximum)."
     },
     "languages": {
       "ja": "Japonais",

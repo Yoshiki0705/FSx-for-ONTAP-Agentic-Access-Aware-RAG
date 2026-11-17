@@ -1479,7 +1479,7 @@
       "run": "Generate image"
     },
     "useCases": {
-      "intro": "Save instructions you use often as templates. Only you can see and run your saved use cases.",
+      "intro": "Save instructions you use often as templates. A saved use case is visible and usable only by you unless you share it.",
       "new": "New use case",
       "title": "Name",
       "description": "Description",
@@ -1494,7 +1494,21 @@
       "run": "Run",
       "edit": "Edit",
       "delete": "Delete",
-      "input": "Text to work on"
+      "input": "Text to work on",
+      "share": "Share (every signed-in user can see, run and copy it; only you can edit or delete it)",
+      "sharedBadge": "Shared",
+      "sharedTitle": "Shared use cases",
+      "sharedIntro": "Use cases other users shared. Running one uses only the internal documents you may read. Copy it to change it for yourself.",
+      "sharedEmpty": "No shared use cases yet.",
+      "copy": "Copy to my use cases",
+      "copied": "Copied \"{title}\" to your use cases.",
+      "unshare": "Stop sharing (administrator)",
+      "showTemplate": "Show the template",
+      "export": "Export (JSON)",
+      "import": "Import (JSON)",
+      "importDone": "Imported {count} use cases.",
+      "importInvalid": "The file cannot be read as JSON.",
+      "fileTooLarge": "The file is too large (1 MB at most)."
     },
     "languages": {
       "ja": "Japanese",
