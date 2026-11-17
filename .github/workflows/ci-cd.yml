@@ -388,6 +388,9 @@ jobs:
           # 回答ごとの評価の保存（既定は無効）。テーブル、Lambda、呼び出し権限、読み取り用ポリシーを cdk-nag にかける。
           - name: feedback
             flags: '-c enableFeedback=true'
+          # SID フィルタの後のリランキング（既定は無効）。bedrock:Rerank の権限を cdk-nag にかける。
+          - name: rerank
+            flags: '-c enableRerank=true -c rerankModelId=cohere.rerank-v3-5:0'
           # ツールの動画の生成（既定は無効）。us-west-2 の出力バケットのスタック、クロスリージョン参照、Bedrock の非同期呼び出しの IAM を cdk-nag にかける。
           - name: tools-video-generation
             flags: '-c enableVideoGeneration=true'

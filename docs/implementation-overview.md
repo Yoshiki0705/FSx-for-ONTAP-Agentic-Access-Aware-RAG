@@ -475,6 +475,19 @@ Retrieve APIを使用する理由: RetrieveAndGenerate APIはcitationのメタ�
 | メタデータにSID情報なし | 該当ドキュメント拒否 |
 | SIDマッチなし | 該当ドキュメント拒否 |
 | SIDマッチあり | 該当ドキュメント許可 |
+### フィルタの後のリランキング（任意）
+
+`-c enableRerank=true`（既定は無効）で、SID フィルタとチャンクの安全性チェックを通ったチャンクだけを Bedrock の Rerank API で関連度の順に並べ替え、上位 10 件を回答のモデルに渡します。Knowledge Base の Retrieve にも並べ替えの設定がありますが、Retrieve は SID フィルタの前に動くため、そこで並べ替えると利用者が読めないチャンクも並べ替えのモデルに送られます。ここでは送らないために、フィルタの後で別に呼びます。
+
+| 設定 | 既定 | 内容 |
+|---|---|---|
+| `rerankModelId` | `amazon.rerank-v1:0` | `cohere.rerank-v3-5:0` も指定できる。それ以外は synth 時に throw |
+| `rerankCandidates` | `25` | 有効なときに Retrieve が返すチャンクの数（10〜100）。無効なときは従来どおり 10 |
+
+並べ替えのモデルがエラーやタイムアウト（3 秒）になったときは、フィルタを通ったチャンクを Retrieve の順のまま上位 10 件使います（Fail-Open）。入力はすでにフィルタ済みなので、権限には影響しません。画像などテキスト以外のチャンクは並べ替えず、並べ替えたテキストの後に置きます。
+
+**[documented]** 料金は 1 回の呼び出し（100 チャンクまで）を 1 検索単位として数えます（[Bedrock の rerank の料金と検索単位](https://docs.aws.amazon.com/bedrock/latest/userguide/rerank-pricing.html)）。Pricing API の ap-northeast-1 の単価（2026-11-17 に取得）は、Amazon Rerank 1.0 が 1 検索単位あたり 0.001 USD、Cohere Rerank 3.5 が 0.002 USD（AWS Marketplace 経由）です。KB モードの質問 1 回で 1 検索単位です。**[verified 2026-11-17 / ap-northeast-1]** 2 つのモデルとも東京で Rerank API に応答しました。
+
 
 ### 実装ファイル
 

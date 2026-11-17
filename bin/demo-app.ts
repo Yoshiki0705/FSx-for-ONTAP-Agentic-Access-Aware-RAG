@@ -453,6 +453,18 @@ if (tokenKeysEpoch !== undefined && !/^[A-Za-z0-9._-]{1,32}$/.test(String(tokenK
   throw new Error(`tokenKeysEpoch must be 1 to 32 letters, digits, '.', '_' or '-': ${tokenKeysEpoch}`);
 }
 const enableFeedback = ctxBool('enableFeedback');
+// Reranking after the SID filter (docker/nextjs/src/lib/rag-pipeline/reranker.ts). Only the two
+// rerank models Bedrock offers in Tokyo are accepted; a typo throws instead of turning reranking off.
+const RERANK_MODELS = ['amazon.rerank-v1:0', 'cohere.rerank-v3-5:0'];
+const rerankModelId = String(app.node.tryGetContext('rerankModelId') ?? 'amazon.rerank-v1:0');
+if (!RERANK_MODELS.includes(rerankModelId)) {
+  throw new Error(`rerankModelId must be one of ${RERANK_MODELS.join(', ')}: ${rerankModelId}`);
+}
+const rerankCandidates = Number(app.node.tryGetContext('rerankCandidates') ?? 25);
+if (!Number.isInteger(rerankCandidates) || rerankCandidates < 10 || rerankCandidates > 100) {
+  throw new Error(`rerankCandidates must be an integer from 10 to 100: ${app.node.tryGetContext('rerankCandidates')}`);
+}
+const rerank = ctxBool('enableRerank') ? { modelId: rerankModelId, candidates: rerankCandidates } : undefined;
 const feedbackRetentionDays = Number(app.node.tryGetContext('feedbackRetentionDays') ?? 90);
 if (!Number.isInteger(feedbackRetentionDays) || feedbackRetentionDays < 1 || feedbackRetentionDays > 3650) {
   throw new Error(`feedbackRetentionDays must be an integer from 1 to 3650: ${app.node.tryGetContext('feedbackRetentionDays')}`);
@@ -509,6 +521,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentDefinitionsTableName: aiStack.agentDefinitionsTableName,
   tools: toolsSettings,
   feedback: { enabled: enableFeedback, retentionDays: feedbackRetentionDays },
+  rerank,
   models: { families: modelFamilies, profilePreference: modelProfilePreference },
   actionGroupLambdaArn: aiStack.actionGroupLambdaArn,
   sharedAgentBucketName: aiStack.sharedAgentBucketName,

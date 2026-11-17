@@ -47,6 +47,7 @@ import {
   type ChunkSafetyResult,
 } from '@/lib/rag-pipeline';
 import { resolveUser } from '@/lib/agent-backend/routes';
+import { rerankAllowed, rerankConfig, MAX_RERANK_SOURCES } from '@/lib/rag-pipeline/reranker';
 
 // === Feature flags ===
 const ENABLE_AGENTCORE_MEMORY = process.env.ENABLE_AGENTCORE_MEMORY === 'true';
@@ -57,6 +58,12 @@ const MULTIMODAL_ENABLED = process.env.MULTIMODAL_ENABLED === 'true';
 const MULTIMODAL_TIMEOUT_MS = 15_000;
 
 const kbRouter = new KBQueryRouter(buildRouterConfigFromEnv());
+/** Chunks Retrieve returns: more when reranking picks the top ones after the SID filter. */
+function retrieveCount(): number {
+  if (!rerankConfig()) return 10;
+  const n = Number(process.env.RERANK_CANDIDATES || 25);
+  return Number.isInteger(n) && n >= 10 && n <= MAX_RERANK_SOURCES ? n : 25;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -116,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     const retrieveFromKB = async (kbId: string) => {
       const vectorSearchConfig = {
-        numberOfResults: 10,
+        numberOfResults: retrieveCount(),
         ...buildVectorSearchConfig(body.searchType),
       };
       const resp = await kbClient.send(new RetrieveCommand({
@@ -241,6 +248,13 @@ export async function POST(request: NextRequest) {
       console.log(`[ChunkSafety] Result: ${chunkSafetyResult.blockedCount} chunks blocked, ${allowed.length} remaining`);
     }
 
+    // === Step 5b: Rerank (only the chunks that passed the filters; off unless enabled) ===
+    const rerank = await rerankAllowed(query, allowed, region);
+    if (rerank.method !== 'SKIPPED_DISABLED') {
+      allowed = rerank.docs;
+      (filterLog as Record<string, unknown>).rerank = { method: rerank.method, modelId: rerank.modelId, latencyMs: rerank.latencyMs, kept: allowed.length };
+      console.log(`[Rerank] ${rerank.method}: ${allowed.length} kept (${rerank.latencyMs} ms)`);
+    }
     // === Step 6: Converse API (answer generation with Prompt Caching) ===
     const converseModelId = await resolveConverseModelId(rawModelId, region);
 
@@ -291,6 +305,7 @@ export async function POST(request: NextRequest) {
           ...(MULTIMODAL_ENABLED ? { multimodalEnabled: true, routeDecision: routeDecision.reason } : {}),
           ...(multimodalFallback ? { multimodalFallback: true } : {}),
           ...(chunkSafetyResult.method !== 'SKIP_DISABLED' ? { chunkSafety: { method: chunkSafetyResult.method, blockedCount: chunkSafetyResult.blockedCount, latencyMs: chunkSafetyResult.latencyMs } } : {}),
+          ...(rerank.method !== 'SKIPPED_DISABLED' ? { rerank: { method: rerank.method, modelId: rerank.modelId, latencyMs: rerank.latencyMs } } : {}),
         },
       });
     } else {
