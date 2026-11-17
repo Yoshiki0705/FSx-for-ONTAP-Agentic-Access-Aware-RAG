@@ -312,7 +312,7 @@ The documents that were not allowed were retrieved and then removed by the filte
 | Sending without signing in | Not signed in | 401 |
 | Permissions of the web app role | IAM policy simulator | `Scan`, `Query`, `GetItem` and `PutItem` on the feedback table were all denied; only `InvokeFunction` on the collector Lambda was allowed |
 ![The feedback buttons under an answer, and the screen after sending](../screenshots/v4-feedback-buttons-ja.png)
-**Scope**: One observation each. Removal at the end of retention (DynamoDB TTL), running the weekly review queries, and feedback on Agent-mode answers were not checked. The `modelId` in the "stored record" row (`tier:light`) was the model tier name the screen holds, not the ID of the model actually called. It was later changed to store the ID of the model the server reports it called. Tier names (values starting with `tier:`) are not stored. The stored value after the change was checked by unit tests; it will be checked on a live deployment at the next live check.
+**Scope**: One observation each. Removal at the end of retention (DynamoDB TTL), running the weekly review queries, and feedback on Agent-mode answers were not checked. The `modelId` in the "stored record" row (`tier:light`) was the model tier name the screen holds, not the ID of the model actually called. It was later changed to store the ID of the model the server reports it called. Tier names (values starting with `tier:`) are not stored. Checked on 2026-11-17 in ap-northeast-1: for a legal-department user's rating of a KB-mode answer, the record's `modelId` was `jp.anthropic.claude-haiku-5-5`. A rating sent with `tier:light` in the body was stored with an empty `modelId`.
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate
