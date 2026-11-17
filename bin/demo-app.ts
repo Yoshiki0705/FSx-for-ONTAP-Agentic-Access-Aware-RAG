@@ -448,6 +448,10 @@ const videoModelIdCtx = app.node.tryGetContext('videoModelId');
 if (videoModelIdCtx !== undefined && !/^[a-z0-9.:-]+$/.test(String(videoModelIdCtx))) {
   throw new Error(`videoModelId is not a model ID: ${videoModelIdCtx}`);
 }
+const tokenKeysEpoch = app.node.tryGetContext('tokenKeysEpoch');
+if (tokenKeysEpoch !== undefined && !/^[A-Za-z0-9._-]{1,32}$/.test(String(tokenKeysEpoch))) {
+  throw new Error(`tokenKeysEpoch must be 1 to 32 letters, digits, '.', '_' or '-': ${tokenKeysEpoch}`);
+}
 const toolsSettings = {
   enableWebExtract: app.node.tryGetContext('enableWebExtract') !== 'false' && app.node.tryGetContext('enableWebExtract') !== false,
   enableImageGeneration: ctxBool('enableImageGeneration'),

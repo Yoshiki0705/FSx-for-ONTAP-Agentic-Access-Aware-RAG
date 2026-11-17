@@ -21,6 +21,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 import { MonitoringConstruct } from '../../constructs/monitoring-construct';
@@ -252,6 +253,21 @@ export class DemoWebAppStack extends cdk.Stack {
         cors: [{ allowedMethods: [s3.HttpMethods.PUT], allowedOrigins: ['*'], allowedHeaders: ['*'], maxAge: 300 }],
       })
       : undefined;
+    // Keys that sign the web app's session tokens and CSRF tokens, generated per deployment.
+    // The Lambda gets the values through CloudFormation dynamic references (resolved at
+    // deploy time; the template holds only the reference).
+    const jwtKey = new secretsmanager.Secret(this, 'WebAppJwtKey', {
+      secretName: `${prefix}-webapp-jwt-key`,
+      description: 'Signing key for web app session tokens (JWT)',
+      generateSecretString: { passwordLength: 64, excludePunctuation: true },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+    const csrfKey = new secretsmanager.Secret(this, 'WebAppCsrfKey', {
+      secretName: `${prefix}-webapp-csrf-key`,
+      description: 'Signing key for web app CSRF tokens',
+      generateSecretString: { passwordLength: 64, excludePunctuation: true },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
     this.webAppFunction = new lambda.DockerImageFunction(this, 'WebAppFn', {
       functionName: `${prefix}-webapp`,
       code: lambda.DockerImageCode.fromEcr(
@@ -269,6 +285,13 @@ export class DemoWebAppStack extends cdk.Stack {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         COGNITO_CLIENT_ID: userPoolClient.userPoolClientId,
         COGNITO_REGION: cdk.Aws.REGION,
+        // Session and CSRF token keys (see WebAppJwtKey and WebAppCsrfKey above)
+        JWT_SECRET: jwtKey.secretValue.unsafeUnwrap(),
+        CSRF_SECRET: csrfKey.secretValue.unsafeUnwrap(),
+        // CloudFormation resolves the two references only when the function changes. Changing
+        // the context value `tokenKeysEpoch` changes this variable, so a redeploy after
+        // putting new secret values makes the function read them (docs/operations-runbook.md 11).
+        TOKEN_KEYS_EPOCH: String(this.node.tryGetContext('tokenKeysEpoch') ?? '1'),
         // Bedrock KB設定
         BEDROCK_KB_ID: knowledgeBaseId,
         BEDROCK_REGION: cdk.Aws.REGION,
@@ -967,6 +990,13 @@ export class DemoWebAppStack extends cdk.Stack {
         },
       ], true);
     }
+
+    NagSuppressions.addResourceSuppressions([jwtKey, csrfKey], [
+      {
+        id: 'AwsSolutions-SMG4',
+        reason: 'The web app reads these keys from its environment at start-up, so rotating them needs a redeploy of this stack; rotation would also end every signed-in session. Rotate by replacing the secret and redeploying (docs/operations-runbook.md).',
+      },
+    ]);
 
     NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/AccessLogBucket/Resource`, [
       {

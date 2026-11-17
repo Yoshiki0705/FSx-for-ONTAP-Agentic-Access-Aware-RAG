@@ -5,14 +5,12 @@ import {
   GetUserCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { SignJWT } from "jose";
+import { jwtSecretKey } from '@/lib/auth/secrets';
 
 const cognitoClient = new CognitoIdentityProviderClient({
   region: process.env.COGNITO_REGION || process.env.AWS_REGION || "ap-northeast-1",
 });
 
-const jwtSecret = new TextEncoder().encode(
-  process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production"
-);
 
 // ローカル開発用デモユーザー（COGNITO_CLIENT_ID未設定時に使用）
 const LOCAL_DEMO_USERS: Record<string, { password: string; role: string; permissions: string[] }> = {
@@ -56,7 +54,7 @@ async function handleLocalAuth(username: string, password: string): Promise<Resp
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("24h")
-    .sign(jwtSecret);
+    .sign(jwtSecretKey());
 
   console.log(`✅ ローカルデモ認証成功: ${username} (role: ${demoUser.role})`);
 
@@ -87,6 +85,11 @@ export async function POST(request: Request) {
 
     // Cognito未設定時はローカルデモ認証にフォールバック
     if (!clientId) {
+      // The local demo users are for `npm run dev` only; a deployment signs in with Cognito.
+      if (process.env.NODE_ENV === "production") {
+        console.error("[SignIn API] COGNITO_CLIENT_ID is not set; refusing the local demo users");
+        return NextResponse.json({ success: false, error: "Sign-in is not configured" }, { status: 503 });
+      }
       console.log("[SignIn API] COGNITO_CLIENT_ID 未設定 → ローカルデモ認証モード");
       return handleLocalAuth(username, password);
     }
@@ -159,7 +162,7 @@ export async function POST(request: Request) {
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("24h")
-      .sign(jwtSecret);
+      .sign(jwtSecretKey());
 
     console.log(`✅ Cognito認証成功: ${email} (role: ${role})`);
 

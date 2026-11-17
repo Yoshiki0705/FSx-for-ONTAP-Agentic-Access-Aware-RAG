@@ -277,12 +277,10 @@ async function processWithRAGPipeline(
     const baseUrl = originalRequest.nextUrl.origin;
     const retrieveUrl = `${baseUrl}/api/bedrock/kb/retrieve`;
 
-    // Extract userId from auth context (simplified — in production, decode JWT)
-    const userId = originalRequest.headers.get('x-user-id') || 'voice-user';
-
+    // The retrieve route takes the user from the session cookie, so the caller's cookie is
+    // forwarded and no user ID is sent.
     const requestBody: Record<string, unknown> = {
       query,
-      userId,
       agentMode: mode !== 'kb',
       agentId: agentId || undefined,
     };
@@ -292,7 +290,7 @@ async function processWithRAGPipeline(
       headers: {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
-        'x-user-id': userId,
+        cookie: originalRequest.headers.get('cookie') || '',
       },
       body: JSON.stringify(requestBody),
     });

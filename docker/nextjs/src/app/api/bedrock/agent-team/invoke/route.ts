@@ -27,12 +27,13 @@ import type {
   CollaboratorRole,
 } from '@/types/multi-agent';
 import { calculateEstimatedCost } from '@/types/multi-agent';
+import { jwtSecretKey } from '@/lib/auth/secrets';
+import { resolveUser } from '@/lib/agent-backend/routes';
 
 // ===== Configuration =====
 
 const REGION = process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
 const AGENT_TEAM_TABLE = process.env.AGENT_TEAM_TABLE_NAME || 'permission-aware-rag-agent-teams';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 // ===== Clients (lazy init) =====
 
@@ -65,7 +66,7 @@ async function authenticateRequest(request: NextRequest): Promise<AuthResult | n
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) return null;
-    const jwtSecret = new TextEncoder().encode(JWT_SECRET);
+    const jwtSecret = jwtSecretKey();
     const { payload } = await jwtVerify(token, jwtSecret);
     return {
       userId: payload.userId as string,
@@ -397,15 +398,11 @@ export async function POST(request: NextRequest) {
     if (isAgentCore()) {
       return await agentCoreRoutes.teamInvokeResponse(await request.json());
     }
-    // 認証チェック — ミドルウェアレベルで認証済みのため、トークンがない場合はデフォルトユーザーを使用
-    const auth = await authenticateRequest(request) || {
-      userId: 'anonymous',
-      username: 'anonymous',
-    };
-
     const body = await request.json();
-    const { teamId, message, sessionId, userId } = body;
-
+    const { teamId, message, sessionId } = body;
+    // The user comes from the session; a userId in the body must match it.
+    const resolved = await resolveUser(body.userId);
+    if (resolved instanceof NextResponse) return resolved;
     // バリデーション
     if (!teamId || typeof teamId !== 'string') {
       return NextResponse.json(
@@ -429,7 +426,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const effectiveUserId = userId || auth.userId;
+    const effectiveUserId = resolved.userId;
     const effectiveSessionId = (sessionId || `team-session-${effectiveUserId}-${Date.now()}`)
       .replace(/[^0-9a-zA-Z._:-]/g, '-');
 

@@ -16,6 +16,11 @@
  */
 import { NextRequest } from 'next/server';
 
+// The route takes the user from the signed-in session; these tests sign in as 'u1'.
+jest.mock('@/lib/agent-backend', () => ({
+  ...jest.requireActual('@/lib/agent-backend'),
+  sessionUserId: async () => 'u1',
+}));
 jest.mock('@aws-sdk/client-bedrock-runtime');
 jest.mock('@aws-sdk/client-lambda');
 

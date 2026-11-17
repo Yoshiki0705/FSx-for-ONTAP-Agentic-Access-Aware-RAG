@@ -3,6 +3,8 @@ import createMiddleware from 'next-intl/middleware';
 import { sessionManager } from '@/lib/auth/session-manager';
 import { CSRFMiddleware, CSRFProtection } from '@/lib/security/csrf-protection';
 import { locales, defaultLocale } from '@/i18n/config';
+import { csrfSecret } from '@/lib/auth/secrets';
+import { isPublicApi } from '@/lib/auth/public-api';
 
 // next-intlミドルウェアの作成
 const intlMiddleware = createMiddleware({
@@ -33,8 +35,11 @@ const getAllowedOrigins = (): string[] => {
 };
 
 // CSRF保護設定
-const csrfMiddleware = new CSRFMiddleware({
-  secret: process.env.CSRF_SECRET || 'your-csrf-secret-change-in-production-2024',
+// Built on first use: the secret must not be read at module load (lib/auth/secrets.ts).
+let csrfInstance: CSRFMiddleware | null = null;
+function csrfMiddleware(): CSRFMiddleware {
+  csrfInstance ??= new CSRFMiddleware({
+  secret: csrfSecret(),
   allowedOrigins: getAllowedOrigins(),
   exemptPaths: [
     '/api/auth/signin',
@@ -43,9 +48,24 @@ const csrfMiddleware = new CSRFMiddleware({
   ],
   cookieSecure: process.env.NODE_ENV === 'production'
 });
+  return csrfInstance;
+}
+
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // API: a valid session or one of the public paths. No redirect (callers expect JSON) and
+  // no locale handling. Each route still takes the user from the session itself.
+  if (pathname === '/api' || pathname.startsWith('/api/')) {
+    if (isPublicApi(pathname)) return NextResponse.next();
+    const apiToken = request.cookies.get('session-token')?.value;
+    const apiSession = apiToken ? await sessionManager.validateJWT(apiToken) : null;
+    if (!apiSession) {
+      return NextResponse.json({ success: false, error: 'Not signed in' }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
 
   // URLからロケールを抽出（/[locale]/... の形式）
   const pathSegments = pathname.split('/').filter(Boolean);
@@ -152,7 +172,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // CSRF保護検証（認証済みユーザーのみ）
-  const csrfResult = await csrfMiddleware.validateRequest(request, sessionToken.sessionId);
+  const csrfResult = await csrfMiddleware().validateRequest(request, sessionToken.sessionId);
   
   if (!csrfResult.valid) {
     console.warn(`🛡️ CSRF保護: リクエスト拒否 - ${csrfResult.error}`, {
@@ -191,12 +211,12 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - images (public images)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|images).*)',
+    // API routes are included: they are authenticated above.
+    '/((?!_next/static|_next/image|favicon.ico|images).*)',
   ],
 };

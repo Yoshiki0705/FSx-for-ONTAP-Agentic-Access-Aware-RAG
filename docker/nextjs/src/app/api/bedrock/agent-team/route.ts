@@ -28,12 +28,12 @@ import {
   isValidTrustLevel,
   isValidDataBoundary,
 } from '@/types/multi-agent';
+import { jwtSecretKey } from '@/lib/auth/secrets';
 
 // ===== Configuration =====
 
 const REGION = process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
 const AGENT_TEAM_TABLE = process.env.AGENT_TEAM_TABLE_NAME || 'permission-aware-rag-agent-teams';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 // ===== DynamoDB Client (lazy init) =====
 
@@ -64,7 +64,7 @@ async function authenticateRequest(request: NextRequest): Promise<AuthResult | n
     if (!token) {
       return null;
     }
-    const jwtSecret = new TextEncoder().encode(JWT_SECRET);
+    const jwtSecret = jwtSecretKey();
     const { payload } = await jwtVerify(token, jwtSecret);
     return {
       userId: payload.userId as string,

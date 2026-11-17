@@ -16,13 +16,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient, QueryCommand, ScanCommand } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 import { jwtVerify } from 'jose';
+import { jwtSecretKey } from '@/lib/auth/secrets';
 
 const EXECUTION_TABLE_NAME = process.env.AGENT_TRIGGER_EXECUTION_TABLE || '';
 const AGENT_ID = process.env.BEDROCK_AGENT_ID || '';
 const ENABLE_EVENT_DRIVEN_TRIGGER = process.env.ENABLE_EVENT_DRIVEN_AGENT_TRIGGER === 'true';
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
-);
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').filter(Boolean);
 
 const dynamoClient = EXECUTION_TABLE_NAME
@@ -43,7 +41,7 @@ async function verifyAuth(request: NextRequest): Promise<{ userId: string; isAdm
     || request.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, jwtSecretKey());
     const userId = (payload.email as string) || (payload.sub as string) || '';
     const isAdmin = ADMIN_EMAILS.includes(userId) || (payload.role === 'admin');
     return { userId, isAdmin };

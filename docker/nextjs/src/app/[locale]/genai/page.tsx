@@ -807,33 +807,29 @@ function ChatbotPageContent() {
           const data = await response.json();
           
           if (data.success && data.session) {
-            if (parsedUser) {
-              // localStorageのユーザー情報にセッションAPIのroleを反映
-              parsedUser.role = data.session.role || parsedUser.role || 'user';
-              localStorage.setItem('user', JSON.stringify(parsedUser));
-            } else {
-              // localStorageにない場合はセッションAPIから作成
-              parsedUser = {
-                username: data.session.username,
-                userId: data.session.userId,
-                role: data.session.role || 'user',
-                permissions: []
-              };
-              localStorage.setItem('user', JSON.stringify(parsedUser));
-            }
-          } else if (!parsedUser) {
+            // The session is the source of truth for who is signed in; localStorage only
+            // caches it.
+            const sameUser = parsedUser && parsedUser.userId === data.session.userId;
+            parsedUser = {
+              ...(sameUser ? parsedUser : {}),
+              username: data.session.username,
+              userId: data.session.userId,
+              role: data.session.role || 'user',
+              permissions: sameUser ? parsedUser.permissions || [] : [],
+            };
+            localStorage.setItem('user', JSON.stringify(parsedUser));
+          } else {
             console.error('認証失敗: セッションが見つかりません');
+            localStorage.removeItem('user');
             router.push('/signin');
             return;
           }
         } catch (sessionError) {
-          console.warn('⚠️ セッションAPI呼び出し失敗、localStorageのデータを使用:', sessionError);
-          if (!parsedUser) {
-            router.push('/signin');
-            return;
-          }
+          console.warn('セッションAPI呼び出し失敗:', sessionError);
+          router.push('/signin');
+          return;
         }
-        
+
         // SID情報はサーバーサイド（KB Retrieve API）でDynamoDBから取得するため、
         // フロントエンドでのSID取得は不要
         

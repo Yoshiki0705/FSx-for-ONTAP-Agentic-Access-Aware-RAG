@@ -46,6 +46,7 @@ import {
   type UserAccessRecord,
   type ChunkSafetyResult,
 } from '@/lib/rag-pipeline';
+import { resolveUser } from '@/lib/agent-backend/routes';
 
 // === Feature flags ===
 const ENABLE_AGENTCORE_MEMORY = process.env.ENABLE_AGENTCORE_MEMORY === 'true';
@@ -60,7 +61,11 @@ const kbRouter = new KBQueryRouter(buildRouterConfigFromEnv());
 export async function POST(request: NextRequest) {
   try {
     const body: RetrieveRequest = await request.json();
-    const { query, userId } = body;
+    const { query } = body;
+    // The user comes from the session. A userId in the body must match it (lib/agent-backend/routes.ts).
+    const resolved = await resolveUser((body as { userId?: unknown }).userId);
+    if (resolved instanceof NextResponse) return resolved;
+    const userId = resolved.userId;
     const knowledgeBaseId = body.knowledgeBaseId || process.env.BEDROCK_KB_ID || '';
     const region = body.region || process.env.BEDROCK_REGION || DEFAULT_REGION;
     // No model requested: the model catalog's standard tier (resolveConverseModelId below).
@@ -70,7 +75,6 @@ export async function POST(request: NextRequest) {
     // === Validation ===
     if (!query?.trim()) return NextResponse.json({ success: false, error: 'empty' }, { status: 400 });
     if (!knowledgeBaseId) return NextResponse.json({ success: false, error: 'no KB ID' }, { status: 400 });
-    if (!userId) return NextResponse.json({ success: false, error: 'no userId' }, { status: 400 });
 
     console.log('[KB] Start:', { query: query.substring(0, 80), knowledgeBaseId, userId, rawModelId });
 

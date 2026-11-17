@@ -9,6 +9,7 @@
  */
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
+import { jwtSecretKey } from '@/lib/auth/secrets';
 
 export type AgentBackend = 'agentcore' | 'bedrock-agents';
 
@@ -31,7 +32,7 @@ export async function sessionUserId(): Promise<string | null> {
   try {
     const token = (await cookies()).get('session-token')?.value;
     if (!token) return null;
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production');
+    const secret = jwtSecretKey();
     const { payload } = await jwtVerify(token, secret);
     const userId = (payload.userId as string) || (payload.username as string);
     return userId || null;

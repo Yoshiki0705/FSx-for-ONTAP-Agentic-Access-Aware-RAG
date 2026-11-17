@@ -10,8 +10,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CSRFProtection } from '@/lib/security/csrf-protection';
 import { sessionManager } from '@/lib/auth/session-manager';
+import { csrfSecret } from '@/lib/auth/secrets';
 
-const CSRF_SECRET = process.env.CSRF_SECRET || 'your-csrf-secret-change-in-production-2024';
 
 /**
  * CSRFトークン取得 (GET)
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const sessionId = session?.sessionId || `temp-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
     // セッションベースのCSRFトークンを生成
-    const token = await CSRFProtection.generateSessionToken(sessionId, CSRF_SECRET);
+    const token = await CSRFProtection.generateSessionToken(sessionId, csrfSecret());
 
     // レスポンス作成
     const response = NextResponse.json({
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     const isValid = await CSRFProtection.verifySessionToken(
       token,
       session.sessionId,
-      CSRF_SECRET
+      csrfSecret()
     );
 
     if (!isValid) {

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { resolveUser } from '@/lib/agent-backend/routes';
 
 // DynamoDBクライアントの初期化
 const dynamoClient = new DynamoDBClient({
@@ -19,7 +20,10 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { userId } = await params;
+    // Only the signed-in user's own history: a different user in the path is refused.
+    const resolved = await resolveUser((await params).userId);
+    if (resolved instanceof NextResponse) return resolved;
+    const userId = resolved.userId;
 
     if (!userId) {
       return NextResponse.json(
