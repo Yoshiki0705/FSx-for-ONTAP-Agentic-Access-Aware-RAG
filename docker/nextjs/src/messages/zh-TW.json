@@ -1611,7 +1611,7 @@
       "run": "產生圖片"
     },
     "useCases": {
-      "intro": "可以將常用的指示儲存為範本。儲存的使用案例只有您本人可以檢視與使用。",
+      "intro": "可以將常用的指示儲存為範本。儲存的使用案例在共用之前只有您本人可以檢視和使用。",
       "new": "新增使用案例",
       "title": "名稱",
       "description": "說明",
@@ -1626,7 +1626,21 @@
       "run": "執行",
       "edit": "編輯",
       "delete": "刪除",
-      "input": "要處理的文字"
+      "input": "要處理的文字",
+      "share": "共用（所有已登入的使用者都可以檢視、執行和複製；只有您可以編輯或刪除）",
+      "sharedBadge": "共用中",
+      "sharedTitle": "共用的使用案例",
+      "sharedIntro": "其他使用者共用的使用案例。執行時只使用您有權閱讀的內部文件。如需修改，請複製一份。",
+      "sharedEmpty": "還沒有共用的使用案例。",
+      "copy": "複製到我的使用案例",
+      "copied": "已將「{title}」複製到您的使用案例。",
+      "unshare": "停止共用（管理員）",
+      "showTemplate": "檢視範本",
+      "export": "匯出（JSON）",
+      "import": "匯入（JSON）",
+      "importDone": "已匯入 {count} 個使用案例。",
+      "importInvalid": "無法將此檔案讀取為 JSON。",
+      "fileTooLarge": "檔案過大（最大 1 MB）。"
     },
     "languages": {
       "ja": "日語",

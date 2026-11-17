@@ -76,12 +76,34 @@ describe('GenU-style tools settings', () => {
       PolicyDocument: {
         Statement: Match.arrayWith([
           Match.objectLike({
-            Action: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem', 'dynamodb:Query'],
+            Action: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem', 'dynamodb:Query', 'dynamodb:UpdateItem'],
             Resource: Match.arrayWith([Match.objectLike({ 'Fn::GetAtt': [Match.stringLikeRegexp('UserUseCasesTable'), 'Arn'] })]),
           }),
         ]),
       },
     });
+  });
+  it('gives the use case table a sparse index of shared items, readable by the web app', () => {
+    const t = synth();
+    t.hasResourceProperties('AWS::DynamoDB::Table', {
+      TableName: 'testproj-dev-user-use-cases',
+      GlobalSecondaryIndexes: [
+        Match.objectLike({
+          IndexName: 'shared-index',
+          KeySchema: [
+            { AttributeName: 'sharedPartition', KeyType: 'HASH' },
+            { AttributeName: 'useCaseId', KeyType: 'RANGE' },
+          ],
+          Projection: { ProjectionType: 'ALL' },
+        }),
+      ],
+    });
+    // The grant covers the index ARN as well as the table.
+    expect(JSON.stringify(t.findResources('AWS::IAM::Policy'))).toMatch(/UserUseCasesTable[^"]*","Arn"\]\},"\/index\/\*"/);
+  });
+  it('keeps use case sharing off unless enabled', () => {
+    expect(webAppEnv(synth()).USE_CASE_SHARING_ENABLED).toBe('false');
+    expect(webAppEnv(synth({ enableUseCaseSharing: true })).USE_CASE_SHARING_ENABLED).toBe('true');
   });
 });
 

@@ -20,7 +20,7 @@ import {
   wrapInput,
 } from './prompts';
 import { generateText, MAX_INPUT_CHARS, ToolInputError } from './text-model';
-import { getUseCase } from './use-cases';
+import { getRunnableUseCase, useCaseSharingEnabled } from './use-cases';
 import { fetchPage, htmlToText } from './web-fetch';
 import { startVideo, videoGenerationConfig, videoStatus } from './video-generation';
 import { minutesStatus, startMinutes } from './minutes';
@@ -29,6 +29,7 @@ import { analyzeVideo, createUploadUrl, MAX_AUDIO_BYTES, MAX_VIDEO_BYTES, mediaT
 export { ToolInputError } from './text-model';
 export { ImageFilteredError, imageConfig } from './image';
 export * from './use-cases';
+export * from './use-case-file';
 export { codeInterpreterEnabled } from './code-interpreter';
 export { mediaToolsEnabled } from './media';
 export { videoGenerationConfig } from './video-generation';
@@ -53,6 +54,7 @@ export function toolsConfig() {
       media: mediaToolsEnabled(),
       videoGeneration: videoGenerationConfig().enabled,
       useCases: !!process.env.USE_CASES_TABLE_NAME,
+      useCaseSharing: !!process.env.USE_CASES_TABLE_NAME && useCaseSharingEnabled(),
     },
     image: image.enabled ? { region: image.region, modelId: image.modelId, crossRegion: image.crossRegion } : null,
     codeInterpreter: codeInterpreterEnabled() ? { maxRuns: MAX_RUNS, runSeconds: RUN_LIMIT_MS / 1000 } : null,
@@ -124,7 +126,8 @@ export async function runTool(tool: string, userId: string, body: Body): Promise
       return { ...(await generateImage(req)) };
     }
     case 'use-case': {
-      const useCase = await getUseCase(userId, str(body, 'useCaseId'));
+      // The user's own, or a shared one. Documents are always those the runner may read.
+      const useCase = await getRunnableUseCase(userId, str(body, 'useCaseId'));
       if (!useCase) throw new ToolInputError('use case not found');
       const input = str(body, 'text');
       let docs = '';
