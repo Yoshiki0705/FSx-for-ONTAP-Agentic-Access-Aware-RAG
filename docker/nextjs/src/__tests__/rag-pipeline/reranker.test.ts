@@ -99,7 +99,7 @@ afterEach(() => {
 describe('rerankConfig', () => {
   it('is off without a model, and for a model it does not know', () => {
     expect(rerankConfig({})).toBeNull();
-    expect(rerankConfig({ RERANK_MODEL_ID: 'cohere.rerank-v9' })).toBeNull();
+    expect(rerankConfig({ RERANK_MODEL_ID: 'anthropic.claude-haiku' })).toBeNull();
   });
   it('reads the model, the top N and the timeout', () => {
     expect(rerankConfig({ RERANK_MODEL_ID: 'cohere.rerank-v3-5:0', RERANK_TOP_N: '5' })).toEqual({ modelId: 'cohere.rerank-v3-5:0', topN: 5, timeoutMs: 3000 });

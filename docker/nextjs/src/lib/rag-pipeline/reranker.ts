@@ -15,7 +15,11 @@
 import { BedrockAgentRuntimeClient, RerankCommand } from '@aws-sdk/client-bedrock-agent-runtime';
 import type { AllowedDocument } from './types';
 
-export const RERANK_MODELS = ['amazon.rerank-v1:0', 'cohere.rerank-v3-5:0'] as const;
+/**
+ * A rerank model ID (`<provider>.rerank-<version>`). Which models are allowed is decided at
+ * synth time (`rerankModelId` in bin/demo-app.ts); here only the shape is checked.
+ */
+const RERANK_MODEL_ID = /^[a-z0-9-]+\.rerank-[a-z0-9.:-]+$/;
 /** Documents per Rerank call; one call is one search unit (Bedrock user guide, rerank pricing). */
 export const MAX_RERANK_SOURCES = 100;
 export const DEFAULT_TOP_N = 10;
@@ -39,8 +43,8 @@ export interface RerankOutcome {
 export function rerankConfig(env: Record<string, string | undefined> = process.env): RerankConfig | null {
   const modelId = env.RERANK_MODEL_ID;
   if (!modelId) return null;
-  if (!(RERANK_MODELS as readonly string[]).includes(modelId)) {
-    console.warn(JSON.stringify({ event: 'rerank_config', error: `unsupported RERANK_MODEL_ID ${modelId}; reranking is off` }));
+  if (!RERANK_MODEL_ID.test(modelId)) {
+    console.warn(JSON.stringify({ event: 'rerank_config', error: `RERANK_MODEL_ID ${modelId} is not a rerank model ID; reranking is off` }));
     return null;
   }
   const topN = Number(env.RERANK_TOP_N || DEFAULT_TOP_N);
