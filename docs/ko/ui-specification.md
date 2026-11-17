@@ -1226,8 +1226,8 @@ https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authoriz
 `/api/auth/callback` 라우트가 인가 코드를 수신하고 다음을 수행합니다:
 
 1. Cognito Token Endpoint에서 인가 코드를 토큰으로 교환
-2. ID 토큰에서 사용자 속성(email, custom:role, custom:ad_groups) 조회
-3. ID 토큰 기반 역할 판정 (`custom:role === 'admin'` 또는 `custom:ad_groups`에 admin 그룹 포함 → `administrator`)
+2. ID 토큰에서 사용자 속성(email, cognito:groups, custom:ad_groups, custom:oidc_groups) 조회
+3. ID 토큰 기반 역할 판정 (`adminGroupNames`의 그룹에 속한 사용자만 `administrator`. 연동(SAML/OIDC) 사용자는 `custom:ad_groups`, `custom:oidc_groups`도 확인. `custom:role`과 이메일 주소는 보지 않음)
 4. 세션 Cookie 설정
 5. 채팅 화면(`/[locale]/genai`)으로 리다이렉트
 

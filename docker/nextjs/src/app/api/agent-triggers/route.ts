@@ -17,6 +17,7 @@ import { DynamoDBClient, QueryCommand, ScanCommand } from '@aws-sdk/client-dynam
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 import { jwtVerify } from 'jose';
 import { jwtSecretKey } from '@/lib/auth/secrets';
+import { ADMIN_ROLE } from '@/lib/auth/roles';
 
 const EXECUTION_TABLE_NAME = process.env.AGENT_TRIGGER_EXECUTION_TABLE || '';
 const AGENT_ID = process.env.BEDROCK_AGENT_ID || '';
@@ -43,7 +44,7 @@ async function verifyAuth(request: NextRequest): Promise<{ userId: string; isAdm
   try {
     const { payload } = await jwtVerify(token, jwtSecretKey());
     const userId = (payload.email as string) || (payload.sub as string) || '';
-    const isAdmin = ADMIN_EMAILS.includes(userId) || (payload.role === 'admin');
+    const isAdmin = ADMIN_EMAILS.includes(userId) || payload.role === ADMIN_ROLE;
     return { userId, isAdmin };
   } catch {
     return null;

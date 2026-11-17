@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { SignJWT, decodeJwt } from "jose";
 import { jwtSecretKey } from '@/lib/auth/secrets';
+import { roleFromIdTokenClaims } from "@/lib/auth/roles";
 
 const COGNITO_DOMAIN = process.env.COGNITO_DOMAIN || "";
 const COGNITO_REGION = process.env.COGNITO_REGION || process.env.AWS_REGION || "ap-northeast-1";
@@ -15,23 +16,6 @@ const COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID || "";
 const COGNITO_CLIENT_SECRET = process.env.COGNITO_CLIENT_SECRET || "";
 const CALLBACK_URL = process.env.CALLBACK_URL || "";
 
-
-/**
- * IDトークンペイロードからロールを判定する。
- * custom:role === 'admin' または custom:ad_groups に admin グループが含まれる場合は 'administrator'。
- */
-export function determineRole(payload: Record<string, unknown>): string {
-  const customRole = payload["custom:role"] as string | undefined;
-  if (customRole === "admin") return "administrator";
-
-  const adGroups = payload["custom:ad_groups"] as string | undefined;
-  if (adGroups) {
-    const groups = adGroups.split(",").map((g) => g.trim().toLowerCase());
-    if (groups.some((g) => g.includes("admin"))) return "administrator";
-  }
-
-  return "user";
-}
 
 export async function GET(request: Request) {
   // Lambda Web Adapter環境ではrequest.urlが http://0.0.0.0:3000/... になるため、
@@ -105,7 +89,7 @@ export async function GET(request: Request) {
     const sub = (payload.sub as string) || "";
 
     // 3. ロール判定
-    const role = determineRole(payload as Record<string, unknown>);
+    const role = roleFromIdTokenClaims(payload as Record<string, unknown>);
 
     // 4. セッションJWT生成
     const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;

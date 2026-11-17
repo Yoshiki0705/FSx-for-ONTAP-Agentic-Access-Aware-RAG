@@ -14,6 +14,7 @@ import { useChatStore } from '@/store/useChatStore';
 import { useBedrockConfig } from '@/hooks';
 import { useHeaderStore } from '@/store/useHeaderStore';
 import { useAgentTeamStore } from '@/store/useAgentTeamStore';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface AgentInfoSectionProps {
   agentInfo: NormalizedAgentInfo | null;
@@ -21,6 +22,8 @@ interface AgentInfoSectionProps {
 
 export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
   const t = useTranslations('agent');  // ✅ agentネームスペースを使用
+  // The route refuses this for non-administrators (lib/auth/roles.ts); hide the control too.
+  const isAdmin = useIsAdmin();
   const tCommon = useTranslations('common');  // ✅ commonネームスペースも追加
   // ❌ REMOVED: tError - "b is not a function" エラーの原因（minified buildで問題発生）
   const { agents, isLoading: isLoadingAgents, error: agentsError } = useAgentsList();
@@ -435,7 +438,7 @@ export function AgentInfoSection({ agentInfo }: AgentInfoSectionProps) {
           <Rocket className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('createNew')}
         </Button>
 
-        {selectedAgentId && displayAgentInfo && (
+        {isAdmin && selectedAgentId && displayAgentInfo && (
           <Button
             onClick={async () => {
               if (!selectedAgentId || !displayAgentInfo) return;

@@ -26,6 +26,7 @@ import type { AgentTeamTemplate } from '@/types/multi-agent';
 import { RegistryPanel } from './registry/RegistryPanel';
 import { TriggersTab } from './TriggersTab';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface AgentDirectoryProps { locale: string; initialCreateCategory?: string; }
 
@@ -41,6 +42,9 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
     setSharedConfigs, setSchedules,
   } = useAgentDirectoryStore();
 
+  // Creating, importing and deleting change what every user shares; the routes refuse them
+  // for non-administrators, so their controls are hidden too.
+  const isAdmin = useIsAdmin();
   const [deleteConfirm, setDeleteConfirm] = useState<AgentDetail | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [createCategory, setCreateCategory] = useState<string | null>(null);
@@ -143,7 +147,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
       {viewMode === 'grid' && (
         <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-6">
           {TABS.map(tab => (<button key={tab.key} onClick={() => handleTabChange(tab.key)} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.key ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'}`}>{tab.icon && <tab.icon className="w-4 h-4 inline-block align-text-bottom mr-1" aria-hidden="true" />}{tab.label}</button>))}
-          <button onClick={() => setViewMode('import')} className="ml-auto px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 border border-gray-300 dark:border-gray-600 rounded-md"><Download className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('sharing.import')}</button>
+          {isAdmin && <button onClick={() => setViewMode('import')} className="ml-auto px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 border border-gray-300 dark:border-gray-600 rounded-md"><Download className="w-3.5 h-3.5 inline-block align-text-bottom mr-1" aria-hidden="true" />{t('sharing.import')}</button>}
         </div>
       )}
 
@@ -185,7 +189,7 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
           {!isLoading && error && <div className="text-center py-12"><p className="text-red-500 mb-4">{error}</p><button onClick={fetchAgents} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">{t('retry')}</button></div>}
           {!isLoading && !error && filteredAgents.length > 0 && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">{filteredAgents.map(a => <AgentCard key={a.agentId} agent={a} onClick={handleCardClick} />)}</div>}
           {!isLoading && !error && agents.length > 0 && filteredAgents.length === 0 && <p className="text-center text-gray-500 dark:text-gray-400 py-8">{t('noAgentsFound')}</p>}
-          <AgentTemplateSection onSelectTemplate={handleTemplateSelect} locale={locale} />
+          {isAdmin && <AgentTemplateSection onSelectTemplate={handleTemplateSelect} locale={locale} />}
         </>
       )}
 
@@ -239,12 +243,14 @@ export function AgentDirectory({ locale, initialCreateCategory }: AgentDirectory
             </div>
           ) : (
             <>
-              <TemplateGallery
-                onSelectTemplate={(template: AgentTeamTemplate) => {
-                  setSelectedTemplate(template);
-                  setShowTeamWizard(true);
-                }}
-              />
+              {isAdmin && (
+                <TemplateGallery
+                  onSelectTemplate={(template: AgentTeamTemplate) => {
+                    setSelectedTemplate(template);
+                    setShowTeamWizard(true);
+                  }}
+                />
+              )}
               <TeamsTab
                 activeTab="teams"
                 onTabChange={(tab) => {

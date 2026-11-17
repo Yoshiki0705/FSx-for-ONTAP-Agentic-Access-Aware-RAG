@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/roles';
 
 const REGION = process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-northeast-1';
 const EXECUTION_TABLE = process.env.AGENT_EXECUTION_TABLE || '';
@@ -14,6 +15,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action } = body;
+    // Actions that change what every user shares: administrators only (lib/auth/roles.ts).
+    if (['createSchedule', 'updateSchedule', 'deleteSchedule', 'manualTrigger'].includes(action)) {
+      const admin = await requireAdmin();
+      if (admin instanceof NextResponse) return admin;
+    }
 
     switch (action) {
       case 'createSchedule':

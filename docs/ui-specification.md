@@ -1578,8 +1578,8 @@ https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authoriz
 `/api/auth/callback` ルートが認可コードを受け取り、次の 5 ステップを実行します。
 
 1. 認可コードをCognito Token Endpointでトークンに交換
-2. IDトークンからユーザー属性（email, custom:role, custom:ad_groups）を取得
-3. IDトークンベースのロール判定（`custom:role === 'admin'` or `custom:ad_groups`にadminグループ → `administrator`）
+2. IDトークンからユーザー属性（email, cognito:groups, custom:ad_groups, custom:oidc_groups）を取得
+3. IDトークンベースのロール判定（管理者グループに属していれば `administrator`。下の表）
 4. セッションCookieを設定
 5. チャット画面（`/[locale]/genai`）にリダイレクト
 
@@ -1587,9 +1587,11 @@ https://{COGNITO_DOMAIN}.auth.{COGNITO_REGION}.amazoncognito.com/oauth2/authoriz
 
 | 条件 | 判定結果 |
 |------|---------|
-| `custom:role === 'admin'` | `administrator` |
-| `custom:ad_groups`にadminグループが含まれる | `administrator` |
-| 上記以外 | `user` |
+| `cognito:groups` に `adminGroupNames` のいずれかがある | `administrator` |
+| フェデレーションの利用者で、`custom:ad_groups` か `custom:oidc_groups` に `adminGroupNames` のいずれかがある | `administrator` |
+| 上記以外（`custom:role`、メールアドレス、`admin` を含むだけのグループ名は見ない） | `user` |
+
+詳細は [認証・ユーザー管理ガイド](auth-and-user-management.md#管理者ロールの付与) を参照してください。
 
 ### 多言語対応（8言語）
 

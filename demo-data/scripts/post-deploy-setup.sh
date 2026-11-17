@@ -308,6 +308,15 @@ for EMAIL in admin@example.com user@example.com; do
   fi
   echo "  ✅ $EMAIL (password: $DEMO_PASSWORD)"
 done
+# The administrator role comes from the Cognito group (lib/stacks/demo/admin-groups.ts), not
+# from the email address. ADMIN_GROUP overrides the group name when adminGroupNames was changed.
+ADMIN_GROUP="${ADMIN_GROUP:-admins}"
+if ! OUT=$(aws cognito-idp admin-add-user-to-group --user-pool-id "$USER_POOL_ID" \
+    --username admin@example.com --group-name "$ADMIN_GROUP" --region "$REGION" 2>&1); then
+  echo "  ❌ admin@example.com をグループ $ADMIN_GROUP に追加できませんでした: $OUT" >&2
+  exit 1
+fi
+echo "  ✅ 管理者グループ $ADMIN_GROUP に admin@example.com を追加しました"
 echo ""
 
 # ========================================

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { RegistryRecordDetail } from '@/types/registry';
 import { RegistryImportDialog } from './RegistryImportDialog';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface RegistryDetailPanelProps {
   record: RegistryRecordDetail;
@@ -16,6 +17,8 @@ interface RegistryDetailPanelProps {
  */
 export function RegistryDetailPanel({ record, onClose }: RegistryDetailPanelProps) {
   const [showImport, setShowImport] = useState(false);
+  // The route refuses importing an agent for non-administrators (lib/auth/roles.ts); hide the control too.
+  const isAdmin = useIsAdmin();
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -178,7 +181,7 @@ export function RegistryDetailPanel({ record, onClose }: RegistryDetailPanelProp
 
       {/* Action buttons */}
       <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        {record.resourceType === 'Agent' && (
+        {isAdmin && record.resourceType === 'Agent' && (
           <button
             onClick={() => setShowImport(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"

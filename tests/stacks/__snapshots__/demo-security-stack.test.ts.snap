@@ -32,6 +32,16 @@ exports[`Federation disabled - snapshot (backward compatibility) テンプレー
     },
   },
   "Resources": {
+    "AdminGroup": {
+      "Properties": {
+        "Description": "Administrators of the RAG web app (shared agents, teams, schedules, policies)",
+        "GroupName": "admins",
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolGroup",
+    },
     "UserPool6BA7E5F2": {
       "DeletionPolicy": "Delete",
       "Metadata": {
@@ -442,6 +452,16 @@ exports[`Managed AD federation enabled - snapshot テンプレートスナップ
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "AdminGroup": {
+      "Properties": {
+        "Description": "Administrators of the RAG web app (shared agents, teams, schedules, policies)",
+        "GroupName": "admins",
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolGroup",
     },
     "UserPool6BA7E5F2": {
       "DeletionPolicy": "Delete",
@@ -955,6 +975,16 @@ exports[`Self-managed AD federation enabled - snapshot テンプレートスナ�
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "AdminGroup": {
+      "Properties": {
+        "Description": "Administrators of the RAG web app (shared agents, teams, schedules, policies)",
+        "GroupName": "admins",
+        "UserPoolId": {
+          "Ref": "UserPool6BA7E5F2",
+        },
+      },
+      "Type": "AWS::Cognito::UserPoolGroup",
     },
     "UserPool6BA7E5F2": {
       "DeletionPolicy": "Delete",

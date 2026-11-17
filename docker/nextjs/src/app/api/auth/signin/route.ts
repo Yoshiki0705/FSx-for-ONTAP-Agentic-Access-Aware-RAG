@@ -4,7 +4,8 @@ import {
   InitiateAuthCommand,
   GetUserCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
-import { SignJWT } from "jose";
+import { SignJWT, decodeJwt } from "jose";
+import { roleFromIdTokenClaims } from "@/lib/auth/roles";
 import { jwtSecretKey } from '@/lib/auth/secrets';
 
 const cognitoClient = new CognitoIdentityProviderClient({
@@ -143,13 +144,10 @@ export async function POST(request: Request) {
       // ユーザー情報取得失敗は無視
     }
 
-    // ロール決定（メールアドレスベース）
-    let role = "user";
-    let permissions = ["read", "model:claude-haiku"];
-    if (email.startsWith("admin")) {
-      role = "administrator";
-      permissions = ["read", "write", "delete", "admin", "model:all"];
-    }
+    // Role from the Cognito groups in the ID token (lib/auth/roles.ts). The token comes straight
+    // from Cognito's InitiateAuth response, so its claims are read without another check.
+    const idToken = authResult.AuthenticationResult.IdToken;
+    const role = idToken ? roleFromIdTokenClaims(decodeJwt(idToken) as Record<string, unknown>) : "user";
 
     // 自前JWTトークン生成（ミドルウェア互換）
     const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;

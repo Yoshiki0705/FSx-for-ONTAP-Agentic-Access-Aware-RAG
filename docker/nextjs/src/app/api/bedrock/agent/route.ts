@@ -35,6 +35,7 @@ import { emitGuardrailMetrics, type GuardrailResult } from '@/lib/guardrails';
 import type { MultiAgentTraceResult } from '@/types/multi-agent';
 import { modelForTier, resolveModelForInvoke } from '@/lib/model-catalog';
 import { resolveUser } from '@/lib/agent-backend/routes';
+import { requireAdmin } from '@/lib/auth/roles';
 
 const GUARDRAILS_ENABLED = process.env.GUARDRAILS_ENABLED === 'true';
 
@@ -190,6 +191,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { message, sessionId, action, selectedAgentId, mode, teamId } = body;
+    // Actions that change the agents every user sees: administrators only (lib/auth/roles.ts).
+    if (['create', 'update', 'delete', 'associateKnowledgeBase', 'disassociateKnowledgeBase'].includes(action)) {
+      const admin = await requireAdmin();
+      if (admin instanceof NextResponse) return admin;
+    }
 
     // Determine effective agent mode (Requirements 11.2, 11.3, 11.5)
     const effectiveMode: 'single' | 'multi' =

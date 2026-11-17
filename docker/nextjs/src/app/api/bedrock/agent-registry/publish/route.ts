@@ -18,12 +18,16 @@ import {
 } from '@aws-sdk/client-bedrock-agent';
 import { getRegistryClient } from '@/lib/agentcore/registry-client';
 import type { RegistryPublishRequest, RegistryPublishResponse } from '@/types/registry';
+import { requireAdmin } from '@/lib/auth/roles';
 
 export const dynamic = 'force-dynamic';
 
 const DEPLOY_REGION = process.env.AWS_REGION || 'ap-northeast-1';
 
 export async function POST(request: NextRequest) {
+  // Changes what every user shares: administrators only (lib/auth/roles.ts).
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
   // Feature-flag guard
   if (process.env.ENABLE_AGENT_REGISTRY !== 'true') {
     return NextResponse.json(
