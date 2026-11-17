@@ -362,6 +362,7 @@ WafStack (us-east-1) → WebSearchGatewayStack (us-east-1, optional: enableWebSe
 - **critical / high はゲートで落とす。** moderate / low は報告のみ
 - 対象は `package-lock.json` を持つ workspace すべて（root / `docker/nextjs` / `lambda/agent-core-ad-sync`）。`npm audit` は lockfile だけで動くため CI で `npm ci` は不要
 - 上流に修正が無い、またはメジャー更新を要する critical / high は `.security/dependency-audit-allowlist.json` に登録する。**各エントリに理由と `review_by`（再確認期限）が必須で、期限を過ぎたエントリはゲートで落ちる**（放置による恒久的な例外を防ぐ）
+- **修正の無い脆弱性は GHSA の ID（`advisory`）で登録する。** `npm audit` は脆弱なパッケージに依存する側（jest など）も 1 件ずつ数えるため、ゲートは各指摘の `via` をたどって元の脆弱性を求め、届く critical / high の脆弱性がすべて許容されているときだけ通す。パッケージ名（`workspace` + `package`）での登録は、後から同じパッケージに出た別の脆弱性も隠すので使わない。例: picomatch の GHSA-fc5q-39xc-vjpf（修正版なし）は 1 件の登録で、依存側の 61 件が通る
 - 件数で減点する方式は使わない。以前のゲートは「1 件あたり −20 点、80 点未満で失敗」だったため、上流に修正が無い推移的依存が 1 つでもあると恒久的に赤で、赤であること自体が情報を持たなかった
 
 ### Local Security Checks
