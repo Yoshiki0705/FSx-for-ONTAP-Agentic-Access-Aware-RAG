@@ -348,6 +348,23 @@ Checked on 2026-11-17 in ap-northeast-1 with a deployment using `-c enableUseCas
 
 **Scope**: One observation each. Exporting and importing were checked through the API; on the screen, only the lists were looked at. A shared list over 200 items and the behavior after turning the flag off were checked by unit tests only.
 
+### 3.15 Results with the output formats of meeting minutes
+
+Checked on 2026-11-17 in ap-northeast-1 with a deployment using `-c enableMediaTools=true`: a legal-department user made minutes from a Japanese recording (8 sentences in two Polly voices, Kazuha and Takumi, 279 KB). The recording held one decision, one action item with an owner and a due date, and one action item whose date and owner were not decided.
+
+| What was checked | Result |
+|---|---|
+| Minutes (the default format) | 22.7 s from upload to completion. It listed the decision (two-step approval only for requests over 100,000 yen) and the action item with owner and due date (the procedure document, next Friday). The undecided date and owner were written as not stated / to be decided at the next meeting |
+| Cleaned-up transcript | Formatting tidied with the speaker order kept; nothing was left out or reordered |
+| Summary | A 5-sentence paragraph and a bulleted list |
+| Questions and answers | 8 questions. For the date of the next meeting, which the meeting did not discuss, the answer said it was not stated |
+| The user's own instruction (only the decisions and action items, as a table) | One table; rows without a spoken owner say it is not in what was said |
+| Rewriting | Four formats rewritten from the same job, 4.2 to 6.2 s each. Still one Transcribe job |
+| An unsupported format (`newspaper`) | 400 |
+| Language | All five in Japanese, with no English `not stated` (this confirms in a deployed build the prompt change that 3.9 says was not checked in one) |
+
+**Scope**: One observation each. Transcribe put a speaker change in the middle of a sentence (between 「部長」 and 「の承認」), and every format kept those speaker labels. The format does not change how well speakers are separated. The screen was not used; the checks went through the API.
+
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate
