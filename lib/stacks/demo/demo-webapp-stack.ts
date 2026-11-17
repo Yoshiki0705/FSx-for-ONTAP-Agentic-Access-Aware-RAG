@@ -986,6 +986,11 @@ export class DemoWebAppStack extends cdk.Stack {
         reason: 'Voice chat calls the newest model of the voice family (model catalog, docker/nextjs/src/lib/model-catalog). The resource is the family pattern in this Region (amazon.nova-*sonic* by default), so a new speech model needs no deploy and no other model is allowed.',
         appliesTo: [{ regex: '/^Resource::arn:aws:bedrock:<AWS::Region>::foundation-model\\/[a-z0-9.:-]*\\*.*$/g' }],
       },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'The shared use case list queries the use case table\'s global secondary index, written as <table ARN>/index/*; the only index is shared-index, created in this stack.',
+        appliesTo: [{ regex: '/^Resource::<UserUseCasesTable.*\\.Arn>\\/index\\/\\*$/g' }],
+      },
     ], true); // true = apply to children (ServiceRole/DefaultPolicy)
 
     NagSuppressions.addResourceSuppressions(this.distribution, [
