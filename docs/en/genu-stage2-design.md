@@ -38,6 +38,8 @@ This is a design written before implementation, not a description of shipped beh
 - Transcribe `ja-JP` with speaker labels produces the transcript, and Bedrock shapes it into minutes. Passing `s3://<alias>/<key>` as `MediaFileUri` is described in the FSx for ONTAP tutorial (`documented`) and was confirmed by a run on the same day.
 - Transcribe is used because, of the Voxtral models tried through the Converse `audio` block, mini reversed the meaning of a sentence while small kept it. Both results come from one sentence and are not generalized.
 - The staging bucket is handled as for video analysis. The file portal does not need one.
+- The output format is one of five: minutes (summary, decisions, action items, discussion; the default), a cleaned-up transcript (speaker turns kept in order, only fillers and repetitions removed), a summary, questions and answers, or the user's own instruction (up to 1000 characters). These follow the GenU meeting minutes styles that fit a text output. Every format keeps the rule not to write what the transcript does not say and the rule to treat the input as data. The user's instruction goes inside `<instruction>` in the prompt, and the same tags are removed from the instruction
+- The transcript stays in the bucket for one day, so another format can be written without transcribing again. Rewriting is one Bedrock call and starts no new Transcribe job
 
 ### Video generation
 - No model that outputs video was found in ap-northeast-1, us-east-1, eu-west-1, eu-central-1, ap-southeast-1, or ap-south-1. Only `luma.ray-v2:0` in us-west-2 works (`verified 2026-11-15`).

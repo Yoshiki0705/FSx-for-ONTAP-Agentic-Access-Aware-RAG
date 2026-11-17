@@ -1783,7 +1783,18 @@
       "failed": "转写失败：{reason}",
       "timedOut": "转写在 15 分钟内未完成。",
       "truncated": "录音较长，纪要仅使用转写的前半部分。",
-      "transcript": "转写"
+      "transcript": "转写",
+      "format": "输出格式",
+      "formats": {
+        "minutes": "会议纪要（摘要、决定事项、待办、讨论要点）",
+        "transcript": "整理后的文字记录（含发言人）",
+        "summary": "摘要",
+        "faq": "问答形式",
+        "custom": "自定义指示"
+      },
+      "instruction": "要写的内容",
+      "instructionPlaceholder": "例如：只把决定事项和待办整理成表格",
+      "rewrite": "按此格式重新生成"
     },
     "videoGen": {
       "regionNotice": "视频生成使用 {region} 区域的模型。提示词和生成的视频在日本以外处理和保存，视频会在 1 天后删除。",

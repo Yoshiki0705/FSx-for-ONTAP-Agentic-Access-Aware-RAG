@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { GetTranscriptionJobCommand, StartTranscriptionJobCommand, TranscribeClient } from '@aws-sdk/client-transcribe';
 import { checkOwnObject, mediaToolsEnabled, s3Client, userPrefix } from './media';
-import { minutesPrompt, wrapInput } from './prompts';
+import { MAX_MINUTES_INSTRUCTION, MINUTES_FORMATS, minutesPrompt, wrapInput, type MinutesFormat } from './prompts';
 import { generateText, MAX_INPUT_CHARS, ToolInputError } from './text-model';
 
 export const TRANSCRIBE_LANGUAGES = ['ja-JP', 'en-US', 'ko-KR', 'zh-CN', 'fr-FR', 'de-DE', 'es-ES'] as const;
@@ -85,9 +85,15 @@ export function transcriptText(json: unknown): string {
 
 export async function minutesStatus(
   userId: string,
-  input: { jobName: string; language: string },
-): Promise<{ status: string; transcript?: string; minutes?: string; truncated?: boolean; modelId?: string; reason?: string }> {
+  input: { jobName: string; language: string; format?: string; instruction?: string },
+): Promise<{ status: string; transcript?: string; minutes?: string; format?: MinutesFormat; truncated?: boolean; modelId?: string; reason?: string }> {
   if (!mediaToolsEnabled()) throw new ToolInputError('media tools are not enabled');
+  const format = (input.format || 'minutes') as MinutesFormat;
+  if (!(MINUTES_FORMATS as readonly string[]).includes(format)) throw new ToolInputError(`unsupported format: ${input.format}`);
+  // The instruction is placed between <instruction> tags in the prompt; its own tags are removed.
+  const instruction = (input.instruction || '').replace(/<\/?instruction>/gi, '').trim();
+  if (format === 'custom' && !instruction) throw new ToolInputError('the custom format needs an instruction');
+  if (instruction.length > MAX_MINUTES_INSTRUCTION) throw new ToolInputError(`the instruction is longer than ${MAX_MINUTES_INSTRUCTION} characters`);
   const own = `${JOB_PREFIX}${userHash(userId)}-`;
   if (typeof input.jobName !== 'string' || !input.jobName.startsWith(own) || !/^[A-Za-z0-9._-]{1,200}$/.test(input.jobName)) {
     throw new ToolInputError('job not found');
@@ -108,10 +114,10 @@ export async function minutesStatus(
   if (!transcript) return { status, transcript: '', minutes: '', reason: 'no speech was recognized' };
   const truncated = transcript.length > MAX_INPUT_CHARS - 100;
   const out = await generateText({
-    system: minutesPrompt(input.language),
+    system: minutesPrompt(input.language, format, format === 'custom' ? instruction : ''),
     user: wrapInput(transcript.slice(0, MAX_INPUT_CHARS - 100)),
     maxTokens: 4096,
     temperature: 0.2,
   });
-  return { status, transcript, minutes: out.text, truncated, modelId: out.modelId };
+  return { status, transcript, minutes: out.text, format, truncated, modelId: out.modelId };
 }

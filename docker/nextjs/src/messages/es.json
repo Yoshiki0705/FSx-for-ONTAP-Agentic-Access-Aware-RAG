@@ -1672,7 +1672,18 @@
       "failed": "La transcripción falló: {reason}",
       "timedOut": "La transcripción no terminó en 15 minutos.",
       "truncated": "La grabación es larga; el acta usa solo la primera parte de la transcripción.",
-      "transcript": "Transcripción"
+      "transcript": "Transcripción",
+      "format": "Formato de salida",
+      "formats": {
+        "minutes": "Acta (resumen, decisiones, tareas, puntos tratados)",
+        "transcript": "Transcripción depurada (con hablantes)",
+        "summary": "Resumen",
+        "faq": "Preguntas y respuestas",
+        "custom": "Su propia instrucción"
+      },
+      "instruction": "Qué escribir",
+      "instructionPlaceholder": "Ejemplo: ponga solo las decisiones y las tareas en una tabla",
+      "rewrite": "Reescribir en este formato"
     },
     "videoGen": {
       "regionNotice": "La generación de vídeo usa un modelo de la región {region}. El prompt y el vídeo generado se procesan y almacenan fuera de Japón, y el vídeo se elimina tras 1 día.",

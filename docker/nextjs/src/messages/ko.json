@@ -1713,7 +1713,18 @@
       "failed": "문자 변환에 실패했습니다: {reason}",
       "timedOut": "문자 변환이 15분 안에 끝나지 않았습니다.",
       "truncated": "녹음이 길어 회의록은 문자 기록의 앞부분만 사용합니다.",
-      "transcript": "문자 기록"
+      "transcript": "문자 기록",
+      "format": "출력 형식",
+      "formats": {
+        "minutes": "회의록(요약·결정 사항·할 일·논점)",
+        "transcript": "다듬은 녹취록(화자 포함)",
+        "summary": "요약",
+        "faq": "질문과 답변",
+        "custom": "직접 지시"
+      },
+      "instruction": "작성할 내용",
+      "instructionPlaceholder": "예: 결정 사항과 할 일만 표로 정리해 주세요",
+      "rewrite": "이 형식으로 다시 작성"
     },
     "videoGen": {
       "regionNotice": "동영상 생성은 {region} 리전의 모델로 수행합니다. 프롬프트와 생성한 동영상은 일본 밖에서 처리·보관되며, 동영상은 1일 후 삭제됩니다.",

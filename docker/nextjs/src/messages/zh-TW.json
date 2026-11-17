@@ -1693,7 +1693,18 @@
       "failed": "轉寫失敗：{reason}",
       "timedOut": "轉寫未在 15 分鐘內完成。",
       "truncated": "錄音較長，紀錄僅使用逐字稿的前半部分。",
-      "transcript": "逐字稿"
+      "transcript": "逐字稿",
+      "format": "輸出格式",
+      "formats": {
+        "minutes": "會議紀錄（摘要、決議事項、待辦、討論要點）",
+        "transcript": "整理後的逐字稿（含發言人）",
+        "summary": "摘要",
+        "faq": "問答形式",
+        "custom": "自訂指示"
+      },
+      "instruction": "要寫的內容",
+      "instructionPlaceholder": "例如：只把決議事項和待辦整理成表格",
+      "rewrite": "以此格式重新產生"
     },
     "videoGen": {
       "regionNotice": "影片生成使用 {region} 區域的模型。提示詞和生成的影片在日本以外處理與保存，影片會在 1 天後刪除。",
