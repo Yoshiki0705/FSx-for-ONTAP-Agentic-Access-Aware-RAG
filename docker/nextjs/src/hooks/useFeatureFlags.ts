@@ -19,6 +19,7 @@ export interface FeatureFlags {
   defaultAgentId: string | null;
   defaultAgentAliasId: string | null;
   supervisorAgentId: string | null;
+  feedbackEnabled: boolean;
 }
 
 const DEFAULT_FLAGS: FeatureFlags = {
@@ -33,6 +34,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   defaultAgentId: null,
   defaultAgentAliasId: null,
   supervisorAgentId: null,
+  feedbackEnabled: false,
 };
 
 let cachedFlags: FeatureFlags | null = null;

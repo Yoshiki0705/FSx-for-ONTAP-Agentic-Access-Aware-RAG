@@ -42,6 +42,7 @@ import type { ImageAttachment } from '@/types/image-upload';
 import { routeQuery, DEFAULT_SMART_ROUTER_CONFIG } from '@/lib/smart-router';
 import { useSmartRoutingStore } from '@/store/useSmartRoutingStore';
 import { ResponseMetadata } from '@/components/chat/ResponseMetadata';
+import { FeedbackButtons } from '@/components/chat/FeedbackButtons';
 import { RoutingToggle } from '@/components/sidebar/RoutingToggle';
 import { useMemory } from '@/hooks/useMemory';
 import type { Message as MemoryMessage } from '@/providers/MemoryProvider';
@@ -2358,6 +2359,18 @@ function ChatbotPageContent() {
                     {/* Citation表示（アシスタントメッセージのみ） */}
                     {message.role === 'assistant' && messageCitations[message.id] && (
                       <CitationDisplay citations={messageCitations[message.id]} />
+                    )}
+                    {/* 回答ごとの評価（評価の保存先が設定されているときだけ。最初の案内文には付けない） */}
+                    {message.role === 'assistant' && featureFlags.feedbackEnabled && index > 0 && (
+                      <FeedbackButtons
+                        responseId={`${currentSession?.id ?? 'session'}-${message.id}`.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 64)}
+                        query={[...(currentSession?.messages?.slice(0, index) ?? [])].reverse().find((m) => m.role === 'user')?.content}
+                        modelId={messageRoutingDecisions[message.id]?.modelName}
+                        routingTier={messageRoutingDecisions[message.id]?.classification}
+                        sourcePaths={(messageCitations[message.id] ?? [])
+                          .filter((c) => c.boundaryType !== 'reference' && c.s3Uri)
+                          .map((c) => c.s3Uri)}
+                      />
                     )}
                     {/* ResponseMetadata (Task 11.4) */}
                     {message.role === 'assistant' && messageRoutingDecisions[message.id] && (

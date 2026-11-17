@@ -7,6 +7,7 @@
 
 import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
@@ -14,19 +15,24 @@ import { Construct } from 'constructs';
 export interface FeedbackCollectorConstructProps {
   projectName: string;
   environment: string;
-  /** レコード保持日数（デフォルト: 365） */
+  /** レコード保持日数（デフォルト: 90。質問文を含むため短くしている） */
   ttlDays?: number;
 }
 
 export class FeedbackCollectorConstruct extends Construct {
   public readonly function: lambda.Function;
   public readonly table: dynamodb.Table;
+  /**
+   * 評価を読むための管理ポリシー。Web アプリには付けない（書き込みは Lambda だけ）。
+   * 週次レビューをする運用者のロールに付ける。
+   */
+  public readonly readerPolicy: iam.ManagedPolicy;
 
   constructor(scope: Construct, id: string, props: FeedbackCollectorConstructProps) {
     super(scope, id);
 
     const prefix = `${props.projectName}-${props.environment}`;
-    const ttlDays = props.ttlDays ?? 365;
+    const ttlDays = props.ttlDays ?? 90;
 
     // DynamoDB Feedback Table
     this.table = new dynamodb.Table(this, 'FeedbackTable', {
@@ -66,14 +72,31 @@ export class FeedbackCollectorConstruct extends Construct {
         FEEDBACK_TABLE: this.table.tableName,
         TTL_DAYS: String(ttlDays),
       },
-      logRetention: logs.RetentionDays.ONE_MONTH,
+      // 明示的なロググループ（LogRetention のカスタムリソースを増やさない）
+      logGroup: new logs.LogGroup(this, 'CollectorLogs', {
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
     });
 
     this.table.grantWriteData(this.function);
+    this.readerPolicy = new iam.ManagedPolicy(this, 'ReaderPolicy', {
+      managedPolicyName: `${prefix}-feedback-reader`,
+      description: 'Read the feedback table (weekly review). Not attached to the web app.',
+      statements: [
+        new iam.PolicyStatement({
+          actions: ['dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:BatchGetItem', 'dynamodb:Scan'],
+          resources: [this.table.tableArn, `${this.table.tableArn}/index/*`],
+        }),
+      ],
+    });
 
     // Outputs
     new cdk.CfnOutput(this, 'FeedbackTableName', {
       value: this.table.tableName,
+    });
+    new cdk.CfnOutput(this, 'FeedbackReaderPolicyArn', {
+      value: this.readerPolicy.managedPolicyArn,
     });
     new cdk.CfnOutput(this, 'FeedbackFunctionArn', {
       value: this.function.functionArn,

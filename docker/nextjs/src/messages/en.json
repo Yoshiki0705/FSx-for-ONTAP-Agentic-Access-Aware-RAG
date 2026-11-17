@@ -1563,5 +1563,11 @@
       "timedOut": "The video was not ready after 6 minutes.",
       "expires": "The download link works for 10 minutes. The video is deleted after 1 day."
     }
+  },
+  "feedback": {
+    "good": "Good answer",
+    "bad": "Needs improvement",
+    "thanks": "Thanks for the feedback",
+    "failed": "The feedback could not be saved. Try again."
   }
 }

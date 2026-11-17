@@ -1674,5 +1674,11 @@
       "timedOut": "El vídeo no estaba listo tras 6 minutos.",
       "expires": "El enlace de descarga es válido 10 minutos. El vídeo se elimina tras 1 día."
     }
+  },
+  "feedback": {
+    "good": "Buena respuesta",
+    "bad": "Necesita mejorar",
+    "thanks": "Gracias por sus comentarios",
+    "failed": "No se pudo guardar el comentario. Inténtelo de nuevo."
   }
 }

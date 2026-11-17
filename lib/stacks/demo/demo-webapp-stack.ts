@@ -25,6 +25,7 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { NagSuppressions } from 'cdk-nag';
 import { Construct } from 'constructs';
 import { MonitoringConstruct } from '../../constructs/monitoring-construct';
+import { FeedbackCollectorConstruct } from '../../constructs/feedback-collector-construct';
 
 export interface DemoWebAppStackProps extends cdk.StackProps {
   projectName: string;
@@ -65,6 +66,15 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
    * extraction can be turned off; image generation is off unless enabled, and runs in
    * `imageGenerationRegion`, which may be outside the deployment region.
    */
+  /**
+   * Per-answer feedback (thumbs up / down). Off by default: the record holds the user's
+   * question (500 characters at most), so it is switched on deliberately. The web app can
+   * only invoke the collector Lambda; reading the table needs the reader policy.
+   */
+  feedback?: {
+    enabled: boolean;
+    retentionDays: number;
+  };
   tools?: {
     enableWebExtract: boolean;
     enableImageGeneration: boolean;
@@ -219,6 +229,13 @@ export class DemoWebAppStack extends cdk.Stack {
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
+    const feedbackCollector = props.feedback?.enabled
+      ? new FeedbackCollectorConstruct(this, 'Feedback', {
+        projectName: props.projectName,
+        environment: props.environment,
+        ttlDays: props.feedback.retentionDays,
+      })
+      : undefined;
     const tools = props.tools ?? {
       enableWebExtract: true,
       enableImageGeneration: false,
@@ -331,6 +348,7 @@ export class DemoWebAppStack extends cdk.Stack {
         USE_CASES_TABLE_NAME: useCasesTable.tableName,
         WEB_EXTRACT_ENABLED: tools.enableWebExtract ? 'true' : 'false',
         IMAGE_GENERATION_ENABLED: tools.enableImageGeneration ? 'true' : 'false',
+        ...(feedbackCollector ? { FEEDBACK_FUNCTION_NAME: feedbackCollector.function.functionName } : {}),
         CODE_INTERPRETER_ENABLED: tools.enableCodeInterpreter ? 'true' : 'false',
         VIDEO_GENERATION_ENABLED: tools.enableVideoGeneration && props.videoOutputBucketName ? 'true' : 'false',
         ...(tools.enableVideoGeneration && props.videoOutputBucketName ? {
@@ -695,6 +713,8 @@ export class DemoWebAppStack extends cdk.Stack {
         resources: [`arn:aws:bedrock-agentcore:${cdk.Aws.REGION}:aws:code-interpreter/aws.codeinterpreter.v1`],
       }));
     }
+    // 評価の保存: Web アプリが呼べるのは評価用 Lambda 1 本だけ（テーブルへの権限は渡さない）。
+    feedbackCollector?.function.grantInvoke(this.webAppFunction);
     // DynamoDB権限（権限キャッシュ + ユーザーアクセス）
     permissionCacheTable.grantReadWriteData(this.webAppFunction);
     userAccessTable.grantReadData(this.webAppFunction);
@@ -959,6 +979,33 @@ export class DemoWebAppStack extends cdk.Stack {
       },
     ]);
 
+    if (feedbackCollector) {
+      NagSuppressions.addResourceSuppressionsByPath(this, `${this.stackName}/WebAppFn/ServiceRole/DefaultPolicy/Resource`, [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'grantInvoke scopes lambda:InvokeFunction to the single feedback collector function ARN; the trailing :* covers its versions and aliases, which have no separate ARN at synth time.',
+          appliesTo: [{ regex: '/^Resource::<.*FeedbackCollectorFn.*\\.Arn>:\\*$/g' }],
+        },
+      ], true);
+    }
+    if (feedbackCollector) {
+      NagSuppressions.addResourceSuppressions(feedbackCollector, [
+        {
+          id: 'AwsSolutions-L1',
+          reason: 'Python 3.12 is the runtime pinned across this project and the one the Python unit tests run on. Bumping the runtime repo-wide is a separate change; see AGENTS.md for the current standard.',
+        },
+        {
+          id: 'AwsSolutions-IAM4',
+          reason: 'The collector uses the standard AWSLambdaBasicExecutionRole (CloudWatch Logs only); it has no other managed policy.',
+          appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+        },
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Access to the table\'s global secondary indexes is written as <table ARN>/index/*; the indexes are created in the same construct and their names are fixed.',
+          appliesTo: [{ regex: '/^Resource::<.*FeedbackTable.*\\.Arn>\\/index\\/\\*$/g' }],
+        },
+      ], true);
+    }
     if (mediaBucket) {
       NagSuppressions.addResourceSuppressions(mediaBucket, [
         {

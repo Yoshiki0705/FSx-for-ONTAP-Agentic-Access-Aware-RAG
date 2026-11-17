@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 
 interface FeedbackButtonsProps {
@@ -8,43 +9,36 @@ interface FeedbackButtonsProps {
   query?: string;
   modelId?: string;
   routingTier?: string;
+  /** S3 URIs of the citations shown with the answer; the server keeps only their hashes. */
+  sourcePaths?: string[];
 }
 
 /**
- * 高評価/低評価フィードバックボタン (#11, K-4)
- * チャット応答の下に表示し、ユーザーの評価を収集する。
+ * Thumbs up / down under one answer. It is rendered only when the collector is configured
+ * (`feedbackEnabled` from /api/config/features). The answer is marked as sent only when the
+ * server says it saved the rating; any other answer shows an error and leaves the buttons on.
  */
-export function FeedbackButtons({
-  responseId,
-  query,
-  modelId,
-  routingTier,
-}: FeedbackButtonsProps) {
+export function FeedbackButtons({ responseId, query, modelId, routingTier, sourcePaths }: FeedbackButtonsProps) {
+  const t = useTranslations('feedback');
   const [submitted, setSubmitted] = useState<'positive' | 'negative' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  const handleFeedback = async (rating: 'positive' | 'negative') => {
+  const send = async (rating: 'positive' | 'negative') => {
     if (submitted || isSubmitting) return;
     setIsSubmitting(true);
-
+    setFailed(false);
     try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          responseId,
-          rating,
-          query,
-          modelId,
-          routingTier,
-        }),
+        body: JSON.stringify({ responseId, rating, query, modelId, routingTier, sourcePaths }),
       });
-
-      if (response.ok) {
-        setSubmitted(rating);
-      }
-    } catch (error) {
-      console.error('Feedback submission failed:', error);
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.success === true) setSubmitted(rating);
+      else setFailed(true);
+    } catch {
+      setFailed(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -52,35 +46,43 @@ export function FeedbackButtons({
 
   if (submitted) {
     return (
-      <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
-        {submitted === 'positive'
-          ? <ThumbsUp className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />
-          : <ThumbsDown className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />}
-        <span>フィードバックありがとうございます</span>
+      <div className="flex items-center gap-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+        {submitted === 'positive' ? (
+          <ThumbsUp className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />
+        ) : (
+          <ThumbsDown className="w-4 h-4 inline-block align-text-bottom" aria-hidden="true" />
+        )}
+        <span>{t('thanks')}</span>
       </div>
     );
   }
-
   return (
-    <div /* check-ui-ignore: 触って開く操作ではなく、タッチと focus では常時表示 */ className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
+    <div className="flex items-center gap-1 mt-1">
       <button
-        onClick={() => handleFeedback('positive')}
+        type="button"
+        onClick={() => send('positive')}
         disabled={isSubmitting}
-        className="p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-        aria-label="良い回答"
-        title="良い回答"
+        className="p-1 rounded text-gray-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
+        aria-label={t('good')}
+        title={t('good')}
       >
         <ThumbsUp className="w-4 h-4" aria-hidden="true" />
       </button>
       <button
-        onClick={() => handleFeedback('negative')}
+        type="button"
+        onClick={() => send('negative')}
         disabled={isSubmitting}
-        className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-        aria-label="改善が必要"
-        title="改善が必要"
+        className="p-1 rounded text-gray-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+        aria-label={t('bad')}
+        title={t('bad')}
       >
         <ThumbsDown className="w-4 h-4" aria-hidden="true" />
       </button>
+      {failed && (
+        <span role="alert" className="text-xs text-red-700 dark:text-red-300">
+          {t('failed')}
+        </span>
+      )}
     </div>
   );
 }

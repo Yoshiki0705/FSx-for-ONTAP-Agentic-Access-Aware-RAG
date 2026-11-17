@@ -1674,5 +1674,11 @@
       "timedOut": "Das Video war nach 6 Minuten nicht fertig.",
       "expires": "Der Download-Link gilt 10 Minuten. Das Video wird nach 1 Tag gelöscht."
     }
+  },
+  "feedback": {
+    "good": "Gute Antwort",
+    "bad": "Verbesserungsbedarf",
+    "thanks": "Danke für die Rückmeldung",
+    "failed": "Die Rückmeldung konnte nicht gespeichert werden. Bitte erneut versuchen."
   }
 }
