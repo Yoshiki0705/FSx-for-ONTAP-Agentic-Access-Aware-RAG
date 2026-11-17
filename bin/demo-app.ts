@@ -452,6 +452,11 @@ const tokenKeysEpoch = app.node.tryGetContext('tokenKeysEpoch');
 if (tokenKeysEpoch !== undefined && !/^[A-Za-z0-9._-]{1,32}$/.test(String(tokenKeysEpoch))) {
   throw new Error(`tokenKeysEpoch must be 1 to 32 letters, digits, '.', '_' or '-': ${tokenKeysEpoch}`);
 }
+const enableFeedback = ctxBool('enableFeedback');
+const feedbackRetentionDays = Number(app.node.tryGetContext('feedbackRetentionDays') ?? 90);
+if (!Number.isInteger(feedbackRetentionDays) || feedbackRetentionDays < 1 || feedbackRetentionDays > 3650) {
+  throw new Error(`feedbackRetentionDays must be an integer from 1 to 3650: ${app.node.tryGetContext('feedbackRetentionDays')}`);
+}
 const toolsSettings = {
   enableWebExtract: app.node.tryGetContext('enableWebExtract') !== 'false' && app.node.tryGetContext('enableWebExtract') !== false,
   enableImageGeneration: ctxBool('enableImageGeneration'),
@@ -503,6 +508,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentRuntimeArn: aiStack.agentRuntimeArn,
   agentDefinitionsTableName: aiStack.agentDefinitionsTableName,
   tools: toolsSettings,
+  feedback: { enabled: enableFeedback, retentionDays: feedbackRetentionDays },
   models: { families: modelFamilies, profilePreference: modelProfilePreference },
   actionGroupLambdaArn: aiStack.actionGroupLambdaArn,
   sharedAgentBucketName: aiStack.sharedAgentBucketName,

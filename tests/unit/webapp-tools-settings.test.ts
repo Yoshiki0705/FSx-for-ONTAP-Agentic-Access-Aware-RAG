@@ -202,4 +202,40 @@ describe('session and CSRF token keys', () => {
     }
   });
 });
+describe('feedback (enableFeedback)', () => {
+  const feedbackProps = { feedback: { enabled: true, retentionDays: 90 } };
+  function webAppRole(t: Template) {
+    return JSON.stringify(Object.values(t.findResources('AWS::IAM::Policy')));
+  }
+  it('is off by default: no collector, no table, no setting', () => {
+    const t = synth();
+    expect(webAppEnv(t).FEEDBACK_FUNCTION_NAME).toBeUndefined();
+    expect(JSON.stringify(t.toJSON())).not.toContain('rag-feedback');
+    expect(JSON.stringify(t.toJSON())).not.toContain('feedback-collector');
+  });
+  it('is off when the flag is set to false', () => {
+    const t = synth(undefined, { feedback: { enabled: false, retentionDays: 90 } });
+    expect(webAppEnv(t).FEEDBACK_FUNCTION_NAME).toBeUndefined();
+  });
+  it('adds the table and the collector, and tells the web app which function to invoke', () => {
+    const t = synth(undefined, feedbackProps);
+    expect(webAppEnv(t).FEEDBACK_FUNCTION_NAME).toBeDefined();
+    t.hasResourceProperties('AWS::DynamoDB::Table', { TableName: 'testproj-dev-rag-feedback' });
+    t.hasResourceProperties('AWS::Lambda::Function', { FunctionName: 'testproj-dev-feedback-collector', Environment: { Variables: Match.objectLike({ TTL_DAYS: '90' }) } });
+  });
+  it('lets the web app invoke only the collector, and gives it no access to the feedback table', () => {
+    const t = synth(undefined, feedbackProps);
+    t.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({ Action: 'lambda:InvokeFunction', Resource: Match.arrayWith([Match.objectLike({ 'Fn::GetAtt': [Match.stringLikeRegexp('FeedbackCollectorFn'), 'Arn'] })]) }),
+        ]),
+      },
+    });
+    // The only policy that mentions the feedback table is the collector's own write access.
+    const webAppPolicies = Object.entries(t.findResources('AWS::IAM::Policy')).filter(([id]) => /WebAppFn/.test(id));
+    expect(JSON.stringify(webAppPolicies)).not.toMatch(/FeedbackTable/);
+    expect(webAppRole(t)).toContain('FeedbackTable');
+  });
+});
 

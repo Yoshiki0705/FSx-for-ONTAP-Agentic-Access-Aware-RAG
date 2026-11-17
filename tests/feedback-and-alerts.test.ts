@@ -3,7 +3,7 @@
  */
 
 import * as cdk from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 import { FeedbackCollectorConstruct } from '../lib/constructs/feedback-collector-construct';
 import { AlertEscalationConstruct } from '../lib/constructs/alert-escalation-construct';
 
@@ -52,6 +52,32 @@ describe('FeedbackCollectorConstruct', () => {
     });
   });
 
+  test('keeps records for 90 days unless told otherwise, and passes the setting to the Lambda', () => {
+    createStack().hasResourceProperties('AWS::Lambda::Function', {
+      FunctionName: 'test-dev-feedback-collector',
+      Environment: { Variables: Match.objectLike({ TTL_DAYS: '90' }) },
+    });
+    createStack({ ttlDays: 30 }).hasResourceProperties('AWS::Lambda::Function', {
+      FunctionName: 'test-dev-feedback-collector',
+      Environment: { Variables: Match.objectLike({ TTL_DAYS: '30' }) },
+    });
+  });
+  test('the reader policy only reads the table and its indexes', () => {
+    const template = createStack();
+    template.hasResourceProperties('AWS::IAM::ManagedPolicy', {
+      ManagedPolicyName: 'test-dev-feedback-reader',
+      PolicyDocument: {
+        Statement: [Match.objectLike({ Effect: 'Allow', Action: ['dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:BatchGetItem', 'dynamodb:Scan'] })],
+      },
+    });
+    const policies = Object.values(template.findResources('AWS::IAM::ManagedPolicy')) as any[];
+    expect(JSON.stringify(policies)).not.toMatch(/PutItem|UpdateItem|DeleteItem/);
+  });
+  test('writes its own log group with one month retention and no log-retention custom resource', () => {
+    const template = createStack();
+    template.hasResourceProperties('AWS::Logs::LogGroup', { RetentionInDays: 30 });
+    expect(Object.keys(template.findResources('Custom::LogRetention'))).toHaveLength(0);
+  });
   test('creates Lambda with correct function name', () => {
     const template = createStack();
     template.hasResourceProperties('AWS::Lambda::Function', {

@@ -50,7 +50,7 @@ test-frontend-jest: ## フロントエンドの Jest（route handler と utils�
 # 依存は requirements-dev.txt があればそちら、無ければ requirements.txt。
 # pytest にパスを渡さないのは、収集範囲が各ディレクトリで違うため
 # （3 つは pytest.ini の testpaths=tests、tests/permission-matrix は直下）。
-PY_DIRS := automation/transfer-family automation/fsxn-ops lambda/kb-auto-sync tests/permission-matrix docker/agentcore-agent docker/pipecat-agent
+PY_DIRS := automation/transfer-family automation/fsxn-ops lambda/kb-auto-sync lambda/feedback-collector tests/permission-matrix docker/agentcore-agent docker/pipecat-agent
 
 test-python: ## Python の pytest（PY_DIRS の各ディレクトリ / 依存は .venv に用意する）
 	@for d in $(PY_DIRS); do \

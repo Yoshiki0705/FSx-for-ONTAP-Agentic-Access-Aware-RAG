@@ -6,35 +6,81 @@
 ---
 
 ## Part 1: フィードバック → 改善フロー
-
-### 週次フィードバックレビュー手順
-
-```
-毎週月曜日:
-1. DynamoDB feedback テーブルから前週のデータを集計
-2. negative フィードバックのクエリパターンを分析
-3. 改善アクションを決定
-4. 次週に効果を確認
-```
-
-### 集計クエリ（Athena or CLI）
+### 有効化と、保存されるもの
+評価の保存は既定で無効です。質問文（500 文字まで）を保存するので、明示的に有効にします。
 
 ```bash
-# 前週の positive/negative 比率
+npx cdk deploy --all -c enableFeedback=true            # 保持は既定の 90 日
+npx cdk deploy --all -c enableFeedback=true -c feedbackRetentionDays=30
+```
+
+有効にすると、WebApp スタックに DynamoDB テーブル `${PREFIX}-rag-feedback` と Lambda `${PREFIX}-feedback-collector` が入り、チャットの回答ごとに高評価・低評価のボタンが出ます。無効なときは、ボタンは出ず、`/api/feedback` は 503（`feedback_disabled`）を返します。保存に失敗したときは、画面にエラーを出し、「送信済み」にはしません。
+
+| 保存する項目 | 内容 |
+|---|---|
+| `userId` | 署名検証済みのセッションの利用者（ブラウザが送る値は使わない） |
+| `rating`、`comment` | `positive` / `negative`。コメントは任意で 1,000 文字まで |
+| `query` | 質問文。500 文字まで |
+| `responseId`、`modelId`、`routingTier` | 回答の ID、モデル名、ルーティングの区分 |
+| `sourceDocIds` | 根拠にした文書の ID。S3 の URI の SHA-256 の先頭 24 文字で、ファイル名は残さない（20 件まで） |
+| `timestamp`、`date`、`ttlEpoch` | 時刻、日付（UTC）、期限（保持日数後） |
+
+回答の本文と、文書の本文・名前は保存しません。根拠の文書は、利用者の権限で見えた引用だけがハッシュにされます。
+
+### 評価を読む権限
+Web アプリは評価用 Lambda を呼ぶだけで、テーブルを読めません。読むのは週次レビューをする運用者で、そのロールに管理ポリシー `${PREFIX}-feedback-reader`（出力 `FeedbackReaderPolicyArn`）を付けます。このポリシーは `Query`、`GetItem`、`BatchGetItem`、`Scan` だけを許します。
+
+### 週次フィードバックレビュー手順
+```
+毎週月曜日:
+1. date-rating-index で前週 7 日分の positive / negative を数える
+2. negative の query（質問文）のパターンを分析する
+3. 根拠にした文書の ID を、文書の名前に戻して確認する（下記）
+4. 改善アクションを決定し、次週に効果を確認する
+```
+
+### 集計クエリ（CLI）
+```bash
+# 1 日分の positive / negative の件数
+for r in positive negative; do
+  aws dynamodb query \
+    --table-name ${PREFIX}-rag-feedback \
+    --index-name date-rating-index \
+    --key-condition-expression "#d = :date AND rating = :r" \
+    --expression-attribute-names '{"#d":"date"}' \
+    --expression-attribute-values '{":date":{"S":"2026-11-10"},":r":{"S":"'$r'"}}' \
+    --select COUNT --region ap-northeast-1 --query Count
+done
+
+# negative の質問文（query 属性）と根拠の文書 ID
 aws dynamodb query \
   --table-name ${PREFIX}-rag-feedback \
   --index-name date-rating-index \
-  --key-condition-expression "#d = :date" \
+  --key-condition-expression "#d = :date AND rating = :r" \
   --expression-attribute-names '{"#d":"date"}' \
-  --expression-attribute-values '{":date":{"S":"2026-05-20"}}' \
+  --expression-attribute-values '{":date":{"S":"2026-11-10"},":r":{"S":"negative"}}' \
+  --projection-expression "query,modelId,routingTier,sourceDocIds,comment" \
   --region ap-northeast-1
+```
 
-# negative フィードバックの多いクエリパターン
-# → queryPreview フィールドでパターンを特定
+### 文書の ID を名前に戻す
+`sourceDocIds` は名前を持たないので、評価を読めるだけの運用者には文書の名前が分かりません。バケット（または S3 Access Points のエイリアス）を一覧できる運用者は、次のスクリプトで戻せます。
+
+```bash
+aws s3api list-objects-v2 --bucket <エイリアス> --query 'Contents[].Key' --output text \
+  | tr '\t' '\n' | python3 scripts/resolve-feedback-doc-ids.py --bucket <エイリアス> <ID> [<ID> ...]
+```
+
+### 利用者の評価を消す（削除の依頼があったとき）
+`userId-timestamp-index` で `feedbackId` と `timestamp` を集め、1 件ずつ `delete-item` します。保持日数を過ぎたレコードは DynamoDB の TTL が消しますが、期限の直後に消えるとは限りません。
+
+```bash
+aws dynamodb query --table-name ${PREFIX}-rag-feedback --index-name userId-timestamp-index \
+  --key-condition-expression "userId = :u" --expression-attribute-values '{":u":{"S":"<利用者>"}}' \
+  --projection-expression "feedbackId,#t" --expression-attribute-names '{"#t":"timestamp"}' --region ap-northeast-1
 ```
 
 ### 改善アクションマトリクス
-
 | negative パターン | 原因推定 | アクション |
 |-----------------|---------|-----------|
 | 「〇〇について教えて」→ 回答なし | ドキュメント未登録 | 該当ドキュメントをKBに追加 |
@@ -42,10 +88,10 @@ aws dynamodb query \
 | 回答が古い | KB同期遅延 | ポーリング間隔を短縮 or CloudTrailモードに変更 |
 | 回答が長すぎる/短すぎる | プロンプト問題 | Agent instruction を調整 |
 | 権限エラー | 権限設計の問題 | .metadata.json の allowed_group_sids を確認 |
-
 ---
-
 ## Part 2: Feature Gate 運用ガイド
+> **Feature Gate について**: `FeatureGateConstruct` と Lambda はありますが、どのスタックにも組み込まれておらず、呼び出す `/api/config/feature-gates` もありません（2026-11-17 時点の origin/main）。以下の運用手順は、それらが配線されてからのものです。
+
 
 ### 段階的開放の推奨フロー
 

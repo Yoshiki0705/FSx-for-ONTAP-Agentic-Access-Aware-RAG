@@ -385,6 +385,9 @@ jobs:
           # ツールの動画の分析（既定は無効）。ステージング用バケット、その IAM、CORS、60 秒の Lambda を cdk-nag にかける。
           - name: tools-media
             flags: '-c enableMediaTools=true'
+          # 回答ごとの評価の保存（既定は無効）。テーブル、Lambda、呼び出し権限、読み取り用ポリシーを cdk-nag にかける。
+          - name: feedback
+            flags: '-c enableFeedback=true'
           # ツールの動画の生成（既定は無効）。us-west-2 の出力バケットのスタック、クロスリージョン参照、Bedrock の非同期呼び出しの IAM を cdk-nag にかける。
           - name: tools-video-generation
             flags: '-c enableVideoGeneration=true'
@@ -591,6 +594,9 @@ jobs:
           - dir: automation/fsxn-ops
             requirements: requirements.txt
           - dir: lambda/kb-auto-sync
+            requirements: requirements-dev.txt
+          # 回答ごとの評価を保存する Lambda。入力の検査、保存する項目、保持日数、ログに個人情報を出さないこと。
+          - dir: lambda/feedback-collector
             requirements: requirements-dev.txt
           # 31 シナリオの権限マトリクス。pr-check.yml の pr-tests でしか
           # 走っておらず、そのジョブは CI/CD Pipeline と重複していたため削除した。
