@@ -140,6 +140,9 @@ describe('runtime', () => {
       userId: 'legal-b@example.com',
     });
     expect(rt.sent[0].input.runtimeSessionId.length).toBeGreaterThanOrEqual(33);
+    // The model the answer was generated with is reported back, so the screen and the
+    // feedback record name a model, not a tier.
+    expect(out.modelId).toBe(payload.agent.foundationModel);
   });
 
   it('reports an error the runtime returns', async () => {
