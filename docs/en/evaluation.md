@@ -300,6 +300,19 @@ The documents that were not allowed were retrieved and then removed by the filte
 ![Meeting minutes: the transcript and the minutes made from it](../screenshots/v4-tools-minutes-ja.png)
 **Minutes headings**: In the first build the headings stayed in English. The prompt was changed to translate them into the language of the recording, and after redeploying on 2026-11-16 the screen was retaken (the screenshot above is from the redeployed build with the Japanese headings; it still shows the English `not stated`, which the later prompt change addresses). That check also showed English `not stated` mixed into Japanese minutes, so the prompt now says to write it in the language of the recording. This wording fix was checked with a local call to the real model (it wrote the Japanese equivalent of "not stated"), not on a deployed build.
 **Scope**: One observation each (except the five runs on the same video). The two synthetic voices collapsed into one speaker in Japanese and separated into two in English; accuracy of speaker separation on real meeting recordings was not measured. Long recordings (Transcribe's waiting time and the 15-minute cut-off), videos close to 200 MB, and languages other than Japanese and English were not checked. The on-screen text read from a video lost its last character on some runs of the same video, so results that must be exact need to be compared with the original video. Minutes input is limited to 30,000 characters; the rest is cut and the screen says so (unit tests only).
+### 3.11 Results with saving per-answer feedback
+**[verified 2026-11-17 / ap-northeast-1]** Deployed with `-c enableFeedback=true` (the same throwaway volume on the existing FSx for ONTAP as in 3.4, legal pack loaded) and checked on the signed-in screen and through the API.
+| What was checked | Principal (group) | Result |
+|---|---|---|
+| Buttons shown | Legal department (`-4100`) | With `feedbackEnabled` `true` in `/api/config/features`, thumbs up and down appeared under the KB-mode answer |
+| Sending a thumbs down | Legal department | 200 with a `feedbackId`. The screen changed to the thanks message. The collector Lambda ran for 2.8 seconds (cold start included) |
+| The stored record | Legal department | The user was the session's. The question, the rating, the model (`tier:light`), the routing class (`simple`), the answer ID, and 2 cited document IDs (hashes). Expiry 90.0 days later. No answer text and no document names in the record |
+| Turning document IDs back into names | Operator | `scripts/resolve-feedback-doc-ids.py` turned both back into legal-pack documents (the NDA template and the contract review guidelines) |
+| Sending with another user in the body | Development department (`-1100`) | 200. The record's user was the session's (development department); the body value was not used |
+| Sending without signing in | Not signed in | 401 |
+| Permissions of the web app role | IAM policy simulator | `Scan`, `Query`, `GetItem` and `PutItem` on the feedback table were all denied; only `InvokeFunction` on the collector Lambda was allowed |
+![The feedback buttons under an answer, and the screen after sending](../screenshots/v4-feedback-buttons-ja.png)
+**Scope**: One observation each. Removal at the end of retention (DynamoDB TTL), running the weekly review queries, and feedback on Agent-mode answers were not checked. The record's `modelId` is the model tier name the screen holds (`tier:light`), not the ID of the model actually called.
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate
