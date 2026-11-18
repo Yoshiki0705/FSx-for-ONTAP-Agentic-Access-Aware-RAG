@@ -1,6 +1,8 @@
 # Guía de selección de la estrategia de fragmentación
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | [简体中文](../zh-CN/chunking-strategy-guide.md) | [繁體中文](../zh-TW/chunking-strategy-guide.md) | [Français](../fr/chunking-strategy-guide.md) | [Deutsch](../de/chunking-strategy-guide.md) | **Español**
+<!-- i18n:abridged -->
+> **⚠ Traducción parcial**: esta traducción cubre solo una parte del original japonés. Consulte la [versión japonesa](../chunking-strategy-guide.md) para el contenido completo.
 
 **Creado**: 2026-06-07  
 **Estado**: Primera edición  

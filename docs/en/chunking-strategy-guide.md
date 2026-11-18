@@ -119,8 +119,9 @@ grep kbChunkingStrategy cdk.context.json
 # 3. Review the CDK diff
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. Deploy (updates the DataSource configuration only)
+# 4. Deploy (only the KbIngestionConfig output changes; an existing DataSource does not)
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
+# 4b. Chunking cannot be changed after creation: delete the DataSource and recreate it with setup-kb-datasource.sh
 
 # 5. Re-sync the DataSource (required)
 aws bedrock-agent start-ingestion-job \
@@ -150,6 +151,19 @@ After changing the strategy, always measure:
 3. **Response time**: check P50/P95/P99 latency in CloudWatch.
 4. **Cost**: compare the sum of ingestion cost and query cost.
 
+---
+## Parsing with a foundation model (optional)
+With `-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL`, the Knowledge Base data source reads PDFs with a foundation model. The default (`DEFAULT`) is Bedrock's default parser, which reads only the text layer of a PDF; image-only PDFs and text inside tables or figures are not ingested.
+| Setting | Default | What it does |
+|---|---|---|
+| `kbParsingStrategy` | `DEFAULT` | `DEFAULT` \| `BEDROCK_FOUNDATION_MODEL`. `BEDROCK_DATA_AUTOMATION` is rejected at synth (the documentation lists it for US West (Oregon) preview only) |
+| `kbParsingModelId` | `jp.anthropic.claude-haiku-4-5-20251001-v1:0` | The parsing model (an inference profile in Tokyo, or a model ID). Vision-capable Claude, Nova and Llama 4 models qualify |
+| `kbParsingPrompt` | (none) | Instructions for reading (1 to 10,000 characters), for example to output tables as Markdown |
+**[documented]** Choosing a foundation model as the parser sends **every PDF** in the data source to that model, including PDFs that contain only text, and input and output tokens are charged ([parsing options](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-advanced-parsing.html)). Files other than PDF (`.md`, `.txt` and so on) stay on the default parser. A document that fails to parse falls back to the default parser.
+**Permissions**: `.metadata.json` is attached per document, so changing the parser does not change permissions. Text extracted by the parser carries the `allowed_group_sids` of its source document, and the SID filter still runs once on the search results. `parsingModality` (`MULTIMODAL`) is not set, because it would place extracted figures in a separate store that carries no permission information.
+**IAM on the KB role**: only when a foundation model is chosen, the KB role gains `bedrock:GetInferenceProfile` on the inference profile (Bedrock calls it when the data source is created; without it creation fails with `ValidationException`) and `bedrock:InvokeModel` on the profile and its foundation model. With a cross-Region inference profile, parsing input can be processed in another Region.
+**How it is applied**: the scripts that create the data source (`post-deploy-setup.sh`, `setup-kb-datasource.sh`) pass the AI stack output `KbIngestionConfig` (chunking and parsing in one JSON) as `--vector-ingestion-configuration`. The scripts, not CDK, create the data source, so **a CDK deploy alone does not change an existing data source**. Chunking cannot be changed after creation ([documented](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-ds-update.html)), so to change it, recreate the data source and re-sync. Whether the parser alone can be changed with `update-data-source` was not checked.
+> **Change in default chunking**: the earlier scripts did not pass `KbChunkingConfig`, so data sources were created with Bedrock's default (300 tokens, 20% overlap). From now on the default `FIXED_SIZE` is passed with 300 tokens and 10% overlap. Existing data sources do not change; the difference applies when one is recreated.
 ---
 
 ## CDK implementation

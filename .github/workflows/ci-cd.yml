@@ -396,6 +396,9 @@ jobs:
           # KB の問い合わせの分解（既定は無効）。環境変数だけで、新しいリソースは作らない。
           - name: kb-query-decomposition
             flags: '-c enableQueryDecomposition=true'
+          # KB の基盤モデルによる PDF のパース（既定は無効）。KB ロールの IAM（推論プロファイルと基盤モデル）を cdk-nag にかける。
+          - name: kb-parsing-foundation-model
+            flags: '-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL'
           - name: agent-aws-docs
             flags: '-c enableAgent=true -c enableAwsDocsTool=true'
           - name: flows

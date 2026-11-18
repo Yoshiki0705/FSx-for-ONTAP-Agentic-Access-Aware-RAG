@@ -1,6 +1,8 @@
 # Guide de choix de la stratégie de découpage
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | [简体中文](../zh-CN/chunking-strategy-guide.md) | [繁體中文](../zh-TW/chunking-strategy-guide.md) | **Français** | [Deutsch](../de/chunking-strategy-guide.md) | [Español](../es/chunking-strategy-guide.md)
+<!-- i18n:abridged -->
+> **⚠ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../chunking-strategy-guide.md) pour le contenu complet.
 
 **Création**: 2026-06-07  
 **Statut**: Première édition  
