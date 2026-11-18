@@ -124,6 +124,74 @@ export function buildChunkingConfiguration(strategy: string): Record<string, any
   }
 }
 
+/** kbParsingStrategy が取り得る値。BEDROCK_DATA_AUTOMATION は東京で使えないため受け付けない。 */
+export const KB_PARSING_STRATEGIES = ['DEFAULT', 'BEDROCK_FOUNDATION_MODEL'] as const;
+/** 基盤モデルによるパースの既定モデル（東京の推論プロファイル）。 */
+export const DEFAULT_KB_PARSING_MODEL_ID = 'jp.anthropic.claude-haiku-4-5-20251001-v1:0';
+/** parsingPromptText の上限（ParsingPrompt API の仕様）。 */
+export const KB_PARSING_PROMPT_MAX_LENGTH = 10000;
+const INFERENCE_PROFILE_PREFIX = /^(jp|apac|us|eu|global|us-gov)\./;
+export interface KbParsingSettings {
+  /** Bedrock DataSource の parsingConfiguration。DEFAULT のときは undefined（既定のパーサー） */
+  parsingConfiguration?: Record<string, any>;
+  /** パーサーに InvokeModel を許す IAM リソース。DEFAULT のときは空 */
+  invokeModelResources: string[];
+}
+/**
+ * kbParsingStrategy を DataSource の parsingConfiguration と、KB ロールに足す IAM に変換する純粋関数。
+ *
+ * 不正値と BEDROCK_DATA_AUTOMATION は synth で止める（kbChunkingStrategy と同じ扱い）。
+ * 推論プロファイル ID（jp. など）なら、プロファイルと、その基盤モデルの両方を許可する。
+ * ⚠ 基盤モデルを選ぶと、データソースの全 PDF（テキストだけの PDF も）がこのモデルで
+ *   パースされ、トークン分の料金がかかる。
+ */
+export function buildParsingSettings(
+  strategy: string,
+  modelId: string,
+  prompt: string | undefined,
+  region: string,
+  account: string,
+): KbParsingSettings {
+  const normalized = strategy.toUpperCase();
+  if (normalized === 'DEFAULT') {
+    return { invokeModelResources: [] };
+  }
+  if (normalized === 'BEDROCK_DATA_AUTOMATION') {
+    throw new Error(
+      "kbParsingStrategy 'BEDROCK_DATA_AUTOMATION' is not supported: the Amazon Bedrock Data Automation parser " +
+      'is documented for US West (Oregon) only (preview). ' +
+      `Valid values are: ${KB_PARSING_STRATEGIES.join(', ')}`,
+    );
+  }
+  if (normalized !== 'BEDROCK_FOUNDATION_MODEL') {
+    throw new Error(
+      `Invalid kbParsingStrategy: '${strategy}'. Valid values are: ${KB_PARSING_STRATEGIES.join(', ')}`,
+    );
+  }
+  if (!/^[A-Za-z0-9.:_-]{1,200}$/.test(modelId)) {
+    throw new Error(`Invalid kbParsingModelId: '${modelId}'`);
+  }
+  if (prompt !== undefined && (prompt.length < 1 || prompt.length > KB_PARSING_PROMPT_MAX_LENGTH)) {
+    throw new Error(`kbParsingPrompt must be 1-${KB_PARSING_PROMPT_MAX_LENGTH} characters (got ${prompt.length})`);
+  }
+  const isProfile = INFERENCE_PROFILE_PREFIX.test(modelId);
+  const baseModelId = modelId.replace(INFERENCE_PROFILE_PREFIX, '');
+  const modelArn = isProfile
+    ? `arn:aws:bedrock:${region}:${account}:inference-profile/${modelId}`
+    : `arn:aws:bedrock:${region}::foundation-model/${modelId}`;
+  return {
+    parsingConfiguration: {
+      parsingStrategy: 'BEDROCK_FOUNDATION_MODEL',
+      bedrockFoundationModelConfiguration: {
+        modelArn,
+        ...(prompt ? { parsingPrompt: { parsingPromptText: prompt } } : {}),
+      },
+    },
+    invokeModelResources: isProfile
+      ? [modelArn, `arn:aws:bedrock:*::foundation-model/${baseModelId}`]
+      : [modelArn],
+  };
+}
 /**
  * guardrailsConfig を CfnGuardrail プロパティに変換する純粋関数。
  * guardrailsConfig 未設定時はデフォルト構成（全カテゴリ HIGH）を返す。
@@ -557,6 +625,21 @@ export class DemoAIStack extends cdk.Stack {
       },
     });
 
+    // 基盤モデルによるパース（任意）。不正値はここで synth を止める。
+    const kbParsing = buildParsingSettings(
+      String(this.node.tryGetContext('kbParsingStrategy') || 'DEFAULT'),
+      String(this.node.tryGetContext('kbParsingModelId') || DEFAULT_KB_PARSING_MODEL_ID),
+      this.node.tryGetContext('kbParsingPrompt') as string | undefined,
+      cdk.Aws.REGION,
+      cdk.Aws.ACCOUNT_ID,
+    );
+    if (kbParsing.invokeModelResources.length > 0) {
+      kbRole.addToPolicy(new iam.PolicyStatement({
+        sid: 'KbParsingInvokeModel',
+        actions: ['bedrock:InvokeModel'],
+        resources: kbParsing.invokeModelResources,
+      }));
+    }
     // モデル固有の IAM ポリシーを追加（BDA Parser 権限など）
     for (const stmt of kbConfig.iamStatements) {
       // InvokeModel は commonPolicyStatements に含まれるのでスキップ
@@ -959,6 +1042,16 @@ exports.handler = async (event) => {
     new cdk.CfnOutput(this, 'KbChunkingConfig', {
       value: JSON.stringify(kbChunkingConfig),
       description: 'Chunking configuration JSON for setup-kb-datasource.sh',
+    });
+    // データソースを作るスクリプトが `--vector-ingestion-configuration` にそのまま渡す JSON。
+    // チャンキングと（任意の）パースを 1 つにまとめる。作成後は変えられないので、変えるなら
+    // データソースを作り直して再同期する。
+    new cdk.CfnOutput(this, 'KbIngestionConfig', {
+      value: JSON.stringify({
+        chunkingConfiguration: kbChunkingConfig,
+        ...(kbParsing.parsingConfiguration ? { parsingConfiguration: kbParsing.parsingConfiguration } : {}),
+      }),
+      description: 'vectorIngestionConfiguration JSON (chunking + optional foundation-model parsing) for the data source scripts',
     });
 
     // --- Bedrock Guardrails（オプション） ---
@@ -2535,6 +2628,8 @@ ${langInstruction}`,
           'Resource::arn:aws:s3:::perm-rag-demo-demo-*-ext-s3alias/*',
           'Resource::arn:aws:s3vectors:<AWS::Region>:<AWS::AccountId>:bucket/perm-rag-demo-demo-vectors/*',
           'Resource::arn:aws:bedrock:<AWS::Region>:<AWS::AccountId>:knowledge-base/*',
+          // 基盤モデルによるパース（kbParsingStrategy）で、推論プロファイルが解決する先のリージョンを列挙できない
+          { regex: '/^Resource::arn:aws:bedrock:\\*::foundation-model\\/.+$/' },
           // KB data bucket (projectName-environment prefix pattern)
           'Resource::arn:aws:s3:::perm-rag-demo-kb-data-<AWS::AccountId>/*',
           'Resource::arn:aws:s3:::perm-rag-demo-*-ext-s3alias',

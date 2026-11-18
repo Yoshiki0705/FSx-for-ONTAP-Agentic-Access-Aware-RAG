@@ -227,8 +227,16 @@ if [ -n "$EXISTING_DS" ] && [ "$EXISTING_DS" != "None" ] && [ "$EXISTING_DS" != 
   echo "  既存データソース使用: $DS_ID"
 else
   BUCKET_ARN="arn:aws:s3:::${S3AP_ALIAS}"
+  INGESTION_CONFIG=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
+    --query 'Stacks[0].Outputs[?OutputKey==`KbIngestionConfig`].OutputValue' --output text 2>/dev/null || true)
+  INGESTION_ARGS=()
+  if [ -n "$INGESTION_CONFIG" ] && [ "$INGESTION_CONFIG" != "None" ]; then
+    # チャンキングと（任意の）基盤モデルによるパース。データソースの作成時にだけ指定できる
+    INGESTION_ARGS=(--vector-ingestion-configuration "$INGESTION_CONFIG")
+  fi
   DS_RESULT=$(aws bedrock-agent create-data-source \
     --knowledge-base-id $KB_ID \
+    "${INGESTION_ARGS[@]+"${INGESTION_ARGS[@]}"}" \
     --name "${STACK_PREFIX}-s3ap-datasource" \
     --data-source-configuration "{\"type\":\"S3\",\"s3Configuration\":{\"bucketArn\":\"${BUCKET_ARN}\"}}" \
     --region $REGION --output json 2>&1)

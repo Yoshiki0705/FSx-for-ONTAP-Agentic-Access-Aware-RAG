@@ -112,8 +112,16 @@ if [ -n "$EXISTING_DS" ] && [ "$EXISTING_DS" != "None" ]; then
 else
   # bucketArn には S3 AP の Alias をバケット名として入れた arn:aws:s3:::<alias> を渡す
   # (FSx for ONTAP の Bedrock Knowledge Bases チュートリアルの形)。S3 AP の ARN は ValidationException になった
+  INGESTION_CONFIG=$(aws cloudformation describe-stacks --stack-name ${STACK_PREFIX}-AI --region $REGION \
+    --query 'Stacks[0].Outputs[?OutputKey==`KbIngestionConfig`].OutputValue' --output text 2>/dev/null || true)
+  INGESTION_ARGS=()
+  if [ -n "$INGESTION_CONFIG" ] && [ "$INGESTION_CONFIG" != "None" ]; then
+    # チャンキングと（任意の）基盤モデルによるパース。データソースの作成時にだけ指定できる
+    INGESTION_ARGS=(--vector-ingestion-configuration "$INGESTION_CONFIG")
+  fi
   DS_RESULT=$(aws bedrock-agent create-data-source \
     --knowledge-base-id $KB_ID \
+    "${INGESTION_ARGS[@]+"${INGESTION_ARGS[@]}"}" \
     --name "${STACK_PREFIX}-s3ap-datasource" \
     --data-source-configuration "{
       \"type\": \"S3\",
