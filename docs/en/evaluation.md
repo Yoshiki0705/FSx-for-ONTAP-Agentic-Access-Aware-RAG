@@ -363,7 +363,7 @@ Checked on 2026-11-17 in ap-northeast-1 with a deployment using `-c enableMediaT
 | An unsupported format (`newspaper`) | 400 |
 | Language | All five in Japanese, with no English `not stated` (this confirms in a deployed build the prompt change that 3.9 says was not checked in one) |
 
-**Scope**: One observation each. Transcribe put a speaker change in the middle of a sentence (between 「部長」 and 「の承認」), and every format kept those speaker labels. The format does not change how well speakers are separated. The screen was not used; the checks went through the API.
+**Scope**: One observation each. Transcribe put a speaker change in the middle of a sentence (between the words for "department head" and "approval"), and every format kept those speaker labels. The format does not change how well speakers are separated. The screen was not used; the checks went through the API.
 
 ## 4. Agent Evaluation Metrics
 
