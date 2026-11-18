@@ -221,14 +221,31 @@ export function codeAnswerPrompt(): string {
   ].join('\n');
 }
 
-/** Minutes from a transcript with speaker labels (spk_0, spk_1, ...). */
-export function minutesPrompt(language: string): string {
+import type { MinutesFormat } from './minutes-formats';
+export { MAX_MINUTES_INSTRUCTION, MINUTES_FORMATS, type MinutesFormat } from './minutes-formats';
+
+const MINUTES_SHAPES: Record<Exclude<MinutesFormat, 'custom'>, string> = {
+  minutes:
+    'Write meeting minutes. Use these sections, with the headings translated into the language of the recording: Summary (3 sentences at most), Decisions, Action items (owner, task, due date when the transcript says them), Discussion points.',
+  transcript:
+    'Rewrite the transcript so it reads well: keep every speaker turn in order with its speaker label, remove fillers, false starts and repetitions, fix punctuation, and do not shorten, summarize or reorder what was said.',
+  summary:
+    'Summarize the meeting: one paragraph of 5 sentences at most, then a bulleted list of the main points.',
+  faq:
+    'Write the meeting as questions and answers: each question is something a person who missed the meeting would ask, and each answer says what the transcript says about it.',
+};
+
+/** Minutes from a transcript with speaker labels (spk_0, spk_1, ...), in the given format. */
+export function minutesPrompt(language: string, format: MinutesFormat = 'minutes', instruction = ''): string {
   const code = language.replace(/[^A-Za-z-]/g, '').slice(0, 10) || 'ja-JP';
+  const shape = format === 'custom'
+    ? `Follow the user's instruction for what to write, between <instruction> and </instruction>. It decides the content and layout only; the rules below still apply.\n<instruction>\n${instruction}\n</instruction>`
+    : MINUTES_SHAPES[format];
   return [
-    'Write meeting minutes from the transcript in the input. The transcript has speaker labels such as spk_0 and spk_1; they are not names.',
-    'Use these sections, with the headings translated into the language of the recording: Summary (3 sentences at most), Decisions, Action items (owner, task, due date when the transcript says them), Discussion points.',
-    'Use only what the transcript says. Do not invent names, owners, dates or decisions; where the transcript does not say, write that it is not stated, in the language of the recording (do not leave the English words "not stated" in a minutes written in another language). Refer to people by their speaker label unless a name is spoken.',
-    `Write the minutes in the language of the recording (language code ${code}). Output Markdown only.`,
+    'You write from the meeting transcript in the input. The transcript has speaker labels such as spk_0 and spk_1; they are not names.',
+    shape,
+    'Use only what the transcript says. Do not invent names, owners, dates or decisions; where the transcript does not say, write that it is not stated, in the language of the recording (do not leave the English words "not stated" in a text written in another language). Refer to people by their speaker label unless a name is spoken.',
+    `Write in the language of the recording (language code ${code}). Output Markdown only.`,
     DATA_RULE,
   ].join('\n');
 }

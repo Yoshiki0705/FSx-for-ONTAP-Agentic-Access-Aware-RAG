@@ -1672,7 +1672,18 @@
       "failed": "Die Transkription ist fehlgeschlagen: {reason}",
       "timedOut": "Die Transkription wurde nicht innerhalb von 15 Minuten fertig.",
       "truncated": "Die Aufnahme ist lang; das Protokoll nutzt nur den ersten Teil des Transkripts.",
-      "transcript": "Transkript"
+      "transcript": "Transkript",
+      "format": "Ausgabeformat",
+      "formats": {
+        "minutes": "Protokoll (Zusammenfassung, Entscheidungen, Aufgaben, Diskussionspunkte)",
+        "transcript": "Bereinigtes Transkript (mit Sprechern)",
+        "summary": "Zusammenfassung",
+        "faq": "Fragen und Antworten",
+        "custom": "Eigene Anweisung"
+      },
+      "instruction": "Was geschrieben werden soll",
+      "instructionPlaceholder": "Beispiel: nur Entscheidungen und Aufgaben als Tabelle",
+      "rewrite": "In diesem Format neu schreiben"
     },
     "videoGen": {
       "regionNotice": "Die Videoerzeugung nutzt ein Modell in der Region {region}. Prompt und erzeugtes Video werden außerhalb Japans verarbeitet und gespeichert; das Video wird nach 1 Tag gelöscht.",

@@ -13,6 +13,7 @@ import {
 import { MermaidView } from './MermaidView';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { exportUseCaseFile, parseUseCaseFile } from '@/lib/genu-tools/use-case-file';
+import { MINUTES_FORMATS } from '@/lib/genu-tools/minutes-formats';
 
 type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases' | 'code' | 'video' | 'minutes' | 'videoGen';
 
@@ -668,9 +669,16 @@ function MinutesPanel({ t, limits }: { t: ReturnType<typeof useTranslations>; li
   const [language, setLanguage] = useState<string>('ja-JP');
   const [speakers, setSpeakers] = useState(2);
   const [phase, setPhase] = useState('');
-  const [out, setOut] = useState<{ minutes: string; transcript: string; truncated?: boolean; reason?: string } | null>(null);
+  const [format, setFormat] = useState<(typeof MINUTES_FORMATS)[number]>('minutes');
+  const [instruction, setInstruction] = useState('');
+  // The finished transcription job: another format is written from it without transcribing again.
+  const [jobName, setJobName] = useState('');
+  const [out, setOut] = useState<{ minutes: string; transcript: string; format?: string; truncated?: boolean; reason?: string } | null>(null);
   const { busy, error, run } = useRunner();
   const tooBig = !!file && file.size > limits.maxAudioMb * 1024 * 1024;
+  const needsInstruction = format === 'custom' && !instruction.trim();
+  const writeFormat = (name: string) =>
+    postTool('minutes-status', { jobName: name, language, format, instruction: format === 'custom' ? instruction : '' });
   return (
     <div className="space-y-4">
       <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
@@ -678,7 +686,7 @@ function MinutesPanel({ t, limits }: { t: ReturnType<typeof useTranslations>; li
       </p>
       <label className="block text-sm text-gray-700 dark:text-gray-300">
         {t('minutes.file')}
-        <input type="file" accept="audio/*,video/mp4,video/webm,.mp3,.m4a,.wav,.flac,.ogg,.mp4,.webm" className={inputClass} onChange={(e) => { setFile(e.target.files?.[0] ?? null); setOut(null); }} />
+        <input type="file" accept="audio/*,video/mp4,video/webm,.mp3,.m4a,.wav,.flac,.ogg,.mp4,.webm" className={inputClass} onChange={(e) => { setFile(e.target.files?.[0] ?? null); setOut(null); setJobName(''); }} />
       </label>
       {tooBig && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{t('minutes.tooBig', { mb: limits.maxAudioMb })}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
@@ -692,14 +700,27 @@ function MinutesPanel({ t, limits }: { t: ReturnType<typeof useTranslations>; li
           {t('minutes.speakers')}
           <input type="number" min={2} max={10} className={inputClass} value={speakers} onChange={(e) => setSpeakers(Number(e.target.value) || 2)} />
         </label>
+        <label className="text-sm text-gray-700 dark:text-gray-300 sm:col-span-2">
+          {t('minutes.format')}
+          <select className={inputClass} value={format} onChange={(e) => setFormat(e.target.value as (typeof MINUTES_FORMATS)[number])}>
+            {MINUTES_FORMATS.map((f) => <option key={f} value={f}>{t(`minutes.formats.${f}`)}</option>)}
+          </select>
+        </label>
+        {format === 'custom' && (
+          <label className="text-sm text-gray-700 dark:text-gray-300 sm:col-span-2">
+            {t('minutes.instruction')}
+            <textarea className={`${inputClass} min-h-[80px]`} maxLength={1000} value={instruction} onChange={(e) => setInstruction(e.target.value)} placeholder={t('minutes.instructionPlaceholder')} />
+          </label>
+        )}
       </div>
       <button
         type="button"
         className={buttonClass}
-        disabled={busy || !file || tooBig}
+        disabled={busy || !file || tooBig || needsInstruction}
         onClick={() => run(async () => {
           if (!file) return;
           setOut(null);
+          setJobName('');
           setPhase('upload');
           const up = await postTool('media-upload', { kind: 'audio', fileName: file.name, size: file.size });
           const put = await fetch(up.url, { method: 'PUT', headers: up.headers, body: file });
@@ -708,10 +729,11 @@ function MinutesPanel({ t, limits }: { t: ReturnType<typeof useTranslations>; li
           const started = await postTool('minutes-start', { key: up.key, language, speakers });
           for (let i = 0; i < 180; i++) {
             await new Promise((r) => setTimeout(r, 5000));
-            const s = await postTool('minutes-status', { jobName: started.jobName, language });
+            const s = await writeFormat(started.jobName);
             if (s.status === 'FAILED') throw new Error(t('minutes.failed', { reason: s.reason || '' }));
             if (s.status === 'COMPLETED') {
               setOut(s);
+              setJobName(started.jobName);
               setPhase('');
               return;
             }
@@ -726,7 +748,12 @@ function MinutesPanel({ t, limits }: { t: ReturnType<typeof useTranslations>; li
         <>
           {out.reason && <p className="text-sm text-gray-700 dark:text-gray-300">{out.reason}</p>}
           {out.truncated && <p className="text-sm text-amber-800 dark:text-amber-200">{t('minutes.truncated')}</p>}
-          <ResultText text={out.minutes} t={t} fileName="minutes.md" />
+          {jobName && (
+            <button type="button" className={secondaryButton} disabled={busy || needsInstruction} onClick={() => run(async () => setOut(await writeFormat(jobName)))}>
+              <Wand2 className="h-4 w-4" aria-hidden /> {busy ? t('running') : t('minutes.rewrite')}
+            </button>
+          )}
+          <ResultText text={out.minutes} t={t} fileName={`minutes-${out.format || 'minutes'}.md`} />
           <details className="text-sm text-gray-700 dark:text-gray-300">
             <summary className="cursor-pointer">{t('minutes.transcript')}</summary>
             <pre className="mt-2 whitespace-pre-wrap rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 text-xs">{out.transcript}</pre>

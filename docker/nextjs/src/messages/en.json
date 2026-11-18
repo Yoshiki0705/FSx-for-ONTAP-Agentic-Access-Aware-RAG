@@ -1561,7 +1561,18 @@
       "failed": "The transcription failed: {reason}",
       "timedOut": "The transcription did not finish in 15 minutes.",
       "truncated": "The recording is long; the minutes use the first part of the transcript only.",
-      "transcript": "Transcript"
+      "transcript": "Transcript",
+      "format": "Output format",
+      "formats": {
+        "minutes": "Minutes (summary, decisions, action items, discussion)",
+        "transcript": "Cleaned-up transcript (with speakers)",
+        "summary": "Summary",
+        "faq": "Questions and answers",
+        "custom": "Your own instruction"
+      },
+      "instruction": "What to write",
+      "instructionPlaceholder": "Example: put only the decisions and action items in a table",
+      "rewrite": "Rewrite in this format"
     },
     "videoGen": {
       "regionNotice": "Video generation uses a model in the {region} Region. The prompt and the generated video are processed and stored outside Japan, and the video is deleted after 1 day.",

@@ -1561,7 +1561,18 @@
       "failed": "文字起こしに失敗しました: {reason}",
       "timedOut": "文字起こしが 15 分以内に終わりませんでした。",
       "truncated": "録音が長いため、議事録は文字起こしの前半だけから作っています。",
-      "transcript": "文字起こし"
+      "transcript": "文字起こし",
+      "format": "出力の形式",
+      "formats": {
+        "minutes": "議事録（要約・決定事項・宿題・論点）",
+        "transcript": "整えた書き起こし（話者つき）",
+        "summary": "要約",
+        "faq": "Q&A 形式",
+        "custom": "指示して書かせる"
+      },
+      "instruction": "書かせたい内容",
+      "instructionPlaceholder": "例: 決定事項と宿題だけを表にしてください",
+      "rewrite": "この形式で作り直す"
     },
     "videoGen": {
       "regionNotice": "動画の生成は {region} リージョンのモデルで行います。プロンプトと生成した動画は、日本の外で処理・保管され、動画は 1 日後に削除されます。",

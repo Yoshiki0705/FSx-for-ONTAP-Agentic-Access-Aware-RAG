@@ -149,7 +149,7 @@ export async function runTool(tool: string, userId: string, body: Body): Promise
     case 'minutes-start':
       return { ...(await startMinutes(userId, { key: str(body, 'key'), language: str(body, 'language') || 'ja-JP', speakers: typeof body.speakers === 'number' ? body.speakers : 2 })) };
     case 'minutes-status':
-      return { ...(await minutesStatus(userId, { jobName: str(body, 'jobName'), language: str(body, 'language') || 'ja-JP' })) };
+      return { ...(await minutesStatus(userId, { jobName: str(body, 'jobName'), language: str(body, 'language') || 'ja-JP', format: str(body, 'format') || 'minutes', instruction: str(body, 'instruction') })) };
     case 'video-generate-start':
       return { ...(await startVideo(userId, { prompt: str(body, 'prompt'), aspectRatio: str(body, 'aspectRatio') || '16:9', resolution: str(body, 'resolution') || '540p' })) };
     case 'video-generate-status':
