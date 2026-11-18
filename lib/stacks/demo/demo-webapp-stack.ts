@@ -67,6 +67,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
    * `candidates` chunks and the top 10 go to the answer model.
    */
   rerank?: { modelId: string; candidates: number };
+  /** Bedrock Flows the tools page may call (each flow's nodes are checked before every call). */
+  flows?: { key: string; flowId: string; aliasId: string; name: string; description: string }[];
   /**
    * Per-answer feedback (thumbs up / down). Off by default: the record holds the user's
    * question (500 characters at most), so it is switched on deliberately. The web app can
@@ -329,6 +331,7 @@ export class DemoWebAppStack extends cdk.Stack {
         // putting new secret values makes the function read them (docs/operations-runbook.md 11).
         TOKEN_KEYS_EPOCH: String(this.node.tryGetContext('tokenKeysEpoch') ?? '1'),
         ...(props.rerank ? { RERANK_MODEL_ID: props.rerank.modelId, RERANK_CANDIDATES: String(props.rerank.candidates) } : {}),
+        ...(props.flows?.length ? { FLOWS_CONFIG: JSON.stringify(props.flows) } : {}),
         // Groups that grant the administrator role (lib/stacks/demo/admin-groups.ts)
         ADMIN_GROUP_NAMES: adminGroupNames(this.node).join(','),
         // Bedrock KB設定
@@ -554,6 +557,21 @@ export class DemoWebAppStack extends cdk.Stack {
       resources: ['*'],
     }));
 
+    // Bedrock Flows: only the registered flows and aliases. GetFlowAlias and GetFlowVersion read
+    // the definition that is checked before each call (docs/mcp-flows-threat-model.md).
+    if (props.flows?.length) {
+      const flowArn = (id: string) => `arn:${cdk.Aws.PARTITION}:bedrock:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:flow/${id}`;
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        sid: 'InvokeRegisteredFlows',
+        actions: ['bedrock:InvokeFlow', 'bedrock:GetFlowAlias'],
+        resources: props.flows.map((f) => `${flowArn(f.flowId)}/alias/${f.aliasId}`),
+      }));
+      this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
+        sid: 'ReadRegisteredFlowVersions',
+        actions: ['bedrock:GetFlowVersion'],
+        resources: [...new Set(props.flows.map((f) => flowArn(f.flowId)))],
+      }));
+    }
     // Rerank (only with enableRerank). bedrock:Rerank has no resource type, so the resource is *.
     // The model itself is called through bedrock:InvokeModel, granted above.
     if (props.rerank) {

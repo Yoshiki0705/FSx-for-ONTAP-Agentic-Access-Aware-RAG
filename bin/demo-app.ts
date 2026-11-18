@@ -458,6 +458,27 @@ if (tokenKeysEpoch !== undefined && !/^[A-Za-z0-9._-]{1,32}$/.test(String(tokenK
   throw new Error(`tokenKeysEpoch must be 1 to 32 letters, digits, '.', '_' or '-': ${tokenKeysEpoch}`);
 }
 const enableFeedback = ctxBool('enableFeedback');
+// Bedrock Flows the tools page may call (docs/mcp-flows-threat-model.md). A JSON array of
+// { flowId, aliasId, name, description, key? }. The web app checks each flow's nodes before
+// every call; here only the shape is checked, and a malformed entry throws.
+const flowsCtx = app.node.tryGetContext('flows');
+const flows: { key: string; flowId: string; aliasId: string; name: string; description: string }[] = (() => {
+  if (flowsCtx === undefined || flowsCtx === '') return [];
+  const list = typeof flowsCtx === 'string' ? JSON.parse(flowsCtx) : flowsCtx;
+  if (!Array.isArray(list)) throw new Error('flows must be a JSON array of { flowId, aliasId, name, description }');
+  const keys = new Set<string>();
+  return list.map((e: Record<string, unknown>, i: number) => {
+    const flowId = String(e?.flowId ?? '');
+    const aliasId = String(e?.aliasId ?? '');
+    if (!/^[0-9A-Z]{10}$/.test(flowId) || !/^[0-9A-Z]{10}$/.test(aliasId)) {
+      throw new Error(`flows[${i}]: flowId and aliasId must be 10 capital letters or digits`);
+    }
+    const key = String(e.key || `flow-${i + 1}`);
+    if (!/^[a-z0-9-]{1,40}$/.test(key) || keys.has(key)) throw new Error(`flows[${i}]: key must be unique, lowercase letters, digits and hyphens`);
+    keys.add(key);
+    return { key, flowId, aliasId, name: String(e.name || flowId).slice(0, 100), description: String(e.description || '').slice(0, 500) };
+  });
+})();
 // Reranking after the SID filter (docker/nextjs/src/lib/rag-pipeline/reranker.ts). Only the two
 // rerank models Bedrock offers in Tokyo are accepted; a typo throws instead of turning reranking off.
 const RERANK_MODELS = ['amazon.rerank-v1:0', 'cohere.rerank-v3-5:0'];
@@ -528,6 +549,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   agentDefinitionsTableName: aiStack.agentDefinitionsTableName,
   tools: toolsSettings,
   feedback: { enabled: enableFeedback, retentionDays: feedbackRetentionDays },
+  flows,
   rerank,
   models: { families: modelFamilies, profilePreference: modelProfilePreference },
   actionGroupLambdaArn: aiStack.actionGroupLambdaArn,

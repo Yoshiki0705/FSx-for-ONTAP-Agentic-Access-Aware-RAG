@@ -23,6 +23,7 @@ import {
 } from './prompts';
 import { generateText, MAX_INPUT_CHARS, ToolInputError } from './text-model';
 import { getRunnableUseCase, useCaseSharingEnabled } from './use-cases';
+import { flowsConfig, MAX_FLOW_INPUT_CHARS, runFlow } from './flows';
 import { fetchPage, htmlToText } from './web-fetch';
 import { startVideo, videoGenerationConfig, videoStatus } from './video-generation';
 import { minutesStatus, startMinutes } from './minutes';
@@ -36,7 +37,7 @@ export { codeInterpreterEnabled } from './code-interpreter';
 export { mediaToolsEnabled } from './media';
 export { videoGenerationConfig } from './video-generation';
 
-export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'image-prompt', 'use-case', 'code', 'media-upload', 'video', 'minutes-start', 'minutes-status', 'video-generate-start', 'video-generate-status'] as const;
+export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'image-prompt', 'flow', 'use-case', 'code', 'media-upload', 'video', 'minutes-start', 'minutes-status', 'video-generate-start', 'video-generate-status'] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
 export function webExtractEnabled(): boolean {
@@ -57,6 +58,7 @@ export function toolsConfig() {
       videoGeneration: videoGenerationConfig().enabled,
       useCases: !!process.env.USE_CASES_TABLE_NAME,
       useCaseSharing: !!process.env.USE_CASES_TABLE_NAME && useCaseSharingEnabled(),
+      flows: flowsConfig().length > 0,
     },
     image: image.enabled ? { region: image.region, modelId: image.modelId, imageToImageModelId: image.imageToImageModelId, crossRegion: image.crossRegion } : null,
     codeInterpreter: codeInterpreterEnabled() ? { maxRuns: MAX_RUNS, runSeconds: RUN_LIMIT_MS / 1000 } : null,
@@ -64,6 +66,9 @@ export function toolsConfig() {
     videoGeneration: videoGenerationConfig().enabled
       ? { region: videoGenerationConfig().region, modelId: videoGenerationConfig().modelId, crossRegion: videoGenerationConfig().crossRegion }
       : null,
+    // Keys and names only: the flow and alias IDs stay on the server.
+    flows: flowsConfig().map(({ key, name, description }) => ({ key, name, description })),
+    maxFlowInputChars: MAX_FLOW_INPUT_CHARS,
     maxInputChars: MAX_INPUT_CHARS,
   };
 }
@@ -129,6 +134,8 @@ export async function runTool(tool: string, userId: string, body: Body): Promise
       };
       return { ...(await generateImage(req)) };
     }
+    case 'flow':
+      return { ...(await runFlow(userId, { key: str(body, 'key'), text: str(body, 'text') })) };
     case 'image-prompt': {
       // Prompt assist runs a text model in this region; no image model is called.
       if (!imageConfig().enabled) throw new ToolInputError('image generation is not enabled');

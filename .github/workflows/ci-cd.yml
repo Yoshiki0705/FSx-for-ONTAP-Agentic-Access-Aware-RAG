@@ -391,6 +391,10 @@ jobs:
           # SID フィルタの後のリランキング（既定は無効）。bedrock:Rerank の権限を cdk-nag にかける。
           - name: rerank
             flags: '-c enableRerank=true -c rerankModelId=cohere.rerank-v3-5:0'
+          # Bedrock Flows（既定は無効）。登録したフローとエイリアスだけへの権限を cdk-nag にかける。
+          - name: flows
+            # The JSON is single-quoted inside the flags: both the CI step (bash) and make synth (shlex) split it like a shell.
+            flags: '-c ''flows=[{"flowId":"CIDUMMYFL1","aliasId":"CIDUMMYAL1","name":"ci-dummy"}]'''
           # ツールの動画の生成（既定は無効）。us-west-2 の出力バケットのスタック、クロスリージョン参照、Bedrock の非同期呼び出しの IAM を cdk-nag にかける。
           - name: tools-video-generation
             flags: '-c enableVideoGeneration=true'

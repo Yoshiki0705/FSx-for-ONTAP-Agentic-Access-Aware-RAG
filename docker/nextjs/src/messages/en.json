@@ -1399,7 +1399,8 @@
       "code": "Run code",
       "video": "Video analysis",
       "minutes": "Meeting minutes",
-      "videoGen": "Video generation"
+      "videoGen": "Video generation",
+      "flows": "Flows"
     },
     "source": {
       "label": "Input",
@@ -1597,6 +1598,12 @@
       "failed": "Video generation failed: {reason}",
       "timedOut": "The video was not ready after 6 minutes.",
       "expires": "The download link works for 10 minutes. The video is deleted after 1 day."
+    },
+    "flows": {
+      "intro": "Calls Bedrock Flows that an administrator registered. Flows that read internal documents cannot be called, because they cannot be narrowed by your permissions; use KB mode for internal documents.",
+      "flow": "Flow",
+      "input": "Input",
+      "run": "Run"
     }
   },
   "feedback": {

@@ -393,6 +393,22 @@ Checked on 2026-11-18 through the API by a legal-department user, with a deploym
 
 **Scope**: One observation each. The source image held only flat shapes; results from photographs were not looked at. How much the style changes with `strength` was not measured. The screen was not used; the checks went through the API.
 
+### 3.17 Results with the tools page "Flows"
+
+Checked on 2026-11-18 in ap-northeast-1. Two flows were made for the check: one with only input, prompt (`jp.anthropic.claude-haiku-4-5-20251001-v1:0`) and output nodes (summary), and one with input, knowledge base (the deployed KB) and output nodes (KB search). Both got an alias, were registered with `-c flows`, and the WebApp stack was deployed again. The user was from the development department (`-1100`, who cannot read the NDA template).
+
+| What was checked | Result |
+|---|---|
+| Calling the KB search flow directly with administrator permissions (not through the app) | 5 results, 4 of them the NDA template (`nda-template-standard.md`, a document only the legal department may read). The flow request carries no user (threat T1 confirmed on a live flow) |
+| The screen settings (`/api/tools/config`) | Only the keys, names and descriptions of the two flows; no flow or alias IDs |
+| The summary flow | 200, 1.9 s. A two-sentence summary in Japanese; version 1 |
+| The KB search flow | 400, 0.6 s: "this flow contains node types that are not allowed here: KnowledgeBase". The flow was not called |
+| An unregistered key sent with the flow and alias IDs | 400 (`flow not found`) |
+| Not signed in | 401 |
+| Structured log | The summary: `decision: called` with the version and completion reason; the KB search: `decision: refused` with the refused node type. No input text in the log |
+
+**Scope**: One observation each. Checking nodes inside loops, refusing an alias split across versions, and the other disallowed node types were checked by unit tests only. Changing the alias between the check and the call was not tried (recorded as a remaining risk in the [threat model](mcp-flows-threat-model.md)). The screen was not used; the checks went through the API.
+
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate

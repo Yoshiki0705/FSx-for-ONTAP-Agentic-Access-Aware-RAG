@@ -66,6 +66,8 @@ There are three boundaries: user to web app (the session establishes who the use
 | Work that needs internal documents uses KB mode (the SID filter), not a flow | T1, T2 |
 | The user, flow, version, and the allow or refuse result go to a structured log; the input text does not | T10 |
 
+> **Note on the gap between check and call**: `InvokeFlow` is called with an alias and cannot name a version. If the alias is pointed elsewhere between the check and the call, an unchecked version runs. The gap is two API calls long, and only people with Bedrock management permissions can change an alias. This gap is treated as a remaining risk, kept small by limiting who can change aliases to administrators
+
 > **Note on the inline code node**: what the inline code node's runtime can reach (network, AWS APIs) was not checked (hypothesis). It is not an allowed node type until it is shown not to reach them
 
 ### MCP
@@ -82,7 +84,7 @@ There are three boundaries: user to web app (the session establishes who the use
 
 ## Step-by-Step Introduction
 
-1. **Flows**: an API and screen that call flows made only of allowed nodes. The refusal is checked by unit tests, allow and refuse on a live deployment
+1. **Flows**: an API and screen that call flows made only of allowed nodes. The refusal is checked by unit tests, allow and refuse on a live deployment (implemented; results in [evaluation](evaluation.md) 3.17)
 2. **MCP (internal tools)**: any internal tool added to the Gateway besides the existing `permission-search` also follows the decisions in this document
 3. **MCP (external servers)**: add one read-only tool, allowed by name. Tools that send data out are not added at this step
 
