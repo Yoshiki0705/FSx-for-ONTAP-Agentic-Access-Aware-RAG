@@ -47,7 +47,9 @@ import {
   type ChunkSafetyResult,
 } from '@/lib/rag-pipeline';
 import { resolveUser } from '@/lib/agent-backend/routes';
+import { decompositionEnabled } from '@/lib/rag-pipeline/query-decomposer';
 import { rerankAllowed, rerankConfig, MAX_RERANK_SOURCES } from '@/lib/rag-pipeline/reranker';
+import { DEFAULT_POOL_SIZE, decomposeQuery, mergeResults } from '@/lib/rag-pipeline/query-decomposer';
 
 // === Feature flags ===
 const ENABLE_AGENTCORE_MEMORY = process.env.ENABLE_AGENTCORE_MEMORY === 'true';
@@ -121,17 +123,34 @@ export async function POST(request: NextRequest) {
     let results: Array<{ content?: { text?: string }; location?: { s3Location?: { uri?: string } }; score?: number; metadata?: Record<string, unknown> }> = [];
     let multimodalFallback = false;
 
-    const retrieveFromKB = async (kbId: string) => {
+    // Query decomposition (off unless enabled): a question about several topics is split into a
+    // few search queries. The model sees only the user's question. Skipped when an image was
+    // analyzed, because then the retrieval query holds the image analysis as well.
+    const decomposition = await decomposeQuery(retrievalQuery, !imageAnalysisUsed && decompositionEnabled());
+    const retrieveOne = async (kbId: string, text: string) => {
       const vectorSearchConfig = {
         numberOfResults: retrieveCount(),
         ...buildVectorSearchConfig(body.searchType),
       };
       const resp = await kbClient.send(new RetrieveCommand({
         knowledgeBaseId: kbId,
-        retrievalQuery: { text: retrievalQuery },
+        retrievalQuery: { text },
         retrievalConfiguration: { vectorSearchConfiguration: vectorSearchConfig },
       }));
       return resp.retrievalResults || [];
+    };
+    const retrieveFromKB = async (kbId: string) => {
+      const [original, ...subs] = decomposition.queries;
+      if (subs.length === 0) return retrieveOne(kbId, original);
+      // The original question's failure fails the request as before; a sub-query's does not.
+      const lists = await Promise.all([
+        retrieveOne(kbId, original),
+        ...subs.map((q) => retrieveOne(kbId, q).catch((err: unknown) => {
+          console.warn('[KB] sub-query retrieve failed:', err instanceof Error ? err.message : String(err));
+          return [] as Awaited<ReturnType<typeof retrieveOne>>;
+        })),
+      ]);
+      return mergeResults(lists, rerankConfig() ? retrieveCount() : DEFAULT_POOL_SIZE);
     };
 
     if (MULTIMODAL_ENABLED && effectiveKbId !== knowledgeBaseId) {
@@ -151,6 +170,10 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[KB] Results:', (results || []).length);
+    if (decomposition.method !== 'SKIPPED_DISABLED' && decomposition.method !== 'SKIPPED_SHORT') {
+      // The user and the counts, not the question or the sub-queries.
+      console.log(JSON.stringify({ event: 'query_decomposition', userId, method: decomposition.method, subQueries: decomposition.queries.length - 1, pooled: (results || []).length, latencyMs: decomposition.latencyMs }));
+    }
 
     // Parse results to common format
     const parsedResults: ParsedRetrievalResult[] = (results || []).map(r => {
@@ -248,6 +271,9 @@ export async function POST(request: NextRequest) {
       console.log(`[ChunkSafety] Result: ${chunkSafetyResult.blockedCount} chunks blocked, ${allowed.length} remaining`);
     }
 
+    if (decomposition.method === 'DECOMPOSED') {
+      (filterLog as Record<string, unknown>).queryDecomposition = { subQueries: decomposition.queries.length - 1, latencyMs: decomposition.latencyMs };
+    }
     // === Step 5b: Rerank (only the chunks that passed the filters; off unless enabled) ===
     const rerank = await rerankAllowed(query, allowed, region);
     if (rerank.method !== 'SKIPPED_DISABLED') {
@@ -305,6 +331,8 @@ export async function POST(request: NextRequest) {
           ...(MULTIMODAL_ENABLED ? { multimodalEnabled: true, routeDecision: routeDecision.reason } : {}),
           ...(multimodalFallback ? { multimodalFallback: true } : {}),
           ...(chunkSafetyResult.method !== 'SKIP_DISABLED' ? { chunkSafety: { method: chunkSafetyResult.method, blockedCount: chunkSafetyResult.blockedCount, latencyMs: chunkSafetyResult.latencyMs } } : {}),
+          // The search queries used, so the user can see how the question was split.
+          ...(decomposition.method === 'DECOMPOSED' ? { queryDecomposition: { method: decomposition.method, searchQueries: decomposition.queries.slice(1), latencyMs: decomposition.latencyMs } } : {}),
           ...(rerank.method !== 'SKIPPED_DISABLED' ? { rerank: { method: rerank.method, modelId: rerank.modelId, latencyMs: rerank.latencyMs } } : {}),
         },
       });

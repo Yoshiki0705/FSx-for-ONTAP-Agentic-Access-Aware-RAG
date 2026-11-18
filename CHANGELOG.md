@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **KB モードの問い合わせの分解（`-c enableQueryDecomposition=true`、既定は無効）**: 複数の話題を含む質問を、テキストモデルが最大 4 つの検索の質問に分けてから Retrieve し、結果を合流させる。SID フィルタは合流した全体に 1 回だけ、これまでと同じように働く。モデルに渡すのは利用者の質問だけで、文書は渡さない。失敗したときは元の質問だけで検索する。Bedrock 標準の `QUERY_DECOMPOSITION`（SID フィルタの前に回答を作る）と `AgenticRetrieveStream`（Managed KB のもの）は使わない。CI の synth 行列に `kb-query-decomposition` レーンを追加
 - **Agent モードの AWS ドキュメントのツール（`-c enableAwsDocsTool=true`、既定は無効）**: オープンソースの AWS Documentation MCP Server（1.2.6、依存も版を固定）を専用の AgentCore Runtime で動かし、`agent-tools` Gateway の MCP サーバーのターゲットとして足した。Gateway は AWS の署名（SigV4）で呼び、使えるのは `search_documentation`・`read_documentation`・`read_sections` の 3 つで、ツールの定義は Gateway に固定する。検索語は 200 文字、URL は docs.aws.amazon.com のみ、1 回の質問で 6 回まで。Agent の定義に `AwsDocumentation` を入れた Agent だけが使える。選んだ理由と比較は `docs/mcp-external-tool-selection.md`。CI の synth 行列に `agent-aws-docs` レーンを追加
 - **`docs/mcp-external-tool-selection.md`（JA/EN）**: 脅威モデルの段階 3 で足す社外の MCP のツールを選ぶための材料。確かめる 6 つの観点（社外へ出るもの、読める先、動かす場所、後からの変化、認証、書き込み）と 6 つの候補の比較、選び方の図を、このリポジトリの判断（版を固定して自分のアカウントで動かす AWS Documentation MCP Server）と分けて載せた
 - **ツールの「フロー」（`-c flows=...`、既定は無効）**: 管理者が登録した Bedrock Flows のフローを呼ぶ。呼ぶたびにエイリアスが指す版の定義を読み、ナレッジベース・エージェント・S3・Lambda・インラインコード・Lex のノード（繰り返しの中も含む）を含むフローは呼ばない。フローのナレッジベースノードは呼んだ利用者で絞れないため（`docs/mcp-flows-threat-model.md`）。IAM は登録したフローとエイリアスだけ。CI の synth 行列に `flows` レーンを追加。画面の文言は 8 言語

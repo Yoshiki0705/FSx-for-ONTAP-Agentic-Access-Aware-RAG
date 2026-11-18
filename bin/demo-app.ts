@@ -551,6 +551,7 @@ const webAppStack = new DemoWebAppStack(app, `${stackPrefix}-WebApp`, {
   tools: toolsSettings,
   feedback: { enabled: enableFeedback, retentionDays: feedbackRetentionDays },
   flows,
+  queryDecomposition: ctxBool('enableQueryDecomposition'),
   awsDocsTool: ctxBool('enableAwsDocsTool') && enableAgent && agentBackend === 'agentcore',
   rerank,
   models: { families: modelFamilies, profilePreference: modelProfilePreference },

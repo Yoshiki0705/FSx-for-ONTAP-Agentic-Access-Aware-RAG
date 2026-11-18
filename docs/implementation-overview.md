@@ -475,6 +475,17 @@ Retrieve APIを使用する理由: RetrieveAndGenerate APIはcitationのメタ�
 | メタデータにSID情報なし | 該当ドキュメント拒否 |
 | SIDマッチなし | 該当ドキュメント拒否 |
 | SIDマッチあり | 該当ドキュメント許可 |
+### 問い合わせの分解（任意）
+
+`-c enableQueryDecomposition=true`（既定は無効）で、複数の話題を含む質問を、テキストモデルが最大 4 つの検索の質問に分けてから Retrieve します。複数の話題を 1 つの質問にすると、その埋め込みは話題が混ざったものになり、一部の話題のチャンクが返らないことがあるためです。
+
+- **処理**: 元の質問と分けた質問のそれぞれで Retrieve（並列、最大 5 回）→ 各結果から順番に 1 件ずつ取って合流（同じ文書の同じ本文は 1 件）→ 合流した全体に、これまでと同じ SID フィルタ → チャンクの安全性チェック → （有効なら）リランキング。SID フィルタは合流のあとに 1 回だけ働くので、権限の判定は質問がいくつに分かれたかに依らず同じです。合流する件数は、リランキングが無効なとき 15 件まで、有効なときは `rerankCandidates` 件までです
+- **Bedrock 標準の分解を使わない理由**: `QUERY_DECOMPOSITION`（`orchestrationConfiguration.queryTransformationConfiguration`）は RetrieveAndGenerate の設定で、SID フィルタの前に回答を作ってしまいます。`AgenticRetrieveStream` は Managed Knowledge Base のもので、各段階で ACL が効くかは未確認のため（[Managed KB 移行の評価](managed-kb-migration-evaluation.md) の V5）、使いません。出典: [Bedrock Knowledge Bases の問い合わせの再構成](https://aws.amazon.com/blogs/machine-learning/amazon-bedrock-knowledge-bases-now-supports-advanced-parsing-chunking-and-query-reformulation-giving-greater-control-of-accuracy-in-rag-based-applications/)、[Retrieve の API 一覧](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-how-retrieval.html)
+- **モデルに渡すもの**: 利用者の質問だけです（`<input>` で包み、中の指示に従わないよう system に書く）。検索した文書は渡さないので、文書に書かれた指示で分け方を変えることはできません。分けた質問は Retrieve の検索語としてだけ使い、どんな質問が出ても、返ったチャンクはすべて SID フィルタを通ります
+- **失敗したとき**: モデルのエラー、5 秒の時間切れ、読めない応答のときは、元の質問だけで検索します（Fail-Open。関連度にだけ影響し、権限には影響しない）。分けた質問の Retrieve が失敗しても、その質問の結果がなくなるだけです。元の質問の Retrieve が失敗したときは、これまでと同じくエラーです
+- **使わない場合**: 20 文字未満の質問と、画像を分析した質問（検索の質問に画像の分析結果が入るため）は分けません
+- **コストと時間**: 質問 1 回あたり、軽量の段のモデルの呼び出しが 1 回と、Retrieve が最大 4 回増えます。分けた件数と時間は応答の `metadata.queryDecomposition` と、`query_decomposition` のログ（質問も分けた質問も含まない）に出ます
+
 ### フィルタの後のリランキング（任意）
 
 `-c enableRerank=true`（既定は無効）で、SID フィルタとチャンクの安全性チェックを通ったチャンクだけを Bedrock の Rerank API で関連度の順に並べ替え、上位 10 件を回答のモデルに渡します。Knowledge Base の Retrieve にも並べ替えの設定がありますが、Retrieve は SID フィルタの前に動くため、そこで並べ替えると利用者が読めないチャンクも並べ替えのモデルに送られます。ここでは送らないために、フィルタの後で別に呼びます。

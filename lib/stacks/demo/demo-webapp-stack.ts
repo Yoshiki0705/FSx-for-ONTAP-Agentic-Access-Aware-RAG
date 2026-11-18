@@ -67,6 +67,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
    * `candidates` chunks and the top 10 go to the answer model.
    */
   rerank?: { modelId: string; candidates: number };
+  /** Split a question about several topics into search queries before Retrieve (`enableQueryDecomposition`; KB mode). */
+  queryDecomposition?: boolean;
   /** The AWS documentation tool exists in this deployment (`enableAwsDocsTool`): agents may be given it. */
   awsDocsTool?: boolean;
   /** Bedrock Flows the tools page may call (each flow's nodes are checked before every call). */
@@ -335,6 +337,7 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(props.rerank ? { RERANK_MODEL_ID: props.rerank.modelId, RERANK_CANDIDATES: String(props.rerank.candidates) } : {}),
         ...(props.flows?.length ? { FLOWS_CONFIG: JSON.stringify(props.flows) } : {}),
         ...(props.awsDocsTool ? { AWS_DOCS_TOOL_ENABLED: 'true' } : {}),
+        ...(props.queryDecomposition ? { QUERY_DECOMPOSITION_ENABLED: 'true' } : {}),
         // Groups that grant the administrator role (lib/stacks/demo/admin-groups.ts)
         ADMIN_GROUP_NAMES: adminGroupNames(this.node).join(','),
         // Bedrock KB設定
