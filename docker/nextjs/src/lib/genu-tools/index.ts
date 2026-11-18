@@ -11,6 +11,8 @@ import {
   diagramPrompt,
   documentsBlock,
   extractMermaid,
+  imagePromptAssistPrompt,
+  parseImagePrompt,
   parseProofread,
   proofreadPrompt,
   renderTemplate,
@@ -34,7 +36,7 @@ export { codeInterpreterEnabled } from './code-interpreter';
 export { mediaToolsEnabled } from './media';
 export { videoGenerationConfig } from './video-generation';
 
-export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'use-case', 'code', 'media-upload', 'video', 'minutes-start', 'minutes-status', 'video-generate-start', 'video-generate-status'] as const;
+export const TOOL_NAMES = ['translate', 'proofread', 'diagram', 'web-extract', 'image', 'image-prompt', 'use-case', 'code', 'media-upload', 'video', 'minutes-start', 'minutes-status', 'video-generate-start', 'video-generate-status'] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
 export function webExtractEnabled(): boolean {
@@ -56,7 +58,7 @@ export function toolsConfig() {
       useCases: !!process.env.USE_CASES_TABLE_NAME,
       useCaseSharing: !!process.env.USE_CASES_TABLE_NAME && useCaseSharingEnabled(),
     },
-    image: image.enabled ? { region: image.region, modelId: image.modelId, crossRegion: image.crossRegion } : null,
+    image: image.enabled ? { region: image.region, modelId: image.modelId, imageToImageModelId: image.imageToImageModelId, crossRegion: image.crossRegion } : null,
     codeInterpreter: codeInterpreterEnabled() ? { maxRuns: MAX_RUNS, runSeconds: RUN_LIMIT_MS / 1000 } : null,
     media: mediaToolsEnabled() ? { maxVideoMb: MAX_VIDEO_BYTES / 1024 / 1024, maxAudioMb: MAX_AUDIO_BYTES / 1024 / 1024 } : null,
     videoGeneration: videoGenerationConfig().enabled
@@ -122,8 +124,19 @@ export async function runTool(tool: string, userId: string, body: Body): Promise
         negativePrompt: str(body, 'negativePrompt'),
         aspectRatio: str(body, 'aspectRatio') || '1:1',
         seed: typeof body.seed === 'number' ? body.seed : undefined,
+        sourceImage: str(body, 'sourceImage') || undefined,
+        strength: body.strength === undefined ? undefined : (body.strength as number),
       };
       return { ...(await generateImage(req)) };
+    }
+    case 'image-prompt': {
+      // Prompt assist runs a text model in this region; no image model is called.
+      if (!imageConfig().enabled) throw new ToolInputError('image generation is not enabled');
+      const description = str(body, 'description').trim();
+      if (!description) throw new ToolInputError('description is required');
+      if (description.length > 2_000) throw new ToolInputError('description is longer than 2000 characters');
+      const out = await generateText({ system: imagePromptAssistPrompt(str(body, 'language') || 'ja'), user: wrapInput(description), maxTokens: 1024, temperature: 0.4 });
+      return { ...parseImagePrompt(out.text), modelId: out.modelId };
     }
     case 'use-case': {
       // The user's own, or a shared one. Documents are always those the runner may read.

@@ -22,7 +22,7 @@ interface ToolsConfig {
   videoGeneration: { region: string; modelId: string; crossRegion: boolean } | null;
   media: { maxVideoMb: number; maxAudioMb: number } | null;
   codeInterpreter: { maxRuns: number; runSeconds: number } | null;
-  image: { region: string; modelId: string; crossRegion: boolean } | null;
+  image: { region: string; modelId: string; imageToImageModelId: string; crossRegion: boolean } | null;
   maxInputChars: number;
 }
 
@@ -321,12 +321,44 @@ function ImagePanel({ t, config }: { t: ReturnType<typeof useTranslations>; conf
   const [negative, setNegative] = useState('');
   const [aspect, setAspect] = useState('1:1');
   const [image, setImage] = useState('');
+  const [description, setDescription] = useState('');
+  const [reason, setReason] = useState('');
+  // Image to image: the source image as base64 (PNG, JPEG or WebP, 3 MB at most; the server checks it again).
+  const [source, setSource] = useState<{ name: string; base64: string; type: string } | null>(null);
+  const [strength, setStrength] = useState(0.6);
+  const locale = useLocale();
   const { busy, error, run } = useRunner();
+  const pickSource = (f: File | undefined) =>
+    run(async () => {
+      if (!f) return;
+      if (!['image/png', 'image/jpeg', 'image/webp'].includes(f.type)) throw new Error(t('image.sourceType'));
+      if (f.size > 3 * 1024 * 1024) throw new Error(t('image.sourceTooBig', { mb: 3 }));
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      setSource({ name: f.name, base64: btoa(bin), type: f.type });
+    });
   return (
     <div className="space-y-4">
       <div role="note" className="rounded-md border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20 p-3 text-sm text-amber-900 dark:text-amber-200">
         {config.crossRegion ? t('image.regionNotice', { region: config.region }) : t('image.inRegion', { region: config.region })}
-        <span className="block text-xs mt-1">{t('image.model', { model: config.modelId })}</span>
+        <span className="block text-xs mt-1">{t('image.model', { model: source ? config.imageToImageModelId : config.modelId })}</span>
+        {source && config.crossRegion && <span className="block text-xs mt-1">{t('image.sourceRegionNotice', { region: config.region })}</span>}
+      </div>
+      <div className="space-y-2 rounded-md border border-gray-200 dark:border-gray-700 p-3">
+        <label className="block text-sm text-gray-700 dark:text-gray-300">
+          {t('image.describe')}
+          <textarea className={`${inputClass} min-h-[60px]`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('image.describePlaceholder')} />
+        </label>
+        <button type="button" className={secondaryButton} disabled={busy || !description.trim()} onClick={() => run(async () => {
+          const out = await postTool('image-prompt', { description, language: locale });
+          setPrompt(out.prompt);
+          setNegative(out.negativePrompt || '');
+          setReason(out.reason || '');
+        })}>
+          <Wand2 className="h-4 w-4" aria-hidden /> {busy ? t('running') : t('image.assist')}
+        </button>
+        {reason && <p className="text-xs text-gray-600 dark:text-gray-400">{reason}</p>}
       </div>
       <textarea className={`${inputClass} min-h-[100px]`} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t('image.promptPlaceholder')} aria-label={t('image.prompt')} />
       <div className="grid gap-3 sm:grid-cols-3">
@@ -334,14 +366,41 @@ function ImagePanel({ t, config }: { t: ReturnType<typeof useTranslations>; conf
           {t('image.negative')}
           <input className={inputClass} value={negative} onChange={(e) => setNegative(e.target.value)} />
         </label>
-        <label className="text-sm text-gray-700 dark:text-gray-300">
-          {t('image.aspect')}
-          <select className={inputClass} value={aspect} onChange={(e) => setAspect(e.target.value)}>
-            {ASPECTS.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-        </label>
+        {!source && (
+          <label className="text-sm text-gray-700 dark:text-gray-300">
+            {t('image.aspect')}
+            <select className={inputClass} value={aspect} onChange={(e) => setAspect(e.target.value)}>
+              {ASPECTS.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
+        )}
       </div>
-      <button type="button" className={buttonClass} disabled={busy || !prompt.trim()} onClick={() => run(async () => setImage((await postTool('image', { prompt, negativePrompt: negative, aspectRatio: aspect })).imageBase64))}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm text-gray-700 dark:text-gray-300">
+          {t('image.source')}
+          <input type="file" accept="image/png,image/jpeg,image/webp" className={inputClass} onChange={(e) => { pickSource(e.target.files?.[0]); e.target.value = ''; }} />
+          {source && (
+            <span className="mt-1 flex items-center gap-2 text-xs">
+              {source.name}
+              <button type="button" className="underline" onClick={() => setSource(null)}>{t('image.sourceClear')}</button>
+            </span>
+          )}
+        </label>
+        {source && (
+          <label className="text-sm text-gray-700 dark:text-gray-300">
+            {t('image.strength', { value: strength.toFixed(2) })}
+            <input type="range" min={0} max={1} step={0.05} value={strength} onChange={(e) => setStrength(Number(e.target.value))} className="w-full" />
+            <span className="block text-xs text-gray-500 dark:text-gray-400">{t('image.strengthHelp')}</span>
+          </label>
+        )}
+      </div>
+      {source && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`data:${source.type};base64,${source.base64}`} alt={source.name} className="max-h-[160px] rounded-md border border-gray-200 dark:border-gray-700" />
+      )}
+      <button type="button" className={buttonClass} disabled={busy || !prompt.trim()} onClick={() => run(async () => setImage((await postTool('image', source
+        ? { prompt, negativePrompt: negative, sourceImage: source.base64, strength }
+        : { prompt, negativePrompt: negative, aspectRatio: aspect })).imageBase64))}>
         <ImageIcon className="h-4 w-4" aria-hidden /> {busy ? t('running') : t('image.run')}
       </button>
       <ErrorLine error={error} />

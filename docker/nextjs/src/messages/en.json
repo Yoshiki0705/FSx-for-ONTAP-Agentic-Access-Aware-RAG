@@ -1476,7 +1476,17 @@
       "promptPlaceholder": "e.g. an illustration of a storage rack linked to a cloud, on a white background",
       "negative": "Leave out",
       "aspect": "Aspect ratio",
-      "run": "Generate image"
+      "run": "Generate image",
+      "describe": "The image you want (any language)",
+      "describePlaceholder": "Example: a Shiba Inu walking on a beach at dusk, watercolor",
+      "assist": "Suggest a prompt",
+      "source": "Image to start from (optional; PNG, JPEG or WebP, up to 3 MB)",
+      "sourceClear": "Remove",
+      "strength": "How far to move from the image: {value}",
+      "strengthHelp": "Closer to 0 keeps the image; closer to 1 follows the prompt and changes it more.",
+      "sourceType": "Choose a PNG, JPEG or WebP image.",
+      "sourceTooBig": "The image is too large (up to {mb} MB).",
+      "sourceRegionNotice": "The image you start from is also processed in {region} (outside Japan)."
     },
     "useCases": {
       "intro": "Save instructions you use often as templates. A saved use case is visible and usable only by you unless you share it.",

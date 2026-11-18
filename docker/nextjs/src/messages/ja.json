@@ -1476,7 +1476,17 @@
       "promptPlaceholder": "例: 白い背景に、ストレージの棚とクラウドを結ぶ線のイラスト",
       "negative": "入れたくない要素",
       "aspect": "縦横比",
-      "run": "画像を作る"
+      "run": "画像を作る",
+      "describe": "作りたい画像のイメージ（どの言語でも）",
+      "describePlaceholder": "例: 夕暮れの海辺を歩く柴犬、水彩画風",
+      "assist": "プロンプトを考えてもらう",
+      "source": "元にする画像（任意。PNG・JPEG・WebP、3 MB まで）",
+      "sourceClear": "外す",
+      "strength": "元の画像からの変え具合: {value}",
+      "strengthHelp": "0 に近いほど元の画像のまま、1 に近いほどプロンプトに沿って大きく変わります。",
+      "sourceType": "PNG・JPEG・WebP の画像を選んでください。",
+      "sourceTooBig": "画像が大きすぎます（{mb} MB まで）。",
+      "sourceRegionNotice": "元にする画像も {region} で処理されます（日本の外）。"
     },
     "useCases": {
       "intro": "よく使う指示をテンプレートとして保存できます。保存したユースケースは、共有しない限りあなただけが見て使えます。",

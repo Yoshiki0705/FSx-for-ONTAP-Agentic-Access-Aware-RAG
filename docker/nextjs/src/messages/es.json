@@ -1587,7 +1587,17 @@
       "promptPlaceholder": "p. ej. una ilustración de un rack de almacenamiento unido a una nube, sobre fondo blanco",
       "negative": "Excluir",
       "aspect": "Relación de aspecto",
-      "run": "Generar imagen"
+      "run": "Generar imagen",
+      "describe": "La imagen que quiere (en cualquier idioma)",
+      "describePlaceholder": "Ejemplo: un shiba inu paseando por la playa al atardecer, acuarela",
+      "assist": "Sugerir un prompt",
+      "source": "Imagen de partida (opcional; PNG, JPEG o WebP, 3 MB como máximo)",
+      "sourceClear": "Quitar",
+      "strength": "Cuánto se aleja de la imagen: {value}",
+      "strengthHelp": "Cerca de 0 conserva la imagen; cerca de 1 sigue el prompt y la cambia más.",
+      "sourceType": "Elija una imagen PNG, JPEG o WebP.",
+      "sourceTooBig": "La imagen es demasiado grande ({mb} MB como máximo).",
+      "sourceRegionNotice": "La imagen de partida también se procesa en {region} (fuera de Japón)."
     },
     "useCases": {
       "intro": "Guarde como plantillas las instrucciones que usa con frecuencia. Un caso de uso guardado solo lo puede ver y usar usted, salvo que lo comparta.",

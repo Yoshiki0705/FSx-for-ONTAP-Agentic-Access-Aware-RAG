@@ -87,6 +87,37 @@ export function parseProofread(text: string): { corrected: string; issues: Proof
   };
 }
 
+/**
+ * Prompt assist for image generation: the user describes the image in any language; a text
+ * model writes an English prompt, what to leave out, and a short reason. No image model is
+ * called. The description is data (wrapInput).
+ */
+export function imagePromptAssistPrompt(language: string): string {
+  const code = language.replace(/[^A-Za-z-]/g, '').slice(0, 10) || 'ja';
+  return [
+    'You help a user write a prompt for a text-to-image model (Stable Diffusion family).',
+    'The input describes the image the user wants. Write an English prompt of at most 400 characters that names the subject, setting, style, lighting and composition the description implies; do not add subjects the description does not ask for.',
+    'Also write a short English negative prompt (things to leave out, such as blurry, distorted hands, text, watermark) and, in the language of the description (language code ' + code + '), one or two sentences on why you chose them.',
+    'Reply with JSON only: {"prompt": "...", "negativePrompt": "...", "reason": "..."}.',
+    DATA_RULE,
+  ].join('\n');
+}
+
+export function parseImagePrompt(text: string): { prompt: string; negativePrompt: string; reason: string } {
+  const body = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+  const start = body.indexOf('{');
+  const end = body.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('the model did not return JSON');
+  const parsed = JSON.parse(body.slice(start, end + 1)) as Record<string, unknown>;
+  const prompt = typeof parsed.prompt === 'string' ? parsed.prompt.trim().slice(0, 2000) : '';
+  if (!prompt) throw new Error('the model returned no prompt');
+  return {
+    prompt,
+    negativePrompt: typeof parsed.negativePrompt === 'string' ? parsed.negativePrompt.trim().slice(0, 2000) : '',
+    reason: typeof parsed.reason === 'string' ? parsed.reason.trim().slice(0, 500) : '',
+  };
+}
+
 export const DIAGRAM_TYPES = {
   auto: '',
   flowchart: 'flowchart',

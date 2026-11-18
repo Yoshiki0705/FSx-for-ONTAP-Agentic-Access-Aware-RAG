@@ -1698,7 +1698,17 @@
       "promptPlaceholder": "例如：白色背景上，连接存储机架和云的线条插画",
       "negative": "不希望出现的元素",
       "aspect": "宽高比",
-      "run": "生成图片"
+      "run": "生成图片",
+      "describe": "想要的图像（任何语言）",
+      "describePlaceholder": "例如：黄昏时在海边散步的柴犬，水彩风格",
+      "assist": "帮我写提示词",
+      "source": "作为起点的图像（可选，PNG、JPEG、WebP，最大 3 MB）",
+      "sourceClear": "移除",
+      "strength": "相对原图的变化程度：{value}",
+      "strengthHelp": "越接近 0 越保留原图，越接近 1 越按提示词大幅改变。",
+      "sourceType": "请选择 PNG、JPEG 或 WebP 图像。",
+      "sourceTooBig": "图像过大（最大 {mb} MB）。",
+      "sourceRegionNotice": "作为起点的图像也会在 {region} 处理（日本境外）。"
     },
     "useCases": {
       "intro": "可以将常用的指令保存为模板。保存的用例在共享之前只有您本人可以查看和使用。",

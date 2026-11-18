@@ -98,6 +98,8 @@ export interface DemoWebAppStackProps extends cdk.StackProps {
     videoGenerationModelId?: string;
     imageGenerationRegion: string;
     imageGenerationModelId: string;
+    /** Model for image to image (a source image); Stable Image Core takes text only. */
+    imageToImageModelId?: string;
   };
   /**
    * Model catalog settings (docker/nextjs/src/lib/model-catalog). Each tier is a family
@@ -385,6 +387,7 @@ export class DemoWebAppStack extends cdk.Stack {
         ...(tools.enableImageGeneration ? {
           IMAGE_GENERATION_REGION: tools.imageGenerationRegion,
           IMAGE_GENERATION_MODEL_ID: tools.imageGenerationModelId,
+          ...(tools.imageToImageModelId ? { IMAGE_TO_IMAGE_MODEL_ID: tools.imageToImageModelId } : {}),
         } : {}),
         // Bedrock Agent設定（オプション）
         ...(agentId ? { BEDROCK_AGENT_ID: agentId } : {}),

@@ -1608,7 +1608,17 @@
       "promptPlaceholder": "例如：白色背景上，連接儲存機架與雲端的線條插畫",
       "negative": "不希望出現的元素",
       "aspect": "長寬比",
-      "run": "產生圖片"
+      "run": "產生圖片",
+      "describe": "想要的圖像（任何語言）",
+      "describePlaceholder": "例如：黃昏時在海邊散步的柴犬，水彩風格",
+      "assist": "幫我寫提示詞",
+      "source": "作為起點的圖像（選用，PNG、JPEG、WebP，最大 3 MB）",
+      "sourceClear": "移除",
+      "strength": "相對原圖的變化程度：{value}",
+      "strengthHelp": "越接近 0 越保留原圖，越接近 1 越依提示詞大幅改變。",
+      "sourceType": "請選擇 PNG、JPEG 或 WebP 圖像。",
+      "sourceTooBig": "圖像過大（最大 {mb} MB）。",
+      "sourceRegionNotice": "作為起點的圖像也會在 {region} 處理（日本境外）。"
     },
     "useCases": {
       "intro": "可以將常用的指示儲存為範本。儲存的使用案例在共用之前只有您本人可以檢視和使用。",

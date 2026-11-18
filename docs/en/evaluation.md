@@ -378,6 +378,21 @@ Checked on 2026-11-17 in ap-northeast-1 with a deployment using `-c enableMediaT
 
 **Scope**: One observation each. Transcribe put a speaker change in the middle of a sentence (between the words for "department head" and "approval"), and every format kept those speaker labels. The format does not change how well speakers are separated. The screen was not used; the checks went through the API.
 
+### 3.16 Results with prompt suggestion and generation from an image
+
+Checked on 2026-11-18 through the API by a legal-department user, with a deployment using `-c enableImageGeneration=true` (ap-northeast-1; the image models in us-west-2). Before that, SD3.5 Large was called directly in us-west-2 to check the request shape.
+
+| What was checked | Result |
+|---|---|
+| Calling SD3.5 Large directly (`mode: image-to-image`, `strength` 0.6) | A 512x512 PNG gave a 1024x1024 PNG and a 768x512 one gave 1254x836 (7.3 s and 8.2 s); the aspect ratio followed the source. Adding `aspect_ratio` was refused with "Aspect ratio is not supported in image-to-image mode" |
+| Prompt suggestion (a Japanese description: a Shiba Inu walking on a beach at dusk, in a soft watercolor style) | 3.4 s. The text model was `jp.anthropic.claude-haiku-5-5` (processed in Japan). It returned an English prompt (subject, time of day, light, composition, style), what to leave out, and two sentences of reason in Japanese. No image model was called |
+| Generating with the suggested prompt | 10.5 s, `stability.stable-image-core-v1:1`, 1536x1536 |
+| Generating from an image (a 768x512 PNG, `strength` 0.75) | 9.6 s, `stability.sd3-5-large-v1:0` (us-west-2), 1254x836. The shape and position of the house stayed as in the source and a door was added. The watercolor style the prompt asked for hardly showed |
+| A GIF, a 32x32 PNG, `strength` 2 | 400 for each, naming the format, the pixel size and the value range. No image model was called |
+| Prompt suggestion without signing in | 401 |
+
+**Scope**: One observation each. The source image held only flat shapes; results from photographs were not looked at. How much the style changes with `strength` was not measured. The screen was not used; the checks went through the API.
+
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate
