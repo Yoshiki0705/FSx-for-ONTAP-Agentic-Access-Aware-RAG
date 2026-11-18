@@ -409,6 +409,24 @@ Checked on 2026-11-18 in ap-northeast-1. Two flows were made for the check: one 
 
 **Scope**: One observation each. Checking nodes inside loops, refusing an alias split across versions, and the other disallowed node types were checked by unit tests only. Changing the alias between the check and the call was not tried (recorded as a remaining risk in the [threat model](mcp-flows-threat-model.md)). The screen was not used; the checks went through the API.
 
+### 3.18 Results with the AWS documentation tool in Agent mode
+
+Checked on 2026-11-18 in ap-northeast-1 with a deployment using `-c enableAgent=true -c enableAwsDocsTool=true` and the legal pack. The user was from the development department (`-1100`); agents were created by an administrator user.
+
+| What was checked | Result |
+|---|---|
+| The tools the Gateway lists | The AWS documentation tools are only `search_documentation`, `read_documentation` and `read_sections` (the server also has `search_table` and `recommend`, but they are not in the tool definitions fixed in the Gateway). Also listed are the internal search tool and the Gateway's built-in `x_amz_bedrock_agentcore_search` (from the Gateway's default search setting). The agent code calls tools by fixed names, so the model is not given this list |
+| Calling `search_table` through the Gateway | `Unknown tool` (cannot be called) |
+| Reading URLs outside `docs.aws.amazon.com` (`example.com`, `docs.aws.amazon.com.evil.example`) directly through the Gateway | The server refused both with "URL must be from list of supported domains" |
+| The initial agent asked to look up FSx for ONTAP S3 access points in AWS documentation | 18.8 s. An answer in Japanese citing three URLs. The log says `docs_calls=1` |
+| An agent an administrator created with default settings, asked the same | Its tool list was `PermissionAwareSearch` only. The documentation tool was not used, and it answered that nothing in the internal documents matched (7.1 s, `docs_calls=0`) |
+| An agent an administrator created with `AwsDocumentation` added, asked for the S3 bucket naming rules | 19.5 s. An answer with the rules and a source URL. `docs_calls=2` (a search and a read) |
+| A development-department user (not an administrator) creating an agent | 403 |
+| Making the model call the tool with `https://example.com/a.html` (twice) | Both times the agent code returned "Only https://docs.aws.amazon.com/ pages can be read." The documentation server's log has no error at that time, so the call stopped in the agent code |
+| Which runtimes the web app's role can call (IAM policy simulator) | Allowed for the agent runtime, implicitly denied for the documentation runtime |
+
+**Scope**: One observation each. Not checked: a question about internal documents that also calls the documentation tool (internal information ending up in a search phrase), and giving the tool to team collaborators (they are not given it). In the two runs that only asked the model to read another site, the model declined by itself and did not call the tool. Whether anything is charged while idle was not checked. The screen was not used; the checks went through the API.
+
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate

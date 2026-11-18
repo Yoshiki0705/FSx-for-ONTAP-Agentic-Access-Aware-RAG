@@ -404,6 +404,24 @@ Permission Violation Rate = (権限外ドキュメント表示回数) / (全検�
 
 **範囲**: 各 1 回の観測。繰り返しの中のノードの検査、エイリアスが複数の版に分かれる場合の拒否、許可していない他のノードの種類は、単体テストだけで確かめた。検査と呼び出しの間にエイリアスの向き先を変える場合は試していない（[脅威モデル](mcp-flows-threat-model.md) に残るリスクとして書いた）。画面の操作は見ておらず、API で確かめた。
 
+### 3.18 Agent モードの AWS ドキュメントのツールでの確認結果
+
+2026-11-18 に ap-northeast-1 で、`-c enableAgent=true -c enableAwsDocsTool=true` のデプロイと法務パックを使って確かめた。利用者は開発部（`-1100`）で、Agent の作成は管理者の利用者が行った。
+
+| 確認したこと | 結果 |
+|---|---|
+| Gateway が一覧に出すツール | AWS のドキュメントのツールは `search_documentation`、`read_documentation`、`read_sections` の 3 つだけ（サーバーには `search_table` と `recommend` もあるが、Gateway に固定したツールの定義にないので出ない）。ほかに社内の検索のツールと、Gateway の組み込みの `x_amz_bedrock_agentcore_search`（Gateway の既定の検索の設定による）が出る。Agent のコードはツールを決まった名前で呼ぶので、モデルにはこの一覧が渡らない |
+| `search_table` を Gateway 経由で呼ぶ | `Unknown tool`（呼べない） |
+| `docs.aws.amazon.com` 以外の URL（`example.com`、`docs.aws.amazon.com.evil.example`）を Gateway 経由で直接読む | どちらもサーバーが「URL must be from list of supported domains」で拒否した |
+| 初期の Agent に FSx for ONTAP の S3 アクセスポイントを AWS のドキュメントで調べさせる | 18.8 秒。3 つの URL を出典に挙げた日本語の回答。ログは `docs_calls=1` |
+| 管理者が既定の設定で作った Agent に同じ質問 | ツールの一覧は `PermissionAwareSearch` だけ。ドキュメントのツールは使われず、社内の資料にも該当がないと答えた（7.1 秒、`docs_calls=0`） |
+| 管理者が `AwsDocumentation` を足して作った Agent に S3 のバケット名の規則を質問 | 19.5 秒。規則と出典の URL を挙げた回答。`docs_calls=2`（検索と読み取り） |
+| 開発部の利用者（管理者ではない）が Agent を作る | 403 |
+| モデルに `https://example.com/a.html` を指定してツールを呼ばせる（2 回） | どちらも Agent のコードが「Only https://docs.aws.amazon.com/ pages can be read.」を返した。ドキュメントのサーバーのログにはこの時刻のエラーが無く、呼び出しは Agent のコードの段階で止まった |
+| Web アプリのロールが呼べる Runtime（IAM のポリシーシミュレーター） | Agent の Runtime は許可、ドキュメントの Runtime は暗黙の拒否 |
+
+**範囲**: 各 1 回の観測。社内の資料に関する質問で AWS のドキュメントのツールを呼ぶ組み合わせ（検索語に社内の情報が混じる場合）と、チームの協力者にこのツールを渡す場合は確かめていない（チームの協力者には渡さない）。「他のサイトを読んで」と頼んだだけの 2 回は、モデルが自分で断り、ツールは呼ばれなかった。待機中の課金は確かめていない。画面の操作は見ておらず、API で確かめた。
+
 ## 4. Agent 評価メトリクス
 
 ### 4.1 Task Success Rate（タスク成功率）
