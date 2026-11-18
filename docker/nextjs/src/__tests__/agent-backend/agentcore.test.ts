@@ -17,6 +17,7 @@ import {
   invokeAgent,
   invokeTeam,
   normalizeTools,
+  selectableTools,
   runtimeModelId,
   runtimeSessionId,
   toAgent,
@@ -102,6 +103,36 @@ describe('definitions', () => {
     expect(normalizeTools({ tools: [] })).toEqual([]);
   });
 
+  describe('the AWS documentation tool', () => {
+    afterEach(() => { delete process.env.AWS_DOCS_TOOL_ENABLED; });
+    it('is dropped from a definition while the deployment does not have it', () => {
+      expect(normalizeTools({ actionGroups: ['PermissionAwareSearch', 'AwsDocumentation'] })).toEqual(['PermissionAwareSearch']);
+    });
+    it('is kept when the deployment has it, and only then', () => {
+      process.env.AWS_DOCS_TOOL_ENABLED = 'true';
+      expect(normalizeTools({ actionGroups: ['PermissionAwareSearch', 'AwsDocumentation'] })).toEqual(['PermissionAwareSearch', 'AwsDocumentation']);
+      expect(selectableTools()).toEqual(['PermissionAwareSearch', 'AwsDocumentation']);
+    });
+    it('is never added to a new agent by default', () => {
+      process.env.AWS_DOCS_TOOL_ENABLED = 'true';
+      expect(buildDefinition({ agentName: 'New agent' }).tools).toEqual(['PermissionAwareSearch']);
+    });
+    it('is offered to the editor only when the deployment has it, and not as a default', async () => {
+      const { agentActionResponse } = await import('@/lib/agent-backend/routes');
+      const list = async () => (await (await agentActionResponse('listAvailableActionGroups', {})).json()).actionGroups as { name: string; isDefault: boolean }[];
+      expect((await list()).map((g) => g.name)).toEqual(['PermissionAwareSearch']);
+      process.env.AWS_DOCS_TOOL_ENABLED = 'true';
+      expect(await list()).toEqual([
+        expect.objectContaining({ name: 'PermissionAwareSearch', isDefault: true }),
+        expect.objectContaining({ name: 'AwsDocumentation', isDefault: false }),
+      ]);
+    });
+    it('is kept on an update that does not mention tools', () => {
+      process.env.AWS_DOCS_TOOL_ENABLED = 'true';
+      const withDocs = { ...stored, tools: ['PermissionAwareSearch', 'AwsDocumentation'] };
+      expect(buildDefinition({ instruction: 'x' }, withDocs).tools).toEqual(['PermissionAwareSearch', 'AwsDocumentation']);
+    });
+  });
   it('presents a definition in the Bedrock Agents shapes the screens read', () => {
     expect(toSummary(stored)).toMatchObject({ agentId: 'agent-1', agentStatus: 'PREPARED', status: 'PREPARED', latestAgentVersion: '1' });
     expect(toAgent({ ...stored, guardrailId: 'g1' }).guardrailConfiguration).toEqual({ guardrailIdentifier: 'g1', guardrailVersion: 'DRAFT' });

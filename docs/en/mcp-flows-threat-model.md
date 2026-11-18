@@ -86,7 +86,7 @@ There are three boundaries: user to web app (the session establishes who the use
 
 1. **Flows**: an API and screen that call flows made only of allowed nodes. The refusal is checked by unit tests, allow and refuse on a live deployment (implemented; results in [evaluation](evaluation.md) 3.17)
 2. **MCP (internal tools)**: any internal tool added to the Gateway besides the existing `permission-search` also follows the decisions in this document
-3. **MCP (external servers)**: add one read-only tool, allowed by name. Tools that send data out are not added at this step. How to choose the tool, and the decision, are in [Choosing the first tool to add from an external MCP server](mcp-external-tool-selection.md)
+3. **MCP (external servers)**: add one read-only tool, allowed by name (implemented: `-c enableAwsDocsTool=true`, section 8 of the [implementation overview](implementation-overview.md)). Tools that send data out are not added at this step. How to choose the tool, and the decision, are in [Choosing the first tool to add from an external MCP server](mcp-external-tool-selection.md)
 
 ## FAQ
 

@@ -392,6 +392,9 @@ jobs:
           - name: rerank
             flags: '-c enableRerank=true -c rerankModelId=cohere.rerank-v3-5:0'
           # Bedrock Flows（既定は無効）。登録したフローとエイリアスだけへの権限を cdk-nag にかける。
+          # Agent モードの AWS ドキュメントのツール（既定は無効）。MCP 用のランタイム、MCP サーバーのターゲット、Gateway の IAM を cdk-nag にかける。
+          - name: agent-aws-docs
+            flags: '-c enableAgent=true -c enableAwsDocsTool=true'
           - name: flows
             # The JSON is single-quoted inside the flags: both the CI step (bash) and make synth (shlex) split it like a shell.
             flags: '-c ''flows=[{"flowId":"CIDUMMYFL1","aliasId":"CIDUMMYAL1","name":"ci-dummy"}]'''

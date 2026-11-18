@@ -20,10 +20,13 @@ from typing import Any
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 from agents import build_agent, build_team
+from docs_tool import AwsDocs
 from gateway_client import PermissionSearch, make_mcp_client
 
 REGION = os.environ.get("AWS_REGION", "ap-northeast-1")
 GATEWAY_URL = os.environ.get("AGENT_TOOLS_GATEWAY_URL", "")
+# Set only when the deployment has the AWS documentation tool (`aws-docs___`).
+AWS_DOCS_TOOL_PREFIX = os.environ.get("AWS_DOCS_TOOL_PREFIX", "")
 MAX_MESSAGE_CHARS = 20000
 
 logging.basicConfig(level=logging.INFO)
@@ -60,20 +63,26 @@ def run(payload: dict[str, Any], client_factory=make_mcp_client) -> dict[str, An
     client = client_factory(GATEWAY_URL, REGION)
     with client:
         search = PermissionSearch(client, payload["userId"].strip())
+        docs = AwsDocs(client, AWS_DOCS_TOOL_PREFIX) if AWS_DOCS_TOOL_PREFIX else None
         if payload.get("mode", "single") == "team":
-            agent, collaborators = build_team(payload["team"], search.search, REGION)
+            agent, collaborators = build_team(payload["team"], search.search, REGION, docs)
         else:
             agent, collaborators = (
-                build_agent(payload["agent"], search.search, REGION),
+                build_agent(payload["agent"], search.search, REGION, docs),
                 [],
             )
         answer = str(agent(payload["message"]))
     logger.info(
-        "invocation done: mode=%s searches=%d",
+        "invocation done: mode=%s searches=%d docs_calls=%d",
         payload.get("mode", "single"),
         len(search.calls),
+        len(docs.calls) if docs else 0,
     )
-    return {"answer": answer, "searches": search.calls, "collaborators": collaborators}
+    result = {"answer": answer, "searches": search.calls, "collaborators": collaborators}
+    if docs and docs.calls:
+        # Which tool, not what was asked: the search phrases and URLs are not kept here.
+        result["docsCalls"] = docs.calls
+    return result
 
 
 @app.entrypoint

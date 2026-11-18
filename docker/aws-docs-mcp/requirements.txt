@@ -1,0 +1,49 @@
+# AWS Documentation MCP Server and its dependencies, exact versions (docs/mcp-external-tool-selection.md).
+# Generated with: python3.12 -m venv v && v/bin/pip install awslabs.aws-documentation-mcp-server==1.2.6 && v/bin/pip freeze
+# awslabs.aws-documentation-mcp-server 1.2.6 wheel sha256: 0349828df6cc6d84517aee5092db5cb75b8ca09876ac68a2101e7dd92e82257a
+# Update: read the server's diff (the URL allow-list in server_aws.py and server_utils.py), then regenerate this file and tool-schema.json.
+annotated-doc==0.0.7
+annotated-types==0.8.0
+anyio==4.16.0
+attrs==26.1.0
+awslabs.aws-documentation-mcp-server==1.2.6
+beautifulsoup4==4.15.0
+certifi==2026.10.23
+cffi==2.1.1
+click==8.5.1
+cryptography==50.0.2
+h11==0.16.0
+httpcore==1.0.9
+httpcore2==2.16.2
+httpx==0.28.1
+httpx2==2.16.2
+idna==3.20
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+loguru==0.8.0
+markdown-it-py==4.3.0
+markdownify==1.2.3
+mcp==2.3.0
+mcp-types==2.3.0
+mdurl==0.1.2
+opentelemetry-api==1.45.2
+pycparser==3.12
+pydantic==2.14.3
+pydantic_core==2.50.4
+Pygments==2.21.0
+PyJWT==2.15.1
+python-dotenv==1.2.4
+python-multipart==0.0.34
+referencing==0.37.0
+rich==15.0.0
+rpds-py==2026.9.1
+shellingham==1.5.4
+six==1.17.0
+soupsieve==4.1.1
+sse-starlette==3.7.0
+starlette==1.10.0
+truststore==0.10.5
+typer==0.29.2
+typing-inspection==0.4.5
+typing_extensions==4.16.0
+uvicorn==0.54.0

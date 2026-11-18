@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py agents.py gateway_client.py ./
+COPY app.py agents.py docs_tool.py gateway_client.py ./
 
 RUN useradd --create-home --uid 1000 agent
 USER agent

@@ -18,6 +18,8 @@ from typing import Any
 from strands import Agent, tool
 from strands.models import BedrockModel
 
+from docs_tool import AwsDocs, make_docs_tools
+
 DEFAULT_MODEL = "jp.anthropic.claude-haiku-4-5-20251001-v1:0"
 MAX_INSTRUCTION_CHARS = 8000
 
@@ -63,14 +65,23 @@ def make_model(model_id: str | None, region: str) -> BedrockModel:
 
 
 def build_agent(
-    definition: dict[str, Any], search: Callable[[str, int], str], region: str
+    definition: dict[str, Any],
+    search: Callable[[str, int], str],
+    region: str,
+    docs: AwsDocs | None = None,
 ) -> Agent:
-    """A single agent from an agent definition."""
+    """A single agent from an agent definition.
+
+    `docs` is given only when the deployment has the AWS documentation tool; an agent gets
+    it when its definition lists `AwsDocumentation`.
+    """
     # A definition without `tools` gets the search tool; an explicit empty list gets none.
     selected = definition.get("tools")
     if selected is None:
         selected = ["PermissionAwareSearch"]
     tools = [make_search_tool(search)] if "PermissionAwareSearch" in selected else []
+    if docs is not None and "AwsDocumentation" in selected:
+        tools += make_docs_tools(docs)
     return Agent(
         name=_tool_safe(definition.get("agentName") or "agent"),
         model=make_model(definition.get("foundationModel"), region),
@@ -81,13 +92,16 @@ def build_agent(
 
 
 def build_team(
-    team: dict[str, Any], search: Callable[[str, int], str], region: str
+    team: dict[str, Any],
+    search: Callable[[str, int], str],
+    region: str,
+    docs: AwsDocs | None = None,
 ) -> tuple[Agent, list[str]]:
     """A supervisor whose tools are the team's collaborators (agents as tools)."""
     names: list[str] = []
     collaborator_tools = []
     for collaborator in team.get("collaborators") or []:
-        agent = build_agent(collaborator, search, region)
+        agent = build_agent(collaborator, search, region, docs)
         name = _tool_safe(
             collaborator.get("agentName") or f"collaborator_{len(names) + 1}"
         )
