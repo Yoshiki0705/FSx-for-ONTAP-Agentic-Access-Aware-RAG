@@ -438,7 +438,7 @@ Checked on 2026-11-19 (Japan time) in ap-northeast-1 with a deployment using `-c
 | Item | Result |
 |---|---|
 | Time taken by decomposition | 846 to 3,565 ms (6 runs). Whole response 6.8 to 13.7 s for the 6 decomposed runs, 3.2 to 4.8 s for the short question that was not decomposed. This is not a controlled measurement that changes only whether decomposition runs |
-| Whether the development-department user saw the standard NDA template | No (none of the 8 requests). The filter runs once, after the candidates collected by decomposition are merged |
+| Whether the development-department user saw the standard NDA template | No (none of its 4 requests). The filter runs once, after the candidates collected by decomposition are merged |
 | CloudWatch Logs `query_decomposition` | 6 entries. Only the method, the number of sub-queries, the number of pooled candidates, the time taken and the user ID; the question and the sub-queries are not in it |
 **Scope**: One observation each. **On this small corpus (16 documents), the baseline Retrieve already returned every expected document without decomposition, so no improvement in search results from decomposition was confirmed.** Whether decomposition reduces misses on a larger corpus with more topics was not measured. What was checked: that decomposition runs, that the queries are split, that the permission filter is not weakened, and the size of the added delay. The fallback to the original question on a failure or the 5-second timeout was checked in unit tests (with the model reply replaced) and was not triggered in the live environment. The screen was not used; the checks went through the API.
 ## 4. Agent Evaluation Metrics
