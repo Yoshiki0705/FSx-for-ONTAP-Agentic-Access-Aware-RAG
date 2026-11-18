@@ -86,7 +86,7 @@ flowchart LR
 
 1. **Flows**: 許可したノードだけのフローを呼ぶ API と画面。拒否の判定を単体テストで、許可と拒否を実機で確かめる（実装済み。確認結果は [評価](evaluation.md) 3.17）
 2. **MCP（社内のツール）**: すでにある `permission-search` 以外の社内のツールを Gateway に足す場合も、この文書の判断に従う
-3. **MCP（社外のサーバー）**: 読み取りだけのツールを 1 つ、名前で許可して足す。社外へ送るツールは、この段階では足さない
+3. **MCP（社外のサーバー）**: 読み取りだけのツールを 1 つ、名前で許可して足す。社外へ送るツールは、この段階では足さない。足すツールの選び方と判断は [社外の MCP サーバーから最初に足すツールの選び方](mcp-external-tool-selection.md)
 
 ## よくある質問
 
@@ -107,4 +107,5 @@ A. この RAG では分けません。Agent モードが AgentCore Gateway を�
 
 - [実装の概要](implementation-overview.md)（SID フィルタ、Agent モード、AgentCore Policy）
 - [第 2 段の設計](genu-stage2-design.md)
+- [社外の MCP サーバーから最初に足すツールの選び方](mcp-external-tool-selection.md)
 - [認証・ユーザー管理ガイド](auth-and-user-management.md)（管理者ロール）
