@@ -285,3 +285,25 @@ describe('rerank after the SID filter', () => {
     });
   });
 });
+describe('Bedrock Flows', () => {
+  const policies = (t: Template) => JSON.stringify(Object.entries(t.findResources('AWS::IAM::Policy')).filter(([id]) => /WebAppFn/.test(id)));
+  const flows = [
+    { key: 'summary', flowId: 'FLOWAAAAA1', aliasId: 'ALIASAAAA1', name: 'Summary', description: 'd' },
+    { key: 'other', flowId: 'FLOWAAAAA1', aliasId: 'ALIASBBBB2', name: 'Other', description: '' },
+  ];
+  it('is off by default: no setting, no flow permissions', () => {
+    const t = synth();
+    expect(webAppEnv(t).FLOWS_CONFIG).toBeUndefined();
+    expect(policies(t)).not.toContain('bedrock:InvokeFlow');
+  });
+  it('passes the registered flows and grants only their aliases and flows', () => {
+    const t = synth(undefined, { flows });
+    expect(JSON.parse(webAppEnv(t).FLOWS_CONFIG as string)).toEqual(flows);
+    const p = policies(t);
+    expect(p).toContain('InvokeRegisteredFlows');
+    expect(p).toContain(':flow/FLOWAAAAA1/alias/ALIASAAAA1');
+    expect(p).toContain(':flow/FLOWAAAAA1/alias/ALIASBBBB2');
+    expect(p).toContain('ReadRegisteredFlowVersions');
+    expect(p).not.toMatch(/flow\/\*/);
+  });
+});

@@ -1510,7 +1510,8 @@
       "code": "Exécuter du code",
       "video": "Analyse vidéo",
       "minutes": "Compte rendu",
-      "videoGen": "Génération de vidéo"
+      "videoGen": "Génération de vidéo",
+      "flows": "Flux"
     },
     "source": {
       "label": "Entrée",
@@ -1708,6 +1709,12 @@
       "failed": "La génération de la vidéo a échoué : {reason}",
       "timedOut": "La vidéo n’était pas prête après 6 minutes.",
       "expires": "Le lien de téléchargement est valable 10 minutes. La vidéo est supprimée après 1 jour."
+    },
+    "flows": {
+      "intro": "Appelle les flux Bedrock Flows enregistrés par un administrateur. Les flux qui lisent des documents internes ne peuvent pas être appelés, car ils ne peuvent pas être limités à vos autorisations ; utilisez le mode KB pour les documents internes.",
+      "flow": "Flux",
+      "input": "Entrée",
+      "run": "Exécuter"
     }
   },
   "feedback": {

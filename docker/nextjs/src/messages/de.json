@@ -1510,7 +1510,8 @@
       "code": "Code ausführen",
       "video": "Videoanalyse",
       "minutes": "Protokoll",
-      "videoGen": "Videoerzeugung"
+      "videoGen": "Videoerzeugung",
+      "flows": "Flows"
     },
     "source": {
       "label": "Eingabe",
@@ -1708,6 +1709,12 @@
       "failed": "Die Videoerzeugung ist fehlgeschlagen: {reason}",
       "timedOut": "Das Video war nach 6 Minuten nicht fertig.",
       "expires": "Der Download-Link gilt 10 Minuten. Das Video wird nach 1 Tag gelöscht."
+    },
+    "flows": {
+      "intro": "Ruft Bedrock Flows auf, die ein Administrator registriert hat. Flows, die interne Dokumente lesen, können nicht aufgerufen werden, weil sie sich nicht auf Ihre Berechtigungen einschränken lassen; verwenden Sie für interne Dokumente den KB-Modus.",
+      "flow": "Flow",
+      "input": "Eingabe",
+      "run": "Ausführen"
     }
   },
   "feedback": {

@@ -15,15 +15,17 @@ import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { exportUseCaseFile, parseUseCaseFile } from '@/lib/genu-tools/use-case-file';
 import { MINUTES_FORMATS } from '@/lib/genu-tools/minutes-formats';
 
-type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases' | 'code' | 'video' | 'minutes' | 'videoGen';
+type Tab = 'translate' | 'proofread' | 'diagram' | 'webExtract' | 'image' | 'useCases' | 'flows' | 'code' | 'video' | 'minutes' | 'videoGen';
 
 interface ToolsConfig {
-  tools: { translate: boolean; proofread: boolean; diagram: boolean; webExtract: boolean; image: boolean; useCases: boolean; codeInterpreter: boolean; media: boolean; videoGeneration: boolean };
+  tools: { translate: boolean; proofread: boolean; diagram: boolean; webExtract: boolean; image: boolean; useCases: boolean; flows?: boolean; codeInterpreter: boolean; media: boolean; videoGeneration: boolean };
   videoGeneration: { region: string; modelId: string; crossRegion: boolean } | null;
   media: { maxVideoMb: number; maxAudioMb: number } | null;
   codeInterpreter: { maxRuns: number; runSeconds: number } | null;
   image: { region: string; modelId: string; imageToImageModelId: string; crossRegion: boolean } | null;
   maxInputChars: number;
+  flows?: { key: string; name: string; description: string }[];
+  maxFlowInputChars?: number;
 }
 
 interface UseCase {
@@ -608,6 +610,33 @@ function UseCasesPanel({ t }: { t: ReturnType<typeof useTranslations> }) {
     </div>
   );
 }
+/** Flows the administrator registered; the server checks each flow's nodes before calling it. */
+function FlowsPanel({ t, flows, maxChars }: { t: ReturnType<typeof useTranslations>; flows: { key: string; name: string; description: string }[]; maxChars: number }) {
+  const [key, setKey] = useState(flows[0]?.key ?? '');
+  const [text, setText] = useState('');
+  const [out, setOut] = useState<{ output: string; flow: string; version: string } | null>(null);
+  const { busy, error, run } = useRunner();
+  const flow = flows.find((f) => f.key === key);
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-600 dark:text-gray-400">{t('flows.intro')}</p>
+      <label className="block text-sm text-gray-700 dark:text-gray-300">
+        {t('flows.flow')}
+        <select className={inputClass} value={key} onChange={(e) => { setKey(e.target.value); setOut(null); }}>
+          {flows.map((f) => <option key={f.key} value={f.key}>{f.name}</option>)}
+        </select>
+      </label>
+      {flow?.description && <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">{flow.description}</p>}
+      <textarea className={`${inputClass} min-h-[120px]`} maxLength={maxChars} value={text} onChange={(e) => setText(e.target.value)} aria-label={t('flows.input')} placeholder={t('flows.input')} />
+      <button type="button" className={buttonClass} disabled={busy || !key || !text.trim()} onClick={() => run(async () => setOut(await postTool('flow', { key, text })))}>
+        <Workflow className="h-4 w-4" aria-hidden /> {busy ? t('running') : t('flows.run')}
+      </button>
+      <ErrorLine error={error} />
+      {out && <ResultText text={out.output} t={t} fileName={`${out.flow}.md`} />}
+    </div>
+  );
+}
+
 interface CodeRunView { ok: boolean; timedOut: boolean; stdout: string; stderr: string; durationMs: number }
 function CodePanel({ t, limits }: { t: ReturnType<typeof useTranslations>; limits: { maxRuns: number; runSeconds: number } }) {
   const [task, setTask] = useState('');
@@ -894,6 +923,7 @@ export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
     { id: 'video', icon: Film, enabled: config?.tools.media ?? false },
     { id: 'code', icon: Code2, enabled: config?.tools.codeInterpreter ?? false },
     { id: 'useCases', icon: FileSearch, enabled: config?.tools.useCases ?? true },
+    { id: 'flows', icon: Workflow, enabled: !!config?.tools.flows },
   ];
   const visible = tabs.filter((x) => x.enabled);
   const current = visible.some((x) => x.id === tab) ? tab : 'translate';
@@ -929,6 +959,7 @@ export function ToolsWorkspace({ initialTab }: { initialTab?: string }) {
         {current === 'video' && config?.media && <VideoPanel t={t} limits={config.media} />}
         {current === 'code' && config?.codeInterpreter && <CodePanel t={t} limits={config.codeInterpreter} />}
         {current === 'useCases' && <UseCasesPanel t={t} />}
+        {current === 'flows' && config?.flows && <FlowsPanel t={t} flows={config.flows} maxChars={config.maxFlowInputChars ?? 4000} />}
       </section>
     </div>
   );

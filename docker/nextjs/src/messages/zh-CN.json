@@ -1621,7 +1621,8 @@
       "code": "运行代码",
       "video": "视频分析",
       "minutes": "会议纪要",
-      "videoGen": "视频生成"
+      "videoGen": "视频生成",
+      "flows": "流程"
     },
     "source": {
       "label": "输入",
@@ -1819,6 +1820,12 @@
       "failed": "视频生成失败：{reason}",
       "timedOut": "6 分钟后视频仍未就绪。",
       "expires": "下载链接 10 分钟内有效。视频会在 1 天后删除。"
+    },
+    "flows": {
+      "intro": "调用管理员注册的 Bedrock Flows 流程。包含读取内部文档处理的流程无法按您的权限筛选，因此不能调用。使用内部文档时请使用 KB 模式。",
+      "flow": "流程",
+      "input": "输入",
+      "run": "运行"
     }
   },
   "feedback": {

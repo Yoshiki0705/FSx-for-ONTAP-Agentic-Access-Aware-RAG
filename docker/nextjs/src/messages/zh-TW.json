@@ -1531,7 +1531,8 @@
       "code": "執行程式碼",
       "video": "影片分析",
       "minutes": "會議紀錄",
-      "videoGen": "影片生成"
+      "videoGen": "影片生成",
+      "flows": "流程"
     },
     "source": {
       "label": "輸入",
@@ -1729,6 +1730,12 @@
       "failed": "影片生成失敗：{reason}",
       "timedOut": "6 分鐘後影片仍未就緒。",
       "expires": "下載連結 10 分鐘內有效。影片會在 1 天後刪除。"
+    },
+    "flows": {
+      "intro": "呼叫管理員登錄的 Bedrock Flows 流程。包含讀取內部文件處理的流程無法依您的權限篩選，因此不能呼叫。使用內部文件時請使用 KB 模式。",
+      "flow": "流程",
+      "input": "輸入",
+      "run": "執行"
     }
   },
   "feedback": {
