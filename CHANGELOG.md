@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **`docs/mcp-external-tool-selection.md`（JA/EN）**: 脅威モデルの段階 3 で足す社外の MCP のツールを選ぶための材料。確かめる 6 つの観点（社外へ出るもの、読める先、動かす場所、後からの変化、認証、書き込み）と 6 つの候補の比較、選び方の図を、このリポジトリの判断（版を固定して自分のアカウントで動かす AWS Documentation MCP Server）と分けて載せた
 - **ツールの「フロー」（`-c flows=...`、既定は無効）**: 管理者が登録した Bedrock Flows のフローを呼ぶ。呼ぶたびにエイリアスが指す版の定義を読み、ナレッジベース・エージェント・S3・Lambda・インラインコード・Lex のノード（繰り返しの中も含む）を含むフローは呼ばない。フローのナレッジベースノードは呼んだ利用者で絞れないため（`docs/mcp-flows-threat-model.md`）。IAM は登録したフローとエイリアスだけ。CI の synth 行列に `flows` レーンを追加。画面の文言は 8 言語
 - **`docs/mcp-flows-threat-model.md`（JA/EN）**: MCP のツールと Bedrock Flows を足す前の脅威モデル。フローのナレッジベースノードは呼んだ利用者で絞れないため、フローは管理者が登録したものだけを呼び、呼ぶたびに定義を読んで社内のデータを読むノードや外へ書くノードを含むものを拒否する。MCP のツールは Web アプリの Lambda では動かさず、Agent モードの AgentCore Gateway のターゲットとして名前で許可する
 - **画像の生成: プロンプトの提案と、元にする画像からの生成**: 作りたい画像のイメージから、テキストモデルが英語のプロンプトと入れたくない要素を書く（画像のモデルは呼ばない）。PNG・JPEG・WebP の画像（3 MB まで）を渡すと、その画像から新しい画像を作る。Stable Image Core はテキストしか受け取らないため、このときだけ `imageToImageModelId`（既定 `stability.sd3-5-large-v1:0`）を同じリージョンで呼ぶ。画像の形式と画素数はモデルを呼ぶ前にファイルの先頭から読んで確かめる。元にする画像も日本の外で処理されることを画面に表示する。画面の文言は 8 言語
