@@ -15,6 +15,7 @@ describe('buildParsingSettings', () => {
     const r = buildParsingSettings('DEFAULT', DEFAULT_KB_PARSING_MODEL_ID, undefined, REGION, ACCOUNT);
     expect(r.parsingConfiguration).toBeUndefined();
     expect(r.invokeModelResources).toEqual([]);
+    expect(r.inferenceProfileArns).toEqual([]);
   });
 
   test('strategy is case-insensitive', () => {
@@ -35,6 +36,8 @@ describe('buildParsingSettings', () => {
       `arn:aws:bedrock:${REGION}:${ACCOUNT}:inference-profile/jp.anthropic.claude-haiku-4-5-20251001-v1:0`,
       'arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0',
     ]);
+    // CreateDataSource makes Bedrock call GetInferenceProfile with the KB role (found on a live deploy)
+    expect(r.inferenceProfileArns).toEqual([`arn:aws:bedrock:${REGION}:${ACCOUNT}:inference-profile/jp.anthropic.claude-haiku-4-5-20251001-v1:0`]);
   });
 
   test('a plain model id gives a foundation-model ARN in this region only', () => {
@@ -42,6 +45,7 @@ describe('buildParsingSettings', () => {
     const arn = `arn:aws:bedrock:${REGION}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0`;
     expect(r.parsingConfiguration?.bedrockFoundationModelConfiguration.modelArn).toBe(arn);
     expect(r.invokeModelResources).toEqual([arn]);
+    expect(r.inferenceProfileArns).toEqual([]);
   });
 
   test('the prompt is passed through as parsingPromptText', () => {

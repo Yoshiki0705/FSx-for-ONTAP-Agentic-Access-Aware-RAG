@@ -136,6 +136,11 @@ export interface KbParsingSettings {
   parsingConfiguration?: Record<string, any>;
   /** パーサーに InvokeModel を許す IAM リソース。DEFAULT のときは空 */
   invokeModelResources: string[];
+  /**
+   * 推論プロファイルを使うときの、そのプロファイルの ARN。データソースの作成時に
+   * Bedrock が KB ロールで GetInferenceProfile を呼ぶので、InvokeModel とは別に許可が要る
+   */
+  inferenceProfileArns: string[];
 }
 /**
  * kbParsingStrategy を DataSource の parsingConfiguration と、KB ロールに足す IAM に変換する純粋関数。
@@ -154,7 +159,7 @@ export function buildParsingSettings(
 ): KbParsingSettings {
   const normalized = strategy.toUpperCase();
   if (normalized === 'DEFAULT') {
-    return { invokeModelResources: [] };
+    return { invokeModelResources: [], inferenceProfileArns: [] };
   }
   if (normalized === 'BEDROCK_DATA_AUTOMATION') {
     throw new Error(
@@ -190,6 +195,7 @@ export function buildParsingSettings(
     invokeModelResources: isProfile
       ? [modelArn, `arn:aws:bedrock:*::foundation-model/${baseModelId}`]
       : [modelArn],
+    inferenceProfileArns: isProfile ? [modelArn] : [],
   };
 }
 /**
@@ -638,6 +644,13 @@ export class DemoAIStack extends cdk.Stack {
         sid: 'KbParsingInvokeModel',
         actions: ['bedrock:InvokeModel'],
         resources: kbParsing.invokeModelResources,
+      }));
+    }
+    if (kbParsing.inferenceProfileArns.length > 0) {
+      kbRole.addToPolicy(new iam.PolicyStatement({
+        sid: 'KbParsingGetInferenceProfile',
+        actions: ['bedrock:GetInferenceProfile'],
+        resources: kbParsing.inferenceProfileArns,
       }));
     }
     // モデル固有の IAM ポリシーを追加（BDA Parser 権限など）

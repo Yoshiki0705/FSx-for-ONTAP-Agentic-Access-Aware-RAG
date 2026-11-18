@@ -121,8 +121,9 @@ grep kbChunkingStrategy cdk.context.json
 # 3. CDK差分確認
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. デプロイ（DataSource設定更新のみ）
+# 4. デプロイ（出力 KbIngestionConfig が変わるだけで、既存の DataSource は変わらない）
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
+# 4b. チャンキングは作成後に変えられないので、DataSource を削除して setup-kb-datasource.sh で作り直す
 
 # 5. DataSource再同期（必須！）
 aws bedrock-agent start-ingestion-job \
@@ -152,6 +153,19 @@ python3 evaluate.py --kb-id <KB_ID> --model-id <MODEL_ID> --region ap-northeast-
 3. **応答時間測定**: P50/P95/P99 レイテンシを CloudWatch で確認
 4. **コスト比較**: インジェスションコスト + クエリコストの合計で比較
 
+---
+## 基盤モデルによるパース（任意）
+`-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL` を付けると、Knowledge Base のデータソースが PDF を基盤モデルで読み取る。既定（`DEFAULT`）は、PDF のテキスト層だけを読む Bedrock の既定のパーサーで、画像だけの PDF や、表・図の中の文字は取り込まれない。
+| 設定 | 既定 | 内容 |
+|---|---|---|
+| `kbParsingStrategy` | `DEFAULT` | `DEFAULT` \| `BEDROCK_FOUNDATION_MODEL`。`BEDROCK_DATA_AUTOMATION` は synth で拒否する（ドキュメントでは US West (Oregon) のプレビューだけ） |
+| `kbParsingModelId` | `jp.anthropic.claude-haiku-4-5-20251001-v1:0` | パースに使うモデル（東京の推論プロファイル、またはモデル ID）。Claude・Nova・Llama 4 の視覚対応モデルが対象 |
+| `kbParsingPrompt` | （なし） | 読み取りの指示（1〜10,000 文字）。表を Markdown で出す、などを書く |
+**[documented]** 基盤モデルをパーサーに選ぶと、データソース内の **すべての PDF** がこのモデルで読まれ、テキストだけの PDF でも入出力トークンの料金がかかる（[パースの選択肢](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-advanced-parsing.html)）。PDF 以外（`.md`、`.txt` など）は既定のパーサーのまま。パースに失敗した文書は既定のパーサーに切り替わる。
+**権限の扱い**: `.metadata.json` は文書ごとに付くので、パースを変えても権限は変わらない。パースされた文字も、元の文書の `allowed_group_sids` を引き継ぐ。SID フィルタは検索結果に対して、これまでどおり 1 回だけ走る。`parsingModality`（`MULTIMODAL`）は指定しない。指定すると、抜き出した図が権限の情報を持たない別の保存先に置かれる。
+**KB ロールの IAM**: 基盤モデルを選んだときだけ、KB ロールに次を足す。推論プロファイルの `bedrock:GetInferenceProfile`（データソースの作成時に Bedrock が呼ぶ。無いと作成が `ValidationException` で失敗する）、プロファイルと基盤モデルへの `bedrock:InvokeModel`。クロスリージョン推論のプロファイルを使うと、パースの入力が別リージョンで処理されることがある。
+**適用のしかた**: データソースを作るスクリプト（`post-deploy-setup.sh`、`setup-kb-datasource.sh`）が、AI スタックの出力 `KbIngestionConfig`（チャンキングとパースを 1 つにまとめた JSON）を `--vector-ingestion-configuration` に渡す。データソースは CDK ではなくスクリプトが作るので、**CDK のデプロイだけでは既存のデータソースは変わらない**。チャンキングは作成後に変えられない（[documented](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-ds-update.html)）ので、変えるときはデータソースを作り直して再同期する。パースだけを `update-data-source` で変えられるかは確かめていない。
+> **既定のチャンキングの変化**: 以前のスクリプトは `KbChunkingConfig` を渡しておらず、データソースは Bedrock の既定（300 トークン、重なり 20%）で作られていた。今回から既定の `FIXED_SIZE` が 300 トークン、重なり 10% で渡される。既存のデータソースは変わらず、作り直したときから変わる。
 ---
 
 ## CDK実装詳細

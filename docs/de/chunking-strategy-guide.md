@@ -1,6 +1,8 @@
 # Leitfaden zur Wahl der Chunking-Strategie
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | [简体中文](../zh-CN/chunking-strategy-guide.md) | [繁體中文](../zh-TW/chunking-strategy-guide.md) | [Français](../fr/chunking-strategy-guide.md) | **Deutsch** | [Español](../es/chunking-strategy-guide.md)
+<!-- i18n:abridged -->
+> **⚠ Gekürzte Übersetzung**: Diese Übersetzung deckt nur einen Teil des japanischen Originals ab. Der vollständige Inhalt steht in der [japanischen Version](../chunking-strategy-guide.md).
 
 **Erstellt**: 2026-06-07  
 **Status**: Erste Ausgabe  

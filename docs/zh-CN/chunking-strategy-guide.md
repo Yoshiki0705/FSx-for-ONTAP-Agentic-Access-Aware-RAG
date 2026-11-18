@@ -1,6 +1,8 @@
 # 分块策略选型指南
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | **简体中文** | [繁體中文](../zh-TW/chunking-strategy-guide.md) | [Français](../fr/chunking-strategy-guide.md) | [Deutsch](../de/chunking-strategy-guide.md) | [Español](../es/chunking-strategy-guide.md)
+<!-- i18n:abridged -->
+> **⚠ 节译**: 本翻译仅涵盖日文原版的一部分。完整内容请参阅[日文版](../chunking-strategy-guide.md)。
 
 **创建日期**: 2026-06-07  
 **状态**: 第一版  

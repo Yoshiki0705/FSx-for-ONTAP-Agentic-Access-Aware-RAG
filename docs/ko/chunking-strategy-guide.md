@@ -1,6 +1,8 @@
 # 청킹 전략 선정 가이드
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | **한국어** | [简体中文](../zh-CN/chunking-strategy-guide.md) | [繁體中文](../zh-TW/chunking-strategy-guide.md) | [Français](../fr/chunking-strategy-guide.md) | [Deutsch](../de/chunking-strategy-guide.md) | [Español](../es/chunking-strategy-guide.md)
+<!-- i18n:abridged -->
+> **⚠ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../chunking-strategy-guide.md)을 참조하십시오.
 
 **작성일**: 2026-06-07  
 **상태**: 초판  

@@ -210,7 +210,7 @@ echo ""
 # 2. デモデータアップロード
 # ========================================
 echo "📤 Step 2/5: デモデータをFSx for ONTAPにアップロード..."
-aws s3 sync "${SCRIPT_DIR}/../documents/" "s3://${S3AP_ALIAS}/" --region $REGION 2>&1 | grep -c "upload:" | xargs -I{} echo "  ✅ {}ファイルアップロード完了"
+aws s3 sync "${SCRIPT_DIR}/../documents/" "s3://${S3AP_ALIAS}/" --region $REGION 2>&1 | { grep -c "upload:" || true; } | xargs -I{} echo "  ✅ {}ファイルアップロード完了"
 echo ""
 
 # ========================================
