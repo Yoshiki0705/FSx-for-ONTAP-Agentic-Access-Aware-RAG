@@ -28,7 +28,21 @@ const REGION = process.env.BEDROCK_REGION || process.env.AWS_REGION || 'ap-north
 const MAX_NAME = 100;
 const MAX_DESCRIPTION = 500;
 const MAX_INSTRUCTION = 8000;
+/** The tools every agent gets by default. */
 export const AVAILABLE_TOOLS = ['PermissionAwareSearch'] as const;
+/**
+ * Tools an administrator can add to an agent, offered only when the deployment has them
+ * (`-c enableAwsDocsTool=true` sets AWS_DOCS_TOOL_ENABLED). New agents and team collaborators
+ * do not get them by default: a tool that sends search phrases outside is chosen per agent.
+ */
+export const AWS_DOCUMENTATION_TOOL = 'AwsDocumentation';
+export function awsDocsToolEnabled(): boolean {
+  return process.env.AWS_DOCS_TOOL_ENABLED === 'true';
+}
+/** Every tool name an agent definition may carry in this deployment. */
+export function selectableTools(): string[] {
+  return awsDocsToolEnabled() ? [...AVAILABLE_TOOLS, AWS_DOCUMENTATION_TOOL] : [...AVAILABLE_TOOLS];
+}
 
 let ddb: DynamoDBDocumentClient | null = null;
 let runtime: BedrockAgentCoreClient | null = null;
@@ -95,7 +109,8 @@ function str(value: unknown, max: number): string | undefined {
 export function normalizeTools(input: AgentInput): string[] | undefined {
   const raw = input.tools ?? input.actionGroups;
   if (!Array.isArray(raw)) return undefined;
-  return raw.filter((t): t is string => typeof t === 'string' && (AVAILABLE_TOOLS as readonly string[]).includes(t));
+  const known = selectableTools();
+  return raw.filter((t): t is string => typeof t === 'string' && known.includes(t));
 }
 
 /** A new definition, or `existing` updated with the fields that were given. */

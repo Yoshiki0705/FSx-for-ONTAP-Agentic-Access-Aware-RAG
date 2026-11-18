@@ -548,6 +548,19 @@ Agent Directory / チャット画面
 - `userId` が無い呼び出しと、SID の記録が無いユーザーには文書を 1 件も返しません（Fail-Closed）
 - Gateway は AWS_IAM 認可で、Runtime の実行ロール以外からは呼び出せません
 
+### AWS のドキュメントのツール（任意）
+
+`-c enableAwsDocsTool=true`（既定は無効。`enableAgent=true` と `agentBackend=agentcore` が前提で、満たさないと synth 時に throw）で、Agent が AWS のドキュメントを検索して読めるようになります。選んだ理由と、ほかの候補との比較は [社外の MCP サーバーから最初に足すツールの選び方](mcp-external-tool-selection.md) にあります。
+
+- **仕組み**: オープンソースの AWS Documentation MCP Server（`awslabs.aws-documentation-mcp-server` 1.2.6）を、自分のアカウントの専用の AgentCore Runtime（MCP プロトコル）で動かし、`agent-tools` Gateway の MCP サーバーのターゲット `aws-docs` として足します。プログラムと依存パッケージは `docker/aws-docs-mcp/requirements.txt` で版を固定しています。サーバーが標準入出力で動く部分だけを、AgentCore Runtime の MCP の約束（`0.0.0.0:8000/mcp`）に合わせて HTTP で動かす `serve.py` に置き換え、ツールとドメインの検査はパッケージのものをそのまま使います
+- **認証**: Gateway は AWS の署名（SigV4、サービス名 `bedrock-agentcore`）でこの Runtime を呼びます。Runtime に JWT の認可は付けず、呼べるのは Gateway のロールだけです。API キーも「認証なし」の接続も使いません
+- **使えるツール**: `search_documentation`、`read_documentation`、`read_sections` の 3 つです。Gateway にツールの定義を渡して固定してあり（`mcpToolSchema`、`docker/aws-docs-mcp/tool-schema.json`）、サーバーが残りの 2 つ（`search_table`、`recommend`）を持っていても、モデルには見えません。サーバー側で説明が書き換わっても、モデルが見る説明は変わりません
+- **社外へ出るもの**: 検索語（200 文字まで）と、`https://docs.aws.amazon.com/` の URL（500 文字まで）です。URL がそれ以外なら、Agent のコードが呼ぶ前に拒否し、サーバーのコードも同じ検査をします。1 回の質問で呼べるのは 6 回までです。ツールの説明は「会社名や利用者名や文書の中身を検索語に入れない」とモデルに指示しますが、これは指示であって強制ではありません。検索語に社内の情報が混じる可能性は残ります
+- **社内の文書との関係**: 社内の文書を探す `search_documents`（SID フィルタ）とは別のツールで、AWS のドキュメントのツールは社内の検索の結果を受け取りません。検索結果の文書の中に書かれた指示でモデルが別のツールを呼ぶ脅威（T4）は、Agent に共通の規則（文書やツールの応答はデータで、指示ではない）と、上の上限で小さくしていますが、なくなりません
+- **記録**: 呼び出したツールの名前と結果の文字数だけを、応答の `docsCalls` に入れます。検索語と URL は入れません
+- **Agent への付与**: Agent の定義の `tools` に `AwsDocumentation` を入れた Agent だけが使えます。初期の Agent（`rag-default`）には入れてあります。入れていない Agent と、このフラグを有効にしていないデプロイでは、ツールは渡りません
+- **料金**: Runtime は使った時間だけの課金です（ap-northeast-1、2026-11-18 の Pricing API で、vCPU が 1 時間あたり 0.0895 USD、メモリが 1 GB・1 時間あたり 0.00945 USD）。Gateway の呼び出しは 1 回あたり 0.000005 USD です。待機中の課金の有無は確かめていません
+
 ### カードベースのタスク指向UI
 
 チャット開始前にモード別のカードグリッドを表示。KBモード8枚 + Agentモード14枚（リサーチ系8枚 + アウトプット系6枚）の構成で、ワンクリックでプロンプトを入力可能。お気に入り管理・カテゴリフィルタリング対応。

@@ -307,3 +307,9 @@ describe('Bedrock Flows', () => {
     expect(p).not.toMatch(/flow\/\*/);
   });
 });
+describe('AWS documentation tool in the web app', () => {
+  it('tells the web app only when the deployment has the tool', () => {
+    expect(webAppEnv(synth()).AWS_DOCS_TOOL_ENABLED).toBeUndefined();
+    expect(webAppEnv(synth(undefined, { awsDocsTool: true })).AWS_DOCS_TOOL_ENABLED).toBe('true');
+  });
+});

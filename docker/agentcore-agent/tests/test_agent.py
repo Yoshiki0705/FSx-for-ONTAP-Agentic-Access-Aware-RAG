@@ -204,7 +204,7 @@ class TestRun:
         client = FakeClient()
         monkeypatch.setattr(app, "GATEWAY_URL", "https://gw.example/mcp")
 
-        def fake_build(definition, search, region):
+        def fake_build(definition, search, region, docs=None):
             class Fake:
                 def __call__(self, message):
                     search(message, 2)
@@ -220,6 +220,37 @@ class TestRun:
         assert out["answer"] == "answer"
         assert client.calls[0][1]["userId"] == "u1"
         assert out["searches"][0]["count"] == 1
+        assert "docsCalls" not in out
+
+    def test_no_documentation_tool_is_wired_without_the_deployment_setting(self, monkeypatch):
+        seen = {}
+        monkeypatch.setattr(app, "GATEWAY_URL", "https://gw.example/mcp")
+        monkeypatch.setattr(app, "AWS_DOCS_TOOL_PREFIX", "")
+
+        def fake_build(definition, search, region, docs=None):
+            seen["docs"] = docs
+            return lambda message: "answer"
+
+        monkeypatch.setattr(app, "build_agent", fake_build)
+        app.run({"message": "q", "userId": "u1", "agent": {}}, client_factory=lambda url, region: FakeClient())
+        assert seen["docs"] is None
+
+    def test_documentation_calls_are_reported_without_their_arguments(self, monkeypatch):
+        client = DocsClient("abc")
+        monkeypatch.setattr(app, "GATEWAY_URL", "https://gw.example/mcp")
+        monkeypatch.setattr(app, "AWS_DOCS_TOOL_PREFIX", "aws-docs___")
+
+        def fake_build(definition, search, region, docs=None):
+            def agent(message):
+                docs.call("search_documentation", {"search_phrase": "SECRET PROJECT NAME"})
+                return "answer"
+
+            return agent
+
+        monkeypatch.setattr(app, "build_agent", fake_build)
+        out = app.run({"message": "q", "userId": "u1", "agent": {}}, client_factory=lambda url, region: client)
+        assert out["docsCalls"] == [{"tool": "search_documentation", "chars": 3}]
+        assert "SECRET PROJECT NAME" not in json.dumps(out)
 
     def test_an_invalid_payload_returns_the_error_without_calling_the_gateway(self):
         def factory(url, region):
@@ -228,3 +259,122 @@ class TestRun:
         assert app.run({"message": ""}, client_factory=factory) == {
             "error": "message is required"
         }
+
+
+class DocsClient:
+    """A fake Gateway client for the aws-docs tools; it records every call."""
+
+    def __init__(self, text: str = "page text") -> None:
+        self.text = text
+        self.calls: list[tuple[str, dict]] = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def call_tool_sync(self, tool_use_id, name, arguments=None, read_timeout_seconds=None, **_):
+        self.calls.append((name, arguments))
+        return {"status": "success", "content": [{"text": self.text}]}
+
+
+class TestAwsDocs:
+    PREFIX = "aws-docs___"
+
+    def docs(self, text: str = "page text"):
+        from docs_tool import AwsDocs
+
+        client = DocsClient(text)
+        return AwsDocs(client, self.PREFIX), client
+
+    def test_calls_the_gateway_target_by_prefixed_name(self):
+        docs, client = self.docs()
+        docs.call("search_documentation", {"search_phrase": "S3 access points", "limit": 3})
+        assert client.calls == [("aws-docs___search_documentation", {"search_phrase": "S3 access points", "limit": 3})]
+
+    @pytest.mark.parametrize("name", ["search_table", "recommend", "get_available_services", "anything_else", ""])
+    def test_only_the_three_allowed_tools_can_be_called(self, name):
+        docs, client = self.docs()
+        assert "not available" in docs.call(name, {})
+        assert client.calls == []
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://example.com/a.html",
+            "http://docs.aws.amazon.com/a.html",
+            "https://docs.aws.amazon.com.evil.example/a.html",
+            "https://evil.example/https://docs.aws.amazon.com/a.html",
+            "https://docs.aws.amazon.com@evil.example/a.html",
+            "https://169.254.169.254/latest/meta-data/",
+            "file:///etc/passwd",
+        ],
+    )
+    def test_a_url_outside_docs_aws_amazon_com_is_refused_before_any_call(self, url):
+        docs, client = self.docs()
+        assert "docs.aws.amazon.com" in docs.call("read_documentation", {"url": url, "max_length": 100})
+        assert client.calls == []
+
+    def test_a_docs_page_url_is_passed_on(self):
+        docs, client = self.docs()
+        docs.call("read_documentation", {"url": "https://docs.aws.amazon.com/s3/latest/userguide/a.html", "max_length": 100})
+        assert len(client.calls) == 1
+
+    def test_search_phrase_and_result_are_capped(self):
+        docs, client = self.docs("x" * 50000)
+        out = docs.call("search_documentation", {"search_phrase": "q" * 1000, "limit": 5})
+        assert len(client.calls[0][1]["search_phrase"]) == 200
+        assert len(out) == 20000
+
+    def test_calls_per_question_are_capped(self):
+        docs, client = self.docs()
+        for _ in range(6):
+            docs.call("search_documentation", {"search_phrase": "q"})
+        assert "at most 6" in docs.call("search_documentation", {"search_phrase": "q"})
+        assert len(client.calls) == 6
+
+    def test_the_call_log_keeps_the_tool_and_size_not_the_arguments(self):
+        docs, _ = self.docs("abc")
+        docs.call("search_documentation", {"search_phrase": "SECRET PROJECT NAME"})
+        assert docs.calls == [{"tool": "search_documentation", "chars": 3}]
+
+    def test_model_facing_tools_have_no_user_or_gateway_parameter(self):
+        from docs_tool import make_docs_tools
+
+        tools = make_docs_tools(self.docs()[0])
+        names = {t.tool_spec["name"] for t in tools}
+        assert names == {"search_aws_documentation", "read_aws_documentation", "read_aws_documentation_sections"}
+        for t in tools:
+            assert not {"userId", "user_id", "target", "name", "tool"} & set(t.tool_spec["inputSchema"]["json"]["properties"])
+
+
+class TestDocsToolSelection:
+    DEFINITION = {"agentName": "a", "instruction": "i"}
+
+    def tool_names(self, agent) -> set[str]:
+        return set(agent.tool_names)
+
+    def test_an_agent_without_the_tool_in_its_definition_never_gets_it(self):
+        from docs_tool import AwsDocs
+
+        docs = AwsDocs(DocsClient(), "aws-docs___")
+        agent = agents.build_agent({**self.DEFINITION, "tools": ["PermissionAwareSearch"]}, lambda q, n: "", "ap-northeast-1", docs)
+        assert self.tool_names(agent) == {"search_documents"}
+
+    def test_an_agent_with_the_tool_gets_it_only_when_the_deployment_has_it(self):
+        from docs_tool import AwsDocs
+
+        definition = {**self.DEFINITION, "tools": ["PermissionAwareSearch", "AwsDocumentation"]}
+        without = agents.build_agent(definition, lambda q, n: "", "ap-northeast-1")
+        assert self.tool_names(without) == {"search_documents"}
+        with_docs = agents.build_agent(definition, lambda q, n: "", "ap-northeast-1", AwsDocs(DocsClient(), "aws-docs___"))
+        assert self.tool_names(with_docs) == {
+            "search_documents", "search_aws_documentation", "read_aws_documentation", "read_aws_documentation_sections",
+        }
+
+    def test_a_definition_without_tools_gets_only_the_internal_search(self):
+        from docs_tool import AwsDocs
+
+        agent = agents.build_agent(self.DEFINITION, lambda q, n: "", "ap-northeast-1", AwsDocs(DocsClient(), "aws-docs___"))
+        assert self.tool_names(agent) == {"search_documents"}

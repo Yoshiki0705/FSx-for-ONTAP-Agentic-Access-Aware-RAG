@@ -8,6 +8,8 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import type { AgentTeamConfig } from '@/types/multi-agent';
 import {
   AVAILABLE_TOOLS,
+  AWS_DOCUMENTATION_TOOL,
+  awsDocsToolEnabled,
   ValidationError,
   buildDefinition,
   deleteDefinition,
@@ -155,12 +157,22 @@ export async function agentActionResponse(action: string, body: Record<string, u
       case 'listAvailableActionGroups':
         return NextResponse.json({
           success: true,
-          actionGroups: AVAILABLE_TOOLS.map((name) => ({
-            name,
-            descriptionKey: 'permissionAwareSearch',
-            description: 'SID-based permission-aware document search (AgentCore Gateway tool).',
-            isDefault: true,
-          })),
+          actionGroups: [
+            ...AVAILABLE_TOOLS.map((name) => ({
+              name,
+              descriptionKey: 'permissionAwareSearch',
+              description: 'SID-based permission-aware document search (AgentCore Gateway tool).',
+              isDefault: true,
+            })),
+            ...(awsDocsToolEnabled()
+              ? [{
+                name: AWS_DOCUMENTATION_TOOL,
+                descriptionKey: 'awsDocumentation',
+                description: 'Search and read AWS documentation (docs.aws.amazon.com). Search phrases leave the account.',
+                isDefault: false,
+              }]
+              : []),
+          ],
           message: '利用可能なツール一覧（AgentCore）',
         });
       case 'listAgentKnowledgeBases': {

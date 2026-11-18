@@ -20,6 +20,7 @@
  * whose contract the agent tool does not need, and the permission check lives in the
  * tool itself (fail-closed), so the boundary does not depend on Gateway configuration.
  */
+import * as fs from 'fs';
 import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import * as agentcore from 'aws-cdk-lib/aws-bedrockagentcore';
@@ -42,11 +43,20 @@ export interface AgentCoreAgentsProps {
   readonly enableMultiAgent?: boolean;
   /** Model for the seeded agents (inference profile or model ID). */
   readonly defaultModelId?: string;
+  /**
+   * Add the AWS documentation tools (docs/mcp-external-tool-selection.md): AWS Documentation
+   * MCP Server, at a fixed version, on its own AgentCore Runtime, as an MCP server target of
+   * the agent-tools Gateway called with IAM (SigV4). Off by default.
+   */
+  readonly enableAwsDocsTool?: boolean;
 }
 
 /** Name of the Gateway target; with the tool name it forms `<target>___<tool>`. */
 export const SEARCH_TARGET_NAME = 'permission-search';
 export const SEARCH_TOOL_NAME = 'permission_aware_search';
+/** The AWS documentation target and the three tools allowed on it (fixed in the Gateway). */
+export const AWS_DOCS_TARGET_NAME = 'aws-docs';
+export const AWS_DOCS_TOOL_NAMES = ['search_documentation', 'read_documentation', 'read_sections'] as const;
 export const DEFAULT_AGENT_ID = 'rag-default';
 export const DEFAULT_TEAM_ID = 'rag-default-team';
 /**
@@ -61,6 +71,7 @@ export class AgentCoreAgentsConstruct extends Construct {
   public readonly teamTable?: dynamodb.Table;
   public readonly gateway: agentcore.Gateway;
   public readonly searchFunction: lambdaNodejs.NodejsFunction;
+  public readonly awsDocsRuntime?: agentcore.Runtime;
 
   constructor(scope: Construct, id: string, props: AgentCoreAgentsProps) {
     super(scope, id);
@@ -139,6 +150,11 @@ export class AgentCoreAgentsConstruct extends Construct {
       ]),
     });
 
+    // --- AWS documentation tools (optional) --------------------------------------------
+    if (props.enableAwsDocsTool) {
+      this.awsDocsRuntime = this.addAwsDocsTarget(prefix);
+    }
+
     // --- Runtime ---------------------------------------------------------------
     this.runtime = new agentcore.Runtime(this, 'Runtime', {
       // [a-zA-Z][a-zA-Z0-9_]{0,47}
@@ -151,6 +167,7 @@ export class AgentCoreAgentsConstruct extends Construct {
       environmentVariables: {
         AGENT_TOOLS_GATEWAY_URL: this.gateway.gatewayUrl!,
         SEARCH_TOOL_NAME: `${SEARCH_TARGET_NAME}___${SEARCH_TOOL_NAME}`,
+        ...(props.enableAwsDocsTool ? { AWS_DOCS_TOOL_PREFIX: `${AWS_DOCS_TARGET_NAME}___` } : {}),
       },
     });
     this.runtime.role.addToPrincipalPolicy(new iam.PolicyStatement({
@@ -170,7 +187,7 @@ export class AgentCoreAgentsConstruct extends Construct {
       description: { S: 'Answers from the documents the signed-in user may read, with citations' },
       instruction: { S: 'You help employees find and understand company documents. Search before answering, and answer concisely.' },
       foundationModel: { S: model },
-      tools: { L: [{ S: 'PermissionAwareSearch' }] },
+      tools: { L: [{ S: 'PermissionAwareSearch' }, ...(props.enableAwsDocsTool ? [{ S: 'AwsDocumentation' }] : [])] },
       knowledgeBaseIds: { L: [{ S: props.knowledgeBaseId }] },
       agentStatus: { S: 'PREPARED' },
       source: { S: 'cdk' },
@@ -241,6 +258,63 @@ export class AgentCoreAgentsConstruct extends Construct {
         appliesTo: [{ regex: '/^Resource::.*:\\*$/g' }],
       },
     ], true);
+  }
+
+  /**
+   * AWS Documentation MCP Server on its own runtime, behind the agent-tools Gateway.
+   * - The runtime accepts only IAM callers; the Gateway's role is the only one granted.
+   * - The Gateway signs with SigV4 (service `bedrock-agentcore`), so no key is stored.
+   * - The tool definitions are fixed in the Gateway (`McpToolSchema`, from
+   *   docker/aws-docs-mcp/tool-schema.json): only the three tools are listed, and a changed
+   *   description on the server does not reach the model.
+   */
+  private addAwsDocsTarget(prefix: string): agentcore.Runtime {
+    const dir = path.join(__dirname, '../../docker/aws-docs-mcp');
+    const runtime = new agentcore.Runtime(this, 'AwsDocsRuntime', {
+      runtimeName: `${prefix.replace(/[^a-zA-Z0-9]/g, '_')}_aws_docs`.slice(0, 48),
+      description: 'AWS Documentation MCP Server (fixed version) for the agent-tools Gateway',
+      agentRuntimeArtifact: agentcore.AgentRuntimeArtifact.fromAsset(dir, { platform: Platform.LINUX_ARM64 }),
+      protocolConfiguration: agentcore.ProtocolType.MCP,
+    });
+    // The invocation URL: the runtime ARN, URL-encoded, in the path.
+    const encodedArn = cdk.Fn.join('', [
+      'arn%3A', cdk.Aws.PARTITION, '%3Abedrock-agentcore%3A', cdk.Aws.REGION, '%3A', cdk.Aws.ACCOUNT_ID,
+      '%3Aruntime%2F', runtime.agentRuntimeId,
+    ]);
+    const endpoint = cdk.Fn.join('', [
+      'https://bedrock-agentcore.', cdk.Aws.REGION, '.amazonaws.com/runtimes/', encodedArn, '/invocations?qualifier=DEFAULT',
+    ]);
+    const target = this.gateway.addMcpServerTarget('AwsDocsTarget', {
+      gatewayTargetName: AWS_DOCS_TARGET_NAME,
+      description: 'AWS documentation (docs.aws.amazon.com only): search, read a page, read sections',
+      endpoint,
+      credentialProviderConfigurations: [agentcore.GatewayCredentialProvider.fromIamRole({ service: 'bedrock-agentcore' })],
+    });
+    const schema = JSON.parse(fs.readFileSync(path.join(dir, 'tool-schema.json'), 'utf8')) as { tools: { name: string }[] };
+    const names = schema.tools.map((t) => t.name);
+    if (names.join() !== AWS_DOCS_TOOL_NAMES.join()) {
+      throw new Error(`docker/aws-docs-mcp/tool-schema.json must hold exactly ${AWS_DOCS_TOOL_NAMES.join(', ')} (found ${names.join(', ')})`);
+    }
+    const cfnTarget = target.node.defaultChild as agentcore.CfnGatewayTarget;
+    cfnTarget.addPropertyOverride('TargetConfiguration.Mcp.McpServer.McpToolSchema.InlinePayload', JSON.stringify(schema));
+    // The Gateway must be able to call the runtime, and must be created after it.
+    runtime.grantInvokeRuntime(this.gateway.role);
+    target.node.addDependency(runtime);
+    NagSuppressions.addResourceSuppressions(this.gateway, [
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'The Gateway role invokes the one documentation runtime; the L2 grants the runtime ARN and its endpoints (<runtime ARN>/*). No other runtime is named.',
+        appliesTo: [{ regex: '/^Resource::<.*AwsDocsRuntime.*\\.AgentRuntimeArn>\\/\\*$/g' }],
+      },
+    ], true);
+    NagSuppressions.addResourceSuppressions(runtime, [
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'Runtime logging and X-Ray need log-group and trace wildcards (granted by the L2). The MCP server calls no AWS API.',
+        appliesTo: [{ regex: '/^Resource::.*$/g' }, { regex: '/^Action::.*$/g' }],
+      },
+    ], true);
+    return runtime;
   }
 
   /** Put one item at deploy time. Deleting the stack deletes the table, so no onDelete. */

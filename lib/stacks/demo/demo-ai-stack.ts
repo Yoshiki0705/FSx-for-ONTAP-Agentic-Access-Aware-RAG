@@ -249,6 +249,8 @@ export interface DemoAIStackProps extends cdk.StackProps {
   enableEpisodicMemory?: boolean;
   /** マルチエージェント協調を有効化するか（デフォルト: false） */
   enableMultiAgent?: boolean;
+  /** Agent モードに AWS のドキュメントのツールを足す（docs/mcp-external-tool-selection.md。agentcore バックエンドのみ） */
+  enableAwsDocsTool?: boolean;
   /** Supervisorルーティングモード（デフォルト: 'supervisor_router'） */
   supervisorRoutingMode?: 'supervisor_router' | 'supervisor';
   /** 自動ルーティング有効化（デフォルト: false） */
@@ -410,6 +412,9 @@ export class DemoAIStack extends cdk.Stack {
     // Validation 1: enableMultiAgent requires enableAgent as prerequisite
     if (props.enableMultiAgent && !props.enableAgent) {
       throw new Error('enableMultiAgent requires enableAgent=true as a prerequisite');
+    }
+    if (props.enableAwsDocsTool && !(props.enableAgent && (props.agentBackend ?? 'agentcore') === 'agentcore')) {
+      throw new Error('enableAwsDocsTool requires enableAgent=true with agentBackend=agentcore');
     }
 
     // Validation 2: MCP connector type validation
@@ -2162,6 +2167,7 @@ ${langInstruction}`,
         userAccessTableName: userAccessTableName || undefined,
         userAccessTableArn: userAccessTableArn || undefined,
         enableMultiAgent: props.enableMultiAgent,
+        enableAwsDocsTool: props.enableAwsDocsTool,
       });
       this.agentRuntimeArn = agentCoreAgents.runtime.agentRuntimeArn;
       this.agentDefinitionsTableName = agentCoreAgents.definitionsTable.tableName;

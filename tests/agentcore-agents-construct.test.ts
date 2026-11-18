@@ -106,3 +106,66 @@ describe('without enableAgent', () => {
     template.resourceCountIs('AWS::Bedrock::Agent', 0);
   });
 });
+
+describe('enableAwsDocsTool (docs/mcp-external-tool-selection.md)', () => {
+  const off = aiStack({ enableAgent: true }).template;
+  const on = aiStack({ enableAgent: true, enableAwsDocsTool: true }).template;
+  const gatewayTargets = (t: Template) => Object.values(t.findResources('AWS::BedrockAgentCore::GatewayTarget')) as any[];
+  const docsTarget = () => gatewayTargets(on).find((r) => r.Properties.Name === 'aws-docs');
+
+  it('is off by default: one runtime, one target, no documentation setting', () => {
+    off.resourceCountIs('AWS::BedrockAgentCore::Runtime', 1);
+    off.resourceCountIs('AWS::BedrockAgentCore::GatewayTarget', 1);
+    expect(JSON.stringify(off.toJSON())).not.toContain('aws-docs');
+    expect(JSON.stringify(off.toJSON())).not.toContain('AwsDocumentation');
+  });
+
+  it('adds a second runtime that speaks MCP, and an MCP server target on the same Gateway', () => {
+    on.resourceCountIs('AWS::BedrockAgentCore::Runtime', 2);
+    on.hasResourceProperties('AWS::BedrockAgentCore::Runtime', { ProtocolConfiguration: 'MCP', AgentRuntimeName: Match.stringLikeRegexp('aws_docs$') });
+    on.resourceCountIs('AWS::BedrockAgentCore::GatewayTarget', 2);
+    expect(docsTarget().Properties.TargetConfiguration.Mcp.McpServer.Endpoint).toBeDefined();
+  });
+
+  it('calls the runtime with IAM (SigV4), not without authorization and not with a stored key', () => {
+    const providers = docsTarget().Properties.CredentialProviderConfigurations;
+    expect(providers).toHaveLength(1);
+    expect(providers[0].CredentialProviderType).toBe('GATEWAY_IAM_ROLE');
+    expect(JSON.stringify(providers)).toContain('bedrock-agentcore');
+    expect(JSON.stringify(docsTarget())).not.toMatch(/ApiKey|OAuth/i);
+  });
+
+  it('fixes the tool definitions in the Gateway: exactly the three allowed tools', () => {
+    const payload = JSON.parse(docsTarget().Properties.TargetConfiguration.Mcp.McpServer.McpToolSchema.InlinePayload);
+    expect(payload.tools.map((t: { name: string }) => t.name)).toEqual(['search_documentation', 'read_documentation', 'read_sections']);
+  });
+
+  it('lets only the Gateway role invoke the documentation runtime', () => {
+    // Every policy statement that can invoke a runtime and names the documentation runtime.
+    const granted: string[] = [];
+    for (const [id, r] of Object.entries<any>(on.findResources('AWS::IAM::Policy'))) {
+      for (const st of [].concat(r.Properties.PolicyDocument.Statement)) {
+        const actions: string[] = [].concat(st.Action);
+        if (actions.some((a) => /InvokeAgentRuntime/.test(a)) && JSON.stringify(st.Resource).includes('AwsDocsRuntime')) {
+          granted.push(`${id} -> ${JSON.stringify(r.Properties.Roles)}`);
+        }
+      }
+    }
+    expect(granted).toHaveLength(1);
+    expect(granted[0]).toMatch(/ToolsGateway.*ToolsGatewayServiceRole/);
+    // Neither runtime sets a JWT authorizer, so both accept only IAM callers.
+    for (const r of Object.values<any>(on.findResources('AWS::BedrockAgentCore::Runtime'))) {
+      expect(r.Properties.AuthorizerConfiguration).toBeUndefined();
+    }
+  });
+
+  it('tells the agent runtime the target prefix and seeds the default agent with the tool', () => {
+    on.hasResourceProperties('AWS::BedrockAgentCore::Runtime', { EnvironmentVariables: Match.objectLike({ AWS_DOCS_TOOL_PREFIX: 'aws-docs___' }) });
+    expect(JSON.stringify(on.toJSON())).toContain('AwsDocumentation');
+  });
+
+  it('requires Agent mode on AgentCore', () => {
+    expect(() => aiStack({ enableAwsDocsTool: true })).toThrow(/enableAwsDocsTool requires enableAgent=true/);
+    expect(() => aiStack({ enableAgent: true, agentBackend: 'bedrock-agents', enableAwsDocsTool: true })).toThrow(/agentBackend=agentcore/);
+  });
+});
