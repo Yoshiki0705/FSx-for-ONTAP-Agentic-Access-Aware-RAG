@@ -1587,7 +1587,17 @@
       "promptPlaceholder": "z. B. eine Illustration eines Speicherregals, verbunden mit einer Wolke, auf weißem Hintergrund",
       "negative": "Weglassen",
       "aspect": "Seitenverhältnis",
-      "run": "Bild erzeugen"
+      "run": "Bild erzeugen",
+      "describe": "Das gewünschte Bild (in jeder Sprache)",
+      "describePlaceholder": "Beispiel: ein Shiba Inu am Strand in der Abenddämmerung, Aquarell",
+      "assist": "Prompt vorschlagen lassen",
+      "source": "Ausgangsbild (optional; PNG, JPEG oder WebP, höchstens 3 MB)",
+      "sourceClear": "Entfernen",
+      "strength": "Abweichung vom Bild: {value}",
+      "strengthHelp": "Nahe 0 bleibt das Bild erhalten, nahe 1 folgt es dem Prompt und ändert sich stärker.",
+      "sourceType": "Wählen Sie ein PNG-, JPEG- oder WebP-Bild.",
+      "sourceTooBig": "Das Bild ist zu groß (höchstens {mb} MB).",
+      "sourceRegionNotice": "Auch das Ausgangsbild wird in {region} verarbeitet (außerhalb Japans)."
     },
     "useCases": {
       "intro": "Speichern Sie häufig verwendete Anweisungen als Vorlagen. Ein gespeicherter Anwendungsfall ist nur für Sie sichtbar und nutzbar, solange Sie ihn nicht teilen.",

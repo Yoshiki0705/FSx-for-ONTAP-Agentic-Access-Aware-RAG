@@ -39,9 +39,9 @@ MODEL_ID = re.compile(
 
 # path -> reason. Each is a value that has to exist at deploy time or is out of scope.
 ALLOWED = {
-    "bin/demo-app.ts": "imageGenerationModelId context default; image generation runs in another Region by design",
+    "bin/demo-app.ts": "imageGenerationModelId and imageToImageModelId context defaults; image generation runs in another Region by design",
     "lib/stacks/demo/demo-webapp-stack.ts": "imageGenerationModelId default for the tools prop (same value as bin)",
-    "docker/nextjs/src/lib/genu-tools/image.ts": "image model default when the stack sets none (same value as bin)",
+    "docker/nextjs/src/lib/genu-tools/image.ts": "image and image-to-image model defaults when the stack sets none (same values as bin)",
     "lib/stacks/demo/demo-ai-stack.ts": "deploy-time models: Bedrock Agents (Classic) backend, removed next release, and the AgentCore Optimization (Preview) initial bundle",
     "docker/agentcore-agent/agents.py": "last-resort default when a request carries no model; the WebApp always resolves one",
     "docker/nextjs/src/config/embedding-models.ts": "embedding models: fixed at deploy, a change needs re-ingestion (out of scope)",

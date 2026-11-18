@@ -444,6 +444,11 @@ if (!/^[a-z]{2}(-gov)?-[a-z]+-\d$/.test(imageGenerationRegion)) {
 if (!/^[a-z0-9.:-]+$/.test(imageGenerationModelId)) {
   throw new Error(`imageGenerationModelId is not a model ID: ${imageGenerationModelId}`);
 }
+// Image to image (a source image): Stable Image Core takes text only, so this model is used then.
+const imageToImageModelId: string = app.node.tryGetContext('imageToImageModelId') || 'stability.sd3-5-large-v1:0';
+if (!/^[a-z0-9.:-]+$/.test(imageToImageModelId)) {
+  throw new Error(`imageToImageModelId is not a model ID: ${imageToImageModelId}`);
+}
 const videoModelIdCtx = app.node.tryGetContext('videoModelId');
 if (videoModelIdCtx !== undefined && !/^[a-z0-9.:-]+$/.test(String(videoModelIdCtx))) {
   throw new Error(`videoModelId is not a model ID: ${videoModelIdCtx}`);
@@ -481,6 +486,7 @@ const toolsSettings = {
   videoModelId: (app.node.tryGetContext('videoModelId') as string | undefined) || 'amazon.nova-2-lite-v1:0',
   imageGenerationRegion,
   imageGenerationModelId,
+  imageToImageModelId,
 };
 
 // Model catalog (docker/nextjs/src/lib/model-catalog): tiers are family patterns, not

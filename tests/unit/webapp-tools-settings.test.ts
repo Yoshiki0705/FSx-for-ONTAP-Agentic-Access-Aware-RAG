@@ -69,6 +69,13 @@ describe('GenU-style tools settings', () => {
     expect(env.IMAGE_GENERATION_REGION).toBe('us-west-2');
     expect(env.IMAGE_GENERATION_MODEL_ID).toBe('us.stability.stable-image-core-v1:1');
     expect(env.WEB_EXTRACT_ENABLED).toBe('false');
+    expect(env.IMAGE_TO_IMAGE_MODEL_ID).toBeUndefined();
+  });
+
+  it('passes the image-to-image model only with image generation on', () => {
+    const tools = { enableWebExtract: true, imageGenerationRegion: 'us-west-2', imageGenerationModelId: 'stability.stable-image-core-v1:1', imageToImageModelId: 'stability.sd3-5-large-v1:0' };
+    expect(webAppEnv(synth({ ...tools, enableImageGeneration: true })).IMAGE_TO_IMAGE_MODEL_ID).toBe('stability.sd3-5-large-v1:0');
+    expect(webAppEnv(synth({ ...tools, enableImageGeneration: false })).IMAGE_TO_IMAGE_MODEL_ID).toBeUndefined();
   });
 
   it('grants the web app only item-level access to the use case table', () => {
