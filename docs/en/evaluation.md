@@ -427,6 +427,20 @@ Checked on 2026-11-18 in ap-northeast-1 with a deployment using `-c enableAgent=
 
 **Scope**: One observation each. Not checked: a question about internal documents that also calls the documentation tool (internal information ending up in a search phrase), and giving the tool to team collaborators (they are not given it). In the two runs that only asked the model to read another site, the model declined by itself and did not call the tool. Whether anything is charged while idle was not checked. The screen was not used; the checks went through the API.
 
+### 3.19 Results with query decomposition
+Checked on 2026-11-19 (Japan time) in ap-northeast-1 with a deployment using `-c enableQueryDecomposition=true` and the legal pack. The users were from the legal department (`-4100`) and the development department (`-1100`). The baseline was a direct Retrieve of the original question against the Knowledge Base (`numberOfResults=10`, no permission filtering).
+| Question (kind) | Baseline (top 10 of a direct Retrieve) | Legal department citations | Development department citations |
+|---|---|---|---|
+| Two topics (NDA term + GDPR) | Both expected documents are included | Both expected documents are included. The search was split into 2 queries | The standard NDA template does not appear (a document this user cannot read). Only the contract review guidelines |
+| Two topics (contract review + patents) | Both expected documents are included | Both expected documents are included | Both expected documents are included |
+| Three topics (NDA + contract review + GDPR) | All three expected documents are included | All three expected documents are included. The search was split into 3 queries | Only the contract review guidelines (the other two are documents this user cannot read) |
+| Short question (an NDA-term question under 20 characters) | The standard NDA template is included | Not decomposed (no `queryDecomposition`); the standard NDA template is included | The standard NDA template does not appear |
+| Item | Result |
+|---|---|
+| Time taken by decomposition | 846 to 3,565 ms (6 runs). Whole response 6.8 to 13.7 s for the 6 decomposed runs, 3.2 to 4.8 s for the short question that was not decomposed. This is not a controlled measurement that changes only whether decomposition runs |
+| Whether the development-department user saw the standard NDA template | No (none of its 4 requests). The filter runs once, after the candidates collected by decomposition are merged |
+| CloudWatch Logs `query_decomposition` | 6 entries. Only the method, the number of sub-queries, the number of pooled candidates, the time taken and the user ID; the question and the sub-queries are not in it |
+**Scope**: One observation each. **On this small corpus (16 documents), the baseline Retrieve already returned every expected document without decomposition, so no improvement in search results from decomposition was confirmed.** Whether decomposition reduces misses on a larger corpus with more topics was not measured. What was checked: that decomposition runs, that the queries are split, that the permission filter is not weakened, and the size of the added delay. The fallback to the original question on a failure or the 5-second timeout was checked in unit tests (with the model reply replaced) and was not triggered in the live environment. The screen was not used; the checks went through the API.
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate

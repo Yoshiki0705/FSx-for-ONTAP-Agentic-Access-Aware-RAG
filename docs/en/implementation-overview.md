@@ -479,6 +479,17 @@ When permission checks fail, access to all documents is denied.
 | No SID match | Corresponding document denied |
 | SID match found | Corresponding document allowed |
 
+### Query Decomposition (Optional)
+
+With `-c enableQueryDecomposition=true` (off by default), a text model splits a question about several topics into up to 4 search queries before Retrieve. When several topics sit in one question, its embedding is a blend of them, and chunks for some topics may not come back.
+
+- **Flow**: Retrieve for the original question and for each split query (in parallel, at most 5 calls) -> merge by taking one result from each list in turn (the same text of the same document counts once) -> the same SID filter as before on the whole merged pool -> chunk safety check -> reranking (if on). The SID filter runs once after the merge, so the permission decision is the same however many queries the question was split into. The merged pool holds up to 15 chunks while reranking is off, and `rerankCandidates` chunks when it is on
+- **Why not Bedrock's own decomposition**: `QUERY_DECOMPOSITION` (`orchestrationConfiguration.queryTransformationConfiguration`) is a RetrieveAndGenerate setting that writes the answer before the SID filter. `AgenticRetrieveStream` belongs to the Managed Knowledge Base, and whether the ACL applies at each of its steps is unchecked (V5 in the [Managed KB migration evaluation](managed-kb-migration-evaluation.md)), so neither is used. Sources: [Bedrock Knowledge Bases query reformulation](https://aws.amazon.com/blogs/machine-learning/amazon-bedrock-knowledge-bases-now-supports-advanced-parsing-chunking-and-query-reformulation-giving-greater-control-of-accuracy-in-rag-based-applications/), [the list of retrieval APIs](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-how-retrieval.html)
+- **What the model gets**: only the user's question (wrapped in `<input>`, with the system prompt saying not to follow instructions inside it). No retrieved document is given, so an instruction written in a document cannot change how the question is split. The split queries are used only as Retrieve queries, and whatever they are, every chunk that comes back goes through the SID filter
+- **On failure**: on a model error, a 5-second timeout or an unreadable reply, the original question alone is searched (fail-open; it affects relevance only, not permissions). If a split query's Retrieve fails, only that query's results are missing. If the original question's Retrieve fails, the request fails as before
+- **When it is not used**: questions under 20 characters, and questions where an image was analyzed (the search query then also holds the image analysis) are not split
+- **Cost and time**: per question, one call to the light-tier model and up to 4 more Retrieve calls. The number of split queries and the time are in `metadata.queryDecomposition` of the response and in the `query_decomposition` log (which holds neither the question nor the split queries)
+
 ### Reranking After the Filter (Optional)
 
 With `-c enableRerank=true` (off by default), only the chunks that passed the SID filter and the chunk safety check are reordered by relevance with the Bedrock Rerank API, and the top 10 go to the answer model. Knowledge Base Retrieve has its own reranking setting, but Retrieve runs before the SID filter, so reranking there would send chunks the user may not read to the reranking model. The Rerank API is therefore called separately, after the filter.

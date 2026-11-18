@@ -313,3 +313,9 @@ describe('AWS documentation tool in the web app', () => {
     expect(webAppEnv(synth(undefined, { awsDocsTool: true })).AWS_DOCS_TOOL_ENABLED).toBe('true');
   });
 });
+describe('query decomposition in the web app', () => {
+  it('is off by default and set only when enabled', () => {
+    expect(webAppEnv(synth()).QUERY_DECOMPOSITION_ENABLED).toBeUndefined();
+    expect(webAppEnv(synth(undefined, { queryDecomposition: true })).QUERY_DECOMPOSITION_ENABLED).toBe('true');
+  });
+});

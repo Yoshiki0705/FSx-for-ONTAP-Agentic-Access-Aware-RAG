@@ -393,6 +393,9 @@ jobs:
             flags: '-c enableRerank=true -c rerankModelId=cohere.rerank-v3-5:0'
           # Bedrock Flows（既定は無効）。登録したフローとエイリアスだけへの権限を cdk-nag にかける。
           # Agent モードの AWS ドキュメントのツール（既定は無効）。MCP 用のランタイム、MCP サーバーのターゲット、Gateway の IAM を cdk-nag にかける。
+          # KB の問い合わせの分解（既定は無効）。環境変数だけで、新しいリソースは作らない。
+          - name: kb-query-decomposition
+            flags: '-c enableQueryDecomposition=true'
           - name: agent-aws-docs
             flags: '-c enableAgent=true -c enableAwsDocsTool=true'
           - name: flows

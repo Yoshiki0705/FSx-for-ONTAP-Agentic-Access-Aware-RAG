@@ -22,6 +22,7 @@ export { analyzeImage } from './vision-analyzer';
 export { fetchConversationHistory, normalizeActorId } from './memory-fetcher';
 export { emitRoutingMetrics } from './routing-metrics';
 export { rerankAllowed, rerankConfig } from './reranker';
+export { decomposeQuery, decompositionEnabled, mergeResults } from './query-decomposer';
 export type {
   RetrieveRequest,
   ConversationMessage,
