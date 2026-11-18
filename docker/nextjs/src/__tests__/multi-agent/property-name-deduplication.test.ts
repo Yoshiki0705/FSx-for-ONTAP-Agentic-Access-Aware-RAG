@@ -132,16 +132,18 @@ describe('Feature: multi-agent-collaboration, Property 8: Agent Name Deduplicati
   /**
    * **Validates: Requirements 9.4**
    *
-   * Combined set of existing names and result names has no duplicates.
+   * The result names are unique and none of them is an existing name. The existing list may
+   * itself repeat a name; that is not the import's to fix, so it is not compared with itself.
+   * (Comparing `[...existing, ...result]` as one set failed whenever the generator drew a
+   * repeated existing name, e.g. existing ["c3", "c3"]; deduplicateNames was correct.)
    */
-  it('combined existing + result names are all unique', () => {
+  it('result names are unique and do not collide with existing names', () => {
     fc.assert(
       fc.property(importNamesArb, nameListArb, (importNames, existingNames) => {
         const result = deduplicateNames(importNames, existingNames);
-        const combined = [...existingNames, ...result];
-        const uniqueCombined = new Set(combined);
-
-        expect(uniqueCombined.size).toBe(combined.length);
+        const existing = new Set(existingNames);
+        expect(new Set(result).size).toBe(result.length);
+        expect(result.filter((n) => existing.has(n))).toEqual([]);
       }),
       { numRuns: 100 },
     );
