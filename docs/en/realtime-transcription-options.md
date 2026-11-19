@@ -38,7 +38,7 @@ Each option is checked on the same five points, in this order.
 
 ### Common facts (Transcribe streaming, A, B, C)
 - **[documented]** Tokyo (ap-northeast-1) has a streaming endpoint ([endpoints and quotas](https://docs.aws.amazon.com/general/latest/gr/transcribe.html))
-- **[documented]** Japanese was announced as a streaming language ([announcement](https://aws.amazon.com/blogs/machine-learning/amazon-transcribe-streaming-adds-support-for-japanese-korean-and-brazilian-portuguese/)). The `ja-JP` row of the current language table was not checked
+- **[documented]** Japanese was announced as a streaming language ([announcement](https://aws.amazon.com/blogs/machine-learning/amazon-transcribe-streaming-adds-support-for-japanese-korean-and-brazilian-portuguese/)). The `ja-JP` row of the current language table was not checked. **[verified 2026-11-19 / ap-northeast-1]** Streaming with `ja-JP` transcribed Japanese and labeled speakers ([evaluation 3.22](evaluation.md))
 - **[documented]** Speaker partitioning works in streaming and fits two to five speakers best; accuracy drops beyond five ([blog](https://aws.amazon.com/blogs/machine-learning/using-speaker-diarization-for-streaming-transcription-with-amazon-transcribe-and-amazon-transcribe-medical/))
 - **[documented]** Audio formats are PCM (signed 16-bit little-endian, not WAV), FLAC and OPUS in Ogg; 16,000 Hz is recommended. One stream per connection ([streaming](https://docs.aws.amazon.com/transcribe/latest/dg/streaming.html))
 - **[documented]** The default is 25 concurrent streams (adjustable), and one connection can stay open up to 8 hours ([quotas](https://docs.aws.amazon.com/general/latest/gr/transcribe.html), [FAQ](https://aws.amazon.com/transcribe/faqs/))
@@ -60,8 +60,8 @@ Each option is checked on the same five points, in this order.
 - You take on operating the compute and designing the authentication for the connection. More to add than A
 
 ### D: Nova Sonic
-- Tokyo has `amazon.nova-2-sonic-v1:0` and `amazon.nova-2-5-sonic` (2026-11-19, `aws bedrock list-foundation-models`). **Japanese support was not checked this time**
-- Its use is conversation: speak and get an answer. It is not aimed at verbatim meeting records or speaker partitioning. The repository's document gives the current voice chat connection limit as 8 minutes (not re-checked)
+- Tokyo has `amazon.nova-2-sonic-v1:0` and `amazon.nova-2-5-sonic` (2026-11-19, `aws bedrock list-foundation-models`). **[documented]** Nova 2 Sonic's language list is English, French, Italian, German, Spanish, Portuguese and Hindi; Japanese is not on it ([language support](https://docs.aws.amazon.com/nova/latest/nova2-userguide/sonic-language-support.html)). This repository did not check what happens when you speak Japanese to it. I did not read the language list of `amazon.nova-2-5-sonic`
+- Its use is conversation: speak and get an answer. It is not aimed at verbatim meeting records or speaker partitioning. The official documentation gives the connection limit as 8 minutes ([usage](https://docs.aws.amazon.com/nova/latest/nova2-userguide/using-conversational-speech.html))
 - If transcription is the goal there is little reason to choose it. If the goal is a "ask by voice" entry point rather than a meeting record, it already exists
 
 ### E: the browser's built-in recognition
@@ -96,10 +96,10 @@ E is not in the chart because it is processed outside AWS.
 A. No. Real-time is an addition for when text is wanted without waiting for the recording. At the end of the meeting, the text can be passed to the existing minutes formatting (Bedrock).
 
 **Q. Is the Japanese accuracy good enough?**
-A. Streaming Japanese was not measured in this repository. Batch `ja-JP` transcribed one sentence almost verbatim ([second-stage design](genu-stage2-design.md)). Measure with real meeting audio before implementing.
+A. Two real-time runs with synthetic speech (two Polly voices, 16 sentences, about 97 seconds) gave character error rates of 5.7% and 5.9%, or 3.0% with the numbers written the same way. Speaker labels matched in 15 of 16 turns ([evaluation 3.22](evaluation.md)). Meetings with human voices were not measured, so measure with real meeting audio before implementing.
 
 **Q. How large is the delay?**
-A. Not measured. The official guidance says sending audio in 50 to 200 ms chunks keeps latency low ([streaming](https://docs.aws.amazon.com/transcribe/latest/dg/streaming.html)).
+A. In two runs sending audio in real time in 100 ms chunks, the final text appeared with a median delay of 1.4 s, and 2.1 to 2.6 s at most, after the end of that sentence's audio ([evaluation 3.22](evaluation.md)). The official guidance says sending audio in 50 to 200 ms chunks keeps latency low ([streaming](https://docs.aws.amazon.com/transcribe/latest/dg/streaming.html)).
 
 ## Related Documents
 - [Second-stage design](genu-stage2-design.md) (minutes)

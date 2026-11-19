@@ -38,7 +38,7 @@
 
 ### 共通の事実（Transcribe のストリーミング、A・B・C）
 - **[documented]** 東京（ap-northeast-1）にストリーミングのエンドポイントがある（[エンドポイントとクォータ](https://docs.aws.amazon.com/general/latest/gr/transcribe.html)）
-- **[documented]** 日本語はストリーミングに対応した言語として発表されている（[発表](https://aws.amazon.com/blogs/machine-learning/amazon-transcribe-streaming-adds-support-for-japanese-korean-and-brazilian-portuguese/)）。現在の言語表の `ja-JP` の行は確かめていない
+- **[documented]** 日本語はストリーミングに対応した言語として発表されている（[発表](https://aws.amazon.com/blogs/machine-learning/amazon-transcribe-streaming-adds-support-for-japanese-korean-and-brazilian-portuguese/)）。現在の言語表の `ja-JP` の行は確かめていない。**[verified 2026-11-19 / ap-northeast-1]** `ja-JP` のストリーミングで、日本語の文字起こしと話者ラベルが動いた（[評価 3.22](evaluation.md)）
 - **[documented]** 話者の分離はストリーミングでも使え、2〜5 人で最も合う。5 人を超えると精度が下がる（[ブログ](https://aws.amazon.com/blogs/machine-learning/using-speaker-diarization-for-streaming-transcription-with-amazon-transcribe-and-amazon-transcribe-medical/)）
 - **[documented]** 音声の形式は PCM（符号付き 16 ビット、リトルエンディアン。WAV は含まない）、FLAC、Ogg の OPUS。16,000 Hz を勧めている。1 つのストリームに 1 回の接続（[ストリーミング](https://docs.aws.amazon.com/transcribe/latest/dg/streaming.html)）
 - **[documented]** 同時のストリームは既定で 25（引き上げ可）。1 回の接続は最長 8 時間（[クォータ](https://docs.aws.amazon.com/general/latest/gr/transcribe.html)、[FAQ](https://aws.amazon.com/transcribe/faqs/)）
@@ -60,8 +60,8 @@
 - 計算資源の運用と、接続を受ける認証の設計が増える。A より足すものが多い
 
 ### D: Nova Sonic
-- 東京に `amazon.nova-2-sonic-v1:0` と `amazon.nova-2-5-sonic` がある（2026-11-19、`aws bedrock list-foundation-models`）。**日本語の対応は今回確かめていない**
-- 用途は、話しかけて答えをもらう会話です。会議の逐語の記録や、話者の分離は目的にしていない。今の音声チャットの接続の上限は、リポジトリの文書では 8 分（今回は確かめ直していない）
+- 東京に `amazon.nova-2-sonic-v1:0` と `amazon.nova-2-5-sonic` がある（2026-11-19、`aws bedrock list-foundation-models`）。**[documented]** Nova 2 Sonic の言語の一覧は、英語、フランス語、イタリア語、ドイツ語、スペイン語、ポルトガル語、ヒンディー語で、日本語は載っていない（[言語対応](https://docs.aws.amazon.com/nova/latest/nova2-userguide/sonic-language-support.html)）。日本語を話しかけたときの動きは、このリポジトリでは確かめていない。`amazon.nova-2-5-sonic` の言語の一覧は読んでいない
+- 用途は、話しかけて答えをもらう会話です。会議の逐語の記録や、話者の分離は目的にしていない。接続の上限は 8 分と、公式の文書に書かれている（[使い方](https://docs.aws.amazon.com/nova/latest/nova2-userguide/using-conversational-speech.html)）
 - 文字起こしだけが目的なら、選ぶ理由は少ない。会議の記録ではなく「声で質問する」入口を作るなら、すでにある
 
 ### E: ブラウザ内蔵の音声認識
@@ -96,10 +96,10 @@ E は AWS の外で処理されるため、図には入れていません。
 A. 置き換えません。リアルタイムは、録音を待たずに文字を見たい場合の追加です。会議の終わりに、得た文字を今の議事録の整形（Bedrock）へ渡せます。
 
 **Q. 日本語の精度は十分ですか。**
-A. このリポジトリでは、ストリーミングの日本語を測っていません。バッチの `ja-JP` は 1 文をほぼ逐語で文字にできたことを確かめています（[第 2 段の設計](genu-stage2-design.md)）。実装の前に、実際の会議の音声で測ります。
+A. 合成音声（Polly の 2 人、16 文、約 97 秒）を実時間で送った 2 回の測定で、文字の誤り率は 5.7% と 5.9% でした。数字の表記をそろえると 3.0% です。話者ラベルは 16 ターン中 15 で合いました（[評価 3.22](evaluation.md)）。人の声の会議は測っていないので、実装の前に、実際の会議の音声で測ります。
 
 **Q. 遅延はどれくらいですか。**
-A. 測っていません。公式の資料は、音声を 50〜200 ms ごとに区切って送ると遅延が小さくなると書いています（[ストリーミング](https://docs.aws.amazon.com/transcribe/latest/dg/streaming.html)）。
+A. 100 ms ごとに実時間で送った 2 回の測定で、その文の音声が終わってから確定した文字が出るまでの遅れは、中央値 1.4 秒、最大 2.1〜2.6 秒でした（[評価 3.22](evaluation.md)）。公式の資料は、音声を 50〜200 ms ごとに区切って送ると遅延が小さくなると書いています（[ストリーミング](https://docs.aws.amazon.com/transcribe/latest/dg/streaming.html)）。
 
 ## 関連ドキュメント
 - [第 2 段の設計](genu-stage2-design.md)（議事録）
