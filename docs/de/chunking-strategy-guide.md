@@ -1,8 +1,6 @@
 # Leitfaden zur Wahl der Chunking-Strategie
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | [简体中文](../zh-CN/chunking-strategy-guide.md) | [繁體中文](../zh-TW/chunking-strategy-guide.md) | [Français](../fr/chunking-strategy-guide.md) | **Deutsch** | [Español](../es/chunking-strategy-guide.md)
-<!-- i18n:abridged -->
-> **⚠ Gekürzte Übersetzung**: Diese Übersetzung deckt nur einen Teil des japanischen Originals ab. Der vollständige Inhalt steht in der [japanischen Version](../chunking-strategy-guide.md).
 
 **Erstellt**: 2026-06-07  
 **Status**: Erste Ausgabe  
@@ -121,8 +119,9 @@ grep kbChunkingStrategy cdk.context.json
 # 3. CDK-Diff ansehen
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. Deployen (aktualisiert nur die Konfiguration der Datenquelle)
+# 4. Deployen (nur die Ausgabe KbIngestionConfig ändert sich; eine bestehende Datenquelle bleibt unverändert)
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
+# 4b. Das Chunking lässt sich nach dem Anlegen nicht mehr ändern: Datenquelle löschen und mit setup-kb-datasource.sh neu anlegen
 
 # 5. Datenquelle resynchronisieren (erforderlich)
 aws bedrock-agent start-ingestion-job \
@@ -152,6 +151,20 @@ Nach einem Strategiewechsel immer messen:
 3. **Antwortzeit**: P50/P95/P99-Latenzen in CloudWatch prüfen.
 4. **Kosten**: die Summe aus Ingestions- und Abfragekosten vergleichen.
 
+---
+
+## PDFs mit einem Foundation Model parsen (optional)
+Mit `-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL` liest die Datenquelle der Knowledge Base PDFs mit einem Foundation Model. Die Vorgabe (`DEFAULT`) ist der Standard-Parser von Bedrock, der nur die Textebene eines PDFs liest; reine Bild-PDFs und Text in Tabellen oder Abbildungen werden nicht aufgenommen.
+| Einstellung | Vorgabe | Wirkung |
+|---|---|---|
+| `kbParsingStrategy` | `DEFAULT` | `DEFAULT` \| `BEDROCK_FOUNDATION_MODEL`. `BEDROCK_DATA_AUTOMATION` wird beim synth abgelehnt (die Dokumentation nennt es nur als Vorschau in US West (Oregon)) |
+| `kbParsingModelId` | `jp.anthropic.claude-haiku-4-5-20251001-v1:0` | Das Parsing-Modell (ein Inferenzprofil in Tokio oder eine Modell-ID). Geeignet sind Claude-, Nova- und Llama-4-Modelle mit Bildverständnis |
+| `kbParsingPrompt` | (keine) | Anweisungen zum Lesen (1 bis 10.000 Zeichen), zum Beispiel Tabellen als Markdown auszugeben |
+**[documented]** Wer ein Foundation Model als Parser wählt, schickt **jedes PDF** der Datenquelle an dieses Modell, auch PDFs, die nur Text enthalten, und Eingabe- und Ausgabe-Token werden berechnet ([Parsing-Optionen](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-advanced-parsing.html)). Andere Dateien als PDF (`.md`, `.txt` usw.) bleiben beim Standard-Parser. Ein Dokument, dessen Parsing fehlschlägt, fällt auf den Standard-Parser zurück.
+**Berechtigungen**: `.metadata.json` hängt pro Dokument an, daher ändert ein anderer Parser die Berechtigungen nicht. Vom Parser extrahierter Text trägt die `allowed_group_sids` seines Quelldokuments, und der SID-Filter läuft weiterhin genau einmal auf den Suchergebnissen. `parsingModality` (`MULTIMODAL`) wird nicht gesetzt, weil extrahierte Abbildungen sonst in einem getrennten Speicher ohne Berechtigungsinformationen landen würden.
+**IAM der KB-Rolle**: Nur wenn ein Foundation Model gewählt wird, erhält die KB-Rolle `bedrock:GetInferenceProfile` für das Inferenzprofil (Bedrock ruft es beim Anlegen der Datenquelle auf; ohne diese Berechtigung schlägt das Anlegen mit `ValidationException` fehl) und `bedrock:InvokeModel` für das Profil und sein Foundation Model. Bei einem regionsübergreifenden Inferenzprofil kann die Parsing-Eingabe in einer anderen Region verarbeitet werden.
+**Anwendung**: Die Skripte, die die Datenquelle anlegen (`post-deploy-setup.sh`, `setup-kb-datasource.sh`), übergeben die Ausgabe `KbIngestionConfig` des AI-Stacks (Chunking und Parsing in einem JSON) als `--vector-ingestion-configuration`. Die Datenquelle wird von den Skripten angelegt, nicht von CDK; **ein CDK-Deploy allein ändert daher eine bestehende Datenquelle nicht**. Das Chunking lässt sich nach dem Anlegen nicht ändern ([documented](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-ds-update.html)); um es zu ändern, die Datenquelle neu anlegen und neu synchronisieren. Das Parsing ist genauso zu behandeln: Beim Löschen wurde `UpdateDataSource` ohne die Parsing-Konfiguration mit „cannot be updated once created“ abgelehnt (bei einem echten Löschvorgang beobachtet). Ein Update, das den Wert ändert, wurde nicht versucht.
+> **Änderung beim Standard-Chunking**: Die früheren Skripte übergaben `KbChunkingConfig` nicht, daher wurden Datenquellen mit dem Bedrock-Standard (300 Token, 20 % Überlappung) angelegt. Künftig wird das Standard-`FIXED_SIZE` mit 300 Token und 10 % Überlappung übergeben. Bestehende Datenquellen ändern sich nicht; der Unterschied gilt, wenn eine neu angelegt wird.
 ---
 
 ## CDK-Implementierung

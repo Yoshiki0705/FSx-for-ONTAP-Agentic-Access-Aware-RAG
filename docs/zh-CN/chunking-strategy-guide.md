@@ -1,8 +1,6 @@
 # 分块策略选型指南
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | **简体中文** | [繁體中文](../zh-TW/chunking-strategy-guide.md) | [Français](../fr/chunking-strategy-guide.md) | [Deutsch](../de/chunking-strategy-guide.md) | [Español](../es/chunking-strategy-guide.md)
-<!-- i18n:abridged -->
-> **⚠ 节译**: 本翻译仅涵盖日文原版的一部分。完整内容请参阅[日文版](../chunking-strategy-guide.md)。
 
 **创建日期**: 2026-06-07  
 **状态**: 第一版  
@@ -121,8 +119,9 @@ grep kbChunkingStrategy cdk.context.json
 # 3. 查看 CDK 差异
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. 部署（仅更新数据源配置）
+# 4. 部署（只有输出 KbIngestionConfig 会变，已有的数据源不变）
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
+# 4b. 分块在创建后无法更改，需删除数据源并用 setup-kb-datasource.sh 重新创建
 
 # 5. 重新同步数据源（必需）
 aws bedrock-agent start-ingestion-job \
@@ -152,6 +151,20 @@ python3 evaluate.py --kb-id <KB_ID> --model-id <MODEL_ID> --region ap-northeast-
 3. **响应时间**：在 CloudWatch 中查看 P50/P95/P99 延迟。
 4. **成本**：按摄取成本与查询成本之和进行比较。
 
+---
+
+## 用基础模型解析 PDF（可选）
+指定 `-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL` 后，Knowledge Base 数据源会用基础模型读取 PDF。默认值（`DEFAULT`）是 Bedrock 的默认解析器，只读取 PDF 的文本层，纯图片的 PDF 以及表格、图形中的文字不会被摄取。
+| 设置 | 默认值 | 作用 |
+|---|---|---|
+| `kbParsingStrategy` | `DEFAULT` | `DEFAULT` \| `BEDROCK_FOUNDATION_MODEL`。`BEDROCK_DATA_AUTOMATION` 在 synth 时被拒绝（文档仅列出 US West (Oregon) 的预览） |
+| `kbParsingModelId` | `jp.anthropic.claude-haiku-4-5-20251001-v1:0` | 解析所用的模型（东京的推理配置文件或模型 ID）。支持视觉的 Claude、Nova、Llama 4 模型均可 |
+| `kbParsingPrompt` | （无） | 读取指令（1 至 10,000 个字符），例如要求把表格输出为 Markdown |
+**[documented]** 选择基础模型作为解析器后，数据源中的**所有 PDF** 都会交给该模型读取，即使是只有文本的 PDF 也会按输入和输出 token 计费（[解析选项](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-advanced-parsing.html)）。PDF 以外的文件（`.md`、`.txt` 等）仍使用默认解析器。解析失败的文档会回退到默认解析器。
+**权限**：`.metadata.json` 按文档附加，因此更换解析器不会改变权限。解析器提取的文本沿用源文档的 `allowed_group_sids`，SID 过滤仍然只对检索结果运行一次。不设置 `parsingModality`（`MULTIMODAL`），因为设置后提取出的图形会存入一个没有权限信息的独立存储。
+**KB 角色的 IAM**：仅在选择基础模型时，才会给 KB 角色添加以下权限：针对推理配置文件的 `bedrock:GetInferenceProfile`（创建数据源时由 Bedrock 调用，缺少则创建会因 `ValidationException` 失败），以及针对该配置文件和基础模型的 `bedrock:InvokeModel`。使用跨区域推理配置文件时，解析输入可能在其他区域处理。
+**应用方式**：创建数据源的脚本（`post-deploy-setup.sh`、`setup-kb-datasource.sh`）会把 AI 堆栈的输出 `KbIngestionConfig`（把分块与解析合并的一段 JSON）作为 `--vector-ingestion-configuration` 传入。数据源由脚本而不是 CDK 创建，所以**仅执行 CDK 部署不会改变已有的数据源**。分块在创建后无法更改（[documented](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-ds-update.html)），要更改就重新创建数据源并重新同步。解析设置请同样处理：在删除过程中，`UpdateDataSource` 省略解析设置时被拒绝，提示“创建后无法更新”（实际删除时观察到）。未尝试过更改取值的更新。
+> **默认分块的变化**：此前的脚本没有传入 `KbChunkingConfig`，数据源按 Bedrock 的默认值（300 个 token，重叠 20%）创建。现在默认的 `FIXED_SIZE` 以 300 个 token、重叠 10% 传入。已有的数据源不变，重新创建时才会产生差异。
 ---
 
 ## CDK 实现

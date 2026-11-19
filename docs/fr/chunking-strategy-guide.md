@@ -1,8 +1,6 @@
 # Guide de choix de la stratégie de découpage
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | [简体中文](../zh-CN/chunking-strategy-guide.md) | [繁體中文](../zh-TW/chunking-strategy-guide.md) | **Français** | [Deutsch](../de/chunking-strategy-guide.md) | [Español](../es/chunking-strategy-guide.md)
-<!-- i18n:abridged -->
-> **⚠ Traduction partielle** : cette traduction ne couvre qu'une partie de l'original japonais. Voir la [version japonaise](../chunking-strategy-guide.md) pour le contenu complet.
 
 **Création**: 2026-06-07  
 **Statut**: Première édition  
@@ -121,8 +119,9 @@ grep kbChunkingStrategy cdk.context.json
 # 3. Examiner le diff CDK
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. Déployer (met à jour uniquement la configuration de la source de données)
+# 4. Déployer (seule la sortie KbIngestionConfig change ; une source de données existante ne change pas)
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
+# 4b. Le découpage ne peut plus être modifié après la création : supprimez la source de données et recréez-la avec setup-kb-datasource.sh
 
 # 5. Resynchroniser la source de données (obligatoire)
 aws bedrock-agent start-ingestion-job \
@@ -152,6 +151,20 @@ Après un changement de stratégie, mesurez toujours :
 3. **Temps de réponse** : contrôlez les latences P50/P95/P99 dans CloudWatch.
 4. **Coût** : comparez la somme du coût d'ingestion et du coût de requête.
 
+---
+
+## Analyse des PDF par un modèle de fondation (facultatif)
+Avec `-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL`, la source de données de la Knowledge Base lit les PDF avec un modèle de fondation. La valeur par défaut (`DEFAULT`) est l'analyseur par défaut de Bedrock, qui ne lit que la couche de texte d'un PDF : les PDF composés uniquement d'images et le texte contenu dans des tableaux ou des figures ne sont pas ingérés.
+| Paramètre | Valeur par défaut | Effet |
+|---|---|---|
+| `kbParsingStrategy` | `DEFAULT` | `DEFAULT` \| `BEDROCK_FOUNDATION_MODEL`. `BEDROCK_DATA_AUTOMATION` est refusé au moment du synth (la documentation ne l'indique qu'en préversion dans US West (Oregon)) |
+| `kbParsingModelId` | `jp.anthropic.claude-haiku-4-5-20251001-v1:0` | Modèle d'analyse (un profil d'inférence à Tokyo, ou un ID de modèle). Les modèles Claude, Nova et Llama 4 compatibles avec la vision conviennent |
+| `kbParsingPrompt` | (aucune) | Instructions de lecture (1 à 10 000 caractères), par exemple pour produire les tableaux en Markdown |
+**[documented]** Choisir un modèle de fondation comme analyseur envoie **tous les PDF** de la source de données à ce modèle, y compris les PDF qui ne contiennent que du texte, et les jetons d'entrée et de sortie sont facturés ([options d'analyse](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-advanced-parsing.html)). Les fichiers autres que PDF (`.md`, `.txt`, etc.) restent sur l'analyseur par défaut. Un document dont l'analyse échoue bascule vers l'analyseur par défaut.
+**Permissions** : `.metadata.json` est attaché à chaque document, donc changer d'analyseur ne change pas les permissions. Le texte extrait par l'analyseur porte les `allowed_group_sids` de son document source, et le filtre SID s'exécute toujours une seule fois sur les résultats de recherche. `parsingModality` (`MULTIMODAL`) n'est pas défini, car il placerait les figures extraites dans un stockage distinct sans informations de permission.
+**IAM du rôle de la KB** : uniquement lorsqu'un modèle de fondation est choisi, le rôle de la KB reçoit `bedrock:GetInferenceProfile` sur le profil d'inférence (Bedrock l'appelle à la création de la source de données ; sans lui, la création échoue avec `ValidationException`) et `bedrock:InvokeModel` sur le profil et son modèle de fondation. Avec un profil d'inférence inter-régions, l'entrée de l'analyse peut être traitée dans une autre région.
+**Application** : les scripts qui créent la source de données (`post-deploy-setup.sh`, `setup-kb-datasource.sh`) transmettent la sortie `KbIngestionConfig` de la pile AI (découpage et analyse dans un seul JSON) via `--vector-ingestion-configuration`. Ce sont les scripts, et non CDK, qui créent la source de données : **un déploiement CDK seul ne modifie donc pas une source de données existante**. Le découpage ne peut pas être modifié après la création ([documented](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-ds-update.html)) ; pour le changer, recréez la source de données et resynchronisez. Traitez l'analyse de la même façon : lors de la suppression, `UpdateDataSource` a été refusé avec « cannot be updated once created » lorsque la configuration d'analyse était omise (observé lors d'une suppression réelle). Une mise à jour qui change la valeur n'a pas été essayée.
+> **Changement du découpage par défaut** : les anciens scripts ne transmettaient pas `KbChunkingConfig` ; les sources de données étaient donc créées avec la valeur par défaut de Bedrock (300 jetons, 20 % de chevauchement). Désormais, `FIXED_SIZE` par défaut est transmis avec 300 jetons et 10 % de chevauchement. Les sources de données existantes ne changent pas ; la différence s'applique lorsqu'on en recrée une.
 ---
 
 ## Implémentation CDK

@@ -1,8 +1,6 @@
 # 청킹 전략 선정 가이드
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | **한국어** | [简体中文](../zh-CN/chunking-strategy-guide.md) | [繁體中文](../zh-TW/chunking-strategy-guide.md) | [Français](../fr/chunking-strategy-guide.md) | [Deutsch](../de/chunking-strategy-guide.md) | [Español](../es/chunking-strategy-guide.md)
-<!-- i18n:abridged -->
-> **⚠ 부분 번역**: 이 번역은 일본어판의 일부입니다. 전체 내용은 [일본어판](../chunking-strategy-guide.md)을 참조하십시오.
 
 **작성일**: 2026-06-07  
 **상태**: 초판  
@@ -121,8 +119,9 @@ grep kbChunkingStrategy cdk.context.json
 # 3. CDK 차분 확인
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. 배포(데이터 소스 설정만 갱신)
+# 4. 배포(출력 KbIngestionConfig만 바뀌며, 기존 데이터 소스는 바뀌지 않음)
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
+# 4b. 청킹은 생성 후 바꿀 수 없으므로 데이터 소스를 삭제하고 setup-kb-datasource.sh로 다시 만든다
 
 # 5. 데이터 소스 재동기화(필수)
 aws bedrock-agent start-ingestion-job \
@@ -152,6 +151,20 @@ python3 evaluate.py --kb-id <KB_ID> --model-id <MODEL_ID> --region ap-northeast-
 3. **응답 시간**: CloudWatch에서 P50/P95/P99 지연을 확인합니다.
 4. **비용**: 인제스션 비용과 쿼리 비용의 합으로 비교합니다.
 
+---
+
+## 파운데이션 모델로 PDF 파싱하기(선택)
+`-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL`을 지정하면 Knowledge Base 데이터 소스가 PDF를 파운데이션 모델로 읽습니다. 기본값(`DEFAULT`)은 PDF의 텍스트 레이어만 읽는 Bedrock 기본 파서이며, 이미지로만 된 PDF와 표·그림 안의 글자는 수집되지 않습니다.
+| 설정 | 기본값 | 내용 |
+|---|---|---|
+| `kbParsingStrategy` | `DEFAULT` | `DEFAULT` \| `BEDROCK_FOUNDATION_MODEL`. `BEDROCK_DATA_AUTOMATION`은 synth 단계에서 거부합니다(문서상 US West (Oregon) 프리뷰만 해당) |
+| `kbParsingModelId` | `jp.anthropic.claude-haiku-4-5-20251001-v1:0` | 파싱에 쓰는 모델(도쿄의 추론 프로파일 또는 모델 ID). 비전을 지원하는 Claude·Nova·Llama 4 모델이 대상입니다 |
+| `kbParsingPrompt` | (없음) | 읽기 지침(1~10,000자). 예: 표를 Markdown으로 출력 |
+**[documented]** 파운데이션 모델을 파서로 고르면 데이터 소스의 **모든 PDF**가 이 모델로 읽히며, 텍스트만 있는 PDF도 입출력 토큰 요금이 부과됩니다([파싱 옵션](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-advanced-parsing.html)). PDF 외 파일(`.md`, `.txt` 등)은 기본 파서를 그대로 씁니다. 파싱에 실패한 문서는 기본 파서로 전환됩니다.
+**권한**: `.metadata.json`은 문서 단위로 붙으므로 파서를 바꿔도 권한은 바뀌지 않습니다. 파서가 추출한 텍스트는 원본 문서의 `allowed_group_sids`를 이어받고, SID 필터는 검색 결과에 대해 이전처럼 한 번만 실행됩니다. `parsingModality`(`MULTIMODAL`)는 지정하지 않습니다. 지정하면 추출된 그림이 권한 정보가 없는 별도 저장소에 놓입니다.
+**KB 역할의 IAM**: 파운데이션 모델을 고른 경우에만 KB 역할에 다음을 추가합니다. 추론 프로파일에 대한 `bedrock:GetInferenceProfile`(데이터 소스를 만들 때 Bedrock이 호출하며, 없으면 생성이 `ValidationException`으로 실패), 프로파일과 파운데이션 모델에 대한 `bedrock:InvokeModel`. 리전 간 추론 프로파일을 쓰면 파싱 입력이 다른 리전에서 처리될 수 있습니다.
+**적용 방법**: 데이터 소스를 만드는 스크립트(`post-deploy-setup.sh`, `setup-kb-datasource.sh`)가 AI 스택의 출력 `KbIngestionConfig`(청킹과 파싱을 하나로 묶은 JSON)를 `--vector-ingestion-configuration`으로 전달합니다. 데이터 소스는 CDK가 아니라 스크립트가 만들기 때문에 **CDK 배포만으로는 기존 데이터 소스가 바뀌지 않습니다**. 청킹은 생성 후 바꿀 수 없으므로([documented](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-ds-update.html)) 바꾸려면 데이터 소스를 다시 만들어 재동기화합니다. 파싱 설정도 같게 다루십시오. 삭제 과정의 `UpdateDataSource`에서 파싱 설정을 생략하자 "생성 후에는 업데이트할 수 없음"으로 거부되었습니다(실제 삭제 시 관측). 값을 바꾸는 업데이트는 시도하지 않았습니다.
+> **기본 청킹의 변화**: 이전 스크립트는 `KbChunkingConfig`를 전달하지 않았으므로 데이터 소스는 Bedrock 기본값(300 토큰, 겹침 20%)으로 만들어졌습니다. 이제 기본 `FIXED_SIZE`가 300 토큰, 겹침 10%로 전달됩니다. 기존 데이터 소스는 바뀌지 않으며, 다시 만들 때부터 차이가 적용됩니다.
 ---
 
 ## CDK 구현

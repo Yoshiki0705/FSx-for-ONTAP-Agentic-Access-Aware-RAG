@@ -954,6 +954,9 @@ async function deleteDataSourceWithRetry(client, kbId, ds) {
             name: check.dataSource.name,
             dataDeletionPolicy: 'RETAIN',
             dataSourceConfiguration: cfg,
+            // Leaving this out is read as removing the chunking and parsing settings, and UpdateDataSource
+            // refuses with "cannot be updated once created". Send back what the data source already has.
+            ...(check.dataSource.vectorIngestionConfiguration ? { vectorIngestionConfiguration: check.dataSource.vectorIngestionConfiguration } : {}),
           }));
           await sleep(2000);
           await client.send(new DeleteDataSourceCommand({ knowledgeBaseId: kbId, dataSourceId: dsId }));
@@ -978,6 +981,7 @@ async function deleteDataSourceWithRetry(client, kbId, ds) {
           name: info.dataSource.name,
           dataDeletionPolicy: 'RETAIN',
           dataSourceConfiguration: info.dataSource.dataSourceConfiguration,
+          ...(info.dataSource.vectorIngestionConfiguration ? { vectorIngestionConfiguration: info.dataSource.vectorIngestionConfiguration } : {}),
         }));
         await sleep(2000);
       }

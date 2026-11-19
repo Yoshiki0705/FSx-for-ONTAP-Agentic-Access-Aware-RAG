@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - 使われていなかった TypeScript 版 Strands Agents の PoC（`docker/nextjs/src/lib/strands-agent/`）。どこからも import されておらず、SDK も依存関係に無かった
 ### Fixed
+- **撤去時に KB が消せない不具合（#298 以降）**: 撤去用の Lambda（`KbCleanupFn`）がデータソースを `RETAIN` に更新するとき、チャンキングとパースの設定を渡さず「作成後は更新できない」と拒否され、データソースが残って KB を削除できなかった。データソース自身の `vectorIngestionConfiguration` をそのまま渡すようにした。Lambda の中身を合成後のテンプレートから取り出して動かす単体テストを追加し、修正を外すと落ちることを確認した
+- **chunking ガイドの他言語版（ko・zh-CN・zh-TW・fr・de・es）**: 「基盤モデルによるパース」の節を翻訳して足し、「CDK のデプロイでデータソースが更新される」という誤った手順を直した。節の数が原文と一致したので「抄訳」の表示を外した
 - 業種別カードの文言を `docker/nextjs/messages/` ではなく `docker/nextjs/src/messages/` に入れ直した。アプリが読み込むのは `src/messages/`（`src/i18n/request.ts` の `../messages`、型定義、既存のテスト）で、`messages/` は 2026-06 以降更新されていない古い写しである。`next dev` で画面を見るまで、カードがキー名のまま表示されることに気づけなかった（Jest/Vitest は通っていた）
 - **引用のバッジ**: 部門と Domain Admins に許可された文書を「管理者のみ」と表示していた。Domain Admins だけの文書に限って「管理者のみ」とし、部門を含む文書は「制限付き」にした。Knowledge Base が返す引用符付きの SID も解釈する
 - 古くなった件数を 8 言語で更新した: README とエージェント向け文書の業種別デモデータを 7 から 21 業種に、関連リポジトリの業種別パターンを 17 から 28（UC1〜UC28）に、運用手順書の投入件数を 35 / 70 から 105 / 210 に変更。運用手順書の業種別 SID の表は、パックのメタデータと食い違っていた（建設を `-8100` としていたが実際は `-6100` / `-6200`）ため、検査対象の README の SID 一覧への参照に置き換えた
