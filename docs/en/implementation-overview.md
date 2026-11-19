@@ -1098,6 +1098,18 @@ The text model is `TOOLS_MODEL_ID` when set, otherwise the light tier of the mod
 
 **Scope**: the selection rules are tested on API responses recorded in ap-northeast-1 on 2026-11-15 (`docker/nextjs/src/__tests__/model-catalog/tokyo-2026-11-15.json`). The application was deployed to ap-northeast-1 on 2026-11-15 and checked through the screens and APIs ([evaluation §3.7](evaluation.md)).
 
+## 22. PWA — Installation and the Offline Page
+The web app can be installed to the home screen or the desktop, and shows a page asking the user to check the connection when the network is gone. No setting is needed (always on in production builds).
+| Element | What it does |
+|---|---|
+| `public/manifest.json` | Name, colors, and three icons (192, 512, and a maskable 512). `icons` used to be empty, so the app did not meet the install criteria. The `share_target` pointing at a non-existent `/chatbot` was removed |
+| `public/sw.js` | The service worker. It caches **only files that are identical for every user**: `/_next/static/` (build output whose file names change with the content, at most 150 entries), `/icons/`, and `/offline.html` |
+| `public/offline.html` | The page shown when a page load ends in a network failure (Japanese and English; it says nothing is stored) |
+| `ServiceWorkerRegister` | Registers `/sw.js` in production builds only; not under `next dev` |
+**What is never cached**: API responses, authentication, pages (HTML), requests to other origins, and anything other than GET. Pages and APIs use the network only. If the next person uses the same browser, the previous user's questions, answers and document excerpts are not in Cache Storage. Nothing needs clearing at sign-out because nothing is put there. A change that caches pages or API responses must come together with per-user caches that are cleared at sign-out (a note at the top of `public/sw.js` says the same).
+**Offline behavior**: even for a page opened before, with no network the offline page is shown instead of its content (there is no feature that shows old answers).
+**Relation to the message queue (`message-queue.ts`)**: `registerBackgroundSync()` registers `sync-messages`, but the service worker has no `sync` handler, and `useMessageQueue`, which calls it, is not used by any screen. This change does not touch it.
+**Updates**: when `public/sw.js` changes, the browser replaces it on the next load (the Function URL sends `cache-control: public, max-age=0` and CloudFront caching is disabled). The cache version is `CACHE_NAME` (`rag-static-v1`); raising it deletes the old caches.
 ## Overall System Architecture
 
 ```

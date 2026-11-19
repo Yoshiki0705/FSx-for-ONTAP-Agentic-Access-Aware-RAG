@@ -5,6 +5,7 @@ import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { locales } from '../../i18n/config';
 import { ThemeProvider } from '../../components/providers/ThemeProvider';
+import { ServiceWorkerRegister } from '../../components/providers/ServiceWorkerRegister';
 import "../globals.css";
 
 const inter = Inter({
@@ -55,6 +56,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
+        <ServiceWorkerRegister />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
             {children}

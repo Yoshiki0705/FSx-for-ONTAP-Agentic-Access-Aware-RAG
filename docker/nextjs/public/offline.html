@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>オフライン / Offline</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f9fafb; color: #111827; }
+  main { max-width: 28rem; padding: 2rem; text-align: center; }
+  h1 { font-size: 1.25rem; }
+  p { line-height: 1.6; }
+  button { margin-top: 1rem; padding: .5rem 1.25rem; font-size: 1rem; border: 0; border-radius: .375rem; background: #3b82f6; color: #fff; }
+  @media (prefers-color-scheme: dark) { body { background: #111827; color: #f9fafb; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>ネットワークに接続できません</h1>
+  <p>接続を確認してから、もう一度開いてください。このアプリは、質問と回答を端末に保存しません。</p>
+  <h1>You are offline</h1>
+  <p>Check your connection and try again. This app does not store your questions or answers on this device.</p>
+  <button type="button" onclick="location.reload()">再読み込み / Reload</button>
+</main>
+</body>
+</html>
