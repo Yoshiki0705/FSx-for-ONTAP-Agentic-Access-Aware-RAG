@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **PWA（インストールとオフラインのページ）**: サービスワーカー `public/sw.js`、`offline.html`、アイコン 3 種を追加し、`manifest.json` の空だった `icons` を埋めた（存在しない `/chatbot` を指す `share_target` は削除）。キャッシュするのは全利用者で同じ内容のビルドの成果物、アイコン、オフラインのページだけで、API の応答・認証・ページは保存しない。本番のビルドでだけ登録する。`/sw.js`・`/offline.html`・`/icons` はミドルウェアで認証なしにした
 - **`docs/realtime-transcription-options.md`（JA/EN）**: 話している最中の文字起こし（リアルタイム）の選択肢（Transcribe のストリーミング 3 通り、Nova Sonic、ブラウザ内蔵の認識、今のバッチ）を、認証・音声の行き先・動かすもの・上限・料金の観点で並べた。実装はしておらず、このリポジトリとしての選択も決めていない
 - **KB の基盤モデルによる PDF のパース（`-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL`、既定は `DEFAULT`）**: データソースの全 PDF を指定したモデル（既定は東京の推論プロファイルの Claude Haiku 4.5）で読み、画像だけの PDF や表の中の文字を検索できるようにする。`kbParsingModelId`・`kbParsingPrompt` で変更できる。`BEDROCK_DATA_AUTOMATION` は東京で使えないので synth で拒否する。基盤モデルを選んだときだけ、KB ロールに `bedrock:GetInferenceProfile` と `bedrock:InvokeModel` を足す。権限は文書ごとの `.metadata.json` のままで、`parsingModality` は指定しない。CI の synth 行列に `kb-parsing-foundation-model` レーンを追加
 - **データソースの作成にチャンキングとパースを渡す**: 出力 `KbIngestionConfig` を `post-deploy-setup.sh` と `setup-kb-datasource.sh` が `--vector-ingestion-configuration` に渡す。以前は `KbChunkingConfig` をどのスクリプトも使わず、`kbChunkingStrategy` を変えても作られるデータソースは変わらなかった。既定の `FIXED_SIZE` は 300 トークン、重なり 10%（Bedrock の既定は重なり 20%）。`post-deploy-setup.sh` は、再実行でアップロードが 0 件のときに終了していた不具合も直した

@@ -87,6 +87,9 @@ export async function middleware(request: NextRequest) {
     '/_next',
     '/favicon.ico',
     '/manifest.json',
+    '/sw.js', // service worker: must load without a session, or registration is redirected to sign-in
+    '/offline.html',
+    '/icons',
     '/images',
     '/config' // ✅ Phase 2.2: Config files for mode-specific lists
   ];

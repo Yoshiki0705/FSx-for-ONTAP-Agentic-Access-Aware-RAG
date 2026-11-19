@@ -452,6 +452,16 @@ Checked on 2026-11-19 (Japan time) in ap-northeast-1 with a deployment using `-c
 | Through the app (legal-department user) | The citations included the test PDF and the answer contained the amount (4.2 s) |
 | Through the app (development-department user, `-1100`) | The test PDF was not cited and the answer did not contain the amount (3.9 s) |
 **Scope**: One observation each, one test document. What was checked: an image-only PDF becomes searchable with foundation-model parsing, the permission filter still applies after parsing, and the IAM the KB role needs. **Not measured: the parsing charge (token counts), multi-page or large PDFs, how often the parsed text is correct, and the effect of `parsingPrompt`.** The `.md` files of the legal pack are outside what the parser changes, so the difference is seen on the test PDF only. The screen was not used; the checks went through the API. During teardown, deleting the data source failed with "unable to delete data from vector store", so `dataDeletionPolicy` was changed to `RETAIN` before deleting it (the cause was not identified).
+### 3.21 Results with the PWA (installation and the offline page)
+Checked on 2026-11-19 (Japan time) in ap-northeast-1 with a default deployment (no extra flags), opening the CloudFront URL in Chromium (Playwright). The user was from the legal department (`-4100`).
+| What was checked | Result |
+|---|---|
+| `/sw.js`, `/offline.html`, `/manifest.json` and the three icons before sign-in | All 200. `/sw.js` had Content-Type `application/javascript` and `cache-control: public, max-age=0`; CloudFront reported a Miss |
+| Service worker registration | Scope `/`, state `activated`, controlling the page. The cache was `rag-static-v1`, holding only `/offline.html` and two icons at first |
+| The cache after signing in, asking a RAG question (API) and moving between pages | 16 static files plus the first 3 entries. 0 entries for API responses, pages, or anything about authentication |
+| Opening `/ja/genai` (a page opened before) with the network off | The "Offline" page. The session API in the same state failed with `Failed to fetch` (no stale response is returned) |
+| Install criteria (CDP `Page.getInstallabilityErrors`, `Page.getAppManifest`) | 0 errors. Icons: `any` at 192 and 512, `maskable` at 512 |
+**Scope**: One observation each. Not checked: installing on a real device's home screen, Safari on iOS, the cache after sign-out (it was checked while signed in that no API response or page was stored), updating the service worker (replacement when the version is raised), and eviction beyond 150 entries (checked in unit tests). The console showed a 501 and a 500 from APIs of features that are off in the default configuration, and a React error (#185) after the network was switched off. The latter appeared right after going offline, and whether it differs without the service worker was not checked. The look of the screens was not examined; the checks used the browser APIs and the DevTools protocol.
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate

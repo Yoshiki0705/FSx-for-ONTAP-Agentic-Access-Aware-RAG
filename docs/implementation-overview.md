@@ -1447,6 +1447,18 @@ npx cdk deploy perm-rag-demo-demo-SfnToolsGateway --require-approval never \
 
 **範囲**: 選び方の規則は、2026-11-15 に ap-northeast-1 で記録した API の応答（`docker/nextjs/src/__tests__/model-catalog/tokyo-2026-11-15.json`）でテストしています。2026-11-15 に ap-northeast-1 へデプロイして、画面と API で確かめました（[評価 §3.7](evaluation.md)）。
 
+## 22. PWA — インストールとオフラインのページ
+Web アプリをホーム画面や PC にインストールでき、ネットワークが切れたときは接続を確認する案内のページを出します。設定は要りません（本番のビルドで常に有効）。
+| 要素 | 内容 |
+|---|---|
+| `public/manifest.json` | 名前、色、アイコン 3 種（192・512・マスカブルの 512）。以前は `icons` が空でインストールの条件を満たさなかった。存在しない `/chatbot` を指す `share_target` は削除した |
+| `public/sw.js` | サービスワーカー。キャッシュするのは **全利用者で同じ内容のファイルだけ**: `/_next/static/`（ファイル名が内容で変わるビルドの成果物、最大 150 件）、`/icons/`、`/offline.html` |
+| `public/offline.html` | ページの読み込みがネットワークの失敗で終わったときに出す案内（日本語と英語。保存していないことを明記） |
+| `ServiceWorkerRegister` | 本番のビルドでだけ `/sw.js` を登録する。`next dev` では登録しない |
+**キャッシュしないもの**: API の応答、認証、ページ（HTML）、他のオリジンへの要求、GET 以外。ページと API はネットワークだけを使います。同じブラウザを次の人が使っても、前の利用者の質問・回答・文書の断片は Cache Storage にありません。サインアウトで消す処理が要らないのは、最初から入れないためです。ページや API の応答をキャッシュする変更は、利用者ごとにキャッシュを分けてサインアウトで消す設計とセットでなければ入れません（`public/sw.js` の冒頭にも書いてあります）。
+**オフライン時の挙動**: 一度開いたページでも、ネットワークが無ければ、中身ではなく案内のページを出します（古い回答を表示する機能はありません）。
+**メッセージの保留（`message-queue.ts`）との関係**: `registerBackgroundSync()` が `sync-messages` を登録しますが、サービスワーカーに `sync` の処理はなく、それを呼ぶ `useMessageQueue` もどの画面からも使われていません。この変更では触っていません。
+**更新**: `public/sw.js` が変わるとブラウザが次回の読み込みで差し替えます（Function URL は `cache-control: public, max-age=0`、CloudFront のキャッシュは無効）。キャッシュの版は `CACHE_NAME`（`rag-static-v1`）で、上げると古いキャッシュを消します。
 ## API 実装ステータス
 
 | 機能 | バックエンド→AWS SDK | 実装方式 | GA 時の対応 |

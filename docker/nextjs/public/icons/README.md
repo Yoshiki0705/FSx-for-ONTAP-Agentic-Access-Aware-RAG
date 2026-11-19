@@ -1,4 +1,5 @@
 # PWAアイコン
+現在同梱しているのは `icon-192.png`、`icon-512.png`、`icon-maskable-512.png` の 3 つで、`manifest.json` が参照している。以下の一覧は、ほかのサイズを足すときの参考。
 
 このディレクトリには、PWA（Progressive Web App）用のアイコンファイルを配置します。
 
