@@ -6,11 +6,5 @@
     "放置して恒久的な例外になることを防ぐための仕組みで、期限が来たら再評価して更新するか修正する。",
     "エントリは advisory（GHSA の ID。その脆弱性だけを許容し、via で届く依存側も通す）か、workspace + package（そのパッケージの指摘をまとめて許容する）。修正の無い脆弱性には advisory を使う。"
   ],
-  "allowed": [
-    {
-      "advisory": "GHSA-fc5q-39xc-vjpf",
-      "reason": "picomatch の ReDoS（攻撃者が extglob のパターンを渡せるときに起きる）。4.0.7 以下が対象で、2026-11-17 時点で修正版が無い。ルートでは jest など開発用の依存だけが経由する。docker/nextjs では next-intl（@parcel/watcher）、tailwindcss、vitest、eslint 経由で、npm audit が数えるこれらの写しは Lambda のイメージ（.next/standalone）に入らない。実行時に使うのは Next.js 同梱の写しで、画像のパスを next.config のパターンと照合する（パターンは設定の値で、リクエストからは来ない）。",
-      "review_by": "2026-12-17"
-    }
-  ]
+  "allowed": []
 }
