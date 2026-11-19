@@ -41,6 +41,9 @@ export function translatePrompt(target: string, style: string, note?: string): s
   return [
     `Translate the input into ${language}. ${tone}`,
     'Keep Markdown, code blocks, URLs, file names, numbers and product names unchanged.',
+    // Without this line the model sometimes handed an English input back unchanged for Japanese,
+    // or answered in Vietnamese for Thai (live check: Japanese 4 of 8 runs correct, Thai 7 of 8).
+    `The translation must be written in ${language}. Do not return the input unchanged or in another language.`,
     note ? `Additional instruction from the user (terminology or tone only): ${note.slice(0, 500)}` : '',
     'Output only the translation, with no preface or explanation.',
     DATA_RULE,
@@ -49,6 +52,12 @@ export function translatePrompt(target: string, style: string, note?: string): s
     .join('\n');
 }
 
+/** The user message of a translation: the input, then the task again, so the target language is the last thing the model reads. */
+export function translateUserMessage(text: string, target: string): string {
+  const language = TARGET_LANGUAGES[target as TargetLanguage];
+  if (!language) throw new ToolInputError(`unsupported target language: ${target}`);
+  return `${wrapInput(text)}\n\nTranslate the text in the <input> tags into ${language}.`;
+}
 export function proofreadPrompt(): string {
   return [
     'Proofread the input in its own language. Find typos, grammar errors, inconsistent terms and unclear sentences.',

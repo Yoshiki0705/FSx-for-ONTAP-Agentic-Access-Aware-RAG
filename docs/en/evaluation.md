@@ -359,7 +359,7 @@ Checked on 2026-11-17 in ap-northeast-1 with a deployment using `-c enableRerank
 | Permissions | The NDA template (`nda-template-standard.md`) never appeared in the development user's sources and did appear in the legal user's |
 | The first source | For the legal user, the document matching each question came first all three times (the NDA template, the contract review guidelines, the GDPR checklist) |
 
-**Scope**: One observation each. The ranking was not compared with reranking turned off (whether relevance improved was not measured). `cohere.rerank-v3-5:0` was not used in the deployment; it was checked only by the CI synth lane and one direct Rerank API call (it answered in Tokyo). Fail-open when the reranking model fails was checked by unit tests only.
+**Scope**: One observation each (larger-scale measurements are in 3.22). The ranking was not compared with reranking turned off (whether relevance improved was not measured). `cohere.rerank-v3-5:0` was not used in the deployment; it was checked only by the CI synth lane and one direct Rerank API call (it answered in Tokyo). Fail-open when the reranking model fails was checked by unit tests only.
 
 ### 3.15 Results with the output formats of meeting minutes
 
@@ -440,7 +440,7 @@ Checked on 2026-11-19 (Japan time) in ap-northeast-1 with a deployment using `-c
 | Time taken by decomposition | 846 to 3,565 ms (6 runs). Whole response 6.8 to 13.7 s for the 6 decomposed runs, 3.2 to 4.8 s for the short question that was not decomposed. This is not a controlled measurement that changes only whether decomposition runs |
 | Whether the development-department user saw the standard NDA template | No (none of its 4 requests). The filter runs once, after the candidates collected by decomposition are merged |
 | CloudWatch Logs `query_decomposition` | 6 entries. Only the method, the number of sub-queries, the number of pooled candidates, the time taken and the user ID; the question and the sub-queries are not in it |
-**Scope**: One observation each. **On this small corpus (16 documents), the baseline Retrieve already returned every expected document without decomposition, so no improvement in search results from decomposition was confirmed.** Whether decomposition reduces misses on a larger corpus with more topics was not measured. What was checked: that decomposition runs, that the queries are split, that the permission filter is not weakened, and the size of the added delay. The fallback to the original question on a failure or the 5-second timeout was checked in unit tests (with the model reply replaced) and was not triggered in the live environment. The screen was not used; the checks went through the API.
+**Scope**: One observation each (larger-scale measurements are in 3.22). **On this small corpus (16 documents), the baseline Retrieve already returned every expected document without decomposition, so no improvement in search results from decomposition was confirmed.** Whether decomposition reduces misses on a larger corpus with more topics was not measured. What was checked: that decomposition runs, that the queries are split, that the permission filter is not weakened, and the size of the added delay. The fallback to the original question on a failure or the 5-second timeout was checked in unit tests (with the model reply replaced) and was not triggered in the live environment. The screen was not used; the checks went through the API.
 ### 3.20 Results with foundation-model parsing
 Checked on 2026-11-19 (Japan time) in ap-northeast-1 with a deployment using `-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL` (model `jp.anthropic.claude-haiku-4-5-20251001-v1:0`) and the legal pack. The test document was a one-page PDF holding only an image of a table (no text layer), readable only by the legal department (`-4100`). For comparison, a second data source with the default parser was created in the same Knowledge Base, synced with the same documents, and deleted after the check.
 | What was checked | Result |
@@ -451,7 +451,7 @@ Checked on 2026-11-19 (Japan time) in ap-northeast-1 with a deployment using `-c
 | A direct Retrieve (top 10) of a question asking the penalty cap for a confidentiality breach in a joint-development deal | The test PDF from the foundation-model data source ranked first (score 0.907). The results below it were `.md` files of the legal pack, none containing that amount |
 | Through the app (legal-department user) | The citations included the test PDF and the answer contained the amount (4.2 s) |
 | Through the app (development-department user, `-1100`) | The test PDF was not cited and the answer did not contain the amount (3.9 s) |
-**Scope**: One observation each, one test document. What was checked: an image-only PDF becomes searchable with foundation-model parsing, the permission filter still applies after parsing, and the IAM the KB role needs. **Not measured: the parsing charge (token counts), multi-page or large PDFs, how often the parsed text is correct, and the effect of `parsingPrompt`.** The `.md` files of the legal pack are outside what the parser changes, so the difference is seen on the test PDF only. The screen was not used; the checks went through the API. During teardown, deleting the data source failed with "unable to delete data from vector store", so `dataDeletionPolicy` was changed to `RETAIN` before deleting it (the cause was that the cleanup Lambda did not send the chunking and parsing settings with the update to `RETAIN`; its log held "cannot be updated once created". The fix is a separate change).
+**Scope**: One observation each, one test document (the charge and the accuracy are in 3.22). What was checked: an image-only PDF becomes searchable with foundation-model parsing, the permission filter still applies after parsing, and the IAM the KB role needs. **Not measured: the parsing charge (token counts), multi-page or large PDFs, how often the parsed text is correct, and the effect of `parsingPrompt`.** The `.md` files of the legal pack are outside what the parser changes, so the difference is seen on the test PDF only. The screen was not used; the checks went through the API. During teardown, deleting the data source failed with "unable to delete data from vector store", so `dataDeletionPolicy` was changed to `RETAIN` before deleting it (the cause was that the cleanup Lambda did not send the chunking and parsing settings with the update to `RETAIN`; its log held "cannot be updated once created". The fix is a separate change).
 ### 3.21 Results with the PWA (installation and the offline page)
 Checked on 2026-11-19 (Japan time) in ap-northeast-1 with a default deployment (no extra flags), opening the CloudFront URL in Chromium (Playwright). The user was from the legal department (`-4100`).
 | What was checked | Result |
@@ -462,6 +462,48 @@ Checked on 2026-11-19 (Japan time) in ap-northeast-1 with a default deployment (
 | Opening `/ja/genai` (a page opened before) with the network off | The "Offline" page. The session API in the same state failed with `Failed to fetch` (no stale response is returned) |
 | Install criteria (CDP `Page.getInstallabilityErrors`, `Page.getAppManifest`) | 0 errors. Icons: `any` at 192 and 512, `maskable` at 512 |
 **Scope**: One observation each. Not checked: installing on a real device's home screen, Safari on iOS, the cache after sign-out (it was checked while signed in that no API response or page was stored), updating the service worker (replacement when the version is raised), and eviction beyond 150 entries (checked in unit tests). The console showed a 501 and a 500 from APIs of features that are off in the default configuration, and a React error (#185) after the network was switched off. The latter appeared right after going offline, and whether it differs without the service worker was not checked. The look of the screens was not examined; the checks used the browser APIs and the DevTools protocol.
+### 3.22 Larger-scale measurements (query decomposition, reranking, parsing, translation, streaming transcription)
+Measured on 2026-11-19 (Japan time) in ap-northeast-1 with a deployment using `-c enableQueryDecomposition=true -c enableRerank=true -c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL` and all 21 industry packs (105 documents plus 11 basic ones, 116 in total). The environment was removed after the check.
+#### Query decomposition and reranking
+There were 20 questions: 14 with 2 or 3 topics and 6 with 4 topics, 62 expected documents in total. The permission filter was not applied; I retrieved from the Knowledge Base directly and counted whether the expected documents were among the chunks that go to the model (the filter is independent of this). The sub-queries are the `searchQueries` the app returned (as a legal-department user), and I reproduced the merge and the reranking by hand with the same steps.
+| Method | Chunks sent to the model | Expected documents present |
+|---|---|---|
+| The original question only (no decomposition, no reranking) | 10 | 59 / 62 |
+| The original question only | 15 | 61 / 62 |
+| Decompose and merge (`enableQueryDecomposition`) | 15 | 62 / 62 |
+| Rerank 25 candidates of the original question (`enableRerank`) | 10 | 62 / 62 |
+| Rerank 25 candidates of the decomposed and merged results | 10 | 62 / 62 |
+- Three documents (in three questions) were missing at 10 chunks. With 15 chunks one was missing, and with decomposition none.
+- Reranking reached 62 / 62 because the candidates grew to 25. On 20 single-topic questions the expected document was first both before and after reranking (20 / 20, MRR 1.0 to 1.0). **I could not measure any gain in ordering on this corpus.**
+- Decomposition took a median of 1.0 s (0.73 to 1.89 s, 14 questions). The Rerank API took a median of 0.64 s (the 14 decomposed questions, twice each) and 0.48 s (the 20 single-topic questions).
+- The documents have clearly different titles, and the expected documents were chosen from the titles. I did not measure the effect on a corpus with many similar documents or on real users' questions.
+#### Foundation-model parsing
+Each PDF was synced on its own with Claude Haiku 4.5 (the Tokyo inference profile), and the tokens were read from CloudWatch `AWS/Bedrock`. The charge uses the non-Global prices from the Price List API (2026-11-19, ap-northeast-1): 1.10 USD for input and 5.50 USD for output per million tokens.
+| PDF | Pages | Input tokens | Output tokens | Calls | Sync time | Charge (USD) | Per page (USD) |
+|---|---|---|---|---|---|---|---|
+| An image of a table only | 1 | 2,043 | 471 | 2 | 13 s | 0.0048 | 0.0048 |
+| With a text layer (10 documents in one file) | 18 | 46,436 | 8,024 | 19 | 53 s | 0.095 | 0.0053 |
+| The same kind of text drawn as images | 10 | 21,618 | 6,347 | 11 | 33 s | 0.059 | 0.0059 |
+- It costs about 0.005 to 0.006 USD per page. A PDF with a text layer used tokens like an image-only PDF, which matches the documentation's statement that every PDF is read by the foundation model.
+- Accuracy is the share of source lines found in the parsed chunks (ignoring spaces and symbols): 98.9% with a text layer (269 of 272 lines) and 93.7% for image-only (192 of 205 lines). The chunks were retrieved with four queries per document, so lines that were not retrieved count as missing. The real accuracy is probably at least this high.
+- Not measured: reading figures and charts, PDFs of hundreds of pages, and the effect of `parsingPrompt`.
+#### Translation language
+One English paragraph (with numbers and an email address) was translated into the 12 non-English targets. On the first pass the detected language matched the target for 10 of 12. Asking for Japanese sometimes returned English, and asking for Thai sometimes returned Vietnamese. Repeating the same request, Japanese came back as English in 3 of 6 runs and Thai as Vietnamese in 1 of 5. The email address and the numbers were kept in all 12 languages.
+- Fix: the system prompt now says the translation must be written in the target language and the input must not be returned unchanged or in another language, and the task is stated again after the input.
+- I compared before and after by calling Bedrock directly, 12 languages × 8 runs each. Japanese went from 4 / 8 to 8 / 8 and Thai from 7 / 8 to 8 / 8. Traditional Chinese stayed at 7 / 8 (the language detector may have confused it with Simplified; I did not check).
+- I did not re-check through the deployed screen, because the environment had been removed.
+#### Streaming transcription (Amazon Transcribe, `ja-JP`, speaker labels)
+A fictional meeting of 16 sentences and about 97 seconds, voiced with two Polly voices (Kazuha and Takumi), was sent twice in real time as 16 kHz PCM in 100 ms chunks.
+- The character error rate was 5.7% and 5.9% (spaces and punctuation excluded). With the numbers written the same way (the service returns Arabic numerals where the script has kanji numerals, for example 100,000 yen as digits) it is 3.0% (second run). The errors were word-level: "expense settlement" heard as "production", "approval" heard as a homophone meaning "witness", "make it two stages" heard as "only to stages", and a dropped "percent".
+- Final text appeared after the end of that sentence's audio with a median delay of 1.4 s, a maximum of 2.1 to 2.6 s, and a minimum of 0.37 s. There were about 160 partial results.
+- Speaker labels matched the voice in 15 of 16 turns (Kazuha 8 / 8, Takumi 7 / 8, second run).
+- The charge was about 0.03 USD for two runs of about 97 s (standard streaming in ap-northeast-1, 0.0001667 USD per second).
+- Two synthetic voices, no noise, no overlapping speech. A meeting with human voices and several people talking at once was not measured.
+#### Touch devices
+With Chrome's device emulation (390 × 844, scale 3, touch), `(hover: none)` was true, and the `[@media(hover:none)]:opacity-100` rule for the hover-only actions was in the production bundle. An element with the same classes had opacity 1 on touch and 0 on desktop. The seven real elements did not appear on this screen (no history), so I created elements with the classes. I did not check on a real touch device.
+- **A problem found**: at a width of 390 px the input row of the KB-mode chat does not fit. The right edge of the send button is at 432 px, 42 px outside the 390 px screen. The image drag-and-drop box is 40 px wide and its text runs vertically. In the header the KB tab overlaps the signed-in email address. Not fixed yet.
+#### Teardown
+A Knowledge Base with a data source (with chunking and parsing settings) was removed with `cdk destroy --all --force` and there were 0 `DELETE_FAILED`. Before #301, every teardown of the same configuration stopped at deleting the data source. I emptied the S3 buckets first.
 ## 4. Agent Evaluation Metrics
 
 ### 4.1 Task Success Rate

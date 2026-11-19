@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- **翻訳で、対象の言語と違う言語で返ることがあった**: 日本語への翻訳で英語のまま返ることがあり（同じ依頼 6 回中 3 回）、タイ語への翻訳でベトナム語が返ることがあった（5 回中 1 回）。システムのプロンプトに、翻訳は対象の言語で書くことと、入力をそのまま返さないことを足し、入力の後ろにも対象の言語を示すようにした。日本語は 4/8 → 8/8、タイ語は 7/8 → 8/8（Bedrock を直接呼んだ 8 回ずつの比較）
+- **規模を大きくした測定を [評価 3.22](docs/evaluation.md) に記録**: クエリ分解、リランキング、基盤モデルによるパース（1 ページあたり約 0.005〜0.006 USD）、ストリーミングの文字起こし、タッチ端末。390 px の幅でチャットの入力欄の行が画面の外に出る問題も見つかった（未修正）
 ### Added
 - **PWA（インストールとオフラインのページ）**: サービスワーカー `public/sw.js`、`offline.html`、アイコン 3 種を追加し、`manifest.json` の空だった `icons` を埋めた（存在しない `/chatbot` を指す `share_target` は削除）。キャッシュするのは全利用者で同じ内容のビルドの成果物、アイコン、オフラインのページだけで、API の応答・認証・ページは保存しない。本番のビルドでだけ登録する。`/sw.js`・`/offline.html`・`/icons` はミドルウェアで認証なしにした
 - **`docs/realtime-transcription-options.md`（JA/EN）**: 話している最中の文字起こし（リアルタイム）の選択肢（Transcribe のストリーミング 3 通り、Nova Sonic、ブラウザ内蔵の認識、今のバッチ）を、認証・音声の行き先・動かすもの・上限・料金の観点で並べた。実装はしておらず、このリポジトリとしての選択も決めていない

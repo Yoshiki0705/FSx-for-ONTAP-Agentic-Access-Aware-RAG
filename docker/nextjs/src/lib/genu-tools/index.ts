@@ -17,6 +17,7 @@ import {
   proofreadPrompt,
   renderTemplate,
   translatePrompt,
+  translateUserMessage,
   useCaseSystemPrompt,
   webExtractPrompt,
   wrapInput,
@@ -97,9 +98,10 @@ async function toolInput(userId: string, body: Body): Promise<{ text: string; so
 export async function runTool(tool: string, userId: string, body: Body): Promise<Record<string, unknown>> {
   switch (tool) {
     case 'translate': {
-      const system = translatePrompt(str(body, 'target') || 'en', str(body, 'style') || 'as-is', str(body, 'note'));
+      const target = str(body, 'target') || 'en';
+      const system = translatePrompt(target, str(body, 'style') || 'as-is', str(body, 'note'));
       const input = await toolInput(userId, body);
-      const out = await generateText({ system, user: wrapInput(input.text), maxTokens: 8192 });
+      const out = await generateText({ system, user: translateUserMessage(input.text, target), maxTokens: 8192 });
       return { result: out.text, sources: input.sources, modelId: out.modelId };
     }
     case 'proofread': {
