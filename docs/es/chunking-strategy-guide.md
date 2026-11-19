@@ -1,8 +1,6 @@
 # Guía de selección de la estrategia de fragmentación
 
 **🌐 Language:** [日本語](../chunking-strategy-guide.md) | [English](../en/chunking-strategy-guide.md) | [한국어](../ko/chunking-strategy-guide.md) | [简体中文](../zh-CN/chunking-strategy-guide.md) | [繁體中文](../zh-TW/chunking-strategy-guide.md) | [Français](../fr/chunking-strategy-guide.md) | [Deutsch](../de/chunking-strategy-guide.md) | **Español**
-<!-- i18n:abridged -->
-> **⚠ Traducción parcial**: esta traducción cubre solo una parte del original japonés. Consulte la [versión japonesa](../chunking-strategy-guide.md) para el contenido completo.
 
 **Creado**: 2026-06-07  
 **Estado**: Primera edición  
@@ -121,8 +119,9 @@ grep kbChunkingStrategy cdk.context.json
 # 3. Revisar el diff de CDK
 npx cdk diff ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
 
-# 4. Desplegar (solo actualiza la configuración de la fuente de datos)
+# 4. Desplegar (solo cambia la salida KbIngestionConfig; una fuente de datos existente no cambia)
 npx cdk deploy ${STACK_PREFIX}-AI -c kbChunkingStrategy=SEMANTIC
+# 4b. La fragmentación no se puede cambiar tras la creación: elimine la fuente de datos y vuelva a crearla con setup-kb-datasource.sh
 
 # 5. Resincronizar la fuente de datos (obligatorio)
 aws bedrock-agent start-ingestion-job \
@@ -152,6 +151,20 @@ Después de cambiar la estrategia, mida siempre:
 3. **Tiempo de respuesta**: revise las latencias P50/P95/P99 en CloudWatch.
 4. **Coste**: compare la suma del coste de ingesta y el de consulta.
 
+---
+
+## Análisis de PDF con un modelo fundacional (opcional)
+Con `-c kbParsingStrategy=BEDROCK_FOUNDATION_MODEL`, la fuente de datos de la Knowledge Base lee los PDF con un modelo fundacional. El valor predeterminado (`DEFAULT`) es el analizador predeterminado de Bedrock, que solo lee la capa de texto de un PDF: los PDF formados solo por imágenes y el texto dentro de tablas o figuras no se ingieren.
+| Ajuste | Valor predeterminado | Qué hace |
+|---|---|---|
+| `kbParsingStrategy` | `DEFAULT` | `DEFAULT` \| `BEDROCK_FOUNDATION_MODEL`. `BEDROCK_DATA_AUTOMATION` se rechaza en synth (la documentación lo indica solo como versión preliminar en US West (Oregon)) |
+| `kbParsingModelId` | `jp.anthropic.claude-haiku-4-5-20251001-v1:0` | El modelo de análisis (un perfil de inferencia en Tokio o un ID de modelo). Sirven los modelos Claude, Nova y Llama 4 con capacidad de visión |
+| `kbParsingPrompt` | (ninguno) | Instrucciones de lectura (de 1 a 10.000 caracteres), por ejemplo para producir las tablas en Markdown |
+**[documented]** Elegir un modelo fundacional como analizador envía **todos los PDF** de la fuente de datos a ese modelo, incluso los PDF que solo contienen texto, y se cobran los tokens de entrada y de salida ([opciones de análisis](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-advanced-parsing.html)). Los archivos que no son PDF (`.md`, `.txt`, etc.) siguen con el analizador predeterminado. Un documento cuyo análisis falla vuelve al analizador predeterminado.
+**Permisos**: `.metadata.json` se asocia a cada documento, así que cambiar de analizador no cambia los permisos. El texto extraído por el analizador lleva los `allowed_group_sids` de su documento de origen, y el filtro SID se sigue ejecutando una sola vez sobre los resultados de búsqueda. `parsingModality` (`MULTIMODAL`) no se establece, porque colocaría las figuras extraídas en un almacén aparte sin información de permisos.
+**IAM del rol de la KB**: solo cuando se elige un modelo fundacional, el rol de la KB recibe `bedrock:GetInferenceProfile` sobre el perfil de inferencia (Bedrock lo llama al crear la fuente de datos; sin él, la creación falla con `ValidationException`) y `bedrock:InvokeModel` sobre el perfil y su modelo fundacional. Con un perfil de inferencia entre regiones, la entrada del análisis puede procesarse en otra región.
+**Cómo se aplica**: los scripts que crean la fuente de datos (`post-deploy-setup.sh`, `setup-kb-datasource.sh`) pasan la salida `KbIngestionConfig` de la pila AI (fragmentación y análisis en un solo JSON) como `--vector-ingestion-configuration`. La fuente de datos la crean los scripts, no CDK, por lo que **un despliegue de CDK por sí solo no cambia una fuente de datos existente**. La fragmentación no se puede cambiar tras la creación ([documented](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-ds-update.html)); para cambiarla, vuelva a crear la fuente de datos y sincronícela de nuevo. Trate el análisis igual: durante la eliminación, `UpdateDataSource` se rechazó con «cannot be updated once created» al omitir la configuración de análisis (observado en una eliminación real). No se probó una actualización que cambie el valor.
+> **Cambio en la fragmentación predeterminada**: los scripts anteriores no pasaban `KbChunkingConfig`, por lo que las fuentes de datos se creaban con el valor predeterminado de Bedrock (300 tokens, 20 % de solapamiento). A partir de ahora se pasa el `FIXED_SIZE` predeterminado con 300 tokens y 10 % de solapamiento. Las fuentes de datos existentes no cambian; la diferencia se aplica cuando se vuelve a crear una.
 ---
 
 ## Implementación en CDK
