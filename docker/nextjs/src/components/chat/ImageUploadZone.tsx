@@ -112,7 +112,7 @@ export function ImageUploadZone({
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         className={`
-          flex-1 rounded-md border-2 border-dashed px-3 py-2 text-center text-xs transition-colors
+          hidden sm:block flex-1 rounded-md border-2 border-dashed px-3 py-2 text-center text-xs transition-colors
           ${isDragging ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-600'}
           ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
         `}
