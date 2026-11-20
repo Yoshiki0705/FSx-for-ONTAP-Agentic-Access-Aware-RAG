@@ -93,6 +93,6 @@
   },
   "overrides": {
     "postcss": "$postcss",
-    "@swc/helpers": "0.5.15"
+    "@swc/helpers": "0.5.24"
   }
 }
