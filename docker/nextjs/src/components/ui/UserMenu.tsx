@@ -49,10 +49,11 @@ export function UserMenu({ username, locale, onSignOut }: UserMenuProps) {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-haspopup="true"
+        aria-label={username || undefined}
         className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
       >
         <User className="h-4 w-4" />
-        <span className="truncate max-w-[120px]">{username}</span>
+        <span className="hidden sm:inline truncate max-w-[120px]">{username}</span>
       </button>
 
       {isOpen && (

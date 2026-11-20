@@ -2180,7 +2180,7 @@ function ChatbotPageContent() {
                 </button>
 
                 {/* アプリタイトル */}
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate flex-shrink-0">{translations.title}</h1>
+                <h1 className="hidden sm:block text-lg font-semibold text-gray-900 dark:text-gray-100 truncate flex-shrink-0">{translations.title}</h1>
 
                 {/* UnifiedModeToggle (KB / Single Agent / Multi Agent) */}
                 <UnifiedModeToggle

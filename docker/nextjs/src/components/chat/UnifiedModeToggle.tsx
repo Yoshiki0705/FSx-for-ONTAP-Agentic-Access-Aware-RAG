@@ -153,8 +153,7 @@ export default function UnifiedModeToggle({
         ref={groupRef}
         role="radiogroup"
         aria-label={ariaLabel}
-        className="inline-flex items-center rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5"
-        style={{ minWidth: '280px' }}
+        className="inline-flex items-center rounded-lg bg-gray-100 dark:bg-gray-800 p-0.5 sm:min-w-[280px]"
       >
         {MODES.map((m) => {
           const isActive = mode === m;
@@ -179,14 +178,13 @@ export default function UnifiedModeToggle({
               onClick={() => handleSelect(m)}
               onKeyDown={handleKeyDown}
               className={`
-                inline-flex items-center justify-center rounded-md px-3 py-1.5
-                text-sm font-medium transition-colors
+                inline-flex items-center justify-center rounded-md px-2 sm:px-3 py-1.5
+                text-xs sm:text-sm font-medium whitespace-nowrap sm:min-w-[80px] transition-colors
                 focus-visible:outline-none focus-visible:ring-2
                 focus-visible:ring-blue-500 focus-visible:ring-offset-1
                 ${getActiveStyles(m, isActive)}
                 ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               `}
-              style={{ minWidth: '80px' }}
             >
               <span>{DISPLAY_LABELS[m]}</span>
             </button>
