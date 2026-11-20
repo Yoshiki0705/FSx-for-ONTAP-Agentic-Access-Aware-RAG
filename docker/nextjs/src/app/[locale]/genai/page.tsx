@@ -2180,7 +2180,7 @@ function ChatbotPageContent() {
                 </button>
 
                 {/* アプリタイトル */}
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate flex-shrink-0">{translations.title}</h1>
+                <h1 className="hidden sm:block text-lg font-semibold text-gray-900 dark:text-gray-100 truncate flex-shrink-0">{translations.title}</h1>
 
                 {/* UnifiedModeToggle (KB / Single Agent / Multi Agent) */}
                 <UnifiedModeToggle
@@ -2474,7 +2474,7 @@ function ChatbotPageContent() {
                 <ImagePreview image={attachedImage} onRemove={() => setAttachedImage(null)} />
               </div>
             )}
-            <form onSubmit={handleSendMessage} className="flex space-x-3 max-w-4xl mx-auto">
+            <form onSubmit={handleSendMessage} className="flex space-x-2 sm:space-x-3 max-w-4xl mx-auto">
               <ImageUploadZone
                 onImageSelected={(img) => setAttachedImage(img)}
                 onError={(err) => console.warn('[ImageUpload]', err)}
@@ -2514,7 +2514,7 @@ function ChatbotPageContent() {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder={translations.inputPlaceholder}
-                className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-sm"
+                className="flex-1 min-w-0 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                 disabled={isLoading}
               />
               <VoiceButton
@@ -2526,7 +2526,7 @@ function ChatbotPageContent() {
               <button
                 type="submit"
                 disabled={isLoading || !inputText.trim()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                className="flex-shrink-0 px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
               >
                 {translations.send}
               </button>
