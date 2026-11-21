@@ -6,7 +6,7 @@
  * ローカル Bedrock Agent のメタデータを AgentCore Registry に登録する。
  * - GetAgent で Agent メタデータを取得
  * - CreateResource で Registry に登録
- * - 承認ステータス（PENDING_APPROVAL）を返却
+ * - 承認ステータス（PENDING_APPROVAL または、自動承認のレジストリでは PUBLISHED）を返却
  *
  * Requirements: 5.1, 5.2, 5.5, 8.3
  */
@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
     const response: RegistryPublishResponse = {
       success: true,
       resourceId: publishResult.resourceId,
-      status: 'PENDING_APPROVAL',
+      // APPROVED when the registry approves automatically, otherwise a curator has to.
+      status: publishResult.status === 'APPROVED' ? 'PUBLISHED' : 'PENDING_APPROVAL',
     };
 
     return NextResponse.json(response);
