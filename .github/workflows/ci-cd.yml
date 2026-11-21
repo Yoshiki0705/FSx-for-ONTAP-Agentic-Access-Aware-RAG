@@ -366,6 +366,8 @@ jobs:
               -c svmId=svm-0123456789abcdef0
           - name: monitoring
             flags: '-c enableMonitoring=true'
+          - name: agent-registry
+            flags: '-c enableAgentRegistry=true'
           - name: voice-chat-webrtc
             flags: '-c enableVoiceChat=true -c voiceChatMode=webrtc'
           - name: guardrails-gateway-websearch
