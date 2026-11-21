@@ -699,6 +699,13 @@ export class DemoWebAppStack extends cdk.Stack {
           `arn:aws:bedrock-agentcore:${registryRegion}:${cdk.Aws.ACCOUNT_ID}:*`,
         ],
       }));
+      NagSuppressions.addResourceSuppressions(this.webAppFunction, [
+        {
+          id: 'AwsSolutions-IAM5',
+          reason: 'Registries and registry records are created at run time through CreateRegistry and CreateRegistryRecord, so their ARNs do not exist at synth time. The grant is limited to the ten registry actions listed above and to one account and one Region.',
+          appliesTo: [{ regex: '/^Resource::arn:aws:bedrock-agentcore:.+:<AWS::AccountId>:\\*$/g' }],
+        },
+      ], true);
     }
 
     // Lambda から permission-audit テーブルに書き込むために必要。

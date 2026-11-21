@@ -25,6 +25,7 @@ npx cdk synth --quiet -c enableTransferFamily=true \
   -c transferFamilyS3ApAlias=ci-dummy-alias -c kbDataSourceId=CIDUMMYDS1
 npx cdk synth --quiet -c enableKbAutoSync=true
 npx cdk synth --quiet -c enableMonitoring=true
+npx cdk synth --quiet -c enableAgentRegistry=true
 npx cdk synth --quiet -c enableVoiceChat=true -c voiceChatMode=webrtc
 npx cdk synth --quiet -c enableGuardrails=true -c enableAgentCoreGateway=true -c enableWebSearch=true
 npx cdk synth --quiet -c enableAgent=true -c enableAgentCoreGateway=true -c enableAgentOptimization=true
