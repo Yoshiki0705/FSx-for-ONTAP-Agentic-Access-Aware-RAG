@@ -68,6 +68,7 @@
 
 - 同一 SVM 内でも SnapMirror 関係の作成・ブレーク・再同期が正常に動作
 - 関係作成後、明示的に `/transfers` POST で初期転送を開始する必要がある
+- The Cyber Resilience Patterns repository's [recovery measurement results](https://github.com/Yoshiki0705/FSx-for-ONTAP-Cyber-Resilience-Patterns/blob/main/docs/en/recovery-measurement-results.md#relation-to-earlier-records) cite this record among the earlier records that each recovery measurement builds on. Its values are not copied there.
 
 ### CloudWatch メトリクス
 
