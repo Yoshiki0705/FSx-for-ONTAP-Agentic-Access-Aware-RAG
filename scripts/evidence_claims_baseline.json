@@ -1,0 +1,279 @@
+{
+  "$comment": [
+    "Claims of vendor absence that predate scripts/check_evidence_claims.py.",
+    "Not an approval. The gate ratchets: nothing new may be added without a",
+    "ledger entry, and an entry here that no longer matches any line fails too,",
+    "so a line cannot be edited while leaving its old fingerprint behind.",
+    "Shrinking this file is the work. Regenerate with --update-baseline only",
+    "after deciding that each newly added line genuinely predates the gate."
+  ],
+  "baseline": {
+    "AGENTS.md": [
+      "78f2b5583a",
+      "b7e74812bf"
+    ],
+    "CHANGELOG.md": [
+      "31e426b56b",
+      "5aef781b6c",
+      "60b79f5e42",
+      "6358a3e170",
+      "63cf275cf0",
+      "aa6e3ae69f",
+      "aded558827",
+      "b3b41ab0b3",
+      "e3405858ae",
+      "ee2de1c278",
+      "ee47e8ab15"
+    ],
+    "automation/fsxn-ops/README.ja.md": [
+      "02ad713613",
+      "17a3d1804f",
+      "20e8a9ba48",
+      "2518c2568b",
+      "6347cc09bd"
+    ],
+    "automation/fsxn-ops/README.md": [
+      "0c10b09e7a",
+      "67be7d7db8"
+    ],
+    "demo-data/guides/cleanup-guide.md": [
+      "200a1d1646",
+      "4fd2c596dc"
+    ],
+    "demo-data/guides/demo-scenario.md": [
+      "d4dfa25bdf"
+    ],
+    "demo-data/guides/ontap-setup-guide.md": [
+      "433a511d70"
+    ],
+    "docs/SID-Filtering-Architecture.md": [
+      "00a4f092d6",
+      "4bc519711e",
+      "4e86a35273"
+    ],
+    "docs/architecture-decision-records.md": [
+      "d3e8192b83"
+    ],
+    "docs/articles/ja/devto-01-permission-aware-rag-overview.md": [
+      "8ef28c7860"
+    ],
+    "docs/auth-and-user-management.md": [
+      "6bf3f9ac2c",
+      "e1fe2d98a7"
+    ],
+    "docs/chunking-strategy-guide.md": [
+      "e456bba403"
+    ],
+    "docs/de/demo-environment-guide.md": [
+      "884d87231e"
+    ],
+    "docs/de/embedding-server-design.md": [
+      "4ff8820989"
+    ],
+    "docs/de/implementation-overview.md": [
+      "0af22b0acf",
+      "eb6f505f7d"
+    ],
+    "docs/demo-environment-guide.md": [
+      "03ccb6c48e",
+      "6e960ed0ae"
+    ],
+    "docs/deployment-guide.ja.md": [
+      "521201484c",
+      "a1474968ab",
+      "fe73d18ec5"
+    ],
+    "docs/deployment-guide.md": [
+      "7be467b6e7",
+      "941b60dd1f"
+    ],
+    "docs/deployment-troubleshooting.md": [
+      "2c28253044"
+    ],
+    "docs/en/SID-Filtering-Architecture.md": [
+      "12528632ed",
+      "1485978fa1",
+      "32a8fd8364",
+      "e07974fc2a"
+    ],
+    "docs/en/architecture-decision-records.md": [
+      "97ae7db470"
+    ],
+    "docs/en/auth-and-user-management.md": [
+      "341aff53c9"
+    ],
+    "docs/en/demo-environment-guide.md": [
+      "884d87231e"
+    ],
+    "docs/en/deployment-troubleshooting.md": [
+      "23b815ad59"
+    ],
+    "docs/en/embedding-server-design.md": [
+      "4ff8820989",
+      "e148a4d0ec"
+    ],
+    "docs/en/evaluation.md": [
+      "67dc50e9cd"
+    ],
+    "docs/en/feedback-and-feature-gate-operations.md": [
+      "1ee17bd807",
+      "47009c43ab",
+      "a8ee0fc3dc"
+    ],
+    "docs/en/implementation-overview.md": [
+      "0af22b0acf",
+      "9391c5a509",
+      "eb6f505f7d"
+    ],
+    "docs/en/mcp-external-tool-selection.md": [
+      "3d97288ae4",
+      "7f24990704"
+    ],
+    "docs/en/mcp-flows-threat-model.md": [
+      "238090cbab",
+      "864515ce2a",
+      "c78840e130"
+    ],
+    "docs/en/next-generation-features-design.md": [
+      "27a89ff00d"
+    ],
+    "docs/en/operations-runbook.md": [
+      "e9399dbf52"
+    ],
+    "docs/en/permission-consistency.md": [
+      "87dd143341"
+    ],
+    "docs/en/prompt-caching-investigation.md": [
+      "aac8483bd6"
+    ],
+    "docs/en/realtime-transcription-options.md": [
+      "d1875f5cd7"
+    ],
+    "docs/en/s3-vectors-sid-architecture-guide.md": [
+      "2748156c09",
+      "38c64339f1",
+      "5669e4e97a"
+    ],
+    "docs/en/s3ap-ad-prerequisites.md": [
+      "9b35ab06a5"
+    ],
+    "docs/en/stack-architecture-comparison.md": [
+      "9b02b05e32",
+      "ab34386f08"
+    ],
+    "docs/en/threat-model.md": [
+      "41a68be809"
+    ],
+    "docs/en/transfer-family-partner-onboarding.md": [
+      "017b395847",
+      "0318c34b34"
+    ],
+    "docs/es/demo-environment-guide.md": [
+      "884d87231e"
+    ],
+    "docs/es/embedding-server-design.md": [
+      "4ff8820989"
+    ],
+    "docs/es/implementation-overview.md": [
+      "0af22b0acf",
+      "eb6f505f7d"
+    ],
+    "docs/evaluation.md": [
+      "d80ed99bc6"
+    ],
+    "docs/feedback-and-feature-gate-operations.md": [
+      "cf02bbb6b0"
+    ],
+    "docs/fr/architecture-decision-records.md": [
+      "3a3fb12ce7"
+    ],
+    "docs/fr/embedding-server-design.md": [
+      "4ff8820989"
+    ],
+    "docs/fr/managed-kb-upgrade-path.md": [
+      "a4299d58d2"
+    ],
+    "docs/fr/threat-model.md": [
+      "5310689c39",
+      "d26eb56995"
+    ],
+    "docs/fsxn-sizing-and-performance.md": [
+      "01c9d705b3",
+      "951f5363b4",
+      "fb204abee1",
+      "fc49fa9a8d"
+    ],
+    "docs/implementation-overview.md": [
+      "477847c4e8",
+      "6da67422cf",
+      "e5037d9ce7",
+      "eb02e4cce5"
+    ],
+    "docs/ko/embedding-server-design.md": [
+      "4ff8820989"
+    ],
+    "docs/managed-kb-upgrade-path.md": [
+      "e1d37ebffd"
+    ],
+    "docs/mcp-external-tool-selection.md": [
+      "ae3aa7905c",
+      "ddf2612c50"
+    ],
+    "docs/mcp-flows-threat-model.md": [
+      "37a90f82b0"
+    ],
+    "docs/operations-runbook.md": [
+      "f4c86ce757"
+    ],
+    "docs/partner-deployment-patterns.md": [
+      "7268043efd"
+    ],
+    "docs/permission-consistency.md": [
+      "810582a1fa",
+      "bdd03529f6"
+    ],
+    "docs/poc-workshop-guide.md": [
+      "e83d83b44b"
+    ],
+    "docs/prompt-caching-investigation.md": [
+      "2e9e777203",
+      "7a85ccb31b"
+    ],
+    "docs/s3-vectors-sid-architecture-guide.md": [
+      "09320bf5cd",
+      "5b7a6085d4",
+      "9059c1583a",
+      "a06ef79b36"
+    ],
+    "docs/s3ap-ad-prerequisites.md": [
+      "49bc719abf"
+    ],
+    "docs/threat-model.md": [
+      "41655763a7"
+    ],
+    "docs/transfer-family-partner-onboarding.md": [
+      "356a7106ac",
+      "547766c07d"
+    ],
+    "docs/zh-CN/embedding-server-design.md": [
+      "4ff8820989"
+    ],
+    "docs/zh-CN/threat-model.md": [
+      "12479f7c7b"
+    ],
+    "docs/zh-TW/embedding-server-design.md": [
+      "4ff8820989"
+    ],
+    "lambda/permissions/AD_PERMISSIONS_ANALYSIS.md": [
+      "0e6554c7a5",
+      "7e87e2ebe3"
+    ],
+    "lambda/permissions/FSX_INTEGRATION_OPTIONS.md": [
+      "9961e03140"
+    ],
+    "lambda/permissions/S3_ACCESS_POINTS_ACL_ANALYSIS.md": [
+      "1a76d682ff",
+      "1e60ab2b99"
+    ]
+  }
+}
