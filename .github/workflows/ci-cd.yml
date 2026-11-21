@@ -368,6 +368,8 @@ jobs:
             flags: '-c enableMonitoring=true'
           - name: agent-registry
             flags: '-c enableAgentRegistry=true'
+          - name: agent-registry-scoped
+            flags: '-c enableAgentRegistry=true -c agentRegistryArn=arn:aws:agent-registry:ap-northeast-1:111122223333:registry/ciDummyRegistry1'
           - name: voice-chat-webrtc
             flags: '-c enableVoiceChat=true -c voiceChatMode=webrtc'
           - name: guardrails-gateway-websearch

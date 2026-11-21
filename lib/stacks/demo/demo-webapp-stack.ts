@@ -675,39 +675,45 @@ export class DemoWebAppStack extends cdk.Stack {
       }));
     }
 
-    // AgentCore Registry API 権限（enableAgentRegistry=true 時のみ必要）
-    // Lambda から AgentCore Registry API を呼び出すために必要。
-    // GA版: コントロールプレーン（CRUD）+ データプレーン（検索）
+    // AWS Agent Registry の権限（enableAgentRegistry=true 時のみ必要）
+    // 2026-08-06 に、サービスの名前空間は bedrock-agentcore から agent-registry へ移った。
+    // 旧名前空間は 2026-10-30 に終了する。
+    // https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/registry-faq.html
+    // アプリが使う操作だけを許可する:
+    //   データプレーン: 検索・一覧・読み取り（BatchGet は GetDiscoverableRegistryRecord で認可される）
+    //   コントロールプレーン: レコードの作成・状態の確認・承認の提出・削除（発行と削除）
     if (props.enableAgentRegistry) {
       const registryRegion = props.agentRegistryRegion || cdk.Aws.REGION;
+      // agentRegistryArn が渡されたときは、そのレジストリだけに絞る。
+      // レジストリは CDK の外で作るので、渡されなければ同じアカウントとリージョンの全レジストリになる。
+      const registryArns = props.agentRegistryArn
+        ? [props.agentRegistryArn, `${props.agentRegistryArn}/record/*`]
+        : [
+            `arn:aws:agent-registry:${registryRegion}:${cdk.Aws.ACCOUNT_ID}:registry/*`,
+            `arn:aws:agent-registry:${registryRegion}:${cdk.Aws.ACCOUNT_ID}:registry/*/record/*`,
+          ];
       this.webAppFunction.addToRolePolicy(new iam.PolicyStatement({
         actions: [
-          // データプレーン（検索）
-          'bedrock-agentcore:SearchRegistryRecords',
-          // コントロールプレーン（CRUD）
-          'bedrock-agentcore:CreateRegistry',
-          'bedrock-agentcore:GetRegistry',
-          'bedrock-agentcore:CreateRegistryRecord',
-          'bedrock-agentcore:GetRegistryRecord',
-          'bedrock-agentcore:ListRegistryRecords',
-          'bedrock-agentcore:UpdateRegistryRecord',
-          'bedrock-agentcore:DeleteRegistryRecord',
-          'bedrock-agentcore:UpdateRegistryRecordStatus',
-          'bedrock-agentcore:SubmitRegistryRecordForApproval',
+          // データプレーン
+          'agent-registry:SearchDiscoverableRegistryRecords',
+          'agent-registry:ListDiscoverableRegistryRecords',
+          'agent-registry:GetDiscoverableRegistryRecord',
+          // コントロールプレーン
+          'agent-registry:CreateRegistryRecord',
+          'agent-registry:GetRegistryRecord',
+          'agent-registry:SubmitRegistryRecordForApproval',
+          'agent-registry:DeleteRegistryRecord',
         ],
-        resources: [
-          `arn:aws:bedrock-agentcore:${registryRegion}:${cdk.Aws.ACCOUNT_ID}:*`,
-        ],
+        resources: registryArns,
       }));
       NagSuppressions.addResourceSuppressions(this.webAppFunction, [
         {
           id: 'AwsSolutions-IAM5',
-          reason: 'Registries and registry records are created at run time through CreateRegistry and CreateRegistryRecord, so their ARNs do not exist at synth time. The grant is limited to the ten registry actions listed above and to one account and one Region.',
-          appliesTo: [{ regex: '/^Resource::arn:aws:bedrock-agentcore:.+:<AWS::AccountId>:\\*$/g' }],
+          reason: 'Registry records are created at run time, so their ARNs do not exist at synth time. The grant is limited to the seven registry actions listed above, to one account and one Region, and to a single registry when agentRegistryArn is set.',
+          appliesTo: [{ regex: '/^Resource::.*agent-registry.*\\*$/g' }],
         },
       ], true);
     }
-
     // Lambda から permission-audit テーブルに書き込むために必要。
     // permissionAuditTableName が渡されている場合のみ追加（CDK条件付き）。
     if (props.permissionAuditTableName) {

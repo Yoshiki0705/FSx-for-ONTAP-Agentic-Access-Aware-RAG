@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- **Agent Registry を、新しい `agent-registry` 名前空間に移した**: AWS Agent Registry は 2026-08-06 に `bedrock-agentcore` から専用の名前空間へ移り、旧名前空間は 2026-10-30 に終了した（2026-08-06 にレジストリを持っていなかったアカウントは、旧名前空間をそもそも使えない）。旧クライアントは Registry タブで `400 Bad Request` を返していた。`registry-client.ts` を `@aws-sdk/client-agent-registry` と `-control` に書き換え、手書きの SigV4 署名と、宣言のない依存（`@smithy/signature-v4` など）への依存を、このクライアントから外した。検索は `SearchDiscoverableRegistryRecords`（空のクエリは新しい順）、詳細は `BatchGetDiscoverableRegistryRecord`、発行は `CreateRegistryRecord`、作成の完了待ち、`SubmitRegistryRecordForApproval` の順、削除は `DeleteRegistryRecord`。CDK の IAM は `agent-registry:` の 7 操作だけにし、`-c agentRegistryArn` を渡すとそのレジストリだけに絞る。`AGENT_REGISTRY_ARN` が空のときは、API に空の ID を送らず、設定の案内つきのエラー（503）にする。実在のレジストリ（東京）で、検索・種類の絞り込み・詳細・見つからないとき・発行（自動承認）・削除を確認した。**既存のレジストリのデータは自動では移らない**（AWS の移行ガイドの手順で移す）
 ### Fixed
 - **390 px の幅で、ヘッダーの「KB」のタブとメールアドレスが重なっていた**: 幅 640 px 未満ではタイトルとメールアドレスの文字を隠し（`aria-label` でボタンの名前は残す）、モード切替の最小幅 280 px と 80 px を `sm` 以上に限り、小さい画面では文字を小さくした。同じクラスの HTML で、390 px のモード切替の右端が 444 px から 245 px になった。Agent モードのエージェント選択は確認に含めていない
 - **390 px の幅で、チャットの入力欄の行が画面の外に出ていた**: 幅 640 px 未満では画像のドロップ欄を隠し（クリップのボタンは残る）、入力欄に `min-w-0` を付けて縮められるようにし、送信ボタンの横の余白を狭めた。同じクラスの HTML で、390 px の送信ボタンの右端が 468 px から 374 px になり、768 px は変わらないことを確認した。デプロイした画面での再測定はしていない

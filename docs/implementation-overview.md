@@ -939,31 +939,31 @@ Authentication Flow
 
 ---
 
-## 14. Agent Registry 統合 — AWS Agent Registry（AgentCore）連携
+## 14. Agent Registry 統合 — AWS Agent Registry 連携
 
 ### 実装内容
 
-Agent Directory（`/[locale]/genai/agents`）に「Registry」タブを追加し、AWS Agent Registry（Amazon Bedrock AgentCore）と連携する機能を実装しています。組織内で管理されている Agent、ツール、MCP サーバー等のリソースをセマンティック検索・閲覧・インポート・パブリッシュできます。
+Agent Directory（`/[locale]/genai/agents`）に「Registry」タブを追加し、AWS Agent Registry と連携する機能を実装しています。サービスは 2026-08-06 に `bedrock-agentcore` から専用の `agent-registry` 名前空間へ移り、旧名前空間は 2026-10-30 に終了しました（[移行ガイド](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/registry-faq.html)）。このアプリは新しい名前空間だけを使います。組織内で管理されている Agent、ツール、MCP サーバー等のリソースをセマンティック検索・閲覧・インポート・パブリッシュできます。
 
 ### アーキテクチャ
 
 ```
 ブラウザ (Registry Tab)
-  → /api/bedrock/agent-registry/search   → registry-client.ts → AgentCore Registry API (Agent_Registry_Region)
-  → /api/bedrock/agent-registry/detail   → registry-client.ts → AgentCore Registry API
-  → /api/bedrock/agent-registry/import   → registry-client.ts → AgentCore Registry API + Bedrock Agent API (デプロイリージョン)
-  → /api/bedrock/agent-registry/publish  → registry-client.ts → AgentCore Registry API
+  → /api/bedrock/agent-registry/search   → registry-client.ts → Agent Registry データプレーン (Agent_Registry_Region)
+  → /api/bedrock/agent-registry/detail   → registry-client.ts → Agent Registry データプレーン
+  → /api/bedrock/agent-registry/import   → registry-client.ts → Agent Registry データプレーン + Bedrock Agent API (デプロイリージョン)
+  → /api/bedrock/agent-registry/publish  → registry-client.ts → Agent Registry コントロールプレーン
 ```
 
 ### データフロー
 
-1. **検索フロー**: ユーザーが検索クエリを入力 → 300ms デバウンス → `/api/bedrock/agent-registry/search` → `registry-client.ts` → AgentCore `SearchResources` API → カードグリッド表示
-2. **インポートフロー**: Registry レコード選択 → `/api/bedrock/agent-registry/import` → `GetResource` でメタデータ取得 → `CreateAgent` + `PrepareAgent` + `CreateAgentAlias` でローカル Agent 作成
-3. **パブリッシュフロー**: Agent 詳細パネル → 「Registry にパブリッシュ」 → `/api/bedrock/agent-registry/publish` → `GetAgent` でメタデータ取得 → `CreateResource` で Registry 登録（承認待ちステータス）
+1. **検索フロー**: ユーザーが検索クエリを入力 → 300ms デバウンス → `/api/bedrock/agent-registry/search` → `registry-client.ts` → `SearchDiscoverableRegistryRecords`（空のクエリは新しい順の一覧）→ カードグリッド表示
+2. **インポートフロー**: Registry レコード選択 → `/api/bedrock/agent-registry/import` → `BatchGetDiscoverableRegistryRecord` でメタデータ取得 → `CreateAgent` + `PrepareAgent` + `CreateAgentAlias` でローカル Agent 作成
+3. **パブリッシュフロー**: Agent 詳細パネル → 「Registry にパブリッシュ」 → `/api/bedrock/agent-registry/publish` → `GetAgent` でメタデータ取得 → `CreateRegistryRecord` でカスタムレコードとして登録し、作成が終わるのを待って `SubmitRegistryRecordForApproval` を提出（承認待ち。自動承認のレジストリでは承認済み）
 
 ### クロスリージョンアクセス
 
-Agent Registry（Preview）は 5 リージョン（us-east-1, us-west-2, ap-southeast-2, ap-northeast-1, eu-west-1）で利用可能です。デプロイリージョンが非対応の場合、`agentRegistryRegion` CDK コンテキストパラメータで対応リージョンを指定し、クロスリージョンアクセスを実現します。
+Agent Registry は、プレビューの告知で 5 リージョン（us-east-1, us-west-2, ap-southeast-2, ap-northeast-1, eu-west-1）で利用可能です。デプロイリージョンが非対応の場合、`agentRegistryRegion` CDK コンテキストパラメータで対応リージョンを指定し、クロスリージョンアクセスを実現します。
 
 - Lambda 環境変数 `AGENT_REGISTRY_REGION` で接続先リージョンを制御
 - IAM ポリシーのリソース ARN は指定リージョンに制限
@@ -1463,7 +1463,7 @@ Web アプリをホーム画面や PC にインストールでき、ネットワ
 
 | 機能 | バックエンド→AWS SDK | 実装方式 | GA 時の対応 |
 |------|-------------------|---------|-----------|
-| Agent Registry | SigV4 署名 HTTP | `registry-client.ts` → AgentCore REST API | SDK コマンドに差し替え |
+| Agent Registry | AWS SDK（`@aws-sdk/client-agent-registry`、`-control`） | `registry-client.ts` → `agent-registry` 名前空間の API | 旧名前空間の SigV4 署名 HTTP から差し替え済み |
 | マルチモーダル RAG | AWS SDK v3 | `BedrockAgentRuntimeClient` + `RetrieveCommand` | 対応不要（完全実装） |
 | Guardrails | AWS SDK v3 | `BedrockClient` + `ListGuardrailsCommand` / `GetGuardrailCommand` | 対応不要（完全実装） |
 | Episodic Memory | AWS SDK v3 | `BedrockAgentCoreClient` + `RetrieveMemoryRecordsCommand` | 対応不要（完全実装） |
@@ -1534,7 +1534,7 @@ Web アプリをホーム画面や PC にインストールでき、ネットワ
 | `enableAdvancedPermissions` | - | `false` | 時間ベースアクセス制御 + 権限判定監査ログ |
 | `enableAgentRegistry` | - | `false` | Agent Registry 統合（Agent Directory に Registry タブを追加） |
 | `agentRegistryRegion` | - | デプロイリージョン | Agent Registry API 呼び出し先リージョン |
-| `agentRegistryArn` | - | (なし) | Agent Registry ARN（事前に `create_registry` で作成が必要） |
+| `agentRegistryArn` | - | (なし) | レジストリ ARN（`arn:aws:agent-registry:<region>:<account>:registry/<id>`。事前に `aws agent-registry-control create-registry` で作成が必要。指定すると IAM の許可もこのレジストリだけになる） |
 | `embeddingModel` | - | `titan-text-v2` | KB 埋め込みモデル（`titan-text-v2` / `nova-multimodal`） |
 | `multimodalKbMode` | - | `replace` | マルチモーダル KB モード（`replace` / `dual`） |
 | `enableVoiceChat` | - | `false` | 音声チャット（Amazon Nova Sonic）を有効化 |

@@ -55,10 +55,13 @@ export function RegistryDetailPanel({ record, onClose }: RegistryDetailPanelProp
 
       {/* Metadata grid */}
       <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-        <div>
-          <span className="text-gray-500 dark:text-gray-400">Publisher</span>
-          <p className="text-gray-900 dark:text-gray-100">{record.publisherName}</p>
-        </div>
+        {/* The registry's data plane does not say who published a record. */}
+        {record.publisherName && (
+          <div>
+            <span className="text-gray-500 dark:text-gray-400">Publisher</span>
+            <p className="text-gray-900 dark:text-gray-100">{record.publisherName}</p>
+          </div>
+        )}
         <div>
           <span className="text-gray-500 dark:text-gray-400">Resource Type</span>
           <p className="text-gray-900 dark:text-gray-100">{record.resourceType}</p>

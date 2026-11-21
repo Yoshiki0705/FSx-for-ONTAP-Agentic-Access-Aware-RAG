@@ -72,10 +72,11 @@
   // "agentRegistryRegion": Agent Registry API 呼び出し先リージョン（デフォルト: デプロイリージョン）
   // デプロイリージョンが Agent Registry 非対応の場合に対応リージョンを指定
   // "agentRegistryRegion": "ap-northeast-1",
-  // "agentRegistryArn": Agent Registry ARN（事前に create_registry で作成が必要）
-  // Preview API のため、CDK 外でレジストリを作成し ARN を指定する
-  // 例: aws bedrock-agentcore-control create-registry --name my-registry --authorizer-type AWS_IAM --region ap-northeast-1
-  // "agentRegistryArn": "arn:aws:bedrock-agentcore:ap-northeast-1:123456789012:registry/xxxxxxxxxx",
+  // "agentRegistryArn": AWS Agent Registry のレジストリ ARN（事前に作成が必要。CDK はレジストリを作らない）
+  // 2026-08-06 に名前空間が bedrock-agentcore から agent-registry へ移り、旧名前空間は 2026-10-30 に終了した。
+  // 例: aws agent-registry-control create-registry --name my-registry --discovery-configuration '{"authorizerType":"AWS_IAM"}' --approval-configuration '{"autoApprovalRules":["APPROVE_ALL"]}' --region ap-northeast-1
+  // 指定すると Lambda の環境変数 AGENT_REGISTRY_ARN になり、IAM の許可もこのレジストリだけに絞られる。
+  // "agentRegistryArn": "arn:aws:agent-registry:ap-northeast-1:123456789012:registry/xxxxxxxxxxxxxxxx",
   // "enableAdvancedPermissions": 時間ベースアクセス制御 + 権限判定監査ログ
   "enableAdvancedPermissions": false,
 

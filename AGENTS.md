@@ -26,6 +26,7 @@ npx cdk synth --quiet -c enableTransferFamily=true \
 npx cdk synth --quiet -c enableKbAutoSync=true
 npx cdk synth --quiet -c enableMonitoring=true
 npx cdk synth --quiet -c enableAgentRegistry=true
+npx cdk synth --quiet -c enableAgentRegistry=true -c agentRegistryArn=arn:aws:agent-registry:ap-northeast-1:111122223333:registry/ciDummyRegistry1
 npx cdk synth --quiet -c enableVoiceChat=true -c voiceChatMode=webrtc
 npx cdk synth --quiet -c enableGuardrails=true -c enableAgentCoreGateway=true -c enableWebSearch=true
 npx cdk synth --quiet -c enableAgent=true -c enableAgentCoreGateway=true -c enableAgentOptimization=true
@@ -212,7 +213,8 @@ bash scripts/verify-docker-image.sh permission-aware-rag-webapp:latest
 | `modelFamilyLight` / `modelFamilyStandard` / `modelFamilyHeavy` / `modelFamilyFallback` / `modelFamilyVoice` | `anthropic.claude-*haiku*` / `anthropic.claude-*sonnet*` / `anthropic.claude-*opus*` / `amazon.nova-*lite*` / `amazon.nova-*sonic*` | Family pattern per tier (`*` wildcard). Each resolves at run time to the newest ACTIVE model of the family in the Region. Validated at synth time |
 | `modelProfilePreference` | `"nearest"` | `"nearest"`: the inference profile with the fewest destination Regions (on-demand → `jp.` → `apac.` → `global.` in Tokyo), and tiers take a model with such a bounded route before a newer global-only one (Tokyo 2026-11-15: standard = `jp.anthropic.claude-sonnet-4-6`, because Sonnet 5.5 is global-only). `"global"`: a `global.` profile when one exists, tiers by newness only. Models called through `global.` are marked in the selectors |
 | `enableGraphRAG` | `false` | Graph RAG with Neptune Analytics (document relationship graph) |
-| `enableAgentRegistry` | `false` | Agent Registry integration |
+| `enableAgentRegistry` | `false` | AWS Agent Registry integration (the `agent-registry` namespace; the old `bedrock-agentcore` one ended 2026-10-30) |
+| `agentRegistryArn` | (none) | ARN of an existing registry (`arn:aws:agent-registry:<region>:<account>:registry/<id>`). CDK does not create it. Becomes `AGENT_REGISTRY_ARN` and narrows the IAM grant to that registry |
 | `enableAdvancedPermissions` | `false` | Time-based access control + audit logging |
 | `enableAdFederation` | `false` | AD SAML federation for Cognito |
 | `adminGroupNames` | `"admins"` | Comma-separated group names that grant the web app's `administrator` role, which changing shared agents, teams, templates, schedules, policies and the registry needs (`docker/nextjs/src/lib/auth/roles.ts`). The first name is created as a Cognito user pool group and must have no whitespace (throws at synth time otherwise); later names match groups a federated IdP sends (`custom:ad_groups` / `custom:oidc_groups`, read only when the ID token has `identities`). Exact match, case-insensitive. The email address and `custom:role` never grant the role |
