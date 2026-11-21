@@ -113,6 +113,21 @@ jobs:
           fi
           echo "✓ No persona-name / internal-ID leaks (changed files)"
 
+      # A claim that a vendor cannot do something, used as a design premise, with nobody
+      # having asked the vendor. Wired into this workflow rather than pr-check.yml, whose
+      # test job is gated on `has-code-changes` -- an unevidenced claim usually arrives in
+      # a .md file, which that gate can skip. Runs on the whole tree, not the changed
+      # files: the baseline is what limits it to new claims, and a changed-files filter
+      # would also miss a stale baseline entry left behind by an edit.
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Check evidence for claims of vendor absence
+        run: |
+          pip install --quiet pytest
+          python3 -m pytest scripts/tests/test_check_evidence_claims.py --tb=short -q
+          python3 scripts/check_evidence_claims.py
       - name: JA/EN section-count parity (warning)
         run: |
           [[ -s changed_md.txt ]] || { echo "✓ no changed .md"; exit 0; }
