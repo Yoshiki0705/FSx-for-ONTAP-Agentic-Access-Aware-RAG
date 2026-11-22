@@ -9,7 +9,7 @@
 - 業種固有の規制要件（個人情報保護法、医療法、金融商品取引法等）の遵守を保証するものではありません
 - 権限フィルタリングと業種別アクセス制御のデモンストレーション目的でのみ使用してください
 
-**規制対象ワークロードでの利用について**: 医療、金融、公共セクターでの本番利用には、顧客固有の法務・コンプライアンス評価が必要です。本サンプルデータは技術検証のみを目的としています。
+**規制対象ワークロードでの利用について**: 医療、金融、公共セクターでの本番利用には、利用者固有の法務・コンプライアンス評価が必要です。本サンプルデータは技術検証のみを目的としています。
 
 ---
 
@@ -22,4 +22,4 @@ All documents in this directory are **fictional sample data**.
 - They do not guarantee compliance with industry-specific regulations (privacy laws, healthcare regulations, financial regulations, etc.)
 - Use only for permission filtering and industry-specific access control demonstration purposes
 
-**For regulated workloads**: Production use in healthcare, finance, or public sector requires customer-specific legal and compliance assessment. This sample data is intended for technical validation only.
+**For regulated workloads**: Production use in healthcare, finance, or public sector requires organization-specific legal and compliance assessment. This sample data is intended for technical validation only.

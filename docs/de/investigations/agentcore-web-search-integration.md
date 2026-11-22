@@ -222,7 +222,7 @@ Konventionen:
 - Zweisprachig Japanisch-Englisch (`docs/investigations/` = Japanisch, `docs/en/investigations/` = Englisch)
 - Die Evidenzstufe mit einer Inline-Kennzeichnung aus der [Evidence Policy](../../en/evidence-policy.md) angeben
 - Stets zu Beginn die Beziehung zu bestehenden Implementierungen klären (das Rad nicht neu erfinden)
-- Neutrale Rahmung (right-tool-for-the-job, nicht competing tools)
+- Neutrale Rahmung (right-tool-for-the-job, andere Ansätze werden als Optionen dargestellt)
 
 ---
 

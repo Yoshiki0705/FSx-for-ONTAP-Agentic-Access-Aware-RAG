@@ -108,7 +108,7 @@
 1. Cognito は CloudFront + Lambda Function URL (IAM Auth) との統合が容易
 2. Post-Authentication Trigger で SID/UID/GID の自動取得・DynamoDB 登録が可能
 3. `authFailureMode=fail-closed` で権限取得失敗時のサインインブロックを実現
-4. 顧客の既存 IdP に合わせてモードを選択できる柔軟性
+4. 利用者の既存 IdP に合わせてモードを選択できる柔軟性
 
 ### 影響
 

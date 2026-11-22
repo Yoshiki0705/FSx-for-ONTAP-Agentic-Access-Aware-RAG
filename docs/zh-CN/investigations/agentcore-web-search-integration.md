@@ -222,7 +222,7 @@ const wafStack = new DemoWafStack(app, `${stackPrefix}-Waf`, {
 - 日英双语（`docs/investigations/` = 日语，`docs/en/investigations/` = 英语）
 - 证据分级以[证据分级策略](../../en/evidence-policy.md)的行内标签标注
 - 务必在开头整理与现有实现的关系（防止重复造轮子）
-- 中立框架（right-tool-for-the-job 而非 competing tools）
+- 中立框架（right-tool-for-the-job，其他方式作为选项呈现）
 
 ---
 

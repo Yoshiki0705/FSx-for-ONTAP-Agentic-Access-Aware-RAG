@@ -15,7 +15,7 @@ cover_image: https://raw.githubusercontent.com/Yoshiki0705/FSx-for-ONTAP-Agentic
 - `npx cdk deploy --all` でフルスタックデプロイ（7 CDK スタック）
 - v4.4: Voice Chat（WebRTC）、Smart Routing、Guardrails、Prompt Caching、エピソード記憶、**cdk-nag AwsSolutions 準拠**を含む [22 機能搭載](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG#features)。Web Search ハイブリッド検索は実装済み・次版リリース予定（[Summit NYC 2026 GA](https://aws.amazon.com/blogs/aws/announcing-web-search-on-amazon-bedrock-agentcore-ground-your-ai-agents-in-current-accurate-web-knowledge/)）
 
-> **Responsible AI note**: 本システムの AI 出力は**補助的なシグナル**です。業務上の最終判断は人間が行います。権限フィルタリングは技術的なアクセス制御であり、法的・コンプライアンス上の判断を代替しません。規制対象ワークロードでの利用には顧客固有の評価が必要です。
+> **Responsible AI note**: 本システムの AI 出力は**補助的なシグナル**です。業務上の最終判断は人間が行います。権限フィルタリングは技術的なアクセス制御であり、法的・コンプライアンス上の判断を代替しません。規制対象ワークロードでの利用には利用者固有の評価が必要です。
 
 👉 **GitHub**: [Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG](https://github.com/Yoshiki0705/FSx-for-ONTAP-Agentic-Access-Aware-RAG)
 
