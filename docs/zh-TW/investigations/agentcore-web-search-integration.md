@@ -222,7 +222,7 @@ const wafStack = new DemoWafStack(app, `${stackPrefix}-Waf`, {
 - 日英雙語（`docs/investigations/` = 日語，`docs/en/investigations/` = 英語）
 - 證據層級以[證據分級政策](../../en/evidence-policy.md)的行內標籤標註
 - 務必在開頭整理與現有實作的關係（防止重複造輪子）
-- 中立框架（right-tool-for-the-job 而非 competing tools）
+- 中立框架（right-tool-for-the-job，其他方式作為選項呈現）
 
 ---
 

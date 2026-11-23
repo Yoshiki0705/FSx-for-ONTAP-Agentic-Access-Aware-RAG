@@ -22,9 +22,9 @@ v4.3 運用強化完了後の次のステップとして、15の方向性を5つ
 **追加実装案**:
 ```
 CDK Pipelines テンプレート:
-  管理アカウント → CodePipeline → 顧客アカウントA/B/C に並行デプロイ
+  管理アカウント → CodePipeline → 利用者アカウントA/B/C に並行デプロイ
   
-  cdk.context.json を顧客ごとに分離:
+  cdk.context.json を利用者ごとに分離:
     configs/customer-a.json
     configs/customer-b.json
     
@@ -32,12 +32,12 @@ CDK Pipelines テンプレート:
     lib/pipeline/multi-tenant-pipeline.ts
 ```
 
-### #3 顧客向けダッシュボード
+### #3 利用者向けダッシュボード
 **ステータス**: 設計
 
 **設計**:
 ```
-CloudWatch Dashboard (顧客向け読み取り専用):
+CloudWatch Dashboard (利用者向け読み取り専用):
   - 日次/週次クエリ数
   - 回答精度（フィードバックベース）
   - 応答時間 P50/P95

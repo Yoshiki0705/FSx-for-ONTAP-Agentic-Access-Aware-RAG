@@ -222,7 +222,7 @@ Conventions :
 - Bilingue japonais-anglais (`docs/investigations/` = japonais, `docs/en/investigations/` = anglais)
 - Indiquer le niveau de preuve avec une étiquette en ligne de la [politique de preuve](../../en/evidence-policy.md)
 - Toujours mettre au point la relation avec les implémentations existantes dès le début (éviter de réinventer la roue)
-- Cadrage neutre (right-tool-for-the-job, et non competing tools)
+- Cadrage neutre (right-tool-for-the-job, les autres approches sont présentées comme des options)
 
 ---
 

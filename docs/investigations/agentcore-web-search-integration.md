@@ -218,7 +218,7 @@ FSx for ONTAP AI/RAG アーキテクチャレビューの非交渉要件に直�
 - 日英バイリンガル（`docs/investigations/` = 日本語、`docs/en/investigations/` = 英語）
 - 証跡の区分を [証跡の区分ポリシー](../evidence-policy.md) の行内ラベルで明示する
 - 既存実装との関係を必ず冒頭で整理（車輪の再発明防止）
-- 中立フレーミング（competing tools ではなく right-tool-for-the-job）
+- 中立フレーミング（right-tool-for-the-job。他の方式は選択肢として示す）
 
 ---
 

@@ -31,7 +31,7 @@
 | [docs/production-readiness-checklist.md](production-readiness-checklist.md) | 本番化チェックリスト（Demo → PoC → Production の成熟度レベル定義、セキュリティ・監査・DR・運用の確認項目、承認者列付き） |
 | [docs/poc-success-criteria-template.md](poc-success-criteria-template.md) | PoC 成功基準テンプレート（ステークホルダー定義、Go/No-Go 判定基準、次フェーズ条件、完了レポートテンプレート） |
 | [docs/data-readiness-assessment.md](data-readiness-assessment.md) | データレディネス評価テンプレート（データ所在・分類・権限構造・品質・コンプライアンス確認、承認フロー） |
-| [docs/partner-faq.md](partner-faq.md) | パートナー FAQ（顧客提案時の12の質問と回答、提案リソース一覧） |
+| [docs/partner-faq.md](partner-faq.md) | パートナー FAQ（利用者への提案時の12の質問と回答、提案リソース一覧） |
 | [docs/permission-consistency.md](permission-consistency.md) | 権限メタデータ変更の整合性モデル（反映経路、最大遅延、ACL 変更が届かない理由、緊急権限剥奪手順） |
 | [docs/fsxn-sizing-and-performance.md](fsxn-sizing-and-performance.md) | FSx for ONTAP 性能・容量設計ガイド（規模別構成、S3 AP考慮点、QoS、ベクトルストア選定） |
 | [docs/partner-deployment-patterns.md](partner-deployment-patterns.md) | マルチテナント・パートナー展開パターン（アカウント分離/SVM分離/ハイブリッド、コスト見積もりテンプレート） |

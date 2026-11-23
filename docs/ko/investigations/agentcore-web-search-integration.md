@@ -222,7 +222,7 @@ FSx for ONTAP AI/RAG 아키텍처 리뷰의 비협상 요건에 직결된다.
 - 일·영 이중 언어(`docs/investigations/` = 일본어, `docs/en/investigations/` = 영어)
 - 증거 구분은 [증거 구분 정책](../../en/evidence-policy.md)의 인라인 라벨로 명시
 - 기존 구현과의 관계를 반드시 서두에서 정리(바퀴의 재발명 방지)
-- 중립적 프레이밍(competing tools가 아니라 right-tool-for-the-job)
+- 중립적 프레이밍(right-tool-for-the-job, 다른 방식은 선택지로 제시)
 
 ---
 

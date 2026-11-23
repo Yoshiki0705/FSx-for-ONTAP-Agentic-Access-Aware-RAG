@@ -104,7 +104,7 @@ npx cdk synth --quiet -c kbChunkingStrategy=NONE
 ```
 
 - `.metadata.json` のSID情報は文書単位で付与される
-- チャンクレベルのPermission差別化は不可（ドキュメント全体に同一Permission）
+- チャンクレベルでPermissionを分けることは不可（ドキュメント全体に同一Permission）
 - 同一ドキュメント内で異なるPermissionが必要な場合、ドキュメントを分割して別ファイルにする
 
 ---

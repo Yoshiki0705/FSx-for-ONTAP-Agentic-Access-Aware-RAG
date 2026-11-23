@@ -218,7 +218,7 @@ Conventions:
 - Bilingual (`docs/investigations/` = Japanese, `docs/en/investigations/` = English)
 - State the evidence tier with an inline label from the [Evidence Policy](../evidence-policy.md)
 - Always reconcile with existing implementations up front (avoid reinventing the wheel)
-- Neutral framing (right-tool-for-the-job, not competing tools)
+- Neutral framing (right-tool-for-the-job, present other approaches as options)
 
 ---
 

@@ -164,7 +164,7 @@ export interface EventDrivenAgentProps {
 | 日次レポートの保存 | S3（暗号化、TTL 90日）に保存 | 運用レポートは監査対象。PII を含まないプロンプト設計が前提 |
 | Guardrails 統合 | Agent 出力に Bedrock Guardrails を適用 | PII 検出・マスキング。`enableGuardrails=true` 時に自動適用 |
 | ログ出力 | CloudWatch Logs に Agent 回答を**記録しない** | `prompt` フィールドはログに含めない設計（MOCA パターン準拠） |
-| 医療・公共セクター | Agent 出力の保持期間を顧客ポリシーに合わせて設定 | DynamoDB TTL または S3 Lifecycle で制御 |
+| 医療・公共セクター | Agent 出力の保持期間を利用組織のポリシーに合わせて設定 | DynamoDB TTL または S3 Lifecycle で制御 |
 
 **規制対象ワークロードでの追加推奨:**
 - Guardrails の PII 検出を `HIGH` 感度に設定

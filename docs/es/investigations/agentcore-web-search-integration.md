@@ -222,7 +222,7 @@ Convenciones:
 - Bilingüe japonés-inglés (`docs/investigations/` = japonés, `docs/en/investigations/` = inglés)
 - Indicar el nivel de evidencia con una etiqueta en línea de la [política de evidencia](../../en/evidence-policy.md)
 - Aclarar siempre al principio la relación con las implementaciones existentes (evitar reinventar la rueda)
-- Encuadre neutral (right-tool-for-the-job, no competing tools)
+- Encuadre neutral (right-tool-for-the-job, otras opciones se presentan como alternativas)
 
 ---
 
