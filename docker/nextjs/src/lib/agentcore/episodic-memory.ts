@@ -11,11 +11,20 @@ import {
   BedrockAgentCoreClient,
   RetrieveMemoryRecordsCommand,
   DeleteMemoryRecordCommand,
+  GetMemoryRecordCommand,
 } from '@aws-sdk/client-bedrock-agentcore';
 import type { Episode, EpisodeStep, EpisodeAction, EpisodeOutcome } from '@/types/episode';
 
 const MEMORY_ID = process.env.AGENTCORE_MEMORY_ID || '';
 const AWS_REGION = process.env.AWS_REGION || 'ap-northeast-1';
+
+/** 記録がない、または呼び出した利用者のものではないときに投げる */
+export class EpisodeNotFoundError extends Error {
+  constructor(message = 'Episode not found') {
+    super(message);
+    this.name = 'EpisodeNotFoundError';
+  }
+}
 
 let client: BedrockAgentCoreClient | null = null;
 
@@ -102,6 +111,30 @@ export async function searchEpisodes(query: string, userId: string, limit: numbe
  */
 export async function deleteEpisode(episodeId: string, userId: string): Promise<void> {
   try {
+    if (!userId || !episodeId) {
+      throw new EpisodeNotFoundError();
+    }
+
+    // 削除の前に、記録が呼び出した利用者の名前空間にあることを確かめる。
+    // 名前空間の判定は listEpisodes / searchEpisodes が namespace: userId で検索することに合わせている。
+    // 「ない」と「他の利用者のもの」は同じエラーにする。
+    let namespaces: string[] = [];
+    try {
+      const got = await getClient().send(
+        new GetMemoryRecordCommand({ memoryId: MEMORY_ID, memoryRecordId: episodeId })
+      );
+      namespaces = got?.memoryRecord?.namespaces ?? [];
+    } catch (error: any) {
+      if (error?.name === 'ResourceNotFoundException') {
+        throw new EpisodeNotFoundError();
+      }
+      throw error;
+    }
+    const owned = namespaces.some((ns) => ns === userId || ns.startsWith(`${userId}/`));
+    if (!owned) {
+      throw new EpisodeNotFoundError();
+    }
+
     const command = new DeleteMemoryRecordCommand({
       memoryId: MEMORY_ID,
       memoryRecordId: episodeId,

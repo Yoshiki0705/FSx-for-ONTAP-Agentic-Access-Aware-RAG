@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/agentcore/auth';
-import { listEpisodes, deleteEpisode } from '@/lib/agentcore/episodic-memory';
+import { listEpisodes, deleteEpisode, EpisodeNotFoundError } from '@/lib/agentcore/episodic-memory';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +83,12 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    if (error instanceof EpisodeNotFoundError) {
+      return NextResponse.json(
+        { success: false, error: 'Episode not found' },
+        { status: 404 }
+      );
+    }
     console.error('[Episodes API] 削除エラー:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to delete episode' },

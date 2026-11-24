@@ -591,7 +591,7 @@ Flux d'authentification
 | Élément | Contrainte | Résolution |
 |---------|-----------|------------|
 | Memory Name | `^[a-zA-Z][a-zA-Z0-9_]{0,47}` (tirets non autorisés) | `prefix.replace(/-/g, '_')` pour la conversion |
-| EventExpiryDuration | Jours (min : 3, max : 365) | 3 jours (valeur minimale) |
+| EventExpiryDuration | Jours (min : 3, max : 3650, [CreateMemory](https://docs.aws.amazon.com/bedrock-agentcore-control/latest/APIReference/API_CreateMemory.html)) | 3 jours (valeur minimale) |
 | Service Principal | `bedrock-agentcore.amazonaws.com` | Pas `bedrock.amazonaws.com` |
 | Format des Tags | Map `{ key: value }` | Remplacer le format tableau par défaut de CDK avec `addPropertyOverride` |
 | actorId | `[a-zA-Z0-9][a-zA-Z0-9-_/]*` | Remplacer `@` et `.` dans les adresses e-mail |

@@ -899,7 +899,7 @@ Authentication Flow
 | Item | Constraint | Resolution |
 |------|-----------|------------|
 | Memory Name | `^[a-zA-Z][a-zA-Z0-9_]{0,47}` (no hyphens allowed) | `prefix.replace(/-/g, '_')` for conversion |
-| EventExpiryDuration | Days (min: 3, max: 365) | 3 days (minimum value) |
+| EventExpiryDuration | Days (min: 3, max: 3650, [CreateMemory](https://docs.aws.amazon.com/bedrock-agentcore-control/latest/APIReference/API_CreateMemory.html)) | 3 days (minimum value) |
 | Service Principal | `bedrock-agentcore.amazonaws.com` | Not `bedrock.amazonaws.com` |
 | Tags Format | Map `{ key: value }` | Override CDK default array format with `addPropertyOverride` |
 | actorId | `[a-zA-Z0-9][a-zA-Z0-9-_/]*` | Replace `@` and `.` in email addresses |
