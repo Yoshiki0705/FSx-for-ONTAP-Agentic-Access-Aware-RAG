@@ -894,7 +894,7 @@ Authentication Flow
 | 項目 | 制約 | 対応 |
 |------|------|------|
 | Memory Name | `^[a-zA-Z][a-zA-Z0-9_]{0,47}$`（ハイフン不可） | `prefix.replace(/-/g, '_')` で変換 |
-| EventExpiryDuration | 日数（min: 3, max: 365） | 3日間（最小値） |
+| EventExpiryDuration | 日数（min: 3, max: 3650、[CreateMemory](https://docs.aws.amazon.com/bedrock-agentcore-control/latest/APIReference/API_CreateMemory.html)） | 3日間（最小値） |
 | サービスプリンシパル | `bedrock-agentcore.amazonaws.com` | `bedrock.amazonaws.com` ではない |
 | Tags形式 | マップ `{ key: value }` | CDKデフォルトの配列形式を `addPropertyOverride` で上書き |
 | actorId | `[a-zA-Z0-9][a-zA-Z0-9-_/]*` | メールアドレスの `@` `.` を置換 |

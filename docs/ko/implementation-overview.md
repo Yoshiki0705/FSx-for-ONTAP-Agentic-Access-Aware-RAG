@@ -824,7 +824,7 @@ Next.js API Routes
 | 항목 | 제약 | 해결 방법 |
 |------|------|----------|
 | Memory Name | `^[a-zA-Z][a-zA-Z0-9_]{0,47}` (하이픈 불가) | `prefix.replace(/-/g, '_')`로 변환 |
-| EventExpiryDuration | 일 단위 (최소: 3, 최대: 365) | 3일 (최소값) |
+| EventExpiryDuration | 일 단위 (최소: 3, 최대: 3650, [CreateMemory](https://docs.aws.amazon.com/bedrock-agentcore-control/latest/APIReference/API_CreateMemory.html)) | 3일 (최소값) |
 | Service Principal | `bedrock-agentcore.amazonaws.com` | `bedrock.amazonaws.com`이 아님 |
 | Tags Format | Map `{ key: value }` | CDK 기본 배열 형식을 `addPropertyOverride`로 오버라이드 |
 | actorId | `[a-zA-Z0-9][a-zA-Z0-9-_/]*` | 이메일 주소의 `@`와 `.`를 치환 |
